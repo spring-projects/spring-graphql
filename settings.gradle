@@ -1,0 +1,4 @@
+rootProject.name = 'spring-graphql'
+include 'graphql-java-spring-boot-starter-webmvc'
+include 'graphql-java-spring-webmvc'
+
