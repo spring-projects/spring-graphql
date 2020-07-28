@@ -1,0 +1,15 @@
+description = "GraphQL Java Spring Webmvc integration"
+
+dependencies {
+    compile "org.springframework:spring-webmvc:$springVersion"
+    compile "org.springframework:spring-context:$springVersion"
+    compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    compile "com.graphql-java:graphql-java:$graphqlJavaVersion"
+
+    testCompile("org.assertj:assertj-core:$assertJVersion")
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile "org.springframework:spring-test:$springVersion"
+    testCompile group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.1'
+    testCompile group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
+    testCompile "org.mockito:mockito-core:2.+"
+}
