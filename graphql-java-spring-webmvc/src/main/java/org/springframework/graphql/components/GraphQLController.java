@@ -1,43 +1,49 @@
 package org.springframework.graphql.components;
 
 
-import graphql.ExecutionResult;
-import graphql.Internal;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.graphql.ExecutionResultHandler;
-import org.springframework.graphql.GraphQLInvocation;
+import org.springframework.context.annotation.Bean;
 import org.springframework.graphql.GraphQLInvocationData;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.servlet.function.ServerResponse;
 
-import java.util.concurrent.CompletableFuture;
+import java.io.IOException;
 
-@RestController
-@Internal
+import static org.springframework.web.servlet.function.RouterFunctions.route;
+
+@Component
 public class GraphQLController {
 
     @Autowired
-    GraphQLInvocation graphQLInvocation;
+    GraphQLRequestHandler graphQLRequestHandler;
 
-    @Autowired
-    ExecutionResultHandler executionResultHandler;
+    @Bean
+    public RouterFunction<ServerResponse> routerFunction() {
+        RouterFunction<ServerResponse> route = route()
+                .POST("/graphql", this::graphqlPOST)
+                .build();
+        return route;
 
-    @RequestMapping(value = "${graphql.url:graphql}",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public Object graphqlPOST(@RequestBody GraphQLRequestBody body,
-                              WebRequest webRequest) {
+    }
+
+    private ServerResponse graphqlPOST(ServerRequest serverRequest) {
+        GraphQLRequestBody body = null;
+        try {
+            body = serverRequest.body(GraphQLRequestBody.class);
+        } catch (javax.servlet.ServletException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         String query = body.getQuery();
         if (query == null) {
             query = "";
         }
-        CompletableFuture<ExecutionResult> executionResult = graphQLInvocation.invoke(new GraphQLInvocationData(query, body.getOperationName(), body.getVariables()), webRequest);
-        return executionResultHandler.handleExecutionResult(executionResult);
+        GraphQLInvocationData invocationData = new GraphQLInvocationData(query, body.getOperationName(), body.getVariables());
+        Object resultBody = graphQLRequestHandler.invoke(invocationData, serverRequest.headers());
+        return ServerResponse.ok().body(resultBody);
     }
 
 }

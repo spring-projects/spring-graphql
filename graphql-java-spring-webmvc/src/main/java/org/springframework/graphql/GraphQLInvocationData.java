@@ -1,12 +1,10 @@
 package org.springframework.graphql;
 
 import graphql.Assert;
-import graphql.PublicApi;
 
 import java.util.Collections;
 import java.util.Map;
 
-@PublicApi
 public class GraphQLInvocationData {
 
     private final String query;

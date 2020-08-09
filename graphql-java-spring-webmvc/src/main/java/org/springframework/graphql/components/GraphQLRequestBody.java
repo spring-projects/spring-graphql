@@ -1,10 +1,7 @@
 package org.springframework.graphql.components;
 
-import graphql.Internal;
-
 import java.util.Map;
 
-@Internal
 public class GraphQLRequestBody {
     private String query;
     private String operationName;
