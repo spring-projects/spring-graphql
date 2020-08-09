@@ -3,8 +3,8 @@ package org.springframework.graphql.reactive.components;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.reactive.GraphQLInvocationData;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -14,7 +14,7 @@ import java.util.Map;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
-@Component
+@Configuration
 public class GraphQLController {
 
     @Autowired

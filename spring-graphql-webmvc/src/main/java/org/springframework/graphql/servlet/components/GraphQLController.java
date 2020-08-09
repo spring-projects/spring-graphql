@@ -3,17 +3,20 @@ package org.springframework.graphql.servlet.components;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.servlet.GraphQLInvocationData;
-import org.springframework.stereotype.Component;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.function.RequestPredicates;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import javax.servlet.ServletException;
 import java.io.IOException;
 
 import static org.springframework.web.servlet.function.RouterFunctions.route;
 
-@Component
+@Configuration
 public class GraphQLController {
 
     @Autowired
@@ -22,7 +25,8 @@ public class GraphQLController {
     @Bean
     public RouterFunction<ServerResponse> routerFunction() {
         RouterFunction<ServerResponse> route = route()
-                .POST("/graphql", this::graphqlPOST)
+                .POST("/graphql", RequestPredicates.contentType(MediaType.APPLICATION_JSON)
+                        .or(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)), this::graphqlPOST)
                 .build();
         return route;
 
@@ -32,9 +36,7 @@ public class GraphQLController {
         GraphQLRequestBody body = null;
         try {
             body = serverRequest.body(GraphQLRequestBody.class);
-        } catch (javax.servlet.ServletException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (ServletException | IOException e) {
             e.printStackTrace();
         }
         String query = body.getQuery();
