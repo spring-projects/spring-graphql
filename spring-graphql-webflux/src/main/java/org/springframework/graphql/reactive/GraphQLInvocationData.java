@@ -1,4 +1,4 @@
-package org.springframework.graphql;
+package org.springframework.graphql.reactive;
 
 import graphql.Assert;
 

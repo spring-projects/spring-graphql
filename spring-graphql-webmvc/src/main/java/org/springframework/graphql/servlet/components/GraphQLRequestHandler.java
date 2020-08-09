@@ -1,10 +1,10 @@
-package org.springframework.graphql.components;
+package org.springframework.graphql.servlet.components;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.graphql.GraphQLInvocationData;
+import org.springframework.graphql.servlet.GraphQLInvocationData;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.web.servlet.function.ServerRequest;

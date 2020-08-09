@@ -1,9 +1,9 @@
-package org.springframework.graphql.components;
+package org.springframework.graphql.servlet.components;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.graphql.GraphQLInvocationData;
+import org.springframework.graphql.servlet.GraphQLInvocationData;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
