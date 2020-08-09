@@ -1,4 +1,4 @@
-package org.springframework.graphql;
+package org.springframework.graphql.servlet;
 
 import graphql.GraphQL;
 import org.mockito.Mockito;

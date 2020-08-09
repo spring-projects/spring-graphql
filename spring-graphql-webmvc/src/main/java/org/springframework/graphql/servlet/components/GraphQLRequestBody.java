@@ -1,4 +1,4 @@
-package org.springframework.graphql.components;
+package org.springframework.graphql.servlet.components;
 
 import java.util.Map;
 
