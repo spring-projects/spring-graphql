@@ -13,8 +13,8 @@ subprojects {
 
     ext {
         graphqlJavaVersion = "15.0"
-        springVersion = "5.1.7.RELEASE"
-        springBootVersion = "2.1.5.RELEASE"
+        springVersion = "5.2.8.RELEASE"
+        springBootVersion = "2.3.2.RELEASE"
         jacksonVersion = "2.9.8"
         assertJVersion = "3.11.1"
     }
@@ -42,7 +42,7 @@ subprojects {
 }
 
 task myWrapper(type: Wrapper) {
-    gradleVersion = '4.10.2'
+    gradleVersion = '6.5.1'
     distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }
 
