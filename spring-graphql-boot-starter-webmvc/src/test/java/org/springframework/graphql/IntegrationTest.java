@@ -17,8 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(SpringExtension.class)
@@ -47,8 +47,8 @@ public class IntegrationTest {
         ResponseEntity responseEntity = this.restTemplate.postForEntity("/graphql", body, Map.class);
 
         Map responseBody = (Map) responseEntity.getBody();
-        assertThat(responseBody.get("data"), is("bar"));
-        assertThat(captor.getValue().getQuery(), is(query));
+        assertThat(responseBody.get("data")).isEqualTo("bar");
+        assertThat(captor.getValue().getQuery()).isEqualTo(query);
     }
 
 }
