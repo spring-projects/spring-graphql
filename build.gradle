@@ -16,7 +16,7 @@ subprojects {
         springVersion = "5.2.8.RELEASE"
         springBootVersion = "2.3.2.RELEASE"
         jacksonVersion = "2.9.8"
-        assertJVersion = "3.11.1"
+        assertJVersion = "3.16.1"
     }
 
     repositories {
@@ -37,6 +37,12 @@ subprojects {
 
     javadoc {
         options.encoding = 'UTF-8'
+    }
+    test {
+        useJUnitPlatform()
+        testLogging {
+            events "passed", "skipped", "failed"
+        }
     }
 
 }

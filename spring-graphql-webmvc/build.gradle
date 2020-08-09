@@ -10,7 +10,7 @@ dependencies {
     implementation group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.1'
 
     testImplementation("org.assertj:assertj-core:$assertJVersion")
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation "org.springframework:spring-test:$springVersion"
     testImplementation group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
     testImplementation "org.mockito:mockito-core:2.+"
