@@ -2,7 +2,7 @@ package org.springframework.graphql.servlet.components;
 
 import java.util.Map;
 
-public class GraphQLRequestBody {
+public class GraphQLServletRequestBody {
     private String query;
     private String operationName;
     private Map<String, Object> variables;

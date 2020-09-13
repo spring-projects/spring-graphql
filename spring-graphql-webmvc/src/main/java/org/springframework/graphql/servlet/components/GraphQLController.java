@@ -1,18 +1,27 @@
 package org.springframework.graphql.servlet.components;
 
 
+import graphql.GraphQL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.servlet.GraphQLInvocationData;
+import org.springframework.graphql.DefaultGraphQLInterceptor;
+import org.springframework.graphql.GraphQLHandler;
+import org.springframework.graphql.GraphQLInterceptor;
+import org.springframework.graphql.GraphQLRequestBody;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RequestPredicates;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
+import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.springframework.web.servlet.function.RouterFunctions.route;
 
@@ -20,7 +29,20 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 public class GraphQLController {
 
     @Autowired
-    GraphQLRequestHandler graphQLRequestHandler;
+    GraphQL graphQL;
+
+    GraphQLHandler graphQLHandler;
+
+    @Autowired(required = false)
+    GraphQLInterceptor graphQLInterceptor;
+
+
+    @PostConstruct
+    public void init() {
+        GraphQLInterceptor interceptor = graphQLInterceptor == null ? new DefaultGraphQLInterceptor() : graphQLInterceptor;
+        this.graphQLHandler = new GraphQLHandler(graphQL, interceptor);
+    }
+
 
     @Bean
     public RouterFunction<ServerResponse> routerFunction() {
@@ -33,9 +55,9 @@ public class GraphQLController {
     }
 
     private ServerResponse graphqlPOST(ServerRequest serverRequest) {
-        GraphQLRequestBody body = null;
+        GraphQLServletRequestBody body = null;
         try {
-            body = serverRequest.body(GraphQLRequestBody.class);
+            body = serverRequest.body(GraphQLServletRequestBody.class);
         } catch (ServletException | IOException e) {
             e.printStackTrace();
         }
@@ -43,9 +65,29 @@ public class GraphQLController {
         if (query == null) {
             query = "";
         }
-        GraphQLInvocationData invocationData = new GraphQLInvocationData(query, body.getOperationName(), body.getVariables());
-        Object resultBody = graphQLRequestHandler.invoke(invocationData, serverRequest.headers());
-        return ServerResponse.ok().body(resultBody);
+        Map<String, Object> variables = body.getVariables();
+        if (variables == null) {
+            variables = Collections.emptyMap();
+        }
+
+        GraphQLRequestBody graphQLRequestBody = new GraphQLRequestBody(query, body.getOperationName(), variables);
+
+        Mono<Map<String, Object>> responseRawMono = graphQLHandler.graphqlPOST(graphQLRequestBody, serverRequest.headers().asHttpHeaders())
+                .map(graphQLResponseBody -> {
+                    //TODO: this should be handled better:
+                    // we don't want to serialize `null` values for `errors` and `extensions`
+                    // this is why we convert it to a Map here
+                    Map<String, Object> responseBodyRaw = new LinkedHashMap<>();
+                    responseBodyRaw.put("data", graphQLResponseBody.getData());
+                    if (graphQLResponseBody.getErrors() != null) {
+                        responseBodyRaw.put("errors", graphQLResponseBody.getErrors());
+                    }
+                    if (graphQLResponseBody.getExtensions() != null) {
+                        responseBodyRaw.put("extensions", graphQLResponseBody.getExtensions());
+                    }
+                    return responseBodyRaw;
+                });
+        return ServerResponse.ok().body(responseRawMono);
     }
 
 }

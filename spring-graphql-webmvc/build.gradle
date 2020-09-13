@@ -7,6 +7,7 @@ dependencies {
     implementation "org.springframework:spring-context:$springVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     api "com.graphql-java:graphql-java:$graphqlJavaVersion"
+    implementation project(':spring-graphql-common')
     implementation group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.1'
 
     testImplementation("org.assertj:assertj-core:$assertJVersion")

@@ -4,7 +4,7 @@ apply plugin: 'java-library'
 
 dependencies {
     implementation "org.springframework:spring-web:$springVersion"
-    implementation 'io.projectreactor:reactor-core:3.3.8.RELEASE'
+    api 'io.projectreactor:reactor-core:3.3.8.RELEASE'
     api "com.graphql-java:graphql-java:$graphqlJavaVersion"
 
     testImplementation("org.assertj:assertj-core:$assertJVersion")
