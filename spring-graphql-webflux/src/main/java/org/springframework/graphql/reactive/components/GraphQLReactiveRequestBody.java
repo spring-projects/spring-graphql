@@ -2,7 +2,7 @@ package org.springframework.graphql.reactive.components;
 
 import java.util.Map;
 
-public class GraphQLRequestBody {
+public class GraphQLReactiveRequestBody {
     private String query;
     private String operationName;
     private Map<String, Object> variables;

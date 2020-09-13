@@ -1,20 +1,16 @@
-package org.springframework.graphql.reactive;
+package org.springframework.graphql;
 
-import graphql.Assert;
-
-import java.util.Collections;
 import java.util.Map;
 
-public class GraphQLInvocationData {
-
+public class GraphQLRequestBody {
     private final String query;
     private final String operationName;
     private final Map<String, Object> variables;
 
-    public GraphQLInvocationData(String query, String operationName, Map<String, Object> variables) {
-        this.query = Assert.assertNotNull(query, () -> "query must be provided");
+    public GraphQLRequestBody(String query, String operationName, Map<String, Object> variables) {
+        this.query = query;
         this.operationName = operationName;
-        this.variables = variables != null ? variables : Collections.emptyMap();
+        this.variables = variables;
     }
 
     public String getQuery() {
