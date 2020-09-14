@@ -15,8 +15,8 @@ public interface GraphQLInterceptor {
         return Mono.just(result);
     }
 
-    default Mono<GraphQLResponseBody> customizeResponseBody(GraphQLResponseBody graphQLResponseBody, ExecutionResult executionResult, HttpHeaders httpHeader) {
-        return Mono.just(graphQLResponseBody);
+    default Mono<GraphQLResponse> customizeResponseBody(GraphQLResponse graphQLResponse, ExecutionResult executionResult, HttpHeaders httpHeader) {
+        return Mono.just(graphQLResponse);
     }
 
 }

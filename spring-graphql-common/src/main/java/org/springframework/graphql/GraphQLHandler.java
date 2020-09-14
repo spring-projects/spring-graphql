@@ -19,7 +19,7 @@ public class GraphQLHandler {
         this.interceptor = interceptor;
     }
 
-    public Mono<GraphQLResponseBody> graphqlPOST(GraphQLRequestBody body, HttpHeaders httpHeaders) {
+    public Mono<GraphQLResponse> graphqlPOST(GraphQLRequestBody body, HttpHeaders httpHeaders) {
         String query = body.getQuery();
         ExecutionInput input = ExecutionInput.newExecutionInput()
                 .query(query)
@@ -33,15 +33,15 @@ public class GraphQLHandler {
                 .flatMap(result -> toResponseBody(result, httpHeaders));
     }
 
-    private Mono<GraphQLResponseBody> toResponseBody(ExecutionResult executionResult, HttpHeaders httpHeaders) {
+    private Mono<GraphQLResponse> toResponseBody(ExecutionResult executionResult, HttpHeaders httpHeaders) {
         Map<String, Object> responseBodyRaw = executionResult.toSpecification();
         Object data = responseBodyRaw.get("data");
         List<Map<String, Object>> errors = (List<Map<String, Object>>) responseBodyRaw.get("errors");
         Map<String, Object> extensions = (Map<String, Object>) responseBodyRaw.get("extensions");
-        GraphQLResponseBody responseBody = new GraphQLResponseBody(data,
+        GraphQLResponse responseBody = new GraphQLResponse(data,
                 errors,
                 extensions);
-        Mono<GraphQLResponseBody> graphQLResponseBodyMono = interceptor.customizeResponseBody(responseBody, executionResult, httpHeaders);
+        Mono<GraphQLResponse> graphQLResponseBodyMono = interceptor.customizeResponseBody(responseBody, executionResult, httpHeaders);
         return graphQLResponseBodyMono;
     }
 
