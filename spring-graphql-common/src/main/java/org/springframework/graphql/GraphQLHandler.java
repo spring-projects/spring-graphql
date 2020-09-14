@@ -4,6 +4,7 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import org.springframework.http.HttpHeaders;
+import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -26,14 +27,17 @@ public class GraphQLHandler {
                 .operationName(graphQLHttpRequest.getOperationName())
                 .variables(graphQLHttpRequest.getVariables())
                 .build();
-        Mono<ExecutionInput> executionInput = interceptor.preHandle(input, graphQLHttpRequest.getHttpHeaders());
+        MultiValueMap<String, String> requestParams = graphQLHttpRequest.getRequestParams();
+        Mono<ExecutionInput> executionInput = interceptor.preHandle(input,
+                graphQLHttpRequest.getHttpHeaders(),
+                requestParams);
         return executionInput
                 .flatMap(this::execute)
-                .flatMap(result -> interceptor.postHandle(result, graphQLHttpRequest.getHttpHeaders()))
-                .flatMap(result -> toResponseBody(result, graphQLHttpRequest.getHttpHeaders()));
+                .flatMap(result -> interceptor.postHandle(result, graphQLHttpRequest.getHttpHeaders(), requestParams))
+                .flatMap(result -> toResponseBody(result, graphQLHttpRequest.getHttpHeaders(), requestParams));
     }
 
-    private Mono<GraphQLHttpResponse> toResponseBody(ExecutionResult executionResult, HttpHeaders httpHeaders) {
+    private Mono<GraphQLHttpResponse> toResponseBody(ExecutionResult executionResult, HttpHeaders httpHeaders, MultiValueMap<String, String> requestParams) {
         Map<String, Object> responseBodyRaw = executionResult.toSpecification();
         Object data = responseBodyRaw.get("data");
         List<Map<String, Object>> errors = (List<Map<String, Object>>) responseBodyRaw.get("errors");
@@ -41,7 +45,7 @@ public class GraphQLHandler {
         GraphQLHttpResponse responseBody = new GraphQLHttpResponse(data,
                 errors,
                 extensions, httpHeaders);
-        Mono<GraphQLHttpResponse> graphQLResponseBodyMono = interceptor.customizeResponseBody(responseBody, executionResult, httpHeaders);
+        Mono<GraphQLHttpResponse> graphQLResponseBodyMono = interceptor.customizeResponseBody(responseBody, executionResult, httpHeaders, requestParams);
         return graphQLResponseBodyMono;
     }
 
