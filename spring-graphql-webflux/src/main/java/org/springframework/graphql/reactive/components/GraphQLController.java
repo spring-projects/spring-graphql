@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.DefaultGraphQLInterceptor;
 import org.springframework.graphql.GraphQLHandler;
+import org.springframework.graphql.GraphQLHttpRequest;
 import org.springframework.graphql.GraphQLInterceptor;
-import org.springframework.graphql.GraphQLRequestBody;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -58,8 +58,13 @@ public class GraphQLController {
             if (variables == null) {
                 variables = Collections.emptyMap();
             }
-            GraphQLRequestBody graphQLRequestBody = new GraphQLRequestBody(query, body.getOperationName(), variables);
-            return graphQLHandler.graphqlPOST(graphQLRequestBody, serverRequest.headers().asHttpHeaders());
+            GraphQLHttpRequest graphQLHttpRequest = new GraphQLHttpRequest(
+                    query,
+                    body.getOperationName(),
+                    variables,
+                    serverRequest.headers().asHttpHeaders(),
+                    serverRequest.queryParams());
+            return graphQLHandler.graphqlPOST(graphQLHttpRequest);
         }).flatMap(graphQLResponseBody -> {
             //TODO: this should be handled better:
             // we don't want to serialize `null` values for `errors` and `extensions`

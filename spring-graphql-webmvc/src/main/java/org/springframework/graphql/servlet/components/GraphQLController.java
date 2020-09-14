@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.DefaultGraphQLInterceptor;
 import org.springframework.graphql.GraphQLHandler;
+import org.springframework.graphql.GraphQLHttpRequest;
 import org.springframework.graphql.GraphQLInterceptor;
-import org.springframework.graphql.GraphQLRequestBody;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RequestPredicates;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -70,9 +70,14 @@ public class GraphQLController {
             variables = Collections.emptyMap();
         }
 
-        GraphQLRequestBody graphQLRequestBody = new GraphQLRequestBody(query, body.getOperationName(), variables);
+        GraphQLHttpRequest graphQLHttpRequest = new GraphQLHttpRequest(
+                query,
+                body.getOperationName(),
+                variables,
+                serverRequest.headers().asHttpHeaders(),
+                serverRequest.params());
 
-        Mono<Map<String, Object>> responseRawMono = graphQLHandler.graphqlPOST(graphQLRequestBody, serverRequest.headers().asHttpHeaders())
+        Mono<Map<String, Object>> responseRawMono = graphQLHandler.graphqlPOST(graphQLHttpRequest)
                 .map(graphQLResponseBody -> {
                     //TODO: this should be handled better:
                     // we don't want to serialize `null` values for `errors` and `extensions`
