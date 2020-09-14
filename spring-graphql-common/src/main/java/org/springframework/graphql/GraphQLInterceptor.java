@@ -20,10 +20,10 @@ public interface GraphQLInterceptor {
         return Mono.just(result);
     }
 
-    default Mono<GraphQLHttpResponse> customizeResponseBody(GraphQLHttpResponse graphQLHttpResponse,
-                                                            ExecutionResult executionResult,
-                                                            HttpHeaders httpHeader,
-                                                            MultiValueMap<String, String> requestParams) {
+    default Mono<GraphQLHttpResponse> customizeGraphQLHttpResponse(GraphQLHttpResponse graphQLHttpResponse,
+                                                                   ExecutionResult executionResult,
+                                                                   GraphQLHttpRequest graphQLHttpRequest) {
+
         return Mono.just(graphQLHttpResponse);
     }
 
