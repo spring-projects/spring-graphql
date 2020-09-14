@@ -65,19 +65,21 @@ public class GraphQLController {
                     serverRequest.headers().asHttpHeaders(),
                     serverRequest.queryParams());
             return graphQLHandler.graphqlPOST(graphQLHttpRequest);
-        }).flatMap(graphQLResponseBody -> {
+        }).flatMap(graphQLHttpResponse -> {
             //TODO: this should be handled better:
             // we don't want to serialize `null` values for `errors` and `extensions`
             // this is why we convert it to a Map here
             Map<String, Object> responseBodyRaw = new LinkedHashMap<>();
-            responseBodyRaw.put("data", graphQLResponseBody.getData());
-            if (graphQLResponseBody.getErrors() != null) {
-                responseBodyRaw.put("errors", graphQLResponseBody.getErrors());
+            responseBodyRaw.put("data", graphQLHttpResponse.getData());
+            if (graphQLHttpResponse.getErrors() != null) {
+                responseBodyRaw.put("errors", graphQLHttpResponse.getErrors());
             }
-            if (graphQLResponseBody.getExtensions() != null) {
-                responseBodyRaw.put("extensions", graphQLResponseBody.getExtensions());
+            if (graphQLHttpResponse.getExtensions() != null) {
+                responseBodyRaw.put("extensions", graphQLHttpResponse.getExtensions());
             }
-            return ServerResponse.ok().bodyValue(responseBodyRaw);
+            return ServerResponse.ok().headers(httpHeaders -> {
+                httpHeaders.addAll(graphQLHttpResponse.getHttpHeaders());
+            }).bodyValue(responseBodyRaw);
         });
     }
 

@@ -78,20 +78,22 @@ public class GraphQLController {
                 serverRequest.params());
 
         Mono<Map<String, Object>> responseRawMono = graphQLHandler.graphqlPOST(graphQLHttpRequest)
-                .map(graphQLResponseBody -> {
+                .map(graphQLHttpResponse -> {
                     //TODO: this should be handled better:
                     // we don't want to serialize `null` values for `errors` and `extensions`
                     // this is why we convert it to a Map here
                     Map<String, Object> responseBodyRaw = new LinkedHashMap<>();
-                    responseBodyRaw.put("data", graphQLResponseBody.getData());
-                    if (graphQLResponseBody.getErrors() != null) {
-                        responseBodyRaw.put("errors", graphQLResponseBody.getErrors());
+                    responseBodyRaw.put("data", graphQLHttpResponse.getData());
+                    if (graphQLHttpResponse.getErrors() != null) {
+                        responseBodyRaw.put("errors", graphQLHttpResponse.getErrors());
                     }
-                    if (graphQLResponseBody.getExtensions() != null) {
-                        responseBodyRaw.put("extensions", graphQLResponseBody.getExtensions());
+                    if (graphQLHttpResponse.getExtensions() != null) {
+                        responseBodyRaw.put("extensions", graphQLHttpResponse.getExtensions());
                     }
                     return responseBodyRaw;
                 });
+        //TODO: how to add http headers for the response here? It is part of responseRawMono but
+        // ServerResponse don't accept a CompletableFuture or Mono as headers.
         return ServerResponse.ok().body(responseRawMono);
     }
 
