@@ -7,10 +7,16 @@ import reactor.core.publisher.Mono;
 
 public interface GraphQLInterceptor {
 
-    Mono<ExecutionInput> preHandle(ExecutionInput input, HttpHeaders headers);
+    default Mono<ExecutionInput> preHandle(ExecutionInput input, HttpHeaders headers) {
+        return Mono.just(input);
+    }
 
-    Mono<ExecutionResult> postHandle(ExecutionResult result, HttpHeaders httpHeaders);
+    default Mono<ExecutionResult> postHandle(ExecutionResult result, HttpHeaders httpHeaders) {
+        return Mono.just(result);
+    }
 
-    Mono<GraphQLResponseBody> customizeResponseBody(GraphQLResponseBody graphQLResponseBody, ExecutionResult executionResult, HttpHeaders httpHeader);
+    default Mono<GraphQLResponseBody> customizeResponseBody(GraphQLResponseBody graphQLResponseBody, ExecutionResult executionResult, HttpHeaders httpHeader) {
+        return Mono.just(graphQLResponseBody);
+    }
 
 }

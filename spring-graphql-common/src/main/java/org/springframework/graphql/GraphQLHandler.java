@@ -21,9 +21,6 @@ public class GraphQLHandler {
 
     public Mono<GraphQLResponseBody> graphqlPOST(GraphQLRequestBody body, HttpHeaders httpHeaders) {
         String query = body.getQuery();
-        if (query == null) {
-            query = "";
-        }
         ExecutionInput input = ExecutionInput.newExecutionInput()
                 .query(query)
                 .operationName(body.getOperationName())
