@@ -1,0 +1,6 @@
+description = "Starter for building GraphQL Java applications with Spring WebFlux"
+
+dependencies {
+    api project(':spring-graphql-web')
+    api 'org.springframework.boot:spring-boot-starter-webflux'
+}

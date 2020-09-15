@@ -1,7 +1,0 @@
-description = "Common module for GraphQL Java Spring support"
-
-dependencies {
-    api 'io.projectreactor:reactor-core'
-    api "com.graphql-java:graphql-java"
-    implementation "org.springframework:spring-web"
-}
