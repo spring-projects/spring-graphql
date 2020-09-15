@@ -1,4 +1,4 @@
-package org.springframework.graphql.servlet;
+package org.springframework.boot.graphql.reactive;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResultImpl;
@@ -9,9 +9,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class IntegrationTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    WebTestClient webClient;
 
     @Autowired
     GraphQL graphql;
@@ -44,11 +44,13 @@ public class IntegrationTest {
         Map<String, String> body = new LinkedHashMap<>();
         body.put("query", query);
 
-        ResponseEntity responseEntity = this.restTemplate.postForEntity("/graphql", body, Map.class);
+        Map<String, Object> expectedResult = new LinkedHashMap<>();
+        expectedResult.put("data", "bar");
 
-        Map responseBody = (Map) responseEntity.getBody();
-        assertThat(responseBody.get("data")).isEqualTo("bar");
-        assertThat(captor.getValue().getQuery()).isEqualTo(query);
+        this.webClient.post().uri("/graphql").body(BodyInserters.fromValue(body)).exchange().expectStatus().isOk()
+                .expectBody(Map.class).isEqualTo(expectedResult);
+
+        Assertions.assertThat(captor.getValue().getQuery()).isEqualTo(query);
     }
 
 }

@@ -1,11 +1,11 @@
-package org.springframework.graphql.reactive;
+package org.springframework.boot.graphql.servlet;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.graphql.servlet.components.GraphQLController;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.reactive.components.GraphQLController;
 
 import javax.annotation.PostConstruct;
 

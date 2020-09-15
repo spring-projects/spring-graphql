@@ -1,4 +1,4 @@
-package org.springframework.graphql.reactive;
+package org.springframework.boot.graphql.reactive;
 
 import graphql.GraphQL;
 import org.mockito.Mockito;

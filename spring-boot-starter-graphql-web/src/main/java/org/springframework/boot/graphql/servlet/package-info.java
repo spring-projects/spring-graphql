@@ -1,6 +1,6 @@
 @NonNullApi
 @NonNullFields
-package org.springframework.graphql.reactive;
+package org.springframework.boot.graphql.servlet;
 
 import org.springframework.lang.NonNullApi;
 import org.springframework.lang.NonNullFields;
