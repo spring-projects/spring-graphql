@@ -1,18 +1,10 @@
-description = "GraphQL Java Spring Webmvc integration"
-
-apply plugin: 'java-library'
+description = "GraphQL Java Spring MVC integration"
 
 dependencies {
-    implementation "org.springframework:spring-webmvc:$springVersion"
-    implementation "org.springframework:spring-context:$springVersion"
-    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-    api "com.graphql-java:graphql-java:$graphqlJavaVersion"
-    implementation project(':spring-graphql-common')
-    implementation group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.1'
+    api 'com.graphql-java:graphql-java'
 
-    testImplementation("org.assertj:assertj-core:$assertJVersion")
-    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
-    testImplementation "org.springframework:spring-test:$springVersion"
-    testImplementation group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
-    testImplementation "org.mockito:mockito-core:2.+"
+    implementation project(':spring-graphql-common')
+	implementation 'org.springframework:spring-webmvc'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'javax.servlet:javax.servlet-api'
 }

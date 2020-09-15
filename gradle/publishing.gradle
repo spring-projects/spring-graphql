@@ -1,0 +1,104 @@
+apply plugin: "maven-publish"
+
+javadoc {
+	description = "Generates project-level javadoc for use in -javadoc jar"
+
+	options.encoding = "UTF-8"
+	options.memberLevel = JavadocMemberLevel.PROTECTED
+	options.author = true
+	options.header = project.name
+	options.use = true
+	options.addStringOption("Xdoclint:none", "-quiet")
+
+	// Suppress warnings due to cross-module @see and @link references.
+	// Note that global 'api' task does display all warnings.
+	logging.captureStandardError LogLevel.INFO
+	logging.captureStandardOutput LogLevel.INFO  // suppress "## warnings" message
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	archiveClassifier.set("sources")
+	from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+	archiveClassifier.set("javadoc")
+	from javadoc
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			pom {
+				afterEvaluate {
+					name = project.description
+					description = project.description
+				}
+				url = "https://github.com/spring-projects-experimental/spring-graphql"
+				organization {
+					name = "Spring IO"
+					url = "https://spring.io/projects"
+				}
+				licenses {
+					license {
+						name = "Apache License, Version 2.0"
+						url = "https://www.apache.org/licenses/LICENSE-2.0"
+						distribution = "repo"
+					}
+				}
+				scm {
+					url = "https://github.com/spring-projects-experimental/spring-graphql"
+					connection = "scm:git:git://github.com/spring-projects-experimental/spring-graphql"
+					developerConnection = "scm:git:git://github.com/spring-projects-experimental/spring-graphql"
+				}
+				developers {
+					developer {
+						id = "andimarek"
+						name = "Andreas Marek"
+						email = "andimarek@fastmail.fm"
+					}
+					developer {
+						id = "rstoyanchev"
+						name = "Rossen Stoyanchev"
+						email = "rstoyanchev@vmware.com"
+					}
+					developer {
+						id = "bclozel"
+						name = "Brian Clozel"
+						email = "bclozel@vmware.com"
+					}
+				}
+				issueManagement {
+					system = "GitHub"
+					url = "https://github.com/spring-projects-experimental/spring-graphql/issues"
+				}
+			}
+			versionMapping {
+				usage('java-api') {
+					fromResolutionResult()
+				}
+				usage('java-runtime') {
+					fromResolutionResult()
+				}
+			}
+			from components.java
+			artifact sourcesJar
+			artifact javadocJar
+		}
+	}
+}
+
+configureDeploymentRepository(project)
+
+void configureDeploymentRepository(Project project) {
+	project.plugins.withType(MavenPublishPlugin.class).all {
+		PublishingExtension publishing = project.getExtensions().getByType(PublishingExtension.class);
+		if (project.hasProperty("deploymentRepository")) {
+			publishing.repositories.maven {
+				it.url = project.property("deploymentRepository")
+				it.name = "deployment"
+			}
+		}
+	}
+}
