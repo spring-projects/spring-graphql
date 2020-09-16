@@ -2,6 +2,5 @@ description = "Starter for building GraphQL Java applications with Spring MVC"
 
 dependencies {
     api project(':spring-graphql-web')
-	api 'io.projectreactor:reactor-core'
     api 'org.springframework.boot:spring-boot-starter-web'
 }
