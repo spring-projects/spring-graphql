@@ -1,6 +1,7 @@
-package org.springframework.graphql.servlet;
+package org.springframework.graphql;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -10,25 +11,24 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 
-import org.springframework.graphql.GraphQLRequestBody;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
-public class GraphQLHandler {
+public class WebMvcGraphQLHandler {
 
 	private final GraphQL graphQL;
 
-	public GraphQLHandler(GraphQL.Builder graphQL) {
+	public WebMvcGraphQLHandler(GraphQL.Builder graphQL) {
 		this.graphQL = graphQL.build();
 	}
 
 	public ServerResponse handle(ServerRequest serverRequest) {
-		GraphQLRequestBody body;
+		RequestInput body;
 		try {
-			body = serverRequest.body(GraphQLRequestBody.class);
+			body = serverRequest.body(RequestInput.class);
 		}
 		catch (ServletException | IOException ex) {
 			throw new ServerWebInputException("Failed to read request body", null, ex);
@@ -42,11 +42,19 @@ public class GraphQLHandler {
 				.operationName(body.getOperationName())
 				.variables(body.getVariables())
 				.build();
+
 		// Invoke GraphQLInterceptor's preHandle here
-		CompletableFuture<ExecutionResult> resultFuture =
-				customizeExecutionInput(input, serverRequest.headers().asHttpHeaders()).thenCompose(this::execute);
+
+		CompletableFuture<Map<String, Object>> future =
+				customizeExecutionInput(input, serverRequest.headers().asHttpHeaders())
+						.thenCompose(this::execute)
+						.thenApply(ExecutionResult::toSpecification);
+
 		// Invoke GraphQLInterceptor's postHandle here
-		return customizeExecutionResult(resultFuture);
+
+		return future.isDone() ?
+				ServerResponse.ok().body(getResult(future)) :
+				ServerResponse.ok().body(future);
 	}
 
 	protected CompletableFuture<ExecutionInput> customizeExecutionInput(ExecutionInput input, HttpHeaders headers) {
@@ -57,15 +65,9 @@ public class GraphQLHandler {
 		return graphQL.executeAsync(input);
 	}
 
-	protected ServerResponse customizeExecutionResult(CompletableFuture<ExecutionResult> resultFuture) {
-		return resultFuture.isDone() ?
-				ServerResponse.ok().body(getResult(resultFuture)) :
-				ServerResponse.ok().body(resultFuture);
-	}
-
-	private ExecutionResult getResult(CompletableFuture<ExecutionResult> resultFuture) {
+	private Map<String, Object> getResult(CompletableFuture<Map<String, Object>> future) {
 		try {
-			return resultFuture.get();
+			return future.get();
 		}
 		catch (InterruptedException | ExecutionException ex) {
 			throw new ServerErrorException("Failed to get result", ex);

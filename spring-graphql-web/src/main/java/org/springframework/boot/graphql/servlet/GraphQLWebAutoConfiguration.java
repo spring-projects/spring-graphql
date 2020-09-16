@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.graphql.GraphQLAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.servlet.GraphQLHandler;
+import org.springframework.graphql.WebMvcGraphQLHandler;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
@@ -27,12 +27,12 @@ public class GraphQLWebAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new GraphQLHandler(graphQLBuilder);
+	public WebMvcGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
+		return new WebMvcGraphQLHandler(graphQLBuilder);
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(GraphQLHandler handler) {
+	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebMvcGraphQLHandler handler) {
 		return RouterFunctions.route()
 				.POST("/graphql", accept(MediaType.APPLICATION_JSON), handler::handle)
 				.build();

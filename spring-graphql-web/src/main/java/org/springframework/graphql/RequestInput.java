@@ -9,7 +9,7 @@ import org.springframework.lang.Nullable;
  * @author Andreas Marek
  * @author Brian Clozel
  */
-public class GraphQLRequestBody {
+class RequestInput {
 
 	private String query;
 
@@ -17,13 +17,13 @@ public class GraphQLRequestBody {
 
 	private Map<String, Object> variables = Collections.emptyMap();
 
-	public GraphQLRequestBody(String query, String operationName, Map<String, Object> variables) {
+	public RequestInput(String query, String operationName, Map<String, Object> variables) {
 		this.query = query;
 		this.operationName = operationName;
 		this.variables = variables;
 	}
 
-	public GraphQLRequestBody() {
+	public RequestInput() {
 	}
 
 	@Nullable

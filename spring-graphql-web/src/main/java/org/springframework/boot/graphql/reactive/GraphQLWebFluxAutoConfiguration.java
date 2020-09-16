@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.graphql.GraphQLAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.reactive.GraphQLHandler;
+import org.springframework.graphql.WebFluxGraphQLHandler;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -24,12 +24,12 @@ public class GraphQLWebFluxAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new GraphQLHandler(graphQLBuilder);
+	public WebFluxGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
+		return new WebFluxGraphQLHandler(graphQLBuilder);
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(GraphQLHandler handler) {
+	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebFluxGraphQLHandler handler) {
 		return RouterFunctions.route().POST("/graphql", handler::handle).build();
 	}
 
