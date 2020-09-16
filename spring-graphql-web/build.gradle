@@ -1,16 +1,20 @@
 description = "GraphQL Java support with Spring Web frameworks"
 
 dependencies {
-	api "com.graphql-java:graphql-java"
+	api 'com.graphql-java:graphql-java'
+	api 'org.springframework.boot:spring-boot-autoconfigure'
 
-	compileOnly "org.springframework:spring-context"
-	compileOnly "org.springframework:spring-webflux"
+	compileOnly 'org.springframework:spring-context'
+	compileOnly 'org.springframework:spring-webflux'
 
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'javax.servlet:javax.servlet-api'
 
-	testImplementation "com.fasterxml.jackson.core:jackson-databind"
-	testImplementation "org.springframework:spring-webflux"
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
+
+	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
 	testImplementation 'javax.servlet:javax.servlet-api'
 }
