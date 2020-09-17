@@ -1,4 +1,4 @@
-package org.springframework.boot.graphql.servlet;
+package org.springframework.boot.graphql;
 
 
 import org.junit.jupiter.api.Test;
@@ -8,9 +8,6 @@ import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConf
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.boot.graphql.GraphQLAutoConfiguration;
-import org.springframework.boot.graphql.GraphQLDataFetchers;
-import org.springframework.boot.graphql.RuntimeWiringCustomizer;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,14 +19,14 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-class GraphQLWebEndpointTests {
+class WebMvcApplicationContextTests {
 
 	@Test
-	void endpointHandlesGraphQLQueries() throws Exception {
+	void endpointHandlesGraphQLQueries() {
 		new WebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class, HttpMessageConvertersAutoConfiguration.class,
 						WebMvcAutoConfiguration.class, DispatcherServletAutoConfiguration.class,
-						GraphQLAutoConfiguration.class, GraphQLWebAutoConfiguration.class))
+						GraphQLAutoConfiguration.class, WebMvcGraphQLAutoConfiguration.class))
 				.withUserConfiguration(DataFetchersConfiguration.class)
 				.withPropertyValues("spring.main.web-application-type=servlet", "spring.graphql.schema:classpath:books/schema.graphqls").run((context) -> {
 

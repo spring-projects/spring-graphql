@@ -1,4 +1,4 @@
-package org.springframework.boot.graphql.servlet;
+package org.springframework.boot.graphql;
 
 import graphql.GraphQL;
 
@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.graphql.GraphQLAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.WebMvcGraphQLHandler;
@@ -23,7 +22,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.accept;
 @ConditionalOnClass(GraphQL.class)
 @ConditionalOnBean(GraphQL.Builder.class)
 @AutoConfigureAfter(GraphQLAutoConfiguration.class)
-public class GraphQLWebAutoConfiguration {
+public class WebMvcGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean

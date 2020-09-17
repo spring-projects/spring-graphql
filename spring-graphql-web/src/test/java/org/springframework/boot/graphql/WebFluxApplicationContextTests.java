@@ -1,4 +1,4 @@
-package org.springframework.boot.graphql.reactive;
+package org.springframework.boot.graphql;
 
 
 import org.junit.jupiter.api.Test;
@@ -8,9 +8,6 @@ import org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.HttpHandlerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
-import org.springframework.boot.graphql.GraphQLAutoConfiguration;
-import org.springframework.boot.graphql.GraphQLDataFetchers;
-import org.springframework.boot.graphql.RuntimeWiringCustomizer;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -20,14 +17,14 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
-class GraphQLWebFluxEndpointTests {
+class WebFluxApplicationContextTests {
 
 	@Test
-	void endpointHandlesGraphQLQueries() throws Exception {
+	void endpointHandlesGraphQLQueries() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class, CodecsAutoConfiguration.class,
 						WebFluxAutoConfiguration.class, HttpHandlerAutoConfiguration.class,
-						GraphQLAutoConfiguration.class, GraphQLWebFluxAutoConfiguration.class))
+						GraphQLAutoConfiguration.class, WebFluxGraphQLAutoConfiguration.class))
 				.withUserConfiguration(DataFetchersConfiguration.class)
 				.withPropertyValues("spring.main.web-application-type=reactive", "spring.graphql.schema:classpath:books/schema.graphqls").run((context) -> {
 			WebTestClient client = createWebTestClient(context);
