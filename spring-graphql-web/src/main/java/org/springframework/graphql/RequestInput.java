@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ServerWebInputException;
 
 /**
  * @author Andreas Marek
@@ -49,5 +51,11 @@ class RequestInput {
 
 	public void setVariables(Map<String, Object> variables) {
 		this.variables = variables;
+	}
+
+	public void validate() {
+		if (!StringUtils.hasText(getQuery())) {
+			throw new ServerWebInputException("Missing query");
+		}
 	}
 }

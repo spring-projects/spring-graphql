@@ -6,10 +6,15 @@ import graphql.GraphQL;
 import reactor.core.publisher.Mono;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.reactive.function.server.HandlerFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-public class WebFluxGraphQLHandler {
+/**
+ * GraphQL handler to be exposed as a WebFlux.fn endpoint via
+ * {@link org.springframework.web.reactive.function.server.RouterFunctions}.
+ */
+public class WebFluxGraphQLHandler implements HandlerFunction<ServerResponse> {
 
 	private final GraphQL graphQL;
 
@@ -19,15 +24,12 @@ public class WebFluxGraphQLHandler {
 
 	public Mono<ServerResponse> handle(ServerRequest request) {
 		return request.bodyToMono(RequestInput.class)
-				.flatMap(body -> {
-					String query = body.getQuery();
-					if (query == null) {
-						query = "";
-					}
+				.flatMap(requestInput -> {
+					requestInput.validate();
 					ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-							.query(query)
-							.operationName(body.getOperationName())
-							.variables(body.getVariables())
+							.query(requestInput.getQuery())
+							.operationName(requestInput.getOperationName())
+							.variables(requestInput.getVariables())
 							.build();
 					// Invoke GraphQLInterceptor's preHandle here
 					return customizeExecutionInput(executionInput, request.headers().asHttpHeaders());

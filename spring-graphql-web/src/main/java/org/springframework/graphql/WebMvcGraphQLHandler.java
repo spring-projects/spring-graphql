@@ -12,12 +12,18 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
+import org.springframework.web.servlet.function.HandlerFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
-public class WebMvcGraphQLHandler {
+/**
+ * GraphQL handler to be exposed as a WebMvc.fn endpoint via
+ * {@link org.springframework.web.servlet.function.RouterFunctions}.
+ */
+public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 
 	private final GraphQL graphQL;
 
@@ -25,36 +31,38 @@ public class WebMvcGraphQLHandler {
 		this.graphQL = graphQL.build();
 	}
 
-	public ServerResponse handle(ServerRequest serverRequest) {
-		RequestInput body;
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @throws ServletException may be raised when reading the request body,
+	 * e.g. {@link HttpMediaTypeNotSupportedException}.
+	 */
+	public ServerResponse handle(ServerRequest request) throws ServletException {
+		RequestInput requestInput;
 		try {
-			body = serverRequest.body(RequestInput.class);
+			requestInput = request.body(RequestInput.class);
+			requestInput.validate();
 		}
-		catch (ServletException | IOException ex) {
-			throw new ServerWebInputException("Failed to read request body", null, ex);
+		catch (IOException ex) {
+			throw new ServerWebInputException("I/O error while reading request body", null, ex);
 		}
-		String query = body.getQuery();
-		if (query == null) {
-			query = "";
-		}
-		ExecutionInput input = ExecutionInput.newExecutionInput()
-				.query(query)
-				.operationName(body.getOperationName())
-				.variables(body.getVariables())
+
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
+				.query(requestInput.getQuery())
+				.operationName(requestInput.getOperationName())
+				.variables(requestInput.getVariables())
 				.build();
 
 		// Invoke GraphQLInterceptor's preHandle here
 
 		CompletableFuture<Map<String, Object>> future =
-				customizeExecutionInput(input, serverRequest.headers().asHttpHeaders())
+				customizeExecutionInput(executionInput, request.headers().asHttpHeaders())
 						.thenCompose(this::execute)
 						.thenApply(ExecutionResult::toSpecification);
 
 		// Invoke GraphQLInterceptor's postHandle here
 
-		return future.isDone() ?
-				ServerResponse.ok().body(getResult(future)) :
-				ServerResponse.ok().body(future);
+		return ServerResponse.ok().body(future.isDone() ? getResult(future) : future);
 	}
 
 	protected CompletableFuture<ExecutionInput> customizeExecutionInput(ExecutionInput input, HttpHeaders headers) {
