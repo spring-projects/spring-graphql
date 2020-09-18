@@ -17,18 +17,15 @@ package org.springframework.graphql;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import javax.servlet.ServletException;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import reactor.core.publisher.Mono;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.HandlerFunction;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -53,47 +50,38 @@ public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 	 * e.g. {@link HttpMediaTypeNotSupportedException}.
 	 */
 	public ServerResponse handle(ServerRequest request) throws ServletException {
-		RequestInput requestInput;
+		WebInput webInput = createWebInput(request);
+
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
+				.query(webInput.getQuery())
+				.operationName(webInput.getOperationName())
+				.variables(webInput.getVariables())
+				.build();
+
+		Mono<Map<String, Object>> body = extendInput(executionInput, webInput)
+				.flatMap(this::execute)
+				.map(ExecutionResult::toSpecification);
+
+		return ServerResponse.ok().body(body);
+	}
+
+	private static WebInput createWebInput(ServerRequest request) throws ServletException {
+		Map<String, Object> body;
 		try {
-			requestInput = request.body(RequestInput.class);
-			requestInput.validate();
+			body = request.body(WebInput.MAP_PARAMETERIZED_TYPE_REF);
 		}
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);
 		}
-
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-				.query(requestInput.getQuery())
-				.operationName(requestInput.getOperationName())
-				.variables(requestInput.getVariables())
-				.build();
-
-		// Invoke GraphQLInterceptor's preHandle here
-
-		CompletableFuture<Map<String, Object>> future =
-				customizeExecutionInput(executionInput, request.headers().asHttpHeaders())
-						.thenCompose(this::execute)
-						.thenApply(ExecutionResult::toSpecification);
-
-		// Invoke GraphQLInterceptor's postHandle here
-
-		return ServerResponse.ok().body(future.isDone() ? getResult(future) : future);
+		return new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
 	}
 
-	protected CompletableFuture<ExecutionInput> customizeExecutionInput(ExecutionInput input, HttpHeaders headers) {
-		return CompletableFuture.completedFuture(input);
+	protected Mono<ExecutionInput> extendInput(ExecutionInput executionInput, WebInput webInput) {
+		return Mono.just(executionInput);
 	}
 
-	protected CompletableFuture<ExecutionResult> execute(ExecutionInput input) {
-		return graphQL.executeAsync(input);
+	protected Mono<ExecutionResult> execute(ExecutionInput input) {
+		return Mono.fromFuture(this.graphQL.executeAsync(input));
 	}
 
-	private Map<String, Object> getResult(CompletableFuture<Map<String, Object>> future) {
-		try {
-			return future.get();
-		}
-		catch (InterruptedException | ExecutionException ex) {
-			throw new ServerErrorException("Failed to get result", ex);
-		}
-	}
 }
