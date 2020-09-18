@@ -1,4 +1,4 @@
-package org.springframework.boot.graphql;
+package org.springframework.graphql;
 
 public class Book {
 

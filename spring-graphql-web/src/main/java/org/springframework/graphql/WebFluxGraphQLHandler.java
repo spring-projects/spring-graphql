@@ -28,11 +28,13 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * GraphQL handler to expose as a WebFlux.fn endpoint via
  * {@link org.springframework.web.reactive.function.server.RouterFunctions}.
  */
-public class WebFluxGraphQLHandler extends WebHandlerSupport implements HandlerFunction<ServerResponse> {
+public class WebFluxGraphQLHandler implements HandlerFunction<ServerResponse> {
+
+	private final WebInterceptorExecution executionChain;
 
 
 	public WebFluxGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
-		super(graphQL, interceptors);
+		this.executionChain = new WebInterceptorExecution(graphQL, interceptors);
 	}
 
 
@@ -40,7 +42,7 @@ public class WebFluxGraphQLHandler extends WebHandlerSupport implements HandlerF
 		return request.bodyToMono(WebInput.MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
 					WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
-					return executeQuery(webInput);
+					return this.executionChain.execute(webInput);
 				})
 				.flatMap(output -> ServerResponse.ok().bodyValue(output.toSpecification()));
 	}

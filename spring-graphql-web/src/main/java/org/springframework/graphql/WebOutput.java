@@ -27,8 +27,8 @@ import org.springframework.lang.Nullable;
 
 
 /**
- * Simple wrapper around a GraphQL {@link ExecutionResult} that allows
- * {@link #transform(Consumer) transformation} via a {@link Builder Builder}.
+ * {@link ExecutionResult} that wraps another in order to provide a convenient
+ * way to {@link #transform(Consumer) transform} it.
  */
 public class WebOutput implements ExecutionResult {
 

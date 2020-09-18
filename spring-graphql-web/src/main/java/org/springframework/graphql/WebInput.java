@@ -30,8 +30,8 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Represents the input to a GraphQL HTTP endpoint including URI, headers, and
- * the query, operationName, and variables from the request body.
+ * Container for input from an HTTP request to a GraphQL endpoint, including
+ * URI, headers, and other inputs extracted from the body of the request.
  */
 public class WebInput {
 

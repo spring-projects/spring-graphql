@@ -35,11 +35,13 @@ import org.springframework.web.servlet.function.ServerResponse;
  * GraphQL handler to expose as a WebMvc.fn endpoint via
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
  */
-public class WebMvcGraphQLHandler extends WebHandlerSupport implements HandlerFunction<ServerResponse> {
+public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
+
+	private final WebInterceptorExecution executionChain;
 
 
 	public WebMvcGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
-		super(graphQL, interceptors);
+		this.executionChain = new WebInterceptorExecution(graphQL, interceptors);
 	}
 
 
@@ -51,7 +53,7 @@ public class WebMvcGraphQLHandler extends WebHandlerSupport implements HandlerFu
 	 */
 	public ServerResponse handle(ServerRequest request) throws ServletException {
 		WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request));
-		Mono<WebOutput> outputMono = executeQuery(webInput);
+		Mono<WebOutput> outputMono = this.executionChain.execute(webInput);
 		return ServerResponse.ok().body(outputMono.map(ExecutionResult::toSpecification));
 	}
 

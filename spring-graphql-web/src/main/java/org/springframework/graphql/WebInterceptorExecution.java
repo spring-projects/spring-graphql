@@ -18,6 +18,7 @@ package org.springframework.graphql;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
@@ -27,39 +28,32 @@ import reactor.core.publisher.Mono;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Base class for GraphQL over HTTP handlers.
+ * Supports the use of {@link WebInterceptor}s to customize the
+ * {@link ExecutionInput} and the {@link ExecutionResult} of {@link GraphQL}
+ * query execution.
  */
-public abstract class WebHandlerSupport {
+class WebInterceptorExecution {
 
 	private final GraphQL graphQL;
 
 	private final List<WebInterceptor> interceptors;
 
 
-	public WebHandlerSupport(GraphQL graphQL, List<WebInterceptor> interceptors) {
+	WebInterceptorExecution(GraphQL graphQL, List<WebInterceptor> interceptors) {
 		this.graphQL = graphQL;
 		this.interceptors = (!CollectionUtils.isEmpty(interceptors) ?
 				Collections.unmodifiableList(new ArrayList<>(interceptors)) : Collections.emptyList());
 	}
 
 
-	public GraphQL getGraphQL() {
-		return this.graphQL;
-	}
-
-	public List<WebInterceptor> getInterceptors() {
-		return this.interceptors;
-	}
-
-
-	protected Mono<WebOutput> executeQuery(WebInput webInput) {
+	public Mono<WebOutput> execute(WebInput webInput) {
 		return createInputChain(webInput).flatMap(executionInput -> {
-			Mono<ExecutionResult> resultMono = Mono.fromFuture(getGraphQL().executeAsync(executionInput));
-			return createOutputChain(resultMono);
+			CompletableFuture<ExecutionResult> future = this.graphQL.executeAsync(executionInput);
+			return createOutputChain(Mono.fromFuture(future));
 		});
 	}
 
-	protected Mono<ExecutionInput> createInputChain(WebInput webInput) {
+	private Mono<ExecutionInput> createInputChain(WebInput webInput) {
 		Mono<ExecutionInput> preHandleMono = Mono.just(webInput.toExecutionInput());
 		for (WebInterceptor interceptor : this.interceptors) {
 			preHandleMono = preHandleMono.flatMap(input -> interceptor.preHandle(input, webInput));
@@ -67,9 +61,10 @@ public abstract class WebHandlerSupport {
 		return preHandleMono;
 	}
 
-	protected Mono<WebOutput> createOutputChain(Mono<ExecutionResult> resultMono) {
+	private Mono<WebOutput> createOutputChain(Mono<ExecutionResult> resultMono) {
 		Mono<WebOutput> outputMono = resultMono.map(WebOutput::new);
-		for (WebInterceptor interceptor : this.interceptors) {
+		for (int i = this.interceptors.size() - 1 ; i >= 0; i--) {
+			WebInterceptor interceptor = this.interceptors.get(i);
 			outputMono = outputMono.flatMap(interceptor::postHandle);
 		}
 		return outputMono;

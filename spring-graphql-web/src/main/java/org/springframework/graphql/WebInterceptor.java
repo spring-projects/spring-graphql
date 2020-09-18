@@ -18,11 +18,13 @@ package org.springframework.graphql;
 import java.util.function.Consumer;
 
 import graphql.ExecutionInput;
+import graphql.GraphQL;
 import reactor.core.publisher.Mono;
 
 /**
- * Allows interception of GraphQL over HTTP requests with possible customization
- * of the input and the result of query execution.
+ * Interceptor for GraphQL over HTTP requests that allows customization of the
+ * {@link ExecutionInput} and the {@link graphql.ExecutionResult} of
+ * {@link GraphQL} query execution.
  */
 public interface WebInterceptor {
 

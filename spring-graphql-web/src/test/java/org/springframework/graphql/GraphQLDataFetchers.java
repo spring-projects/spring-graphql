@@ -1,4 +1,4 @@
-package org.springframework.boot.graphql;
+package org.springframework.graphql;
 
 import java.util.Arrays;
 import java.util.List;
