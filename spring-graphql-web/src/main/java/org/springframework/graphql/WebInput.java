@@ -17,7 +17,11 @@ package org.springframework.graphql;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+
+import graphql.ExecutionInput;
+import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -50,7 +54,7 @@ public class WebInput {
 
 
 	@SuppressWarnings("unchecked")
-	WebInput(URI uri, HttpHeaders headers, Map<String, Object> body) {
+	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body) {
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
 		this.query = getAndValidateQuery(body);
@@ -71,21 +75,29 @@ public class WebInput {
 		return this.uri;
 	}
 
-	public HttpHeaders getHeaders() {
+	public HttpHeaders headers() {
 		return this.headers;
 	}
 
-	public String getQuery() {
+	public String query() {
 		return this.query;
 	}
 
 	@Nullable
-	public String getOperationName() {
+	public String operationName() {
 		return this.operationName;
 	}
 
-	public Map<String, Object> getVariables() {
+	public Map<String, Object> variables() {
 		return this.variables;
+	}
+
+	public ExecutionInput toExecutionInput() {
+		return ExecutionInput.newExecutionInput()
+				.query(query())
+				.operationName(operationName())
+				.variables(variables())
+				.build();
 	}
 
 }

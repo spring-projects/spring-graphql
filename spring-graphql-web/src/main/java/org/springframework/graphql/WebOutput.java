@@ -26,12 +26,16 @@ import graphql.GraphQLError;
 import org.springframework.lang.Nullable;
 
 
+/**
+ * Simple wrapper around a GraphQL {@link ExecutionResult} that allows
+ * {@link #transform(Consumer) transformation} via a {@link Builder Builder}.
+ */
 public class WebOutput implements ExecutionResult {
 
 	private final ExecutionResult executionResult;
 
 
-	WebOutput(ExecutionResult executionResult) {
+	public WebOutput(ExecutionResult executionResult) {
 		this.executionResult = executionResult;
 	}
 

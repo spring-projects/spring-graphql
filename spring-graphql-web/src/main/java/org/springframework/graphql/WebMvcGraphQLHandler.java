@@ -16,11 +16,11 @@
 package org.springframework.graphql;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import reactor.core.publisher.Mono;
@@ -32,16 +32,16 @@ import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 /**
- * GraphQL handler to be exposed as a WebMvc.fn endpoint via
+ * GraphQL handler to expose as a WebMvc.fn endpoint via
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
  */
-public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
+public class WebMvcGraphQLHandler extends WebHandlerSupport implements HandlerFunction<ServerResponse> {
 
-	private final GraphQL graphQL;
 
-	public WebMvcGraphQLHandler(GraphQL.Builder graphQL) {
-		this.graphQL = graphQL.build();
+	public WebMvcGraphQLHandler(GraphQL.Builder builder, List<WebInterceptor> interceptors) {
+		super(builder, interceptors);
 	}
+
 
 	/**
 	 * {@inheritDoc}
@@ -50,38 +50,18 @@ public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 	 * e.g. {@link HttpMediaTypeNotSupportedException}.
 	 */
 	public ServerResponse handle(ServerRequest request) throws ServletException {
-		WebInput webInput = createWebInput(request);
-
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-				.query(webInput.getQuery())
-				.operationName(webInput.getOperationName())
-				.variables(webInput.getVariables())
-				.build();
-
-		Mono<Map<String, Object>> body = extendInput(executionInput, webInput)
-				.flatMap(this::execute)
-				.map(ExecutionResult::toSpecification);
-
-		return ServerResponse.ok().body(body);
+		WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request));
+		Mono<WebOutput> outputMono = executeQuery(webInput);
+		return ServerResponse.ok().body(outputMono.map(ExecutionResult::toSpecification));
 	}
 
-	private static WebInput createWebInput(ServerRequest request) throws ServletException {
-		Map<String, Object> body;
+	private static Map<String, Object> readBody(ServerRequest request) throws ServletException {
 		try {
-			body = request.body(WebInput.MAP_PARAMETERIZED_TYPE_REF);
+			return request.body(WebInput.MAP_PARAMETERIZED_TYPE_REF);
 		}
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);
 		}
-		return new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
-	}
-
-	protected Mono<ExecutionInput> extendInput(ExecutionInput executionInput, WebInput webInput) {
-		return Mono.just(executionInput);
-	}
-
-	protected Mono<ExecutionResult> execute(ExecutionInput input) {
-		return Mono.fromFuture(this.graphQL.executeAsync(input));
 	}
 
 }

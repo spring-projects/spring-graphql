@@ -15,8 +15,8 @@
  */
 package org.springframework.graphql;
 
-import graphql.ExecutionInput;
-import graphql.ExecutionResult;
+import java.util.List;
+
 import graphql.GraphQL;
 import reactor.core.publisher.Mono;
 
@@ -25,45 +25,24 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 /**
- * GraphQL handler to be exposed as a WebFlux.fn endpoint via
+ * GraphQL handler to expose as a WebFlux.fn endpoint via
  * {@link org.springframework.web.reactive.function.server.RouterFunctions}.
  */
-public class WebFluxGraphQLHandler implements HandlerFunction<ServerResponse> {
+public class WebFluxGraphQLHandler extends WebHandlerSupport implements HandlerFunction<ServerResponse> {
 
-	private final GraphQL graphQL;
 
-	public WebFluxGraphQLHandler(GraphQL.Builder graphQLBuilder) {
-		this.graphQL = graphQLBuilder.build();
+	public WebFluxGraphQLHandler(GraphQL.Builder builder, List<WebInterceptor> interceptors) {
+		super(builder, interceptors);
 	}
+
 
 	public Mono<ServerResponse> handle(ServerRequest request) {
 		return request.bodyToMono(WebInput.MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
-					WebInput webInput = new WebInput(
-							request.uri(), request.headers().asHttpHeaders(), body);
-
-					ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-							.query(webInput.getQuery())
-							.operationName(webInput.getOperationName())
-							.variables(webInput.getVariables())
-							.build();
-
-					// Invoke GraphQLInterceptor's preHandle here
-					return extendInput(executionInput, webInput);
+					WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
+					return executeQuery(webInput);
 				})
-				.flatMap(executionInput -> {
-					// Invoke handleResult here
-					return execute(executionInput);
-				})
-				.flatMap(result -> ServerResponse.ok().bodyValue(result.toSpecification()));
-	}
-
-	protected Mono<ExecutionInput> extendInput(ExecutionInput executionInput, WebInput webInput) {
-		return Mono.just(executionInput);
-	}
-
-	protected Mono<ExecutionResult> execute(ExecutionInput input) {
-		return Mono.fromFuture(graphQL.executeAsync(input));
+				.flatMap(output -> ServerResponse.ok().bodyValue(output.toSpecification()));
 	}
 
 }

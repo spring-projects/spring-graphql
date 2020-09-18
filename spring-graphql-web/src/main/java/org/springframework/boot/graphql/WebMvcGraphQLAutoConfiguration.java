@@ -15,6 +15,8 @@
  */
 package org.springframework.boot.graphql;
 
+import java.util.Collections;
+
 import graphql.GraphQL;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -42,7 +44,7 @@ public class WebMvcGraphQLAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public WebMvcGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new WebMvcGraphQLHandler(graphQLBuilder);
+		return new WebMvcGraphQLHandler(graphQLBuilder, Collections.emptyList());
 	}
 
 	@Bean
