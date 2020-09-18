@@ -44,13 +44,13 @@ public class WebMvcGraphQLAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public WebMvcGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new WebMvcGraphQLHandler(graphQLBuilder, Collections.emptyList());
+		return new WebMvcGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
 	}
 
 	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebMvcGraphQLHandler handler) {
 		return RouterFunctions.route()
-				.POST("/graphql", accept(MediaType.APPLICATION_JSON), handler::handle)
+				.POST("/graphql", accept(MediaType.APPLICATION_JSON), handler)
 				.build();
 	}
 

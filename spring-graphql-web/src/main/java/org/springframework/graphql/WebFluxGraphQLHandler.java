@@ -31,8 +31,8 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 public class WebFluxGraphQLHandler extends WebHandlerSupport implements HandlerFunction<ServerResponse> {
 
 
-	public WebFluxGraphQLHandler(GraphQL.Builder builder, List<WebInterceptor> interceptors) {
-		super(builder, interceptors);
+	public WebFluxGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
+		super(graphQL, interceptors);
 	}
 
 

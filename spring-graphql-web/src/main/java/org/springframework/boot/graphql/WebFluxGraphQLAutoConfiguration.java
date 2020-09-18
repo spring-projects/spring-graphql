@@ -41,12 +41,12 @@ public class WebFluxGraphQLAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public WebFluxGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new WebFluxGraphQLHandler(graphQLBuilder, Collections.emptyList());
+		return new WebFluxGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
 	}
 
 	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebFluxGraphQLHandler handler) {
-		return RouterFunctions.route().POST("/graphql", handler::handle).build();
+		return RouterFunctions.route().POST("/graphql", handler).build();
 	}
 
 }

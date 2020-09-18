@@ -38,8 +38,8 @@ import org.springframework.web.servlet.function.ServerResponse;
 public class WebMvcGraphQLHandler extends WebHandlerSupport implements HandlerFunction<ServerResponse> {
 
 
-	public WebMvcGraphQLHandler(GraphQL.Builder builder, List<WebInterceptor> interceptors) {
-		super(builder, interceptors);
+	public WebMvcGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
+		super(graphQL, interceptors);
 	}
 
 

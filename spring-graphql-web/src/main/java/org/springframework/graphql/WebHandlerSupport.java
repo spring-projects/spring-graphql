@@ -36,8 +36,8 @@ public abstract class WebHandlerSupport {
 	private final List<WebInterceptor> interceptors;
 
 
-	public WebHandlerSupport(GraphQL.Builder builder, List<WebInterceptor> interceptors) {
-		this.graphQL = builder.build();
+	public WebHandlerSupport(GraphQL graphQL, List<WebInterceptor> interceptors) {
+		this.graphQL = graphQL;
 		this.interceptors = (!CollectionUtils.isEmpty(interceptors) ?
 				Collections.unmodifiableList(new ArrayList<>(interceptors)) : Collections.emptyList());
 	}
