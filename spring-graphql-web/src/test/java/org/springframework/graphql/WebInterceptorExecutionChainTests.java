@@ -41,9 +41,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Unit tests for {@link WebInterceptorExecution}.
+ * Unit tests for {@link WebInterceptorExecutionChain}.
  */
-public class WebInterceptorExecutionTests {
+public class WebInterceptorExecutionChainTests {
 
 	@Test
 	void testInterceptorInvocation() throws Exception {
@@ -65,7 +65,7 @@ public class WebInterceptorExecutionTests {
 		Map body = mapper.reader().readValue("{\"query\": \"" + query + "\"}", Map.class);
 		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body);
 
-		WebOutput webOutput = new WebInterceptorExecution(createGraphQL(), interceptors)
+		WebOutput webOutput = new WebInterceptorExecutionChain(createGraphQL(), interceptors)
 				.execute(webInput).block();
 
 		assertEquals(":pre1:pre2:pre3:post3:post2:post1", sb.toString());

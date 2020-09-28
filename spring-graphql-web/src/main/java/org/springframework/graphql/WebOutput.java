@@ -35,6 +35,9 @@ public class WebOutput implements ExecutionResult {
 	private final ExecutionResult executionResult;
 
 
+	/**
+	 * Create an instance that wraps the given {@link ExecutionResult}.
+	 */
 	public WebOutput(ExecutionResult executionResult) {
 		this.executionResult = executionResult;
 	}

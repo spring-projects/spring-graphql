@@ -25,6 +25,7 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 import reactor.core.publisher.Mono;
 
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -32,14 +33,15 @@ import org.springframework.util.CollectionUtils;
  * {@link ExecutionInput} and the {@link ExecutionResult} of {@link GraphQL}
  * query execution.
  */
-class WebInterceptorExecution {
+class WebInterceptorExecutionChain {
 
 	private final GraphQL graphQL;
 
 	private final List<WebInterceptor> interceptors;
 
 
-	WebInterceptorExecution(GraphQL graphQL, List<WebInterceptor> interceptors) {
+	WebInterceptorExecutionChain(GraphQL graphQL, List<WebInterceptor> interceptors) {
+		Assert.notNull(graphQL, "GraphQL is required");
 		this.graphQL = graphQL;
 		this.interceptors = (!CollectionUtils.isEmpty(interceptors) ?
 				Collections.unmodifiableList(new ArrayList<>(interceptors)) : Collections.emptyList());

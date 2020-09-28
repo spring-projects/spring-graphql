@@ -37,11 +37,18 @@ import org.springframework.web.servlet.function.ServerResponse;
  */
 public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 
-	private final WebInterceptorExecution executionChain;
+	private final WebInterceptorExecutionChain executionChain;
 
 
+	/**
+	 * Create a handler that executes queries through the given {@link GraphQL}
+	 * and and invokes the given interceptors to customize input to and the
+	 * result from the execution of the query.
+	 * @param graphQL the GraphQL instance to use for query execution
+	 * @param interceptors 0 or more interceptors to customize input and output
+	 */
 	public WebMvcGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
-		this.executionChain = new WebInterceptorExecution(graphQL, interceptors);
+		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
 	}
 
 

@@ -24,14 +24,16 @@ import graphql.ExecutionInput;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Container for input from an HTTP request to a GraphQL endpoint, including
- * URI, headers, and other inputs extracted from the body of the request.
+ * Container for the input of a GraphQL query over HTTP. The input includes the
+ * {@link UriComponents URL} and the headers of the request, as well as the
+ * query name, operation name, and variables from the request body.
  */
 public class WebInput {
 
@@ -69,27 +71,51 @@ public class WebInput {
 	}
 
 
+	/**
+	 * Return the URI of the HTTP request including
+	 * {@link UriComponents#getQueryParams() query parameters}.
+	 */
 	public UriComponents uri() {
 		return this.uri;
 	}
 
+	/**
+	 * Return the headers of the request.
+	 */
 	public HttpHeaders headers() {
 		return this.headers;
 	}
 
+	/**
+	 * Return the query name extracted from the request body. This is guaranteed
+	 * to be a non-empty string, or otherwise the request is rejected via
+	 * {@link ServerWebInputException} as a 400 error.
+	 */
 	public String query() {
 		return this.query;
 	}
 
+	/**
+	 * Return the query operation name extracted from the request body or
+	 * {@code null} if not provided.
+	 */
 	@Nullable
 	public String operationName() {
 		return this.operationName;
 	}
 
+	/**
+	 * Return the query variables that can be referenced via $syntax extracted
+	 * from the request body or a {@code null} if not provided.
+	 */
 	public Map<String, Object> variables() {
 		return this.variables;
 	}
 
+	/**
+	 * Create an {@link ExecutionInput} initialized with the {@link #query()},
+	 * {@link #operationName()}, and {@link #variables()}.
+	 */
 	public ExecutionInput toExecutionInput() {
 		return ExecutionInput.newExecutionInput()
 				.query(query())
@@ -98,4 +124,11 @@ public class WebInput {
 				.build();
 	}
 
+	@Override
+	public String toString() {
+		return "WebInput [" + uri() + " " + headers() + ", query='" + query() + "'" +
+				(operationName() != null ? ", operationName='" + operationName() + "'" : "") +
+				(!CollectionUtils.isEmpty(variables()) ?  ", variables=" + variables() : "") +
+				"]";
+	}
 }

@@ -18,20 +18,32 @@ package org.springframework.graphql;
 import java.util.function.Consumer;
 
 import graphql.ExecutionInput;
-import graphql.GraphQL;
+import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Interceptor for GraphQL over HTTP requests that allows customization of the
- * {@link ExecutionInput} and the {@link graphql.ExecutionResult} of
- * {@link GraphQL} query execution.
+ * Web interceptor for GraphQL queries over HTTP. The interceptor allows
+ * customization of the {@link ExecutionInput} for the query as well as the
+ * {@link ExecutionResult} of the query and is supported for both Spring MVC and
+ * Spring WebFlux.
+ *
+ * <p>A list of interceptors may be provided to {@link WebMvcGraphQLHandler} or
+ * to {@link WebFluxGraphQLHandler}. Interceptors are executed in that provided
+ * order where each interceptor sees the {@code ExecutionInput} or the
+ * {@code ExecutionResult} that was customized by the previous interceptor.
  */
 public interface WebInterceptor {
 
 	/**
 	 * Intercept a GraphQL over HTTP request before the query is executed.
 	 *
-	 * @param executionInput the input to use, initialized from the {@code WebInput}
+	 * <p>{@code ExecutionInput} is initially populated with the input from the
+	 * request body via {@link WebInput#toExecutionInput()} where the
+	 * {@link WebInput#query() query} is guaranteed to be a non-empty String.
+	 * Interceptors are then executed in order to further customize the input
+	 * and or perform other actions or checks.
+	 *
+	 * @param executionInput the input to use, initialized from {@code WebInput}
 	 * @param webInput the input from the HTTP request
 	 * @return the same instance or a new one via {@link ExecutionInput#transform(Consumer)}
 	 */
@@ -41,6 +53,10 @@ public interface WebInterceptor {
 
 	/**
 	 * Intercept a GraphQL over HTTP request after the query is executed.
+	 *
+	 * <p>{@code WebOutput} initially wraps the {@link ExecutionResult} returned
+	 * from the execution of the query. Interceptors are then executed in order
+	 * to further customize it and/or perform other actions.
 	 *
 	 * @param webOutput the execution result
 	 * @return the same instance or a new one via {@link WebOutput#transform(Consumer)}
