@@ -64,7 +64,7 @@ class WebInterceptorExecutionChain {
 	}
 
 	private Mono<WebOutput> createOutputChain(Mono<ExecutionResult> resultMono) {
-		Mono<WebOutput> outputMono = resultMono.map(WebOutput::new);
+		Mono<WebOutput> outputMono = resultMono.map((ExecutionResult executionResult) -> new WebOutput(executionResult, null));
 		for (int i = this.interceptors.size() - 1 ; i >= 0; i--) {
 			WebInterceptor interceptor = this.interceptors.get(i);
 			outputMono = outputMono.flatMap(interceptor::postHandle);

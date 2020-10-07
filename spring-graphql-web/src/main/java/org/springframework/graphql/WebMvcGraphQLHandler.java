@@ -21,7 +21,6 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import graphql.ExecutionResult;
 import graphql.GraphQL;
 import reactor.core.publisher.Mono;
 
@@ -60,8 +59,15 @@ public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 	 */
 	public ServerResponse handle(ServerRequest request) throws ServletException {
 		WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request));
-		Mono<WebOutput> outputMono = this.executionChain.execute(webInput);
-		return ServerResponse.ok().body(outputMono.map(ExecutionResult::toSpecification));
+		Mono<ServerResponse> responseMono = this.executionChain.execute(webInput)
+				.map(output -> {
+					ServerResponse.BodyBuilder builder = ServerResponse.ok();
+					if (output.getHeaders() != null) {
+						builder.headers(headers -> headers.putAll(output.getHeaders()));
+					}
+					return builder.body(output.toSpecification());
+				});
+		return ServerResponse.async(responseMono);
 	}
 
 	private static Map<String, Object> readBody(ServerRequest request) throws ServletException {

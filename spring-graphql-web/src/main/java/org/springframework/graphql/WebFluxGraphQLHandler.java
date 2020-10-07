@@ -51,7 +51,13 @@ public class WebFluxGraphQLHandler implements HandlerFunction<ServerResponse> {
 					WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
 					return this.executionChain.execute(webInput);
 				})
-				.flatMap(output -> ServerResponse.ok().bodyValue(output.toSpecification()));
+				.flatMap(output -> {
+					ServerResponse.BodyBuilder builder = ServerResponse.ok();
+					if (output.getHeaders() != null) {
+						builder.headers(headers -> headers.putAll(output.getHeaders()));
+					}
+					return builder.bodyValue(output.toSpecification());
+				});
 	}
 
 }

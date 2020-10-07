@@ -24,6 +24,7 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 
 
@@ -35,12 +36,16 @@ public class WebOutput implements ExecutionResult {
 
 	private final ExecutionResult executionResult;
 
+	@Nullable
+	private final HttpHeaders headers;
+
 
 	/**
 	 * Create an instance that wraps the given {@link ExecutionResult}.
 	 */
-	public WebOutput(ExecutionResult executionResult) {
+	public WebOutput(ExecutionResult executionResult, @Nullable HttpHeaders headers) {
 		this.executionResult = executionResult;
+		this.headers = headers;
 	}
 
 
@@ -70,6 +75,14 @@ public class WebOutput implements ExecutionResult {
 	}
 
 	/**
+	 * Return headers to be added to the HTTP response.
+	 */
+	@Nullable
+	public HttpHeaders getHeaders() {
+		return this.headers;
+	}
+
+	/**
 	 * Transform this {@code WebOutput} instance through a {@link Builder} and
 	 * return a new instance with the modified values.
 	 */
@@ -90,11 +103,17 @@ public class WebOutput implements ExecutionResult {
 		@Nullable
 		private Map<Object, Object> extensions;
 
+		@Nullable
+		private HttpHeaders headers;
+
+
 		public Builder(WebOutput output) {
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();
+			this.headers = output.getHeaders();
 		}
+
 
 		/**
 		 * Set the execution {@link ExecutionResult#getData() data}.
@@ -120,8 +139,26 @@ public class WebOutput implements ExecutionResult {
 			return this;
 		}
 
+		public Builder header(String name, String... values) {
+			initHeaders();
+			for (String value : values) {
+				this.headers.add(name, value);
+			}
+			return this;
+		}
+
+		public Builder headers(Consumer<HttpHeaders> consumer) {
+			initHeaders();
+			consumer.accept(this.headers);
+			return this;
+		}
+
+		private void initHeaders() {
+			this.headers = (this.headers != null ? this.headers : new HttpHeaders());
+		}
+
 		public WebOutput build() {
-			return new WebOutput(new ExecutionResultImpl(this.data, this.errors, this.extensions));
+			return new WebOutput(new ExecutionResultImpl(this.data, this.errors, this.extensions), this.headers);
 		}
 	}
 
