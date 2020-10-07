@@ -1,3 +1,10 @@
+pluginManagement {
+	repositories {
+		mavenCentral()
+		maven { url 'https://repo.spring.io/snapshot' }
+	}
+}
+
 rootProject.name = 'spring-graphql'
 include 'spring-boot-starter-graphql-web'
 include 'spring-boot-starter-graphql-webflux'

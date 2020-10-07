@@ -37,8 +37,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.util.ResourceUtils;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link WebInterceptorExecutionChain}.
@@ -68,8 +67,8 @@ public class WebInterceptorExecutionChainTests {
 		WebOutput webOutput = new WebInterceptorExecutionChain(createGraphQL(), interceptors)
 				.execute(webInput).block();
 
-		assertEquals(":pre1:pre2:pre3:post3:post2:post1", sb.toString());
-		assertTrue(webOutput.isDataPresent());
+		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
+		assertThat(webOutput.isDataPresent()).isTrue();
 	}
 
 	private static GraphQL createGraphQL() throws Exception {
