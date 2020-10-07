@@ -15,6 +15,7 @@
  */
 package org.springframework.graphql;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -58,6 +59,7 @@ public class WebOutput implements ExecutionResult {
 		return this.executionResult.getErrors();
 	}
 
+	@Nullable
 	public Map<Object, Object> getExtensions() {
 		return this.executionResult.getExtensions();
 	}
@@ -67,6 +69,10 @@ public class WebOutput implements ExecutionResult {
 		return this.executionResult.toSpecification();
 	}
 
+	/**
+	 * Transform this {@code WebOutput} instance through a {@link Builder} and
+	 * return a new instance with the modified values.
+	 */
 	public WebOutput transform(Consumer<Builder> consumer) {
 		Builder builder = new Builder(this);
 		consumer.accept(builder);
@@ -81,6 +87,7 @@ public class WebOutput implements ExecutionResult {
 
 		private List<GraphQLError> errors;
 
+		@Nullable
 		private Map<Object, Object> extensions;
 
 		public Builder(WebOutput output) {
@@ -89,17 +96,26 @@ public class WebOutput implements ExecutionResult {
 			this.extensions = output.getExtensions();
 		}
 
-		public Builder data(Object data) {
+		/**
+		 * Set the execution {@link ExecutionResult#getData() data}.
+		 */
+		public Builder data(@Nullable Object data) {
 			this.data = data;
 			return this;
 		}
 
-		public Builder errors(List<GraphQLError> errors) {
-			this.errors = errors;
+		/**
+		 * Set the execution {@link ExecutionResult#getErrors() errors}.
+		 */
+		public Builder errors(@Nullable List<GraphQLError> errors) {
+			this.errors = (errors != null ? errors : Collections.emptyList());
 			return this;
 		}
 
-		public Builder extensions(Map<Object, Object> extensions) {
+		/**
+		 * Set the execution {@link ExecutionResult#getExtensions() extensions}.
+		 */
+		public Builder extensions(@Nullable Map<Object, Object> extensions) {
 			this.extensions = extensions;
 			return this;
 		}
