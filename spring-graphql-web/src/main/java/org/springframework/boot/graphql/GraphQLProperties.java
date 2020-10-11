@@ -22,6 +22,16 @@ public class GraphQLProperties {
 
 	private String schema = "classpath:schema.graphqls";
 
+	private String url = "/graphql";
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
 	public String getSchema() {
 		return schema;
 	}
