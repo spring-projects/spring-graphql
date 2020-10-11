@@ -15,6 +15,8 @@
  */
 package org.springframework.boot.graphql;
 
+import java.util.Collections;
+
 import graphql.GraphQL;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -25,11 +27,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.WebFluxGraphQLHandler;
+import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-import java.util.Collections;
+import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
@@ -46,7 +49,7 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebFluxGraphQLHandler handler, GraphQLProperties graphQLProperties) {
-		return RouterFunctions.route().POST(graphQLProperties.getUrl(), handler).build();
+		return RouterFunctions.route().POST(graphQLProperties.getUrl(), accept(MediaType.APPLICATION_JSON), handler).build();
 	}
 
 }

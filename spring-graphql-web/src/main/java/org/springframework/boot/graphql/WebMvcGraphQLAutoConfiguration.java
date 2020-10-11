@@ -15,6 +15,8 @@
  */
 package org.springframework.boot.graphql;
 
+import java.util.Collections;
+
 import graphql.GraphQL;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -29,8 +31,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
-
-import java.util.Collections;
 
 import static org.springframework.web.servlet.function.RequestPredicates.accept;
 
