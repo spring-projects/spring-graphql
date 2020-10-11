@@ -15,10 +15,7 @@
  */
 package org.springframework.boot.graphql;
 
-import java.util.Collections;
-
 import graphql.GraphQL;
-
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -32,6 +29,8 @@ import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import java.util.Collections;
+
 import static org.springframework.web.servlet.function.RequestPredicates.accept;
 
 @Configuration
@@ -41,17 +40,17 @@ import static org.springframework.web.servlet.function.RequestPredicates.accept;
 @AutoConfigureAfter(GraphQLAutoConfiguration.class)
 public class WebMvcGraphQLAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public WebMvcGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new WebMvcGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    public WebMvcGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
+        return new WebMvcGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
+    }
 
-	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebMvcGraphQLHandler handler) {
-		return RouterFunctions.route()
-				.POST("/graphql", accept(MediaType.APPLICATION_JSON), handler)
-				.build();
-	}
+    @Bean
+    public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebMvcGraphQLHandler handler) {
+        return RouterFunctions.route()
+                .POST("/graphql", accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8), handler)
+                .build();
+    }
 
 }
