@@ -50,7 +50,7 @@ public class WebMvcGraphQLAutoConfiguration {
 	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebMvcGraphQLHandler handler, GraphQLProperties graphQLProperties) {
 		return RouterFunctions.route()
-				.POST(graphQLProperties.getUrl(), accept(MediaType.APPLICATION_JSON), handler)
+				.POST(graphQLProperties.getPath(), accept(MediaType.APPLICATION_JSON), handler)
 				.build();
 	}
 

@@ -49,7 +49,7 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebFluxGraphQLHandler handler, GraphQLProperties graphQLProperties) {
-		return RouterFunctions.route().POST(graphQLProperties.getUrl(), accept(MediaType.APPLICATION_JSON), handler).build();
+		return RouterFunctions.route().POST(graphQLProperties.getPath(), accept(MediaType.APPLICATION_JSON), handler).build();
 	}
 
 }

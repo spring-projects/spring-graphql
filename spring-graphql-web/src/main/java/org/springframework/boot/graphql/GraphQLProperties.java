@@ -20,23 +20,29 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "spring.graphql")
 public class GraphQLProperties {
 
-	private String schema = "classpath:schema.graphqls";
+	/**
+	 * Location of the GraphQL schema file.
+	 */
+	private String schemaLocation = "classpath:schema.graphqls";
 
-	private String url = "/graphql";
+	/**
+	 * Path of the GraphQL HTTP endpoint.
+	 */
+	private String path = "/graphql";
 
-	public String getUrl() {
-		return url;
+	public String getPath() {
+		return path;
 	}
 
-	public void setUrl(String url) {
-		this.url = url;
+	public void setPath(String path) {
+		this.path = path;
 	}
 
-	public String getSchema() {
-		return schema;
+	public String getSchemaLocation() {
+		return schemaLocation;
 	}
 
-	public void setSchema(String schema) {
-		this.schema = schema;
+	public void setSchemaLocation(String schemaLocation) {
+		this.schemaLocation = schemaLocation;
 	}
 }

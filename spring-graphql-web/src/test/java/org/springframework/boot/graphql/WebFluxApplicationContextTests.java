@@ -65,7 +65,7 @@ class WebFluxApplicationContextTests {
 				.withUserConfiguration(DataFetchersConfiguration.class)
 				.withPropertyValues(
 						"spring.main.web-application-type=reactive",
-						"spring.graphql.schema:classpath:books/schema.graphqls")
+						"spring.graphql.schema-location:classpath:books/schema.graphqls")
 				.run((context) -> {
 					WebTestClient client = WebTestClient.bindToApplicationContext(context)
 							.configureClient()

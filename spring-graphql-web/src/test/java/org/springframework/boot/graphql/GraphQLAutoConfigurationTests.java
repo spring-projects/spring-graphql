@@ -51,7 +51,7 @@ class GraphQLAutoConfigurationTests {
 	@Test
 	void shouldCreateBuilderWithSdl() {
 		contextRunner
-				.withPropertyValues("spring.graphql.schema:classpath:books/schema.graphqls")
+				.withPropertyValues("spring.graphql.schema-location:classpath:books/schema.graphqls")
 				.run((context) -> {
 					assertThat(context).hasSingleBean(GraphQL.Builder.class);
 				});
@@ -60,7 +60,7 @@ class GraphQLAutoConfigurationTests {
 	@Test
 	void shouldUseProgrammaticallyDefinedBuilder() {
 		contextRunner
-				.withPropertyValues("spring.graphql.schema:classpath:books/schema.graphqls")
+				.withPropertyValues("spring.graphql.schema-location:classpath:books/schema.graphqls")
 				.withUserConfiguration(CustomGraphQLBuilderConfiguration.class)
 				.run((context) -> {
 					assertThat(context).hasBean("customGraphQLBuilder");

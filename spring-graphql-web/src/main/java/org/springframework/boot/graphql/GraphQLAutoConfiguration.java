@@ -54,12 +54,12 @@ public class GraphQLAutoConfiguration {
 		@Bean
 		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring) {
 			try {
-				File schemaFile = ResourceUtils.getFile(properties.getSchema());
+				File schemaFile = ResourceUtils.getFile(properties.getSchemaLocation());
 				GraphQLSchema schema = buildSchema(schemaFile, runtimeWiring);
 				return GraphQL.newGraphQL(schema);
 			}
 			catch (FileNotFoundException ex) {
-				throw new MissingGraphQLSchemaException(properties.getSchema());
+				throw new MissingGraphQLSchemaException(properties.getSchemaLocation());
 			}
 		}
 
