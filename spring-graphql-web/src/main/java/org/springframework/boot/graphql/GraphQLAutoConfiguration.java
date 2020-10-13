@@ -39,25 +39,36 @@ import org.springframework.util.ResourceUtils;
 @EnableConfigurationProperties(GraphQLProperties.class)
 public class GraphQLAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public RuntimeWiring runtimeWiring(ObjectProvider<RuntimeWiringCustomizer> customizers) {
-		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		customizers.orderedStream().forEach(customizer -> customizer.customize(builder));
-		return builder.build();
-	}
+	@Configuration
+	@ConditionalOnMissingBean(GraphQL.Builder.class)
+	static class SdlConfiguration {
 
-	@Bean
-	public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring) throws FileNotFoundException {
-		File schemaFile = ResourceUtils.getFile(properties.getSchema());
-		GraphQLSchema schema = buildSchema(schemaFile, runtimeWiring);
-		return GraphQL.newGraphQL(schema);
-	}
+		@Bean
+		@ConditionalOnMissingBean
+		public RuntimeWiring runtimeWiring(ObjectProvider<RuntimeWiringCustomizer> customizers) {
+			RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
+			customizers.orderedStream().forEach(customizer -> customizer.customize(builder));
+			return builder.build();
+		}
 
-	private GraphQLSchema buildSchema(File schemaFile, RuntimeWiring runtimeWiring) {
-		TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(schemaFile);
-		SchemaGenerator schemaGenerator = new SchemaGenerator();
-		return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+		@Bean
+		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring) {
+			try {
+				File schemaFile = ResourceUtils.getFile(properties.getSchema());
+				GraphQLSchema schema = buildSchema(schemaFile, runtimeWiring);
+				return GraphQL.newGraphQL(schema);
+			}
+			catch (FileNotFoundException ex) {
+				throw new MissingGraphQLSchemaException(properties.getSchema());
+			}
+		}
+
+		private GraphQLSchema buildSchema(File schemaFile, RuntimeWiring runtimeWiring) {
+			TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(schemaFile);
+			SchemaGenerator schemaGenerator = new SchemaGenerator();
+			return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+		}
+
 	}
 
 }
