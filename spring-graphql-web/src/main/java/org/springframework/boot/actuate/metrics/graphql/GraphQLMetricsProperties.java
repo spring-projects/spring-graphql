@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,39 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.boot.graphql;
+
+package org.springframework.boot.actuate.metrics.graphql;
 
 import org.springframework.boot.actuate.autoconfigure.metrics.AutoTimeProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = "spring.graphql")
-public class GraphQLProperties {
+/**
+ * This class could be merged with {@link org.springframework.boot.actuate.autoconfigure.metrics.MetricsProperties}
+ */
+@ConfigurationProperties("management.metrics.graphql")
+public class GraphQLMetricsProperties {
 
 	/**
-	 * Location of the GraphQL schema file.
+	 * Auto-timed queries settings.
 	 */
-	private String schemaLocation = "classpath:schema.graphqls";
+	@NestedConfigurationProperty
+	private final AutoTimeProperties autotime = new AutoTimeProperties();
 
-	/**
-	 * Path of the GraphQL HTTP endpoint.
-	 */
-	private String path = "/graphql";
-
-	public String getPath() {
-		return path;
+	public AutoTimeProperties getAutotime() {
+		return this.autotime;
 	}
-
-	public void setPath(String path) {
-		this.path = path;
-	}
-
-	public String getSchemaLocation() {
-		return schemaLocation;
-	}
-
-	public void setSchemaLocation(String schemaLocation) {
-		this.schemaLocation = schemaLocation;
-	}
-
 }

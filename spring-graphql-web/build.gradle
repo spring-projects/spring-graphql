@@ -10,6 +10,9 @@ dependencies {
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'javax.servlet:javax.servlet-api'
 
+	compileOnly 'io.micrometer:micrometer-core'
+	compileOnly 'org.springframework.boot:spring-boot-actuator-autoconfigure'
+
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
 

@@ -17,8 +17,12 @@ package org.springframework.boot.graphql;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import graphql.GraphQL;
+import graphql.execution.instrumentation.ChainedInstrumentation;
+import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
@@ -52,11 +56,17 @@ public class GraphQLAutoConfiguration {
 		}
 
 		@Bean
-		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring) {
+		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring,
+				ObjectProvider<Instrumentation> instrumentationsProvider) {
 			try {
 				File schemaFile = ResourceUtils.getFile(properties.getSchemaLocation());
 				GraphQLSchema schema = buildSchema(schemaFile, runtimeWiring);
-				return GraphQL.newGraphQL(schema);
+				GraphQL.Builder builder = GraphQL.newGraphQL(schema);
+				List<Instrumentation> instrumentations = instrumentationsProvider.orderedStream().collect(Collectors.toList());
+				if (!instrumentations.isEmpty()) {
+					builder = builder.instrumentation(new ChainedInstrumentation(instrumentations));
+				}
+				return builder;
 			}
 			catch (FileNotFoundException ex) {
 				throw new MissingGraphQLSchemaException(properties.getSchemaLocation());
