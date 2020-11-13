@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.WebFluxGraphQLHandler;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -33,6 +34,7 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
+import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
 
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
@@ -48,8 +50,12 @@ public class WebFluxGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(WebFluxGraphQLHandler handler, GraphQLProperties graphQLProperties) {
-		return RouterFunctions.route().POST(graphQLProperties.getPath(), accept(MediaType.APPLICATION_JSON), handler).build();
+	public RouterFunction<ServerResponse> graphQLQueryEndpoint(ResourceLoader resourceLoader, WebFluxGraphQLHandler handler,
+			GraphQLProperties graphQLProperties) {
+		return RouterFunctions.route()
+				.GET(graphQLProperties.getPath(), req -> ServerResponse.ok().bodyValue(resourceLoader.getResource("classpath:graphiql/index.html")))
+				.POST(graphQLProperties.getPath(), accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler)
+				.build();
 	}
 
 }
