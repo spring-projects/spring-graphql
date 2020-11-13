@@ -20,6 +20,6 @@ import graphql.schema.idl.RuntimeWiring;
 @FunctionalInterface
 public interface RuntimeWiringCustomizer {
 
-	void customize(RuntimeWiring.Builder runtimeWiringBuilder);
+	void customize(RuntimeWiring.Builder builder);
 
 }
