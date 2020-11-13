@@ -59,7 +59,7 @@ public class WebInput {
 		this.headers = headers;
 		this.query = getAndValidateQuery(body);
 		this.operationName = (String) body.get("operationName");
-		this.variables = (Map<String, Object>) body.getOrDefault("variables", Collections.emptyMap());
+		this.variables = (Map<String, Object>) (body.get("variables") != null ? body.get("variables"): Collections.emptyMap());
 	}
 
 	private static String getAndValidateQuery(Map<String, Object> body) {
