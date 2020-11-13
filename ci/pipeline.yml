@@ -1,0 +1,91 @@
+anchors:
+  docker-resource-source: &docker-resource-source
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    tag: master
+  gradle-enterprise-task-params: &gradle-enterprise-task-params
+    GRADLE_ENTERPRISE_ACCESS_KEY: ((gradle_enterprise_secret_access_key))
+    GRADLE_ENTERPRISE_CACHE_USERNAME: ((gradle_enterprise_cache_user.username))
+    GRADLE_ENTERPRISE_CACHE_PASSWORD: ((gradle_enterprise_cache_user.password))
+
+resource_types:
+- name: artifactory-resource
+  type: docker-image
+  source:
+    repository: springio/artifactory-resource
+    tag: 0.0.12
+
+resources:
+- name: git-repo
+  type: git
+  icon: github
+  source:
+    uri: ((github-repo))
+    username: ((github-username))
+    password: ((github-password))
+    branch: ((branch))
+    ignore_paths: ["ci/*"]
+- name: ci-images-git-repo
+  type: git
+  icon: github
+  source:
+    uri: ((github-repo))
+    branch: ((branch))
+    paths: ["ci/images/*"]
+- name: spring-graphql-ci-image
+  type: docker-image
+  icon: docker
+  source:
+    <<: *docker-resource-source
+    repository: ((docker-hub-organization))/spring-graphql-ci-image
+- name: artifactory-repo
+  type: artifactory-resource
+  icon: package-variant
+  source:
+    uri: ((artifactory-server))
+    username: ((artifactory-username))
+    password: ((artifactory-password))
+    build_name: ((build-name))
+
+jobs:
+- name: build-spring-graphql-ci-images
+  plan:
+  - get: ci-images-git-repo
+    trigger: true
+  - in_parallel:
+    - put: spring-graphql-ci-image
+      params:
+        build: ci-images-git-repo/ci/images
+        dockerfile: ci-images-git-repo/ci/images/spring-graphql-ci-image/Dockerfile
+- name: build
+  serial: true
+  public: true
+  plan:
+  - get: spring-graphql-ci-image
+  - get: git-repo
+    trigger: true
+  - do:
+    - task: build-project
+      privileged: true
+      timeout: ((task-timeout))
+      image: spring-graphql-ci-image
+      file: git-repo/ci/tasks/build-project.yml
+      params:
+        BRANCH: ((branch))
+        <<: *gradle-enterprise-task-params
+  - put: artifactory-repo
+    params: &artifactory-params
+      repo: libs-snapshot-local
+      folder: distribution-repository
+      build_uri: "https://ci.spring.io/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"
+      build_number: "${BUILD_PIPELINE_NAME}-${BUILD_JOB_NAME}-${BUILD_NAME}"
+      disable_checksum_uploads: true
+      threads: 8
+    get_params:
+      threads: 8
+
+groups:
+- name: "builds"
+  jobs: ["build"]
+- name: "ci-images"
+  jobs: ["build-spring-graphql-ci-images"]
