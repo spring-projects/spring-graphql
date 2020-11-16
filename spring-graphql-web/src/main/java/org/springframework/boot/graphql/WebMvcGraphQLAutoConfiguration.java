@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.WebMvcGraphQLHandler;
 import org.springframework.http.MediaType;
@@ -50,11 +51,15 @@ public class WebMvcGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(ResourceLoader resourceLoader, WebMvcGraphQLHandler handler,
-			GraphQLProperties graphQLProperties) {
+	public RouterFunction<ServerResponse> graphQLQueryEndpoint(
+			ResourceLoader resourceLoader, WebMvcGraphQLHandler handler, GraphQLProperties properties) {
+
+		String path = properties.getPath();
+		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
+
 		return RouterFunctions.route()
-				.GET(graphQLProperties.getPath(), req -> ServerResponse.ok().body(resourceLoader.getResource("classpath:graphiql/index.html")))
-				.POST(graphQLProperties.getPath(), contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler)
+				.GET(path, req -> ServerResponse.ok().body(resource))
+				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler)
 				.build();
 	}
 
