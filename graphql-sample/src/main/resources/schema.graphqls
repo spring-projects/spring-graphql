@@ -5,6 +5,7 @@ schema {
 type QueryType {
     artifactRepositories : [ArtifactRepository]
     artifactRepository(id : ID!) : ArtifactRepository
+    artifactRepositoryByOrder(order : Int!) : ArtifactRepository
     project(slug: ID!): Project
 }
 
@@ -12,6 +13,7 @@ type ArtifactRepository {
     id: ID!
     name: String!
     url: String!
+    order: Int
     snapshotsEnabled: Boolean
 }
 

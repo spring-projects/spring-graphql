@@ -1,9 +1,11 @@
 package io.spring.sample.graphql.repository;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
+
 public class ArtifactRepository {
 
 	@Id
@@ -13,12 +15,16 @@ public class ArtifactRepository {
 
 	private String url;
 
+	@Column(unique= true)
+	private int repoOrder;
+
 	private boolean snapshotsEnabled;
 
-	public ArtifactRepository(String id, String name, String url) {
+	public ArtifactRepository(String id, String name, String url, int repoOrder) {
 		this.id = id;
 		this.name = name;
 		this.url = url;
+		this.repoOrder = repoOrder;
 	}
 
 	public ArtifactRepository() {
@@ -54,5 +60,13 @@ public class ArtifactRepository {
 
 	public void setSnapshotsEnabled(boolean snapshotsEnabled) {
 		this.snapshotsEnabled = snapshotsEnabled;
+	}
+
+	public int getRepoOrder() {
+		return repoOrder;
+	}
+
+	public void setRepoOrder(int order) {
+		this.repoOrder = order;
 	}
 }

@@ -4,4 +4,5 @@ import org.springframework.data.repository.CrudRepository;
 
 public interface ArtifactRepositories extends CrudRepository<ArtifactRepository, String> {
 
+    ArtifactRepository findFirstByRepoOrder(Integer order);
 }

@@ -15,9 +15,9 @@
  */
 package org.springframework.boot.graphql;
 
-import org.springframework.boot.actuate.autoconfigure.metrics.AutoTimeProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
+
+import java.util.Map;
 
 @ConfigurationProperties(prefix = "spring.graphql")
 public class GraphQLProperties {
@@ -31,6 +31,14 @@ public class GraphQLProperties {
 	 * Path of the GraphQL HTTP endpoint.
 	 */
 	private String path = "/graphql";
+
+	/**
+	 * spring data repo info
+	 * key:graphql query name
+	 * value: repo properties
+	 */
+	private Map<String, RepositoryProperties> springData;
+
 
 	public String getPath() {
 		return path;
@@ -48,4 +56,11 @@ public class GraphQLProperties {
 		this.schemaLocation = schemaLocation;
 	}
 
+	public Map<String, RepositoryProperties> getSpringData() {
+		return springData;
+	}
+
+	public void setSpringData(Map<String, RepositoryProperties> artifactRepositories) {
+		this.springData = artifactRepositories;
+	}
 }
