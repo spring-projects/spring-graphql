@@ -16,12 +16,8 @@
 
 package io.spring.sample.graphql;
 
-import io.spring.sample.graphql.repository.AutoDataWiring;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.graphql.GraphQLProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.data.repository.CrudRepository;
 
 @SpringBootApplication
 public class GraphQLSampleApplication {

@@ -1,11 +1,9 @@
 package io.spring.sample.graphql.repository;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
-
 public class ArtifactRepository {
 
 	@Id
@@ -15,7 +13,6 @@ public class ArtifactRepository {
 
 	private String url;
 
-	@Column(unique= true)
 	private int repoOrder;
 
 	private boolean snapshotsEnabled;

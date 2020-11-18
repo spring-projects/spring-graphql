@@ -18,12 +18,6 @@ public class ArtifactRepositoryDataWiring implements RuntimeWiringCustomizer {
 	public void customize(RuntimeWiring.Builder builder) {
 		builder.type("QueryType", typeWiring -> typeWiring
 				.dataFetcher("artifactRepositories", env -> this.repositories.findAll())
-				.dataFetcher("artifactRepository", env ->
-						this.repositories.findById(
-								env.getArgument("id")))
-				.dataFetcher("artifactRepositoryByOrder", env ->
-						this.repositories.findFirstByRepoOrder(env.getArgument("order")))
-		);
-
+				.dataFetcher("artifactRepository", env -> this.repositories.findById(env.getArgument("id"))));
 	}
 }
