@@ -21,6 +21,8 @@ import java.util.Map;
 
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -43,6 +45,9 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * {@link org.springframework.web.reactive.function.server.RouterFunctions}.
  */
 public class WebFluxGraphQLHandler {
+
+	private static Log logger = LogFactory.getLog(WebFluxGraphQLHandler.class);
+
 
 	private final WebInterceptorExecutionChain executionChain;
 
@@ -76,14 +81,21 @@ public class WebFluxGraphQLHandler {
 		return request.bodyToMono(WebInput.MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
 					WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
+					if (logger.isDebugEnabled()) {
+						logger.debug("Executing: " + webInput);
+					}
 					return this.executionChain.execute(webInput);
 				})
 				.flatMap(output -> {
+					Map<String, Object> spec = output.toSpecification();
+					if (logger.isDebugEnabled()) {
+						logger.debug("Execution complete");
+					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					if (output.getHeaders() != null) {
 						builder.headers(headers -> headers.putAll(output.getHeaders()));
 					}
-					return builder.bodyValue(output.toSpecification());
+					return builder.bodyValue(spec);
 				});
 	}
 
@@ -108,6 +120,9 @@ public class WebFluxGraphQLHandler {
 						Map<String, Object> map = decode(message);
 						HandshakeInfo handshakeInfo = session.getHandshakeInfo();
 						WebInput webInput = new WebInput(handshakeInfo.getUri(), handshakeInfo.getHeaders(), map);
+						if (logger.isDebugEnabled()) {
+							logger.debug("Executing: " + webInput);
+						}
 						return executionChain.execute(webInput);
 					})
 					.concatMap(output -> {
@@ -119,9 +134,15 @@ public class WebFluxGraphQLHandler {
 							throw new IllegalStateException(
 									"Expected Publisher<ExecutionResult>: " + output.toSpecification());
 						}
+						if (logger.isDebugEnabled()) {
+							logger.debug("Execution complete, subscribing for events.");
+						}
 						return (Publisher<ExecutionResult>) output.getData();
 					})
-					.map(result -> encode(session, result.getData()))
+					.map(result -> {
+						Object data = result.getData();
+						return encode(session, data);
+					})
 			);
 		}
 

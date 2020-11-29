@@ -129,9 +129,8 @@ public class WebInput {
 
 	@Override
 	public String toString() {
-		return "WebInput [" + uri() + " " + headers() + ", query='" + query() + "'" +
-				(operationName() != null ? ", operationName='" + operationName() + "'" : "") +
-				(!CollectionUtils.isEmpty(variables()) ?  ", variables=" + variables() : "") +
-				"]";
+		return "Query='" + query() + "'" +
+				(operationName() != null ? ", Operation='" + operationName() + "'" : "") +
+				(!CollectionUtils.isEmpty(variables()) ?  ", Variables=" + variables() : "");
 	}
 }

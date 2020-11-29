@@ -22,6 +22,8 @@ import java.util.Map;
 import javax.servlet.ServletException;
 
 import graphql.GraphQL;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -35,6 +37,9 @@ import org.springframework.web.servlet.function.ServerResponse;
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
  */
 public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
+
+	private static Log logger = LogFactory.getLog(WebMvcGraphQLHandler.class);
+
 
 	private final WebInterceptorExecutionChain executionChain;
 
@@ -59,8 +64,14 @@ public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 	 */
 	public ServerResponse handle(ServerRequest request) throws ServletException {
 		WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request));
+		if (logger.isDebugEnabled()) {
+			logger.debug("Executing: " + webInput);
+		}
 		Mono<ServerResponse> responseMono = this.executionChain.execute(webInput)
 				.map(output -> {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Execution complete");
+					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					if (output.getHeaders() != null) {
 						builder.headers(headers -> headers.putAll(output.getHeaders()));
