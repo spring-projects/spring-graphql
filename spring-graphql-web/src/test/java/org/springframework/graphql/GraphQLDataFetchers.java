@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import graphql.schema.DataFetcher;
+import reactor.core.publisher.Flux;
 
 public class GraphQLDataFetchers {
 
@@ -15,13 +16,15 @@ public class GraphQLDataFetchers {
 
 
 	public static DataFetcher getBookByIdDataFetcher() {
-		return dataFetchingEnvironment -> {
-			String bookId = dataFetchingEnvironment.getArgument("id");
-			return books
-					.stream()
-					.filter(book -> book.getId().equals(bookId))
-					.findFirst()
-					.orElse(null);
-		};
+		return environment -> books.stream()
+				.filter(book -> book.getId().equals(environment.getArgument("id")))
+				.findFirst()
+				.orElse(null);
 	}
+
+	public static DataFetcher getBooksOnSale() {
+		return environment -> Flux.fromIterable(books)
+				.filter(book -> book.getPageCount() >= (int) environment.getArgument("minPages"));
+	}
+
 }

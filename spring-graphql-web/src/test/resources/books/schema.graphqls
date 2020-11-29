@@ -8,3 +8,7 @@ type Book {
     pageCount: Int
     author: String
 }
+
+type Subscription {
+    bookSearch(minPages:Int) : Book!
+}

@@ -22,6 +22,7 @@ import java.util.Map;
 import graphql.ExecutionInput;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.ResolvableType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
@@ -39,6 +40,8 @@ public class WebInput {
 
 	static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
+
+	static final ResolvableType MAP_RESOLVABLE_TYPE = ResolvableType.forType(MAP_PARAMETERIZED_TYPE_REF);
 
 
 	private final UriComponents uri;

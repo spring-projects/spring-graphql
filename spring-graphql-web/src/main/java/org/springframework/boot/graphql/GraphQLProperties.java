@@ -15,9 +15,7 @@
  */
 package org.springframework.boot.graphql;
 
-import org.springframework.boot.actuate.autoconfigure.metrics.AutoTimeProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 @ConfigurationProperties(prefix = "spring.graphql")
 public class GraphQLProperties {
@@ -28,9 +26,14 @@ public class GraphQLProperties {
 	private String schemaLocation = "classpath:schema.graphqls";
 
 	/**
-	 * Path of the GraphQL HTTP endpoint.
+	 * Path of the GraphQL HTTP query endpoint.
 	 */
 	private String path = "/graphql";
+
+	/**
+	 * Path of the GraphQL WebSocket subscription endpoint.
+	 */
+	private String webSocketPath = path + "/websocket";
 
 	public String getPath() {
 		return path;
@@ -38,6 +41,14 @@ public class GraphQLProperties {
 
 	public void setPath(String path) {
 		this.path = path;
+	}
+
+	public String getWebSocketPath() {
+		return webSocketPath;
+	}
+
+	public void setWebSocketPath(String webSocketPath) {
+		this.webSocketPath = webSocketPath;
 	}
 
 	public String getSchemaLocation() {
