@@ -48,10 +48,10 @@ class WebInterceptorExecutionChain {
 	}
 
 
-	public Mono<WebOutput> execute(WebInput webInput) {
-		return createInputChain(webInput).flatMap(executionInput -> {
+	public Mono<WebOutput> execute(WebInput input) {
+		return createInputChain(input).flatMap(executionInput -> {
 			CompletableFuture<ExecutionResult> future = this.graphQL.executeAsync(executionInput);
-			return createOutputChain(Mono.fromFuture(future));
+			return createOutputChain(input, Mono.fromFuture(future));
 		});
 	}
 
@@ -63,8 +63,8 @@ class WebInterceptorExecutionChain {
 		return preHandleMono;
 	}
 
-	private Mono<WebOutput> createOutputChain(Mono<ExecutionResult> resultMono) {
-		Mono<WebOutput> outputMono = resultMono.map((ExecutionResult executionResult) -> new WebOutput(executionResult, null));
+	private Mono<WebOutput> createOutputChain(WebInput input, Mono<ExecutionResult> resultMono) {
+		Mono<WebOutput> outputMono = resultMono.map((ExecutionResult result) -> new WebOutput(input, result, null));
 		for (int i = this.interceptors.size() - 1 ; i >= 0; i--) {
 			WebInterceptor interceptor = this.interceptors.get(i);
 			outputMono = outputMono.flatMap(interceptor::postHandle);

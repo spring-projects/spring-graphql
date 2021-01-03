@@ -26,6 +26,7 @@ import graphql.GraphQLError;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 
 /**
@@ -33,6 +34,8 @@ import org.springframework.lang.Nullable;
  * way to {@link #transform(Consumer) transform} it.
  */
 public class WebOutput implements ExecutionResult {
+
+	private final WebInput input;
 
 	private final ExecutionResult executionResult;
 
@@ -43,11 +46,21 @@ public class WebOutput implements ExecutionResult {
 	/**
 	 * Create an instance that wraps the given {@link ExecutionResult}.
 	 */
-	public WebOutput(ExecutionResult executionResult, @Nullable HttpHeaders headers) {
+	public WebOutput(WebInput input, ExecutionResult executionResult, @Nullable HttpHeaders headers) {
+		Assert.notNull(input, "WebInput is required.");
+		Assert.notNull(executionResult, "ExecutionResult is required.");
+		this.input = input;
 		this.executionResult = executionResult;
 		this.headers = headers;
 	}
 
+
+	/**
+	 * Return the associated {@link WebInput} used for the execution.
+	 */
+	public WebInput getWebInput() {
+		return this.input;
+	}
 
 	@Nullable
 	@Override
@@ -95,6 +108,8 @@ public class WebOutput implements ExecutionResult {
 
 	public static class Builder {
 
+		private final WebInput input;
+
 		@Nullable
 		private Object data;
 
@@ -107,7 +122,8 @@ public class WebOutput implements ExecutionResult {
 		private HttpHeaders headers;
 
 
-		public Builder(WebOutput output) {
+		private Builder(WebOutput output) {
+			this.input = output.getWebInput();
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();
@@ -158,7 +174,8 @@ public class WebOutput implements ExecutionResult {
 		}
 
 		public WebOutput build() {
-			return new WebOutput(new ExecutionResultImpl(this.data, this.errors, this.extensions), this.headers);
+			ExecutionResult result = new ExecutionResultImpl(this.data, this.errors, this.extensions);
+			return new WebOutput(this.input, result, this.headers);
 		}
 	}
 

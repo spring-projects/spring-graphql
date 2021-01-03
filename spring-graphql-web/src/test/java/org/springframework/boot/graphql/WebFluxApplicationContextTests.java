@@ -1,17 +1,24 @@
+/*
+ * Copyright 2002-2020 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.springframework.boot.graphql;
 
-
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration;
@@ -23,24 +30,11 @@ import org.springframework.boot.test.context.runner.ReactiveWebApplicationContex
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.ResolvableType;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQLDataFetchers;
-import org.springframework.graphql.WebFluxGraphQLHandler;
-import org.springframework.graphql.WebFluxGraphQLWebSocketHandler;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.socket.CloseStatus;
-import org.springframework.web.reactive.socket.HandshakeInfo;
-import org.springframework.web.reactive.socket.WebSocketMessage;
-import org.springframework.web.reactive.socket.adapter.AbstractWebSocketSession;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class WebFluxApplicationContextTests {
 
@@ -82,43 +76,6 @@ class WebFluxApplicationContextTests {
 		testWithWebClient(client -> client.post().uri("").bodyValue(":)").exchange().expectStatus().isBadRequest());
 	}
 
-	@Test
-	void subscription() {
-		testWithApplicationContext(context -> {
-			String query =
-					"{ \"query\": \"" +
-							"  subscription TestSubscription {" +
-							"    bookSearch(minPages: 200) {" +
-							"      id" +
-							"      name" +
-							"      pageCount" +
-							"      author" +
-							"  }" +
-							"}" +
-							"\"}";
-
-			DataBuffer buffer = DefaultDataBufferFactory.sharedInstance.wrap(query.getBytes(StandardCharsets.UTF_8));
-			Flux<WebSocketMessage> input = Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, buffer));
-			TestWebSocketSession session = new TestWebSocketSession("1", URI.create(BASE_URL), input);
-
-			context.getBean(WebFluxGraphQLWebSocketHandler.class).handle(session).block();
-
-			StepVerifier.create(session.getOutput())
-					.consumeNextWith(message -> assertThat(extractBook(message)).containsEntry("id", "book-2"))
-					.consumeNextWith(message -> assertThat(extractBook(message)).containsEntry("id", "book-3"))
-					.consumeNextWith(message -> assertThat(extractBook(message)).containsEntry("id", "book-3"))
-					.verifyComplete();
-		});
-	}
-
-	@SuppressWarnings({"unchecked", "ConstantConditions"})
-	private Map<String, Object> extractBook(WebSocketMessage message) {
-		Map<String, Object> map = (Map<String, Object>) new Jackson2JsonDecoder().decode(
-				DataBufferUtils.retain(message.getPayload()),
-				ResolvableType.forClass(Map.class), null, Collections.emptyMap());
-		return (Map<String, Object>) map.get("bookSearch");
-	}
-
 	private void testWithWebClient(Consumer<WebTestClient> consumer) {
 		testWithApplicationContext(context -> {
 			WebTestClient client = WebTestClient.bindToApplicationContext(context)
@@ -149,57 +106,9 @@ class WebFluxApplicationContextTests {
 
 		@Bean
 		public RuntimeWiringCustomizer bookDataFetcher() {
-			return (runtimeWiring) -> {
-				runtimeWiring.type(newTypeWiring("Query")
-						.dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
-				runtimeWiring.type(newTypeWiring("Subscription")
-						.dataFetcher("bookSearch", GraphQLDataFetchers.getBooksOnSale()));
-			};
-		}
-	}
-
-
-	private static class TestWebSocketSession extends AbstractWebSocketSession<Object> {
-
-		private final Flux<WebSocketMessage> input;
-
-		private Flux<WebSocketMessage> output;
-
-		public TestWebSocketSession(String id, URI uri, Flux<WebSocketMessage> input) {
-			super(new Object(), id,
-					new HandshakeInfo(uri, new HttpHeaders(), Mono.empty(), null),
-					DefaultDataBufferFactory.sharedInstance);
-			this.input = input;
-		}
-
-		@Override
-		public Flux<WebSocketMessage> receive() {
-			return this.input;
-		}
-
-		@Override
-		public Mono<Void> send(Publisher<WebSocketMessage> messages) {
-			this.output = Flux.from(messages);
-			return Mono.empty();
-		}
-
-		public Flux<WebSocketMessage> getOutput() {
-			return this.output;
-		}
-
-		@Override
-		public boolean isOpen() {
-			throw new java.lang.UnsupportedOperationException();
-		}
-
-		@Override
-		public Mono<Void> close(CloseStatus status) {
-			throw new java.lang.UnsupportedOperationException();
-		}
-
-		@Override
-		public Mono<CloseStatus> closeStatus() {
-			throw new java.lang.UnsupportedOperationException();
+			return (runtimeWiring) ->
+					runtimeWiring.type(newTypeWiring("Query")
+							.dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
 		}
 	}
 

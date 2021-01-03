@@ -15,6 +15,8 @@
  */
 package org.springframework.boot.graphql;
 
+import java.time.Duration;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "spring.graphql")
@@ -34,6 +36,13 @@ public class GraphQLProperties {
 	 * Path of the GraphQL WebSocket subscription endpoint.
 	 */
 	private String webSocketPath = path + "/websocket";
+
+	/**
+	 * For the GraphQL over WebSocket endpoint, this is time within which the
+	 * initial {@code CONNECTION_INIT} type message must be received.
+	 */
+	private Duration connectionInitTimeoutDuration = Duration.ofSeconds(60);
+
 
 	public String getPath() {
 		return path;
@@ -59,4 +68,11 @@ public class GraphQLProperties {
 		this.schemaLocation = schemaLocation;
 	}
 
+	public Duration getConnectionInitTimeoutDuration() {
+		return this.connectionInitTimeoutDuration;
+	}
+
+	public void setConnectionInitTimeoutDuration(Duration connectionInitTimeoutDuration) {
+		this.connectionInitTimeoutDuration = connectionInitTimeoutDuration;
+	}
 }

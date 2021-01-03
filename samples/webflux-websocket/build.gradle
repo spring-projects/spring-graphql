@@ -1,0 +1,20 @@
+plugins {
+	id 'org.springframework.boot' version '2.4.0-SNAPSHOT'
+	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+	id 'java'
+}
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = "GraphQL over WebSocket sample"
+sourceCompatibility = '1.8'
+
+dependencies {
+	implementation project(':spring-graphql-web')
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+test {
+	useJUnitPlatform()
+}

@@ -25,6 +25,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebInputException;
@@ -58,6 +59,9 @@ public class WebInput {
 
 	@SuppressWarnings("unchecked")
 	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body) {
+		Assert.notNull(uri, "URI is required'");
+		Assert.notNull(body, "HttpHeaders is required'");
+		Assert.notNull(body, "'body' is required'");
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
 		this.query = getAndValidateQuery(body);

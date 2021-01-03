@@ -15,18 +15,25 @@
  */
 package org.springframework.graphql;
 
+import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -35,8 +42,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -50,33 +60,45 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static final Log logger = LogFactory.getLog(WebFluxGraphQLWebSocketHandler.class);
 
-	private static final ResolvableType MAP_TYPE = ResolvableType.forClass(Map.class);
+	private static final List<String> SUB_PROTOCOL_LIST = Collections.singletonList("graphql-transport-ws");
 
 
 	private final WebInterceptorExecutionChain executionChain;
 
-	private final Decoder<?> jsonDecoder;
+	private final Duration initTimeoutDuration;
 
-	private final Encoder<?> jsonEncoder;
+	private final Decoder<?> decoder;
 
+	private final Encoder<?> encoder;
+
+	private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
+
+
+	@Override
+	public List<String> getSubProtocols() {
+		return SUB_PROTOCOL_LIST;
+	}
 
 	/**
 	 * Create a new instance.
 	 * @param graphQL the GraphQL instance to use for query execution
 	 * @param interceptors 0 or more interceptors to customize input and output
 	 * @param configurer codec configurer for JSON encoding and decoding
+	 * @param initTimeoutDuration the time within which the
+* {@code CONNECTION_INIT} type message must be received.
 	 */
 	public WebFluxGraphQLWebSocketHandler(GraphQL graphQL, List<WebInterceptor> interceptors,
-			ServerCodecConfigurer configurer) {
+			ServerCodecConfigurer configurer, Duration initTimeoutDuration) {
 
 		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
-		this.jsonDecoder = initDecoder(configurer);
-		this.jsonEncoder = initEncoder(configurer);
+		this.initTimeoutDuration = initTimeoutDuration;
+		this.decoder = initDecoder(configurer);
+		this.encoder = initEncoder(configurer);
 	}
 
 	private static Decoder<?> initDecoder(ServerCodecConfigurer configurer) {
 		return configurer.getReaders().stream()
-				.filter(reader -> reader.canRead(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.filter(reader -> reader.canRead(WebInput.MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
 				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
@@ -84,7 +106,7 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static Encoder<?> initEncoder(ServerCodecConfigurer configurer) {
 		return configurer.getWriters().stream()
-				.filter(writer -> writer.canWrite(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.filter(writer -> writer.canWrite(WebInput.MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
 				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
@@ -92,54 +114,211 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public Mono<Void> handle(WebSocketSession session) {
-		return session.send(session.receive()
-				.concatMap(message -> {
+		AtomicBoolean initialized = new AtomicBoolean();
+		Mono.delay(this.initTimeoutDuration)
+				.then(Mono.defer(() ->
+						initialized.compareAndSet(false, true) ?
+								GraphQLStatus.initTimeout(session) :
+								Mono.empty()))
+				.subscribe();
+
+		Flux<WebSocketMessage> responseFlux = session.receive()
+				.flatMap(message -> {
 					Map<String, Object> map = decode(message);
-					HandshakeInfo handshakeInfo = session.getHandshakeInfo();
-					WebInput webInput = new WebInput(handshakeInfo.getUri(), handshakeInfo.getHeaders(), map);
-					if (logger.isDebugEnabled()) {
-						logger.debug("Executing: " + webInput);
+					String id = (String) map.get("id");
+					MessageType messageType = MessageType.resolve((String) map.get("type"));
+					if (id == null || messageType == null) {
+						return GraphQLStatus.invalidMessage(session);
 					}
-					return executionChain.execute(webInput);
-				})
-				.concatMap(output -> {
-					if (!CollectionUtils.isEmpty(output.getErrors())) {
-						throw new IllegalStateException(
-								"Execution failed: " + output.getErrors());
+					switch (messageType) {
+						case SUBSCRIBE:
+							if (!initialized.get()) {
+								return GraphQLStatus.unauthorized(session);
+							}
+							HandshakeInfo handshakeInfo = session.getHandshakeInfo();
+							WebSocketInput input = new WebSocketInput(handshakeInfo, id, getPayload(map));
+							if (logger.isDebugEnabled()) {
+								logger.debug("Executing: " + input);
+							}
+							return executionChain.execute(input)
+									.flatMapMany(output -> handleWebOutput(session, input.id(), output));
+						case COMPLETE:
+							Subscription subscription = this.subscriptions.remove(id);
+							if (subscription != null) {
+								subscription.cancel();
+							}
+							return Flux.empty();
+						case CONNECTION_INIT:
+							if (!initialized.compareAndSet(false, true)) {
+								return GraphQLStatus.tooManyInitRequests(session);
+							}
+							return Flux.just(encode(session, id, MessageType.CONNECTION_ACK, null));
+						default:
+							return GraphQLStatus.invalidMessage(session);
 					}
-					if (!(output.getData() instanceof Publisher)) {
-						throw new IllegalStateException(
-								"Expected Publisher<ExecutionResult>: " + output.toSpecification());
-					}
-					if (logger.isDebugEnabled()) {
-						logger.debug("Execution complete, subscribing for events.");
-					}
-					return (Publisher<ExecutionResult>) output.getData();
-				})
-				.map(result -> {
-					Object data = result.getData();
-					return encode(session, data);
-				})
-		);
+				});
+
+		return session.send(responseFlux);
 	}
 
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	private Map<String, Object> decode(WebSocketMessage message) {
-		DataBuffer buffer = message.getPayload();
-		return (Map<String, Object>) jsonDecoder.decode(
-				DataBufferUtils.retain(buffer), WebInput.MAP_RESOLVABLE_TYPE, null, Collections.emptyMap());
+		DataBuffer buffer = DataBufferUtils.retain(message.getPayload());
+		return (Map<String, Object>) decoder.decode(buffer, WebInput.MAP_RESOLVABLE_TYPE, null, null);
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> WebSocketMessage encode(WebSocketSession session, Object data) {
-		DataBuffer buffer = ((Encoder<T>) jsonEncoder).encodeValue((T) data,
-				session.bufferFactory(),
-				ResolvableType.forInstance(data),
-				MimeTypeUtils.APPLICATION_JSON,
-				Collections.emptyMap());
+	private static Map<String, Object> getPayload(Map<String, Object> message) {
+		Map<String, Object> payload = (Map<String, Object>) message.get("payload");
+		Assert.notNull(payload, "No \"payload\" in message: " + message);
+		return payload;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Flux<WebSocketMessage> handleWebOutput(WebSocketSession session, String id, WebOutput output) {
+		if (logger.isDebugEnabled()) {
+			logger.debug("Execution result ready" +
+					(!CollectionUtils.isEmpty(output.getErrors()) ?
+							" with errors: " + output.getErrors() : "") + ".");
+		}
+
+		Flux<ExecutionResult> outputFlux;
+		if (output.getData() instanceof Publisher) {
+			// Subscription
+			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+					.doOnSubscribe(subscription -> {
+						Subscription previous = this.subscriptions.putIfAbsent(id, subscription);
+						if (previous != null) {
+							throw new SubscriptionExistsException();
+						}
+					});
+		}
+		else {
+			// Query
+			outputFlux = (CollectionUtils.isEmpty(output.getErrors()) ?
+					Flux.just(output) :
+					Flux.error(new IllegalStateException("Execution failed: " + output.getErrors())));
+		}
+
+		return outputFlux
+				.map(result -> {
+					Map<String, Object> dataMap = result.toSpecification();
+					return encode(session, id, MessageType.NEXT, dataMap);
+				})
+				.concatWith(Mono.defer(() -> Mono.just(encode(session, id, MessageType.COMPLETE, null))))
+				.onErrorResume(ex -> {
+					if (ex instanceof SubscriptionExistsException) {
+						return GraphQLStatus.subscriptionExists(session, id);
+					}
+					ErrorType errorType = ErrorType.DataFetchingException;
+					String message = ex.getMessage();
+					Map<String, Object> errorMap = GraphqlErrorBuilder.newError()
+							.errorType(errorType)
+							.message(message)
+							.build()
+							.toSpecification();
+					return Mono.just(encode(session, id, MessageType.ERROR, errorMap));
+				});
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T> WebSocketMessage encode(
+			WebSocketSession session, String id, MessageType messageType, @Nullable Object payload) {
+
+		Map<String, Object> payloadMap = new HashMap<>(3);
+		payloadMap.put("id", id);
+		payloadMap.put("type", messageType.getType());
+		if (payload != null) {
+			payloadMap.put("payload", payload);
+		}
+
+		DataBuffer buffer = ((Encoder<T>) encoder).encodeValue(
+				(T) payloadMap, session.bufferFactory(), WebInput.MAP_RESOLVABLE_TYPE,
+				MimeTypeUtils.APPLICATION_JSON, null);
+
 		return new WebSocketMessage(WebSocketMessage.Type.TEXT, buffer);
+	}
+
+
+	private enum MessageType {
+
+		CONNECTION_INIT("connection_init"),
+		CONNECTION_ACK("connection_ack"),
+		SUBSCRIBE("subscribe"),
+		NEXT("next"),
+		ERROR("error"),
+		COMPLETE("complete");
+
+
+		private static final Map<String, MessageType> messageTypes = new HashMap<>(6);
+
+		static {
+			for (MessageType messageType : MessageType.values()) {
+				messageTypes.put(messageType.getType(), messageType);
+			}
+		}
+
+
+		private final String type;
+
+		MessageType(String type) {
+			this.type = type;
+		}
+
+		public String getType() {
+			return this.type;
+		}
+
+		@Nullable
+		public static MessageType resolve(@Nullable String type) {
+			return (type != null ? messageTypes.get(type) : null);
+		}
+	}
+
+
+	private static class GraphQLStatus {
+
+		private static final CloseStatus INVALID_MESSAGE_STATUS =
+				new CloseStatus(4400, "Invalid message");
+
+		private static final CloseStatus UNAUTHORIZED_STATUS =
+				new CloseStatus(4401, "Unauthorized");
+
+		private static final CloseStatus INIT_TIMEOUT_STATUS =
+				new CloseStatus(4408, "Connection initialisation timeout");
+
+		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS =
+				new CloseStatus(4429, "Too many initialisation requests");
+
+
+		public static <V> Flux<V> invalidMessage(WebSocketSession session) {
+			return closeSession(session, INVALID_MESSAGE_STATUS);
+		}
+
+		public static <V> Flux<V>  unauthorized(WebSocketSession session) {
+			return closeSession(session, UNAUTHORIZED_STATUS);
+		}
+
+		public static Mono<Void> initTimeout(WebSocketSession session) {
+			return session.close(INIT_TIMEOUT_STATUS);
+		}
+
+		public static <V> Flux<V> subscriptionExists(WebSocketSession session, String id) {
+			return closeSession(session, new CloseStatus(4409, "Subscriber for " + id + " already exists"));
+		}
+
+		public static <V> Flux<V>  tooManyInitRequests(WebSocketSession session) {
+			return closeSession(session, TOO_MANY_INIT_REQUESTS_STATUS);
+		}
+
+		private static <V> Flux<V> closeSession(WebSocketSession session, CloseStatus status) {
+			return session.close(status).thenMany(Mono.empty());
+		}
+	}
+
+
+	private static class SubscriptionExistsException extends RuntimeException {
 	}
 
 }

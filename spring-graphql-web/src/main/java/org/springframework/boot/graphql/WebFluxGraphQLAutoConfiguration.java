@@ -57,9 +57,12 @@ public class WebFluxGraphQLAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public WebFluxGraphQLWebSocketHandler graphQLWebSocketHandler(
-			GraphQL.Builder graphQLBuilder, ServerCodecConfigurer configurer) {
+			GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer) {
 
-		return new WebFluxGraphQLWebSocketHandler(graphQLBuilder.build(), Collections.emptyList(), configurer);
+		return new WebFluxGraphQLWebSocketHandler(
+				graphQLBuilder.build(), Collections.emptyList(),
+				configurer, properties.getConnectionInitTimeoutDuration()
+		);
 	}
 
 	@Bean
