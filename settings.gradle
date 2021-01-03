@@ -15,4 +15,4 @@ pluginManagement {
 
 rootProject.name = 'spring-graphql'
 include 'spring-graphql-web'
-include 'samples:graphql-sample'
+include 'samples:webmvc-http-endpoint'
