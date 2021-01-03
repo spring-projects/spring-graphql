@@ -15,5 +15,5 @@ pluginManagement {
 
 rootProject.name = 'spring-graphql'
 include 'spring-graphql-web'
-include 'samples:webmvc-http-endpoint'
+include 'samples:webmvc-http'
 include 'samples:webflux-websocket'
