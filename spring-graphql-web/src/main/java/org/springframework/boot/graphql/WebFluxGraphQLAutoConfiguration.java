@@ -16,7 +16,6 @@
 package org.springframework.boot.graphql;
 
 import java.util.Collections;
-import java.util.Map;
 
 import graphql.GraphQL;
 
@@ -27,15 +26,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.ResolvableType;
-import org.springframework.core.codec.Decoder;
-import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.WebFluxGraphQLHandler;
+import org.springframework.graphql.WebFluxGraphQLWebSocketHandler;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.DecoderHttpMessageReader;
-import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -55,25 +50,16 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebFluxGraphQLHandler graphQLHandler(
+	public WebFluxGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
+		return new WebFluxGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public WebFluxGraphQLWebSocketHandler graphQLWebSocketHandler(
 			GraphQL.Builder graphQLBuilder, ServerCodecConfigurer configurer) {
 
-		ResolvableType mapType = ResolvableType.forClass(Map.class);
-
-		Decoder<?> jsonDecoder = configurer.getReaders().stream()
-				.filter(reader -> reader.canRead(mapType, MediaType.APPLICATION_JSON))
-				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
-
-		Encoder<?> jsonEncoder = configurer.getWriters().stream()
-				.filter(writer -> writer.canWrite(mapType, MediaType.APPLICATION_JSON))
-				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
-
-		return new WebFluxGraphQLHandler(
-				graphQLBuilder.build(), Collections.emptyList(), jsonDecoder, jsonEncoder);
+		return new WebFluxGraphQLWebSocketHandler(graphQLBuilder.build(), Collections.emptyList(), configurer);
 	}
 
 	@Bean
@@ -90,10 +76,12 @@ public class WebFluxGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	public HandlerMapping graphQLWebSocketEndpoint(WebFluxGraphQLHandler handler, GraphQLProperties properties) {
+	public HandlerMapping graphQLWebSocketEndpoint(
+			WebFluxGraphQLWebSocketHandler handler, GraphQLProperties properties) {
+
 		String path = properties.getWebSocketPath();
 		SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-		mapping.setUrlMap(Collections.singletonMap(path, handler.getSubscriptionWebSocketHandler()));
+		mapping.setUrlMap(Collections.singletonMap(path, handler));
 		mapping.setOrder(-1); // Ahead of annotated controllers
 		return mapping;
 	}

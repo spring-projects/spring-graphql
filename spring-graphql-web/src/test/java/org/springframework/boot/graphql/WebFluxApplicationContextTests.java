@@ -29,6 +29,7 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQLDataFetchers;
 import org.springframework.graphql.WebFluxGraphQLHandler;
+import org.springframework.graphql.WebFluxGraphQLWebSocketHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
@@ -100,8 +101,7 @@ class WebFluxApplicationContextTests {
 			Flux<WebSocketMessage> input = Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, buffer));
 			TestWebSocketSession session = new TestWebSocketSession("1", URI.create(BASE_URL), input);
 
-			context.getBean(WebFluxGraphQLHandler.class)
-					.getSubscriptionWebSocketHandler().handle(session).block();
+			context.getBean(WebFluxGraphQLWebSocketHandler.class).handle(session).block();
 
 			StepVerifier.create(session.getOutput())
 					.consumeNextWith(message -> assertThat(extractBook(message)).containsEntry("id", "book-2"))
