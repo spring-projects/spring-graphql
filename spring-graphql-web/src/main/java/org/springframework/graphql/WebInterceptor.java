@@ -21,14 +21,16 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.webmvc.GraphQLHttpHandler;
+
 /**
  * Web interceptor for GraphQL queries over HTTP. The interceptor allows
  * customization of the {@link ExecutionInput} for the query as well as the
  * {@link ExecutionResult} of the query and is supported for both Spring MVC and
  * Spring WebFlux.
  *
- * <p>A list of interceptors may be provided to {@link WebMvcGraphQLHandler} or
- * to {@link WebFluxGraphQLHandler}. Interceptors are executed in that provided
+ * <p>A list of interceptors may be provided to {@link GraphQLHttpHandler} or
+ * to {@link org.springframework.graphql.webflux.GraphQLHttpHandler}. Interceptors are executed in that provided
  * order where each interceptor sees the {@code ExecutionInput} or the
  * {@code ExecutionResult} that was customized by the previous interceptor.
  */

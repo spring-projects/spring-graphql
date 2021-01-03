@@ -28,7 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.graphql.WebMvcGraphQLHandler;
+import org.springframework.graphql.webmvc.GraphQLHttpHandler;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
@@ -46,20 +46,20 @@ public class WebMvcGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebMvcGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new WebMvcGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
+	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
+		return new GraphQLHttpHandler(graphQLBuilder.build(), Collections.emptyList());
 	}
 
 	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(
-			ResourceLoader resourceLoader, WebMvcGraphQLHandler handler, GraphQLProperties properties) {
+			ResourceLoader resourceLoader, GraphQLHttpHandler handler, GraphQLProperties properties) {
 
 		String path = properties.getPath();
 		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
 
 		return RouterFunctions.route()
 				.GET(path, req -> ServerResponse.ok().body(resource))
-				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler)
+				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handle)
 				.build();
 	}
 

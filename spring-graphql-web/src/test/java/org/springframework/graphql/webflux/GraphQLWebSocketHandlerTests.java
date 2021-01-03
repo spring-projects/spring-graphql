@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.webflux;
 
 import java.io.File;
 import java.net.URI;
@@ -41,6 +41,10 @@ import reactor.test.StepVerifier;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.graphql.GraphQLDataFetchers;
+import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebOutput;
+import org.springframework.graphql.webflux.GraphQLWebSocketHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
@@ -57,9 +61,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.map;
 
 /**
- * Unit tests for {@link WebFluxGraphQLWebSocketHandler}.
+ * Unit tests for {@link GraphQLWebSocketHandler}.
  */
-public class WebFluxGraphQLWebSocketHandlerTests {
+public class GraphQLWebSocketHandlerTests {
 
 	private static final Jackson2JsonDecoder decoder = new Jackson2JsonDecoder();
 
@@ -249,15 +253,15 @@ public class WebFluxGraphQLWebSocketHandlerTests {
 				.verifyTimeout(Duration.ofMillis(500));
 	}
 
-	private WebFluxGraphQLWebSocketHandler initWebSocketHandler() throws Exception {
+	private GraphQLWebSocketHandler initWebSocketHandler() throws Exception {
 		return initWebSocketHandler(Collections.emptyList(), Duration.ofSeconds(69));
 	}
 
-	private WebFluxGraphQLWebSocketHandler initWebSocketHandler(
+	private GraphQLWebSocketHandler initWebSocketHandler(
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) throws Exception {
 
 		GraphQL graphQL = initGraphQL();
-		return new WebFluxGraphQLWebSocketHandler(graphQL,
+		return new GraphQLWebSocketHandler(graphQL,
 				(interceptors != null ? interceptors : Collections.emptyList()),
 				ServerCodecConfigurer.create(),
 				(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));
@@ -285,7 +289,7 @@ public class WebFluxGraphQLWebSocketHandlerTests {
 	private Map<String, Object> decode(WebSocketMessage message) {
 		return (Map<String, Object>) decoder.decode(
 				DataBufferUtils.retain(message.getPayload()),
-				WebInput.MAP_RESOLVABLE_TYPE, null, Collections.emptyMap());
+				GraphQLWebSocketHandler.MAP_RESOLVABLE_TYPE, null, Collections.emptyMap());
 	}
 
 	private void assertMessageType(WebSocketMessage message, String messageType) {

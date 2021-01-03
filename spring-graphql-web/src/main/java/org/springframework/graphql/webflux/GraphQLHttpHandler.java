@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.webflux;
 
 import java.util.List;
 import java.util.Map;
@@ -23,15 +23,22 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.WebInput;
+import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebInterceptorExecutionChain;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 /**
  * WebFlux.fn Handler for GraphQL over HTTP requests.
  */
-public class WebFluxGraphQLHandler {
+public class GraphQLHttpHandler {
 
-	private static final Log logger = LogFactory.getLog(WebFluxGraphQLHandler.class);
+	private static final Log logger = LogFactory.getLog(GraphQLHttpHandler.class);
+
+	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
+			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
 	private final WebInterceptorExecutionChain executionChain;
@@ -42,7 +49,7 @@ public class WebFluxGraphQLHandler {
 	 * @param graphQL the GraphQL instance to use for query execution
 	 * @param interceptors 0 or more interceptors to customize input and output
 	 */
-	public WebFluxGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
+	public GraphQLHttpHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
 		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
 	}
 
@@ -51,7 +58,7 @@ public class WebFluxGraphQLHandler {
 	 * Handle GraphQL query requests over HTTP.
 	 */
 	public Mono<ServerResponse> handleQuery(ServerRequest request) {
-		return request.bodyToMono(WebInput.MAP_PARAMETERIZED_TYPE_REF)
+		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
 					WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
 					if (logger.isDebugEnabled()) {

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.webmvc;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,9 +26,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.WebInput;
+import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebInterceptorExecutionChain;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
-import org.springframework.web.servlet.function.HandlerFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -36,9 +39,12 @@ import org.springframework.web.servlet.function.ServerResponse;
  * GraphQL handler to expose as a WebMvc.fn endpoint via
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
  */
-public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
+public class GraphQLHttpHandler {
 
-	private static Log logger = LogFactory.getLog(WebMvcGraphQLHandler.class);
+	private final static Log logger = LogFactory.getLog(GraphQLHttpHandler.class);
+
+	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
+			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
 	private final WebInterceptorExecutionChain executionChain;
@@ -51,7 +57,7 @@ public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 	 * @param graphQL the GraphQL instance to use for query execution
 	 * @param interceptors 0 or more interceptors to customize input and output
 	 */
-	public WebMvcGraphQLHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
+	public GraphQLHttpHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
 		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
 	}
 
@@ -83,7 +89,7 @@ public class WebMvcGraphQLHandler implements HandlerFunction<ServerResponse> {
 
 	private static Map<String, Object> readBody(ServerRequest request) throws ServletException {
 		try {
-			return request.body(WebInput.MAP_PARAMETERIZED_TYPE_REF);
+			return request.body(MAP_PARAMETERIZED_TYPE_REF);
 		}
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);

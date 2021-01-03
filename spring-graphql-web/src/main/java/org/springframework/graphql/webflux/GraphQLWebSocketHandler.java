@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.webflux;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -34,10 +34,16 @@ import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebInterceptorExecutionChain;
+import org.springframework.graphql.WebOutput;
+import org.springframework.graphql.WebSocketInput;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -56,11 +62,14 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * WebSocketHandler for GraphQL based on
  * <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL Over WebSocket Protocol</a>
  */
-public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
+public class GraphQLWebSocketHandler implements WebSocketHandler {
 
-	private static final Log logger = LogFactory.getLog(WebFluxGraphQLWebSocketHandler.class);
+	private static final Log logger = LogFactory.getLog(GraphQLWebSocketHandler.class);
 
 	private static final List<String> SUB_PROTOCOL_LIST = Collections.singletonList("graphql-transport-ws");
+
+	static final ResolvableType MAP_RESOLVABLE_TYPE =
+			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
 
 
 	private final WebInterceptorExecutionChain executionChain;
@@ -87,7 +96,7 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 	 * @param initTimeoutDuration the time within which the
 * {@code CONNECTION_INIT} type message must be received.
 	 */
-	public WebFluxGraphQLWebSocketHandler(GraphQL graphQL, List<WebInterceptor> interceptors,
+	public GraphQLWebSocketHandler(GraphQL graphQL, List<WebInterceptor> interceptors,
 			ServerCodecConfigurer configurer, Duration initTimeoutDuration) {
 
 		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
@@ -98,7 +107,7 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static Decoder<?> initDecoder(ServerCodecConfigurer configurer) {
 		return configurer.getReaders().stream()
-				.filter(reader -> reader.canRead(WebInput.MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
+				.filter(reader -> reader.canRead(MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
 				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
@@ -106,7 +115,7 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static Encoder<?> initEncoder(ServerCodecConfigurer configurer) {
 		return configurer.getWriters().stream()
-				.filter(writer -> writer.canWrite(WebInput.MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
+				.filter(writer -> writer.canWrite(MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
 				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
@@ -162,10 +171,10 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 		return session.send(responseFlux);
 	}
 
-	@SuppressWarnings({"unchecked", "ConstantConditions"})
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> decode(WebSocketMessage message) {
 		DataBuffer buffer = DataBufferUtils.retain(message.getPayload());
-		return (Map<String, Object>) decoder.decode(buffer, WebInput.MAP_RESOLVABLE_TYPE, null, null);
+		return (Map<String, Object>) decoder.decode(buffer, MAP_RESOLVABLE_TYPE, null, null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -234,7 +243,7 @@ public class WebFluxGraphQLWebSocketHandler implements WebSocketHandler {
 		}
 
 		DataBuffer buffer = ((Encoder<T>) encoder).encodeValue(
-				(T) payloadMap, session.bufferFactory(), WebInput.MAP_RESOLVABLE_TYPE,
+				(T) payloadMap, session.bufferFactory(), MAP_RESOLVABLE_TYPE,
 				MimeTypeUtils.APPLICATION_JSON, null);
 
 		return new WebSocketMessage(WebSocketMessage.Type.TEXT, buffer);

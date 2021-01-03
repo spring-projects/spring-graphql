@@ -28,8 +28,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.graphql.WebFluxGraphQLHandler;
-import org.springframework.graphql.WebFluxGraphQLWebSocketHandler;
+import org.springframework.graphql.webflux.GraphQLHttpHandler;
+import org.springframework.graphql.webflux.GraphQLWebSocketHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.HandlerMapping;
@@ -50,16 +50,16 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebFluxGraphQLHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new WebFluxGraphQLHandler(graphQLBuilder.build(), Collections.emptyList());
+	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
+		return new GraphQLHttpHandler(graphQLBuilder.build(), Collections.emptyList());
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebFluxGraphQLWebSocketHandler graphQLWebSocketHandler(
+	public GraphQLWebSocketHandler graphQLWebSocketHandler(
 			GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer) {
 
-		return new WebFluxGraphQLWebSocketHandler(
+		return new GraphQLWebSocketHandler(
 				graphQLBuilder.build(), Collections.emptyList(),
 				configurer, properties.getConnectionInitTimeoutDuration()
 		);
@@ -67,7 +67,7 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	public RouterFunction<ServerResponse> graphQLEndpoint(
-			WebFluxGraphQLHandler handler, GraphQLProperties properties, ResourceLoader resourceLoader) {
+			GraphQLHttpHandler handler, GraphQLProperties properties, ResourceLoader resourceLoader) {
 
 		String path = properties.getPath();
 		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
@@ -80,7 +80,7 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	public HandlerMapping graphQLWebSocketEndpoint(
-			WebFluxGraphQLWebSocketHandler handler, GraphQLProperties properties) {
+			GraphQLWebSocketHandler handler, GraphQLProperties properties) {
 
 		String path = properties.getWebSocketPath();
 		SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();

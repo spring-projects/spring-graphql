@@ -33,14 +33,14 @@ import org.springframework.util.CollectionUtils;
  * {@link ExecutionInput} and the {@link ExecutionResult} of {@link GraphQL}
  * query execution.
  */
-class WebInterceptorExecutionChain {
+public class WebInterceptorExecutionChain {
 
 	private final GraphQL graphQL;
 
 	private final List<WebInterceptor> interceptors;
 
 
-	WebInterceptorExecutionChain(GraphQL graphQL, List<WebInterceptor> interceptors) {
+	public WebInterceptorExecutionChain(GraphQL graphQL, List<WebInterceptor> interceptors) {
 		Assert.notNull(graphQL, "GraphQL is required");
 		this.graphQL = graphQL;
 		this.interceptors = (!CollectionUtils.isEmpty(interceptors) ?
