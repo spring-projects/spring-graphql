@@ -1,7 +1,7 @@
 import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 plugins {
-	id 'org.springframework.boot' version '2.4.0-SNAPSHOT' apply false
+	id 'org.springframework.boot' version '2.4.1' apply false
 	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
 	id 'java-library'
 	id 'maven'

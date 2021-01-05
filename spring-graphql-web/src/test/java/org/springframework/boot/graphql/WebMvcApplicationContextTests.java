@@ -14,11 +14,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.GraphQLDataFetchers;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,8 +45,10 @@ class WebMvcApplicationContextTests {
 					"    author" +
 					"  }" +
 					"}";
-			mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}"))
+			MvcResult asyncResult = mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}")).andReturn();
+			mockMvc.perform(asyncDispatch(asyncResult))
 					.andExpect(status().isOk())
+					.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 					.andExpect(jsonPath("data.bookById.name").value("GraphQL for beginners"));
 		});
 	}
@@ -65,7 +72,7 @@ class WebMvcApplicationContextTests {
 						"spring.main.web-application-type=servlet",
 						"spring.graphql.schema-location:classpath:books/schema.graphqls")
 				.run((context) -> {
-					MockHttpServletRequestBuilder builder = post("/graphQL")
+					MockHttpServletRequestBuilder builder = post("/graphql")
 							.contentType(MediaType.APPLICATION_JSON)
 							.accept(MediaType.APPLICATION_JSON);
 					MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).defaultRequest(builder).build();
