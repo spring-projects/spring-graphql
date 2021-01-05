@@ -5,7 +5,7 @@ import java.time.Duration;
 import graphql.schema.idl.RuntimeWiring;
 import reactor.core.publisher.Flux;
 
-import org.springframework.boot.graphql.RuntimeWiringCustomizer;
+import org.springframework.graphql.boot.RuntimeWiringCustomizer;
 import org.springframework.stereotype.Component;
 
 @Component

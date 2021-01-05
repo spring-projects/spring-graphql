@@ -11,12 +11,12 @@ This project is tested against Spring Boot 2.4+, but should work on 2.3 as well.
 
 You can start by creating a project on https://start.spring.io and select the `spring-boot-starter-web` or `spring-boot-starter-webflux` starter,
 depending on the type of web application you'd like to build. Once the project is generated, you can manually add the
-`org.springframework.experimental:spring-graphql-web` dependency.
+`org.springframework.experimental:graphql-spring-boot-starter` dependency.
 
 `build.gradle` snippet:
 ```groovy
 dependencies {
-    implementation 'org.springframework.experimental:spring-graphql-web:0.1.0-SNAPSHOT'
+    implementation 'org.springframework.experimental:graphql-spring-boot-starter:0.1.0-SNAPSHOT'
     
     // Spring Web MVC starter
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -38,7 +38,7 @@ repositories {
 <dependencies>
     <dependency>
         <groupId>org.springframework.experimental</groupId>
-        <artifactId>spring-graphql-web</artifactId>
+        <artifactId>graphql-spring-boot-starter</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </dependency>
     
@@ -142,14 +142,15 @@ management.endpoints.web.exposure.include=health,metrics,info
 You can then check those metrics at `http://localhost:8080/actuator/metrics/graphql.query`.
 
 
-## Sample application
+## Sample applications
 
-This repository contains a sample application that the team is using to test new features and ideas.
+This repository contains sample applications that the team is using to test new features and ideas.
 
-You can run it by cloning this repository and typing on the command line:
+You can run them by cloning this repository and typing on the command line:
 
 ```shell script
-$ ./gradlew :graphql-sample:bootRun
+$ ./gradlew :samples:webmvc-http:bootRun
+$ ./gradlew :samples:webflux-websocket:bootRun
 ```
 
 
