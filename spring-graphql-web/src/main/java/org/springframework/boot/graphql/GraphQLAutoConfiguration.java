@@ -15,8 +15,7 @@
  */
 package org.springframework.boot.graphql;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,7 +34,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.util.ResourceUtils;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
 @Configuration
 @ConditionalOnClass(GraphQL.class)
@@ -57,26 +57,30 @@ public class GraphQLAutoConfiguration {
 
 		@Bean
 		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring,
+				ResourceLoader resourceLoader,
 				ObjectProvider<Instrumentation> instrumentationsProvider) {
-			try {
-				File schemaFile = ResourceUtils.getFile(properties.getSchemaLocation());
-				GraphQLSchema schema = buildSchema(schemaFile, runtimeWiring);
-				GraphQL.Builder builder = GraphQL.newGraphQL(schema);
-				List<Instrumentation> instrumentations = instrumentationsProvider.orderedStream().collect(Collectors.toList());
-				if (!instrumentations.isEmpty()) {
-					builder = builder.instrumentation(new ChainedInstrumentation(instrumentations));
-				}
-				return builder;
+			Resource schemaResource = resourceLoader.getResource(properties.getSchemaLocation());
+			GraphQLSchema schema = buildSchema(schemaResource, runtimeWiring);
+			GraphQL.Builder builder = GraphQL.newGraphQL(schema);
+			List<Instrumentation> instrumentations = instrumentationsProvider.orderedStream().collect(Collectors.toList());
+			if (!instrumentations.isEmpty()) {
+				builder = builder.instrumentation(new ChainedInstrumentation(instrumentations));
 			}
-			catch (FileNotFoundException ex) {
-				throw new MissingGraphQLSchemaException(properties.getSchemaLocation());
-			}
+			return builder;
 		}
 
-		private GraphQLSchema buildSchema(File schemaFile, RuntimeWiring runtimeWiring) {
-			TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(schemaFile);
-			SchemaGenerator schemaGenerator = new SchemaGenerator();
-			return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+		private GraphQLSchema buildSchema(Resource schemaResource, RuntimeWiring runtimeWiring) {
+			if (!schemaResource.exists()) {
+				throw new MissingGraphQLSchemaException(schemaResource);
+			}
+			try {
+				TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(schemaResource.getInputStream());
+				SchemaGenerator schemaGenerator = new SchemaGenerator();
+				return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+			}
+			catch (IOException exc) {
+				throw new MissingGraphQLSchemaException(exc, schemaResource);
+			}
 		}
 
 	}

@@ -16,22 +16,26 @@
 
 package org.springframework.boot.graphql;
 
-import org.springframework.util.StringUtils;
+import org.springframework.core.io.Resource;
 
 /**
  * Exception thrown when no GraphQL schema is available.
  */
 public class MissingGraphQLSchemaException extends RuntimeException {
 
-	private final String path;
+	private final Resource schemaResource;
 
-	MissingGraphQLSchemaException(String path) {
-		super(StringUtils.hasText(path) ? "Path to GraphQL schema not configured" : "Cannot find schema file at: "
-				+ path + " (please add a schema file or check your GraphQL configuration)");
-		this.path = path;
+	public MissingGraphQLSchemaException(Throwable cause, Resource schemaResource) {
+		super(cause);
+		this.schemaResource = schemaResource;
 	}
 
-	public String getPath() {
-		return this.path;
+	MissingGraphQLSchemaException(Resource schemaResource) {
+		super("Schema resource " + schemaResource.toString() + " does not exist");
+		this.schemaResource = schemaResource;
+	}
+
+	public Resource getSchemaResource() {
+		return this.schemaResource;
 	}
 }
