@@ -1,8 +1,4 @@
-schema {
-    query: QueryType
-}
-
-type QueryType {
+type Query {
     artifactRepositories : [ArtifactRepository]
     artifactRepository(id : ID!) : ArtifactRepository
     project(slug: ID!): Project
