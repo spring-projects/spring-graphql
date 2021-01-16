@@ -75,11 +75,7 @@ repositories {
 You can now add a GraphQL schema in `src/main/resources/schema.graphqls` such as:
 
 ```
-schema {
-    query: QueryType
-}
-
-type QueryType {
+type Query {
     people: [Person]!
 }
 
@@ -104,7 +100,7 @@ public class PersonDataWiring implements RuntimeWiringCustomizer {
 
 	@Override
 	public void customize(RuntimeWiring.Builder builder) {
-		builder.type("QueryType", typeWiring -> typeWiring
+		builder.type("Query", typeWiring -> typeWiring
 				.dataFetcher("people", env -> this.personService.findAll()));
 	}
 }
