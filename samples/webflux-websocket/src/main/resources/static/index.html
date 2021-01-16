@@ -32,8 +32,8 @@
 
     // subscription
     (async () => {
-        const onNext = () => {
-            console.log("Subscription data")
+        const onNext = (data) => {
+            console.log("Subscription data:", data);
         };
 
         await new Promise((resolve, reject) => {

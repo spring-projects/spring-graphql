@@ -15,14 +15,6 @@
  */
 package org.springframework.graphql.webflux;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -31,9 +23,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -57,6 +46,16 @@ import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * WebSocketHandler for GraphQL based on
@@ -137,7 +136,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 					Map<String, Object> map = decode(message);
 					String id = (String) map.get("id");
 					MessageType messageType = MessageType.resolve((String) map.get("type"));
-					if (id == null || messageType == null) {
+					if (messageType == null) {
 						return GraphQLStatus.invalidMessage(session);
 					}
 					switch (messageType) {
