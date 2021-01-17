@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,14 @@
  */
 package org.springframework.graphql.webflux;
 
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -23,6 +31,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -46,16 +57,6 @@ import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * WebSocketHandler for GraphQL based on
@@ -144,6 +145,9 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (!initialized.get()) {
 								return GraphQLStatus.unauthorized(session);
 							}
+							if (id == null) {
+								return GraphQLStatus.invalidMessage(session);
+							}
 							HandshakeInfo handshakeInfo = session.getHandshakeInfo();
 							WebSocketInput input = new WebSocketInput(handshakeInfo, id, getPayload(map));
 							if (logger.isDebugEnabled()) {
@@ -152,16 +156,18 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							return executionChain.execute(input)
 									.flatMapMany(output -> handleWebOutput(session, input.id(), output));
 						case COMPLETE:
-							Subscription subscription = this.subscriptions.remove(id);
-							if (subscription != null) {
-								subscription.cancel();
+							if (id != null) {
+								Subscription subscription = this.subscriptions.remove(id);
+								if (subscription != null) {
+									subscription.cancel();
+								}
 							}
 							return Flux.empty();
 						case CONNECTION_INIT:
 							if (!initialized.compareAndSet(false, true)) {
 								return GraphQLStatus.tooManyInitRequests(session);
 							}
-							return Flux.just(encode(session, id, MessageType.CONNECTION_ACK, null));
+							return Flux.just(encode(session, null, MessageType.CONNECTION_ACK, null));
 						default:
 							return GraphQLStatus.invalidMessage(session);
 					}
@@ -232,10 +238,12 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	@SuppressWarnings("unchecked")
 	private <T> WebSocketMessage encode(
-			WebSocketSession session, String id, MessageType messageType, @Nullable Object payload) {
+			WebSocketSession session, @Nullable String id, MessageType messageType, @Nullable Object payload) {
 
 		Map<String, Object> payloadMap = new HashMap<>(3);
-		payloadMap.put("id", id);
+		if (id != null) {
+			payloadMap.put("id", id);
+		}
 		payloadMap.put("type", messageType.getType());
 		if (payload != null) {
 			payloadMap.put("payload", payload);

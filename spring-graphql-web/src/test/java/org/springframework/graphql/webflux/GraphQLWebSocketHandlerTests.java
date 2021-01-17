@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQLDataFetchers;
 import org.springframework.graphql.WebInterceptor;
 import org.springframework.graphql.WebOutput;
-import org.springframework.graphql.webflux.GraphQLWebSocketHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
@@ -99,7 +98,7 @@ public class GraphQLWebSocketHandlerTests {
 				"}";
 		
 		Flux<WebSocketMessage> input = Flux.just(
-				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"),
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage(bookQuery));
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
@@ -123,7 +122,7 @@ public class GraphQLWebSocketHandlerTests {
 	@Test
 	void subscription() throws Exception {
 		Flux<WebSocketMessage> input = Flux.just(
-				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"),
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage(BOOK_SEARCH_QUERY));
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
@@ -151,8 +150,26 @@ public class GraphQLWebSocketHandlerTests {
 	@Test
 	void unauthorizedWithoutMessageType() throws Exception {
 		Flux<WebSocketMessage> input = Flux.just(
-				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"),
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\"}")); // No message type
+
+		TestWebSocketSession session = new TestWebSocketSession(input);
+		initWebSocketHandler().handle(session).block();
+
+		StepVerifier.create(session.getOutput())
+				.consumeNextWith(message -> assertMessageType(message, "connection_ack"))
+				.verifyComplete();
+
+		StepVerifier.create(session.closeStatus())
+				.expectNext(new CloseStatus(4400, "Invalid message"))
+				.verifyComplete();
+	}
+
+	@Test
+	void invalidMessageWithoutId() throws Exception {
+		Flux<WebSocketMessage> input = Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
+				toWebSocketMessage("{\"type\":\"subscribe\"}"));  // No message id
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
 		initWebSocketHandler().handle(session).block();
@@ -180,8 +197,8 @@ public class GraphQLWebSocketHandlerTests {
 	@Test
 	void tooManyConnectionInitRequests() throws Exception {
 		Flux<WebSocketMessage> input = Flux.just(
-				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"),
-				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"));
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
+				toWebSocketMessage("{\"type\":\"connection_init\"}"));
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
 		initWebSocketHandler().handle(session).block();
@@ -207,8 +224,8 @@ public class GraphQLWebSocketHandlerTests {
 
 	@Test
 	void subscriptionExists() throws Exception {
-		Flux<WebSocketMessage> input = Flux.just(toWebSocketMessage(
-				"{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"),
+		Flux<WebSocketMessage> input = Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage(BOOK_SEARCH_QUERY),
 				toWebSocketMessage(BOOK_SEARCH_QUERY));
 
@@ -233,7 +250,7 @@ public class GraphQLWebSocketHandlerTests {
 	@Test
 	void clientCompletion() throws Exception {
 		Sinks.Many<WebSocketMessage> input = Sinks.many().unicast().onBackpressureBuffer();
-		input.tryEmitNext(toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"connection_init\"}"));
+		input.tryEmitNext(toWebSocketMessage("{\"type\":\"connection_init\"}"));
 		input.tryEmitNext(toWebSocketMessage(BOOK_SEARCH_QUERY));
 
 		List<WebInterceptor> interceptors = Collections.singletonList(new TakeOneAndNeverCompleteInterceptor());
@@ -293,9 +310,11 @@ public class GraphQLWebSocketHandlerTests {
 	}
 
 	private void assertMessageType(WebSocketMessage message, String messageType) {
-		assertThat(decode(message))
-				.containsEntry("id", SUBSCRIPTION_ID)
-				.containsEntry("type", messageType);
+		Map<String, Object> map = decode(message);
+		assertThat(map).containsEntry("type", messageType);
+		if (!messageType.equals("connection_ack")) {
+			assertThat(map).containsEntry("id", SUBSCRIPTION_ID);
+		}
 	}
 
 
