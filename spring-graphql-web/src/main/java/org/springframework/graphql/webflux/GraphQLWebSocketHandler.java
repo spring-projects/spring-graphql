@@ -61,6 +61,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 /**
  * WebSocketHandler for GraphQL based on
  * <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL Over WebSocket Protocol</a>
+ * and for use in a Spring WebFlux application.
  */
 public class GraphQLWebSocketHandler implements WebSocketHandler {
 
@@ -74,35 +75,28 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	private final WebInterceptorExecutionChain executionChain;
 
-	private final Duration initTimeoutDuration;
-
 	private final Decoder<?> decoder;
 
 	private final Encoder<?> encoder;
 
-	private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
+	private final Duration initTimeoutDuration;
 
-
-	@Override
-	public List<String> getSubProtocols() {
-		return SUB_PROTOCOL_LIST;
-	}
 
 	/**
 	 * Create a new instance.
 	 * @param graphQL the GraphQL instance to use for query execution
 	 * @param interceptors 0 or more interceptors to customize input and output
 	 * @param configurer codec configurer for JSON encoding and decoding
-	 * @param initTimeoutDuration the time within which the
-* {@code CONNECTION_INIT} type message must be received.
+	 * @param initTimeoutDuration the time within which the {@code CONNECTION_INIT}
+	 * type message must be received.
 	 */
 	public GraphQLWebSocketHandler(GraphQL graphQL, List<WebInterceptor> interceptors,
 			ServerCodecConfigurer configurer, Duration initTimeoutDuration) {
 
 		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
-		this.initTimeoutDuration = initTimeoutDuration;
 		this.decoder = initDecoder(configurer);
 		this.encoder = initEncoder(configurer);
+		this.initTimeoutDuration = initTimeoutDuration;
 	}
 
 	private static Decoder<?> initDecoder(ServerCodecConfigurer configurer) {
@@ -123,12 +117,22 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 
 	@Override
+	public List<String> getSubProtocols() {
+		return SUB_PROTOCOL_LIST;
+	}
+
+
+	@Override
 	public Mono<Void> handle(WebSocketSession session) {
-		AtomicBoolean initialized = new AtomicBoolean();
+
+		// Session state
+		AtomicBoolean connectionInitProcessed = new AtomicBoolean();
+		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
+
 		Mono.delay(this.initTimeoutDuration)
 				.then(Mono.defer(() ->
-						initialized.compareAndSet(false, true) ?
-								GraphQLStatus.initTimeout(session) :
+						connectionInitProcessed.compareAndSet(false, true) ?
+								GraphQLStatus.closeWithInitTimeout(session) :
 								Mono.empty()))
 				.subscribe();
 
@@ -138,38 +142,38 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 					String id = (String) map.get("id");
 					MessageType messageType = MessageType.resolve((String) map.get("type"));
 					if (messageType == null) {
-						return GraphQLStatus.invalidMessage(session);
+						return GraphQLStatus.closeWithInvalidMessage(session);
 					}
 					switch (messageType) {
 						case SUBSCRIBE:
-							if (!initialized.get()) {
-								return GraphQLStatus.unauthorized(session);
+							if (!connectionInitProcessed.get()) {
+								return GraphQLStatus.closeWithUnauthorized(session);
 							}
 							if (id == null) {
-								return GraphQLStatus.invalidMessage(session);
+								return GraphQLStatus.closeWithInvalidMessage(session);
 							}
 							HandshakeInfo handshakeInfo = session.getHandshakeInfo();
 							WebSocketInput input = new WebSocketInput(handshakeInfo, id, getPayload(map));
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}
-							return executionChain.execute(input)
-									.flatMapMany(output -> handleWebOutput(session, input.id(), output));
+							return executionChain.execute(input).flatMapMany(output ->
+									handleWebOutput(session, input.id(), subscriptions, output));
 						case COMPLETE:
 							if (id != null) {
-								Subscription subscription = this.subscriptions.remove(id);
+								Subscription subscription = subscriptions.remove(id);
 								if (subscription != null) {
 									subscription.cancel();
 								}
 							}
 							return Flux.empty();
 						case CONNECTION_INIT:
-							if (!initialized.compareAndSet(false, true)) {
-								return GraphQLStatus.tooManyInitRequests(session);
+							if (!connectionInitProcessed.compareAndSet(false, true)) {
+								return GraphQLStatus.closeWithTooManyInitRequests(session);
 							}
 							return Flux.just(encode(session, null, MessageType.CONNECTION_ACK, null));
 						default:
-							return GraphQLStatus.invalidMessage(session);
+							return GraphQLStatus.closeWithInvalidMessage(session);
 					}
 				});
 
@@ -190,7 +194,9 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Flux<WebSocketMessage> handleWebOutput(WebSocketSession session, String id, WebOutput output) {
+	private Flux<WebSocketMessage> handleWebOutput(
+			WebSocketSession session, String id, Map<String, Subscription> subscriptions, WebOutput output) {
+
 		if (logger.isDebugEnabled()) {
 			logger.debug("Execution result ready" +
 					(!CollectionUtils.isEmpty(output.getErrors()) ?
@@ -202,7 +208,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 			// Subscription
 			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
 					.doOnSubscribe(subscription -> {
-						Subscription previous = this.subscriptions.putIfAbsent(id, subscription);
+						Subscription previous = subscriptions.putIfAbsent(id, subscription);
 						if (previous != null) {
 							throw new SubscriptionExistsException();
 						}
@@ -223,7 +229,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 				.concatWith(Mono.defer(() -> Mono.just(encode(session, id, MessageType.COMPLETE, null))))
 				.onErrorResume(ex -> {
 					if (ex instanceof SubscriptionExistsException) {
-						return GraphQLStatus.subscriptionExists(session, id);
+						return GraphQLStatus.closeWithSubscriptionExists(session, id);
 					}
 					ErrorType errorType = ErrorType.DataFetchingException;
 					String message = ex.getMessage();
@@ -295,40 +301,36 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static class GraphQLStatus {
 
-		private static final CloseStatus INVALID_MESSAGE_STATUS =
-				new CloseStatus(4400, "Invalid message");
+		private static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
 
-		private static final CloseStatus UNAUTHORIZED_STATUS =
-				new CloseStatus(4401, "Unauthorized");
+		private static final CloseStatus UNAUTHORIZED_STATUS = new CloseStatus(4401, "Unauthorized");
 
-		private static final CloseStatus INIT_TIMEOUT_STATUS =
-				new CloseStatus(4408, "Connection initialisation timeout");
+		private static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408, "Connection initialisation timeout");
 
-		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS =
-				new CloseStatus(4429, "Too many initialisation requests");
+		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429, "Too many initialisation requests");
 
 
-		public static <V> Flux<V> invalidMessage(WebSocketSession session) {
-			return closeSession(session, INVALID_MESSAGE_STATUS);
+		public static <V> Flux<V> closeWithInvalidMessage(WebSocketSession session) {
+			return closeInternal(session, INVALID_MESSAGE_STATUS);
 		}
 
-		public static <V> Flux<V>  unauthorized(WebSocketSession session) {
-			return closeSession(session, UNAUTHORIZED_STATUS);
+		public static <V> Flux<V> closeWithUnauthorized(WebSocketSession session) {
+			return closeInternal(session, UNAUTHORIZED_STATUS);
 		}
 
-		public static Mono<Void> initTimeout(WebSocketSession session) {
+		public static Mono<Void> closeWithInitTimeout(WebSocketSession session) {
 			return session.close(INIT_TIMEOUT_STATUS);
 		}
 
-		public static <V> Flux<V> subscriptionExists(WebSocketSession session, String id) {
-			return closeSession(session, new CloseStatus(4409, "Subscriber for " + id + " already exists"));
+		public static <V> Flux<V> closeWithSubscriptionExists(WebSocketSession session, String id) {
+			return closeInternal(session, new CloseStatus(4409, "Subscriber for " + id + " already exists"));
 		}
 
-		public static <V> Flux<V>  tooManyInitRequests(WebSocketSession session) {
-			return closeSession(session, TOO_MANY_INIT_REQUESTS_STATUS);
+		public static <V> Flux<V> closeWithTooManyInitRequests(WebSocketSession session) {
+			return closeInternal(session, TOO_MANY_INIT_REQUESTS_STATUS);
 		}
 
-		private static <V> Flux<V> closeSession(WebSocketSession session, CloseStatus status) {
+		private static <V> Flux<V> closeInternal(WebSocketSession session, CloseStatus status) {
 			return session.close(status).thenMany(Mono.empty());
 		}
 	}
