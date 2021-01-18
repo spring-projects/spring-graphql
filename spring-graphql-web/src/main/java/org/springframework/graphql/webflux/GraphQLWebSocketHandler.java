@@ -43,7 +43,7 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.graphql.WebInterceptor;
 import org.springframework.graphql.WebInterceptorExecutionChain;
 import org.springframework.graphql.WebOutput;
-import org.springframework.graphql.WebSocketInput;
+import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -152,13 +152,13 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (id == null) {
 								return GraphQLStatus.closeWithInvalidMessage(session);
 							}
-							HandshakeInfo handshakeInfo = session.getHandshakeInfo();
-							WebSocketInput input = new WebSocketInput(handshakeInfo, id, getPayload(map));
+							HandshakeInfo info = session.getHandshakeInfo();
+							WebSocketMessageInput input = new WebSocketMessageInput(info.getUri(), info.getHeaders(), id, getPayload(map));
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}
 							return executionChain.execute(input).flatMapMany(output ->
-									handleWebOutput(session, input.id(), subscriptions, output));
+									handleWebOutput(session, input.requestId(), subscriptions, output));
 						case COMPLETE:
 							if (id != null) {
 								Subscription subscription = subscriptions.remove(id);
