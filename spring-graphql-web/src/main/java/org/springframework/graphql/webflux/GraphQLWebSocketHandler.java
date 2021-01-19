@@ -16,7 +16,7 @@
 package org.springframework.graphql.webflux;
 
 import java.time.Duration;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +52,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.MimeTypeUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -67,7 +68,8 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQLWebSocketHandler.class);
 
-	private static final List<String> SUB_PROTOCOL_LIST = Collections.singletonList("graphql-transport-ws");
+	private static final List<String> SUB_PROTOCOL_LIST =
+			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
 
 	static final ResolvableType MAP_RESOLVABLE_TYPE =
 			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
@@ -124,6 +126,15 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
+		HandshakeInfo handshakeInfo = session.getHandshakeInfo();
+		if (ObjectUtils.nullSafeEquals(handshakeInfo.getSubProtocol(), "subscriptions-transport-ws")) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. " +
+						"Please, use https://github.com/enisdenjo/graphql-ws.");
+			}
+			return session.close(GraphQLStatus.INVALID_MESSAGE_STATUS);
+		}
+
 		// Session state
 		AtomicBoolean connectionInitProcessed = new AtomicBoolean();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
@@ -150,8 +161,8 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (id == null) {
 								return GraphQLStatus.close(session, GraphQLStatus.INVALID_MESSAGE_STATUS);
 							}
-							HandshakeInfo info = session.getHandshakeInfo();
-							WebSocketMessageInput input = new WebSocketMessageInput(info.getUri(), info.getHeaders(), id, getPayload(map));
+							WebSocketMessageInput input = new WebSocketMessageInput(
+									handshakeInfo.getUri(), handshakeInfo.getHeaders(), id, getPayload(map));
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}
