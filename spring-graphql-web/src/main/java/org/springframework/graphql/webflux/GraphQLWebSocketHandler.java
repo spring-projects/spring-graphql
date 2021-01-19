@@ -124,16 +124,14 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
-
 		// Session state
 		AtomicBoolean connectionInitProcessed = new AtomicBoolean();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 		Mono.delay(this.initTimeoutDuration)
-				.then(Mono.defer(() ->
-						connectionInitProcessed.compareAndSet(false, true) ?
-								GraphQLStatus.closeWithInitTimeout(session) :
-								Mono.empty()))
+				.then(Mono.defer(() -> connectionInitProcessed.compareAndSet(false, true) ?
+						session.close(GraphQLStatus.INIT_TIMEOUT_STATUS) :
+						Mono.empty()))
 				.subscribe();
 
 		Flux<WebSocketMessage> responseFlux = session.receive()
@@ -142,15 +140,15 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 					String id = (String) map.get("id");
 					MessageType messageType = MessageType.resolve((String) map.get("type"));
 					if (messageType == null) {
-						return GraphQLStatus.closeWithInvalidMessage(session);
+						return GraphQLStatus.close(session, GraphQLStatus.INVALID_MESSAGE_STATUS);
 					}
 					switch (messageType) {
 						case SUBSCRIBE:
 							if (!connectionInitProcessed.get()) {
-								return GraphQLStatus.closeWithUnauthorized(session);
+								return GraphQLStatus.close(session, GraphQLStatus.UNAUTHORIZED_STATUS);
 							}
 							if (id == null) {
-								return GraphQLStatus.closeWithInvalidMessage(session);
+								return GraphQLStatus.close(session, GraphQLStatus.INVALID_MESSAGE_STATUS);
 							}
 							HandshakeInfo info = session.getHandshakeInfo();
 							WebSocketMessageInput input = new WebSocketMessageInput(info.getUri(), info.getHeaders(), id, getPayload(map));
@@ -169,11 +167,11 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							return Flux.empty();
 						case CONNECTION_INIT:
 							if (!connectionInitProcessed.compareAndSet(false, true)) {
-								return GraphQLStatus.closeWithTooManyInitRequests(session);
+								return GraphQLStatus.close(session, GraphQLStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 							}
 							return Flux.just(encode(session, null, MessageType.CONNECTION_ACK, null));
 						default:
-							return GraphQLStatus.closeWithInvalidMessage(session);
+							return GraphQLStatus.close(session, GraphQLStatus.INVALID_MESSAGE_STATUS);
 					}
 				});
 
@@ -229,7 +227,8 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 				.concatWith(Mono.defer(() -> Mono.just(encode(session, id, MessageType.COMPLETE, null))))
 				.onErrorResume(ex -> {
 					if (ex instanceof SubscriptionExistsException) {
-						return GraphQLStatus.closeWithSubscriptionExists(session, id);
+						return GraphQLStatus.close(session,
+								new CloseStatus(4409, "Subscriber for " + id + " already exists"));
 					}
 					ErrorType errorType = ErrorType.DataFetchingException;
 					String message = ex.getMessage();
@@ -301,36 +300,16 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	private static class GraphQLStatus {
 
-		private static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
+		static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
 
-		private static final CloseStatus UNAUTHORIZED_STATUS = new CloseStatus(4401, "Unauthorized");
+		static final CloseStatus UNAUTHORIZED_STATUS = new CloseStatus(4401, "Unauthorized");
 
-		private static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408, "Connection initialisation timeout");
+		static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408, "Connection initialisation timeout");
 
-		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429, "Too many initialisation requests");
+		static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429, "Too many initialisation requests");
 
 
-		public static <V> Flux<V> closeWithInvalidMessage(WebSocketSession session) {
-			return closeInternal(session, INVALID_MESSAGE_STATUS);
-		}
-
-		public static <V> Flux<V> closeWithUnauthorized(WebSocketSession session) {
-			return closeInternal(session, UNAUTHORIZED_STATUS);
-		}
-
-		public static Mono<Void> closeWithInitTimeout(WebSocketSession session) {
-			return session.close(INIT_TIMEOUT_STATUS);
-		}
-
-		public static <V> Flux<V> closeWithSubscriptionExists(WebSocketSession session, String id) {
-			return closeInternal(session, new CloseStatus(4409, "Subscriber for " + id + " already exists"));
-		}
-
-		public static <V> Flux<V> closeWithTooManyInitRequests(WebSocketSession session) {
-			return closeInternal(session, TOO_MANY_INIT_REQUESTS_STATUS);
-		}
-
-		private static <V> Flux<V> closeInternal(WebSocketSession session, CloseStatus status) {
+		static <V> Flux<V> close(WebSocketSession session, CloseStatus status) {
 			return session.close(status).thenMany(Mono.empty());
 		}
 	}
