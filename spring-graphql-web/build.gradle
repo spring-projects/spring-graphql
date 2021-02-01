@@ -29,11 +29,14 @@ dependencies {
     compileOnly "javax.annotation:javax.annotation-api:1.3.2"
 	compileOnly 'org.springframework:spring-webflux'
 	compileOnly 'org.springframework:spring-webmvc'
+	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
 
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
+	testImplementation 'org.springframework:spring-websocket'
+	testImplementation 'org.springframework:spring-test'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 
