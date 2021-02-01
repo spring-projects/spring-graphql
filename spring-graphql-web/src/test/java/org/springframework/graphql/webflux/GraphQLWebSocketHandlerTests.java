@@ -42,8 +42,8 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQLDataFetchers;
+import org.springframework.graphql.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebOutput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
@@ -229,7 +229,7 @@ public class GraphQLWebSocketHandlerTests {
 				toWebSocketMessage(BOOK_SEARCH_QUERY),
 				toWebSocketMessage(BOOK_SEARCH_QUERY));
 
-		List<WebInterceptor> interceptors = Collections.singletonList(new TakeOneAndNeverCompleteInterceptor());
+		List<WebInterceptor> interceptors = Collections.singletonList(new ConsumeOneAndNeverCompleteInterceptor());
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
 		initWebSocketHandler(interceptors, null).handle(session).block();
@@ -253,7 +253,7 @@ public class GraphQLWebSocketHandlerTests {
 		input.tryEmitNext(toWebSocketMessage("{\"type\":\"connection_init\"}"));
 		input.tryEmitNext(toWebSocketMessage(BOOK_SEARCH_QUERY));
 
-		List<WebInterceptor> interceptors = Collections.singletonList(new TakeOneAndNeverCompleteInterceptor());
+		List<WebInterceptor> interceptors = Collections.singletonList(new ConsumeOneAndNeverCompleteInterceptor());
 		TestWebSocketSession session = new TestWebSocketSession(input.asFlux());
 		initWebSocketHandler(interceptors, null).handle(session).block();
 
@@ -271,7 +271,7 @@ public class GraphQLWebSocketHandlerTests {
 	}
 
 	private GraphQLWebSocketHandler initWebSocketHandler() throws Exception {
-		return initWebSocketHandler(Collections.emptyList(), Duration.ofSeconds(69));
+		return initWebSocketHandler(Collections.emptyList(), Duration.ofSeconds(60));
 	}
 
 	private GraphQLWebSocketHandler initWebSocketHandler(
@@ -371,16 +371,4 @@ public class GraphQLWebSocketHandlerTests {
 		}
 	}
 
-
-	private static class TakeOneAndNeverCompleteInterceptor implements WebInterceptor {
-
-		@Override
-		public Mono<WebOutput> postHandle(WebOutput output) {
-			return Mono.just(output.transform(builder -> {
-				Publisher<?> publisher = output.getData();
-				assertThat(publisher).isNotNull();
-				builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
-			}));
-		}
-	}
 }

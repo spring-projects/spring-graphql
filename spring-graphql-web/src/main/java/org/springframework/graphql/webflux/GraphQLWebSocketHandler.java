@@ -127,7 +127,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
 		HandshakeInfo handshakeInfo = session.getHandshakeInfo();
-		if (ObjectUtils.nullSafeEquals(handshakeInfo.getSubProtocol(), "subscriptions-transport-ws")) {
+		if ("subscriptions-transport-ws".equalsIgnoreCase(handshakeInfo.getSubProtocol())) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. " +
 						"Please, use https://github.com/enisdenjo/graphql-ws.");
@@ -140,12 +140,13 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 		Mono.delay(this.initTimeoutDuration)
-				.then(Mono.defer(() -> connectionInitProcessed.compareAndSet(false, true) ?
-						session.close(GraphQLStatus.INIT_TIMEOUT_STATUS) :
-						Mono.empty()))
+				.then(Mono.defer(() ->
+						connectionInitProcessed.compareAndSet(false, true) ?
+								session.close(GraphQLStatus.INIT_TIMEOUT_STATUS) :
+								Mono.empty()))
 				.subscribe();
 
-		Flux<WebSocketMessage> responseFlux = session.receive()
+		return session.send(session.receive()
 				.flatMap(message -> {
 					Map<String, Object> map = decode(message);
 					String id = (String) map.get("id");
@@ -166,8 +167,9 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}
-							return executionChain.execute(input).flatMapMany(output ->
-									handleWebOutput(session, input.requestId(), subscriptions, output));
+							return this.executionChain.execute(input)
+									.flatMapMany(output -> handleWebOutput(session, id, subscriptions, output))
+									.doOnTerminate(() -> subscriptions.remove(id));
 						case COMPLETE:
 							if (id != null) {
 								Subscription subscription = subscriptions.remove(id);
@@ -184,12 +186,10 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 						default:
 							return GraphQLStatus.close(session, GraphQLStatus.INVALID_MESSAGE_STATUS);
 					}
-				});
-
-		return session.send(responseFlux);
+				}));
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	private Map<String, Object> decode(WebSocketMessage message) {
 		DataBuffer buffer = DataBufferUtils.retain(message.getPayload());
 		return (Map<String, Object>) decoder.decode(buffer, MAP_RESOLVABLE_TYPE, null, null);
@@ -235,11 +235,11 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 					Map<String, Object> dataMap = result.toSpecification();
 					return encode(session, id, MessageType.NEXT, dataMap);
 				})
-				.concatWith(Mono.defer(() -> Mono.just(encode(session, id, MessageType.COMPLETE, null))))
+				.concatWith(Mono.fromCallable(() -> encode(session, id, MessageType.COMPLETE, null)))
 				.onErrorResume(ex -> {
 					if (ex instanceof SubscriptionExistsException) {
-						return GraphQLStatus.close(session,
-								new CloseStatus(4409, "Subscriber for " + id + " already exists"));
+						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
+						return GraphQLStatus.close(session, status);
 					}
 					ErrorType errorType = ErrorType.DataFetchingException;
 					String message = ex.getMessage();
