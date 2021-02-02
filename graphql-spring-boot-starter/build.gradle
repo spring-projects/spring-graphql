@@ -36,6 +36,7 @@ dependencies {
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'javax.servlet:javax.servlet-api'
+	compileOnly 'javax.websocket:javax.websocket-api'
 
 	compileOnly 'io.micrometer:micrometer-core'
 	compileOnly 'org.springframework.boot:spring-boot-actuator-autoconfigure'

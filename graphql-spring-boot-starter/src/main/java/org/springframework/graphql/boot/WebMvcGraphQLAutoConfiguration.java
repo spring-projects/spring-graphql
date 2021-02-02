@@ -18,6 +18,8 @@ package org.springframework.graphql.boot;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.websocket.server.ServerContainer;
+
 import graphql.GraphQL;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -39,6 +41,7 @@ import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
+import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler;
 
@@ -59,22 +62,6 @@ public class WebMvcGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnMissingBean
-	public GraphQLWebSocketHandler graphQLWebSocketHandler(
-			GraphQL.Builder graphQLBuilder, GraphQLProperties properties, HttpMessageConverters converters) {
-
-		HttpMessageConverter<?> converter = converters.getConverters().stream()
-				.filter(candidate -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
-				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("No JSON converter"));
-
-		return new GraphQLWebSocketHandler(
-				graphQLBuilder.build(), Collections.emptyList(),
-				converter, properties.getConnectionInitTimeoutDuration()
-		);
-	}
-
-	@Bean
 	public RouterFunction<ServerResponse> graphQLQueryEndpoint(
 			ResourceLoader resourceLoader, GraphQLHttpHandler handler, GraphQLProperties properties) {
 
@@ -87,16 +74,38 @@ public class WebMvcGraphQLAutoConfiguration {
 				.build();
 	}
 
-	@Bean
-	public HandlerMapping graphQLWebSocketEndpoint(GraphQLWebSocketHandler handler, GraphQLProperties properties) {
-		WebSocketHttpRequestHandler httpRequestHandler =
-				new WebSocketHttpRequestHandler(handler, new DefaultHandshakeHandler());
 
-		String path = properties.getWebSocketPath();
-		SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-		mapping.setUrlMap(Collections.singletonMap(path, httpRequestHandler));
-		mapping.setOrder(-1); // Ahead of annotated controllers
-		return mapping;
+	@ConditionalOnClass({ServerContainer.class, WebSocketHandler.class})
+	static class WebSocketConfiguration {
+
+		@Bean
+		@ConditionalOnMissingBean
+		public GraphQLWebSocketHandler graphQLWebSocketHandler(
+				GraphQL.Builder graphQLBuilder, GraphQLProperties properties, HttpMessageConverters converters) {
+
+			HttpMessageConverter<?> converter = converters.getConverters().stream()
+					.filter(candidate -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
+					.findFirst()
+					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
+
+			return new GraphQLWebSocketHandler(
+					graphQLBuilder.build(), Collections.emptyList(),
+					converter, properties.getConnectionInitTimeoutDuration()
+			);
+		}
+
+		@Bean
+		public HandlerMapping graphQLWebSocketEndpoint(GraphQLWebSocketHandler handler, GraphQLProperties properties) {
+			WebSocketHttpRequestHandler httpRequestHandler =
+					new WebSocketHttpRequestHandler(handler, new DefaultHandshakeHandler());
+
+			String path = properties.getWebSocketPath();
+			SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
+			mapping.setUrlMap(Collections.singletonMap(path, httpRequestHandler));
+			mapping.setOrder(-1); // Ahead of annotated controllers
+			return mapping;
+		}
+
 	}
 
 }
