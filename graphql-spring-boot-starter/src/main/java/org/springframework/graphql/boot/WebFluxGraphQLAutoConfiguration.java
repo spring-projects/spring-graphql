@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 package org.springframework.graphql.boot;
 
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 import graphql.GraphQL;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -28,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.WebInterceptor;
 import org.springframework.graphql.webflux.GraphQLHttpHandler;
 import org.springframework.graphql.webflux.GraphQLWebSocketHandler;
 import org.springframework.http.MediaType;
@@ -50,17 +53,18 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new GraphQLHttpHandler(graphQLBuilder.build(), Collections.emptyList());
+	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder, ObjectProvider<WebInterceptor> interceptors) {
+		return new GraphQLHttpHandler(graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()));
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
 	public GraphQLWebSocketHandler graphQLWebSocketHandler(
-			GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer) {
+			GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer,
+			ObjectProvider<WebInterceptor> interceptors) {
 
 		return new GraphQLWebSocketHandler(
-				graphQLBuilder.build(), Collections.emptyList(),
+				graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
 				configurer, properties.getConnectionInitTimeoutDuration()
 		);
 	}

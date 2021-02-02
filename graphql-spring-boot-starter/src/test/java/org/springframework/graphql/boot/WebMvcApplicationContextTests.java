@@ -1,7 +1,24 @@
+/*
+ * Copyright 2020-2021 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.springframework.graphql.boot;
 
 
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
@@ -11,6 +28,8 @@ import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguratio
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebOutput;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -60,11 +79,28 @@ class WebMvcApplicationContextTests {
 		testWith(mockMvc -> mockMvc.perform(post("/graphql").content(":)")).andExpect(status().isBadRequest()));
 	}
 
+	@Test
+	void interceptedQuery() {
+		testWith(mockMvc -> {
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount" +
+					"    author" +
+					"  }" +
+					"}";
+			MvcResult asyncResult = mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}")).andReturn();
+			mockMvc.perform(asyncDispatch(asyncResult))
+					.andExpect(status().isOk())
+					.andExpect(header().string("X-Custom-Header", "42"));
+		});
+	}
 
 	private void testWith(MockMvcConsumer mockMvcConsumer) {
 		new WebApplicationContextRunner()
 				.withConfiguration(AUTO_CONFIGURATIONS)
-				.withUserConfiguration(DataFetchersConfiguration.class)
+				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
 				.withPropertyValues(
 						"spring.main.web-application-type=servlet",
 						"spring.graphql.schema-location:classpath:books/schema.graphqls")
@@ -91,6 +127,20 @@ class WebMvcApplicationContextTests {
 		public RuntimeWiringCustomizer bookDataFetcher() {
 			return (builder) -> builder.type(newTypeWiring("Query")
 					.dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
+		}
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class CustomWebInterceptor {
+
+		@Bean
+		public WebInterceptor customWebInterceptor() {
+			return new WebInterceptor() {
+				@Override
+				public Mono<WebOutput> postHandle(WebOutput webOutput) {
+					return Mono.just(webOutput.transform(output -> output.header("X-Custom-Header", "42")));
+				}
+			};
 		}
 	}
 

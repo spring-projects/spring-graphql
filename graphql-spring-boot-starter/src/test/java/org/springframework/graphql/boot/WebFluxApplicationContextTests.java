@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration;
@@ -30,6 +31,8 @@ import org.springframework.boot.test.context.runner.ReactiveWebApplicationContex
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebOutput;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -75,6 +78,26 @@ class WebFluxApplicationContextTests {
 		testWithWebClient(client -> client.post().uri("").bodyValue(":)").exchange().expectStatus().isBadRequest());
 	}
 
+	@Test
+	void interceptedQuery() {
+		testWithWebClient(client -> {
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount" +
+					"    author" +
+					"  }" +
+					"}";
+
+			client.post().uri("")
+					.bodyValue("{  \"query\": \"" + query + "\"}")
+					.exchange()
+					.expectStatus().isOk()
+					.expectHeader().valueEquals("X-Custom-Header", "42");
+		});
+	}
+
 	private void testWithWebClient(Consumer<WebTestClient> consumer) {
 		testWithApplicationContext(context -> {
 			WebTestClient client = WebTestClient.bindToApplicationContext(context)
@@ -92,7 +115,7 @@ class WebFluxApplicationContextTests {
 	private void testWithApplicationContext(ContextConsumer<ApplicationContext> consumer) {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AUTO_CONFIGURATIONS)
-				.withUserConfiguration(DataFetchersConfiguration.class)
+				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
 				.withPropertyValues(
 						"spring.main.web-application-type=reactive",
 						"spring.graphql.schema-location:classpath:books/schema.graphqls")
@@ -108,6 +131,20 @@ class WebFluxApplicationContextTests {
 			return (runtimeWiring) ->
 					runtimeWiring.type(newTypeWiring("Query")
 							.dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
+		}
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class CustomWebInterceptor {
+
+		@Bean
+		public WebInterceptor customWebInterceptor() {
+			return new WebInterceptor() {
+				@Override
+				public Mono<WebOutput> postHandle(WebOutput webOutput) {
+					return Mono.just(webOutput.transform(output -> output.header("X-Custom-Header", "42")));
+				}
+			};
 		}
 	}
 

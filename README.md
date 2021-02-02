@@ -1,6 +1,6 @@
 # Spring GraphQL
 
-Experimental project to create [GraphQL](https://graphql.org/) support for Spring applications.
+Experimental project for [GraphQL](https://graphql.org/) support in Spring applications with [GraphQL Java](https://github.com/graphql-java/graphql-java).
 
 [![Build status](https://ci.spring.io/api/v1/teams/spring-graphql/pipelines/spring-graphql/jobs/build/badge)](https://ci.spring.io/teams/spring-graphql/pipelines/spring-graphql)
 
@@ -27,7 +27,7 @@ dependencies {
 
 repositories {
     mavenCentral()
-    // don't forget to add spring milestone and snapshot repositories
+    // don't forget to add spring milestone or snapshot repositories
     maven { url 'https://repo.spring.io/milestone' }
     maven { url 'https://repo.spring.io/snapshot' }
 }
@@ -55,6 +55,7 @@ repositories {
     <!-- ... -->
 </dependencies>
 
+<!-- Don't forget to add spring milestone or snapshot repositories -->
 <repositories>
     <repository>
         <id>spring-milestones</id>
@@ -85,7 +86,7 @@ type Person {
 }
 ```
 
-And then you should configure the data fetching using a `RuntimeWiringCustomizer` and custom components like
+Then you should configure the data fetching process using a `RuntimeWiringCustomizer` and custom components like
 Spring Data repositories, `WebClient` instances for Web APIs, a `@Service` bean, etc. 
 
 ```java
@@ -126,6 +127,12 @@ management.metrics.graphql.autotime.enabled=true
 ````
 
 You can contribute `RuntimeWiringCustomizer` beans to the context in order to configure the runtime wiring of your GraphQL application.
+
+### Extension points
+
+You can contribute [`WebInterceptor` beans](https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql-web/src/main/java/org/springframework/graphql/WebInterceptor.java)
+to the application context, so as to customize the `ExecutionInput` or the `ExecutionResult` of the query.
+A custom `WebInterceptor` can, for example, change the HTTP request/response headers.  
 
 ### Metrics
 

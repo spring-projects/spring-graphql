@@ -17,11 +17,13 @@ package org.springframework.graphql.boot;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.websocket.server.ServerContainer;
 
 import graphql.GraphQL;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -32,6 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.WebInterceptor;
 import org.springframework.graphql.webmvc.GraphQLHttpHandler;
 import org.springframework.graphql.webmvc.GraphQLWebSocketHandler;
 import org.springframework.http.MediaType;
@@ -57,8 +60,9 @@ public class WebMvcGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder) {
-		return new GraphQLHttpHandler(graphQLBuilder.build(), Collections.emptyList());
+	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder,
+			ObjectProvider<WebInterceptor> interceptors) {
+		return new GraphQLHttpHandler(graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()));
 	}
 
 	@Bean
@@ -81,7 +85,8 @@ public class WebMvcGraphQLAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public GraphQLWebSocketHandler graphQLWebSocketHandler(
-				GraphQL.Builder graphQLBuilder, GraphQLProperties properties, HttpMessageConverters converters) {
+				GraphQL.Builder graphQLBuilder, GraphQLProperties properties, HttpMessageConverters converters,
+				ObjectProvider<WebInterceptor> interceptors) {
 
 			HttpMessageConverter<?> converter = converters.getConverters().stream()
 					.filter(candidate -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
@@ -89,7 +94,7 @@ public class WebMvcGraphQLAutoConfiguration {
 					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
 
 			return new GraphQLWebSocketHandler(
-					graphQLBuilder.build(), Collections.emptyList(),
+					graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
 					converter, properties.getConnectionInitTimeoutDuration()
 			);
 		}
