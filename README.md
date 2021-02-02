@@ -128,6 +128,23 @@ management.metrics.graphql.autotime.enabled=true
 
 You can contribute `RuntimeWiringCustomizer` beans to the context in order to configure the runtime wiring of your GraphQL application.
 
+### WebSocket support
+
+This project also supports WebSocket as a transport for GraphQL requests - you can use it to build [`Subscription` queries](http://spec.graphql.org/draft/#sec-Subscription).
+This use case is powered by Reactor `Flux`, check out the `samples/webflux-websocket` sample application for more.
+
+To enable this support, you need to configure the `spring.graphql.websocket.path` property in your application
+and have the required dependencies on classpath. In the case of a Servlet application, adding the `spring-boot-starter-websocket` should be enough. 
+
+WebSocket support comes with dedicated properties:
+
+````properties
+# Path of the GraphQL WebSocket subscription endpoint.
+spring.graphql.websocket.path=/graphql/websocket
+# Time within which the initial {@code CONNECTION_INIT} type message must be received.
+spring.graphql.websocket.connection-init-timeout=60s
+````
+
 ### Extension points
 
 You can contribute [`WebInterceptor` beans](https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql-web/src/main/java/org/springframework/graphql/WebInterceptor.java)

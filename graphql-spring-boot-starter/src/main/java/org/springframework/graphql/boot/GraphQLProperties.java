@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,47 +32,54 @@ public class GraphQLProperties {
 	 */
 	private String path = "/graphql";
 
-	/**
-	 * Path of the GraphQL WebSocket subscription endpoint.
-	 */
-	private String webSocketPath = path + "/websocket";
-
-	/**
-	 * For the GraphQL over WebSocket endpoint, this is time within which the
-	 * initial {@code CONNECTION_INIT} type message must be received.
-	 */
-	private Duration connectionInitTimeoutDuration = Duration.ofSeconds(60);
-
+	private WebSocket websocket = new WebSocket();
 
 	public String getPath() {
-		return path;
+		return this.path;
 	}
 
 	public void setPath(String path) {
 		this.path = path;
 	}
 
-	public String getWebSocketPath() {
-		return webSocketPath;
-	}
-
-	public void setWebSocketPath(String webSocketPath) {
-		this.webSocketPath = webSocketPath;
-	}
-
 	public String getSchemaLocation() {
-		return schemaLocation;
+		return this.schemaLocation;
 	}
 
 	public void setSchemaLocation(String schemaLocation) {
 		this.schemaLocation = schemaLocation;
 	}
 
-	public Duration getConnectionInitTimeoutDuration() {
-		return this.connectionInitTimeoutDuration;
+	public WebSocket getWebsocket() {
+		return this.websocket;
 	}
 
-	public void setConnectionInitTimeoutDuration(Duration connectionInitTimeoutDuration) {
-		this.connectionInitTimeoutDuration = connectionInitTimeoutDuration;
+	static class WebSocket {
+
+		/**
+		 * Path of the GraphQL WebSocket subscription endpoint.
+		 */
+		private String path;
+
+		/**
+		 * Time within which the initial {@code CONNECTION_INIT} type message must be received.
+		 */
+		private Duration connectionInitTimeout = Duration.ofSeconds(60);
+
+		public String getPath() {
+			return this.path;
+		}
+
+		public void setPath(String path) {
+			this.path = path;
+		}
+
+		public Duration getConnectionInitTimeout() {
+			return this.connectionInitTimeout;
+		}
+
+		public void setConnectionInitTimeout(Duration connectionInitTimeout) {
+			this.connectionInitTimeout = connectionInitTimeout;
+		}
 	}
 }

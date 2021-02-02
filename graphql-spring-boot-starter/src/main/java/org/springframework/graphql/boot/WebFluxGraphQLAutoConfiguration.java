@@ -25,6 +25,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,18 +59,6 @@ public class WebFluxGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnMissingBean
-	public GraphQLWebSocketHandler graphQLWebSocketHandler(
-			GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer,
-			ObjectProvider<WebInterceptor> interceptors) {
-
-		return new GraphQLWebSocketHandler(
-				graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
-				configurer, properties.getConnectionInitTimeoutDuration()
-		);
-	}
-
-	@Bean
 	public RouterFunction<ServerResponse> graphQLEndpoint(
 			GraphQLHttpHandler handler, GraphQLProperties properties, ResourceLoader resourceLoader) {
 
@@ -82,15 +71,33 @@ public class WebFluxGraphQLAutoConfiguration {
 				.build();
 	}
 
-	@Bean
-	public HandlerMapping graphQLWebSocketEndpoint(
-			GraphQLWebSocketHandler handler, GraphQLProperties properties) {
+	@ConditionalOnProperty(prefix = "spring.graphql.websocket", name = "path")
+	static class WebSocketConfiguration {
 
-		String path = properties.getWebSocketPath();
-		SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-		mapping.setUrlMap(Collections.singletonMap(path, handler));
-		mapping.setOrder(-1); // Ahead of annotated controllers
-		return mapping;
+		@Bean
+		@ConditionalOnMissingBean
+		public GraphQLWebSocketHandler graphQLWebSocketHandler(
+				GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer,
+				ObjectProvider<WebInterceptor> interceptors) {
+
+			return new GraphQLWebSocketHandler(
+					graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
+					configurer, properties.getWebsocket().getConnectionInitTimeout()
+			);
+		}
+
+		@Bean
+		public HandlerMapping graphQLWebSocketEndpoint(
+				GraphQLWebSocketHandler handler, GraphQLProperties properties) {
+
+			String path = properties.getWebsocket().getPath();
+			SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
+			mapping.setUrlMap(Collections.singletonMap(path, handler));
+			mapping.setOrder(-1); // Ahead of annotated controllers
+			return mapping;
+		}
+
 	}
+
 
 }

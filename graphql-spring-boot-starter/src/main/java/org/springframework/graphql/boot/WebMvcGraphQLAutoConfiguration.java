@@ -28,6 +28,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
@@ -80,6 +81,7 @@ public class WebMvcGraphQLAutoConfiguration {
 
 
 	@ConditionalOnClass({ServerContainer.class, WebSocketHandler.class})
+	@ConditionalOnProperty(prefix = "spring.graphql.websocket", name = "path")
 	static class WebSocketConfiguration {
 
 		@Bean
@@ -95,7 +97,7 @@ public class WebMvcGraphQLAutoConfiguration {
 
 			return new GraphQLWebSocketHandler(
 					graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
-					converter, properties.getConnectionInitTimeoutDuration()
+					converter, properties.getWebsocket().getConnectionInitTimeout()
 			);
 		}
 
@@ -104,7 +106,7 @@ public class WebMvcGraphQLAutoConfiguration {
 			WebSocketHttpRequestHandler httpRequestHandler =
 					new WebSocketHttpRequestHandler(handler, new DefaultHandshakeHandler());
 
-			String path = properties.getWebSocketPath();
+			String path = properties.getWebsocket().getPath();
 			SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
 			mapping.setUrlMap(Collections.singletonMap(path, httpRequestHandler));
 			mapping.setOrder(-1); // Ahead of annotated controllers
