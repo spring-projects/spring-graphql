@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
+import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -41,6 +42,7 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
+import org.springframework.web.server.ServerWebExchange;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
@@ -90,14 +92,21 @@ public class WebFluxGraphQLAutoConfiguration {
 		public HandlerMapping graphQLWebSocketEndpoint(
 				GraphQLWebSocketHandler handler, GraphQLProperties properties) {
 
-			String path = properties.getWebsocket().getPath();
-			SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-			mapping.setUrlMap(Collections.singletonMap(path, handler));
-			mapping.setOrder(-1); // Ahead of annotated controllers
-			return mapping;
+			WebSocketHandlerMapping handlerMapping = new WebSocketHandlerMapping();
+			handlerMapping.setUrlMap(Collections.singletonMap(properties.getWebsocket().getPath(), handler));
+			handlerMapping.setOrder(-2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
+			return handlerMapping;
 		}
-
 	}
 
+
+	private static class WebSocketHandlerMapping extends SimpleUrlHandlerMapping {
+
+		@Override
+		public Mono<Object> getHandlerInternal(ServerWebExchange exchange) {
+			return ("WebSocket".equalsIgnoreCase(exchange.getRequest().getHeaders().getUpgrade()) ?
+					super.getHandlerInternal(exchange) : Mono.empty());
+		}
+	}
 
 }

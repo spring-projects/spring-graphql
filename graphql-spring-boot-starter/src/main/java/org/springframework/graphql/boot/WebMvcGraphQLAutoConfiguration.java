@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.websocket.server.ServerContainer;
 
 import graphql.GraphQL;
@@ -38,6 +39,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.WebInterceptor;
 import org.springframework.graphql.webmvc.GraphQLHttpHandler;
 import org.springframework.graphql.webmvc.GraphQLWebSocketHandler;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.servlet.HandlerMapping;
@@ -103,16 +105,24 @@ public class WebMvcGraphQLAutoConfiguration {
 
 		@Bean
 		public HandlerMapping graphQLWebSocketEndpoint(GraphQLWebSocketHandler handler, GraphQLProperties properties) {
-			WebSocketHttpRequestHandler httpRequestHandler =
-					new WebSocketHttpRequestHandler(handler, new DefaultHandshakeHandler());
-
-			String path = properties.getWebsocket().getPath();
-			SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-			mapping.setUrlMap(Collections.singletonMap(path, httpRequestHandler));
-			mapping.setOrder(-1); // Ahead of annotated controllers
-			return mapping;
+			WebSocketHandlerMapping handlerMapping = new WebSocketHandlerMapping();
+			handlerMapping.setUrlMap(Collections.singletonMap(
+					properties.getWebsocket().getPath(),
+					new WebSocketHttpRequestHandler(handler, new DefaultHandshakeHandler())));
+			handlerMapping.setOrder(2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
+			return handlerMapping;
 		}
 
+	}
+
+
+	private static class WebSocketHandlerMapping extends SimpleUrlHandlerMapping {
+
+		@Override
+		protected Object getHandlerInternal(HttpServletRequest request) throws Exception {
+			return ("WebSocket".equalsIgnoreCase(request.getHeader(HttpHeaders.UPGRADE)) ?
+					super.getHandlerInternal(request) : null);
+		}
 	}
 
 }
