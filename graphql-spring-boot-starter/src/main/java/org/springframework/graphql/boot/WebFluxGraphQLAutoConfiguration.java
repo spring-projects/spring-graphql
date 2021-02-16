@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
@@ -54,6 +56,9 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 @AutoConfigureAfter(GraphQLAutoConfiguration.class)
 public class WebFluxGraphQLAutoConfiguration {
 
+	private static final Log logger = LogFactory.getLog(WebFluxGraphQLAutoConfiguration.class);
+
+
 	@Bean
 	@ConditionalOnMissingBean
 	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder, ObjectProvider<WebInterceptor> interceptors) {
@@ -66,6 +71,10 @@ public class WebFluxGraphQLAutoConfiguration {
 
 		String path = properties.getPath();
 		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
+
+		if (logger.isInfoEnabled()) {
+			logger.info("GraphQL endpoint HTTP POST " + path);
+		}
 
 		return RouterFunctions.route()
 				.GET(path, req -> ServerResponse.ok().bodyValue(resource))
@@ -92,8 +101,12 @@ public class WebFluxGraphQLAutoConfiguration {
 		public HandlerMapping graphQLWebSocketEndpoint(
 				GraphQLWebSocketHandler handler, GraphQLProperties properties) {
 
+			String path = properties.getWebsocket().getPath();
+			if (logger.isInfoEnabled()) {
+				logger.info("GraphQL endpoint WebSocket " + path);
+			}
 			WebSocketHandlerMapping handlerMapping = new WebSocketHandlerMapping();
-			handlerMapping.setUrlMap(Collections.singletonMap(properties.getWebsocket().getPath(), handler));
+			handlerMapping.setUrlMap(Collections.singletonMap(path, handler));
 			handlerMapping.setOrder(-2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
 			return handlerMapping;
 		}
