@@ -16,7 +16,7 @@ public class SampleWiring implements RuntimeWiringCustomizer {
 		builder.type("Query", wiringBuilder -> wiringBuilder.dataFetcher("hello",
 				env -> "Hello world!"));
 		builder.type("Subscription", wiringBuilder -> wiringBuilder.dataFetcher("greetings",
-				env -> Flux.just("Hi", "Bonjour", "Hola", "Cio", "Zdravo")
+				env -> Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo")
 						.delayElements(Duration.ofMillis(500))));
 	}
 
