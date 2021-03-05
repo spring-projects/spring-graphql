@@ -1,11 +1,16 @@
+if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
+    def msg = String.format("This build must be run with java 1.8 - you are running %s - gradle finds the JDK via JAVA_HOME=%s",
+            JavaVersion.current(), System.getenv("JAVA_HOME"))
+    throw new GradleException(msg)
+}
 
 subprojects {
-	group = 'org.springframework.experimental'
-	version = "0.1.0-SNAPSHOT"
+    group = 'org.springframework.experimental'
+    version = "0.1.0-SNAPSHOT"
 
-	repositories {
-		mavenCentral()
-		maven { url 'https://repo.spring.io/milestone' }
-		maven { url 'https://repo.spring.io/snapshot' }
-	}
+    repositories {
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
+        maven { url 'https://repo.spring.io/snapshot' }
+    }
 }
