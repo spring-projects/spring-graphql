@@ -58,13 +58,16 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(WebFluxGraphQLAutoConfiguration.class);
 
+	@Bean
+	public GraphQL graphQL(GraphQL.Builder graphQLBuilder) {
+		return graphQLBuilder.build();
+	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder, ObjectProvider<WebInterceptor> interceptors) {
-		return new GraphQLHttpHandler(graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()));
+	public GraphQLHttpHandler graphQLHandler(GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
+		return new GraphQLHttpHandler(graphQL, interceptors.orderedStream().collect(Collectors.toList()));
 	}
-
 	@Bean
 	public RouterFunction<ServerResponse> graphQLEndpoint(
 			GraphQLHttpHandler handler, GraphQLProperties properties, ResourceLoader resourceLoader) {
@@ -88,11 +91,11 @@ public class WebFluxGraphQLAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public GraphQLWebSocketHandler graphQLWebSocketHandler(
-				GraphQL.Builder graphQLBuilder, GraphQLProperties properties, ServerCodecConfigurer configurer,
+				GraphQL graphql, GraphQLProperties properties, ServerCodecConfigurer configurer,
 				ObjectProvider<WebInterceptor> interceptors) {
 
 			return new GraphQLWebSocketHandler(
-					graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
+					graphql, interceptors.orderedStream().collect(Collectors.toList()),
 					configurer, properties.getWebsocket().getConnectionInitTimeout()
 			);
 		}

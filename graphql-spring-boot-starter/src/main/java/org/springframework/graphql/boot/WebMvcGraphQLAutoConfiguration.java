@@ -65,12 +65,16 @@ public class WebMvcGraphQLAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(WebMvcGraphQLAutoConfiguration.class);
 
+	@Bean
+	public GraphQL graphQL(GraphQL.Builder graphQLBuilder) {
+		return graphQLBuilder.build();
+	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQL.Builder graphQLBuilder,
+	public GraphQLHttpHandler graphQLHandler(GraphQL graphQL,
 			ObjectProvider<WebInterceptor> interceptors) {
-		return new GraphQLHttpHandler(graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()));
+		return new GraphQLHttpHandler(graphQL, interceptors.orderedStream().collect(Collectors.toList()));
 	}
 
 	@Bean
@@ -98,7 +102,7 @@ public class WebMvcGraphQLAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public GraphQLWebSocketHandler graphQLWebSocketHandler(
-				GraphQL.Builder graphQLBuilder, GraphQLProperties properties, HttpMessageConverters converters,
+				GraphQL graphQL, GraphQLProperties properties, HttpMessageConverters converters,
 				ObjectProvider<WebInterceptor> interceptors) {
 
 			HttpMessageConverter<?> converter = converters.getConverters().stream()
@@ -107,7 +111,7 @@ public class WebMvcGraphQLAutoConfiguration {
 					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
 
 			return new GraphQLWebSocketHandler(
-					graphQLBuilder.build(), interceptors.orderedStream().collect(Collectors.toList()),
+					graphQL, interceptors.orderedStream().collect(Collectors.toList()),
 					converter, properties.getWebsocket().getConnectionInitTimeout()
 			);
 		}
