@@ -19,4 +19,5 @@ include 'spring-graphql',
 	'spring-graphql-test',
 	'graphql-spring-boot-starter',
 	'samples:webmvc-http',
-	'samples:webflux-websocket'
+	'samples:webflux-websocket',
+	'samples:employee-service'

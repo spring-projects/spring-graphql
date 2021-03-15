@@ -1,0 +1,22 @@
+type Query {
+    employees: [Employee]
+}
+type Mutation {
+    # restricted
+    updateSalary(input: UpdateSalaryInput!): UpdateSalaryPayload
+}
+type Employee {
+    id: ID!
+    name: String
+    # restricted
+    salary: String
+}
+
+input UpdateSalaryInput {
+    employeeId: ID!
+    salary: String!
+}
+type UpdateSalaryPayload {
+    success: Boolean!
+    employee: Employee
+}
