@@ -59,21 +59,15 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(GraphQL.class)
-@ConditionalOnBean(GraphQL.Builder.class)
+@ConditionalOnBean(GraphQL.class)
 @AutoConfigureAfter(GraphQLAutoConfiguration.class)
 public class WebMvcGraphQLAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(WebMvcGraphQLAutoConfiguration.class);
 
 	@Bean
-	public GraphQL graphQL(GraphQL.Builder graphQLBuilder) {
-		return graphQLBuilder.build();
-	}
-
-	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQL graphQL,
-			ObjectProvider<WebInterceptor> interceptors) {
+	public GraphQLHttpHandler graphQLHandler(GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
 		return new GraphQLHttpHandler(graphQL, interceptors.orderedStream().collect(Collectors.toList()));
 	}
 

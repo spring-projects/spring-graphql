@@ -52,16 +52,11 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnClass(GraphQL.class)
-@ConditionalOnBean(GraphQL.Builder.class)
+@ConditionalOnBean(GraphQL.class)
 @AutoConfigureAfter(GraphQLAutoConfiguration.class)
 public class WebFluxGraphQLAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(WebFluxGraphQLAutoConfiguration.class);
-
-	@Bean
-	public GraphQL graphQL(GraphQL.Builder graphQLBuilder) {
-		return graphQLBuilder.build();
-	}
 
 	@Bean
 	@ConditionalOnMissingBean
