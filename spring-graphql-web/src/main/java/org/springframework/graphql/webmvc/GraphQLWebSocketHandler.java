@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import graphql.ErrorType;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -42,8 +41,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebInterceptorExecutionChain;
+import org.springframework.graphql.GraphQLRequestHandler;
 import org.springframework.graphql.WebOutput;
 import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.HttpHeaders;
@@ -73,7 +71,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
 
 
-	private final WebInterceptorExecutionChain executionChain;
+	private final GraphQLRequestHandler requestHandler;
 
 	private final Duration initTimeoutDuration;
 
@@ -84,18 +82,18 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	/**
 	 * Create a new instance.
-	 * @param graphQL the GraphQL instance to use for query execution
-	 * @param interceptors 0 or more interceptors to customize input and output
+	 * @param requestHandler the handler to use for GraphQL query handling
 	 * @param converter  for JSON encoding and decoding
-	 * @param initTimeoutDuration the time within which the {@code CONNECTION_INIT}
+	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT}
 	 * type message must be received.
 	 */
-	public GraphQLWebSocketHandler(GraphQL graphQL, List<WebInterceptor> interceptors,
-			HttpMessageConverter<?> converter, Duration initTimeoutDuration) {
+	public GraphQLWebSocketHandler(
+			GraphQLRequestHandler requestHandler, HttpMessageConverter<?> converter,
+			Duration connectionInitTimeout) {
 
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
-		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
-		this.initTimeoutDuration = initTimeoutDuration;
+		this.requestHandler = requestHandler;
+		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
 	}
 
@@ -156,7 +154,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + input);
 				}
-				this.executionChain.execute(input)
+				this.requestHandler.handle(input)
 						.flatMapMany(output -> handleWebOutput(session, input.requestId(), output))
 						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 						.subscribe(new SendMessageSubscriber(id, session, sessionState));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,9 +40,9 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link WebInterceptorExecutionChain}.
+ * Unit tests for {@link DefaultGraphQLRequestHandler}.
  */
-public class WebInterceptorExecutionChainTests {
+public class DefaultGraphQLRequestHandlerTests {
 
 	@Test
 	void testInterceptorInvocation() throws Exception {
@@ -64,8 +64,10 @@ public class WebInterceptorExecutionChainTests {
 		Map body = mapper.reader().readValue("{\"query\": \"" + query + "\"}", Map.class);
 		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body);
 
-		WebOutput webOutput = new WebInterceptorExecutionChain(createGraphQL(), interceptors)
-				.execute(webInput).block();
+		DefaultGraphQLRequestHandler requestHandler = new DefaultGraphQLRequestHandler(createGraphQL());
+		requestHandler.setInterceptors(interceptors);
+
+		WebOutput webOutput = requestHandler.handle(webInput).block();
 
 		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
 		assertThat(webOutput.isDataPresent()).isTrue();

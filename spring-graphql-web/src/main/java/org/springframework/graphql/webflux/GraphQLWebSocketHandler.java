@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.ErrorType;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,8 +39,7 @@ import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebInterceptorExecutionChain;
+import org.springframework.graphql.GraphQLRequestHandler;
 import org.springframework.graphql.WebOutput;
 import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.MediaType;
@@ -52,7 +50,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.MimeTypeUtils;
-import org.springframework.util.ObjectUtils;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -75,7 +72,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
 
 
-	private final WebInterceptorExecutionChain executionChain;
+	private final GraphQLRequestHandler requestHandler;
 
 	private final Decoder<?> decoder;
 
@@ -86,19 +83,19 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	/**
 	 * Create a new instance.
-	 * @param graphQL the GraphQL instance to use for query execution
-	 * @param interceptors 0 or more interceptors to customize input and output
+	 * @param requestHandler the handler to use for GraphQL query handling
 	 * @param configurer codec configurer for JSON encoding and decoding
-	 * @param initTimeoutDuration the time within which the {@code CONNECTION_INIT}
+	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT}
 	 * type message must be received.
 	 */
-	public GraphQLWebSocketHandler(GraphQL graphQL, List<WebInterceptor> interceptors,
-			ServerCodecConfigurer configurer, Duration initTimeoutDuration) {
+	public GraphQLWebSocketHandler(GraphQLRequestHandler requestHandler,
+			ServerCodecConfigurer configurer, Duration connectionInitTimeout) {
 
-		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
+		Assert.notNull(requestHandler, "GraphQLRequestHandler is required");
+		this.requestHandler = requestHandler;
 		this.decoder = initDecoder(configurer);
 		this.encoder = initEncoder(configurer);
-		this.initTimeoutDuration = initTimeoutDuration;
+		this.initTimeoutDuration = connectionInitTimeout;
 	}
 
 	private static Decoder<?> initDecoder(ServerCodecConfigurer configurer) {
@@ -167,7 +164,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}
-							return this.executionChain.execute(input)
+							return this.requestHandler.handle(input)
 									.flatMapMany(output -> handleWebOutput(session, id, subscriptions, output))
 									.doOnTerminate(() -> subscriptions.remove(id));
 						case COMPLETE:

@@ -41,8 +41,9 @@ import reactor.test.StepVerifier;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.GraphQLDataFetchers;
 import org.springframework.graphql.ConsumeOneAndNeverCompleteInterceptor;
+import org.springframework.graphql.DefaultGraphQLRequestHandler;
+import org.springframework.graphql.GraphQLDataFetchers;
 import org.springframework.graphql.WebInterceptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ServerCodecConfigurer;
@@ -278,8 +279,13 @@ public class GraphQLWebSocketHandlerTests {
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) throws Exception {
 
 		GraphQL graphQL = initGraphQL();
-		return new GraphQLWebSocketHandler(graphQL,
-				(interceptors != null ? interceptors : Collections.emptyList()),
+
+		DefaultGraphQLRequestHandler requestHandler = new DefaultGraphQLRequestHandler(graphQL);
+		if (interceptors != null) {
+			requestHandler.setInterceptors(interceptors);
+		}
+
+		return new GraphQLWebSocketHandler(requestHandler,
 				ServerCodecConfigurer.create(),
 				(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));
 	}

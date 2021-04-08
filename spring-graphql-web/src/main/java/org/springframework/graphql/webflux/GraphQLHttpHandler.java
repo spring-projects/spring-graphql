@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,16 @@
  */
 package org.springframework.graphql.webflux;
 
-import java.util.List;
 import java.util.Map;
 
-import graphql.GraphQL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQLRequestHandler;
 import org.springframework.graphql.WebInput;
-import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebInterceptorExecutionChain;
+import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
@@ -41,16 +39,16 @@ public class GraphQLHttpHandler {
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
-	private final WebInterceptorExecutionChain executionChain;
+	private final GraphQLRequestHandler requestHandler;
 
 
 	/**
 	 * Create a new instance.
-	 * @param graphQL the GraphQL instance to use for query execution
-	 * @param interceptors 0 or more interceptors to customize input and output
+	 * @param requestHandler the handler to use for GraphQL query handling
 	 */
-	public GraphQLHttpHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
-		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
+	public GraphQLHttpHandler(GraphQLRequestHandler requestHandler) {
+		Assert.notNull(requestHandler, "GraphQLRequestHandler is required");
+		this.requestHandler = requestHandler;
 	}
 
 
@@ -64,7 +62,7 @@ public class GraphQLHttpHandler {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + webInput);
 					}
-					return this.executionChain.execute(webInput);
+					return this.requestHandler.handle(webInput);
 				})
 				.flatMap(output -> {
 					Map<String, Object> spec = output.toSpecification();

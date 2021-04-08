@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,18 @@
 package org.springframework.graphql.webmvc;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import graphql.GraphQL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQLRequestHandler;
 import org.springframework.graphql.WebInput;
-import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebInterceptorExecutionChain;
+import org.springframework.util.Assert;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -47,18 +45,16 @@ public class GraphQLHttpHandler {
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
-	private final WebInterceptorExecutionChain executionChain;
+	private final GraphQLRequestHandler requestHandler;
 
 
 	/**
-	 * Create a handler that executes queries through the given {@link GraphQL}
-	 * and and invokes the given interceptors to customize input to and the
-	 * result from the execution of the query.
-	 * @param graphQL the GraphQL instance to use for query execution
-	 * @param interceptors 0 or more interceptors to customize input and output
+	 * Create a new instance.
+	 * @param requestHandler the handler to use for GraphQL query handling
 	 */
-	public GraphQLHttpHandler(GraphQL graphQL, List<WebInterceptor> interceptors) {
-		this.executionChain = new WebInterceptorExecutionChain(graphQL, interceptors);
+	public GraphQLHttpHandler(GraphQLRequestHandler requestHandler) {
+		Assert.notNull(requestHandler, "GraphQLRequestHandler is required");
+		this.requestHandler = requestHandler;
 	}
 
 
@@ -73,7 +69,7 @@ public class GraphQLHttpHandler {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + webInput);
 		}
-		Mono<ServerResponse> responseMono = this.executionChain.execute(webInput)
+		Mono<ServerResponse> responseMono = this.requestHandler.handle(webInput)
 				.map(output -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
