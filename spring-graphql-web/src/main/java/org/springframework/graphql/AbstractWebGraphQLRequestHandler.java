@@ -24,10 +24,12 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Base class for {@link GraphQLRequestHandler} implementations that support a
- * {@link WebInterceptor} chain.
+ * Base class for {@link GraphQLRequestHandler} implementations that supports
+ * customizations of request handling through a {@link WebInterceptor} chain.
+ * Sub-classes must implement {@link #handleInternal(ExecutionInput)} for the
+ * actual handling of the GraphQL query.
  */
-public abstract class AbstractInterceptingGraphQLRequestHandler implements GraphQLRequestHandler {
+public abstract class AbstractWebGraphQLRequestHandler implements GraphQLRequestHandler<WebInput, WebOutput> {
 
 	private final List<WebInterceptor> interceptors = new ArrayList<>();
 

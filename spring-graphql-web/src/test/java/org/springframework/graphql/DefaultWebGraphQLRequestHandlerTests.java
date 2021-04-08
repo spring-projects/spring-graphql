@@ -40,9 +40,9 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link DefaultGraphQLRequestHandler}.
+ * Unit tests for {@link DefaultWebGraphQLRequestHandler}.
  */
-public class DefaultGraphQLRequestHandlerTests {
+public class DefaultWebGraphQLRequestHandlerTests {
 
 	@Test
 	void testInterceptorInvocation() throws Exception {
@@ -64,7 +64,7 @@ public class DefaultGraphQLRequestHandlerTests {
 		Map body = mapper.reader().readValue("{\"query\": \"" + query + "\"}", Map.class);
 		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body);
 
-		DefaultGraphQLRequestHandler requestHandler = new DefaultGraphQLRequestHandler(createGraphQL());
+		DefaultWebGraphQLRequestHandler requestHandler = new DefaultWebGraphQLRequestHandler(createGraphQL());
 		requestHandler.setInterceptors(interceptors);
 
 		WebOutput webOutput = requestHandler.handle(webInput).block();

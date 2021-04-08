@@ -15,19 +15,20 @@
  */
 package org.springframework.graphql;
 
+import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
  * Contract to handle a GraphQL request.
  */
 @FunctionalInterface
-public interface GraphQLRequestHandler {
+public interface GraphQLRequestHandler<I extends RequestInput, O extends ExecutionResult> {
 
 	/**
 	 * Handle the request and return the result of execution.
-	 * @param input the GraphQL query
+	 * @param input the GraphQL query container
 	 * @return the execution result
 	 */
-	Mono<WebOutput> handle(WebInput input);
+	Mono<O> handle(I input);
 
 }

@@ -22,15 +22,15 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 
 /**
- * Default implementation that invokes {@link GraphQL} and supports a
- * {@link WebInterceptor} chain for pre- and post-handling.
+ * Extension of {@link AbstractWebGraphQLRequestHandler} that simply delegates
+ * to {@link GraphQL}to execute the request.
  */
-public class DefaultGraphQLRequestHandler extends AbstractInterceptingGraphQLRequestHandler {
+public class DefaultWebGraphQLRequestHandler extends AbstractWebGraphQLRequestHandler {
 
 	private final GraphQL graphQL;
 
 
-	public DefaultGraphQLRequestHandler(GraphQL graphQL) {
+	public DefaultWebGraphQLRequestHandler(GraphQL graphQL) {
 		this.graphQL = graphQL;
 	}
 

@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQLRequestHandler;
 import org.springframework.graphql.WebInput;
+import org.springframework.graphql.WebOutput;
 import org.springframework.util.Assert;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
@@ -45,14 +46,14 @@ public class GraphQLHttpHandler {
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
-	private final GraphQLRequestHandler requestHandler;
+	private final GraphQLRequestHandler<WebInput, WebOutput> requestHandler;
 
 
 	/**
 	 * Create a new instance.
 	 * @param requestHandler the handler to use for GraphQL query handling
 	 */
-	public GraphQLHttpHandler(GraphQLRequestHandler requestHandler) {
+	public GraphQLHttpHandler(GraphQLRequestHandler<WebInput, WebOutput> requestHandler) {
 		Assert.notNull(requestHandler, "GraphQLRequestHandler is required");
 		this.requestHandler = requestHandler;
 	}

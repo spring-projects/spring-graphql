@@ -38,9 +38,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.graphql.DefaultGraphQLRequestHandler;
+import org.springframework.graphql.DefaultWebGraphQLRequestHandler;
 import org.springframework.graphql.GraphQLRequestHandler;
+import org.springframework.graphql.WebInput;
 import org.springframework.graphql.WebInterceptor;
+import org.springframework.graphql.WebOutput;
 import org.springframework.graphql.webmvc.GraphQLHttpHandler;
 import org.springframework.graphql.webmvc.GraphQLWebSocketHandler;
 import org.springframework.http.HttpHeaders;
@@ -70,15 +72,17 @@ public class WebMvcGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLRequestHandler graphQLRequestHandler(GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
-		DefaultGraphQLRequestHandler handler = new DefaultGraphQLRequestHandler(graphQL);
+	public GraphQLRequestHandler<WebInput, WebOutput> graphQLRequestHandler(
+			GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
+
+		DefaultWebGraphQLRequestHandler handler = new DefaultWebGraphQLRequestHandler(graphQL);
 		handler.setInterceptors(interceptors.orderedStream().collect(Collectors.toList()));
 		return handler;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQLRequestHandler requestHandler) {
+	public GraphQLHttpHandler graphQLHandler(GraphQLRequestHandler<WebInput, WebOutput> requestHandler) {
 		return new GraphQLHttpHandler(requestHandler);
 	}
 
@@ -107,7 +111,8 @@ public class WebMvcGraphQLAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public GraphQLWebSocketHandler graphQLWebSocketHandler(
-				GraphQLRequestHandler handler, GraphQLProperties properties, HttpMessageConverters converters) {
+				GraphQLRequestHandler<WebInput, WebOutput> handler, GraphQLProperties properties,
+				HttpMessageConverters converters) {
 
 			HttpMessageConverter<?> converter = converters.getConverters().stream()
 					.filter(candidate -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))

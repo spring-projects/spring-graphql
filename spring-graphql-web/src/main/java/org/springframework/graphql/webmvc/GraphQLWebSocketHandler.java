@@ -42,6 +42,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import org.springframework.graphql.GraphQLRequestHandler;
+import org.springframework.graphql.WebInput;
 import org.springframework.graphql.WebOutput;
 import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.HttpHeaders;
@@ -71,7 +72,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
 
 
-	private final GraphQLRequestHandler requestHandler;
+	private final GraphQLRequestHandler<WebInput, WebOutput> requestHandler;
 
 	private final Duration initTimeoutDuration;
 
@@ -88,7 +89,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * type message must be received.
 	 */
 	public GraphQLWebSocketHandler(
-			GraphQLRequestHandler requestHandler, HttpMessageConverter<?> converter,
+			GraphQLRequestHandler<WebInput, WebOutput> requestHandler, HttpMessageConverter<?> converter,
 			Duration connectionInitTimeout) {
 
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
