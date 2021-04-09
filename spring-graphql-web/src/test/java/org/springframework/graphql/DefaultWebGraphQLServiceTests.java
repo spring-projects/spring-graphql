@@ -62,7 +62,7 @@ public class DefaultWebGraphQLServiceTests {
 
 		ObjectMapper mapper = new ObjectMapper();
 		Map body = mapper.reader().readValue("{\"query\": \"" + query + "\"}", Map.class);
-		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body);
+		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body, "1");
 
 		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(createGraphQL());
 		requestHandler.setInterceptors(interceptors);

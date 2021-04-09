@@ -58,11 +58,12 @@ public class GraphQLHttpHandler {
 	public Mono<ServerResponse> handleQuery(ServerRequest request) {
 		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
-					WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), body);
+					String id = request.exchange().getRequest().getId();
+					WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), body, id);
 					if (logger.isDebugEnabled()) {
-						logger.debug("Executing: " + webInput);
+						logger.debug("Executing: " + input);
 					}
-					return this.graphQLService.execute(webInput);
+					return this.graphQLService.execute(input);
 				})
 				.flatMap(output -> {
 					Map<String, Object> spec = output.toSpecification();

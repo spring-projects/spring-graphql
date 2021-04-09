@@ -16,6 +16,7 @@
 package org.springframework.graphql;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import graphql.ExecutionInput;
@@ -23,45 +24,42 @@ import graphql.ExecutionInput;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
-import org.springframework.web.server.ServerWebInputException;
 
 /**
  * Container for a GraphQL request.
  */
 public class RequestInput {
 
-	protected final String query;
+	private final String query;
 
 	@Nullable
-	protected final String operationName;
+	private final String operationName;
 
-	protected final Map<String, Object> variables;
+	private final Map<String, Object> variables;
 
+
+	public RequestInput(String query, @Nullable String operationName, @Nullable Map<String, Object> vars) {
+		Assert.notNull(query, "'query' is required");
+		this.query = query;
+		this.operationName = operationName;
+		this.variables = (vars != null ? vars : Collections.emptyMap());
+	}
+
+	public RequestInput(Map<String, Object> body) {
+		this(getKey("query", body), getKey("operationName", body), getKey("variables", body));
+	}
 
 	@SuppressWarnings("unchecked")
-	public RequestInput(Map<String, Object> body) {
-		Assert.notNull(body, "'body' is required'");
-		this.query = getAndValidateQuery(body);
-		this.operationName = (String) body.get("operationName");
-		this.variables = (body.get("variables") != null ?
-				(Map<String, Object>) body.get("variables") : Collections.emptyMap());
+	private static <T> T getKey(String key, Map<String, Object> body) {
+		return (T) body.get(key);
 	}
 
-	private static String getAndValidateQuery(Map<String, Object> body) {
-		String query = (String) body.get("query");
-		if (!StringUtils.hasText(query)) {
-			throw new ServerWebInputException("Query is required");
-		}
-		return query;
-	}
 
 	/**
 	 * Return the query name extracted from the request body. This is guaranteed
-	 * to be a non-empty string, or otherwise the request is rejected via
-	 * {@link ServerWebInputException} as a 400 error.
+	 * to be a non-empty string.
 	 */
-	public String query() {
+	public String getQuery() {
 		return this.query;
 	}
 
@@ -70,7 +68,7 @@ public class RequestInput {
 	 * {@code null} if not provided.
 	 */
 	@Nullable
-	public String operationName() {
+	public String getOperationName() {
 		return this.operationName;
 	}
 
@@ -78,27 +76,44 @@ public class RequestInput {
 	 * Return the query variables that can be referenced via $syntax extracted
 	 * from the request body or a {@code null} if not provided.
 	 */
-	public Map<String, Object> variables() {
+	public Map<String, Object> getVariables() {
 		return this.variables;
 	}
 
+
 	/**
-	 * Create an {@link ExecutionInput} initialized with the {@link #query()},
-	 * {@link #operationName()}, and {@link #variables()}.
+	 * Create an {@link ExecutionInput} initialized with the {@link #getQuery()},
+	 * {@link #getOperationName()}, and {@link #getVariables()}.
 	 */
 	public ExecutionInput toExecutionInput() {
 		return ExecutionInput.newExecutionInput()
-				.query(query())
-				.operationName(operationName())
-				.variables(variables())
+				.query(getQuery())
+				.operationName(getOperationName())
+				.variables(getVariables())
 				.build();
 	}
 
+	/**
+	 * Return a Map representation of the request input.
+	 */
+	public Map<String, Object> toMap() {
+		Map<String, Object> map = new LinkedHashMap<>();
+		map.put("query", getQuery());
+		if (getOperationName() != null) {
+			map.put("operationName", getOperationName());
+		}
+		if (CollectionUtils.isEmpty(getVariables())) {
+			map.put("variables", new LinkedHashMap<>(getVariables()));
+		}
+		return map;
+	}
+
+
 	@Override
 	public String toString() {
-		return "Query='" + query() + "'" +
-				(operationName() != null ? ", Operation='" + operationName() + "'" : "") +
-				(!CollectionUtils.isEmpty(variables()) ?  ", Variables=" + variables() : "");
+		return "Query='" + getQuery() + "'" +
+				(getOperationName() != null ? ", Operation='" + getOperationName() + "'" : "") +
+				(!CollectionUtils.isEmpty(getVariables()) ?  ", Variables=" + getVariables() : "");
 	}
 
 }

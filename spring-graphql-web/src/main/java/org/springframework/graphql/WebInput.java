@@ -19,7 +19,11 @@ import java.net.URI;
 import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -34,13 +38,33 @@ public class WebInput extends RequestInput {
 
 	private final HttpHeaders headers;
 
+	private final String id;
 
-	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body) {
-		super(body);
+
+	/**
+	 * Create an instance.
+	 * @param uri the url for the HTTP request, or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param body the content of the request deserialized from JSON
+	 * @param id an identifier for the GraphQL request, e.g. a subscription id
+	 * for correlating request and response messages, or it could be an id
+	 * associated with the underlying request/connection id, if available
+	 */
+	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, @Nullable String id) {
+		super(validateQuery(body));
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
+		this.id = (id != null ? id : ObjectUtils.identityToString(this));
+	}
+
+	private static Map<String, Object> validateQuery(Map<String, Object> body) {
+		String query = (String) body.get("query");
+		if (!StringUtils.hasText(query)) {
+			throw new ServerWebInputException("Query is required");
+		}
+		return body;
 	}
 
 
@@ -48,15 +72,26 @@ public class WebInput extends RequestInput {
 	 * Return the URI of the HTTP request including
 	 * {@link UriComponents#getQueryParams() query parameters}.
 	 */
-	public UriComponents uri() {
+	public UriComponents getUri() {
 		return this.uri;
 	}
 
 	/**
 	 * Return the headers of the request.
 	 */
-	public HttpHeaders headers() {
+	public HttpHeaders getHeaders() {
 		return this.headers;
+	}
+
+	/**
+	 * Return the identifier for the request, which may be a subscription id for
+	 * correlating request and response messages, or the underlying request or
+	 * connection id, when available, or otherwise it's an
+	 * {@link ObjectUtils#identityToString(Object) identity} hash based this
+	 * {@code WebInput} instance.
+	 */
+	public String getId() {
+		return this.id;
 	}
 
 }

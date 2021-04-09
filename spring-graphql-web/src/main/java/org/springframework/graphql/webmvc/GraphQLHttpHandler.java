@@ -65,11 +65,11 @@ public class GraphQLHttpHandler {
 	 * e.g. {@link HttpMediaTypeNotSupportedException}.
 	 */
 	public ServerResponse handle(ServerRequest request) throws ServletException {
-		WebInput webInput = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request));
+		WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request), null);
 		if (logger.isDebugEnabled()) {
-			logger.debug("Executing: " + webInput);
+			logger.debug("Executing: " + input);
 		}
-		Mono<ServerResponse> responseMono = this.graphQLService.execute(webInput)
+		Mono<ServerResponse> responseMono = this.graphQLService.execute(input)
 				.map(output -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");

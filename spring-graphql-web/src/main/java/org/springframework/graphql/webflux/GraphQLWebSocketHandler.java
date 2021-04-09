@@ -40,8 +40,8 @@ import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.graphql.WebGraphQLService;
+import org.springframework.graphql.WebInput;
 import org.springframework.graphql.WebOutput;
-import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -159,8 +159,8 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (id == null) {
 								return GraphQLStatus.close(session, GraphQLStatus.INVALID_MESSAGE_STATUS);
 							}
-							WebSocketMessageInput input = new WebSocketMessageInput(
-									handshakeInfo.getUri(), handshakeInfo.getHeaders(), id, getPayload(map));
+							WebInput input = new WebInput(
+									handshakeInfo.getUri(), handshakeInfo.getHeaders(), getPayload(map), id);
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}

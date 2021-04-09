@@ -42,8 +42,8 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import org.springframework.graphql.WebGraphQLService;
+import org.springframework.graphql.WebInput;
 import org.springframework.graphql.WebOutput;
-import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -120,7 +120,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		Mono.delay(this.initTimeoutDuration)
 				.then(Mono.fromRunnable(() -> {
-					if (!sessionState.isConnectionInitProcessed()) {
+					if (sessionState.isConnectionInitNotProcessed()) {
 						GraphQLStatus.closeSession(session, GraphQLStatus.INIT_TIMEOUT_STATUS);
 					}
 				}))
@@ -140,7 +140,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 		SessionState sessionState = getSessionInfo(session);
 		switch (messageType) {
 			case SUBSCRIBE:
-				if (!sessionState.isConnectionInitProcessed()) {
+				if (sessionState.isConnectionInitNotProcessed()) {
 					GraphQLStatus.closeSession(session, GraphQLStatus.UNAUTHORIZED_STATUS);
 					return;
 				}
@@ -149,13 +149,14 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 					return;
 				}
 				URI uri = session.getUri();
+				Assert.notNull(uri, "Expected handshake url");
 				HttpHeaders headers = session.getHandshakeHeaders();
-				WebSocketMessageInput input = new WebSocketMessageInput(uri, headers, id, getPayload(map));
+				WebInput input = new WebInput(uri, headers, getPayload(map), id);
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + input);
 				}
 				this.service.execute(input)
-						.flatMapMany(output -> handleWebOutput(session, input.requestId(), output))
+						.flatMapMany(output -> handleWebOutput(session, input.getId(), output))
 						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 						.subscribe(new SendMessageSubscriber(id, session, sessionState));
 				return;
@@ -172,7 +173,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 					GraphQLStatus.closeSession(session, GraphQLStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					return;
 				}
-				TextMessage outputMessage = encode(session, null, MessageType.CONNECTION_ACK, null);
+				TextMessage outputMessage = encode(null, MessageType.CONNECTION_ACK, null);
 				session.sendMessage(outputMessage);
 				return;
 			default:
@@ -227,9 +228,9 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 		return outputFlux
 				.map(result -> {
 					Map<String, Object> dataMap = result.toSpecification();
-					return encode(session, id, MessageType.NEXT, dataMap);
+					return encode(id, MessageType.NEXT, dataMap);
 				})
-				.concatWith(Mono.fromCallable(() -> encode(session, id, MessageType.COMPLETE, null)))
+				.concatWith(Mono.fromCallable(() -> encode(id, MessageType.COMPLETE, null)))
 				.onErrorResume(ex -> {
 					if (ex instanceof SubscriptionExistsException) {
 						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
@@ -243,14 +244,12 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 							.message(message)
 							.build()
 							.toSpecification();
-					return Mono.just(encode(session, id, MessageType.ERROR, errorMap));
+					return Mono.just(encode(id, MessageType.ERROR, errorMap));
 				});
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> TextMessage encode(
-			WebSocketSession session, @Nullable String id, MessageType messageType, @Nullable Object payload) {
-
+	private <T> TextMessage encode(@Nullable String id, MessageType messageType, @Nullable Object payload) {
 		Map<String, Object> payloadMap = new HashMap<>(3);
 		payloadMap.put("type", messageType.getType());
 		if (id != null) {
@@ -397,8 +396,8 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + sessionId);
 		}
 
-		public boolean isConnectionInitProcessed() {
-			return this.connectionInitProcessed;
+		public boolean isConnectionInitNotProcessed() {
+			return !this.connectionInitProcessed;
 		}
 
 		public synchronized boolean setConnectionInitProcessed() {
@@ -430,7 +429,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 
-	private class SendMessageSubscriber extends BaseSubscriber<TextMessage> {
+	private static class SendMessageSubscriber extends BaseSubscriber<TextMessage> {
 
 		private final String subscriptionId;
 

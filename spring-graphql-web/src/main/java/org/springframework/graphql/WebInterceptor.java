@@ -41,7 +41,7 @@ public interface WebInterceptor {
 	 *
 	 * <p>{@code ExecutionInput} is initially populated with the input from the
 	 * request body via {@link WebInput#toExecutionInput()} where the
-	 * {@link WebInput#query() query} is guaranteed to be a non-empty String.
+	 * {@link WebInput#getQuery() query} is guaranteed to be a non-empty String.
 	 * Interceptors are then executed in order to further customize the input
 	 * and or perform other actions or checks.
 	 *
