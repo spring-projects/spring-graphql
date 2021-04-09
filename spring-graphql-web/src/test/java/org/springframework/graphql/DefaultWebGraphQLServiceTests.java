@@ -40,9 +40,9 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link DefaultWebGraphQLRequestHandler}.
+ * Unit tests for {@link DefaultWebGraphQLService}.
  */
-public class DefaultWebGraphQLRequestHandlerTests {
+public class DefaultWebGraphQLServiceTests {
 
 	@Test
 	void testInterceptorInvocation() throws Exception {
@@ -64,10 +64,10 @@ public class DefaultWebGraphQLRequestHandlerTests {
 		Map body = mapper.reader().readValue("{\"query\": \"" + query + "\"}", Map.class);
 		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body);
 
-		DefaultWebGraphQLRequestHandler requestHandler = new DefaultWebGraphQLRequestHandler(createGraphQL());
+		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(createGraphQL());
 		requestHandler.setInterceptors(interceptors);
 
-		WebOutput webOutput = requestHandler.handle(webInput).block();
+		WebOutput webOutput = requestHandler.execute(webInput).block();
 
 		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
 		assertThat(webOutput.isDataPresent()).isTrue();

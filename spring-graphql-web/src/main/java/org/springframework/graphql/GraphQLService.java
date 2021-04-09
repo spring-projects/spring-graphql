@@ -19,16 +19,19 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Contract to handle a GraphQL request.
+ * Contract to execute a GraphQL request.
+ *
+ * @param <I> the GraphQL query container along with any additional context
+ * depending on the environment in which the request is handled
+ * @param <O> the result of query execution and additional environment output
  */
-@FunctionalInterface
-public interface GraphQLRequestHandler<I extends RequestInput, O extends ExecutionResult> {
+public interface GraphQLService<I extends RequestInput, O extends ExecutionResult> {
 
 	/**
-	 * Handle the request and return the result of execution.
+	 * Perform the request and return the result.
 	 * @param input the GraphQL query container
 	 * @return the execution result
 	 */
-	Mono<O> handle(I input);
+	Mono<O> execute(I input);
 
 }

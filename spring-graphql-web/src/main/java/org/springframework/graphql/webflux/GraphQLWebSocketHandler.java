@@ -39,8 +39,7 @@ import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.graphql.GraphQLRequestHandler;
-import org.springframework.graphql.WebInput;
+import org.springframework.graphql.WebGraphQLService;
 import org.springframework.graphql.WebOutput;
 import org.springframework.graphql.WebSocketMessageInput;
 import org.springframework.http.MediaType;
@@ -73,7 +72,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
 
 
-	private final GraphQLRequestHandler<WebInput, WebOutput> requestHandler;
+	private final WebGraphQLService graphQLService;
 
 	private final Decoder<?> decoder;
 
@@ -84,16 +83,16 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 
 	/**
 	 * Create a new instance.
-	 * @param requestHandler the handler to use for GraphQL query handling
+	 * @param service for GraphQL query execution
 	 * @param configurer codec configurer for JSON encoding and decoding
 	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT}
 	 * type message must be received.
 	 */
-	public GraphQLWebSocketHandler(GraphQLRequestHandler<WebInput, WebOutput> requestHandler,
-			ServerCodecConfigurer configurer, Duration connectionInitTimeout) {
+	public GraphQLWebSocketHandler(
+			WebGraphQLService service, ServerCodecConfigurer configurer, Duration connectionInitTimeout) {
 
-		Assert.notNull(requestHandler, "GraphQLRequestHandler is required");
-		this.requestHandler = requestHandler;
+		Assert.notNull(service, "WebGraphQLService is required");
+		this.graphQLService = service;
 		this.decoder = initDecoder(configurer);
 		this.encoder = initEncoder(configurer);
 		this.initTimeoutDuration = connectionInitTimeout;
@@ -165,7 +164,7 @@ public class GraphQLWebSocketHandler implements WebSocketHandler {
 							if (logger.isDebugEnabled()) {
 								logger.debug("Executing: " + input);
 							}
-							return this.requestHandler.handle(input)
+							return this.graphQLService.execute(input)
 									.flatMapMany(output -> handleWebOutput(session, id, subscriptions, output))
 									.doOnTerminate(() -> subscriptions.remove(id));
 						case COMPLETE:

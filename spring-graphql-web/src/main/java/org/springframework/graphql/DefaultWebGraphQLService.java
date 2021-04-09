@@ -22,21 +22,21 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 
 /**
- * Extension of {@link AbstractWebGraphQLRequestHandler} that simply delegates
- * to {@link GraphQL}to execute the request.
+ * Extension of {@link AbstractWebGraphQLService} that executes GraphQL queries
+ * through the {@link GraphQL} instance it is configured with.
  */
-public class DefaultWebGraphQLRequestHandler extends AbstractWebGraphQLRequestHandler {
+public class DefaultWebGraphQLService extends AbstractWebGraphQLService {
 
 	private final GraphQL graphQL;
 
 
-	public DefaultWebGraphQLRequestHandler(GraphQL graphQL) {
+	public DefaultWebGraphQLService(GraphQL graphQL) {
 		this.graphQL = graphQL;
 	}
 
 
 	@Override
-	protected CompletableFuture<ExecutionResult> handleInternal(ExecutionInput input) {
+	protected CompletableFuture<ExecutionResult> executeInternal(ExecutionInput input) {
 		return this.graphQL.executeAsync(input);
 	}
 

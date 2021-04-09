@@ -24,12 +24,12 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Base class for {@link GraphQLRequestHandler} implementations that supports
- * customizations of request handling through a {@link WebInterceptor} chain.
- * Sub-classes must implement {@link #handleInternal(ExecutionInput)} for the
- * actual handling of the GraphQL query.
+ * Base class for {@link WebGraphQLService} implementations, providing support
+ * for customizations of the request through a {@link WebInterceptor} chain.
+ * Sub-classes must implement {@link #executeInternal(ExecutionInput)} to
+ * actually perform the GraphQL query.
  */
-public abstract class AbstractWebGraphQLRequestHandler implements GraphQLRequestHandler<WebInput, WebOutput> {
+public abstract class AbstractWebGraphQLService implements WebGraphQLService {
 
 	private final List<WebInterceptor> interceptors = new ArrayList<>();
 
@@ -52,9 +52,9 @@ public abstract class AbstractWebGraphQLRequestHandler implements GraphQLRequest
 
 
 	@Override
-	public final Mono<WebOutput> handle(WebInput input) {
+	public final Mono<WebOutput> execute(WebInput input) {
 		return preHandle(input)
-				.flatMap(executionInput -> Mono.fromFuture(handleInternal(executionInput)))
+				.flatMap(executionInput -> Mono.fromFuture(executeInternal(executionInput)))
 				.flatMap(executionResult -> postHandle(new WebOutput(input, executionResult, null)));
 	}
 
@@ -80,6 +80,6 @@ public abstract class AbstractWebGraphQLRequestHandler implements GraphQLRequest
 	 * @param input the input to invoke {@link graphql.GraphQL} with
 	 * @return the result from handling
 	 */
-	protected abstract CompletableFuture<ExecutionResult> handleInternal(ExecutionInput input);
+	protected abstract CompletableFuture<ExecutionResult> executeInternal(ExecutionInput input);
 
 }

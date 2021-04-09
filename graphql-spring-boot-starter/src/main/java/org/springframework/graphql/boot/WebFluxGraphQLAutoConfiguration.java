@@ -34,11 +34,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.graphql.DefaultWebGraphQLRequestHandler;
-import org.springframework.graphql.GraphQLRequestHandler;
-import org.springframework.graphql.WebInput;
+import org.springframework.graphql.DefaultWebGraphQLService;
+import org.springframework.graphql.WebGraphQLService;
 import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebOutput;
 import org.springframework.graphql.webflux.GraphQLHttpHandler;
 import org.springframework.graphql.webflux.GraphQLWebSocketHandler;
 import org.springframework.http.MediaType;
@@ -65,18 +63,16 @@ public class WebFluxGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLRequestHandler<WebInput, WebOutput> graphQLRequestHandler(
-			GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
-
-		DefaultWebGraphQLRequestHandler handler = new DefaultWebGraphQLRequestHandler(graphQL);
+	public WebGraphQLService webGraphQLService(GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
+		DefaultWebGraphQLService handler = new DefaultWebGraphQLService(graphQL);
 		handler.setInterceptors(interceptors.orderedStream().collect(Collectors.toList()));
 		return handler;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(GraphQLRequestHandler<WebInput, WebOutput> requestHandler) {
-		return new GraphQLHttpHandler(requestHandler);
+	public GraphQLHttpHandler graphQLHandler(WebGraphQLService service) {
+		return new GraphQLHttpHandler(service);
 	}
 
 	@Bean
@@ -102,11 +98,10 @@ public class WebFluxGraphQLAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public GraphQLWebSocketHandler graphQLWebSocketHandler(
-				GraphQLRequestHandler<WebInput, WebOutput> handler, GraphQLProperties properties,
-				ServerCodecConfigurer configurer) {
+				WebGraphQLService service, GraphQLProperties properties, ServerCodecConfigurer configurer) {
 
 			return new GraphQLWebSocketHandler(
-					handler, configurer, properties.getWebsocket().getConnectionInitTimeout());
+					service, configurer, properties.getWebsocket().getConnectionInitTimeout());
 		}
 
 		@Bean

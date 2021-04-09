@@ -42,7 +42,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.ConsumeOneAndNeverCompleteInterceptor;
-import org.springframework.graphql.DefaultWebGraphQLRequestHandler;
+import org.springframework.graphql.DefaultWebGraphQLService;
 import org.springframework.graphql.GraphQLDataFetchers;
 import org.springframework.graphql.WebInterceptor;
 import org.springframework.http.HttpHeaders;
@@ -280,7 +280,7 @@ public class GraphQLWebSocketHandlerTests {
 
 		GraphQL graphQL = initGraphQL();
 
-		DefaultWebGraphQLRequestHandler requestHandler = new DefaultWebGraphQLRequestHandler(graphQL);
+		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(graphQL);
 		if (interceptors != null) {
 			requestHandler.setInterceptors(interceptors);
 		}
