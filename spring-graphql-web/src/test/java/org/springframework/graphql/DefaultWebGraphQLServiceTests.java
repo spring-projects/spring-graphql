@@ -71,7 +71,7 @@ public class DefaultWebGraphQLServiceTests {
 
 		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
 		assertThat(webOutput.isDataPresent()).isTrue();
-		assertThat(webOutput.getHeaders().get("MyHeader")).containsExactly("MyValue3", "MyValue2", "MyValue1");
+		assertThat(webOutput.getResponseHeaders().get("MyHeader")).containsExactly("MyValue3", "MyValue2", "MyValue1");
 	}
 
 
@@ -107,12 +107,11 @@ public class DefaultWebGraphQLServiceTests {
 		}
 
 		@Override
-		public Mono<WebOutput> postHandle(WebOutput webOutput) {
+		public Mono<WebOutput> postHandle(WebOutput output) {
 			this.output.append(":post").append(this.index);
 			return Mono.delay(Duration.ofMillis(50))
-					.map(aLong -> webOutput.transform(builder -> {
-						builder.header("myHeader", "MyValue" + this.index);
-					}));
+					.map(aLong -> output.transform(builder ->
+							builder.responseHeader("myHeader", "MyValue" + this.index)));
 		}
 	}
 

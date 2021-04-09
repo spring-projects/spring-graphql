@@ -137,8 +137,9 @@ class WebMvcApplicationContextTests {
 		public WebInterceptor customWebInterceptor() {
 			return new WebInterceptor() {
 				@Override
-				public Mono<WebOutput> postHandle(WebOutput webOutput) {
-					return Mono.just(webOutput.transform(output -> output.header("X-Custom-Header", "42")));
+				public Mono<WebOutput> postHandle(WebOutput output) {
+					return Mono.just(output.transform(builder ->
+							builder.responseHeader("X-Custom-Header", "42")));
 				}
 			};
 		}

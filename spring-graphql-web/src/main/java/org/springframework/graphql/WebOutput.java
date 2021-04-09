@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,9 @@ import org.springframework.util.Assert;
 
 
 /**
- * {@link ExecutionResult} that wraps another in order to provide a convenient
- * way to {@link #transform(Consumer) transform} it.
+ * Decorate an {@link ExecutionResult}, provide a way to
+ * {@link #transform(Consumer) transform} it, and collect input for custom
+ * HTTP response headers for GraphQL over HTTP requests.
  */
 public class WebOutput implements ExecutionResult {
 
@@ -40,18 +41,22 @@ public class WebOutput implements ExecutionResult {
 	private final ExecutionResult executionResult;
 
 	@Nullable
-	private final HttpHeaders headers;
+	private final HttpHeaders responseHeaders;
 
 
 	/**
 	 * Create an instance that wraps the given {@link ExecutionResult}.
 	 */
-	public WebOutput(WebInput input, ExecutionResult executionResult, @Nullable HttpHeaders headers) {
+	public WebOutput(WebInput input, ExecutionResult executionResult) {
+		this(input, executionResult, null);
+	}
+
+	private WebOutput(WebInput input, ExecutionResult executionResult, @Nullable HttpHeaders responseHeaders) {
 		Assert.notNull(input, "WebInput is required.");
 		Assert.notNull(executionResult, "ExecutionResult is required.");
 		this.input = input;
 		this.executionResult = executionResult;
-		this.headers = headers;
+		this.responseHeaders = responseHeaders;
 	}
 
 
@@ -88,11 +93,15 @@ public class WebOutput implements ExecutionResult {
 	}
 
 	/**
-	 * Return headers to be added to the HTTP response.
+	 * Return a read-only view of any custom headers to be added to the HTTP
+	 * response, or {@code null} until {@link #transform(Consumer)} is used to
+	 * add such headers.
+	 * @see #transform(Consumer)
+	 * @see Builder#responseHeader(String, String...)
 	 */
 	@Nullable
-	public HttpHeaders getHeaders() {
-		return this.headers;
+	public HttpHeaders getResponseHeaders() {
+		return (this.responseHeaders != null ? HttpHeaders.readOnlyHttpHeaders(this.responseHeaders) : null);
 	}
 
 	/**
@@ -106,6 +115,9 @@ public class WebOutput implements ExecutionResult {
 	}
 
 
+	/**
+	 * Builder to transform a {@link WebOutput}.
+	 */
 	public static class Builder {
 
 		private final WebInput input;
@@ -127,12 +139,13 @@ public class WebOutput implements ExecutionResult {
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();
-			this.headers = output.getHeaders();
+			this.headers = output.responseHeaders;
 		}
 
 
 		/**
-		 * Set the execution {@link ExecutionResult#getData() data}.
+		 * Set the {@link ExecutionResult#getData() data} of the GraphQL
+		 * execution result.
 		 */
 		public Builder data(@Nullable Object data) {
 			this.data = data;
@@ -140,7 +153,8 @@ public class WebOutput implements ExecutionResult {
 		}
 
 		/**
-		 * Set the execution {@link ExecutionResult#getErrors() errors}.
+		 * Set the {@link ExecutionResult#getErrors() errors} of the GraphQL
+		 * execution result.
 		 */
 		public Builder errors(@Nullable List<GraphQLError> errors) {
 			this.errors = (errors != null ? errors : Collections.emptyList());
@@ -148,14 +162,22 @@ public class WebOutput implements ExecutionResult {
 		}
 
 		/**
-		 * Set the execution {@link ExecutionResult#getExtensions() extensions}.
+		 * Set the {@link ExecutionResult#getExtensions() extensions} of the
+		 * GraphQL execution result.
 		 */
 		public Builder extensions(@Nullable Map<Object, Object> extensions) {
 			this.extensions = extensions;
 			return this;
 		}
 
-		public Builder header(String name, String... values) {
+		/**
+		 * Add a custom header to be set on the HTTP response.
+		 *
+		 * <p><strong>Note:</strong> This can be used for GraphQL over HTTP query
+		 * requests but has no impact for queries over a WebSocket session where
+		 * the initial handshake request completes before queries begin.
+		 */
+		public Builder responseHeader(String name, String... values) {
 			initHeaders();
 			for (String value : values) {
 				this.headers.add(name, value);
@@ -163,7 +185,14 @@ public class WebOutput implements ExecutionResult {
 			return this;
 		}
 
-		public Builder headers(Consumer<HttpHeaders> consumer) {
+		/**
+		 * Consume and update the headers to be set on the HTTP response.
+		 *
+		 * <p><strong>Note:</strong> This can be used for GraphQL over HTTP query
+		 * requests but has no impact for queries over a WebSocket session where
+		 * the initial handshake request completes before queries begin.
+		 */
+		public Builder responseHeaders(Consumer<HttpHeaders> consumer) {
 			initHeaders();
 			consumer.accept(this.headers);
 			return this;

@@ -55,7 +55,7 @@ public abstract class AbstractWebGraphQLService implements WebGraphQLService {
 	public final Mono<WebOutput> execute(WebInput input) {
 		return preHandle(input)
 				.flatMap(executionInput -> Mono.fromFuture(executeInternal(executionInput)))
-				.flatMap(executionResult -> postHandle(new WebOutput(input, executionResult, null)));
+				.flatMap(executionResult -> postHandle(new WebOutput(input, executionResult)));
 	}
 
 	private Mono<ExecutionInput> preHandle(WebInput input) {

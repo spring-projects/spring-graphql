@@ -21,17 +21,17 @@ import reactor.core.publisher.Mono;
 /**
  * Contract to execute a GraphQL request.
  *
- * @param <I> the GraphQL query container along with any additional context
- * depending on the environment in which the request is handled
- * @param <O> the result of query execution and additional environment output
+ * @param <IN> container for the GraphQL query along additional transport
+ * related context such as the HTTP url or headers for web.
+ * @param <OUT> the query execution result
  */
-public interface GraphQLService<I extends RequestInput, O extends ExecutionResult> {
+public interface GraphQLService<IN extends RequestInput, OUT extends ExecutionResult> {
 
 	/**
 	 * Perform the request and return the result.
 	 * @param input the GraphQL query container
 	 * @return the execution result
 	 */
-	Mono<O> execute(I input);
+	Mono<OUT> execute(IN input);
 
 }
