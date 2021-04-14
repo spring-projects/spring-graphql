@@ -1,11 +1,11 @@
 plugins {
-	id 'org.springframework.boot' version '2.4.1'
+	id 'org.springframework.boot' version '2.4.4'
 	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
 	id 'java'
 }
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
-description = "GraphQL over WebSocket sample"
+description = "GraphQL over WebSocket With Spring WebFlux Sample"
 sourceCompatibility = '1.8'
 
 dependencies {
