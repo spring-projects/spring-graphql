@@ -15,17 +15,13 @@
  */
 package io.spring.sample.graphql.project;
 
-import java.util.List;
-import java.util.function.Consumer;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.MediaType;
+import org.springframework.graphql.test.query.GraphQLTester;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.client.MockMvcWebTestClient;
@@ -33,22 +29,21 @@ import org.springframework.test.web.servlet.client.MockMvcWebTestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Example tests using {@link WebTestClient} to connect to {@link MockMvc} as
- * the "mock" server, i.e. without running an HTTP server.
+ * GraphQL requests via {@link WebTestClient} connecting to {@link MockMvc}.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-public class MockWebTestClientTests {
+public class MockMvcGraphQLTests {
 
-	private WebTestClient client;
+	private GraphQLTester graphQLTester;
+
 
 	@BeforeEach
 	public void setUp(@Autowired MockMvc mockMvc) {
-		this.client = MockMvcWebTestClient.bindTo(mockMvc)
-				.baseUrl("/graphql")
-				.defaultHeaders(headers -> headers.setContentType(MediaType.APPLICATION_JSON))
-				.build();
+		WebTestClient client = MockMvcWebTestClient.bindTo(mockMvc).baseUrl("/graphql").build();
+		this.graphQLTester = GraphQLTester.create(client);
 	}
+
 
 	@Test
 	void jsonPath() {
@@ -60,13 +55,12 @@ public class MockWebTestClientTests {
 				"  }" +
 				"}";
 
-		this.client.post().bodyValue(JsonRequest.create(query))
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody().jsonPath("$.data.project.releases[*].version")
-				.value((Consumer<List<String>>) versions -> {
-					assertThat(versions).hasSizeGreaterThan(1);
-				});
+		this.graphQLTester.query(query)
+				.execute()
+				.path("project.releases[*].version")
+				.entityList(String.class)
+				.hasSizeGreaterThan(1);
+
 	}
 
 	@Test
@@ -77,18 +71,10 @@ public class MockWebTestClientTests {
 				"  }" +
 				"}";
 
-		String expectedJson = "{" +
-				"  \"data\":{" +
-				"    \"project\":{" +
-				"      \"repositoryUrl\":\"http://github.com/spring-projects/spring-framework\"" +
-				"    }" +
-				"  }" +
-				"}";
-
-		this.client.post().bodyValue(JsonRequest.create(query))
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody().json(expectedJson);
+		this.graphQLTester.query(query)
+				.execute()
+				.path("project")
+				.matchesJson("{\"repositoryUrl\":\"http://github.com/spring-projects/spring-framework\"}");
 	}
 
 	@Test
@@ -101,14 +87,11 @@ public class MockWebTestClientTests {
 				"  }" +
 				"}";
 
-		this.client.post().bodyValue(JsonRequest.create(query))
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody(new ParameterizedTypeReference<JsonResponse<Project>>() {})
-				.consumeWith(exchangeResult -> {
-					Project project = exchangeResult.getResponseBody().getDataEntry();
-					assertThat(project.getReleases()).hasSizeGreaterThan(1);
-				});
+		this.graphQLTester.query(query)
+				.execute()
+				.path("project")
+				.entity(Project.class)
+				.satisfies(project -> assertThat(project.getReleases()).hasSizeGreaterThan(1));
 	}
 
 }
