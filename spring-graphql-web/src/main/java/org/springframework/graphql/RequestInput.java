@@ -102,7 +102,7 @@ public class RequestInput {
 		if (getOperationName() != null) {
 			map.put("operationName", getOperationName());
 		}
-		if (CollectionUtils.isEmpty(getVariables())) {
+		if (!CollectionUtils.isEmpty(getVariables())) {
 			map.put("variables", new LinkedHashMap<>(getVariables()));
 		}
 		return map;
