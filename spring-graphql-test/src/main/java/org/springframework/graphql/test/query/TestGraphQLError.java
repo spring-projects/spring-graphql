@@ -17,6 +17,7 @@ package org.springframework.graphql.test.query;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import graphql.ErrorClassification;
@@ -39,6 +40,9 @@ class TestGraphQLError implements GraphQLError {
 	private List<Object> path;
 
 	private Map<String, Object> extensions;
+
+	private boolean expected;
+
 
 
 	public void setMessage(String message) {
@@ -86,6 +90,13 @@ class TestGraphQLError implements GraphQLError {
 		return this.extensions;
 	}
 
+	/**
+	 * Whether the error is marked as filtered out as expected.
+	 */
+	public boolean isExpected() {
+		return this.expected;
+	}
+
 	@Override
 	public Map<String, Object> toSpecification() {
 		GraphqlErrorBuilder builder = GraphqlErrorBuilder.newError();
@@ -102,6 +113,13 @@ class TestGraphQLError implements GraphQLError {
 			builder.extensions(this.extensions);
 		}
 		return builder.build().toSpecification();
+	}
+
+	/**
+	 * Mark this error as expected if it matches the predicate.
+	 */
+	void filter(Predicate<GraphQLError> predicate) {
+		this.expected |= predicate.test(this);
 	}
 
 	@Override

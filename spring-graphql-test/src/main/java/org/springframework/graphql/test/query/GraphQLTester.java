@@ -129,7 +129,7 @@ public interface GraphQLTester {
 
 		/**
 		 * Execute the GraphQL request and return a spec for further inspection
-		 * of the response data and errors.
+		 * of response data and errors.
 		 *
 		 * @return options for asserting the response
 		 * @throws AssertionError if the request is performed over HTTP and the
@@ -138,16 +138,15 @@ public interface GraphQLTester {
 		ResponseSpec execute();
 
 		/**
-		 * Perform the GraphQL request and then verify the GraphQL response does
-		 * not contain any errors. To assert the errors, use {@link #execute()}
-		 * instead.
+		 * Execute the GraphQL request and verify the response contains no errors.
 		 */
 		void executeAndVerify();
 
 		/**
-		 * Perform the GraphQL subscription request.
+		 * Execute the GraphQL request as a subscription and return a spec with
+		 * options to transform the result stream.
 		 *
-		 * @return options for assertions on subscription events
+		 * @return spec with options to transform the subscription result stream
 		 * @throws AssertionError if the request is performed over HTTP and the
 		 * response status is not 200 (OK).
 		 */
@@ -193,34 +192,29 @@ public interface GraphQLTester {
 		 * @return spec for asserting the content under the given path
 		 * @throws AssertionError if the GraphQL response contains
 		 * <a href="https://spec.graphql.org/June2018/#sec-Errors">errors</a>
-		 * that have not be checked via {@link ResponseSpec#errorsSatisfy(Consumer)}
+		 * that have not be checked via {@link ResponseSpec#errors()}
 		 */
 		PathSpec path(String path);
 	}
 
 
 	/**
-	 * Declare the first options available to insecpt a GraphQL response.
+	 * Declare options to check the data and errors of a GraphQL response.
 	 */
 	interface ResponseSpec extends TraverseSpec {
 
 		/**
-		 * Inspect <a href="https://spec.graphql.org/June2018/#sec-Errors">errors</a>
-		 * in the response, if any.
-		 * <p>If this method is not used first, any attempts to check the data
-		 * will result in an {@link AssertionError}. Therefore for GraphQL
-		 * responses that are expected to have both data and errors, be sure
-		 * to use this method first.
-		 * @param errorConsumer the consumer to inspect errors with
-		 * @return the same spec for further assertions on the data
+		 * Return a spec to filter out or inspect errors. This must be used
+		 * before traversing to a {@link #path(String)} if some errors are
+		 * expected and need to be filtered out.
 		 */
-		ResponseSpec errorsSatisfy(Consumer<List<GraphQLError>> errorConsumer);
+		ErrorSpec errors();
 
 	}
 
 
 	/**
-	 * Assertions available for the data at a given path.
+	 * Declare options available to assert data at a given path.
 	 */
 	interface PathSpec extends TraverseSpec {
 
@@ -384,7 +378,8 @@ public interface GraphQLTester {
 
 
 	/**
-	 * Extension of {@link EntitySpec} for a List of entities.
+	 * Extension of {@link EntitySpec} with options available to assert data
+	 * converted to a List of entities.
 	 * @param <E> the type of elements in the list
 	 */
 	interface ListEntitySpec<E> extends EntitySpec<List<E>, ListEntitySpec<E>> {
@@ -438,21 +433,44 @@ public interface GraphQLTester {
 
 
 	/**
-	 * Declare options available to assert a GraphQL Subscription response.
+	 * Declare options to filter out expected errors or inspect all errors and
+	 * verify there are no unexpected errors.
 	 */
-	interface SubscriptionSpec {
+	interface ErrorSpec {
+
+		/**
+		 * Add a filter for expected errors. All errors that match the predicate
+		 * are treated as expected and ignored on {@link #verify()} or when
+		 * {@link TraverseSpec#path(String) traversing} to a data path.
+		 * @param errorPredicate the predicate to add
+		 * @return the same spec to add more filters before {@link #verify()}
+		 */
+		ErrorSpec filter(Predicate<GraphQLError> errorPredicate);
+
+		/**
+		 * Verify there are either no errors or that there no unexpected errors
+		 * that have not been {@link #filter(Predicate) filtered out}.
+		 * @return a spec to switch to a data path
+		 */
+		TraverseSpec verify();
 
 		/**
 		 * Inspect <a href="https://spec.graphql.org/June2018/#sec-Errors">errors</a>
-		 * in the response, if any.
-		 * <p>If this method is not used first, any attempts to check event data
-		 * will result in an {@link AssertionError}. Therefore for a GraphQL
-		 * subscription that are expected to have both errors and events, be sure
-		 * to use this method first.
-		 * @param errorConsumer the consumer to inspect errors with
-		 * @return the same spec for further assertions on the data
+		 * in the response, if any. Use of this method effectively suppresses
+		 * all errors and allows {@link TraverseSpec#path(String) traversing} to a
+		 * data path.
+		 * @param errorsConsumer to inspect errors with
+		 * @return a spec to switch to a data path
 		 */
-		SubscriptionSpec errorsSatisfy(Consumer<List<GraphQLError>> errorConsumer);
+		TraverseSpec satisfy(Consumer<List<GraphQLError>> errorsConsumer);
+
+	}
+
+
+	/**
+	 * Declare options available to assert a GraphQL Subscription response.
+	 */
+	interface SubscriptionSpec {
 
 		/**
 		 * Return a {@link Flux} of entities converted from some part of the data

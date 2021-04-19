@@ -215,34 +215,13 @@ public class GraphQLTesterTests {
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void errorsAssertedIfNotChecked(GraphQLTesterSetup setup) throws Exception {
+	void errorsCheckedOnExecuteAndVerify(GraphQLTesterSetup setup) throws Exception {
 
 		String query = "{me {name, friends}}";
-		setup.response(GraphqlErrorBuilder.newError()
-				.message("Invalid query")
-				.location(new SourceLocation(1, 2))
-				.build());
-
-		GraphQLTester.ResponseSpec spec = setup.graphQLTester().query(query).execute();
-
-		assertThatThrownBy(() -> spec.path("me")).hasMessageContaining("Response contains GraphQL errors.");
-
-		setup.verifyRequest(input -> assertThat(input.getQuery()).contains(query));
-		setup.shutdown();
-	}
-
-	@ParameterizedTest
-	@MethodSource("argumentSource")
-	void errorsAssertedOnExecuteAndVerify(GraphQLTesterSetup setup) throws Exception {
-
-		String query = "{me {name, friends}}";
-		setup.response(GraphqlErrorBuilder.newError()
-				.message("Invalid query")
-				.location(new SourceLocation(1, 2))
-				.build());
+		setup.response(GraphqlErrorBuilder.newError().message("Invalid query").build());
 
 		assertThatThrownBy(() -> setup.graphQLTester().query(query).executeAndVerify())
-				.hasMessageContaining("Response contains GraphQL errors.");
+				.hasMessageContaining("Response has 1 unexpected error(s).");
 
 		setup.verifyRequest(input -> assertThat(input.getQuery()).contains(query));
 		setup.shutdown();
@@ -250,7 +229,60 @@ public class GraphQLTesterTests {
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void errorsAllowedIfChecked(GraphQLTesterSetup setup) throws Exception {
+	void errorsCheckedOnTraverse(GraphQLTesterSetup setup) throws Exception {
+
+		String query = "{me {name, friends}}";
+		setup.response(GraphqlErrorBuilder.newError().message("Invalid query").build());
+
+		assertThatThrownBy(() -> setup.graphQLTester().query(query).execute().path("me"))
+				.hasMessageContaining("Response has 1 unexpected error(s).");
+
+		setup.verifyRequest(input -> assertThat(input.getQuery()).contains(query));
+		setup.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void errorsPartiallyFiltered(GraphQLTesterSetup setup) throws Exception {
+
+		String query = "{me {name, friends}}";
+		setup.response(
+				GraphqlErrorBuilder.newError().message("some error").build(),
+				GraphqlErrorBuilder.newError().message("some other error").build());
+
+		assertThatThrownBy(() ->
+				setup.graphQLTester().query(query).execute()
+						.errors()
+						.filter(error -> error.getMessage().equals("some error"))
+						.verify())
+				.hasMessageContaining("Response has 1 unexpected error(s) of 2 total.");
+
+		setup.verifyRequest(input -> assertThat(input.getQuery()).contains(query));
+		setup.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void errorsFiltered(GraphQLTesterSetup setup) throws Exception {
+
+		String query = "{me {name, friends}}";
+		setup.response(
+				GraphqlErrorBuilder.newError().message("some error").build(),
+				GraphqlErrorBuilder.newError().message("some other error").build());
+
+		setup.graphQLTester().query(query).execute()
+				.errors()
+				.filter(error -> error.getMessage().startsWith("some "))
+				.verify()
+				.path("me").pathDoesNotExist();
+
+		setup.verifyRequest(input -> assertThat(input.getQuery()).contains(query));
+		setup.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void errorsConsumed(GraphQLTesterSetup setup) throws Exception {
 
 		String query = "{me {name, friends}}";
 		setup.response(GraphqlErrorBuilder.newError()
@@ -259,7 +291,7 @@ public class GraphQLTesterTests {
 				.build());
 
 		setup.graphQLTester().query(query).execute()
-				.errorsSatisfy(errors -> {
+				.errors().satisfy(errors -> {
 					assertThat(errors).hasSize(1);
 					assertThat(errors.get(0).getMessage()).isEqualTo("Invalid query");
 					assertThat(errors.get(0).getLocations()).hasSize(1);
