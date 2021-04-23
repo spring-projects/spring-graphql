@@ -23,6 +23,7 @@ import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.SchemaTransformer;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -36,6 +37,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.core.ReactorDataFetcherAdapter;
 
 @Configuration
 @ConditionalOnClass(GraphQL.class)
@@ -71,8 +73,11 @@ public class GraphQLAutoConfiguration {
 		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring,
 				ResourceLoader resourceLoader,
 				ObjectProvider<Instrumentation> instrumentationsProvider) {
+
 			Resource schemaResource = resourceLoader.getResource(properties.getSchemaLocation());
 			GraphQLSchema schema = buildSchema(schemaResource, runtimeWiring);
+			schema = SchemaTransformer.transformSchema(schema, ReactorDataFetcherAdapter.TYPE_VISITOR);
+
 			GraphQL.Builder builder = GraphQL.newGraphQL(schema);
 			List<Instrumentation> instrumentations = instrumentationsProvider.orderedStream().collect(Collectors.toList());
 			if (!instrumentations.isEmpty()) {

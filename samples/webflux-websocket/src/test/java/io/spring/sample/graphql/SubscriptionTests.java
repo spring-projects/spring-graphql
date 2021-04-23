@@ -30,14 +30,15 @@ import org.springframework.graphql.test.query.GraphQLTester;
  * GraphQL subscription tests directly via {@link GraphQL}.
  */
 @SpringBootTest
-public class SubscriptionGraphQLTests {
+public class SubscriptionTests {
 
 	private GraphQLTester graphQLTester;
 
 
 	@BeforeEach
 	public void setUp(@Autowired WebGraphQLService service) {
-		this.graphQLTester = GraphQLTester.create(service);
+		this.graphQLTester = GraphQLTester.create(webInput ->
+				service.execute(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 
@@ -50,7 +51,11 @@ public class SubscriptionGraphQLTests {
 				.toFlux("greetings", String.class);
 
 		StepVerifier.create(result)
-				.expectNext("Hi", "Bonjour", "Hola", "Ciao", "Zdravo")
+				.expectNext("Hi James")
+				.expectNext("Bonjour James")
+				.expectNext("Hola James")
+				.expectNext("Ciao James")
+				.expectNext("Zdravo James")
 				.verifyComplete();
 	}
 
@@ -64,8 +69,8 @@ public class SubscriptionGraphQLTests {
 
 		StepVerifier.create(result)
 				.consumeNextWith(spec -> spec.path("greetings").valueExists())
-				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Bonjour\""))
-				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Hola\""))
+				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Bonjour James\""))
+				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Hola James\""))
 				.expectNextCount(2)
 				.verifyComplete();
 	}

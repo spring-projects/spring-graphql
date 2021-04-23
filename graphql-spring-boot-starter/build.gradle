@@ -1,7 +1,7 @@
 import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 plugins {
-	id 'org.springframework.boot' version '2.4.4' apply false
+	id 'org.springframework.boot' version '2.4.5' apply false
 	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
 	id 'java-library'
 	id 'maven'
@@ -24,6 +24,7 @@ dependencyManagement {
 }
 
 dependencies {
+	api project(':spring-graphql-core')
 	api project(':spring-graphql-web')
 	api 'com.graphql-java:graphql-java:16.2'
 	api 'io.projectreactor:reactor-core'

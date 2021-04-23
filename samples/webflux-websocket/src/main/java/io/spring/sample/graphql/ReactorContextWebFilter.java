@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.spring.sample.graphql;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
+import reactor.core.publisher.Mono;
 
-@SpringBootApplication
-public class SampleApplication {
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 
-	public static void main(String[] args) {
-		SpringApplication.run(SampleApplication.class, args);
-	}
+/**
+ * WebFilter that inserts a key-value pair into the Reactor context which is
+ * transferred to and accessible to Reactor-based data fetchers.
+ */
+public class ReactorContextWebFilter implements WebFilter {
 
-	@Bean
-	ReactorContextWebFilter reactorContextWebFilter() {
-		return new ReactorContextWebFilter();
+	@Override
+	public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+		return chain.filter(exchange).contextWrite(context -> context.put("name", "007"));
 	}
 
 }

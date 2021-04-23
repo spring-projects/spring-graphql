@@ -1,5 +1,7 @@
 type Query {
-    hello: String
+    greeting: String
+    greetingMono : String
+    greetingsFlux : [String]
 }
 type Subscription {
     greetings: String

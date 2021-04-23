@@ -23,6 +23,8 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.core.ReactorDataFetcherAdapter;
+
 /**
  * Base class for {@link WebGraphQLService} implementations, providing support
  * for customizations of the request through a {@link WebInterceptor} chain.
@@ -59,7 +61,11 @@ public abstract class AbstractWebGraphQLService implements WebGraphQLService {
 	}
 
 	private Mono<ExecutionInput> preHandle(WebInput input) {
-		Mono<ExecutionInput> resultMono = Mono.just(input.toExecutionInput());
+		Mono<ExecutionInput> resultMono = Mono.deferContextual(contextView -> {
+			ExecutionInput executionInput = input.toExecutionInput();
+			ReactorDataFetcherAdapter.addReactorContext(executionInput, contextView);
+			return Mono.just(executionInput);
+		});
 		for (WebInterceptor interceptor : this.interceptors) {
 			resultMono = resultMono.flatMap(executionInput -> interceptor.preHandle(executionInput, input));
 		}
