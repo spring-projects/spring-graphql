@@ -24,7 +24,6 @@ dependencyManagement {
 }
 
 dependencies {
-	api project(':spring-graphql-core')
 	api 'com.graphql-java:graphql-java:16.2'
 	api 'io.projectreactor:reactor-core'
 	api 'org.springframework:spring-context'
@@ -37,13 +36,11 @@ dependencies {
 
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
 	testImplementation 'org.assertj:assertj-core:3.19.0'
-	testImplementation 'com.jayway.jsonpath:json-path:2.5.0'
-	testImplementation 'org.skyscreamer:jsonassert:1.5.0'
+	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
 	testImplementation 'org.springframework:spring-websocket'
 	testImplementation 'org.springframework:spring-test'
-	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 }
