@@ -147,7 +147,7 @@ spring.graphql.websocket.connection-init-timeout=60s
 
 ### Extension points
 
-You can contribute [`WebInterceptor` beans](https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql-web/src/main/java/org/springframework/graphql/WebInterceptor.java)
+You can contribute [`WebInterceptor` beans](https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql/src/main/java/org/springframework/graphql/WebInterceptor.java)
 to the application context, so as to customize the `ExecutionInput` or the `ExecutionResult` of the query.
 A custom `WebInterceptor` can, for example, change the HTTP request/response headers.  
 

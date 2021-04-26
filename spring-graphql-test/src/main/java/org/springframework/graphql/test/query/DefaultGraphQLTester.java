@@ -43,8 +43,8 @@ import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.WebGraphQLService;
-import org.springframework.graphql.WebInput;
+import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebInput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;

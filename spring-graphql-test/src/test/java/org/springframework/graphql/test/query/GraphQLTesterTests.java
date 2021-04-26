@@ -40,9 +40,9 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.WebGraphQLService;
-import org.springframework.graphql.WebInput;
-import org.springframework.graphql.WebOutput;
+import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebInput;
+import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;

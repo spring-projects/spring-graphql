@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLService;
 import org.springframework.graphql.test.query.GraphQLTester;
 
 /**

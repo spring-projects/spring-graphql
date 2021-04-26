@@ -24,7 +24,7 @@ import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLService;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
 

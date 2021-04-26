@@ -31,8 +31,8 @@ import org.springframework.boot.test.context.runner.ReactiveWebApplicationContex
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.WebInterceptor;
-import org.springframework.graphql.WebOutput;
+import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
