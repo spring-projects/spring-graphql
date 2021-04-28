@@ -2,7 +2,7 @@ github-repo: "https://github.com/spring-projects-experimental/spring-graphql.git
 github-repo-name: "spring-projects-experimental/spring-graphql"
 docker-hub-organization: "springci"
 artifactory-server: "https://repo.spring.io"
-branch: "master"
+branch: "main"
 build-name: "spring-graphql"
 pipeline-name: "spring-graphql"
 concourse-url: "https://ci.spring.io"
