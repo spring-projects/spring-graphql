@@ -6,14 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.reactive.context.ReactiveWebApplicationContext;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunctions;
 
 import java.util.Collections;
-
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 
 @SpringBootTest()
 class EmployeeServiceApplicationTest {
@@ -78,7 +75,6 @@ class EmployeeServiceApplicationTest {
     }
 
     @Test
-    @WithMockUser("hasRole('ADMIN')")
     void canQuerySalaryAsAdmin() {
         String query = "{" +
                 "  employees{ " +
@@ -89,6 +85,7 @@ class EmployeeServiceApplicationTest {
 
 
         client.post().uri("")
+                .headers(h -> h.setBasicAuth("admin", "admin"))
                 .bodyValue("{  \"query\": \"" + query + "\"}")
                 .exchange()
                 .expectStatus().isOk()
