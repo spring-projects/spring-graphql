@@ -24,7 +24,6 @@ resources:
     username: ((github-username))
     password: ((github-password))
     branch: ((branch))
-    ignore_paths: ["ci/*"]
 - name: ci-images-git-repo
   type: git
   icon: github
