@@ -16,7 +16,6 @@
 package org.springframework.graphql.web.webmvc;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
@@ -27,15 +26,12 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import graphql.GraphQL;
-import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaGenerator;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.support.GraphQLSource;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.DefaultWebGraphQLService;
 import org.springframework.graphql.web.GraphQLDataFetchers;
@@ -45,7 +41,6 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.lang.Nullable;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
@@ -262,9 +257,7 @@ public class GraphQLWebSocketHandlerTests {
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) {
 
 		try {
-			GraphQL graphQL = initGraphQL();
-
-			DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(graphQL);
+			DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(initGraphQLSource());
 			if (interceptors != null) {
 				requestHandler.setInterceptors(interceptors);
 			}
@@ -277,17 +270,16 @@ public class GraphQLWebSocketHandlerTests {
 		}
 	}
 
-	private static GraphQL initGraphQL() throws Exception {
-		File schemaFile = ResourceUtils.getFile("classpath:books/schema.graphqls");
-		TypeDefinitionRegistry typeDefinitionRegistry = new SchemaParser().parse(schemaFile);
-
+	private static GraphQLSource initGraphQLSource() throws Exception {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
 		builder.type(newTypeWiring("Query").dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
 		builder.type(newTypeWiring("Subscription").dataFetcher("bookSearch", GraphQLDataFetchers.getBooksOnSale()));
 		RuntimeWiring runtimeWiring = builder.build();
 
-		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(typeDefinitionRegistry, runtimeWiring);
-		return GraphQL.newGraphQL(schema).build();
+		return GraphQLSource.builder()
+				.schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.runtimeWiring(runtimeWiring)
+				.build();
 	}
 
 	private void assertMessageType(WebSocketMessage<?> message, String messageType) {

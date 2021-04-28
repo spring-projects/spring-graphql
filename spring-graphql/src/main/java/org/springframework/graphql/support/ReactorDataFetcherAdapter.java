@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.data;
+package org.springframework.graphql.support;
 
 import java.lang.reflect.Method;
 
@@ -34,6 +34,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -87,6 +88,7 @@ public class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 		return value;
 	}
 
+	@Nullable
 	private ContextView getReactorContext(DataFetchingEnvironment environment) {
 		GraphQLContext graphQLContext = environment.getContext();
 		return graphQLContext.get(REACTOR_CONTEXT_KEY);

@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.support.GraphQLSource;
 import org.springframework.graphql.web.DefaultWebGraphQLService;
 import org.springframework.graphql.web.WebGraphQLService;
 import org.springframework.graphql.web.WebInterceptor;
@@ -61,7 +62,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(GraphQL.class)
-@ConditionalOnBean(GraphQL.class)
+@ConditionalOnBean(GraphQLSource.class)
 @AutoConfigureAfter(GraphQLAutoConfiguration.class)
 public class WebMvcGraphQLAutoConfiguration {
 
@@ -70,8 +71,8 @@ public class WebMvcGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebGraphQLService webGraphQLService(GraphQL graphQL, ObjectProvider<WebInterceptor> interceptors) {
-		DefaultWebGraphQLService handler = new DefaultWebGraphQLService(graphQL);
+	public WebGraphQLService webGraphQLService(GraphQLSource graphQLSource, ObjectProvider<WebInterceptor> interceptors) {
+		DefaultWebGraphQLService handler = new DefaultWebGraphQLService(graphQLSource);
 		handler.setInterceptors(interceptors.orderedStream().collect(Collectors.toList()));
 		return handler;
 	}

@@ -15,7 +15,6 @@
  */
 package org.springframework.graphql.web;
 
-import java.io.File;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
@@ -24,17 +23,13 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.ExecutionInput;
-import graphql.GraphQL;
-import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaGenerator;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.support.GraphQLSource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.util.ResourceUtils;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,7 +59,7 @@ public class DefaultWebGraphQLServiceTests {
 		Map body = mapper.reader().readValue("{\"query\": \"" + query + "\"}", Map.class);
 		WebInput webInput = new WebInput(URI.create("/graphql"), new HttpHeaders(), body, "1");
 
-		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(createGraphQL());
+		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(createGraphQLSource());
 		requestHandler.setInterceptors(interceptors);
 
 		WebOutput webOutput = requestHandler.execute(webInput).block();
@@ -75,17 +70,15 @@ public class DefaultWebGraphQLServiceTests {
 	}
 
 
-	private static GraphQL createGraphQL() throws Exception {
+	private static GraphQLSource createGraphQLSource() {
 		RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring()
 				.type(newTypeWiring("Query").dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()))
 				.build();
 
-		File file = ResourceUtils.getFile("classpath:books/schema.graphqls");
-		TypeDefinitionRegistry registry = new SchemaParser().parse(file);
-		SchemaGenerator generator = new SchemaGenerator();
-		GraphQLSchema schema = generator.makeExecutableSchema(registry, runtimeWiring);
-
-		return GraphQL.newGraphQL(schema).build();
+		return GraphQLSource.builder()
+				.schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.runtimeWiring(runtimeWiring)
+				.build();
 	}
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,15 @@
 
 package org.springframework.graphql.boot;
 
-import graphql.GraphQL;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLSchema;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.support.GraphQLSource;
 
-import static graphql.Scalars.GraphQLString;
-import static graphql.schema.GraphQLFieldDefinition.newFieldDefinition;
-import static graphql.schema.GraphQLObjectType.newObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -44,7 +40,7 @@ class GraphQLAutoConfigurationTests {
 	void shouldFailWhenSchemaFileIsMissing() {
 		contextRunner.run((context) -> {
 			assertThat(context).hasFailed();
-			assertThat(context).getFailure().getRootCause().isInstanceOf(MissingGraphQLSchemaException.class);
+			assertThat(context).getFailure().getRootCause().hasMessage("'schemaResource' does not exist");
 		});
 	}
 
@@ -52,9 +48,7 @@ class GraphQLAutoConfigurationTests {
 	void shouldCreateBuilderWithSdl() {
 		contextRunner
 				.withPropertyValues("spring.graphql.schema-location:classpath:books/schema.graphqls")
-				.run((context) -> {
-					assertThat(context).hasSingleBean(GraphQL.Builder.class);
-				});
+				.run((context) -> assertThat(context).hasSingleBean(GraphQLSource.class));
 	}
 
 	@Test
@@ -63,8 +57,8 @@ class GraphQLAutoConfigurationTests {
 				.withPropertyValues("spring.graphql.schema-location:classpath:books/schema.graphqls")
 				.withUserConfiguration(CustomGraphQLBuilderConfiguration.class)
 				.run((context) -> {
-					assertThat(context).hasBean("customGraphQLBuilder");
-					assertThat(context).hasSingleBean(GraphQL.Builder.class);
+					assertThat(context).hasBean("customGraphQLSourceBuilder");
+					assertThat(context).hasSingleBean(GraphQLSource.Builder.class);
 				});
 	}
 
@@ -72,15 +66,8 @@ class GraphQLAutoConfigurationTests {
 	static class CustomGraphQLBuilderConfiguration {
 
 		@Bean
-		public GraphQL.Builder customGraphQLBuilder() {
-			GraphQLObjectType queryType = newObject()
-					.name("helloWorldQuery")
-					.field(newFieldDefinition()
-							.type(GraphQLString)
-							.name("hello"))
-					.build();
-			GraphQLSchema schema = GraphQLSchema.newSchema().query(queryType).build();
-			return GraphQL.newGraphQL(schema);
+		public GraphQLSource.Builder customGraphQLSourceBuilder() {
+			return GraphQLSource.builder().schemaResource(new ClassPathResource("books/schema.graphqls"));
 		}
 	}
 

@@ -23,7 +23,7 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.data.ReactorDataFetcherAdapter;
+import org.springframework.graphql.support.ReactorDataFetcherAdapter;
 
 /**
  * Base class for {@link WebGraphQLService} implementations, providing support

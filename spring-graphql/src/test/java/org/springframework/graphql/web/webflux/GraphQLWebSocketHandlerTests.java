@@ -15,7 +15,6 @@
  */
 package org.springframework.graphql.web.webflux;
 
-import java.io.File;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -25,12 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import graphql.GraphQL;
-import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaGenerator;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -38,9 +32,11 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.graphql.support.GraphQLSource;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.DefaultWebGraphQLService;
 import org.springframework.graphql.web.GraphQLDataFetchers;
@@ -49,7 +45,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.lang.Nullable;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -278,9 +273,7 @@ public class GraphQLWebSocketHandlerTests {
 	private GraphQLWebSocketHandler initWebSocketHandler(
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) throws Exception {
 
-		GraphQL graphQL = initGraphQL();
-
-		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(graphQL);
+		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(initGraphQLSource());
 		if (interceptors != null) {
 			requestHandler.setInterceptors(interceptors);
 		}
@@ -290,17 +283,16 @@ public class GraphQLWebSocketHandlerTests {
 				(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));
 	}
 
-	private static GraphQL initGraphQL() throws Exception {
-		File schemaFile = ResourceUtils.getFile("classpath:books/schema.graphqls");
-		TypeDefinitionRegistry typeDefinitionRegistry = new SchemaParser().parse(schemaFile);
-
+	private static GraphQLSource initGraphQLSource() {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
 		builder.type(newTypeWiring("Query").dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
 		builder.type(newTypeWiring("Subscription").dataFetcher("bookSearch", GraphQLDataFetchers.getBooksOnSale()));
 		RuntimeWiring runtimeWiring = builder.build();
 
-		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(typeDefinitionRegistry, runtimeWiring);
-		return GraphQL.newGraphQL(schema).build();
+		return GraphQLSource.builder()
+				.schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.runtimeWiring(runtimeWiring)
+				.build();
 	}
 
 	private static WebSocketMessage toWebSocketMessage(String data) {

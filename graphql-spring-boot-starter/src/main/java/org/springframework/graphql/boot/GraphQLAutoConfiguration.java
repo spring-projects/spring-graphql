@@ -15,19 +15,11 @@
  */
 package org.springframework.graphql.boot;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
-import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
-import graphql.schema.GraphQLSchema;
-import graphql.schema.SchemaTransformer;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaGenerator;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -35,31 +27,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.graphql.data.ReactorDataFetcherAdapter;
+import org.springframework.graphql.support.GraphQLSource;
 
 @Configuration
 @ConditionalOnClass(GraphQL.class)
-@ConditionalOnMissingBean(GraphQL.class)
+@ConditionalOnMissingBean(GraphQLSource.class)
 @EnableConfigurationProperties(GraphQLProperties.class)
 public class GraphQLAutoConfiguration {
 
-
-	@Configuration
-	static class GraphQLConfiguration {
-
-		@Bean
-		public GraphQL graphQL(GraphQL.Builder builder) {
-			return builder.build();
-		}
-
+	@Bean
+	public GraphQLSource graphQLSource(GraphQLSource.Builder builder) {
+		return builder.build();
 	}
 
-
 	@Configuration
-	@ConditionalOnMissingBean(GraphQL.Builder.class)
-	static class GraphQLBuilderConfiguration {
+	@ConditionalOnMissingBean(GraphQLSource.Builder.class)
+	static class GraphQLSourceConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
@@ -70,36 +54,17 @@ public class GraphQLAutoConfiguration {
 		}
 
 		@Bean
-		public GraphQL.Builder graphQLBuilder(GraphQLProperties properties, RuntimeWiring runtimeWiring,
-				ResourceLoader resourceLoader,
-				ObjectProvider<Instrumentation> instrumentationsProvider) {
+		public GraphQLSource.Builder graphQLSourceBuilder(
+				GraphQLProperties properties, RuntimeWiring runtimeWiring,
+				ResourceLoader resourceLoader, ObjectProvider<Instrumentation> instrumentationsProvider) {
 
-			Resource schemaResource = resourceLoader.getResource(properties.getSchemaLocation());
-			GraphQLSchema schema = buildSchema(schemaResource, runtimeWiring);
-			schema = SchemaTransformer.transformSchema(schema, ReactorDataFetcherAdapter.TYPE_VISITOR);
+			String schemaLocation = properties.getSchemaLocation();
 
-			GraphQL.Builder builder = GraphQL.newGraphQL(schema);
-			List<Instrumentation> instrumentations = instrumentationsProvider.orderedStream().collect(Collectors.toList());
-			if (!instrumentations.isEmpty()) {
-				builder = builder.instrumentation(new ChainedInstrumentation(instrumentations));
-			}
-			return builder;
+			return GraphQLSource.builder()
+					.schemaResource(resourceLoader.getResource(schemaLocation))
+					.runtimeWiring(runtimeWiring)
+					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
 		}
-
-		private GraphQLSchema buildSchema(Resource schemaResource, RuntimeWiring runtimeWiring) {
-			if (!schemaResource.exists()) {
-				throw new MissingGraphQLSchemaException(schemaResource);
-			}
-			try {
-				TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(schemaResource.getInputStream());
-				SchemaGenerator schemaGenerator = new SchemaGenerator();
-				return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
-			}
-			catch (IOException exc) {
-				throw new MissingGraphQLSchemaException(exc, schemaResource);
-			}
-		}
-
 	}
 
 }

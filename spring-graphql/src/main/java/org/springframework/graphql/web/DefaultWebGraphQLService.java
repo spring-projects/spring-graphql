@@ -21,23 +21,25 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 
+import org.springframework.graphql.support.GraphQLSource;
+
 /**
  * Extension of {@link AbstractWebGraphQLService} that executes GraphQL queries
  * through the {@link GraphQL} instance it is configured with.
  */
 public class DefaultWebGraphQLService extends AbstractWebGraphQLService {
 
-	private final GraphQL graphQL;
+	private final GraphQLSource graphQLSource;
 
 
-	public DefaultWebGraphQLService(GraphQL graphQL) {
-		this.graphQL = graphQL;
+	public DefaultWebGraphQLService(GraphQLSource graphQLSource) {
+		this.graphQLSource = graphQLSource;
 	}
 
 
 	@Override
 	protected CompletableFuture<ExecutionResult> executeInternal(ExecutionInput input) {
-		return this.graphQL.executeAsync(input);
+		return this.graphQLSource.graphQL().executeAsync(input);
 	}
 
 }
