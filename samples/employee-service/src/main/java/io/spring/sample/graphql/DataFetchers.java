@@ -22,7 +22,7 @@ public class DataFetchers {
 
     public DataFetcher salaryDataFetcher = env -> {
         Employee employee = env.getSource();
-        return salaryService.getSalaryForEmployee(employee).toFuture();
+        return salaryService.getSalaryForEmployee(employee);
     };
 
     public DataFetcher updateSalaryFetcher = env -> {
