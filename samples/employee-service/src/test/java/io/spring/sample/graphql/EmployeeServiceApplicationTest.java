@@ -13,6 +13,8 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunctions;
 
 import java.util.Collections;
 
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
+
 @SpringBootTest()
 class EmployeeServiceApplicationTest {
 
@@ -76,8 +78,8 @@ class EmployeeServiceApplicationTest {
     }
 
     @Test
-    @WithMockUser(roles = "MANAGER")
-    void canQuerySalaryAsManager() {
+    @WithMockUser("hasRole('ADMIN')")
+    void canQuerySalaryAsAdmin() {
         String query = "{" +
                 "  employees{ " +
                 "    name" +

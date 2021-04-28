@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 public class SalaryService {
 
 
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Mono<BigDecimal> getSalaryForEmployee(Employee employee) {
         return Mono.just(new BigDecimal("42"));
     }
