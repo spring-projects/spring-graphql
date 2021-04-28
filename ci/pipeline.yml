@@ -10,7 +10,7 @@ anchors:
 
 resource_types:
 - name: artifactory-resource
-  type: docker-image
+  type: registry-image
   source:
     repository: springio/artifactory-resource
     tag: 0.0.12
@@ -32,8 +32,8 @@ resources:
     uri: ((github-repo))
     branch: ((branch))
     paths: ["ci/images/*"]
-- name: spring-graphql-ci-image
-  type: docker-image
+- name: ci-image
+  type: registry-image
   icon: docker
   source:
     <<: *docker-resource-source
@@ -48,27 +48,33 @@ resources:
     build_name: ((build-name))
 
 jobs:
-- name: build-spring-graphql-ci-images
+- name: build-ci-images
   plan:
+  - get: git-repo
   - get: ci-images-git-repo
     trigger: true
-  - in_parallel:
-    - put: spring-graphql-ci-image
-      params:
-        build: ci-images-git-repo/ci/images
-        dockerfile: ci-images-git-repo/ci/images/spring-graphql-ci-image/Dockerfile
+  - task: build-ci-image
+    privileged: true
+    file: git-repo/ci/tasks/build-ci-image.yml
+    output_mapping:
+      image: ci-image
+    vars:
+      ci-image-name: ci-image
+  - put: ci-image
+    params:
+      image: ci-image/image.tar
 - name: build
   serial: true
   public: true
   plan:
-  - get: spring-graphql-ci-image
+  - get: ci-image
   - get: git-repo
     trigger: true
   - do:
     - task: build-project
       privileged: true
       timeout: ((task-timeout))
-      image: spring-graphql-ci-image
+      image: ci-image
       file: git-repo/ci/tasks/build-project.yml
       params:
         BRANCH: ((branch))
@@ -88,4 +94,4 @@ groups:
 - name: "builds"
   jobs: ["build"]
 - name: "ci-images"
-  jobs: ["build-spring-graphql-ci-images"]
+  jobs: ["build-ci-images"]
