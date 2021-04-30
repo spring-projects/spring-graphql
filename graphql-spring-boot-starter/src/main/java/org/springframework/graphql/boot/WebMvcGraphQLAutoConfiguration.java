@@ -38,9 +38,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.GraphQLService;
 import org.springframework.graphql.support.GraphQLSource;
-import org.springframework.graphql.web.DefaultWebGraphQLService;
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webmvc.GraphQLHttpHandler;
 import org.springframework.graphql.web.webmvc.GraphQLWebSocketHandler;
@@ -71,16 +71,14 @@ public class WebMvcGraphQLAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebGraphQLService webGraphQLService(GraphQLSource graphQLSource, ObjectProvider<WebInterceptor> interceptors) {
-		DefaultWebGraphQLService handler = new DefaultWebGraphQLService(graphQLSource);
-		handler.setInterceptors(interceptors.orderedStream().collect(Collectors.toList()));
-		return handler;
+	public WebGraphQLHandler webGraphQLHandler(ObjectProvider<WebInterceptor> interceptors, GraphQLService service) {
+		return WebInterceptor.createHandler(interceptors.orderedStream().collect(Collectors.toList()), service);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQLHttpHandler graphQLHandler(WebGraphQLService service) {
-		return new GraphQLHttpHandler(service);
+	public GraphQLHttpHandler graphQLHttpHandler(WebGraphQLHandler webGraphQLHandler) {
+		return new GraphQLHttpHandler(webGraphQLHandler);
 	}
 
 	@Bean
@@ -108,7 +106,7 @@ public class WebMvcGraphQLAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public GraphQLWebSocketHandler graphQLWebSocketHandler(
-				WebGraphQLService service, GraphQLProperties properties, HttpMessageConverters converters) {
+				WebGraphQLHandler webGraphQLHandler, GraphQLProperties properties, HttpMessageConverters converters) {
 
 			HttpMessageConverter<?> converter = converters.getConverters().stream()
 					.filter(candidate -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
@@ -116,7 +114,7 @@ public class WebMvcGraphQLAutoConfiguration {
 					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
 
 			return new GraphQLWebSocketHandler(
-					service, converter, properties.getWebsocket().getConnectionInitTimeout());
+					webGraphQLHandler, converter, properties.getWebsocket().getConnectionInitTimeout());
 		}
 
 		@Bean

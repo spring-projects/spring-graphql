@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 the original author or authors.
+ * Copyright 2020-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,56 +15,81 @@
  */
 package org.springframework.graphql.web;
 
-import java.util.function.Consumer;
+import java.util.List;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.web.webmvc.GraphQLHttpHandler;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.graphql.GraphQLService;
+import org.springframework.util.Assert;
 
 /**
- * Web interceptor for GraphQL queries over HTTP. The interceptor allows
- * customization of the {@link ExecutionInput} for the query as well as the
- * {@link ExecutionResult} of the query and is supported for both Spring MVC and
- * Spring WebFlux.
+ * Interceptor for intercepting GraphQL over HTTP or WebSocket requests.
+ * Provides information about the HTTP request or WebSocket handshake, allows
+ * customization of the {@link ExecutionInput} and of the {@link ExecutionResult}
+ * from query execution.
  *
- * <p>A list of interceptors may be provided to {@link GraphQLHttpHandler} or
- * to {@link org.springframework.graphql.web.webflux.GraphQLHttpHandler}. Interceptors are executed in that provided
- * order where each interceptor sees the {@code ExecutionInput} or the
- * {@code ExecutionResult} that was customized by the previous interceptor.
+ * <p>Interceptors may be declared as beans in Spring configuration and ordered
+ * as defined in {@link ObjectProvider#orderedStream()}.
+ *
+ * <p>Supported for Spring MVC and WebFlux.
  */
 public interface WebInterceptor {
 
 	/**
-	 * Intercept a GraphQL over HTTP request before the query is executed.
+	 * Intercept a request and delegate for further handling and query execution
+	 * via {@link WebGraphQLHandler#handle(WebInput)}.
 	 *
-	 * <p>{@code ExecutionInput} is initially populated with the input from the
-	 * request body via {@link WebInput#toExecutionInput()} where the
-	 * {@link WebInput#getQuery() query} is guaranteed to be a non-empty String.
-	 * Interceptors are then executed in order to further customize the input
-	 * and or perform other actions or checks.
-	 *
-	 * @param executionInput the input to use, initialized from {@code WebInput}
-	 * @param webInput the input from the HTTP request
-	 * @return the same instance or a new one via {@link ExecutionInput#transform(Consumer)}
+	 * @param webInput container with HTTP request information and options to
+	 * customize the {@link ExecutionInput}.
+	 * @param next the handler to delegate to for query execution
+	 * @return a {@link Mono} with the result
 	 */
-	default Mono<ExecutionInput> preHandle(ExecutionInput executionInput, WebInput webInput) {
-		return Mono.just(executionInput);
+	Mono<WebOutput> intercept(WebInput webInput, WebGraphQLHandler next);
+
+	/**
+	 * Return a composed {@link WebInterceptor} that invokes the current
+	 * interceptor first one and then the one one passed in.
+	 */
+	default WebInterceptor andThen(WebInterceptor interceptor) {
+		Assert.notNull(interceptor, "WebInterceptor must not be null");
+		return (currentInput, next) -> intercept(currentInput, nextInput -> interceptor.intercept(nextInput, next));
 	}
 
 	/**
-	 * Intercept a GraphQL over HTTP request after the query is executed.
-	 *
-	 * <p>{@code WebOutput} initially wraps the {@link ExecutionResult} returned
-	 * from the execution of the query. Interceptors are then executed in order
-	 * to further customize it and/or perform other actions.
-	 *
-	 * @param webOutput the execution result
-	 * @return the same instance or a new one via {@link WebOutput#transform(Consumer)}
+	 * Return {@link WebGraphQLHandler} that invokes the current interceptor
+	 * first and then the given {@link GraphQLService} for actual execution of
+	 * the GraphQL query.
 	 */
-	default Mono<WebOutput> postHandle(WebOutput webOutput) {
-		return Mono.just(webOutput);
+	default WebGraphQLHandler apply(GraphQLService service) {
+		Assert.notNull(service, "GraphQLService must not be null");
+		return currentInput -> intercept(currentInput, createHandler(service));
+	}
+
+
+	/**
+	 * Factory method for a {@link WebGraphQLHandler} with a chain of
+	 * interceptors followed by a {@link GraphQLService} at the end.
+	 */
+	static WebGraphQLHandler createHandler(List<WebInterceptor> interceptors, GraphQLService service) {
+		return interceptors.stream()
+				.reduce(WebInterceptor::andThen)
+				.map(interceptor -> interceptor.apply(service))
+				.orElse(createHandler(service));
+	}
+
+	/**
+	 * Factory method for a {@link WebGraphQLHandler} that simple invokes the
+	 * given {@link GraphQLService} adapting to its input and output.
+	 */
+	static WebGraphQLHandler createHandler(GraphQLService graphQLService) {
+		Assert.notNull(graphQLService, "GraphQLService must not be null");
+		return webInput -> {
+			ExecutionInput executionInput = webInput.toExecutionInput();
+			return graphQLService.execute(executionInput).map(result -> new WebOutput(webInput, result));
+		};
 	}
 
 }

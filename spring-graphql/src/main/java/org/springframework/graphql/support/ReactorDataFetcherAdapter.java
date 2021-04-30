@@ -39,13 +39,12 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
- * Adapter to wrap a registered {@link DataFetcher} and enable it to return
+ * Adapter that can wrap a registered {@link DataFetcher} and enable it to return
  * {@link Flux} or {@link Mono}, also adding Reactor Context passed through
- * the {@link ExecutionInput} via {@link #addReactorContext(ExecutionInput, ContextView)}.
- * Use {@link #TYPE_VISITOR} to transform the
- * {@link graphql.schema.GraphQLSchema} and apply the adapter.
+ * the {@link ExecutionInput}. Also exposes a {@link #TYPE_VISITOR} to apply
+ * the adapter.
  */
-public class ReactorDataFetcherAdapter implements DataFetcher<Object> {
+class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 
 	private static final String REACTOR_CONTEXT_KEY =
 			ReactorDataFetcherAdapter.class.getName() + ".REACTOR_CONTEXT";
@@ -108,7 +107,7 @@ public class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 	 * {@link GraphQLTypeVisitor} that wraps non-GraphQL data fetchers and
 	 * adapts them if they return {@link Flux} or {@link Mono}.
 	 */
-	public static GraphQLTypeVisitor TYPE_VISITOR = new GraphQLTypeVisitorStub() {
+	static GraphQLTypeVisitor TYPE_VISITOR = new GraphQLTypeVisitorStub() {
 
 		@Override
 		public TraversalControl visitGraphQLFieldDefinition(

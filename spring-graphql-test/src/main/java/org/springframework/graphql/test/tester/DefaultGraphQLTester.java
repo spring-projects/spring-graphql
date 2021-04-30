@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -83,9 +83,9 @@ class DefaultGraphQLTester implements GraphQLTester {
 		this.requestStrategy = new WebTestClientRequestStrategy(client, this.jsonPathConfig);
 	}
 
-	DefaultGraphQLTester(WebGraphQLService service) {
+	DefaultGraphQLTester(WebGraphQLHandler handler) {
 		this.jsonPathConfig = initJsonPathConfig();
-		this.requestStrategy = new DirectRequestStrategy(service, this.jsonPathConfig);
+		this.requestStrategy = new DirectRequestStrategy(handler, this.jsonPathConfig);
 	}
 
 	private Configuration initJsonPathConfig() {
@@ -182,12 +182,12 @@ class DefaultGraphQLTester implements GraphQLTester {
 		private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
 
 
-		private final WebGraphQLService graphQLService;
+		private final WebGraphQLHandler graphQLHandler;
 
 		private final Configuration jsonPathConfig;
 
-		public DirectRequestStrategy(WebGraphQLService service, Configuration jsonPathConfig) {
-			this.graphQLService = service;
+		public DirectRequestStrategy(WebGraphQLHandler handler, Configuration jsonPathConfig) {
+			this.graphQLHandler = handler;
 			this.jsonPathConfig = jsonPathConfig;
 		}
 
@@ -213,7 +213,7 @@ class DefaultGraphQLTester implements GraphQLTester {
 
 		private ExecutionResult executeInternal(RequestInput input) {
 			WebInput webInput = new WebInput(DEFAULT_URL, DEFAULT_HEADERS, input.toMap(), null);
-			ExecutionResult result = this.graphQLService.execute(webInput).block(DEFAULT_TIMEOUT);
+			ExecutionResult result = this.graphQLHandler.handle(webInput).block(DEFAULT_TIMEOUT);
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
 		}

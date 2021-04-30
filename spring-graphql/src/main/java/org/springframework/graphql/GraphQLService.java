@@ -15,23 +15,21 @@
  */
 package org.springframework.graphql;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Contract to execute a GraphQL request.
- *
- * @param <IN> container for the GraphQL query along additional transport
- * related context such as the HTTP url or headers for web.
- * @param <OUT> the query execution result
+ * Strategy to perform GraphQL query execution with input for and output from
+ * the invocation of {@link graphql.GraphQL}.
  */
-public interface GraphQLService<IN extends RequestInput, OUT extends ExecutionResult> {
+public interface GraphQLService {
 
 	/**
-	 * Perform the request and return the result.
-	 * @param input the GraphQL query container
+	 * Perform the query and return the result.
+	 * @param input the input for query execution via {@link graphql.GraphQL}
 	 * @return the execution result
 	 */
-	Mono<OUT> execute(IN input);
+	Mono<ExecutionResult> execute(ExecutionInput input);
 
 }

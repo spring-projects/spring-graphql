@@ -31,10 +31,11 @@ import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.support.ExecutionGraphQLService;
 import org.springframework.graphql.support.GraphQLSource;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
-import org.springframework.graphql.web.DefaultWebGraphQLService;
 import org.springframework.graphql.web.GraphQLDataFetchers;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -257,12 +258,11 @@ public class GraphQLWebSocketHandlerTests {
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) {
 
 		try {
-			DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(initGraphQLSource());
-			if (interceptors != null) {
-				requestHandler.setInterceptors(interceptors);
-			}
+			WebGraphQLHandler graphQLHandler = WebInterceptor.createHandler(
+					(interceptors != null ? interceptors : Collections.emptyList()),
+					new ExecutionGraphQLService(initGraphQLSource()));
 
-			return new GraphQLWebSocketHandler(requestHandler, converter,
+			return new GraphQLWebSocketHandler(graphQLHandler, converter,
 					(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));
 		}
 		catch (Exception ex) {

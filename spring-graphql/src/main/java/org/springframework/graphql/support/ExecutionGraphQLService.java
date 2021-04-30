@@ -13,33 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.web;
-
-import java.util.concurrent.CompletableFuture;
+package org.springframework.graphql.support;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.support.GraphQLSource;
+import org.springframework.graphql.GraphQLService;
 
 /**
- * Extension of {@link AbstractWebGraphQLService} that executes GraphQL queries
- * through the {@link GraphQL} instance it is configured with.
+ * Implementation of {@link GraphQLService} that performs GraphQL query execution
+ * through {@link GraphQL#executeAsync(ExecutionInput)}.
  */
-public class DefaultWebGraphQLService extends AbstractWebGraphQLService {
+public class ExecutionGraphQLService implements GraphQLService {
 
 	private final GraphQLSource graphQLSource;
 
 
-	public DefaultWebGraphQLService(GraphQLSource graphQLSource) {
+	public ExecutionGraphQLService(GraphQLSource graphQLSource) {
 		this.graphQLSource = graphQLSource;
 	}
 
 
 	@Override
-	protected CompletableFuture<ExecutionResult> executeInternal(ExecutionInput input) {
-		return this.graphQLSource.graphQL().executeAsync(input);
+	public Mono<ExecutionResult> execute(ExecutionInput input) {
+		GraphQL graphQL = this.graphQLSource.graphQL();
+		return Mono.deferContextual(contextView -> {
+			ReactorDataFetcherAdapter.addReactorContext(input, contextView);
+			return Mono.fromFuture(graphQL.executeAsync(input));
+		});
 	}
 
 }

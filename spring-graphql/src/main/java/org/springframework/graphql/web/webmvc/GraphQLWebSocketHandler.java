@@ -41,7 +41,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.HttpHeaders;
@@ -71,7 +71,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
 
 
-	private final WebGraphQLService service;
+	private final WebGraphQLHandler graphQLHandler;
 
 	private final Duration initTimeoutDuration;
 
@@ -82,17 +82,17 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	/**
 	 * Create a new instance.
-	 * @param service for GraphQL query execution
+	 * @param graphQLHandler common handler for GraphQL over HTTP requests
 	 * @param converter  for JSON encoding and decoding
 	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT}
 	 * type message must be received.
 	 */
 	public GraphQLWebSocketHandler(
-			WebGraphQLService service, HttpMessageConverter<?> converter, Duration connectionInitTimeout) {
+			WebGraphQLHandler graphQLHandler, HttpMessageConverter<?> converter, Duration connectionInitTimeout) {
 
-		Assert.notNull(service, "WebGraphQLService is required");
+		Assert.notNull(graphQLHandler, "WebGraphQLHandler is required");
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
-		this.service = service;
+		this.graphQLHandler = graphQLHandler;
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
 	}
@@ -155,7 +155,7 @@ public class GraphQLWebSocketHandler extends TextWebSocketHandler implements Sub
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + input);
 				}
-				this.service.execute(input)
+				this.graphQLHandler.handle(input)
 						.flatMapMany(output -> handleWebOutput(session, input.getId(), output))
 						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 						.subscribe(new SendMessageSubscriber(id, session, sessionState));

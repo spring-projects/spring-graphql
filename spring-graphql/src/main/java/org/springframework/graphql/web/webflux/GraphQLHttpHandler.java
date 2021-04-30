@@ -22,7 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -39,16 +39,16 @@ public class GraphQLHttpHandler {
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
-	private final WebGraphQLService graphQLService;
+	private final WebGraphQLHandler graphQLHandler;
 
 
 	/**
 	 * Create a new instance.
-	 * @param service for GraphQL query execution
+	 * @param graphQLHandler common handler for GraphQL over HTTP requests
 	 */
-	public GraphQLHttpHandler(WebGraphQLService service) {
-		Assert.notNull(service, "WebGraphQLService is required");
-		this.graphQLService = service;
+	public GraphQLHttpHandler(WebGraphQLHandler graphQLHandler) {
+		Assert.notNull(graphQLHandler, "WebGraphQLHandler is required");
+		this.graphQLHandler = graphQLHandler;
 	}
 
 
@@ -63,7 +63,7 @@ public class GraphQLHttpHandler {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}
-					return this.graphQLService.execute(input);
+					return this.graphQLHandler.handle(input);
 				})
 				.flatMap(output -> {
 					Map<String, Object> spec = output.toSpecification();

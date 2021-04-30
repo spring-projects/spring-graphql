@@ -43,6 +43,9 @@ dependencies {
 	testImplementation 'org.springframework:spring-test'
 	testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+
+	testRuntime 'org.apache.logging.log4j:log4j-core:2.14.1'
+	testRuntime 'org.apache.logging.log4j:log4j-slf4j-impl:2.14.1'
 }
 
 test {

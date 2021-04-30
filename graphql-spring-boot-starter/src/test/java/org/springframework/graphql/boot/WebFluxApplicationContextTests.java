@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration;
@@ -32,7 +31,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.web.WebInterceptor;
-import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -43,7 +41,8 @@ class WebFluxApplicationContextTests {
 	private static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
 			HttpHandlerAutoConfiguration.class, WebFluxAutoConfiguration.class,
 			CodecsAutoConfiguration.class, JacksonAutoConfiguration.class,
-			GraphQLAutoConfiguration.class, WebFluxGraphQLAutoConfiguration.class);
+			GraphQLAutoConfiguration.class, GraphQLServiceAutoConfiguration.class,
+			WebFluxGraphQLAutoConfiguration.class);
 
 	private static final String BASE_URL = "https://spring.example.org/graphql";
 
@@ -139,12 +138,8 @@ class WebFluxApplicationContextTests {
 
 		@Bean
 		public WebInterceptor customWebInterceptor() {
-			return new WebInterceptor() {
-				@Override
-				public Mono<WebOutput> postHandle(WebOutput output) {
-					return Mono.just(output.transform(builder -> builder.responseHeader("X-Custom-Header", "42")));
-				}
-			};
+			return (input, next) -> next.handle(input).map(output ->
+					output.transform(builder -> builder.responseHeader("X-Custom-Header", "42")));
 		}
 	}
 

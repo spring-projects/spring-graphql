@@ -15,12 +15,26 @@
  */
 package org.springframework.graphql.web;
 
+import java.util.List;
+
+import reactor.core.publisher.Mono;
+
 import org.springframework.graphql.GraphQLService;
 
 /**
- * {@link GraphQLService} for executing GraphQL requests in a Web environment,
- * over HTTP or WebSocket.
+ * Contract to handle a GraphQL over HTTP or WebSocket request that forms the
+ * basis of a {@link WebInterceptor} delegation chain.
+ *
+ * @see WebInterceptor#createHandler(List, GraphQLService)
  */
-public interface WebGraphQLService extends GraphQLService<WebInput, WebOutput> {
+public interface WebGraphQLHandler {
+
+	/**
+	 * Perform query execution for the given request and return the result.
+	 *
+	 * @param input the GraphQL query container
+	 * @return the execution result
+	 */
+	Mono<WebOutput> handle(WebInput input);
 
 }

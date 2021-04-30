@@ -15,9 +15,9 @@
  */
 package org.springframework.graphql.support;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -25,12 +25,7 @@ import java.util.function.Consumer;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
-import graphql.schema.GraphQLSchema;
-import graphql.schema.SchemaTransformer;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaGenerator;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -38,7 +33,6 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -109,16 +103,16 @@ public class ReactorDataFetcherAdapterTests {
 	}
 
 
-	private GraphQL initGraphQL(String schemaValue, Consumer<RuntimeWiring.Builder> consumer) throws IOException {
-		Resource schemaResource = new ByteArrayResource(schemaValue.getBytes(StandardCharsets.UTF_8));
-		TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(schemaResource.getInputStream());
-
+	private GraphQL initGraphQL(String schemaValue, Consumer<RuntimeWiring.Builder> consumer) {
 		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();
 		consumer.accept(wiringBuilder);
 
-		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(typeRegistry, wiringBuilder.build());
-		schema = SchemaTransformer.transformSchema(schema, ReactorDataFetcherAdapter.TYPE_VISITOR);
-		return GraphQL.newGraphQL(schema).build();
+		return GraphQLSource.builder()
+				.schemaResource(new ByteArrayResource(schemaValue.getBytes(StandardCharsets.UTF_8)))
+				.runtimeWiring(wiringBuilder.build())
+				.typeVisitors(Collections.singletonList(ReactorDataFetcherAdapter.TYPE_VISITOR))
+				.build()
+				.graphQL();
 	}
 
 	private ExecutionInput initExecutionInput(String query, Context reactorContext) {

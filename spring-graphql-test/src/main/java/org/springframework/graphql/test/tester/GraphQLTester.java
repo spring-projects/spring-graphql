@@ -24,13 +24,14 @@ import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 /**
- * Main entry point for testing GraphQL with requests performed via
- * {@link WebTestClient} as an HTTP client or via any {@link WebGraphQLService}.
+ * Main entry point for testing GraphQL with requests performed either as an
+ * HTTP client  via {@link WebTestClient} or directly via a
+ * {@link WebGraphQLHandler}.
  *
  *
  * <p>GraphQL requests to Spring MVC without an HTTP server:
@@ -75,7 +76,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  *  }
  * </pre>
  *
- * <p>GraphQL requests to any {@link WebGraphQLService}:
+ * <p>GraphQL requests to any {@link WebGraphQLHandler}:
  * <pre class="code">
  * &#064;SpringBootTest
  * public class MyTests {
@@ -83,8 +84,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  *  private GraphQLTester graphQLTester;
  *
  *  &#064;BeforeEach
- *  public void setUp(&#064;Autowired WebGraphQLService service) {
- *      this.graphQLTester = GraphQLTester.create(service);
+ *  public void setUp(&#064;Autowired WebGraphQLHandler handler) {
+ *      this.graphQLTester = GraphQLTester.create(handler);
  *  }
  * </pre>
  */
@@ -112,13 +113,13 @@ public interface GraphQLTester {
 	}
 
 	/**
-	 * Create a {@code GraphQLTester} that performs GraphQL requests through the
-	 * given {@link WebGraphQLService}.
-	 * @param service the handler to execute requests with
+	 * Create a {@code GraphQLTester} that performs GraphQL requests through
+	 * the given {@link WebGraphQLHandler}.
+	 * @param handler the handler to execute requests with
 	 * @return the created {@code GraphQLTester} instance
 	 */
-	static GraphQLTester create(WebGraphQLService service) {
-		return new DefaultGraphQLTester(service);
+	static GraphQLTester create(WebGraphQLHandler handler) {
+		return new DefaultGraphQLTester(handler);
 	}
 
 

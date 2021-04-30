@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.test.tester.GraphQLTester;
 
 /**
@@ -34,9 +34,9 @@ public class QueryTests {
 
 
 	@BeforeEach
-	public void setUp(@Autowired WebGraphQLService service) {
+	public void setUp(@Autowired WebGraphQLHandler handler) {
 		this.graphQLTester = GraphQLTester.create(webInput ->
-				service.execute(webInput).contextWrite(context -> context.put("name", "James")));
+				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 

@@ -36,10 +36,11 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.graphql.support.ExecutionGraphQLService;
 import org.springframework.graphql.support.GraphQLSource;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
-import org.springframework.graphql.web.DefaultWebGraphQLService;
 import org.springframework.graphql.web.GraphQLDataFetchers;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ServerCodecConfigurer;
@@ -273,12 +274,11 @@ public class GraphQLWebSocketHandlerTests {
 	private GraphQLWebSocketHandler initWebSocketHandler(
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) throws Exception {
 
-		DefaultWebGraphQLService requestHandler = new DefaultWebGraphQLService(initGraphQLSource());
-		if (interceptors != null) {
-			requestHandler.setInterceptors(interceptors);
-		}
+		WebGraphQLHandler graphQLHandler = WebInterceptor.createHandler(
+				(interceptors != null ? interceptors : Collections.emptyList()),
+				new ExecutionGraphQLService(initGraphQLSource()));
 
-		return new GraphQLWebSocketHandler(requestHandler,
+		return new GraphQLWebSocketHandler(graphQLHandler,
 				ServerCodecConfigurer.create(),
 				(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));
 	}

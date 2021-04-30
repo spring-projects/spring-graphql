@@ -15,9 +15,12 @@
  */
 package org.springframework.graphql;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import graphql.ExecutionInput;
 
@@ -36,6 +39,8 @@ public class RequestInput {
 	private final String operationName;
 
 	private final Map<String, Object> variables;
+
+	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
 
 	public RequestInput(String query, @Nullable String operationName, @Nullable Map<String, Object> vars) {
@@ -80,24 +85,44 @@ public class RequestInput {
 		return this.variables;
 	}
 
+	/**
+	 * Provide a consumer to configure the {@link ExecutionInput} used for input
+	 * to {@link graphql.GraphQL#executeAsync(ExecutionInput)}.
+	 * The builder is initially populated with the values from
+	 * {@link #getQuery()}, {@link #getOperationName()}, and {@link #getVariables()}.
+	 * @param configurer a {@code BiFunction} with the current
+	 * {@code ExecutionInput} and a builder to modify it.
+	 */
+	public void configureExecutionInput(BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer) {
+		this.executionInputConfigurers.add(configurer);
+	}
 
 	/**
-	 * Create an {@link ExecutionInput} initialized with the {@link #getQuery()},
-	 * {@link #getOperationName()}, and {@link #getVariables()}.
+	 * Create the {@link ExecutionInput} for query execution. This is initially
+	 * populated from {@link #getQuery()}, {@link #getOperationName()}, and
+	 * {@link #getVariables()}, and is then further customized through
+	 * {@link #configureExecutionInput(BiFunction)}.
 	 */
 	public ExecutionInput toExecutionInput() {
-		return ExecutionInput.newExecutionInput()
-				.query(getQuery())
-				.operationName(getOperationName())
-				.variables(getVariables())
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
+				.query(this.query)
+				.operationName(this.operationName)
+				.variables(this.variables)
 				.build();
+
+		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
+			ExecutionInput current = executionInput;
+			executionInput = executionInput.transform(builder -> configurer.apply(current, builder));
+		}
+
+		return executionInput;
 	}
 
 	/**
 	 * Return a Map representation of the request input.
 	 */
 	public Map<String, Object> toMap() {
-		Map<String, Object> map = new LinkedHashMap<>();
+		Map<String, Object> map = new LinkedHashMap<>(3);
 		map.put("query", getQuery());
 		if (getOperationName() != null) {
 			map.put("operationName", getOperationName());

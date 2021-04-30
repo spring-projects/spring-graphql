@@ -19,19 +19,17 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.web.WebInterceptor;
-import org.springframework.graphql.web.WebOutput;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
 
 	@Override
-	public Mono<WebOutput> postHandle(WebOutput output) {
-		return Mono.just(output.transform(builder -> {
-			Publisher<?> publisher = output.getData();
-			assertThat(publisher).isNotNull();
-			builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
-		}));
+	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQLHandler next) {
+		return next.handle(webInput).map(output ->
+				output.transform(builder -> {
+					Publisher<?> publisher = output.getData();
+					assertThat(publisher).isNotNull();
+					builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
+				}));
 	}
 }

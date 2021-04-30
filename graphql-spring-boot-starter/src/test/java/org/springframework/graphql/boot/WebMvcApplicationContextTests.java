@@ -18,7 +18,6 @@ package org.springframework.graphql.boot;
 
 
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
@@ -29,7 +28,6 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.web.WebInterceptor;
-import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -39,7 +37,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,7 +47,8 @@ class WebMvcApplicationContextTests {
 	public static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
 			DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
 			HttpMessageConvertersAutoConfiguration.class, JacksonAutoConfiguration.class,
-			GraphQLAutoConfiguration.class, WebMvcGraphQLAutoConfiguration.class);
+			GraphQLAutoConfiguration.class, GraphQLServiceAutoConfiguration.class,
+			WebMvcGraphQLAutoConfiguration.class);
 
 	@Test
 	void endpointHandlesGraphQLQuery() {
@@ -135,13 +135,8 @@ class WebMvcApplicationContextTests {
 
 		@Bean
 		public WebInterceptor customWebInterceptor() {
-			return new WebInterceptor() {
-				@Override
-				public Mono<WebOutput> postHandle(WebOutput output) {
-					return Mono.just(output.transform(builder ->
-							builder.responseHeader("X-Custom-Header", "42")));
-				}
-			};
+			return (input, next) -> next.handle(input).map(output ->
+					output.transform(builder -> builder.responseHeader("X-Custom-Header", "42")));
 		}
 	}
 

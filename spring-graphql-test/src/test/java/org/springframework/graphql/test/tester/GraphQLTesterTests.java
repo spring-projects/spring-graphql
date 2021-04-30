@@ -40,7 +40,7 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.web.WebGraphQLService;
+import org.springframework.graphql.web.WebGraphQLHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.HttpHeaders;
@@ -58,7 +58,7 @@ import static org.mockito.Mockito.when;
  * Tests for {@link GraphQLTester} parameterized to:
  * <ul>
  * <li>Connect to {@link MockWebServer} and return a preset HTTP response.
- * <li>Use mock {@link WebGraphQLService} to return a preset {@link ExecutionResult}.
+ * <li>Use mock {@link WebGraphQLHandler} to return a preset {@link ExecutionResult}.
  * </ul>
  *
  * <p>There is no actual handling via {@link graphql.GraphQL} in either scenario.
@@ -71,7 +71,7 @@ public class GraphQLTesterTests {
 
 
 	public static Stream<GraphQLTesterSetup> argumentSource() {
-		return Stream.of(new MockWebServerSetup(), new MockWebGraphQLServiceSetup());
+		return Stream.of(new MockWebServerSetup(), new MockWebGraphQLHandlerSetup());
 	}
 
 
@@ -393,16 +393,16 @@ public class GraphQLTesterTests {
 	}
 
 
-	private static class MockWebGraphQLServiceSetup implements GraphQLTesterSetup {
+	private static class MockWebGraphQLHandlerSetup implements GraphQLTesterSetup {
 
-		private final WebGraphQLService service = mock(WebGraphQLService.class);
+		private final WebGraphQLHandler handler = mock(WebGraphQLHandler.class);
 
 		private final ArgumentCaptor<WebInput> bodyCaptor = ArgumentCaptor.forClass(WebInput.class);
 
 		private final GraphQLTester graphQLTester;
 
-		public MockWebGraphQLServiceSetup() {
-			this.graphQLTester = GraphQLTester.create(this.service);
+		public MockWebGraphQLHandlerSetup() {
+			this.graphQLTester = GraphQLTester.create(this.handler);
 		}
 
 		@Override
@@ -421,7 +421,7 @@ public class GraphQLTesterTests {
 			}
 			ExecutionResult result = builder.build();
 			WebOutput output = new WebOutput(mock(WebInput.class), result);
-			when(this.service.execute(this.bodyCaptor.capture())).thenReturn(Mono.just(output));
+			when(this.handler.handle(this.bodyCaptor.capture())).thenReturn(Mono.just(output));
 		}
 
 		@Override
