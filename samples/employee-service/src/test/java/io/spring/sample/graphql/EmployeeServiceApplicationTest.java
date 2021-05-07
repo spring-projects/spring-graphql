@@ -94,4 +94,24 @@ class EmployeeServiceApplicationTest {
                 .jsonPath("data.employees[0].salary").isEqualTo("42");
 
     }
+
+    @Test
+    void invalidCredentials() {
+        String query = "{" +
+                "  employees{ " +
+                "    name" +
+                "    salary" +
+                "  }" +
+                "}";
+
+
+        client.post().uri("")
+                .headers(h -> h.setBasicAuth("admin", "INVALID"))
+                .bodyValue("{  \"query\": \"" + query + "\"}")
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectBody()
+                .isEmpty();
+
+    }
 }
