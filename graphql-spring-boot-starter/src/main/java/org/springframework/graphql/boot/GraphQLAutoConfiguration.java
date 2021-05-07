@@ -18,6 +18,7 @@ package org.springframework.graphql.boot;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
+import graphql.execution.DataFetcherExceptionHandler;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.idl.RuntimeWiring;
 
@@ -56,14 +57,17 @@ public class GraphQLAutoConfiguration {
 		@Bean
 		public GraphQLSource.Builder graphQLSourceBuilder(
 				GraphQLProperties properties, RuntimeWiring runtimeWiring,
-				ResourceLoader resourceLoader, ObjectProvider<Instrumentation> instrumentationsProvider) {
+				ResourceLoader resourceLoader, ObjectProvider<Instrumentation> instrumentationsProvider,
+				ObjectProvider<DataFetcherExceptionHandler> dataFetcherExceptionHandler) {
 
 			String schemaLocation = properties.getSchemaLocation();
 
-			return GraphQLSource.builder()
+			GraphQLSource.Builder builder = GraphQLSource.builder()
 					.schemaResource(resourceLoader.getResource(schemaLocation))
 					.runtimeWiring(runtimeWiring)
 					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
+			builder.configureGraphQL((graphQL) -> dataFetcherExceptionHandler.ifAvailable((handler) -> graphQL.defaultDataFetcherExceptionHandler(handler)));
+			return builder;
 		}
 	}
 

@@ -16,8 +16,11 @@
 
 package org.springframework.graphql.boot;
 
+import graphql.GraphQL;
+import graphql.execution.DataFetcherExceptionHandler;
+import graphql.execution.SimpleDataFetcherExceptionHandler;
+import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -25,7 +28,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.support.GraphQLSource;
 
+import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link GraphQLAutoConfiguration}
@@ -59,6 +68,27 @@ class GraphQLAutoConfigurationTests {
 				.run((context) -> {
 					assertThat(context).hasBean("customGraphQLSourceBuilder");
 					assertThat(context).hasSingleBean(GraphQLSource.Builder.class);
+				});
+	}
+
+	@Test
+	void shouldUseExceptionHandler() throws Exception {
+		DataFetcher<String> dataFetcher = mock(DataFetcher.class);
+		given(dataFetcher.get(any())).willThrow(new RuntimeException("Denied"));
+		DataFetcherExceptionHandler handler = spy(SimpleDataFetcherExceptionHandler.class);
+		RuntimeWiringCustomizer customizer = (builder) -> {
+			builder.type(newTypeWiring("Query")
+					.dataFetcher("bookById", dataFetcher));
+		};
+		contextRunner
+				.withPropertyValues("spring.graphql.schema-location:classpath:books/schema.graphqls")
+				.withBean(DataFetcherExceptionHandler.class, () -> handler)
+				.withBean(RuntimeWiringCustomizer.class, () -> customizer)
+				.run((context) -> {
+					GraphQL graphQL = context.getBean(GraphQLSource.class).graphQL();
+					String query = "{  bookById(id: \"book-1\"){     id    name    pageCount    author  }}";
+					graphQL.execute(query);
+					verify(handler).onException(any());
 				});
 	}
 
