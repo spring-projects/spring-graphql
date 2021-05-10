@@ -123,8 +123,6 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 
 			Method method = ClassUtils.getMethod(dataFetcher.getClass(), "get", DataFetchingEnvironment.class);
 			method = ClassUtils.getMostSpecificMethod(method, dataFetcher.getClass());
-			Class<?> returnType = method.getReturnType();
-			System.out.println(returnType.getName());
 
 			dataFetcher = new ReactorDataFetcherAdapter(dataFetcher, parent.getName().equals("Subscription"));
 			codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);

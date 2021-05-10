@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,11 @@
 
 package org.springframework.graphql.boot.actuate.metrics;
 
+import java.util.stream.Collectors;
+
 import io.micrometer.core.instrument.MeterRegistry;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.metrics.export.simple.SimpleMetricsExportAutoConfiguration;
@@ -42,8 +45,8 @@ public class GraphQLMetricsAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(GraphQLTagsProvider.class)
-	public DefaultGraphQLTagsProvider graphQLTagsProvider() {
-		return new DefaultGraphQLTagsProvider();
+	public DefaultGraphQLTagsProvider graphQLTagsProvider(ObjectProvider<GraphQLTagsContributor> contributors) {
+		return new DefaultGraphQLTagsProvider(contributors.orderedStream().collect(Collectors.toList()));
 	}
 
 	@Bean

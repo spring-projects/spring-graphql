@@ -43,6 +43,7 @@ dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
 
+	testImplementation project(':spring-graphql-test')
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
@@ -52,6 +53,7 @@ dependencies {
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-core'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-websocket'
 	testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
+	testImplementation 'io.micrometer:micrometer-core'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 

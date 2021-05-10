@@ -153,14 +153,39 @@ A custom `WebInterceptor` can, for example, change the HTTP request/response hea
 
 ### Metrics
 
-If the `spring-boot-starter-actuator` dependency is on the classpath, metrics will be collected for GraphQL queries.
+If the `spring-boot-starter-actuator` dependency is on the classpath, metrics will be collected for GraphQL requests.
 You can see those metrics by exposing the metrics endpoint with `application.properties`:
 ```properties
 management.endpoints.web.exposure.include=health,metrics,info
 ```
+                                                                                                   
+#### GraphQL Request (timer)
 
-You can then check those metrics at `http://localhost:8080/actuator/metrics/graphql.query`.
+A Request metric timer is available at `/actuator/metrics/graphql.request`.
 
+| Tag     | Description     | Sample values      |
+|---------|-----------------|--------------------|
+| outcome | Request outcome | "SUCCESS", "ERROR" |
+
+
+#### GraphQL Data Fetcher (timer)
+
+A Data Fetcher metric timer is available at `/actuator/metrics/graphql.datafetcher`.
+
+| Tag     | Description           | Sample values      |
+|---------|-----------------------|--------------------|
+| path    | data fetcher path     | "Query.project"    |
+| outcome | data fetching outcome | "SUCCESS", "ERROR" |
+
+
+#### GraphQL Error (counter)
+
+A counter metric counter is available at `/actuator/metrics/graphql.error`.
+
+| Tag       | Description     | Sample values           |
+|-----------|-----------------|-------------------------|
+| errorType | error type      | "DataFetchingException" |
+| errorPath | error JSON Path | "$.project"             |                                
 
 ## Sample applications
 

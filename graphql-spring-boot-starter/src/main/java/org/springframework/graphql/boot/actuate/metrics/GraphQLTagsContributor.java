@@ -23,12 +23,11 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchPar
 import graphql.schema.DataFetcher;
 import io.micrometer.core.instrument.Tag;
 
-public interface GraphQLTagsProvider {
+public interface GraphQLTagsContributor {
 
 	Iterable<Tag> getExecutionTags(InstrumentationExecutionParameters parameters, ExecutionResult result, Throwable exception);
 
 	Iterable<Tag> getErrorTags(InstrumentationExecutionParameters parameters, GraphQLError error);
 
 	Iterable<Tag> getDataFetchingTags(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters, Throwable exception);
-	
 }

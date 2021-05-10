@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,34 +16,48 @@
 
 package org.springframework.graphql.boot.actuate.metrics;
 
-import graphql.ErrorClassification;
-import graphql.ErrorType;
+import java.util.List;
+
 import graphql.ExecutionResult;
+import graphql.GraphQLError;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
+import graphql.schema.DataFetcher;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 
 public class DefaultGraphQLTagsProvider implements GraphQLTagsProvider {
 
-	private static final Tag OUTCOME_SUCCESS = Tag.of("outcome", "SUCCESS");
+	private final List<GraphQLTagsContributor> contributors;
 
-	private static final Tag OUTCOME_ERROR = Tag.of("outcome", "ERROR");
+	public DefaultGraphQLTagsProvider(List<GraphQLTagsContributor> contributors) {
+		this.contributors = contributors;
+	}
 
 
 	@Override
-	public Iterable<Tag> getTags(InstrumentationExecutionParameters parameters, ExecutionResult result, Throwable exception) {
-		Tags tags = Tags.of(Tag.of("query", parameters.getQuery()));
-		if (result.isDataPresent()) {
-			tags = tags.and(OUTCOME_SUCCESS);
+	public Iterable<Tag> getExecutionTags(InstrumentationExecutionParameters parameters, ExecutionResult result, Throwable exception) {
+		Tags tags = Tags.of(GraphQLTags.executionOutcome(result, exception));
+		for (GraphQLTagsContributor contributor : this.contributors) {
+			tags = tags.and(contributor.getExecutionTags(parameters, result, exception));
 		}
-		else {
-			tags = tags.and(OUTCOME_ERROR);
-			if (!result.getErrors().isEmpty()) {
-				ErrorClassification errorClassification = result.getErrors().get(0).getErrorType();
-				if (errorClassification instanceof ErrorType) {
-					tags = tags.and(Tag.of("errorType", ((ErrorType) errorClassification).name()));
-				}
-			}
+		return tags;
+	}
+
+	@Override
+	public Iterable<Tag> getErrorTags(InstrumentationExecutionParameters parameters, GraphQLError error) {
+		Tags tags = Tags.of(GraphQLTags.errorType(error), GraphQLTags.errorPath(error));
+		for (GraphQLTagsContributor contributor : this.contributors) {
+			tags = tags.and(contributor.getErrorTags(parameters, error));
+		}
+		return tags;
+	}
+
+	@Override
+	public Iterable<Tag> getDataFetchingTags(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters, Throwable exception) {
+		Tags tags = Tags.of(GraphQLTags.dataFetchingOutcome(exception), GraphQLTags.dataFetchingPath(parameters));
+		for (GraphQLTagsContributor contributor : this.contributors) {
+			tags = tags.and(contributor.getDataFetchingTags(dataFetcher, parameters, exception));
 		}
 		return tags;
 	}
