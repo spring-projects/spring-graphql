@@ -1,0 +1,15 @@
+{
+  "name": "Spring WebFlux+WebSocket GraphQL Sample Schema",
+  "schemaPath": "src/main/resources/graphql/schema.graphqls",
+  "extensions": {
+    "endpoints": {
+      "Local GraphQL Endpoint": {
+        "url": "http://localhost:8080/graphql",
+        "headers": {
+          "user-agent": "JS GraphQL"
+        },
+        "introspect": false
+      }
+    }
+  }
+}

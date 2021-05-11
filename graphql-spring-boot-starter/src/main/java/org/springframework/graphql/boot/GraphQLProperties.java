@@ -52,7 +52,7 @@ public class GraphQLProperties {
 		/**
 		 * Location of the GraphQL schema file.
 		 */
-		private String location = "classpath:schema.graphqls";
+		private String location = "classpath:graphql/schema.graphqls";
 
 		private final Printer printer = new Printer();
 

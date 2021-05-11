@@ -121,7 +121,7 @@ The Spring GraphQL project offers a few configuration properties to customize yo
 # web path to the graphql endpoint
 spring.graphql.path=/graphql
 # location of the graphql schema file
-spring.graphql.schema.location=classpath:/schema.graphqls
+spring.graphql.schema.location=classpath:graphql/schema.graphqls
 # schema printer endpoint configuration
 # endpoint path is concatenated with the main path, so "/graphql/schema" by default
 spring.graphql.schema.printer.enabled=false
