@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.websocket.server.ServerContainer;
 
 import graphql.GraphQL;
+import graphql.schema.idl.SchemaPrinter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -82,20 +83,23 @@ public class WebMvcGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(
-			ResourceLoader resourceLoader, GraphQLHttpHandler handler, GraphQLProperties properties) {
+	public RouterFunction<ServerResponse> graphQLQueryEndpoint(GraphQLHttpHandler handler, GraphQLSource graphQLSource,
+			GraphQLProperties properties, ResourceLoader resourceLoader) {
 
 		String path = properties.getPath();
 		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + path);
 		}
-
-		return RouterFunctions.route()
+		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(path, req -> ServerResponse.ok().body(resource))
-				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handle)
-				.build();
+				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handle);
+		if (properties.getSchema().getPrinter().isEnabled()) {
+			SchemaPrinter schemaPrinter = new SchemaPrinter();
+			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
+					req -> ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).body(schemaPrinter.print(graphQLSource.schema())));
+		}
+		return builder.build();
 	}
 
 

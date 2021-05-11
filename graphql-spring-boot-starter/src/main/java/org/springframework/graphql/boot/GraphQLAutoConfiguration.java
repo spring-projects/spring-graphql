@@ -57,9 +57,7 @@ public class GraphQLAutoConfiguration {
 		public GraphQLSource.Builder graphQLSourceBuilder(
 				GraphQLProperties properties, RuntimeWiring runtimeWiring,
 				ResourceLoader resourceLoader, ObjectProvider<Instrumentation> instrumentationsProvider) {
-
-			String schemaLocation = properties.getSchemaLocation();
-
+			String schemaLocation = properties.getSchema().getLocation();
 			return GraphQLSource.builder()
 					.schemaResource(resourceLoader.getResource(schemaLocation))
 					.runtimeWiring(runtimeWiring)

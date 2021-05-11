@@ -45,6 +45,11 @@ public interface GraphQLSource {
 	 */
 	GraphQL graphQL();
 
+	/**
+	 * Return the {@link GraphQLSchema} used by the current {@link GraphQL}.
+	 */
+	GraphQLSchema schema();
+
 
 	/**
 	 * Return a builder for a {@link GraphQLSource} given input for the

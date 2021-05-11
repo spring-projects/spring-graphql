@@ -107,7 +107,7 @@ class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
 		this.graphQLConfigurers.accept(builder);
 		GraphQL graphQL = builder.build();
 
-		return new CachedGraphQLSource(graphQL);
+		return new CachedGraphQLSource(graphQL, schema);
 	}
 
 	private TypeDefinitionRegistry parseSchemaResource() {
@@ -126,19 +126,27 @@ class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
 
 
 	/**
-	 * GraphQLSource that returns the built GraphQL instance.
+	 * GraphQLSource that returns the built GraphQL instance and its schema.
 	 */
 	private static class CachedGraphQLSource implements GraphQLSource {
 
 		private final GraphQL graphQL;
 
-		CachedGraphQLSource(GraphQL graphQL) {
+		private final GraphQLSchema schema;
+
+		CachedGraphQLSource(GraphQL graphQL, GraphQLSchema schema) {
 			this.graphQL = graphQL;
+			this.schema = schema;
 		}
 
 		@Override
 		public GraphQL graphQL() {
 			return this.graphQL;
+		}
+
+		@Override
+		public GraphQLSchema schema() {
+			return this.schema;
 		}
 	}
 

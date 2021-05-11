@@ -23,16 +23,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class GraphQLProperties {
 
 	/**
-	 * Location of the GraphQL schema file.
-	 */
-	private String schemaLocation = "classpath:schema.graphqls";
-
-	/**
 	 * Path of the GraphQL HTTP query endpoint.
 	 */
 	private String path = "/graphql";
 
-	private WebSocket websocket = new WebSocket();
+	private final Schema schema = new Schema();
+
+	private final WebSocket websocket = new WebSocket();
 
 	public String getPath() {
 		return this.path;
@@ -42,19 +39,69 @@ public class GraphQLProperties {
 		this.path = path;
 	}
 
-	public String getSchemaLocation() {
-		return this.schemaLocation;
-	}
-
-	public void setSchemaLocation(String schemaLocation) {
-		this.schemaLocation = schemaLocation;
+	public Schema getSchema() {
+		return this.schema;
 	}
 
 	public WebSocket getWebsocket() {
 		return this.websocket;
 	}
 
-	static class WebSocket {
+	public static class Schema {
+
+		/**
+		 * Location of the GraphQL schema file.
+		 */
+		private String location = "classpath:schema.graphqls";
+
+		private final Printer printer = new Printer();
+
+		public String getLocation() {
+			return this.location;
+		}
+
+		public void setLocation(String location) {
+			this.location = location;
+		}
+
+		public Printer getPrinter() {
+			return this.printer;
+		}
+
+
+		public static class Printer {
+
+			/**
+			 * Whether the endpoint that prints the schema is enabled.
+			 */
+			private boolean enabled = false;
+
+			/**
+			 * Path under the main GraphQL path where the schema is exposed.
+			 */
+			private String path = "/schema";
+
+			public boolean isEnabled() {
+				return this.enabled;
+			}
+
+			public void setEnabled(boolean enabled) {
+				this.enabled = enabled;
+			}
+
+			public String getPath() {
+				return this.path;
+			}
+
+			public void setPath(String path) {
+				this.path = path;
+			}
+		}
+
+	}
+
+
+	public static class WebSocket {
 
 		/**
 		 * Path of the GraphQL WebSocket subscription endpoint.

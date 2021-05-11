@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
+import graphql.schema.idl.SchemaPrinter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
@@ -75,20 +76,23 @@ public class WebFluxGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLEndpoint(
-			GraphQLHttpHandler handler, GraphQLProperties properties, ResourceLoader resourceLoader) {
+	public RouterFunction<ServerResponse> graphQLEndpoint(GraphQLHttpHandler handler, GraphQLSource graphQLSource,
+			GraphQLProperties properties, ResourceLoader resourceLoader) {
 
 		String path = properties.getPath();
 		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + path);
 		}
-
-		return RouterFunctions.route()
+		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(path, req -> ServerResponse.ok().bodyValue(resource))
-				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleQuery)
-				.build();
+				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleQuery);
+		if (properties.getSchema().getPrinter().isEnabled()) {
+			SchemaPrinter schemaPrinter = new SchemaPrinter();
+			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
+					req -> ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).bodyValue(schemaPrinter.print(graphQLSource.schema())));
+		}
+		return builder.build();
 	}
 
 	@ConditionalOnProperty(prefix = "spring.graphql.websocket", name = "path")

@@ -17,6 +17,7 @@
 package org.springframework.graphql.boot;
 
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -32,10 +33,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -97,13 +100,23 @@ class WebMvcApplicationContextTests {
 		});
 	}
 
+	@Test
+	void schemaEndpoint() {
+		testWith(mockMvc -> {
+			mockMvc.perform(get("/graphql/schema")).andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.TEXT_PLAIN))
+					.andExpect(content().string(Matchers.containsString("type Book")));
+		});
+	}
+
 	private void testWith(MockMvcConsumer mockMvcConsumer) {
 		new WebApplicationContextRunner()
 				.withConfiguration(AUTO_CONFIGURATIONS)
 				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
 				.withPropertyValues(
 						"spring.main.web-application-type=servlet",
-						"spring.graphql.schema-location:classpath:books/schema.graphqls")
+						"spring.graphql.schema.printer.enabled=true",
+						"spring.graphql.schema.location=classpath:books/schema.graphqls")
 				.run((context) -> {
 					MockHttpServletRequestBuilder builder = post("/graphql")
 							.contentType(MediaType.APPLICATION_JSON)

@@ -18,6 +18,7 @@ package org.springframework.graphql.boot;
 import java.util.Collections;
 import java.util.function.Consumer;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -97,6 +98,16 @@ class WebFluxApplicationContextTests {
 		});
 	}
 
+	@Test
+	void schemaEndpoint() {
+		testWithWebClient(client -> {
+			client.get().uri("/schema").accept(MediaType.ALL).exchange()
+					.expectStatus().isOk()
+					.expectHeader().contentType(MediaType.TEXT_PLAIN)
+					.expectBody(String.class).value(Matchers.containsString("type Book"));
+		});
+	}
+
 	private void testWithWebClient(Consumer<WebTestClient> consumer) {
 		testWithApplicationContext(context -> {
 			WebTestClient client = WebTestClient.bindToApplicationContext(context)
@@ -117,7 +128,8 @@ class WebFluxApplicationContextTests {
 				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
 				.withPropertyValues(
 						"spring.main.web-application-type=reactive",
-						"spring.graphql.schema-location:classpath:books/schema.graphqls")
+						"spring.graphql.schema.printer.enabled=true",
+						"spring.graphql.schema.location=classpath:books/schema.graphqls")
 				.run(consumer);
 	}
 
