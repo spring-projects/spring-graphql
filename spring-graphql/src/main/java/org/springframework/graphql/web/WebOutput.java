@@ -173,7 +173,7 @@ public class WebOutput implements ExecutionResult {
 		/**
 		 * Add a custom header to be set on the HTTP response.
 		 *
-		 * <p><strong>Note:</strong> This can be used for GraphQL over HTTP query
+		 * <p><strong>Note:</strong> This can be used for GraphQL over HTTP
 		 * requests but has no impact for queries over a WebSocket session where
 		 * the initial handshake request completes before queries begin.
 		 */
@@ -188,7 +188,7 @@ public class WebOutput implements ExecutionResult {
 		/**
 		 * Consume and update the headers to be set on the HTTP response.
 		 *
-		 * <p><strong>Note:</strong> This can be used for GraphQL over HTTP query
+		 * <p><strong>Note:</strong> This can be used for GraphQL over HTTP
 		 * requests but has no impact for queries over a WebSocket session where
 		 * the initial handshake request completes before queries begin.
 		 */

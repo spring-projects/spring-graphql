@@ -92,12 +92,13 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 public interface GraphQLTester {
 
 	/**
-	 * Prepare to perform a GraphQL request with the given query.
-	 * @param query the query to send
+	 * Prepare to perform a GraphQL request with the given operation which may
+	 * be a query, mutation, or a subscription.
+	 * @param query the operation to be performed
 	 * @return spec for response assertions
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	QuerySpec query(String query);
+	RequestSpec query(String query);
 
 
 	/**
@@ -157,24 +158,24 @@ public interface GraphQLTester {
 
 
 	/**
-	 * Declare options to gather input for a GraphQL query and execute it.
+	 * Declare options to gather input for a GraphQL request and execute it.
 	 */
-	interface QuerySpec extends ExecuteSpec {
+	interface RequestSpec extends ExecuteSpec {
 
 		/**
 		 * Set the operation name.
 		 */
-		QuerySpec operationName(@Nullable String name);
+		RequestSpec operationName(@Nullable String name);
 
 		/**
 		 * Add a variable.
 		 */
-		QuerySpec variable(String name, Object value);
+		RequestSpec variable(String name, Object value);
 
 		/**
 		 * Modify variables by accessing the underlying map.
 		 */
-		QuerySpec variables(Consumer<Map<String, Object>> variablesConsumer);
+		RequestSpec variables(Consumer<Map<String, Object>> variablesConsumer);
 	}
 
 
@@ -185,8 +186,8 @@ public interface GraphQLTester {
 
 		/**
 		 * Switch to a path under the "data" section of the GraphQL response.
-		 * The path can be a query root type name, e.g. "project", or a nested
-		 * path such as "project.name", or any
+		 * The path can be an operation root type name, e.g. "project", or a
+		 * nested path such as "project.name", or any
 		 * <a href="https://github.com/jayway/JsonPath">JsonPath</a>.
 		 *
 		 * @param path the path to switch to

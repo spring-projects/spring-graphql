@@ -71,7 +71,7 @@ public class WebInput extends RequestInput {
 
 	/**
 	 * Return the URI of the HTTP request including
-	 * {@link UriComponents#getQueryParams() query parameters}.
+	 * {@link UriComponents#getQueryParams() URL query parameters}.
 	 */
 	public UriComponents getUri() {
 		return this.uri;

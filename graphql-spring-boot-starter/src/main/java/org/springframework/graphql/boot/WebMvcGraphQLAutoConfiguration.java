@@ -83,7 +83,7 @@ public class WebMvcGraphQLAutoConfiguration {
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQLQueryEndpoint(GraphQLHttpHandler handler, GraphQLSource graphQLSource,
+	public RouterFunction<ServerResponse> graphQLRouterFunction(GraphQLHttpHandler handler, GraphQLSource graphQLSource,
 			GraphQLProperties properties, ResourceLoader resourceLoader) {
 
 		String path = properties.getPath();
@@ -93,7 +93,7 @@ public class WebMvcGraphQLAutoConfiguration {
 		}
 		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(path, req -> ServerResponse.ok().body(resource))
-				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handle);
+				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter schemaPrinter = new SchemaPrinter();
 			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
@@ -122,7 +122,7 @@ public class WebMvcGraphQLAutoConfiguration {
 		}
 
 		@Bean
-		public HandlerMapping graphQLWebSocketEndpoint(GraphQLWebSocketHandler handler, GraphQLProperties properties) {
+		public HandlerMapping graphQLWebSocketMapping(GraphQLWebSocketHandler handler, GraphQLProperties properties) {
 			String path = properties.getWebsocket().getPath();
 			if (logger.isInfoEnabled()) {
 				logger.info("GraphQL endpoint WebSocket " + path);

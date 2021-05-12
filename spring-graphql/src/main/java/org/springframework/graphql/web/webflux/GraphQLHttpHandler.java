@@ -53,9 +53,9 @@ public class GraphQLHttpHandler {
 
 
 	/**
-	 * Handle GraphQL query requests over HTTP.
+	 * Handle GraphQL requests over HTTP.
 	 */
-	public Mono<ServerResponse> handleQuery(ServerRequest request) {
+	public Mono<ServerResponse> handleRequest(ServerRequest request) {
 		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
 					String id = request.exchange().getRequest().getId();

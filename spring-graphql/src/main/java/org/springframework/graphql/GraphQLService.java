@@ -20,14 +20,14 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Strategy to perform GraphQL query execution with input for and output from
+ * Strategy to perform GraphQL request execution with input for and output from
  * the invocation of {@link graphql.GraphQL}.
  */
 public interface GraphQLService {
 
 	/**
-	 * Perform the query and return the result.
-	 * @param input the input for query execution via {@link graphql.GraphQL}
+	 * Perform the operation and return the result.
+	 * @param input the input for the {@link graphql.GraphQL} invocation
 	 * @return the execution result
 	 */
 	Mono<ExecutionResult> execute(ExecutionInput input);

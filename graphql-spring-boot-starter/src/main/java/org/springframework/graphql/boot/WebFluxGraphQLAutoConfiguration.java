@@ -86,7 +86,7 @@ public class WebFluxGraphQLAutoConfiguration {
 		}
 		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(path, req -> ServerResponse.ok().bodyValue(resource))
-				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleQuery);
+				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter schemaPrinter = new SchemaPrinter();
 			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),

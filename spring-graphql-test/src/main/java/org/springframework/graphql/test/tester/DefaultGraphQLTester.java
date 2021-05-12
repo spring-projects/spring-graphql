@@ -94,8 +94,8 @@ class DefaultGraphQLTester implements GraphQLTester {
 
 
 	@Override
-	public QuerySpec query(String query) {
-		return new DefaultQuerySpec(query);
+	public RequestSpec query(String query) {
+		return new DefaultRequestSpec(query);
 	}
 
 
@@ -105,7 +105,7 @@ class DefaultGraphQLTester implements GraphQLTester {
 	interface RequestStrategy {
 
 		/**
-		 * Perform a query with the given {@link RequestInput} container.
+		 * Perform a request with the given {@link RequestInput} container.
 		 */
 		GraphQLTester.ResponseSpec execute(RequestInput input);
 
@@ -153,11 +153,11 @@ class DefaultGraphQLTester implements GraphQLTester {
 		}
 
 		@Override
-		public SubscriptionSpec executeSubscription(RequestInput queryInput) {
+		public SubscriptionSpec executeSubscription(RequestInput requestInput) {
 			FluxExchangeResult<TestExecutionResult> exchangeResult = this.client.post()
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.TEXT_EVENT_STREAM)
-					.bodyValue(queryInput)
+					.bodyValue(requestInput)
 					.exchange()
 					.expectStatus().isOk()
 					.expectHeader().contentType(MediaType.TEXT_EVENT_STREAM)
@@ -224,7 +224,7 @@ class DefaultGraphQLTester implements GraphQLTester {
 					assertion.run();
 				}
 				catch (AssertionError ex) {
-					throw new AssertionError(ex.getMessage() + "\nQuery: " + input, ex);
+					throw new AssertionError(ex.getMessage() + "\nRequest: " + input, ex);
 				}
 			};
 		}
@@ -232,9 +232,9 @@ class DefaultGraphQLTester implements GraphQLTester {
 
 
 	/**
-	 * {@link QuerySpec} that collects the query, operationName, and variables.
+	 * {@link RequestSpec} that collects the query, operationName, and variables.
 	 */
-	private class DefaultQuerySpec implements QuerySpec {
+	private class DefaultRequestSpec implements RequestSpec {
 
 		private final String query;
 
@@ -243,25 +243,25 @@ class DefaultGraphQLTester implements GraphQLTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		private DefaultQuerySpec(String query) {
+		private DefaultRequestSpec(String query) {
 			Assert.notNull(query, "`query` is required");
 			this.query = query;
 		}
 
 		@Override
-		public QuerySpec operationName(@Nullable String name) {
+		public RequestSpec operationName(@Nullable String name) {
 			this.operationName = name;
 			return this;
 		}
 
 		@Override
-		public QuerySpec variable(String name, Object value) {
+		public RequestSpec variable(String name, Object value) {
 			this.variables.put(name, value);
 			return this;
 		}
 
 		@Override
-		public QuerySpec variables(Consumer<Map<String, Object>> variablesConsumer) {
+		public RequestSpec variables(Consumer<Map<String, Object>> variablesConsumer) {
 			variablesConsumer.accept(this.variables);
 			return this;
 		}

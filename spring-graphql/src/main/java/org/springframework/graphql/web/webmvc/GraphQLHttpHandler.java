@@ -64,7 +64,7 @@ public class GraphQLHttpHandler {
 	 * @throws ServletException may be raised when reading the request body,
 	 * e.g. {@link HttpMediaTypeNotSupportedException}.
 	 */
-	public ServerResponse handle(ServerRequest request) throws ServletException {
+	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
 		WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request), null);
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + input);

@@ -23,7 +23,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class GraphQLProperties {
 
 	/**
-	 * Path of the GraphQL HTTP query endpoint.
+	 * Path at which to expose a GraphQL request HTTP endpoint.
 	 */
 	private String path = "/graphql";
 

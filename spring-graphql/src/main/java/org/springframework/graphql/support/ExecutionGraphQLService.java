@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.GraphQLService;
 
 /**
- * Implementation of {@link GraphQLService} that performs GraphQL query execution
+ * Implementation of {@link GraphQLService} that performs GraphQL request execution
  * through {@link GraphQL#executeAsync(ExecutionInput)}.
  */
 public class ExecutionGraphQLService implements GraphQLService {

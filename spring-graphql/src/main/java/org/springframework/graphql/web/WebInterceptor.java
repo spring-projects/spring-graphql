@@ -29,7 +29,7 @@ import org.springframework.util.Assert;
  * Interceptor for intercepting GraphQL over HTTP or WebSocket requests.
  * Provides information about the HTTP request or WebSocket handshake, allows
  * customization of the {@link ExecutionInput} and of the {@link ExecutionResult}
- * from query execution.
+ * from request execution.
  *
  * <p>Interceptors may be declared as beans in Spring configuration and ordered
  * as defined in {@link ObjectProvider#orderedStream()}.
@@ -39,12 +39,12 @@ import org.springframework.util.Assert;
 public interface WebInterceptor {
 
 	/**
-	 * Intercept a request and delegate for further handling and query execution
+	 * Intercept a request and delegate for further handling and request execution
 	 * via {@link WebGraphQLHandler#handle(WebInput)}.
 	 *
 	 * @param webInput container with HTTP request information and options to
 	 * customize the {@link ExecutionInput}.
-	 * @param next the handler to delegate to for query execution
+	 * @param next the handler to delegate to for request execution
 	 * @return a {@link Mono} with the result
 	 */
 	Mono<WebOutput> intercept(WebInput webInput, WebGraphQLHandler next);
@@ -61,7 +61,7 @@ public interface WebInterceptor {
 	/**
 	 * Return {@link WebGraphQLHandler} that invokes the current interceptor
 	 * first and then the given {@link GraphQLService} for actual execution of
-	 * the GraphQL query.
+	 * the GraphQL operation.
 	 */
 	default WebGraphQLHandler apply(GraphQLService service) {
 		Assert.notNull(service, "GraphQLService must not be null");

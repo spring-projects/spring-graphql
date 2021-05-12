@@ -30,9 +30,9 @@ import org.springframework.graphql.GraphQLService;
 public interface WebGraphQLHandler {
 
 	/**
-	 * Perform query execution for the given request and return the result.
+	 * Perform request execution for the given input and return the result.
 	 *
-	 * @param input the GraphQL query container
+	 * @param input the GraphQL request input container
 	 * @return the execution result
 	 */
 	Mono<WebOutput> handle(WebInput input);

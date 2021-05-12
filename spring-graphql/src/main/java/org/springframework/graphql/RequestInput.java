@@ -69,7 +69,7 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the query operation name extracted from the request body or
+	 * Return the operation name extracted from the request body or
 	 * {@code null} if not provided.
 	 */
 	@Nullable
@@ -78,7 +78,7 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the query variables that can be referenced via $syntax extracted
+	 * Return the variables that can be referenced via $syntax extracted
 	 * from the request body or a {@code null} if not provided.
 	 */
 	public Map<String, Object> getVariables() {
@@ -98,7 +98,7 @@ public class RequestInput {
 	}
 
 	/**
-	 * Create the {@link ExecutionInput} for query execution. This is initially
+	 * Create the {@link ExecutionInput} for request execution. This is initially
 	 * populated from {@link #getQuery()}, {@link #getOperationName()}, and
 	 * {@link #getVariables()}, and is then further customized through
 	 * {@link #configureExecutionInput(BiFunction)}.
