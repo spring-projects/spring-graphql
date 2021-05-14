@@ -33,7 +33,6 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
-import org.springframework.graphql.DataFetcherExceptionResolver;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 

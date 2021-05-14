@@ -27,7 +27,6 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
-import org.springframework.graphql.DataFetcherExceptionResolver;
 
 /**
  * Strategy to resolve the {@link GraphQL} instance to use.

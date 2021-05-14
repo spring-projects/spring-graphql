@@ -31,8 +31,6 @@ import graphql.schema.idl.RuntimeWiring;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.graphql.DataFetcherExceptionResolver;
-import org.springframework.graphql.ErrorType;
 import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;

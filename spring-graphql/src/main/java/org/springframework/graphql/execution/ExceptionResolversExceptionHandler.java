@@ -25,8 +25,6 @@ import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.graphql.DataFetcherExceptionResolver;
-import org.springframework.graphql.ErrorType;
 import org.springframework.util.Assert;
 
 /**
