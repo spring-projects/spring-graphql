@@ -17,6 +17,7 @@ package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
@@ -48,7 +49,9 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	@Override
 	public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters parameters) {
-		return invokeChain(parameters.getException(), parameters.getDataFetchingEnvironment());
+		Throwable exception = parameters.getException();
+		exception = (exception instanceof CompletionException ? exception.getCause() : exception);
+		return invokeChain(exception, parameters.getDataFetchingEnvironment());
 	}
 
 	public DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
