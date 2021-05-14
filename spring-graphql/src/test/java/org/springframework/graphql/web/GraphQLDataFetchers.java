@@ -16,15 +16,15 @@ public class GraphQLDataFetchers {
 
 
 	public static DataFetcher getBookByIdDataFetcher() {
-		return environment -> books.stream()
-				.filter(book -> book.getId().equals(environment.getArgument("id")))
+		return env -> books.stream()
+				.filter(book -> book.getId().equals(env.getArgument("id")))
 				.findFirst()
 				.orElse(null);
 	}
 
 	public static DataFetcher getBooksOnSale() {
-		return environment -> Flux.fromIterable(books)
-				.filter(book -> book.getPageCount() >= (int) environment.getArgument("minPages"));
+		return env -> Flux.fromIterable(books)
+				.filter(book -> book.getPageCount() >= (int) env.getArgument("minPages"));
 	}
 
 }

@@ -276,14 +276,14 @@ public class GraphQLWebSocketHandlerTests {
 
 		WebGraphQLHandler graphQLHandler = WebInterceptor.createHandler(
 				(interceptors != null ? interceptors : Collections.emptyList()),
-				new ExecutionGraphQLService(initGraphQLSource()));
+				new ExecutionGraphQLService(graphQLSource()));
 
 		return new GraphQLWebSocketHandler(graphQLHandler,
 				ServerCodecConfigurer.create(),
 				(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));
 	}
 
-	private static GraphQLSource initGraphQLSource() {
+	private static GraphQLSource graphQLSource() {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
 		builder.type(newTypeWiring("Query").dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
 		builder.type(newTypeWiring("Subscription").dataFetcher("bookSearch", GraphQLDataFetchers.getBooksOnSale()));
