@@ -29,7 +29,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Container for a GraphQL request.
+ * Common representation for GraphQL request input. This can be converted to
+ * {@link ExecutionInput} via {@link #toExecutionInput()} and the
+ * {@code ExecutionInput} further customized via
+ * {@link #configureExecutionInput(BiFunction)}.
  */
 public class RequestInput {
 
