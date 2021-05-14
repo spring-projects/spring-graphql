@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.DataFetcherExceptionResolver;
-import org.springframework.graphql.support.GraphQLSource;
+import org.springframework.graphql.execution.GraphQLSource;
 
 @Configuration
 @ConditionalOnClass(GraphQL.class)

@@ -31,8 +31,8 @@ import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.graphql.support.ExecutionGraphQLService;
-import org.springframework.graphql.support.GraphQLSource;
+import org.springframework.graphql.execution.ExecutionGraphQLService;
+import org.springframework.graphql.execution.GraphQLSource;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.GraphQLDataFetchers;
 import org.springframework.graphql.web.WebGraphQLHandler;

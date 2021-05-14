@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.support;
+package org.springframework.graphql.execution;
 
 import java.io.File;
 import java.util.List;
@@ -28,7 +28,6 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
 import org.springframework.graphql.DataFetcherExceptionResolver;
-import org.springframework.lang.Nullable;
 
 /**
  * Strategy to resolve the {@link GraphQL} instance to use.

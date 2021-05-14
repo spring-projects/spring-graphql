@@ -23,8 +23,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.GraphQLService;
-import org.springframework.graphql.support.ExecutionGraphQLService;
-import org.springframework.graphql.support.GraphQLSource;
+import org.springframework.graphql.execution.ExecutionGraphQLService;
+import org.springframework.graphql.execution.GraphQLSource;
 
 @Configuration
 @ConditionalOnClass(GraphQL.class)
