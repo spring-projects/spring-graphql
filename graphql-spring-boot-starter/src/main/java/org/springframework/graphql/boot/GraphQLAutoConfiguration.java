@@ -28,6 +28,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.DataFetcherExceptionResolver;
 import org.springframework.graphql.support.GraphQLSource;
 
 @Configuration
@@ -56,11 +57,14 @@ public class GraphQLAutoConfiguration {
 		@Bean
 		public GraphQLSource.Builder graphQLSourceBuilder(
 				GraphQLProperties properties, RuntimeWiring runtimeWiring,
+				ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
 				ResourceLoader resourceLoader, ObjectProvider<Instrumentation> instrumentationsProvider) {
+
 			String schemaLocation = properties.getSchema().getLocation();
 			return GraphQLSource.builder()
 					.schemaResource(resourceLoader.getResource(schemaLocation))
 					.runtimeWiring(runtimeWiring)
+					.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
 					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
 		}
 	}

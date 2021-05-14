@@ -27,6 +27,7 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
+import org.springframework.graphql.DataFetcherExceptionResolver;
 import org.springframework.lang.Nullable;
 
 /**
@@ -78,7 +79,14 @@ public interface GraphQLSource {
 		Builder runtimeWiring(RuntimeWiring runtimeWiring);
 
 		/**
-		 * Add {@link GraphQLTypeVisitor}s to transform the underlying
+		 * Add {@link DataFetcherExceptionResolver}'s to use for resolving
+		 * exceptions from {@link graphql.schema.DataFetcher}'s.
+		 * @param resolvers the resolvers to add
+		 */
+		Builder exceptionResolvers(List<DataFetcherExceptionResolver> resolvers);
+
+		/**
+		 * Add {@link GraphQLTypeVisitor}'s to transform the underlying
 		 * {@link graphql.schema.GraphQLSchema} with.
 		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
 		 */

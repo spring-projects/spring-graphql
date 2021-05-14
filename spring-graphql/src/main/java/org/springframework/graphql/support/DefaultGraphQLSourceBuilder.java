@@ -33,6 +33,7 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
+import org.springframework.graphql.DataFetcherExceptionResolver;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -47,6 +48,8 @@ class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
 	private Resource schemaResource;
 
 	private RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring().build();
+
+	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
 	private final List<GraphQLTypeVisitor> typeVisitors = new ArrayList<>();
 
@@ -70,6 +73,12 @@ class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
 	public GraphQLSource.Builder runtimeWiring(RuntimeWiring runtimeWiring) {
 		Assert.notNull(runtimeWiring, "RuntimeWiring is required");
 		this.runtimeWiring = runtimeWiring;
+		return this;
+	}
+
+	@Override
+	public GraphQLSource.Builder exceptionResolvers(List<DataFetcherExceptionResolver> resolvers) {
+		this.exceptionResolvers.addAll(resolvers);
 		return this;
 	}
 
@@ -101,6 +110,7 @@ class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
 		}
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
+		builder.defaultDataFetcherExceptionHandler(new ExceptionResolversExceptionHandler(this.exceptionResolvers));
 		if (!this.instrumentations.isEmpty()) {
 			builder = builder.instrumentation(new ChainedInstrumentation(this.instrumentations));
 		}
