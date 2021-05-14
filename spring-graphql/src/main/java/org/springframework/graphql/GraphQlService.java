@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.web;
+package org.springframework.graphql;
 
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
+import graphql.ExecutionInput;
+import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
-import static org.assertj.core.api.Assertions.assertThat;
+/**
+ * Strategy to perform GraphQL request execution with input for and output from
+ * the invocation of {@link graphql.GraphQL}.
+ */
+public interface GraphQlService {
 
-public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
+	/**
+	 * Perform the operation and return the result.
+	 * @param input the input for the {@link graphql.GraphQL} invocation
+	 * @return the execution result
+	 */
+	Mono<ExecutionResult> execute(ExecutionInput input);
 
-	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
-		return next.handle(webInput).map(output ->
-				output.transform(builder -> {
-					Publisher<?> publisher = output.getData();
-					assertThat(publisher).isNotNull();
-					builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
-				}));
-	}
 }

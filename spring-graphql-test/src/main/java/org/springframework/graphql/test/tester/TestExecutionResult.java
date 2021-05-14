@@ -47,7 +47,7 @@ public class TestExecutionResult implements ExecutionResult {
 		return (T) this.data;
 	}
 
-	public void setErrors(List<TestGraphQLError> errors) {
+	public void setErrors(List<TestGraphQlError> errors) {
 		this.errors = new ArrayList<>(errors);
 	}
 

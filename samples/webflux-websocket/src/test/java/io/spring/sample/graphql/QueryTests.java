@@ -21,8 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.web.WebGraphQLHandler;
-import org.springframework.graphql.test.tester.GraphQLTester;
+import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
  * GraphQL query tests directly via {@link GraphQL}.
@@ -30,19 +30,19 @@ import org.springframework.graphql.test.tester.GraphQLTester;
 @SpringBootTest
 public class QueryTests {
 
-	private GraphQLTester graphQLTester;
+	private GraphQlTester graphQlTester;
 
 
 	@BeforeEach
-	public void setUp(@Autowired WebGraphQLHandler handler) {
-		this.graphQLTester = GraphQLTester.create(webInput ->
+	public void setUp(@Autowired WebGraphQlHandler handler) {
+		this.graphQlTester = GraphQlTester.create(webInput ->
 				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 
 	@Test
 	void greetingMono() {
-		this.graphQLTester.query("{greetingMono}")
+		this.graphQlTester.query("{greetingMono}")
 				.execute()
 				.path("greetingMono")
 				.entity(String.class)
@@ -51,7 +51,7 @@ public class QueryTests {
 
 	@Test
 	void greetingsFlux() {
-		this.graphQLTester.query("{greetingsFlux}")
+		this.graphQlTester.query("{greetingsFlux}")
 				.execute()
 				.path("greetingsFlux")
 				.entityList(String.class)

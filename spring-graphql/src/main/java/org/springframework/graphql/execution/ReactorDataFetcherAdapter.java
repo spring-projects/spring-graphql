@@ -89,8 +89,8 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 
 	@Nullable
 	private ContextView getReactorContext(DataFetchingEnvironment environment) {
-		GraphQLContext graphQLContext = environment.getContext();
-		return graphQLContext.get(REACTOR_CONTEXT_KEY);
+		GraphQLContext graphQlContext = environment.getContext();
+		return graphQlContext.get(REACTOR_CONTEXT_KEY);
 	}
 
 	/**
@@ -98,8 +98,8 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 	 * for later retrieval from the {@link DataFetchingEnvironment}.
 	 */
 	public static void addReactorContext(ExecutionInput executionInput, ContextView reactorContext) {
-		GraphQLContext graphQLContext = (GraphQLContext) executionInput.getContext();
-		graphQLContext.put(REACTOR_CONTEXT_KEY, reactorContext);
+		GraphQLContext graphQlContext = (GraphQLContext) executionInput.getContext();
+		graphQlContext.put(REACTOR_CONTEXT_KEY, reactorContext);
 	}
 
 

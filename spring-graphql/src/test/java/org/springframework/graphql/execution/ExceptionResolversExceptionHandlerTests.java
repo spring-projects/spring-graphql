@@ -42,7 +42,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveException() throws Exception {
-		GraphQL graphQL = graphQL("type Query { greeting: String }",
+		GraphQL graphQl = graphQl("type Query { greeting: String }",
 				"Query", "greeting", env -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				},
@@ -53,7 +53,7 @@ public class ExceptionResolversExceptionHandlerTests {
 								.build()));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		ExecutionResult result = graphQL.executeAsync(input).get();
+		ExecutionResult result = graphQl.executeAsync(input).get();
 
 		Map<String, Object> data = result.getData();
 		assertThat(data).hasSize(1).containsEntry("greeting", null);
@@ -67,13 +67,13 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void unresolvedException() throws Exception {
-		GraphQL graphQL = graphQL("type Query { greeting: String }",
+		GraphQL graphQl = graphQl("type Query { greeting: String }",
 				"Query", "greeting", env -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				});
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		ExecutionResult result = graphQL.executeAsync(input).get();
+		ExecutionResult result = graphQl.executeAsync(input).get();
 
 		Map<String, Object> data = result.getData();
 		assertThat(data).hasSize(1).containsEntry("greeting", null);
@@ -85,7 +85,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		assertThat(error.getErrorType().toString()).isEqualTo("INTERNAL_ERROR");
 	}
 
-	private GraphQL graphQL(String schemaContent,
+	private GraphQL graphQl(String schemaContent,
 			String typeName, String fieldName, DataFetcher<?> dataFetcher,
 			@Nullable DataFetcherExceptionResolver... resolvers) {
 
@@ -93,12 +93,12 @@ public class ExceptionResolversExceptionHandlerTests {
 				.type(typeName, builder -> builder.dataFetcher(fieldName, dataFetcher))
 				.build();
 
-		return GraphQLSource.builder()
+		return GraphQlSource.builder()
 				.schemaResource(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
 				.runtimeWiring(wiring)
 				.exceptionResolvers(Arrays.asList(resolvers))
 				.build()
-				.graphQL();
+				.graphQl();
 	}
 
 }

@@ -1,6 +1,6 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.springframework.graphql.boot.actuate.metrics.GraphQLMetricsAutoConfiguration,\
-org.springframework.graphql.boot.GraphQLAutoConfiguration,\
-org.springframework.graphql.boot.GraphQLServiceAutoConfiguration,\
-org.springframework.graphql.boot.WebFluxGraphQLAutoConfiguration,\
-org.springframework.graphql.boot.WebMvcGraphQLAutoConfiguration
+org.springframework.graphql.boot.actuate.metrics.GraphQlMetricsAutoConfiguration,\
+org.springframework.graphql.boot.GraphQlAutoConfiguration,\
+org.springframework.graphql.boot.GraphQlServiceAutoConfiguration,\
+org.springframework.graphql.boot.WebFluxGraphQlAutoConfiguration,\
+org.springframework.graphql.boot.WebMvcGraphQlAutoConfiguration

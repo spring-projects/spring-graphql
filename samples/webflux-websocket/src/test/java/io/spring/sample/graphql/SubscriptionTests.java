@@ -23,8 +23,8 @@ import reactor.test.StepVerifier;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.web.WebGraphQLHandler;
-import org.springframework.graphql.test.tester.GraphQLTester;
+import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
  * GraphQL subscription tests directly via {@link GraphQL}.
@@ -32,12 +32,12 @@ import org.springframework.graphql.test.tester.GraphQLTester;
 @SpringBootTest
 public class SubscriptionTests {
 
-	private GraphQLTester graphQLTester;
+	private GraphQlTester graphQlTester;
 
 
 	@BeforeEach
-	public void setUp(@Autowired WebGraphQLHandler handler) {
-		this.graphQLTester = GraphQLTester.create(webInput ->
+	public void setUp(@Autowired WebGraphQlHandler handler) {
+		this.graphQlTester = GraphQlTester.create(webInput ->
 				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
@@ -46,7 +46,7 @@ public class SubscriptionTests {
 	void subscriptionWithEntityPath() {
 		String query = "subscription { greetings }";
 
-		Flux<String> result = this.graphQLTester.query(query)
+		Flux<String> result = this.graphQlTester.query(query)
 				.executeSubscription()
 				.toFlux("greetings", String.class);
 
@@ -63,7 +63,7 @@ public class SubscriptionTests {
 	void subscriptionWithResponseSpec() {
 		String query = "subscription { greetings }";
 
-		Flux<GraphQLTester.ResponseSpec> result = this.graphQLTester.query(query)
+		Flux<GraphQlTester.ResponseSpec> result = this.graphQlTester.query(query)
 				.executeSubscription()
 				.toFlux();
 

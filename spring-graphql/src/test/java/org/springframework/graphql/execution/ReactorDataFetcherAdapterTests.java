@@ -42,7 +42,7 @@ public class ReactorDataFetcherAdapterTests {
 
 	@Test
 	void monoDataFetcher() throws Exception {
-		GraphQL graphQL = graphQL("type Query { greeting: String }",
+		GraphQL graphQl = graphQl("type Query { greeting: String }",
 				"Query", "greeting", env ->
 						Mono.deferContextual(context -> {
 							Object name = context.get("name");
@@ -50,14 +50,14 @@ public class ReactorDataFetcherAdapterTests {
 						}));
 
 		ExecutionInput input = executionInput("{ greeting }", Context.of("name", "007"));
-		Map<String, Object> data = graphQL.executeAsync(input).get().getData();
+		Map<String, Object> data = graphQl.executeAsync(input).get().getData();
 
 		assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
 	}
 
 	@Test
 	void fluxDataFetcher() throws Exception {
-		GraphQL graphQL = graphQL("type Query { greetings: [String] }",
+		GraphQL graphQl = graphQl("type Query { greetings: [String] }",
 				"Query", "greetings", env ->
 						Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong ->
 								Flux.deferContextual(context -> {
@@ -66,14 +66,14 @@ public class ReactorDataFetcherAdapterTests {
 								})));
 
 		ExecutionInput input = executionInput("{ greetings }", Context.of("name", "007"));
-		Map<String, Object> data = graphQL.executeAsync(input).get().getData();
+		Map<String, Object> data = graphQl.executeAsync(input).get().getData();
 
 		assertThat((List<String>) data.get("greetings")).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
 	}
 
 	@Test
 	void fluxDataFetcherSubscription() throws Exception {
-		GraphQL graphQL = graphQL(
+		GraphQL graphQl = graphQl(
 				"type Query { greeting: String } type Subscription { greetings: String }",
 				"Subscription", "greetings", env ->
 						Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong ->
@@ -83,7 +83,7 @@ public class ReactorDataFetcherAdapterTests {
 								})));
 
 		ExecutionInput input = executionInput("subscription { greetings }", Context.of("name", "007"));
-		Publisher<String> publisher = graphQL.executeAsync(input).get().getData();
+		Publisher<String> publisher = graphQl.executeAsync(input).get().getData();
 
 		List<String> actual = Flux.from(publisher)
 				.cast(ExecutionResult.class)
@@ -95,15 +95,15 @@ public class ReactorDataFetcherAdapterTests {
 		assertThat(actual).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
 	}
 
-	private GraphQL graphQL(String schemaValue, String typeName, String fieldName, DataFetcher<?> dataFetcher) {
+	private GraphQL graphQl(String schemaValue, String typeName, String fieldName, DataFetcher<?> dataFetcher) {
 		RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
 				.type(typeName, builder -> builder.dataFetcher(fieldName, dataFetcher))
 				.build();
-		return GraphQLSource.builder()
+		return GraphQlSource.builder()
 				.schemaResource(new ByteArrayResource(schemaValue.getBytes(StandardCharsets.UTF_8)))
 				.runtimeWiring(wiring)
 				.build()
-				.graphQL();
+				.graphQl();
 	}
 
 	private ExecutionInput executionInput(String query, Context reactorContext) {

@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
@@ -30,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import org.springframework.graphql.GraphQLService;
+import org.springframework.graphql.GraphQlService;
 import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +45,7 @@ public class WebInterceptorTests {
 		List<WebInterceptor> interceptors = Arrays.asList(
 				new TestWebInterceptor(sb, 1), new TestWebInterceptor(sb, 2), new TestWebInterceptor(sb, 3));
 
-		TestGraphQLService service = new TestGraphQLService();
+		TestGraphQlService service = new TestGraphQlService();
 
 		WebInput input = new WebInput(
 				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", "any"), "1");
@@ -59,7 +58,7 @@ public class WebInterceptorTests {
 	}
 
 
-	private static class TestGraphQLService implements GraphQLService {
+	private static class TestGraphQlService implements GraphQlService {
 
 		private ExecutionInput savedInput;
 
@@ -87,7 +86,7 @@ public class WebInterceptorTests {
 		}
 
 		@Override
-		public Mono<WebOutput> intercept(WebInput webInput, WebGraphQLHandler next) {
+		public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
 
 			this.output.append(":pre").append(this.index);
 

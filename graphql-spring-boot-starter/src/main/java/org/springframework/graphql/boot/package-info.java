@@ -1,7 +1,7 @@
 /**
  * Auto-configuration classes to configure
- * {@link org.springframework.graphql.execution.GraphQLSource},
- * {@link org.springframework.graphql.GraphQLService}, and HTTP and WebSocket
+ * {@link org.springframework.graphql.execution.GraphQlSource},
+ * {@link org.springframework.graphql.GraphQlService}, and HTTP and WebSocket
  * endpoints.
  */
 @NonNullApi

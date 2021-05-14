@@ -33,7 +33,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
@@ -50,11 +49,11 @@ class WebMvcApplicationContextTests {
 	public static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
 			DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
 			HttpMessageConvertersAutoConfiguration.class, JacksonAutoConfiguration.class,
-			GraphQLAutoConfiguration.class, GraphQLServiceAutoConfiguration.class,
-			WebMvcGraphQLAutoConfiguration.class);
+			GraphQlAutoConfiguration.class, GraphQlServiceAutoConfiguration.class,
+			WebMvcGraphQlAutoConfiguration.class);
 
 	@Test
-	void endpointHandlesGraphQLQuery() {
+	void endpointHandlesGraphQlQuery() {
 		testWith(mockMvc -> {
 			String query = "{" +
 					"  bookById(id: \\\"book-1\\\"){ " +
@@ -139,7 +138,7 @@ class WebMvcApplicationContextTests {
 		@Bean
 		public RuntimeWiringCustomizer bookDataFetcher() {
 			return (builder) -> builder.type(newTypeWiring("Query")
-					.dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
+					.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
 		}
 	}
 

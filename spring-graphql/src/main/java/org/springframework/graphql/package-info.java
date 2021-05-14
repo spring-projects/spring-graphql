@@ -1,6 +1,6 @@
 /**
  * Top level abstractions for processing GraphQL requests including
- * {@link org.springframework.graphql.GraphQLService} for executing a request and
+ * {@link org.springframework.graphql.GraphQlService} for executing a request and
  * {@link org.springframework.graphql.RequestInput} to represent the input for
  * a request.
  */

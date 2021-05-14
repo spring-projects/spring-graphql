@@ -22,7 +22,7 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.graphql.GraphQLService;
+import org.springframework.graphql.GraphQlService;
 import org.springframework.util.Assert;
 
 /**
@@ -40,14 +40,14 @@ public interface WebInterceptor {
 
 	/**
 	 * Intercept a request and delegate for further handling and request execution
-	 * via {@link WebGraphQLHandler#handle(WebInput)}.
+	 * via {@link WebGraphQlHandler#handle(WebInput)}.
 	 *
 	 * @param webInput container with HTTP request information and options to
 	 * customize the {@link ExecutionInput}.
 	 * @param next the handler to delegate to for request execution
 	 * @return a {@link Mono} with the result
 	 */
-	Mono<WebOutput> intercept(WebInput webInput, WebGraphQLHandler next);
+	Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next);
 
 	/**
 	 * Return a composed {@link WebInterceptor} that invokes the current
@@ -59,21 +59,21 @@ public interface WebInterceptor {
 	}
 
 	/**
-	 * Return {@link WebGraphQLHandler} that invokes the current interceptor
-	 * first and then the given {@link GraphQLService} for actual execution of
+	 * Return {@link WebGraphQlHandler} that invokes the current interceptor
+	 * first and then the given {@link GraphQlService} for actual execution of
 	 * the GraphQL operation.
 	 */
-	default WebGraphQLHandler apply(GraphQLService service) {
-		Assert.notNull(service, "GraphQLService must not be null");
+	default WebGraphQlHandler apply(GraphQlService service) {
+		Assert.notNull(service, "GraphQlService must not be null");
 		return currentInput -> intercept(currentInput, createHandler(service));
 	}
 
 
 	/**
-	 * Factory method for a {@link WebGraphQLHandler} with a chain of
-	 * interceptors followed by a {@link GraphQLService} at the end.
+	 * Factory method for a {@link WebGraphQlHandler} with a chain of
+	 * interceptors followed by a {@link GraphQlService} at the end.
 	 */
-	static WebGraphQLHandler createHandler(List<WebInterceptor> interceptors, GraphQLService service) {
+	static WebGraphQlHandler createHandler(List<WebInterceptor> interceptors, GraphQlService service) {
 		return interceptors.stream()
 				.reduce(WebInterceptor::andThen)
 				.map(interceptor -> interceptor.apply(service))
@@ -81,14 +81,14 @@ public interface WebInterceptor {
 	}
 
 	/**
-	 * Factory method for a {@link WebGraphQLHandler} that simple invokes the
-	 * given {@link GraphQLService} adapting to its input and output.
+	 * Factory method for a {@link WebGraphQlHandler} that simple invokes the
+	 * given {@link GraphQlService} adapting to its input and output.
 	 */
-	static WebGraphQLHandler createHandler(GraphQLService graphQLService) {
-		Assert.notNull(graphQLService, "GraphQLService must not be null");
+	static WebGraphQlHandler createHandler(GraphQlService graphQlService) {
+		Assert.notNull(graphQlService, "GraphQlService must not be null");
 		return webInput -> {
 			ExecutionInput executionInput = webInput.toExecutionInput();
-			return graphQLService.execute(executionInput).map(result -> new WebOutput(webInput, result));
+			return graphQlService.execute(executionInput).map(result -> new WebOutput(webInput, result));
 		};
 	}
 

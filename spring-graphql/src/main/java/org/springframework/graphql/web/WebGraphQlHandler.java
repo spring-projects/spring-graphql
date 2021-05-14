@@ -15,21 +15,26 @@
  */
 package org.springframework.graphql.web;
 
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
+import java.util.List;
+
 import reactor.core.publisher.Mono;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.graphql.GraphQlService;
 
-public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
+/**
+ * Contract to handle a GraphQL over HTTP or WebSocket request that forms the
+ * basis of a {@link WebInterceptor} delegation chain.
+ *
+ * @see WebInterceptor#createHandler(List, GraphQlService)
+ */
+public interface WebGraphQlHandler {
 
-	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
-		return next.handle(webInput).map(output ->
-				output.transform(builder -> {
-					Publisher<?> publisher = output.getData();
-					assertThat(publisher).isNotNull();
-					builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
-				}));
-	}
+	/**
+	 * Perform request execution for the given input and return the result.
+	 *
+	 * @param input the GraphQL request input container
+	 * @return the execution result
+	 */
+	Mono<WebOutput> handle(WebInput input);
+
 }

@@ -42,8 +42,8 @@ class WebFluxApplicationContextTests {
 	private static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
 			HttpHandlerAutoConfiguration.class, WebFluxAutoConfiguration.class,
 			CodecsAutoConfiguration.class, JacksonAutoConfiguration.class,
-			GraphQLAutoConfiguration.class, GraphQLServiceAutoConfiguration.class,
-			WebFluxGraphQLAutoConfiguration.class);
+			GraphQlAutoConfiguration.class, GraphQlServiceAutoConfiguration.class,
+			WebFluxGraphQlAutoConfiguration.class);
 
 	private static final String BASE_URL = "https://spring.example.org/graphql";
 
@@ -141,7 +141,7 @@ class WebFluxApplicationContextTests {
 		public RuntimeWiringCustomizer bookDataFetcher() {
 			return (runtimeWiring) ->
 					runtimeWiring.type(newTypeWiring("Query")
-							.dataFetcher("bookById", GraphQLDataFetchers.getBookByIdDataFetcher()));
+							.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
 		}
 	}
 
