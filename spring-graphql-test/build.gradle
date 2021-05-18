@@ -2,7 +2,6 @@
 plugins {
 	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
 	id 'java-library'
-	id 'maven'
 }
 
 description = "Spring Support for Testing GraphQL Applications"
@@ -49,8 +48,8 @@ dependencies {
 	testImplementation 'com.squareup.okhttp3:mockwebserver:3.14.9'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 
-	testRuntime 'org.apache.logging.log4j:log4j-core:2.14.1'
-	testRuntime 'org.apache.logging.log4j:log4j-slf4j-impl:2.14.1'
+	testRuntimeOnly 'org.apache.logging.log4j:log4j-core:2.14.1'
+	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.14.1'
 }
 
 test {
