@@ -40,7 +40,7 @@ public class ExecutionGraphQlService implements GraphQlService {
 	public Mono<ExecutionResult> execute(ExecutionInput input) {
 		GraphQL graphQl = this.graphQlSource.graphQl();
 		return Mono.deferContextual(contextView -> {
-			ReactorDataFetcherAdapter.addReactorContext(input, contextView);
+			ContextManager.setReactorContext(contextView, input);
 			return Mono.fromFuture(graphQl.executeAsync(input));
 		});
 	}

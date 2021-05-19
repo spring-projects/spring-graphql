@@ -108,7 +108,7 @@ public class ReactorDataFetcherAdapterTests {
 
 	private ExecutionInput executionInput(String query, Context reactorContext) {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
-		ReactorDataFetcherAdapter.addReactorContext(input, reactorContext);
+		ContextManager.setReactorContext(reactorContext, input);
 		return input;
 	}
 

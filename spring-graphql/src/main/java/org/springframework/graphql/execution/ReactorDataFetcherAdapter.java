@@ -15,10 +15,7 @@
  */
 package org.springframework.graphql.execution;
 
-import java.lang.reflect.Method;
-
 import graphql.ExecutionInput;
-import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLCodeRegistry;
@@ -34,9 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 
 /**
  * Adapter that can wrap a registered {@link DataFetcher} and enable it to return
@@ -45,10 +40,6 @@ import org.springframework.util.ClassUtils;
  * the adapter.
  */
 class ReactorDataFetcherAdapter implements DataFetcher<Object> {
-
-	private static final String REACTOR_CONTEXT_KEY =
-			ReactorDataFetcherAdapter.class.getName() + ".REACTOR_CONTEXT";
-
 
 	private final DataFetcher<?> delegate;
 
@@ -67,7 +58,7 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 		Object value = this.delegate.get(environment);
 
 		if (this.subscription) {
-			ContextView context = getReactorContext(environment);
+			ContextView context = ContextManager.getReactorContext(environment);
 			return (context != null ? Flux.from((Publisher<?>) value).contextWrite(context) : value);
 		}
 
@@ -77,7 +68,7 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 
 		if (value instanceof Mono) {
 			Mono<?> valueMono = (Mono<?>) value;
-			ContextView reactorContext = getReactorContext(environment);
+			ContextView reactorContext = ContextManager.getReactorContext(environment);
 			if (reactorContext != null) {
 				valueMono = valueMono.contextWrite(reactorContext);
 			}
@@ -85,21 +76,6 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 		}
 
 		return value;
-	}
-
-	@Nullable
-	private ContextView getReactorContext(DataFetchingEnvironment environment) {
-		GraphQLContext graphQlContext = environment.getContext();
-		return graphQlContext.get(REACTOR_CONTEXT_KEY);
-	}
-
-	/**
-	 * Insert the given Reactor Context into the {@link ExecutionInput} context
-	 * for later retrieval from the {@link DataFetchingEnvironment}.
-	 */
-	public static void addReactorContext(ExecutionInput executionInput, ContextView reactorContext) {
-		GraphQLContext graphQlContext = (GraphQLContext) executionInput.getContext();
-		graphQlContext.put(REACTOR_CONTEXT_KEY, reactorContext);
 	}
 
 
@@ -121,10 +97,8 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 				return TraversalControl.CONTINUE;
 			}
 
-			Method method = ClassUtils.getMethod(dataFetcher.getClass(), "get", DataFetchingEnvironment.class);
-			method = ClassUtils.getMostSpecificMethod(method, dataFetcher.getClass());
-
-			dataFetcher = new ReactorDataFetcherAdapter(dataFetcher, parent.getName().equals("Subscription"));
+			boolean handlesSubscription = parent.getName().equals("Subscription");
+			dataFetcher = new ReactorDataFetcherAdapter(dataFetcher, handlesSubscription);
 			codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 			return TraversalControl.CONTINUE;
 		}
