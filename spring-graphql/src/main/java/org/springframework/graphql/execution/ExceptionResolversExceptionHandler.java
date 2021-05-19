@@ -16,6 +16,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -25,6 +26,9 @@ import graphql.execution.DataFetcherExceptionHandler;
 import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
 import graphql.schema.DataFetchingEnvironment;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
 
@@ -54,18 +58,22 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		return invokeChain(exception, parameters.getDataFetchingEnvironment());
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	public DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
-		for (DataFetcherExceptionResolver resolver : this.resolvers) {
-			List<GraphQLError> errors = resolver.resolveException(ex, env);
-			if (errors != null) {
-				return DataFetcherExceptionHandlerResult.newResult().errors(errors).build();
-			}
-		}
-		GraphQLError error = applyDefaultHandling(ex, env);
-		return DataFetcherExceptionHandlerResult.newResult(error).build();
+		return Flux.fromIterable(this.resolvers)
+				.publishOn(Schedulers.boundedElastic())  // until GraphQL Java supports async exception handling
+				.flatMap(resolver -> resolver.resolveException(ex, env))
+				.next()
+				.defaultIfEmpty(Collections.singletonList(applyDefaultHandling(ex, env)))
+				.map(errors -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
+				.contextWrite(context -> {
+					ContextView contextToAdd = ContextManager.getReactorContext(env);
+					return (contextToAdd != null ? context.putAll(contextToAdd) : context);
+				})
+				.block();
 	}
 
-	public GraphQLError applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
+	private GraphQLError applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
 		return GraphqlErrorBuilder.newError(env)
 				.message(ex.getMessage())
 				.errorType(ErrorType.INTERNAL_ERROR)

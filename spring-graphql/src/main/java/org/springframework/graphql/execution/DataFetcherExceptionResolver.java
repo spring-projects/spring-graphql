@@ -19,29 +19,33 @@ import java.util.List;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
-
-import org.springframework.lang.Nullable;
+import reactor.core.publisher.Mono;
 
 /**
  * Contract to resolve exceptions raised by {@link graphql.schema.DataFetcher}'s
- * into errors to be added to the GraphQL response. Implementations are typically
- * declared as beans in Spring configuration and invoked in order until one
- * returns a non-null list of {@link GraphQLError}'s.
+ * to {@code GraphQLError}'s to add to the GraphQL response. Implementations are
+ * typically declared as beans in Spring configuration and invoked in order until
+ * one emits a List.
+ *
+ * <p>Use the {@link SingleErrorExceptionResolver} convenience adapter when you
+ * need to resolve exceptions to a single {@code GraphQLError} only.
  */
 public interface DataFetcherExceptionResolver {
 
 	/**
-	 * Resolve the given exception and return errors to add to the response.
+	 * Resolve the given exception and return the error(s) to add to the response.
 	 * <p>Implementations can use
 	 * {@link graphql.GraphqlErrorBuilder#newError(DataFetchingEnvironment)} to
 	 * create an error with the coordinates of the target field, and use
 	 * {@link ErrorType} to specify a category for the error.
 	 * @param exception the exception to resolve
 	 * @param environment the environment for the invoked {@code DataFetcher}
-	 * @return a (possibly empty) list of {@link GraphQLError}'s to add to the
-	 * response, or {@code null} to indicate the exception is unresolved.
+	 * @return a {@code Mono} with errors to add to the GraphQL response;
+	 * if the {@code Mono} completes with an empty List, the exception is
+	 * resolved without any errors added to the response;
+	 * if the {@code Mono} completes empty, without emitting a List, the
+	 * exception remains unresolved and gives other resolvers a chance.
 	 */
-	@Nullable
-	List<GraphQLError> resolveException(Throwable exception, DataFetchingEnvironment environment);
+	Mono<List<GraphQLError>> resolveException(Throwable exception, DataFetchingEnvironment environment);
 
 }
