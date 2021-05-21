@@ -87,9 +87,11 @@ public class WebFluxGraphQlAutoConfiguration {
 				.GET(path, req -> ServerResponse.ok().bodyValue(resource))
 				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
-			SchemaPrinter schemaPrinter = new SchemaPrinter();
+			SchemaPrinter printer = new SchemaPrinter();
 			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
-					req -> ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).bodyValue(schemaPrinter.print(graphQlSource.schema())));
+					req -> ServerResponse.ok()
+							.contentType(MediaType.TEXT_PLAIN)
+							.bodyValue(printer.print(graphQlSource.schema())));
 		}
 		return builder.build();
 	}

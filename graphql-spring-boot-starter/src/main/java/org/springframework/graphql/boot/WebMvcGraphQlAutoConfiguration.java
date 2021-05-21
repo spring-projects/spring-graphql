@@ -93,9 +93,11 @@ public class WebMvcGraphQlAutoConfiguration {
 				.GET(path, req -> ServerResponse.ok().body(resource))
 				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
-			SchemaPrinter schemaPrinter = new SchemaPrinter();
+			SchemaPrinter printer = new SchemaPrinter();
 			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
-					req -> ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).body(schemaPrinter.print(graphQlSource.schema())));
+					req -> ServerResponse.ok()
+							.contentType(MediaType.TEXT_PLAIN)
+							.body(printer.print(graphQlSource.schema())));
 		}
 		return builder.build();
 	}
