@@ -22,7 +22,6 @@ import graphql.GraphQL;
 import graphql.schema.idl.SchemaPrinter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -48,7 +47,7 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
-import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.reactive.socket.server.support.WebSocketUpgradeHandlerPredicate;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
@@ -115,20 +114,11 @@ public class WebFluxGraphQlAutoConfiguration {
 			if (logger.isInfoEnabled()) {
 				logger.info("GraphQL endpoint WebSocket " + path);
 			}
-			WebSocketHandlerMapping handlerMapping = new WebSocketHandlerMapping();
-			handlerMapping.setUrlMap(Collections.singletonMap(path, graphQlWebSocketHandler));
-			handlerMapping.setOrder(-2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
-			return handlerMapping;
-		}
-	}
-
-
-	private static class WebSocketHandlerMapping extends SimpleUrlHandlerMapping {
-
-		@Override
-		public Mono<Object> getHandlerInternal(ServerWebExchange exchange) {
-			return ("WebSocket".equalsIgnoreCase(exchange.getRequest().getHeaders().getUpgrade()) ?
-					super.getHandlerInternal(exchange) : Mono.empty());
+			SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
+			mapping.setHandlerPredicate(new WebSocketUpgradeHandlerPredicate());
+			mapping.setUrlMap(Collections.singletonMap(path, graphQlWebSocketHandler));
+			mapping.setOrder(-2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
+			return mapping;
 		}
 	}
 
