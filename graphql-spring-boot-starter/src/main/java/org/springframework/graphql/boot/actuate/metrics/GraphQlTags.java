@@ -27,6 +27,8 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchPar
 import graphql.schema.GraphQLObjectType;
 import io.micrometer.core.instrument.Tag;
 
+import org.springframework.util.CollectionUtils;
+
 /**
  * Factory methods for Tags associated with a GraphQL requests.
  * 
@@ -60,7 +62,7 @@ public final class GraphQlTags {
 	public static Tag errorPath(GraphQLError error) {
 		StringBuilder builder = new StringBuilder();
 		List<Object> pathSegments = error.getPath();
-		if (!pathSegments.isEmpty()) {
+		if (!CollectionUtils.isEmpty(pathSegments)) {
 			builder.append('$');
 			for (Object segment : pathSegments) {
 				try {
