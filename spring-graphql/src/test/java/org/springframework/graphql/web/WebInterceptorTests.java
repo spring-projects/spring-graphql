@@ -50,7 +50,8 @@ public class WebInterceptorTests {
 		WebInput input = new WebInput(
 				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", "any"), "1");
 
-		WebOutput output = WebInterceptor.createHandler(interceptors, service).handle(input).block();
+		WebOutput output = WebGraphQlHandler.builder(service).interceptors(interceptors).build()
+				.handle(input).block();
 
 		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
 		assertThat(output.getResponseHeaders().get("name")).containsExactly("value3", "value2", "value1");

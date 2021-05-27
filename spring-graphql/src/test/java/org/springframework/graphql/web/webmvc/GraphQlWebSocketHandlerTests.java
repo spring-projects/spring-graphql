@@ -258,9 +258,10 @@ public class GraphQlWebSocketHandlerTests {
 			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) {
 
 		try {
-			WebGraphQlHandler graphQlHandler = WebInterceptor.createHandler(
-					(interceptors != null ? interceptors : Collections.emptyList()),
-					new ExecutionGraphQlService(graphQlSource()));
+			WebGraphQlHandler graphQlHandler =
+					WebGraphQlHandler.builder(new ExecutionGraphQlService(graphQlSource()))
+							.interceptors(interceptors != null ? interceptors : Collections.emptyList())
+							.build();
 
 			return new GraphQlWebSocketHandler(graphQlHandler, converter,
 					(initTimeoutDuration != null ? initTimeoutDuration : Duration.ofSeconds(60)));

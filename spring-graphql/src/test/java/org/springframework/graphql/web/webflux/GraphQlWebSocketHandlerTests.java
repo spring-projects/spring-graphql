@@ -272,11 +272,12 @@ public class GraphQlWebSocketHandlerTests {
 	}
 
 	private GraphQlWebSocketHandler initWebSocketHandler(
-			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) throws Exception {
+			@Nullable List<WebInterceptor> interceptors, @Nullable Duration initTimeoutDuration) {
 
-		WebGraphQlHandler graphQlHandler = WebInterceptor.createHandler(
-				(interceptors != null ? interceptors : Collections.emptyList()),
-				new ExecutionGraphQlService(graphQlSource()));
+		WebGraphQlHandler graphQlHandler =
+				WebGraphQlHandler.builder(new ExecutionGraphQlService(graphQlSource()))
+						.interceptors(interceptors != null ? interceptors : Collections.emptyList())
+						.build();
 
 		return new GraphQlWebSocketHandler(graphQlHandler,
 				ServerCodecConfigurer.create(),

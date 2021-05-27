@@ -71,7 +71,9 @@ public class WebMvcGraphQlAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public WebGraphQlHandler webGraphQlHandler(ObjectProvider<WebInterceptor> interceptors, GraphQlService service) {
-		return WebInterceptor.createHandler(interceptors.orderedStream().collect(Collectors.toList()), service);
+		return WebGraphQlHandler.builder(service)
+				.interceptors(interceptors.orderedStream().collect(Collectors.toList()))
+				.build();
 	}
 
 	@Bean
