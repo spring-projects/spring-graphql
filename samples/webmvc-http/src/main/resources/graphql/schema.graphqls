@@ -1,4 +1,5 @@
 type Query {
+    greeting: String
     artifactRepositories : [ArtifactRepository]
     artifactRepository(id : ID!) : ArtifactRepository
     project(slug: ID!): Project

@@ -20,10 +20,15 @@ import java.util.Collections;
 import java.util.List;
 
 import graphql.ExecutionInput;
+import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.execution.ContextManager;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Default implementation of {@link WebGraphQlHandler.Builder}.
@@ -35,17 +40,31 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Nullable
 	private List<WebInterceptor> interceptors;
 
+	@Nullable
+	private List<ThreadLocalAccessor> accessors;
+
 
 	DefaultWebGraphQlHandlerBuilder(GraphQlService service) {
-		Assert.notNull(service, "GraphQlService must not be null");
+		Assert.notNull(service, "GraphQlService is required");
 		this.service = service;
 	}
 
 
 	@Override
 	public WebGraphQlHandler.Builder interceptors(List<WebInterceptor> interceptors) {
-		this.interceptors = (this.interceptors != null ? this.interceptors : new ArrayList<>());
-		this.interceptors.addAll(interceptors);
+		if (!CollectionUtils.isEmpty(interceptors)) {
+			this.interceptors = (this.interceptors != null ? this.interceptors : new ArrayList<>());
+			this.interceptors.addAll(interceptors);
+		}
+		return this;
+	}
+
+	@Override
+	public WebGraphQlHandler.Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors) {
+		if (!CollectionUtils.isEmpty(accessors)) {
+			this.accessors = (this.accessors != null ? this.accessors : new ArrayList<>());
+			this.accessors.addAll(accessors);
+		}
 		return this;
 	}
 
@@ -54,10 +73,13 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 		List<WebInterceptor> interceptorsToUse =
 				(this.interceptors != null ? this.interceptors : Collections.emptyList());
 
-		return interceptorsToUse.stream()
+		WebGraphQlHandler handler = interceptorsToUse.stream()
 				.reduce(WebInterceptor::andThen)
 				.map(interceptor -> (WebGraphQlHandler) input -> interceptor.intercept(input, createHandler()))
 				.orElse(createHandler());
+
+		return (CollectionUtils.isEmpty(this.accessors) ? handler :
+				new ThreadLocalExtractingHandler(handler, ThreadLocalAccessor.composite(this.accessors)));
 	}
 
 	private WebGraphQlHandler createHandler() {
@@ -65,6 +87,32 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			ExecutionInput input = webInput.toExecutionInput();
 			return this.service.execute(input).map(result -> new WebOutput(webInput, result));
 		};
+	}
+
+
+	/**
+	 * {@link WebGraphQlHandler} that extracts ThreadLocal values and saves them
+	 * in the Reactor context for subsequent use for DataFetcher's.
+	 */
+	private static class ThreadLocalExtractingHandler implements WebGraphQlHandler {
+
+		private final WebGraphQlHandler delegate;
+
+		private final ThreadLocalAccessor accessor;
+
+		ThreadLocalExtractingHandler(WebGraphQlHandler delegate, ThreadLocalAccessor accessor) {
+			this.delegate = delegate;
+			this.accessor = accessor;
+		}
+
+		@Override
+		public Mono<WebOutput> handle(WebInput input) {
+			return this.delegate.handle(input)
+					.contextWrite(context -> {
+						ContextView view = ContextManager.extractThreadLocalValues(this.accessor);
+						return (!view.isEmpty() ? context.putAll(view) : context);
+					});
+		}
 	}
 
 }

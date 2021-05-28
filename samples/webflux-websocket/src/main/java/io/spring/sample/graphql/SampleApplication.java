@@ -28,8 +28,8 @@ public class SampleApplication {
 	}
 
 	@Bean
-	ReactorContextWebFilter reactorContextWebFilter() {
-		return new ReactorContextWebFilter();
+	ContextWebFilter reactorContextWebFilter() {
+		return new ContextWebFilter();
 	}
 
 }

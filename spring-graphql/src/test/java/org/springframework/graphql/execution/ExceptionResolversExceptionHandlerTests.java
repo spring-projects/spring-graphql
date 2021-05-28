@@ -15,8 +15,7 @@
  */
 package org.springframework.graphql.execution;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +25,12 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.idl.RuntimeWiring;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
+import reactor.util.context.ContextView;
 
-import org.springframework.core.io.ByteArrayResource;
+import org.springframework.graphql.GraphQlTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,23 +41,17 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveException() throws Exception {
-		GraphQL graphQl = graphQl("type Query { greeting: String }",
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
 				"Query", "greeting", env -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				},
-				new SingleErrorExceptionResolver() {
-					@Override
-					protected Mono<GraphQLError> doResolve(Throwable ex, DataFetchingEnvironment env) {
-						return Mono.deferContextual(view ->
-								Mono.just(GraphqlErrorBuilder.newError(env)
-										.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
-										.errorType(ErrorType.BAD_REQUEST)
-										.build()));
-					}});
+				(ex, env) -> Mono.just(Collections.singletonList(
+						GraphqlErrorBuilder.newError(env)
+								.message("Resolved error: " + ex.getMessage())
+								.errorType(ErrorType.BAD_REQUEST)
+								.build())));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		ContextManager.setReactorContext(Context.of("name", "007"), input);
-
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
 		Map<String, Object> data = result.getData();
@@ -69,13 +60,69 @@ public class ExceptionResolversExceptionHandlerTests {
 		List<GraphQLError> errors = result.getErrors();
 		assertThat(errors).hasSize(1);
 		GraphQLError error = errors.get(0);
-		assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+		assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting");
 		assertThat(error.getErrorType().toString()).isEqualTo("BAD_REQUEST");
 	}
 
 	@Test
+	void resolveExceptionWithReactorContext() throws Exception {
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
+				"Query", "greeting", env -> {
+					throw new IllegalArgumentException("Invalid greeting");
+				},
+				(ex, env) -> Mono.deferContextual(view -> Mono.just(Collections.singletonList(
+						GraphqlErrorBuilder.newError(env)
+								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
+								.errorType(ErrorType.BAD_REQUEST)
+								.build()))));
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		ContextManager.setReactorContext(Context.of("name", "007"), input);
+
+		ExecutionResult result = graphQl.executeAsync(input).get();
+
+		GraphQLError error = result.getErrors().get(0);
+		assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+	}
+
+	@Test
+	void resolveExceptionWithThreadLocal() {
+		long threadId = Thread.currentThread().getId();
+		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
+		nameThreadLocal.set("007");
+		try {
+			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
+					"Query", "greeting", env -> {
+						throw new IllegalArgumentException("Invalid greeting");
+					},
+					(SyncDataFetcherExceptionResolver) (ex, env) -> {
+						assertThat(Thread.currentThread().getId() != threadId).as("Not on async thread").isTrue();
+						return Collections.singletonList(
+								GraphqlErrorBuilder.newError(env)
+										.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+										.errorType(ErrorType.BAD_REQUEST)
+										.build());
+					});
+
+			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+			ContextView view = ContextManager.extractThreadLocalValues(new TestThreadLocalAccessor(nameThreadLocal));
+			ContextManager.setReactorContext(view, input);
+
+			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
+					.flatMap(aLong -> Mono.fromFuture(graphQl.executeAsync(input)))
+					.block();
+
+			GraphQLError error = result.getErrors().get(0);
+			assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+		}
+		finally {
+			nameThreadLocal.remove();
+		}
+	}
+
+	@Test
 	void unresolvedException() throws Exception {
-		GraphQL graphQl = graphQl("type Query { greeting: String }",
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
 				"Query", "greeting", env -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				},
@@ -96,7 +143,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void suppressedException() throws Exception {
-		GraphQL graphQl = graphQl("type Query { greeting: String }",
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
 				"Query", "greeting", env -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				},
@@ -108,22 +155,6 @@ public class ExceptionResolversExceptionHandlerTests {
 		Map<String, Object> data = result.getData();
 		assertThat(data).hasSize(1).containsEntry("greeting", null);
 		assertThat(result.getErrors()).hasSize(0);
-	}
-
-	private GraphQL graphQl(String schemaContent,
-			String typeName, String fieldName, DataFetcher<?> dataFetcher,
-			DataFetcherExceptionResolver... resolvers) {
-
-		RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
-				.type(typeName, builder -> builder.dataFetcher(fieldName, dataFetcher))
-				.build();
-
-		return GraphQlSource.builder()
-				.schemaResource(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
-				.runtimeWiring(wiring)
-				.exceptionResolvers(Arrays.asList(resolvers))
-				.build()
-				.graphQl();
 	}
 
 }

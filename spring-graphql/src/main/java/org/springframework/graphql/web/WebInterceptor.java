@@ -15,14 +15,11 @@
  */
 package org.springframework.graphql.web;
 
-import java.util.List;
-
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.graphql.GraphQlService;
 import org.springframework.util.Assert;
 
 /**
@@ -56,40 +53,6 @@ public interface WebInterceptor {
 	default WebInterceptor andThen(WebInterceptor interceptor) {
 		Assert.notNull(interceptor, "WebInterceptor must not be null");
 		return (currentInput, next) -> intercept(currentInput, nextInput -> interceptor.intercept(nextInput, next));
-	}
-
-	/**
-	 * Return {@link WebGraphQlHandler} that invokes the current interceptor
-	 * first and then the given {@link GraphQlService} for actual execution of
-	 * the GraphQL operation.
-	 */
-	default WebGraphQlHandler apply(GraphQlService service) {
-		Assert.notNull(service, "GraphQlService must not be null");
-		return currentInput -> intercept(currentInput, createHandler(service));
-	}
-
-
-	/**
-	 * Factory method for a {@link WebGraphQlHandler} with a chain of
-	 * interceptors followed by a {@link GraphQlService} at the end.
-	 */
-	static WebGraphQlHandler createHandler(List<WebInterceptor> interceptors, GraphQlService service) {
-		return interceptors.stream()
-				.reduce(WebInterceptor::andThen)
-				.map(interceptor -> interceptor.apply(service))
-				.orElse(createHandler(service));
-	}
-
-	/**
-	 * Factory method for a {@link WebGraphQlHandler} that simple invokes the
-	 * given {@link GraphQlService} adapting to its input and output.
-	 */
-	static WebGraphQlHandler createHandler(GraphQlService graphQlService) {
-		Assert.notNull(graphQlService, "GraphQlService must not be null");
-		return webInput -> {
-			ExecutionInput executionInput = webInput.toExecutionInput();
-			return graphQlService.execute(executionInput).map(result -> new WebOutput(webInput, result));
-		};
 	}
 
 }

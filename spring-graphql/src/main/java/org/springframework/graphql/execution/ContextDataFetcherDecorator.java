@@ -34,19 +34,22 @@ import reactor.util.context.ContextView;
 import org.springframework.util.Assert;
 
 /**
- * Adapter that can wrap a registered {@link DataFetcher} and enable it to return
- * {@link Flux} or {@link Mono}, also adding Reactor Context passed through
- * the {@link ExecutionInput}. Also exposes a {@link #TYPE_VISITOR} to apply
- * the adapter.
+ * Wrap a {@link DataFetcher} to enable the following:
+ * <ul>
+ * <li>Support {@link Mono} return value.
+ * <li>Support {@link Flux} return value as a shortcut to {@link Flux#collectList()}.
+ * <li>Re-establish Reactor Context passed via {@link ExecutionInput}.
+ * <li>Re-establish ThreadLocal context passed via {@link ExecutionInput}.
+ * </ul>
  */
-class ReactorDataFetcherAdapter implements DataFetcher<Object> {
+class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final DataFetcher<?> delegate;
 
 	private final boolean subscription;
 
 
-	private ReactorDataFetcherAdapter(DataFetcher<?> delegate, boolean subscription) {
+	private ContextDataFetcherDecorator(DataFetcher<?> delegate, boolean subscription) {
 		Assert.notNull(delegate, "'delegate' DataFetcher is required");
 		this.delegate = delegate;
 		this.subscription = subscription;
@@ -55,11 +58,19 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
-		Object value = this.delegate.get(environment);
+		ContextView contextView = ContextManager.getReactorContext(environment);
+
+		Object value;
+		try {
+			ContextManager.restoreThreadLocalValues(contextView);
+			value = this.delegate.get(environment);
+		}
+		finally {
+			ContextManager.resetThreadLocalValues(contextView);
+		}
 
 		if (this.subscription) {
-			ContextView context = ContextManager.getReactorContext(environment);
-			return (context != null ? Flux.from((Publisher<?>) value).contextWrite(context) : value);
+			return (!contextView.isEmpty() ? Flux.from((Publisher<?>) value).contextWrite(contextView) : value);
 		}
 
 		if (value instanceof Flux) {
@@ -68,9 +79,8 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 
 		if (value instanceof Mono) {
 			Mono<?> valueMono = (Mono<?>) value;
-			ContextView reactorContext = ContextManager.getReactorContext(environment);
-			if (reactorContext != null) {
-				valueMono = valueMono.contextWrite(reactorContext);
+			if (!contextView.isEmpty()) {
+				valueMono = valueMono.contextWrite(contextView);
 			}
 			value = valueMono.toFuture();
 		}
@@ -98,7 +108,7 @@ class ReactorDataFetcherAdapter implements DataFetcher<Object> {
 			}
 
 			boolean handlesSubscription = parent.getName().equals("Subscription");
-			dataFetcher = new ReactorDataFetcherAdapter(dataFetcher, handlesSubscription);
+			dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription);
 			codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 			return TraversalControl.CONTINUE;
 		}

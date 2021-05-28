@@ -20,12 +20,11 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
 
 /**
  * Contract to handle a GraphQL over HTTP or WebSocket request that forms the
  * basis of a {@link WebInterceptor} delegation chain.
- *
- * @see WebInterceptor#createHandler(List, GraphQlService)
  */
 public interface WebGraphQlHandler {
 
@@ -36,5 +35,42 @@ public interface WebGraphQlHandler {
 	 * @return the execution result
 	 */
 	Mono<WebOutput> handle(WebInput input);
+
+
+	/**
+	 * Provides access to a builder to create a {@link WebGraphQlHandler} instance.
+	 * @param graphQlService the {@link GraphQlService} to use for actual
+	 * execution of the request.
+	 */
+	static Builder builder(GraphQlService graphQlService) {
+		return new DefaultWebGraphQlHandlerBuilder(graphQlService);
+	}
+
+
+	/**
+	 * Builder for {@link WebGraphQlHandler} that represents a {@link WebInterceptor}
+	 * chain followed by a {@link GraphQlService}.
+	 */
+	interface Builder {
+
+		/**
+		 * Configure interceptors to be invoked before the target {@code GraphQlService}.
+		 * @param interceptors the interceptors to add
+		 */
+		Builder interceptors(List<WebInterceptor> interceptors);
+
+		/**
+		 * Configure accessors for ThreadLocal variables to use to extract
+		 * ThreadLocal values at the Web framework level, have those propagated
+		 * and re-established at the DataFetcher level.
+		 * @param accessors the accessors to add
+		 */
+		Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors);
+
+		/**
+		 * Build the {@link WebGraphQlHandler} instance.
+		 */
+		WebGraphQlHandler build();
+	}
 
 }

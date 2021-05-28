@@ -15,9 +15,13 @@
  */
 package org.springframework.graphql.execution;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 import org.springframework.lang.Nullable;
@@ -27,10 +31,16 @@ import org.springframework.lang.Nullable;
  * through the {@link ExecutionInput} and the {@link DataFetchingEnvironment}
  * of a request.
  */
-abstract class ContextManager {
+public abstract class ContextManager {
 
-	private static final String REACTOR_CONTEXT_KEY =
-			ReactorDataFetcherAdapter.class.getName() + ".REACTOR_CONTEXT";
+	private static final String CONTEXT_VIEW_KEY =
+			ContextManager.class.getName() + ".CONTEXT_VIEW";
+
+	private static final String THREAD_LOCAL_VALUES_KEY =
+			ContextManager.class.getName() + ".THREAD_VALUES_ACCESSOR";
+
+	private static final String THREAD_LOCAL_ACCESSOR_KEY =
+			ContextManager.class.getName() + ".THREAD_LOCAL_ACCESSOR";
 
 
 	/**
@@ -38,17 +48,55 @@ abstract class ContextManager {
 	 * later access through the {@link DataFetchingEnvironment}.
 	 */
 	static void setReactorContext(ContextView contextView, ExecutionInput input) {
-		((GraphQLContext) input.getContext()).put(REACTOR_CONTEXT_KEY, contextView);
+		((GraphQLContext) input.getContext()).put(CONTEXT_VIEW_KEY, contextView);
 	}
 
 	/**
-	 * Return the Reactor ContextView saved in the given DataFetchingEnvironment,
-	 * or null if not present.
+	 * Return the Reactor ContextView saved in the given DataFetchingEnvironment.
 	 */
-	@Nullable
 	static ContextView getReactorContext(DataFetchingEnvironment environment) {
 		GraphQLContext graphQlContext = environment.getContext();
-		return graphQlContext.get(REACTOR_CONTEXT_KEY);
+		return graphQlContext.getOrDefault(CONTEXT_VIEW_KEY, Context.empty());
+	}
+
+	/**
+	 * Use the given accessor to extract ThreadLocal value, and return a Reactor
+	 * context that contains both the extracted values and the accessor.
+	 * @param accessor the accessor to use
+	 */
+	public static ContextView extractThreadLocalValues(ThreadLocalAccessor accessor) {
+		Map<String, Object> valuesMap = new LinkedHashMap<>();
+		accessor.extractValues(valuesMap);
+		return Context.of(THREAD_LOCAL_VALUES_KEY, valuesMap, THREAD_LOCAL_ACCESSOR_KEY, accessor);
+	}
+
+	/**
+	 * Look up saved ThreadLocal values and use them to re-establish ThreadLocal context.
+	 */
+	static void restoreThreadLocalValues(ContextView contextView) {
+		ThreadLocalAccessor accessor = getThreadLocalAccessor(contextView);
+		if (accessor != null) {
+			accessor.restoreValues(getThreadLocalValues(contextView));
+		}
+	}
+
+	/**
+	 * Look up saved ThreadLocal values and remove associated ThreadLocal context.
+	 */
+	static void resetThreadLocalValues(ContextView contextView) {
+		ThreadLocalAccessor accessor = getThreadLocalAccessor(contextView);
+		if (accessor != null) {
+			accessor.resetValues(getThreadLocalValues(contextView));
+		}
+	}
+
+	@Nullable
+	private static ThreadLocalAccessor getThreadLocalAccessor(ContextView contextView) {
+		return (contextView.hasKey(THREAD_LOCAL_ACCESSOR_KEY) ? contextView.get(THREAD_LOCAL_ACCESSOR_KEY) : null);
+	}
+
+	private static Map<String, Object> getThreadLocalValues(ContextView contextView) {
+		return contextView.get(THREAD_LOCAL_VALUES_KEY);
 	}
 
 }

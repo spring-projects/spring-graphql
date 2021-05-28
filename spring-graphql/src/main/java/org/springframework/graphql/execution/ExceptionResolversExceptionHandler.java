@@ -16,7 +16,6 @@
 package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -26,17 +25,23 @@ import graphql.execution.DataFetcherExceptionHandler;
 import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
 import graphql.schema.DataFetchingEnvironment;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
+import org.springframework.web.client.ExtractingResponseErrorHandler;
 
 /**
  * {@link DataFetcherExceptionHandler} that invokes {@link DataFetcherExceptionResolver}'s
  * in a sequence until one returns a non-null list of {@link GraphQLError}'s.
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
+
+	private static Log logger = LogFactory.getLog(ExtractingResponseErrorHandler.class);
+
 
 	private final List<DataFetcherExceptionResolver> resolvers;
 
@@ -60,24 +65,35 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	@SuppressWarnings("ConstantConditions")
 	public DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
-		return Flux.fromIterable(this.resolvers)
-				.publishOn(Schedulers.boundedElastic())  // until GraphQL Java supports async exception handling
-				.flatMap(resolver -> resolver.resolveException(ex, env))
-				.next()
-				.defaultIfEmpty(Collections.singletonList(applyDefaultHandling(ex, env)))
-				.map(errors -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
-				.contextWrite(context -> {
-					ContextView contextToAdd = ContextManager.getReactorContext(env);
-					return (contextToAdd != null ? context.putAll(contextToAdd) : context);
-				})
-				.block();
+		// For now we have to block:
+		// https://github.com/graphql-java/graphql-java/issues/2356
+		try {
+			return Flux.fromIterable(this.resolvers)
+					.flatMap(resolver -> resolver.resolveException(ex, env))
+					.next()
+					.map(errors -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
+					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env)))
+					.contextWrite(context -> {
+						ContextView contextView = ContextManager.getReactorContext(env);
+						return (contextView.isEmpty() ? context : context.putAll(contextView));
+					})
+					.toFuture()
+					.get();
+		}
+		catch (Exception ex2) {
+			if (logger.isWarnEnabled()) {
+				logger.warn("Failed to handle " + ex.getMessage(), ex2);
+			}
+			return applyDefaultHandling(ex, env);
+		}
 	}
 
-	private GraphQLError applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
-		return GraphqlErrorBuilder.newError(env)
+	private DataFetcherExceptionHandlerResult applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
+		GraphQLError error = GraphqlErrorBuilder.newError(env)
 				.message(ex.getMessage())
 				.errorType(ErrorType.INTERNAL_ERROR)
 				.build();
+		return DataFetcherExceptionHandlerResult.newResult(error).build();
 	}
 
 }

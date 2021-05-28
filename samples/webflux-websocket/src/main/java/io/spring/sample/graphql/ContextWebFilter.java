@@ -23,9 +23,9 @@ import org.springframework.web.server.WebFilterChain;
 
 /**
  * WebFilter that inserts a key-value pair into the Reactor context which is
- * transferred to and accessible to Reactor-based data fetchers.
+ * transferred to and accessible in Reactor data fetchers.
  */
-public class ReactorContextWebFilter implements WebFilter {
+public class ContextWebFilter implements WebFilter {
 
 	@Override
 	public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {

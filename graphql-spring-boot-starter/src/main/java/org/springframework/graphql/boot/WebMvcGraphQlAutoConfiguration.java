@@ -40,6 +40,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webmvc.GraphQlHttpHandler;
@@ -70,9 +71,13 @@ public class WebMvcGraphQlAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public WebGraphQlHandler webGraphQlHandler(ObjectProvider<WebInterceptor> interceptors, GraphQlService service) {
+	public WebGraphQlHandler webGraphQlHandler(
+			ObjectProvider<WebInterceptor> interceptorsProvider, GraphQlService service,
+			ObjectProvider<ThreadLocalAccessor> accessorsProvider) {
+
 		return WebGraphQlHandler.builder(service)
-				.interceptors(interceptors.orderedStream().collect(Collectors.toList()))
+				.interceptors(interceptorsProvider.orderedStream().collect(Collectors.toList()))
+				.threadLocalAccessors(accessorsProvider.orderedStream().collect(Collectors.toList()))
 				.build();
 	}
 

@@ -58,7 +58,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 
 	DefaultGraphQlSourceBuilder() {
-		this.typeVisitors.add(ReactorDataFetcherAdapter.TYPE_VISITOR);
+		this.typeVisitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
 	}
 
 
