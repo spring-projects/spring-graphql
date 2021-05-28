@@ -18,18 +18,14 @@ package org.springframework.graphql.web;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import org.springframework.graphql.GraphQlService;
 import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,69 +34,83 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for a {@link WebInterceptor} chain.
  */
 public class WebInterceptorTests {
+	
+	private static final WebInput webInput = new WebInput(
+			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ notUsed }"), "1");
+
 
 	@Test
-	void interceptorChain() {
-		StringBuilder sb = new StringBuilder();
-		List<WebInterceptor> interceptors = Arrays.asList(
-				new TestWebInterceptor(sb, 1), new TestWebInterceptor(sb, 2), new TestWebInterceptor(sb, 3));
+	void interceptorOrder() {
+		StringBuilder output = new StringBuilder();
 
-		TestGraphQlService service = new TestGraphQlService();
+		WebGraphQlHandler handler = WebGraphQlHandler.builder(input -> emptyExecutionResult())
+				.interceptors(Arrays.asList(
+						new OrderInterceptor(1, output),
+						new OrderInterceptor(2, output),
+						new OrderInterceptor(3, output)
+				))
+				.build();
 
-		WebInput input = new WebInput(
-				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", "any"), "1");
+		handler.handle(webInput).block();
+		assertThat(output.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
+	}
 
-		WebOutput output = WebGraphQlHandler.builder(service).interceptors(interceptors).build()
-				.handle(input).block();
+	@Test
+	void responseHeader() {
+		WebGraphQlHandler handler = WebGraphQlHandler.builder(input -> emptyExecutionResult())
+				.interceptor((input, next) ->
+						next.handle(input).map(output ->
+								output.transform(builder -> builder.responseHeader("testHeader", "testValue"))))
+				.build();
 
-		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
-		assertThat(output.getResponseHeaders().get("name")).containsExactly("value3", "value2", "value1");
-		assertThat(service.getSavedInput().getExtensions()).containsOnlyKeys("eKey1", "eKey2", "eKey3");
+		HttpHeaders headers = handler.handle(webInput).block().getResponseHeaders();
+
+		assertThat(headers.get("testHeader")).containsExactly("testValue");
+	}
+
+	@Test
+	void executionInputCustomization() {
+		AtomicReference<String> actualName = new AtomicReference<>();
+
+		WebGraphQlHandler handler = WebGraphQlHandler
+				.builder(input -> {
+					actualName.set(input.getOperationName());
+					return emptyExecutionResult();
+				})
+				.interceptor((webInput, next) -> {
+					webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
+					return next.handle(webInput);
+				})
+				.build();
+
+		handler.handle(webInput).block();
+
+		assertThat(actualName.get()).isEqualTo("testOp");
+	}
+
+	private Mono<ExecutionResult> emptyExecutionResult() {
+		return Mono.just(ExecutionResultImpl.newExecutionResult().build());
 	}
 
 
-	private static class TestGraphQlService implements GraphQlService {
-
-		private ExecutionInput savedInput;
-
-		public ExecutionInput getSavedInput() {
-			return this.savedInput;
-		}
-
-		@Override
-		public Mono<ExecutionResult> execute(ExecutionInput input) {
-			this.savedInput = input;
-			return Mono.just(ExecutionResultImpl.newExecutionResult().build());
-		}
-	}
-
-
-	private static class TestWebInterceptor implements WebInterceptor {
+	private static class OrderInterceptor implements WebInterceptor {
 
 		private final StringBuilder output;
 
-		private final int index;
+		private final int order;
 
-		public TestWebInterceptor(StringBuilder output, int index) {
+		public OrderInterceptor(int order, StringBuilder output) {
 			this.output = output;
-			this.index = index;
+			this.order = order;
 		}
 
 		@Override
-		public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
-
-			this.output.append(":pre").append(this.index);
-
-			webInput.configureExecutionInput((executionInput, builder) -> {
-				Map<String, Object> extensions = new HashMap<>(executionInput.getExtensions());
-				extensions.put("eKey" + this.index, "eValue" + this.index);
-				return builder.extensions(extensions).build();
-			});
-
-			return next.handle(webInput)
+		public Mono<WebOutput> intercept(WebInput input, WebGraphQlHandler next) {
+			this.output.append(":pre").append(this.order);
+			return next.handle(input)
 					.map(output -> {
-						this.output.append(":post").append(this.index);
-						return output.transform(builder -> builder.responseHeader("name", "value" + this.index));
+						this.output.append(":post").append(this.order);
+						return output;
 					})
 					.subscribeOn(Schedulers.boundedElastic());
 		}

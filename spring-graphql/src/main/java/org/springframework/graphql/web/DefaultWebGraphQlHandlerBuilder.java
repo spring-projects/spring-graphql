@@ -16,6 +16,7 @@
 package org.springframework.graphql.web;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,12 +52,22 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 
 	@Override
+	public WebGraphQlHandler.Builder interceptor(WebInterceptor... interceptors) {
+		return interceptors(Arrays.asList(interceptors));
+	}
+
+	@Override
 	public WebGraphQlHandler.Builder interceptors(List<WebInterceptor> interceptors) {
 		if (!CollectionUtils.isEmpty(interceptors)) {
 			this.interceptors = (this.interceptors != null ? this.interceptors : new ArrayList<>());
 			this.interceptors.addAll(interceptors);
 		}
 		return this;
+	}
+
+	@Override
+	public WebGraphQlHandler.Builder threadLocalAccessor(ThreadLocalAccessor... accessors) {
+		return threadLocalAccessors(Arrays.asList(accessors));
 	}
 
 	@Override

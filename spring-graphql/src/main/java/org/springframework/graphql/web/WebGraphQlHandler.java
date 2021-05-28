@@ -57,6 +57,11 @@ public interface WebGraphQlHandler {
 		 * Configure interceptors to be invoked before the target {@code GraphQlService}.
 		 * @param interceptors the interceptors to add
 		 */
+		Builder interceptor(WebInterceptor... interceptors);
+
+		/**
+		 * Alternative to {@link #interceptor(WebInterceptor...)} with a List.
+		 */
 		Builder interceptors(List<WebInterceptor> interceptors);
 
 		/**
@@ -64,6 +69,11 @@ public interface WebGraphQlHandler {
 		 * ThreadLocal values at the Web framework level, have those propagated
 		 * and re-established at the DataFetcher level.
 		 * @param accessors the accessors to add
+		 */
+		Builder threadLocalAccessor(ThreadLocalAccessor... accessors);
+
+		/**
+		 * Alternative to {@link #threadLocalAccessor(ThreadLocalAccessor...)} with a List.
 		 */
 		Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors);
 
