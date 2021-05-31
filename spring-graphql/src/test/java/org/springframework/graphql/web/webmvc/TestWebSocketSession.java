@@ -35,7 +35,8 @@ import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 /**
- *
+ * WebSocketSession that saves sent messages and exposes them as a Flux which
+ * makes assertions comparable to the same for WebFlux.
  */
 public class TestWebSocketSession implements WebSocketSession {
 

@@ -2,50 +2,41 @@ package org.springframework.graphql.web;
 
 public class Book {
 
-	String id;
+	Long id;
 
 	String name;
 
-	int pageCount;
-
 	String author;
+
 
 	public Book() {
 	}
 
-	public Book(String id, String name, int pageCount, String author) {
+	public Book(Long id, String name, String author) {
 		this.id = id;
 		this.name = name;
-		this.pageCount = pageCount;
 		this.author = author;
 	}
 
-	public String getId() {
-		return id;
+
+	public Long getId() {
+		return this.id;
 	}
 
-	public void setId(String id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
 	public String getName() {
-		return name;
+		return this.name;
 	}
 
 	public void setName(String name) {
 		this.name = name;
 	}
 
-	public int getPageCount() {
-		return pageCount;
-	}
-
-	public void setPageCount(int pageCount) {
-		this.pageCount = pageCount;
-	}
-
 	public String getAuthor() {
-		return author;
+		return this.author;
 	}
 
 	public void setAuthor(String author) {

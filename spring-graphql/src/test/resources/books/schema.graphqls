@@ -5,10 +5,9 @@ type Query {
 type Book {
     id: ID
     name: String
-    pageCount: Int
     author: String
 }
 
 type Subscription {
-    bookSearch(minPages:Int) : Book!
+    bookSearch(author: String) : Book!
 }
