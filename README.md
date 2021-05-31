@@ -16,7 +16,7 @@ depending on the type of web application you'd like to build. Once the project i
 `build.gradle` snippet:
 ```groovy
 dependencies {
-    implementation 'org.springframework.experimental:graphql-spring-boot-starter:0.1.0-SNAPSHOT'
+    implementation 'org.springframework.experimental:graphql-spring-boot-starter:1.0.0-SNAPSHOT'
     
     // Spring Web MVC starter
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -39,7 +39,7 @@ repositories {
     <dependency>
         <groupId>org.springframework.experimental</groupId>
         <artifactId>graphql-spring-boot-starter</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </dependency>
     
     <!-- Spring Web MVC starter -->
@@ -154,6 +154,42 @@ spring.graphql.websocket.connection-init-timeout=60s
 You can contribute [`WebInterceptor` beans](https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql/src/main/java/org/springframework/graphql/WebInterceptor.java)
 to the application context, so as to customize the `ExecutionInput` or the `ExecutionResult` of the query.
 A custom `WebInterceptor` can, for example, change the HTTP request/response headers.  
+
+### Testing support
+
+When the `spring-boot-starter-test` dependency is on the classpath, Spring GraphQL provides a testing infrastructure for your application.
+                                                                                                                                          
+Spring Boot allows you to test your web application with [with a mock environment](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-mock-environment)
+or [with a running server](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-running-server).
+In both cases, adding the `@AutoConfigureGraphQlTester` annotation on your test class will contribute a `GraphQlTester` bean you can inject and use in your tests:
+
+```` java
+@SpringBootTest
+@AutoConfigureMockMvc
+@AutoConfigureGraphQlTester
+public class MockMvcGraphQlTests {
+
+	@Autowired
+	private GraphQlTester graphQlTester;
+
+	@Test
+	void jsonPath() {
+		String query = "{" +
+				"  project(slug:\"spring-framework\") {" +
+				"    releases {" +
+				"      version" +
+				"    }" +
+				"  }" +
+				"}";
+
+		this.graphQlTester.query(query)
+				.execute()
+				.path("project.releases[*].version")
+				.entityList(String.class)
+				.hasSizeGreaterThan(1);
+	}
+}
+````
 
 ### Metrics
 

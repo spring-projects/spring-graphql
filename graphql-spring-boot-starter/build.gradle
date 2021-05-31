@@ -38,6 +38,9 @@ dependencies {
 	compileOnly 'io.micrometer:micrometer-core'
 	compileOnly 'org.springframework.boot:spring-boot-actuator-autoconfigure'
 
+	compileOnly project(':spring-graphql-test')
+	compileOnly 'org.springframework.boot:spring-boot-test'
+
 	compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
@@ -48,6 +51,7 @@ dependencies {
 	testImplementation 'org.springframework:spring-webmvc'
 	testImplementation 'org.springframework:spring-websocket'
 	testImplementation 'io.projectreactor:reactor-test'
+	testImplementation 'io.projectreactor.netty:reactor-netty'
 	testImplementation 'javax.servlet:javax.servlet-api'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-core'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-websocket'

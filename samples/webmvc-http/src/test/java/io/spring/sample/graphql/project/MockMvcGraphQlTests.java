@@ -15,35 +15,27 @@
  */
 package io.spring.sample.graphql.project;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester;
 import org.springframework.graphql.test.tester.GraphQlTester;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.client.MockMvcWebTestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * GraphQL requests via {@link WebTestClient} connecting to {@link MockMvc}.
+ * GraphQL requests via {@link GraphQlTester} connecting to {@link MockMvc}.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@AutoConfigureGraphQlTester
 public class MockMvcGraphQlTests {
 
+	@Autowired
 	private GraphQlTester graphQlTester;
-
-
-	@BeforeEach
-	public void setUp(@Autowired MockMvc mockMvc) {
-		WebTestClient client = MockMvcWebTestClient.bindTo(mockMvc).baseUrl("/graphql").build();
-		this.graphQlTester = GraphQlTester.create(client);
-	}
-
 
 	@Test
 	void jsonPath() {
