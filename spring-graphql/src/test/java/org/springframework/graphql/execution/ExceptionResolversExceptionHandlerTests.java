@@ -31,6 +31,7 @@ import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,9 +60,8 @@ public class ExceptionResolversExceptionHandlerTests {
 
 		List<GraphQLError> errors = result.getErrors();
 		assertThat(errors).hasSize(1);
-		GraphQLError error = errors.get(0);
-		assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting");
-		assertThat(error.getErrorType().toString()).isEqualTo("BAD_REQUEST");
+		assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting");
+		assertThat(errors.get(0).getErrorType().toString()).isEqualTo("BAD_REQUEST");
 	}
 
 	@Test
@@ -81,39 +81,36 @@ public class ExceptionResolversExceptionHandlerTests {
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		GraphQLError error = result.getErrors().get(0);
-		assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+		List<GraphQLError> errors = result.getErrors();
+		assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
 	}
 
 	@Test
 	void resolveExceptionWithThreadLocal() {
-		long threadId = Thread.currentThread().getId();
 		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
 		nameThreadLocal.set("007");
+		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
 			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
 					"Query", "greeting", env -> {
 						throw new IllegalArgumentException("Invalid greeting");
 					},
-					(SyncDataFetcherExceptionResolver) (ex, env) -> {
-						assertThat(Thread.currentThread().getId() != threadId).as("Not on async thread").isTrue();
-						return Collections.singletonList(
-								GraphqlErrorBuilder.newError(env)
-										.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
-										.errorType(ErrorType.BAD_REQUEST)
-										.build());
-					});
+					(SyncDataFetcherExceptionResolver) (ex, env) -> Collections.singletonList(
+							GraphqlErrorBuilder.newError(env)
+									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+									.errorType(ErrorType.BAD_REQUEST)
+									.build()));
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextView view = ContextManager.extractThreadLocalValues(new TestThreadLocalAccessor(nameThreadLocal));
+			ContextView view = ContextManager.extractThreadLocalValues(accessor);
 			ContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
 					.flatMap(aLong -> Mono.fromFuture(graphQl.executeAsync(input)))
 					.block();
 
-			GraphQLError error = result.getErrors().get(0);
-			assertThat(error.getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+			List<GraphQLError> errors = result.getErrors();
+			assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}
 		finally {
 			nameThreadLocal.remove();

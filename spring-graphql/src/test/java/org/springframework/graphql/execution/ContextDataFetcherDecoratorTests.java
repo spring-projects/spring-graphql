@@ -30,6 +30,7 @@ import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -101,18 +102,15 @@ public class ContextDataFetcherDecoratorTests {
 
 	@Test
 	void dataFetcherWithThreadLocalContext() {
-		long threadId = Thread.currentThread().getId();
 		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
 		nameThreadLocal.set("007");
+		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
 			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
-					"Query", "greeting", env -> {
-						assertThat(Thread.currentThread().getId() != threadId).as("Not on async thread").isTrue();
-						return "Hello " + nameThreadLocal.get();
-					});
+					"Query", "greeting", env -> "Hello " + nameThreadLocal.get());
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextView view = ContextManager.extractThreadLocalValues(new TestThreadLocalAccessor(nameThreadLocal));
+			ContextView view = ContextManager.extractThreadLocalValues(accessor);
 			ContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))

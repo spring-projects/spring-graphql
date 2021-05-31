@@ -13,35 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.execution;
+package org.springframework.graphql;
 
 import java.util.Map;
 
+import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
  * {@link ThreadLocalAccessor} that operates on the ThreadLocal it is given.
  */
-class TestThreadLocalAccessor implements ThreadLocalAccessor {
+public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
 
-	private final ThreadLocal<String> threadLocal;
+	private final ThreadLocal<T> threadLocal;
+
+	@Nullable
+	private Long threadId;
 
 
-	TestThreadLocalAccessor(ThreadLocal<String> threadLocal) {
+	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal) {
 		this.threadLocal = threadLocal;
 	}
 
 
 	@Override
 	public void extractValues(Map<String, Object> container) {
-		String name = this.threadLocal.get();
+		saveThreadId();
+		T name = this.threadLocal.get();
 		Assert.notNull(name, "No ThreadLocal value");
 		container.put("name", name);
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void restoreValues(Map<String, Object> values) {
-		String name = (String) values.get("name");
+		checkThreadId();
+		T name = (T) values.get("name");
 		Assert.notNull(name, "No value to set");
 		this.threadLocal.set(name);
 	}
@@ -50,4 +60,18 @@ class TestThreadLocalAccessor implements ThreadLocalAccessor {
 	public void resetValues(Map<String, Object> values) {
 		this.threadLocal.remove();
 	}
+
+	private void saveThreadId() {
+		this.threadId = Thread.currentThread().getId();
+	}
+
+	private void checkThreadId() {
+		assertThat(this.threadId)
+				.as("No threadId to check. Was extractValues not called?")
+				.isNotNull();
+		assertThat(Thread.currentThread().getId() != this.threadId)
+				.as("ThreadLocal value extracted and restored on the same thread. Propagation not tested effectively.")
+				.isTrue();
+	}
+
 }
