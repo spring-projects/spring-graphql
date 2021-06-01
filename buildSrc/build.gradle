@@ -1,0 +1,38 @@
+plugins {
+	id "java-gradle-plugin"
+	id "io.spring.javaformat" version "${javaFormatVersion}"
+	id "checkstyle"
+}
+
+repositories {
+	mavenCentral()
+	gradlePluginPortal()
+	maven { url "https://repo.spring.io/release" }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+	checkstyle "io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}"
+	implementation("io.spring.javaformat:spring-javaformat-gradle-plugin:${javaFormatVersion}")
+}
+
+checkstyle {
+	def archive = configurations.checkstyle.filter { it.name.startsWith("spring-javaformat-checkstyle")}
+	config = resources.text.fromArchiveEntry(archive, "io/spring/javaformat/checkstyle/checkstyle.xml")
+	toolVersion = 8.11
+}
+
+gradlePlugin {
+	plugins {
+		conventionsPlugin {
+			id = "org.springframework.graphql.conventions"
+			implementationClass = "org.springframework.graphql.build.ConventionsPlugin"
+		}
+	}
+}
+
+test {
+	useJUnitPlatform()
+}

@@ -1,4 +1,5 @@
 build
+!/**/src/**/build
 .gradle
 .idea/
 out
