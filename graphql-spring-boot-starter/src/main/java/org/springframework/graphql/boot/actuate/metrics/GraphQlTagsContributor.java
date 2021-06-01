@@ -23,11 +23,23 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchPar
 import graphql.schema.DataFetcher;
 import io.micrometer.core.instrument.Tag;
 
+import org.springframework.lang.Nullable;
+
+/**
+ * A contributor of {@link Tag Tags} for Spring GraphQL-based request handling. Typically
+ * used by a {@link GraphQlTagsProvider} to provide tags in addition to its defaults.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
+ */
 public interface GraphQlTagsContributor {
 
-	Iterable<Tag> getExecutionTags(InstrumentationExecutionParameters parameters, ExecutionResult result, Throwable exception);
+	Iterable<Tag> getExecutionTags(InstrumentationExecutionParameters parameters, ExecutionResult result,
+			@Nullable Throwable exception);
 
 	Iterable<Tag> getErrorTags(InstrumentationExecutionParameters parameters, GraphQLError error);
 
-	Iterable<Tag> getDataFetchingTags(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters, Throwable exception);
+	Iterable<Tag> getDataFetchingTags(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters,
+			@Nullable Throwable exception);
+
 }

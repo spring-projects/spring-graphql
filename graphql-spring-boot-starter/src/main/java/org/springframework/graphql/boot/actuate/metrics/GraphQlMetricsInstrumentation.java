@@ -31,8 +31,9 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 
 import org.springframework.boot.actuate.metrics.AutoTimer;
+import org.springframework.lang.Nullable;
 
-public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
+class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 
 	private final MeterRegistry registry;
 
@@ -40,7 +41,7 @@ public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 
 	private final AutoTimer autoTimer;
 
-	public GraphQlMetricsInstrumentation(MeterRegistry registry, GraphQlTagsProvider tagsProvider, AutoTimer autoTimer) {
+	GraphQlMetricsInstrumentation(MeterRegistry registry, GraphQlTagsProvider tagsProvider, AutoTimer autoTimer) {
 		this.registry = registry;
 		this.tagsProvider = tagsProvider;
 		this.autoTimer = autoTimer;
@@ -59,12 +60,14 @@ public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 			return new SimpleInstrumentationContext<ExecutionResult>() {
 				@Override
 				public void onCompleted(ExecutionResult result, Throwable exc) {
-					Iterable<Tag> tags = tagsProvider.getExecutionTags(parameters, result, exc);
+					Iterable<Tag> tags = GraphQlMetricsInstrumentation.this.tagsProvider.getExecutionTags(parameters,
+							result, exc);
 					state.tags(tags).stopTimer();
 					if (!result.getErrors().isEmpty()) {
-						result.getErrors().forEach(error -> {
-							registry.counter("graphql.error", tagsProvider.getErrorTags(parameters, error)).increment();
-						});
+						result.getErrors()
+								.forEach((error) -> GraphQlMetricsInstrumentation.this.registry.counter("graphql.error",
+										GraphQlMetricsInstrumentation.this.tagsProvider.getErrorTags(parameters, error))
+										.increment());
 					}
 				}
 			};
@@ -73,7 +76,8 @@ public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 	}
 
 	@Override
-	public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters) {
+	public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher,
+			InstrumentationFieldFetchParameters parameters) {
 		if (this.autoTimer.isEnabled() && !parameters.isTrivialDataFetcher()) {
 			return (environment) -> {
 				Timer.Sample sample = Timer.start(this.registry);
@@ -81,9 +85,8 @@ public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 					Object value = dataFetcher.get(environment);
 					if (value instanceof CompletionStage<?>) {
 						CompletionStage<?> completion = (CompletionStage<?>) value;
-						return completion.whenComplete((result, error) -> {
-							recordDataFetcherMetric(sample, dataFetcher, parameters, error);
-						});
+						return completion.whenComplete(
+								(result, error) -> recordDataFetcherMetric(sample, dataFetcher, parameters, error));
 					}
 					else {
 						recordDataFetcherMetric(sample, dataFetcher, parameters, null);
@@ -100,12 +103,12 @@ public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 		return super.instrumentDataFetcher(dataFetcher, parameters);
 	}
 
-	private void recordDataFetcherMetric(Timer.Sample sample, DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters, Throwable throwable) {
+	private void recordDataFetcherMetric(Timer.Sample sample, DataFetcher<?> dataFetcher,
+			InstrumentationFieldFetchParameters parameters, @Nullable Throwable throwable) {
 		Timer.Builder timer = this.autoTimer.builder("graphql.datafetcher");
 		timer.tags(this.tagsProvider.getDataFetchingTags(dataFetcher, parameters, throwable));
 		sample.stop(timer.register(this.registry));
 	}
-
 
 	static class RequestMetricsInstrumentationState implements InstrumentationState {
 
@@ -120,18 +123,19 @@ public class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 			this.registry = registry;
 		}
 
-		public RequestMetricsInstrumentationState tags(Iterable<Tag> tags) {
+		RequestMetricsInstrumentationState tags(Iterable<Tag> tags) {
 			this.timer.tags(tags);
 			return this;
 		}
 
-		public void startTimer() {
+		void startTimer() {
 			this.sample = Timer.start(this.registry);
 		}
 
-		public void stopTimer() {
+		void stopTimer() {
 			this.sample.stop(this.timer.register(this.registry));
 		}
+
 	}
 
 }

@@ -75,7 +75,6 @@ class GraphQlTesterAutoConfigurationTests {
 			return mock(WebGraphQlHandler.class);
 		}
 
-
 	}
 
 	@Configuration(proxyBeanMethods = false)
@@ -84,7 +83,7 @@ class GraphQlTesterAutoConfigurationTests {
 		@Bean
 		WebTestClient webTestClient() {
 			RouterFunction<ServerResponse> routerFunction = RouterFunctions.route()
-					.POST("/graphql", request -> ServerResponse.ok().build()).build();
+					.POST("/graphql", (request) -> ServerResponse.ok().build()).build();
 			return WebTestClient.bindToRouterFunction(routerFunction).build();
 		}
 
@@ -94,4 +93,5 @@ class GraphQlTesterAutoConfigurationTests {
 		}
 
 	}
+
 }

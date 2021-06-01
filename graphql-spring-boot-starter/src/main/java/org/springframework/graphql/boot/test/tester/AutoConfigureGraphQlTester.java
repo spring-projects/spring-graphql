@@ -31,8 +31,9 @@ import org.springframework.graphql.test.tester.GraphQlTester;
  *
  * @author Brian Clozel
  * @see GraphQlTesterAutoConfiguration
+ * @since 1.0.0
  */
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ ElementType.TYPE, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited

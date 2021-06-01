@@ -26,6 +26,12 @@ import graphql.schema.DataFetcher;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 
+/**
+ * Default implementation for {@link GraphQlTagsProvider}.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
+ */
 public class DefaultGraphQlTagsProvider implements GraphQlTagsProvider {
 
 	private final List<GraphQlTagsContributor> contributors;
@@ -34,9 +40,9 @@ public class DefaultGraphQlTagsProvider implements GraphQlTagsProvider {
 		this.contributors = contributors;
 	}
 
-
 	@Override
-	public Iterable<Tag> getExecutionTags(InstrumentationExecutionParameters parameters, ExecutionResult result, Throwable exception) {
+	public Iterable<Tag> getExecutionTags(InstrumentationExecutionParameters parameters, ExecutionResult result,
+			Throwable exception) {
 		Tags tags = Tags.of(GraphQlTags.executionOutcome(result, exception));
 		for (GraphQlTagsContributor contributor : this.contributors) {
 			tags = tags.and(contributor.getExecutionTags(parameters, result, exception));
@@ -54,11 +60,13 @@ public class DefaultGraphQlTagsProvider implements GraphQlTagsProvider {
 	}
 
 	@Override
-	public Iterable<Tag> getDataFetchingTags(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters, Throwable exception) {
+	public Iterable<Tag> getDataFetchingTags(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters,
+			Throwable exception) {
 		Tags tags = Tags.of(GraphQlTags.dataFetchingOutcome(exception), GraphQlTags.dataFetchingPath(parameters));
 		for (GraphQlTagsContributor contributor : this.contributors) {
 			tags = tags.and(contributor.getDataFetchingTags(dataFetcher, parameters, exception));
 		}
 		return tags;
 	}
+
 }

@@ -43,11 +43,13 @@ import org.springframework.test.annotation.DirtiesContext;
  *
  * @author Brian Clozel
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.main.web-application-type=reactive")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+		properties = "spring.main.web-application-type=reactive")
 @DirtiesContext
 class GraphQlTesterContextCustomizerIntegrationTests {
 
-	@Autowired GraphQlTester graphQlTester;
+	@Autowired
+	GraphQlTester graphQlTester;
 
 	@Test
 	void test() {
@@ -69,6 +71,7 @@ class GraphQlTesterContextCustomizerIntegrationTests {
 			Map<String, HttpHandler> handlersMap = Collections.singletonMap(properties.getPath(), httpHandler);
 			return new ContextPathCompositeHandler(handlersMap);
 		}
+
 	}
 
 	static class TestHandler implements HttpHandler {
@@ -83,4 +86,5 @@ class GraphQlTesterContextCustomizerIntegrationTests {
 		}
 
 	}
+
 }

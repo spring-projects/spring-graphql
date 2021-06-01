@@ -30,18 +30,19 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Auto-configuration for {@link GraphQlTester} in mock environments.
- * 
+ *
  * @author Brian Clozel
+ * @since 1.0.0
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass({WebClient.class, WebTestClient.class, GraphQlTester.class})
+@ConditionalOnClass({ WebClient.class, WebTestClient.class, GraphQlTester.class })
 @AutoConfigureAfter(value = WebTestClientMockMvcAutoConfiguration.class,
 		name = "org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration")
 public class GraphQlTesterAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnBean(WebTestClient.class)
-	static class WebTestClientGraphQlTesterConfiguration {
+	public static class WebTestClientGraphQlTesterConfiguration {
 
 		@Bean
 		public GraphQlTester clientGraphQlTester(WebTestClient webTestClient, GraphQlProperties properties) {
@@ -54,7 +55,7 @@ public class GraphQlTesterAutoConfiguration {
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnMissingBean(WebTestClient.class)
 	@ConditionalOnBean(WebGraphQlHandler.class)
-	static class WebGraphQlHandlerGraphQlTesterConfiguration {
+	public static class WebGraphQlHandlerGraphQlTesterConfiguration {
 
 		@Bean
 		public GraphQlTester handlerGraphQlTester(WebGraphQlHandler handler) {

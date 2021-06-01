@@ -42,7 +42,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.StringUtils;
 
 /**
- * {@link ContextCustomizer} for {@link GraphQlTester}
+ * {@link ContextCustomizer} for {@link GraphQlTester}.
  *
  * @author Brian Clozel
  */
@@ -65,11 +65,12 @@ class GraphQlTesterContextCustomizer implements ContextCustomizer {
 	}
 
 	private void registerGraphQlTester(BeanDefinitionRegistry registry) {
-		RootBeanDefinition definition = new RootBeanDefinition(GraphQlTesterContextCustomizer.GraphQlTesterRegistrar.class);
+		RootBeanDefinition definition = new RootBeanDefinition(
+				GraphQlTesterContextCustomizer.GraphQlTesterRegistrar.class);
 		definition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-		registry.registerBeanDefinition(GraphQlTesterContextCustomizer.GraphQlTesterRegistrar.class.getName(), definition);
+		registry.registerBeanDefinition(GraphQlTesterContextCustomizer.GraphQlTesterRegistrar.class.getName(),
+				definition);
 	}
-
 
 	@Override
 	public boolean equals(Object obj) {
@@ -81,8 +82,8 @@ class GraphQlTesterContextCustomizer implements ContextCustomizer {
 		return getClass().hashCode();
 	}
 
-
-	private static class GraphQlTesterRegistrar implements BeanDefinitionRegistryPostProcessor, Ordered, BeanFactoryAware {
+	private static class GraphQlTesterRegistrar
+			implements BeanDefinitionRegistryPostProcessor, Ordered, BeanFactoryAware {
 
 		private BeanFactory beanFactory;
 
@@ -107,8 +108,9 @@ class GraphQlTesterContextCustomizer implements ContextCustomizer {
 
 		@Override
 		public int getOrder() {
-			return Ordered.LOWEST_PRECEDENCE -1;
+			return Ordered.LOWEST_PRECEDENCE - 1;
 		}
+
 	}
 
 	public static class GraphQlTesterFactory implements FactoryBean<GraphQlTester>, ApplicationContextAware {
@@ -170,4 +172,5 @@ class GraphQlTesterContextCustomizer implements ContextCustomizer {
 		}
 
 	}
+
 }

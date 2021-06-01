@@ -33,12 +33,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * {@link EnableAutoConfiguration Auto-configuration} for instrumentation of Spring GraphQL
- * endpoints.
+ * {@link EnableAutoConfiguration Auto-configuration} for instrumentation of Spring
+ * GraphQL endpoints.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
  */
 @Configuration(proxyBeanMethods = false)
-@AutoConfigureAfter({MetricsAutoConfiguration.class, CompositeMeterRegistryAutoConfiguration.class,
-		SimpleMetricsExportAutoConfiguration.class})
+@AutoConfigureAfter({ MetricsAutoConfiguration.class, CompositeMeterRegistryAutoConfiguration.class,
+		SimpleMetricsExportAutoConfiguration.class })
 @ConditionalOnBean(MeterRegistry.class)
 @EnableConfigurationProperties(GraphQlMetricsProperties.class)
 public class GraphQlMetricsAutoConfiguration {
@@ -54,4 +57,5 @@ public class GraphQlMetricsAutoConfiguration {
 			GraphQlTagsProvider tagsProvider, GraphQlMetricsProperties properties) {
 		return new GraphQlMetricsInstrumentation(meterRegistry, tagsProvider, properties.getAutotime());
 	}
+
 }

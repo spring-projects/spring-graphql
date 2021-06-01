@@ -13,12 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.boot;
 
 import java.time.Duration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * {@link ConfigurationProperties properties} for Spring GraphQL.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
+ */
 @ConfigurationProperties(prefix = "spring.graphql")
 public class GraphQlProperties {
 
@@ -68,7 +75,6 @@ public class GraphQlProperties {
 			return this.printer;
 		}
 
-
 		public static class Printer {
 
 			/**
@@ -96,10 +102,10 @@ public class GraphQlProperties {
 			public void setPath(String path) {
 				this.path = path;
 			}
+
 		}
 
 	}
-
 
 	public static class WebSocket {
 
@@ -109,7 +115,8 @@ public class GraphQlProperties {
 		private String path;
 
 		/**
-		 * Time within which the initial {@code CONNECTION_INIT} type message must be received.
+		 * Time within which the initial {@code CONNECTION_INIT} type message must be
+		 * received.
 		 */
 		private Duration connectionInitTimeout = Duration.ofSeconds(60);
 
@@ -128,5 +135,7 @@ public class GraphQlProperties {
 		public void setConnectionInitTimeout(Duration connectionInitTimeout) {
 			this.connectionInitTimeout = connectionInitTimeout;
 		}
+
 	}
+
 }

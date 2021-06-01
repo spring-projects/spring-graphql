@@ -16,7 +16,7 @@
 
 package org.springframework.graphql.boot;
 
-
+import graphql.schema.idl.TypeRuntimeWiring;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +35,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -54,18 +53,12 @@ class WebMvcApplicationContextTests {
 
 	@Test
 	void endpointHandlesGraphQlQuery() {
-		testWith(mockMvc -> {
-			String query = "{" +
-					"  bookById(id: \\\"book-1\\\"){ " +
-					"    id" +
-					"    name" +
-					"    pageCount" +
-					"    author" +
-					"  }" +
-					"}";
-			MvcResult asyncResult = mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}")).andReturn();
-			mockMvc.perform(asyncDispatch(asyncResult))
-					.andExpect(status().isOk())
+		testWith((mockMvc) -> {
+			String query = "{" + "  bookById(id: \\\"book-1\\\"){ " + "    id" + "    name" + "    pageCount"
+					+ "    author" + "  }" + "}";
+			MvcResult asyncResult = mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}"))
+					.andReturn();
+			mockMvc.perform(asyncDispatch(asyncResult)).andExpect(status().isOk())
 					.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 					.andExpect(jsonPath("data.bookById.name").value("GraphQL for beginners"));
 		});
@@ -73,83 +66,73 @@ class WebMvcApplicationContextTests {
 
 	@Test
 	void missingQuery() {
-		testWith(mockMvc -> mockMvc.perform(post("/graphql").content("{}")).andExpect(status().isBadRequest()));
+		testWith((mockMvc) -> mockMvc.perform(post("/graphql").content("{}")).andExpect(status().isBadRequest()));
 	}
 
 	@Test
 	void invalidJson() {
-		testWith(mockMvc -> mockMvc.perform(post("/graphql").content(":)")).andExpect(status().isBadRequest()));
+		testWith((mockMvc) -> mockMvc.perform(post("/graphql").content(":)")).andExpect(status().isBadRequest()));
 	}
 
 	@Test
 	void interceptedQuery() {
-		testWith(mockMvc -> {
-			String query = "{" +
-					"  bookById(id: \\\"book-1\\\"){ " +
-					"    id" +
-					"    name" +
-					"    pageCount" +
-					"    author" +
-					"  }" +
-					"}";
-			MvcResult asyncResult = mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}")).andReturn();
-			mockMvc.perform(asyncDispatch(asyncResult))
-					.andExpect(status().isOk())
+		testWith((mockMvc) -> {
+			String query = "{" + "  bookById(id: \\\"book-1\\\"){ " + "    id" + "    name" + "    pageCount"
+					+ "    author" + "  }" + "}";
+			MvcResult asyncResult = mockMvc.perform(post("/graphql").content("{\"query\": \"" + query + "\"}"))
+					.andReturn();
+			mockMvc.perform(asyncDispatch(asyncResult)).andExpect(status().isOk())
 					.andExpect(header().string("X-Custom-Header", "42"));
 		});
 	}
 
 	@Test
 	void schemaEndpoint() {
-		testWith(mockMvc -> {
-			mockMvc.perform(get("/graphql/schema")).andExpect(status().isOk())
-					.andExpect(content().contentType(MediaType.TEXT_PLAIN))
-					.andExpect(content().string(Matchers.containsString("type Book")));
-		});
+		testWith((mockMvc) -> mockMvc.perform(get("/graphql/schema")).andExpect(status().isOk())
+				.andExpect(content().contentType(MediaType.TEXT_PLAIN))
+				.andExpect(content().string(Matchers.containsString("type Book"))));
 	}
 
 	private void testWith(MockMvcConsumer mockMvcConsumer) {
-		new WebApplicationContextRunner()
-				.withConfiguration(AUTO_CONFIGURATIONS)
+		new WebApplicationContextRunner().withConfiguration(AUTO_CONFIGURATIONS)
 				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
-				.withPropertyValues(
-						"spring.main.web-application-type=servlet",
+				.withPropertyValues("spring.main.web-application-type=servlet",
 						"spring.graphql.schema.printer.enabled=true",
 						"spring.graphql.schema.location=classpath:books/schema.graphqls")
 				.run((context) -> {
-					MockHttpServletRequestBuilder builder = post("/graphql")
-							.contentType(MediaType.APPLICATION_JSON)
+					MockHttpServletRequestBuilder builder = post("/graphql").contentType(MediaType.APPLICATION_JSON)
 							.accept(MediaType.APPLICATION_JSON);
 					MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).defaultRequest(builder).build();
 					mockMvcConsumer.accept(mockMvc);
 				});
 	}
 
-
-	private static interface MockMvcConsumer {
+	private interface MockMvcConsumer {
 
 		void accept(MockMvc mockMvc) throws Exception;
 
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	static class DataFetchersConfiguration {
+	public static class DataFetchersConfiguration {
 
 		@Bean
 		public RuntimeWiringCustomizer bookDataFetcher() {
-			return (builder) -> builder.type(newTypeWiring("Query")
-					.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
+			return (builder) -> builder.type(TypeRuntimeWiring.newTypeWiring("Query").dataFetcher("bookById",
+					GraphQlDataFetchers.getBookByIdDataFetcher()));
 		}
+
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	static class CustomWebInterceptor {
+	public static class CustomWebInterceptor {
 
 		@Bean
 		public WebInterceptor customWebInterceptor() {
-			return (input, next) -> next.handle(input).map(output ->
-					output.transform(builder -> builder.responseHeader("X-Custom-Header", "42")));
+			return (input, next) -> next.handle(input)
+					.map((output) -> output.transform((builder) -> builder.responseHeader("X-Custom-Header", "42")));
 		}
+
 	}
 
 }

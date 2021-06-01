@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.boot;
 
 import java.util.Collections;
@@ -25,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -43,16 +45,21 @@ import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.HandlerMapping;
+import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.server.support.WebSocketUpgradeHandlerPredicate;
 
-import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
-import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
-
-@Configuration
+/**
+ * {@link EnableAutoConfiguration Auto-configuration} for enabling Spring GraphQL over
+ * WebFlux.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
+ */
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnClass(GraphQL.class)
 @ConditionalOnBean(GraphQlSource.class)
@@ -61,13 +68,11 @@ public class WebFluxGraphQlAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(WebFluxGraphQlAutoConfiguration.class);
 
-
 	@Bean
 	@ConditionalOnMissingBean
 	public WebGraphQlHandler webGraphQlHandler(ObjectProvider<WebInterceptor> interceptors, GraphQlService service) {
 		return WebGraphQlHandler.builder(service)
-				.interceptors(interceptors.orderedStream().collect(Collectors.toList()))
-				.build();
+				.interceptors(interceptors.orderedStream().collect(Collectors.toList())).build();
 	}
 
 	@Bean
@@ -86,33 +91,33 @@ public class WebFluxGraphQlAutoConfiguration {
 			logger.info("GraphQL endpoint HTTP POST " + path);
 		}
 		RouterFunctions.Builder builder = RouterFunctions.route()
-				.GET(path, req -> ServerResponse.ok().bodyValue(resource))
-				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
+				.GET(path, (req) -> ServerResponse.ok().bodyValue(resource))
+				.POST(path, RequestPredicates.accept(MediaType.APPLICATION_JSON)
+						.and(RequestPredicates.contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
-			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
-					req -> ServerResponse.ok()
-							.contentType(MediaType.TEXT_PLAIN)
-							.bodyValue(printer.print(graphQlSource.schema())));
+			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(), (req) -> ServerResponse.ok()
+					.contentType(MediaType.TEXT_PLAIN).bodyValue(printer.print(graphQlSource.schema())));
 		}
 		return builder.build();
 	}
 
+	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnProperty(prefix = "spring.graphql.websocket", name = "path")
-	static class WebSocketConfiguration {
+	public static class WebSocketConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
-		public GraphQlWebSocketHandler graphQlWebSocketHandler(
-				WebGraphQlHandler webGraphQlHandler, GraphQlProperties properties, ServerCodecConfigurer configurer) {
+		public GraphQlWebSocketHandler graphQlWebSocketHandler(WebGraphQlHandler webGraphQlHandler,
+				GraphQlProperties properties, ServerCodecConfigurer configurer) {
 
-			return new GraphQlWebSocketHandler(
-					webGraphQlHandler, configurer, properties.getWebsocket().getConnectionInitTimeout());
+			return new GraphQlWebSocketHandler(webGraphQlHandler, configurer,
+					properties.getWebsocket().getConnectionInitTimeout());
 		}
 
 		@Bean
-		public HandlerMapping graphQlWebSocketEndpoint(
-				GraphQlWebSocketHandler graphQlWebSocketHandler, GraphQlProperties properties) {
+		public HandlerMapping graphQlWebSocketEndpoint(GraphQlWebSocketHandler graphQlWebSocketHandler,
+				GraphQlProperties properties) {
 
 			String path = properties.getWebsocket().getPath();
 			if (logger.isInfoEnabled()) {
@@ -124,6 +129,7 @@ public class WebFluxGraphQlAutoConfiguration {
 			mapping.setOrder(-2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
 			return mapping;
 		}
+
 	}
 
 }

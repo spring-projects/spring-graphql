@@ -27,12 +27,14 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchPar
 import graphql.schema.GraphQLObjectType;
 import io.micrometer.core.instrument.Tag;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Factory methods for Tags associated with a GraphQL requests.
- * 
+ * Factory methods for Tags associated with a GraphQL request.
+ *
  * @author Brian Clozel
+ * @since 1.0.0
  */
 public final class GraphQlTags {
 
@@ -42,7 +44,11 @@ public final class GraphQlTags {
 
 	private static final Tag UNKNOWN_ERRORTYPE = Tag.of("errorType", "UNKNOWN");
 
-	public static Tag executionOutcome(ExecutionResult result, Throwable exception) {
+	private GraphQlTags() {
+
+	}
+
+	public static Tag executionOutcome(ExecutionResult result, @Nullable Throwable exception) {
 		if (exception == null && result.getErrors().isEmpty()) {
 			return OUTCOME_SUCCESS;
 		}
@@ -78,19 +84,19 @@ public final class GraphQlTags {
 		return Tag.of("errorPath", builder.toString());
 	}
 
-	public static Tag dataFetchingOutcome(Throwable exception) {
-		return (exception == null) ? OUTCOME_SUCCESS : OUTCOME_ERROR;
+	public static Tag dataFetchingOutcome(@Nullable Throwable exception) {
+		return (exception != null) ? OUTCOME_ERROR : OUTCOME_SUCCESS;
 	}
 
 	public static Tag dataFetchingPath(InstrumentationFieldFetchParameters parameters) {
 		ExecutionStepInfo executionStepInfo = parameters.getExecutionStepInfo();
 		StringBuilder dataFetchingType = new StringBuilder();
-		if (executionStepInfo.hasParent() &&
-				executionStepInfo.getParent().getType() instanceof GraphQLObjectType) {
+		if (executionStepInfo.hasParent() && executionStepInfo.getParent().getType() instanceof GraphQLObjectType) {
 			dataFetchingType.append(((GraphQLObjectType) executionStepInfo.getParent().getType()).getName());
 			dataFetchingType.append('.');
 		}
 		dataFetchingType.append(executionStepInfo.getPath().getSegmentName());
 		return Tag.of("path", dataFetchingType.toString());
 	}
+
 }

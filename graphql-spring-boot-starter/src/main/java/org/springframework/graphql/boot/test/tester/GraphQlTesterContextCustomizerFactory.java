@@ -40,7 +40,8 @@ class GraphQlTesterContextCustomizerFactory implements ContextCustomizerFactory 
 	@Override
 	public ContextCustomizer createContextCustomizer(Class<?> testClass,
 			List<ContextConfigurationAttributes> configAttributes) {
-		SpringBootTest springBootTest = TestContextAnnotationUtils.findMergedAnnotation(testClass, SpringBootTest.class);
+		SpringBootTest springBootTest = TestContextAnnotationUtils.findMergedAnnotation(testClass,
+				SpringBootTest.class);
 		return (springBootTest != null && isGraphQlTesterPresent()) ? new GraphQlTesterContextCustomizer() : null;
 	}
 
@@ -48,4 +49,5 @@ class GraphQlTesterContextCustomizerFactory implements ContextCustomizerFactory 
 		return ClassUtils.isPresent(WEBTESTCLIENT_CLASS, getClass().getClassLoader())
 				&& ClassUtils.isPresent(GRAPHQLTESTER_CLASS, getClass().getClassLoader());
 	}
+
 }

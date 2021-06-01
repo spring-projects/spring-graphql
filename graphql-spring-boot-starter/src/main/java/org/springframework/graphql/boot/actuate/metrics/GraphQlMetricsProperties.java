@@ -21,7 +21,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
- * This class could be merged with {@link org.springframework.boot.actuate.autoconfigure.metrics.MetricsProperties}
+ * {@link ConfigurationProperties properties} for Spring GraphQL.
+ * <p>
+ * This class could be later merged with
+ * {@link org.springframework.boot.actuate.autoconfigure.metrics.MetricsProperties}.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
  */
 @ConfigurationProperties("management.metrics.graphql")
 public class GraphQlMetricsProperties {
@@ -35,4 +41,5 @@ public class GraphQlMetricsProperties {
 	public AutoTimeProperties getAutotime() {
 		return this.autotime;
 	}
+
 }

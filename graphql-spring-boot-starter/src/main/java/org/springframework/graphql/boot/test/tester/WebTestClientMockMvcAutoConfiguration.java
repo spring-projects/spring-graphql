@@ -32,13 +32,16 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Auto-configuration for {@link WebTestClient} support with {@link MockMvc}.
- * <p>Temporary workaround for upcoming enhancement request in Spring Boot 2.6.0.
+ * <p>
+ * Temporary workaround for upcoming enhancement request in Spring Boot 2.6.0.
  *
  * @author Brian Clozel
- * @see <a href="https://github.com/spring-projects/spring-boot/issues/23067">Spring Boot 2.6.x issue</a>
+ * @since 1.0.0
+ * @see <a href="https://github.com/spring-projects/spring-boot/issues/23067">Spring Boot
+ * 2.6.x issue</a>
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass({ WebClient.class, WebTestClient.class, MockMvcWebTestClient.class})
+@ConditionalOnClass({ WebClient.class, WebTestClient.class, MockMvcWebTestClient.class })
 @AutoConfigureAfter(name = "org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration")
 public class WebTestClientMockMvcAutoConfiguration {
 
@@ -52,5 +55,5 @@ public class WebTestClientMockMvcAutoConfiguration {
 		}
 		return builder.build();
 	}
-	
+
 }

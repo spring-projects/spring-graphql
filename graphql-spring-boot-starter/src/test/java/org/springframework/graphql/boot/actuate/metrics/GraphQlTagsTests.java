@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link GraphQlTags}
- * 
+ *
  * @author Brian Clozel
  */
 class GraphQlTagsTests {
@@ -44,7 +44,8 @@ class GraphQlTagsTests {
 
 	@Test
 	void executionOutcomeShouldErrorWhenExceptionThrown() {
-		Tag outcomeTag = GraphQlTags.executionOutcome(new TestExecutionResult(), new IllegalArgumentException("test error"));
+		Tag outcomeTag = GraphQlTags.executionOutcome(new TestExecutionResult(),
+				new IllegalArgumentException("test error"));
 		assertThat(outcomeTag.getValue()).isEqualTo("ERROR");
 	}
 
@@ -58,21 +59,24 @@ class GraphQlTagsTests {
 
 	@Test
 	void errorTypeShouldBeDefinedIfPresent() {
-		GraphQLError error = GraphqlErrorBuilder.newError().errorType(ErrorType.DataFetchingException).message("test error").build();
+		GraphQLError error = GraphqlErrorBuilder.newError().errorType(ErrorType.DataFetchingException)
+				.message("test error").build();
 		Tag errorTypeTag = GraphQlTags.errorType(error);
 		assertThat(errorTypeTag.getValue()).isEqualTo("DataFetchingException");
 	}
 
 	@Test
 	void errorPathShouldUseJsonPathFormat() {
-		GraphQLError error = GraphqlErrorBuilder.newError().path(Arrays.asList("project", "name")).message("test error").build();
+		GraphQLError error = GraphqlErrorBuilder.newError().path(Arrays.asList("project", "name")).message("test error")
+				.build();
 		Tag errorPathTag = GraphQlTags.errorPath(error);
 		assertThat(errorPathTag.getValue()).isEqualTo("$.project.name");
 	}
 
 	@Test
 	void errorPathShouldUseJsonPathFormatForIndices() {
-		GraphQLError error = GraphqlErrorBuilder.newError().path(Arrays.asList("issues", "42", "title")).message("test error").build();
+		GraphQLError error = GraphqlErrorBuilder.newError().path(Arrays.asList("issues", "42", "title"))
+				.message("test error").build();
 		Tag errorPathTag = GraphQlTags.errorPath(error);
 		assertThat(errorPathTag.getValue()).isEqualTo("$.issues[*].title");
 	}

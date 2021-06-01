@@ -13,13 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.boot;
 
 import graphql.schema.idl.RuntimeWiring;
 
+/**
+ * Callback interface that can be used to customize the GraphQL
+ * {@link RuntimeWiring.Builder}.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
+ */
 @FunctionalInterface
 public interface RuntimeWiringCustomizer {
 
+	/**
+	 * Callback to customize a {@link RuntimeWiring.Builder} instance.
+	 * @param builder builder instance to customize
+	 */
 	void customize(RuntimeWiring.Builder builder);
 
 }

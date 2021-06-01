@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.boot;
 
 import graphql.GraphQL;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +28,14 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
-@Configuration
+/**
+ * {@link EnableAutoConfiguration Auto-configuration} for creating a
+ * {@link GraphQlService}.
+ *
+ * @author Brian Clozel
+ * @since 1.0.0
+ */
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(GraphQL.class)
 @ConditionalOnMissingBean(GraphQlService.class)
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
