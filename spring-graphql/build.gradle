@@ -1,30 +1,7 @@
-
-plugins {
-	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
-	id 'java-library'
-	id "org.springframework.graphql.conventions"
-}
-
 description = "GraphQL Support for Spring Applications"
 
-java {
-	sourceCompatibility = JavaVersion.VERSION_1_8
-	targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-dependencyManagement {
-	imports {
-        mavenBom "com.fasterxml.jackson:jackson-bom:2.12.3"
-        mavenBom "io.projectreactor:reactor-bom:2020.0.6"
-		mavenBom "org.springframework:spring-framework-bom:5.3.6"
-	}
-	generatedPomCustomization {
-		enabled = false
-	}
-}
-
 dependencies {
-	api 'com.graphql-java:graphql-java:16.2'
+	api 'com.graphql-java:graphql-java'
 	api 'io.projectreactor:reactor-core'
 	api 'org.springframework:spring-context'
 
@@ -34,8 +11,8 @@ dependencies {
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
 
-	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
-	testImplementation 'org.assertj:assertj-core:3.19.0'
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testImplementation 'org.assertj:assertj-core'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
@@ -44,8 +21,8 @@ dependencies {
 	testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 
-	testRuntimeOnly 'org.apache.logging.log4j:log4j-core:2.14.1'
-	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.14.1'
+	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'
+	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
 }
 
 test {
@@ -54,5 +31,3 @@ test {
 		events "passed", "skipped", "failed"
 	}
 }
-
-apply from: "${rootDir}/gradle/publishing.gradle"
