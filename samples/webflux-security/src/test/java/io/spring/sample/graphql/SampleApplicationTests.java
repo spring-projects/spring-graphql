@@ -13,7 +13,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunctions;
 import java.util.Collections;
 
 @SpringBootTest()
-class EmployeeServiceApplicationTest {
+class SampleApplicationTests {
 
 	@Autowired
 	private ReactiveWebApplicationContext context;
