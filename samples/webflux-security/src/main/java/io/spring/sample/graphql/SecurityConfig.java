@@ -10,6 +10,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
@@ -17,14 +19,14 @@ public class SecurityConfig {
 
 	@Bean
 	SecurityWebFilterChain springWebFilterChain(ServerHttpSecurity http) throws Exception {
-		http.csrf().disable();
 		return http
+				.csrf(c -> c.disable())
 				// Demonstrate that method security works
 				// Best practice to use both for defense in depth
-				.authorizeExchange()
-				.anyExchange().permitAll()
-				.and()
-				.httpBasic().and()
+				.authorizeExchange(requests -> requests
+					.anyExchange().permitAll()
+				)
+				.httpBasic(withDefaults())
 				.build();
 	}
 
