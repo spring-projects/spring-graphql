@@ -51,4 +51,5 @@ public class Release {
 	public void setCurrent(boolean current) {
 		this.current = current;
 	}
+
 }

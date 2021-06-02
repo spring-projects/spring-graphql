@@ -41,19 +41,17 @@ public class DataRepository {
 	}
 
 	public Flux<String> getGreetings(DataFetchingEnvironment environment) {
-		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong ->
-				Flux.deferContextual(context -> {
-					String name = context.get("name");
-					return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
-				}));
+		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong -> Flux.deferContextual(context -> {
+			String name = context.get("name");
+			return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
+		}));
 	}
 
 	public Flux<String> getGreetingsStream(DataFetchingEnvironment environment) {
-		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong ->
-				Flux.deferContextual(context -> {
-					String name = context.get("name");
-					return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
-				}));
+		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong -> Flux.deferContextual(context -> {
+			String name = context.get("name");
+			return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
+		}));
 	}
 
 }

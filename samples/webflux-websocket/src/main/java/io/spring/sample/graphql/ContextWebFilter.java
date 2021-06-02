@@ -22,8 +22,8 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 
 /**
- * WebFilter that inserts a key-value pair into the Reactor context which is
- * transferred to and accessible in Reactor data fetchers.
+ * WebFilter that inserts a key-value pair into the Reactor context which is transferred
+ * to and accessible in Reactor data fetchers.
  */
 public class ContextWebFilter implements WebFilter {
 

@@ -39,50 +39,28 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void jsonPath() {
-		String query = "{" +
-				"  project(slug:\"spring-framework\") {" +
-				"    releases {" +
-				"      version" +
-				"    }" +
-				"  }" +
-				"}";
+		String query = "{" + "  project(slug:\"spring-framework\") {" + "    releases {" + "      version" + "    }"
+				+ "  }" + "}";
 
-		this.graphQlTester.query(query)
-				.execute()
-				.path("project.releases[*].version")
-				.entityList(String.class)
+		this.graphQlTester.query(query).execute().path("project.releases[*].version").entityList(String.class)
 				.hasSizeGreaterThan(1);
 
 	}
 
 	@Test
 	void jsonContent() {
-		String query = "{" +
-				"  project(slug:\"spring-framework\") {" +
-				"    repositoryUrl" +
-				"  }" +
-				"}";
+		String query = "{" + "  project(slug:\"spring-framework\") {" + "    repositoryUrl" + "  }" + "}";
 
-		this.graphQlTester.query(query)
-				.execute()
-				.path("project")
+		this.graphQlTester.query(query).execute().path("project")
 				.matchesJson("{\"repositoryUrl\":\"http://github.com/spring-projects/spring-framework\"}");
 	}
 
 	@Test
 	void decodedResponse() {
-		String query = "{" +
-				"  project(slug:\"spring-framework\") {" +
-				"    releases {" +
-				"      version" +
-				"    }" +
-				"  }" +
-				"}";
+		String query = "{" + "  project(slug:\"spring-framework\") {" + "    releases {" + "      version" + "    }"
+				+ "  }" + "}";
 
-		this.graphQlTester.query(query)
-				.execute()
-				.path("project")
-				.entity(Project.class)
+		this.graphQlTester.query(query).execute().path("project").entity(Project.class)
 				.satisfies(project -> assertThat(project.getReleases()).hasSizeGreaterThan(1));
 	}
 

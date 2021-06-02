@@ -24,15 +24,13 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 /**
- * {@link ThreadLocalAccessor} to expose a thread-bound RequestAttributes object
- * to data fetchers in Spring GraphQL.
+ * {@link ThreadLocalAccessor} to expose a thread-bound RequestAttributes object to data
+ * fetchers in Spring GraphQL.
  */
 @Component
 public class RequestAttributesAccessor implements ThreadLocalAccessor {
 
-	private static final String ATTRIBUTES_KEY =
-			RequestAttributesAccessor.class.getName() + ".requestAttributes";
-
+	private static final String ATTRIBUTES_KEY = RequestAttributesAccessor.class.getName() + ".requestAttributes";
 
 	@Override
 	public void extractValues(Map<String, Object> container) {

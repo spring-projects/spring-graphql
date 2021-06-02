@@ -55,4 +55,5 @@ public class ArtifactRepository {
 	public void setSnapshotsEnabled(boolean snapshotsEnabled) {
 		this.snapshotsEnabled = snapshotsEnabled;
 	}
+
 }

@@ -53,4 +53,5 @@ public class Project {
 	public void setReleases(List<Release> releases) {
 		this.releases = releases;
 	}
+
 }

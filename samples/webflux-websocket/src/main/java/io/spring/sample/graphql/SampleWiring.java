@@ -26,26 +26,22 @@ public class SampleWiring implements RuntimeWiringCustomizer {
 
 	private final DataRepository dataRepository;
 
-
 	public SampleWiring(@Autowired DataRepository dataRepository) {
 		this.dataRepository = dataRepository;
 	}
 
-
 	@Override
 	public void customize(RuntimeWiring.Builder builder) {
 
-		builder.type("Query", typeBuilder ->
-				typeBuilder.dataFetcher("greeting", this.dataRepository::getBasic));
+		builder.type("Query", typeBuilder -> typeBuilder.dataFetcher("greeting", this.dataRepository::getBasic));
 
-		builder.type("Query", typeBuilder ->
-				typeBuilder.dataFetcher("greetingMono", this.dataRepository::getGreeting));
+		builder.type("Query", typeBuilder -> typeBuilder.dataFetcher("greetingMono", this.dataRepository::getGreeting));
 
-		builder.type("Query", typeBuilder ->
-				typeBuilder.dataFetcher("greetingsFlux", this.dataRepository::getGreetings));
+		builder.type("Query",
+				typeBuilder -> typeBuilder.dataFetcher("greetingsFlux", this.dataRepository::getGreetings));
 
-		builder.type("Subscription", typeBuilder ->
-				typeBuilder.dataFetcher("greetings", this.dataRepository::getGreetingsStream));
+		builder.type("Subscription",
+				typeBuilder -> typeBuilder.dataFetcher("greetings", this.dataRepository::getGreetingsStream));
 	}
 
 }

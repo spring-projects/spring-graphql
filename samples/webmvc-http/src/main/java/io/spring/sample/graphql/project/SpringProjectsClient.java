@@ -19,27 +19,26 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class SpringProjectsClient {
 
-	private static final TypeReferences.CollectionModelType<Release> releaseCollection =
-			new TypeReferences.CollectionModelType<Release>() { };
+	private static final TypeReferences.CollectionModelType<Release> releaseCollection = new TypeReferences.CollectionModelType<Release>() {
+	};
 
 	private final Traverson traverson;
 
 	public SpringProjectsClient(RestTemplateBuilder builder) {
-		RestTemplate restTemplate = builder.messageConverters(Traverson.getDefaultMessageConverters(MediaTypes.HAL_JSON)).build();
+		RestTemplate restTemplate = builder
+				.messageConverters(Traverson.getDefaultMessageConverters(MediaTypes.HAL_JSON)).build();
 		this.traverson = new Traverson(URI.create("https://spring.io/api/"), MediaTypes.HAL_JSON);
 		this.traverson.setRestOperations(restTemplate);
 	}
 
 	public Project fetchProject(String projectSlug) {
-		return this.traverson.follow("projects")
-				.follow(Hop.rel("project").withParameter("id", projectSlug))
+		return this.traverson.follow("projects").follow(Hop.rel("project").withParameter("id", projectSlug))
 				.toObject(Project.class);
 	}
 
 	public List<Release> fetchProjectReleases(String projectSlug) {
 		CollectionModel<Release> releases = this.traverson.follow("projects")
-				.follow(Hop.rel("project").withParameter("id", projectSlug))
-				.follow(Hop.rel("releases"))
+				.follow(Hop.rel("project").withParameter("id", projectSlug)).follow(Hop.rel("releases"))
 				.toObject(releaseCollection);
 		return new ArrayList(releases.getContent());
 	}

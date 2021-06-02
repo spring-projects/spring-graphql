@@ -32,29 +32,21 @@ public class QueryTests {
 
 	private GraphQlTester graphQlTester;
 
-
 	@BeforeEach
 	public void setUp(@Autowired WebGraphQlHandler handler) {
-		this.graphQlTester = GraphQlTester.create(webInput ->
-				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
+		this.graphQlTester = GraphQlTester
+				.create(webInput -> handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
-
 
 	@Test
 	void greetingMono() {
-		this.graphQlTester.query("{greetingMono}")
-				.execute()
-				.path("greetingMono")
-				.entity(String.class)
+		this.graphQlTester.query("{greetingMono}").execute().path("greetingMono").entity(String.class)
 				.isEqualTo("Hello James");
 	}
 
 	@Test
 	void greetingsFlux() {
-		this.graphQlTester.query("{greetingsFlux}")
-				.execute()
-				.path("greetingsFlux")
-				.entityList(String.class)
+		this.graphQlTester.query("{greetingsFlux}").execute().path("greetingsFlux").entityList(String.class)
 				.containsExactly("Hi James", "Bonjour James", "Hola James", "Ciao James", "Zdravo James");
 	}
 

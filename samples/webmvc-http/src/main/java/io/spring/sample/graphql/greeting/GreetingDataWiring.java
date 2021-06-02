@@ -12,13 +12,12 @@ import static org.springframework.web.context.request.RequestAttributes.SCOPE_RE
 @Component
 public class GreetingDataWiring implements RuntimeWiringCustomizer {
 
-
 	@Override
 	public void customize(RuntimeWiring.Builder builder) {
-		builder.type("Query", typeWiring ->
-				typeWiring.dataFetcher("greeting", env -> {
-					RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
-					return "Hello " + attributes.getAttribute(RequestAttributeFilter.NAME_ATTRIBUTE, SCOPE_REQUEST);
-				}));
+		builder.type("Query", typeWiring -> typeWiring.dataFetcher("greeting", env -> {
+			RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+			return "Hello " + attributes.getAttribute(RequestAttributeFilter.NAME_ATTRIBUTE, SCOPE_REQUEST);
+		}));
 	}
+
 }
