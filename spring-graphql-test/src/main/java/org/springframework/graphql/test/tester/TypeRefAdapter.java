@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.test.tester;
 
 import java.lang.reflect.Type;
@@ -23,13 +24,15 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 
 /**
- * {@link TypeRef} with a {@link #getType() type} that is given rather than
- * obtained from the declared generic type information.
+ * {@link TypeRef} with a {@link #getType() type} that is given rather than obtained from
+ * the declared generic type information.
+ *
+ * @param <T> the referenced type
+ * @author Rossen Stoyanchev
  */
 class TypeRefAdapter<T> extends TypeRef<T> {
 
 	private final Type type;
-
 
 	TypeRefAdapter(Class<T> clazz) {
 		this.type = clazz;
@@ -46,7 +49,6 @@ class TypeRefAdapter<T> extends TypeRef<T> {
 	TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
 		this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
 	}
-
 
 	@Override
 	public Type getType() {

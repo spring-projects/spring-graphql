@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * GraphQL client testing support.
+ */
 @NonNullApi
 @NonNullFields
 package org.springframework.graphql.test.tester;

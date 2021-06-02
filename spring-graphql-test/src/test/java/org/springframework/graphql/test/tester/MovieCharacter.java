@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.test.tester;
 
 import org.springframework.lang.Nullable;
@@ -46,11 +47,12 @@ public class MovieCharacter {
 			return false;
 		}
 		MovieCharacter movieCharacter = (MovieCharacter) other;
-		return (this.name != null ? this.name.equals(movieCharacter.name) : movieCharacter.name == null);
+		return (this.name != null) ? this.name.equals(movieCharacter.name) : movieCharacter.name == null;
 	}
 
 	@Override
 	public int hashCode() {
-		return (this.name != null ? this.name.hashCode() : 0);
+		return (this.name != null) ? this.name.hashCode() : 0;
 	}
+
 }

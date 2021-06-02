@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.test.tester;
 
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ import graphql.GraphQLError;
 
 /**
  * {@link GraphQLError} with setters for deserialization.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class TestExecutionResult implements ExecutionResult {
 
@@ -35,7 +39,6 @@ public class TestExecutionResult implements ExecutionResult {
 	private List<GraphQLError> errors = Collections.emptyList();
 
 	private Map<Object, Object> extensions = Collections.emptyMap();
-
 
 	public void setData(Object data) {
 		this.data = data;
@@ -72,8 +75,7 @@ public class TestExecutionResult implements ExecutionResult {
 
 	@Override
 	public Map<String, Object> toSpecification() {
-		ExecutionResultImpl.Builder builder = ExecutionResultImpl.newExecutionResult()
-				.addErrors(this.errors)
+		ExecutionResultImpl.Builder builder = ExecutionResultImpl.newExecutionResult().addErrors(this.errors)
 				.extensions(this.extensions);
 
 		if (isDataPresent()) {
@@ -82,4 +84,5 @@ public class TestExecutionResult implements ExecutionResult {
 
 		return builder.build().toSpecification();
 	}
+
 }

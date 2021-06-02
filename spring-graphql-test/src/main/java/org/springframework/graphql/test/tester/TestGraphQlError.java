@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.test.tester;
 
 import java.util.List;
@@ -28,6 +29,8 @@ import graphql.language.SourceLocation;
 
 /**
  * {@link GraphQLError} with setters to use for deserialization.
+ *
+ * @author Rossen Stoyanchev
  */
 class TestGraphQlError implements GraphQLError {
 
@@ -43,9 +46,7 @@ class TestGraphQlError implements GraphQLError {
 
 	private boolean expected;
 
-
-
-	public void setMessage(String message) {
+	void setMessage(String message) {
 		this.message = message;
 	}
 
@@ -54,7 +55,7 @@ class TestGraphQlError implements GraphQLError {
 		return this.message;
 	}
 
-	public void setLocations(List<TestSourceLocation> locations) {
+	void setLocations(List<TestSourceLocation> locations) {
 		this.locations = TestSourceLocation.toSourceLocations(locations);
 	}
 
@@ -63,7 +64,7 @@ class TestGraphQlError implements GraphQLError {
 		return this.locations;
 	}
 
-	public void setErrorType(ErrorClassification errorType) {
+	void setErrorType(ErrorClassification errorType) {
 		this.errorType = errorType;
 	}
 
@@ -72,7 +73,7 @@ class TestGraphQlError implements GraphQLError {
 		return this.errorType;
 	}
 
-	public void setPath(List<Object> path) {
+	void setPath(List<Object> path) {
 		this.path = path;
 	}
 
@@ -81,7 +82,7 @@ class TestGraphQlError implements GraphQLError {
 		return this.path;
 	}
 
-	public void setExtensions(Map<String, Object> extensions) {
+	void setExtensions(Map<String, Object> extensions) {
 		this.extensions = extensions;
 	}
 
@@ -92,8 +93,9 @@ class TestGraphQlError implements GraphQLError {
 
 	/**
 	 * Whether the error is marked as filtered out as expected.
+	 * @return whether the error is marked as expected
 	 */
-	public boolean isExpected() {
+	boolean isExpected() {
 		return this.expected;
 	}
 
@@ -117,6 +119,7 @@ class TestGraphQlError implements GraphQLError {
 
 	/**
 	 * Mark this error as expected if it matches the predicate.
+	 * @param predicate the error predicate
 	 */
 	void filter(Predicate<GraphQLError> predicate) {
 		this.expected |= predicate.test(this);
@@ -127,8 +130,7 @@ class TestGraphQlError implements GraphQLError {
 		return toSpecification().toString();
 	}
 
-
-	private static class TestSourceLocation {
+	private static final class TestSourceLocation {
 
 		private int line;
 
@@ -136,35 +138,36 @@ class TestGraphQlError implements GraphQLError {
 
 		private String sourceName;
 
-
-		public void setLine(int line) {
+		void setLine(int line) {
 			this.line = line;
 		}
 
-		public int getLine() {
+		int getLine() {
 			return this.line;
 		}
 
-		public void setColumn(int column) {
+		void setColumn(int column) {
 			this.column = column;
 		}
 
-		public int getColumn() {
+		int getColumn() {
 			return this.column;
 		}
 
-		public void setSourceName(String sourceName) {
+		void setSourceName(String sourceName) {
 			this.sourceName = sourceName;
 		}
 
-		public String getSourceName() {
+		String getSourceName() {
 			return this.sourceName;
 		}
 
-		public static List<SourceLocation> toSourceLocations(List<TestSourceLocation> locations) {
+		static List<SourceLocation> toSourceLocations(List<TestSourceLocation> locations) {
 			return locations.stream()
-					.map(location -> new SourceLocation(location.line, location.column, location.sourceName))
+					.map((location) -> new SourceLocation(location.line, location.column, location.sourceName))
 					.collect(Collectors.toList());
 		}
+
 	}
+
 }
