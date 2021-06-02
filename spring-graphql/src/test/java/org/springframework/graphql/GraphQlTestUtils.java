@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql;
 
 import java.nio.charset.StandardCharsets;
@@ -31,30 +32,23 @@ import org.springframework.graphql.execution.GraphQlSource;
  */
 public abstract class GraphQlTestUtils {
 
-	public static GraphQL initGraphQl(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
+	public static GraphQL initGraphQl(String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
 
-		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher)
-				.build()
-				.graphQl();
+		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher).build().graphQl();
 	}
 
-	public static GraphQL initGraphQl(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher,
+	public static GraphQL initGraphQl(String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher,
 			DataFetcherExceptionResolver... resolvers) {
 
 		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher)
-				.exceptionResolvers(Arrays.asList(resolvers))
-				.build()
-				.graphQl();
+				.exceptionResolvers(Arrays.asList(resolvers)).build().graphQl();
 	}
 
-	public static GraphQlSource.Builder initGraphQlSource(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
+	public static GraphQlSource.Builder initGraphQlSource(String schemaContent, String typeName, String fieldName,
+			DataFetcher<?> fetcher) {
 
 		RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
-				.type(typeName, builder -> builder.dataFetcher(fieldName, fetcher))
-				.build();
+				.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)).build();
 
 		return GraphQlSource.builder()
 				.schemaResource(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))

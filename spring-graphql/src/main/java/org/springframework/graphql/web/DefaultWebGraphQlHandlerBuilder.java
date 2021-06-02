@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web;
 
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * Default implementation of {@link WebGraphQlHandler.Builder}.
+ *
+ * @author Rossen Stoyanchev
  */
 class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
@@ -44,12 +47,10 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Nullable
 	private List<ThreadLocalAccessor> accessors;
 
-
 	DefaultWebGraphQlHandlerBuilder(GraphQlService service) {
 		Assert.notNull(service, "GraphQlService is required");
 		this.service = service;
 	}
-
 
 	@Override
 	public WebGraphQlHandler.Builder interceptor(WebInterceptor... interceptors) {
@@ -59,7 +60,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler.Builder interceptors(List<WebInterceptor> interceptors) {
 		if (!CollectionUtils.isEmpty(interceptors)) {
-			this.interceptors = (this.interceptors != null ? this.interceptors : new ArrayList<>());
+			this.interceptors = (this.interceptors != null) ? this.interceptors : new ArrayList<>();
 			this.interceptors.addAll(interceptors);
 		}
 		return this;
@@ -73,7 +74,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler.Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors) {
 		if (!CollectionUtils.isEmpty(accessors)) {
-			this.accessors = (this.accessors != null ? this.accessors : new ArrayList<>());
+			this.accessors = (this.accessors != null) ? this.accessors : new ArrayList<>();
 			this.accessors.addAll(accessors);
 		}
 		return this;
@@ -81,27 +82,25 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	@Override
 	public WebGraphQlHandler build() {
-		List<WebInterceptor> interceptorsToUse =
-				(this.interceptors != null ? this.interceptors : Collections.emptyList());
+		List<WebInterceptor> interceptorsToUse = (this.interceptors != null) ? this.interceptors
+				: Collections.emptyList();
 
-		WebGraphQlHandler targetHandler = webInput -> {
+		WebGraphQlHandler targetHandler = (webInput) -> {
 			ExecutionInput executionInput = webInput.toExecutionInput();
-			return this.service.execute(executionInput).map(result -> new WebOutput(webInput, result));
+			return this.service.execute(executionInput).map((result) -> new WebOutput(webInput, result));
 		};
 
-		WebGraphQlHandler interceptionChain = interceptorsToUse.stream()
-				.reduce(WebInterceptor::andThen)
-				.map(interceptor -> (WebGraphQlHandler) input -> interceptor.intercept(input, targetHandler))
+		WebGraphQlHandler interceptionChain = interceptorsToUse.stream().reduce(WebInterceptor::andThen)
+				.map((interceptor) -> (WebGraphQlHandler) (input) -> interceptor.intercept(input, targetHandler))
 				.orElse(targetHandler);
 
-		return (CollectionUtils.isEmpty(this.accessors) ? interceptionChain :
-				new ThreadLocalExtractingHandler(interceptionChain, ThreadLocalAccessor.composite(this.accessors)));
+		return (CollectionUtils.isEmpty(this.accessors) ? interceptionChain
+				: new ThreadLocalExtractingHandler(interceptionChain, ThreadLocalAccessor.composite(this.accessors)));
 	}
 
-
 	/**
-	 * {@link WebGraphQlHandler} that extracts ThreadLocal values and saves them
-	 * in the Reactor context for subsequent use for DataFetcher's.
+	 * {@link WebGraphQlHandler} that extracts ThreadLocal values and saves them in the
+	 * Reactor context for subsequent use for DataFetcher's.
 	 */
 	private static class ThreadLocalExtractingHandler implements WebGraphQlHandler {
 
@@ -116,12 +115,12 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 		@Override
 		public Mono<WebOutput> handle(WebInput input) {
-			return this.delegate.handle(input)
-					.contextWrite(context -> {
-						ContextView view = ContextManager.extractThreadLocalValues(this.accessor);
-						return (!view.isEmpty() ? context.putAll(view) : context);
-					});
+			return this.delegate.handle(input).contextWrite((context) -> {
+				ContextView view = ContextManager.extractThreadLocalValues(this.accessor);
+				return (!view.isEmpty() ? context.putAll(view) : context);
+			});
 		}
+
 	}
 
 }

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.List;
@@ -21,29 +22,30 @@ import java.util.Map;
 /**
  * Default implementation of a composite accessor that is returned from
  * {@link ThreadLocalAccessor#composite(List)}.
+ *
+ * @author Rossen Stoyanchev
  */
 class CompositeThreadLocalAccessor implements ThreadLocalAccessor {
 
 	private final List<ThreadLocalAccessor> accessors;
 
-
-	public CompositeThreadLocalAccessor(List<ThreadLocalAccessor> accessors) {
+	CompositeThreadLocalAccessor(List<ThreadLocalAccessor> accessors) {
 		this.accessors = accessors;
 	}
 
-
 	@Override
 	public void extractValues(Map<String, Object> container) {
-		this.accessors.forEach(accessor -> accessor.extractValues(container));
+		this.accessors.forEach((accessor) -> accessor.extractValues(container));
 	}
 
 	@Override
 	public void restoreValues(Map<String, Object> values) {
-		this.accessors.forEach(accessor -> accessor.restoreValues(values));
+		this.accessors.forEach((accessor) -> accessor.restoreValues(values));
 	}
 
 	@Override
 	public void resetValues(Map<String, Object> values) {
-		this.accessors.forEach(accessor -> accessor.resetValues(values));
+		this.accessors.forEach((accessor) -> accessor.resetValues(values));
 	}
+
 }

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web.webflux;
 
 import java.net.URI;
@@ -30,8 +31,8 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.adapter.AbstractWebSocketSession;
 
 /**
- * {@link org.springframework.web.reactive.socket.WebSocketSession} that is given
- * an input Flux of messages and exposes a Flux of published output messages.
+ * {@link org.springframework.web.reactive.socket.WebSocketSession} that is given an input
+ * Flux of messages and exposes a Flux of published output messages.
  */
 class TestWebSocketSession extends AbstractWebSocketSession<Object> {
 
@@ -41,18 +42,15 @@ class TestWebSocketSession extends AbstractWebSocketSession<Object> {
 
 	private final Sinks.One<CloseStatus> closeStatusSink = Sinks.one();
 
-
-	public TestWebSocketSession(Flux<WebSocketMessage> input) {
+	TestWebSocketSession(Flux<WebSocketMessage> input) {
 		this("1", URI.create("https://example.org/graphql"), input);
 	}
 
-	public TestWebSocketSession(String id, URI uri, Flux<WebSocketMessage> input) {
-		super(new Object(), id,
-				new HandshakeInfo(uri, new HttpHeaders(), Mono.empty(), null),
+	TestWebSocketSession(String id, URI uri, Flux<WebSocketMessage> input) {
+		super(new Object(), id, new HandshakeInfo(uri, new HttpHeaders(), Mono.empty(), null),
 				DefaultDataBufferFactory.sharedInstance);
 		this.input = input;
 	}
-
 
 	@Override
 	public Flux<WebSocketMessage> receive() {
@@ -65,7 +63,7 @@ class TestWebSocketSession extends AbstractWebSocketSession<Object> {
 		return Mono.empty();
 	}
 
-	public Flux<WebSocketMessage> getOutput() {
+	Flux<WebSocketMessage> getOutput() {
 		return this.output;
 	}
 
@@ -84,4 +82,5 @@ class TestWebSocketSession extends AbstractWebSocketSession<Object> {
 	public Mono<CloseStatus> closeStatus() {
 		return this.closeStatusSink.asMono();
 	}
+
 }

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql;
 
 import java.util.Map;
@@ -21,7 +22,7 @@ import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link ThreadLocalAccessor} that operates on the ThreadLocal it is given.
@@ -33,11 +34,9 @@ public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
 	@Nullable
 	private Long threadId;
 
-
 	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal) {
 		this.threadLocal = threadLocal;
 	}
-
 
 	@Override
 	public void extractValues(Map<String, Object> container) {
@@ -66,9 +65,7 @@ public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
 	}
 
 	private void checkThreadId() {
-		assertThat(this.threadId)
-				.as("No threadId to check. Was extractValues not called?")
-				.isNotNull();
+		assertThat(this.threadId).as("No threadId to check. Was extractValues not called?").isNotNull();
 		assertThat(Thread.currentThread().getId() != this.threadId)
 				.as("ThreadLocal value extracted and restored on the same thread. Propagation not tested effectively.")
 				.isTrue();

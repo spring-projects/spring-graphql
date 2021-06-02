@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql;
 
 import java.util.ArrayList;
@@ -30,9 +31,11 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * Common representation for GraphQL request input. This can be converted to
- * {@link ExecutionInput} via {@link #toExecutionInput()} and the
- * {@code ExecutionInput} further customized via
- * {@link #configureExecutionInput(BiFunction)}.
+ * {@link ExecutionInput} via {@link #toExecutionInput()} and the {@code ExecutionInput}
+ * further customized via {@link #configureExecutionInput(BiFunction)}.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class RequestInput {
 
@@ -45,12 +48,11 @@ public class RequestInput {
 
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
-
 	public RequestInput(String query, @Nullable String operationName, @Nullable Map<String, Object> vars) {
 		Assert.notNull(query, "'query' is required");
 		this.query = query;
 		this.operationName = operationName;
-		this.variables = (vars != null ? vars : Collections.emptyMap());
+		this.variables = ((vars != null) ? vars : Collections.emptyMap());
 	}
 
 	public RequestInput(Map<String, Object> body) {
@@ -62,18 +64,19 @@ public class RequestInput {
 		return (T) body.get(key);
 	}
 
-
 	/**
-	 * Return the query name extracted from the request body. This is guaranteed
-	 * to be a non-empty string.
+	 * Return the query name extracted from the request body. This is guaranteed to be a
+	 * non-empty string.
+	 * @return the query name
 	 */
 	public String getQuery() {
 		return this.query;
 	}
 
 	/**
-	 * Return the operation name extracted from the request body or
-	 * {@code null} if not provided.
+	 * Return the operation name extracted from the request body or {@code null} if not
+	 * provided.
+	 * @return the operation name or {@code null}
 	 */
 	@Nullable
 	public String getOperationName() {
@@ -81,20 +84,21 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the variables that can be referenced via $syntax extracted
-	 * from the request body or a {@code null} if not provided.
+	 * Return the variables that can be referenced via $syntax extracted from the request
+	 * body or a {@code null} if not provided.
+	 * @return the request variables or {@code null}
 	 */
 	public Map<String, Object> getVariables() {
 		return this.variables;
 	}
 
 	/**
-	 * Provide a consumer to configure the {@link ExecutionInput} used for input
-	 * to {@link graphql.GraphQL#executeAsync(ExecutionInput)}.
-	 * The builder is initially populated with the values from
-	 * {@link #getQuery()}, {@link #getOperationName()}, and {@link #getVariables()}.
-	 * @param configurer a {@code BiFunction} with the current
-	 * {@code ExecutionInput} and a builder to modify it.
+	 * Provide a consumer to configure the {@link ExecutionInput} used for input to
+	 * {@link graphql.GraphQL#executeAsync(ExecutionInput)}. The builder is initially
+	 * populated with the values from {@link #getQuery()}, {@link #getOperationName()},
+	 * and {@link #getVariables()}.
+	 * @param configurer a {@code BiFunction} with the current {@code ExecutionInput} and
+	 * a builder to modify it.
 	 */
 	public void configureExecutionInput(BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer) {
 		this.executionInputConfigurers.add(configurer);
@@ -105,17 +109,15 @@ public class RequestInput {
 	 * populated from {@link #getQuery()}, {@link #getOperationName()}, and
 	 * {@link #getVariables()}, and is then further customized through
 	 * {@link #configureExecutionInput(BiFunction)}.
+	 * @return the execution input
 	 */
 	public ExecutionInput toExecutionInput() {
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-				.query(this.query)
-				.operationName(this.operationName)
-				.variables(this.variables)
-				.build();
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(this.query)
+				.operationName(this.operationName).variables(this.variables).build();
 
 		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
 			ExecutionInput current = executionInput;
-			executionInput = executionInput.transform(builder -> configurer.apply(current, builder));
+			executionInput = executionInput.transform((builder) -> configurer.apply(current, builder));
 		}
 
 		return executionInput;
@@ -123,6 +125,7 @@ public class RequestInput {
 
 	/**
 	 * Return a Map representation of the request input.
+	 * @return map representation of the input
 	 */
 	public Map<String, Object> toMap() {
 		Map<String, Object> map = new LinkedHashMap<>(3);
@@ -136,12 +139,11 @@ public class RequestInput {
 		return map;
 	}
 
-
 	@Override
 	public String toString() {
-		return "Query='" + getQuery() + "'" +
-				(getOperationName() != null ? ", Operation='" + getOperationName() + "'" : "") +
-				(!CollectionUtils.isEmpty(getVariables()) ?  ", Variables=" + getVariables() : "");
+		return "Query='" + getQuery() + "'"
+				+ ((getOperationName() != null) ? ", Operation='" + getOperationName() + "'" : "")
+				+ (!CollectionUtils.isEmpty(getVariables()) ? ", Variables=" + getVariables() : "");
 	}
 
 }

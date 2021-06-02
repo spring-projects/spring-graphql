@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web.webmvc;
 
 import java.io.IOException;
@@ -36,17 +37,19 @@ import org.springframework.web.servlet.function.ServerResponse;
 /**
  * GraphQL handler to expose as a WebMvc.fn endpoint via
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
+ *
+ * @author Rossen Stoyanchev
+ * @author Brian Clozel
+ * @since 1.0.0
  */
 public class GraphQlHttpHandler {
 
-	private final static Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
+	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
-	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
-
+	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF = new ParameterizedTypeReference<Map<String, Object>>() {
+	};
 
 	private final WebGraphQlHandler graphQlHandler;
-
 
 	/**
 	 * Create a new instance.
@@ -57,29 +60,28 @@ public class GraphQlHttpHandler {
 		this.graphQlHandler = graphQlHandler;
 	}
 
-
 	/**
-	 * {@inheritDoc}
-	 *
-	 * @throws ServletException may be raised when reading the request body,
-	 * e.g. {@link HttpMediaTypeNotSupportedException}.
+	 * Handle GraphQL requests over HTTP.
+	 * @param request the incoming HTTP request
+	 * @return the HTTP response
+	 * @throws ServletException may be raised when reading the request body, e.g.
+	 * {@link HttpMediaTypeNotSupportedException}.
 	 */
 	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
 		WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request), null);
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + input);
 		}
-		Mono<ServerResponse> responseMono = this.graphQlHandler.handle(input)
-				.map(output -> {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Execution complete");
-					}
-					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					if (output.getResponseHeaders() != null) {
-						builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
-					}
-					return builder.body(output.toSpecification());
-				});
+		Mono<ServerResponse> responseMono = this.graphQlHandler.handle(input).map((output) -> {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Execution complete");
+			}
+			ServerResponse.BodyBuilder builder = ServerResponse.ok();
+			if (output.getResponseHeaders() != null) {
+				builder.headers((headers) -> headers.putAll(output.getResponseHeaders()));
+			}
+			return builder.body(output.toSpecification());
+		});
 		return ServerResponse.async(responseMono);
 	}
 

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import graphql.ExecutionInput;
@@ -25,21 +26,22 @@ import org.springframework.graphql.GraphQlService;
 /**
  * Implementation of {@link GraphQlService} that performs GraphQL request execution
  * through {@link GraphQL#executeAsync(ExecutionInput)}.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class ExecutionGraphQlService implements GraphQlService {
 
 	private final GraphQlSource graphQlSource;
 
-
 	public ExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
 	}
 
-
 	@Override
 	public Mono<ExecutionResult> execute(ExecutionInput input) {
 		GraphQL graphQl = this.graphQlSource.graphQl();
-		return Mono.deferContextual(contextView -> {
+		return Mono.deferContextual((contextView) -> {
 			ContextManager.setReactorContext(contextView, input);
 			return Mono.fromFuture(graphQl.executeAsync(input));
 		});

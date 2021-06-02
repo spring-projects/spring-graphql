@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web;
 
 import java.util.Arrays;
@@ -20,41 +21,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 import graphql.schema.idl.RuntimeWiring;
+import graphql.schema.idl.TypeRuntimeWiring;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
-import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
-
 public abstract class BookTestUtils {
 
 	public static final String SUBSCRIPTION_ID = "1";
 
-	public static final String BOOK_QUERY = "{" +
-			"\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\"," +
-			"\"type\":\"subscribe\"," +
-			"\"payload\":{\"query\": \"" +
-			"  query TestQuery {" +
-			"    bookById(id: \\\"1\\\"){ " +
-			"      id" +
-			"      name" +
-			"      author" +
-			"  }}\"}" +
-			"}";
+	public static final String BOOK_QUERY = "{" + "\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\","
+			+ "\"type\":\"subscribe\"," + "\"payload\":{\"query\": \"" + "  query TestQuery {"
+			+ "    bookById(id: \\\"1\\\"){ " + "      id" + "      name" + "      author" + "  }}\"}" + "}";
 
-	public static final String BOOK_SUBSCRIPTION = "{" +
-			"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
-			"\"type\":\"subscribe\"," +
-			"\"payload\":{\"query\": \"" +
-			"  subscription TestSubscription {" +
-			"    bookSearch(author: \\\"George\\\") {" +
-			"      id" +
-			"      name" +
-			"      author" +
-			"  }}\"}" +
-			"}";
+	public static final String BOOK_SUBSCRIPTION = "{" + "\"id\":\"" + SUBSCRIPTION_ID + "\","
+			+ "\"type\":\"subscribe\"," + "\"payload\":{\"query\": \"" + "  subscription TestSubscription {"
+			+ "    bookSearch(author: \\\"George\\\") {" + "      id" + "      name" + "      author" + "  }}\"}" + "}";
 
 	private static final Map<Long, Book> booksMap = new HashMap<>(4);
 	static {
@@ -65,27 +49,23 @@ public abstract class BookTestUtils {
 		booksMap.put(5L, new Book(5L, "Animal Farm", "George Orwell"));
 	}
 
-
 	public static WebGraphQlHandler initWebGraphQlHandler(WebInterceptor... interceptors) {
 		return WebGraphQlHandler.builder(new ExecutionGraphQlService(graphQlSource()))
-						.interceptors(Arrays.asList(interceptors))
-						.build();
+				.interceptors(Arrays.asList(interceptors)).build();
 	}
 
 	private static GraphQlSource graphQlSource() {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		builder.type(newTypeWiring("Query").dataFetcher("bookById", env -> {
+		builder.type(TypeRuntimeWiring.newTypeWiring("Query").dataFetcher("bookById", (env) -> {
 			Long id = Long.parseLong(env.getArgument("id"));
 			return booksMap.get(id);
 		}));
-		builder.type(newTypeWiring("Subscription").dataFetcher("bookSearch", env -> {
+		builder.type(TypeRuntimeWiring.newTypeWiring("Subscription").dataFetcher("bookSearch", (env) -> {
 			String author = env.getArgument("author");
-			return Flux.fromIterable(booksMap.values()).filter(book -> book.getAuthor().contains(author));
+			return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
 		}));
-		return GraphQlSource.builder()
-				.schemaResource(new ClassPathResource("books/schema.graphqls"))
-				.runtimeWiring(builder.build())
-				.build();
+		return GraphQlSource.builder().schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.runtimeWiring(builder.build()).build();
 	}
 
 }

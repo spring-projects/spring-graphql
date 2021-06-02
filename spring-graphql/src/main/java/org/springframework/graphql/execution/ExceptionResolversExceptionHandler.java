@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
@@ -37,48 +38,42 @@ import org.springframework.web.client.ExtractingResponseErrorHandler;
 /**
  * {@link DataFetcherExceptionHandler} that invokes {@link DataFetcherExceptionResolver}'s
  * in a sequence until one returns a non-null list of {@link GraphQLError}'s.
+ *
+ * @author Rossen Stoyanchev
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
 	private static Log logger = LogFactory.getLog(ExtractingResponseErrorHandler.class);
 
-
 	private final List<DataFetcherExceptionResolver> resolvers;
 
-
 	/**
-	 * Create an instance
+	 * Create an instance.
 	 * @param resolvers the resolvers to use
 	 */
-	public ExceptionResolversExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
+	ExceptionResolversExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
 		Assert.notNull(resolvers, "'resolvers' is required");
 		this.resolvers = new ArrayList<>(resolvers);
 	}
 
-
 	@Override
 	public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters parameters) {
 		Throwable exception = parameters.getException();
-		exception = (exception instanceof CompletionException ? exception.getCause() : exception);
+		exception = ((exception instanceof CompletionException) ? exception.getCause() : exception);
 		return invokeChain(exception, parameters.getDataFetchingEnvironment());
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
+	DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
 		// For now we have to block:
 		// https://github.com/graphql-java/graphql-java/issues/2356
 		try {
-			return Flux.fromIterable(this.resolvers)
-					.flatMap(resolver -> resolver.resolveException(ex, env))
-					.next()
-					.map(errors -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
-					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env)))
-					.contextWrite(context -> {
+			return Flux.fromIterable(this.resolvers).flatMap((resolver) -> resolver.resolveException(ex, env)).next()
+					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
+					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env))).contextWrite((context) -> {
 						ContextView contextView = ContextManager.getReactorContext(env);
 						return (contextView.isEmpty() ? context : context.putAll(contextView));
-					})
-					.toFuture()
-					.get();
+					}).toFuture().get();
 		}
 		catch (Exception ex2) {
 			if (logger.isWarnEnabled()) {
@@ -89,10 +84,8 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	}
 
 	private DataFetcherExceptionHandlerResult applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
-		GraphQLError error = GraphqlErrorBuilder.newError(env)
-				.message(ex.getMessage())
-				.errorType(ErrorType.INTERNAL_ERROR)
-				.build();
+		GraphQLError error = GraphqlErrorBuilder.newError(env).message(ex.getMessage())
+				.errorType(ErrorType.INTERNAL_ERROR).build();
 		return DataFetcherExceptionHandlerResult.newResult(error).build();
 	}
 

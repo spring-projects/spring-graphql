@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.time.Duration;
@@ -42,15 +43,11 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveException() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
-				"Query", "greeting", env -> {
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+				(env) -> {
 					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(ex, env) -> Mono.just(Collections.singletonList(
-						GraphqlErrorBuilder.newError(env)
-								.message("Resolved error: " + ex.getMessage())
-								.errorType(ErrorType.BAD_REQUEST)
-								.build())));
+				}, (ex, env) -> Mono.just(Collections.singletonList(GraphqlErrorBuilder.newError(env)
+						.message("Resolved error: " + ex.getMessage()).errorType(ErrorType.BAD_REQUEST).build())));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
@@ -66,15 +63,13 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveExceptionWithReactorContext() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
-				"Query", "greeting", env -> {
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+				(env) -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				},
-				(ex, env) -> Mono.deferContextual(view -> Mono.just(Collections.singletonList(
-						GraphqlErrorBuilder.newError(env)
-								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
-								.errorType(ErrorType.BAD_REQUEST)
-								.build()))));
+				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(GraphqlErrorBuilder
+						.newError(env).message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
+						.errorType(ErrorType.BAD_REQUEST).build()))));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ContextManager.setReactorContext(Context.of("name", "007"), input);
@@ -91,23 +86,21 @@ public class ExceptionResolversExceptionHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
-					"Query", "greeting", env -> {
+			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+					(env) -> {
 						throw new IllegalArgumentException("Invalid greeting");
 					},
-					(SyncDataFetcherExceptionResolver) (ex, env) -> Collections.singletonList(
-							GraphqlErrorBuilder.newError(env)
+					(SyncDataFetcherExceptionResolver) (ex,
+							env) -> Collections.singletonList(GraphqlErrorBuilder.newError(env)
 									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
-									.errorType(ErrorType.BAD_REQUEST)
-									.build()));
+									.errorType(ErrorType.BAD_REQUEST).build()));
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 			ContextView view = ContextManager.extractThreadLocalValues(accessor);
 			ContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
-					.flatMap(aLong -> Mono.fromFuture(graphQl.executeAsync(input)))
-					.block();
+					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input))).block();
 
 			List<GraphQLError> errors = result.getErrors();
 			assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
@@ -119,11 +112,10 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void unresolvedException() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
-				"Query", "greeting", env -> {
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+				(env) -> {
 					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(exception, environment) -> Mono.empty());
+				}, (exception, environment) -> Mono.empty());
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
@@ -140,11 +132,10 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void suppressedException() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }",
-				"Query", "greeting", env -> {
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+				(env) -> {
 					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(ex, env) -> Mono.just(Collections.emptyList()));
+				}, (ex, env) -> Mono.just(Collections.emptyList()));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();

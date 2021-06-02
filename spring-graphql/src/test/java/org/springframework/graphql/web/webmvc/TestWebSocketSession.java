@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web.webmvc;
 
 import java.net.InetSocketAddress;
@@ -35,8 +36,8 @@ import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 /**
- * WebSocketSession that saves sent messages and exposes them as a Flux which
- * makes assertions comparable to the same for WebFlux.
+ * WebSocketSession that saves sent messages and exposes them as a Flux which makes
+ * assertions comparable to the same for WebFlux.
  */
 public class TestWebSocketSession implements WebSocketSession {
 
@@ -52,10 +53,9 @@ public class TestWebSocketSession implements WebSocketSession {
 
 	private boolean closed;
 
-
 	@Override
 	public String getId() {
-		return  "1";
+		return "1";
 	}
 
 	@Override

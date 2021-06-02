@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.io.IOException;
@@ -38,8 +39,9 @@ import org.springframework.util.Assert;
 
 /**
  * Default implementation of {@link GraphQlSource.Builder} that initializes a
- * {@link GraphQL} instance and wraps it with a {@link GraphQlSource} that
- * returns it.
+ * {@link GraphQL} instance and wraps it with a {@link GraphQlSource} that returns it.
+ *
+ * @author Rossen Stoyanchev
  */
 class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
@@ -54,13 +56,12 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
-	private Consumer<GraphQL.Builder> graphQlConfigurers = builder -> {};
-
+	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
+	};
 
 	DefaultGraphQlSourceBuilder() {
 		this.typeVisitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
 	}
-
 
 	@Override
 	public GraphQlSource.Builder schemaResource(Resource resource) {
@@ -128,11 +129,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 			}
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(
-					"Failed to load resourceLocation " + this.schemaResource.toString());
+			throw new IllegalArgumentException("Failed to load resourceLocation " + this.schemaResource.toString());
 		}
 	}
-
 
 	/**
 	 * GraphQlSource that returns the built GraphQL instance and its schema.
@@ -157,6 +156,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		public GraphQLSchema schema() {
 			return this.schema;
 		}
+
 	}
 
 }

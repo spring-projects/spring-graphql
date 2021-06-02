@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.LinkedHashMap;
@@ -27,32 +28,34 @@ import reactor.util.context.ContextView;
 import org.springframework.lang.Nullable;
 
 /**
- * Package private utility class for propagating a Reactor {@link ContextView}
- * through the {@link ExecutionInput} and the {@link DataFetchingEnvironment}
- * of a request.
+ * Package private utility class for propagating a Reactor {@link ContextView} through the
+ * {@link ExecutionInput} and the {@link DataFetchingEnvironment} of a request.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public abstract class ContextManager {
 
-	private static final String CONTEXT_VIEW_KEY =
-			ContextManager.class.getName() + ".CONTEXT_VIEW";
+	private static final String CONTEXT_VIEW_KEY = ContextManager.class.getName() + ".CONTEXT_VIEW";
 
-	private static final String THREAD_LOCAL_VALUES_KEY =
-			ContextManager.class.getName() + ".THREAD_VALUES_ACCESSOR";
+	private static final String THREAD_LOCAL_VALUES_KEY = ContextManager.class.getName() + ".THREAD_VALUES_ACCESSOR";
 
-	private static final String THREAD_LOCAL_ACCESSOR_KEY =
-			ContextManager.class.getName() + ".THREAD_LOCAL_ACCESSOR";
-
+	private static final String THREAD_LOCAL_ACCESSOR_KEY = ContextManager.class.getName() + ".THREAD_LOCAL_ACCESSOR";
 
 	/**
-	 * Save the given Reactor ContextView in the an {@link ExecutionInput} for
+	 * Save the given Reactor {@link ContextView} in the an {@link ExecutionInput} for
 	 * later access through the {@link DataFetchingEnvironment}.
+	 * @param contextView the reactor context view
+	 * @param input the GraphQL query input
 	 */
 	static void setReactorContext(ContextView contextView, ExecutionInput input) {
 		((GraphQLContext) input.getContext()).put(CONTEXT_VIEW_KEY, contextView);
 	}
 
 	/**
-	 * Return the Reactor ContextView saved in the given DataFetchingEnvironment.
+	 * Return the Reactor {@link ContextView} saved in the given DataFetchingEnvironment.
+	 * @param environment the DataFetchingEnvironment
+	 * @return the reactor {@link ContextView}
 	 */
 	static ContextView getReactorContext(DataFetchingEnvironment environment) {
 		GraphQLContext graphQlContext = environment.getContext();
@@ -60,9 +63,10 @@ public abstract class ContextManager {
 	}
 
 	/**
-	 * Use the given accessor to extract ThreadLocal value, and return a Reactor
-	 * context that contains both the extracted values and the accessor.
+	 * Use the given accessor to extract ThreadLocal value, and return a Reactor context
+	 * that contains both the extracted values and the accessor.
 	 * @param accessor the accessor to use
+	 * @return the reactor {@link ContextView}
 	 */
 	public static ContextView extractThreadLocalValues(ThreadLocalAccessor accessor) {
 		Map<String, Object> valuesMap = new LinkedHashMap<>();
@@ -72,6 +76,7 @@ public abstract class ContextManager {
 
 	/**
 	 * Look up saved ThreadLocal values and use them to re-establish ThreadLocal context.
+	 * @param contextView the reactor {@link ContextView}
 	 */
 	static void restoreThreadLocalValues(ContextView contextView) {
 		ThreadLocalAccessor accessor = getThreadLocalAccessor(contextView);
@@ -82,6 +87,7 @@ public abstract class ContextManager {
 
 	/**
 	 * Look up saved ThreadLocal values and remove associated ThreadLocal context.
+	 * @param contextView the reactor {@link ContextView}
 	 */
 	static void resetThreadLocalValues(ContextView contextView) {
 		ThreadLocalAccessor accessor = getThreadLocalAccessor(contextView);

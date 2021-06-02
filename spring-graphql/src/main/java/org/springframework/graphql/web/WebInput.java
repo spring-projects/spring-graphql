@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web;
 
 import java.net.URI;
@@ -30,8 +31,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Container for the input of a GraphQL query over HTTP. The input includes the
- * {@link UriComponents URL} and the headers of the request, as well as the
- * query name, operation name, and variables from the request body.
+ * {@link UriComponents URL} and the headers of the request, as well as the query name,
+ * operation name, and variables from the request body.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class WebInput extends RequestInput {
 
@@ -41,15 +45,14 @@ public class WebInput extends RequestInput {
 
 	private final String id;
 
-
 	/**
 	 * Create an instance.
 	 * @param uri the url for the HTTP request, or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param body the content of the request deserialized from JSON
-	 * @param id an identifier for the GraphQL request, e.g. a subscription id
-	 * for correlating request and response messages, or it could be an id
-	 * associated with the underlying request/connection id, if available
+	 * @param id an identifier for the GraphQL request, e.g. a subscription id for
+	 * correlating request and response messages, or it could be an id associated with the
+	 * underlying request/connection id, if available
 	 */
 	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, @Nullable String id) {
 		super(validateQuery(body));
@@ -57,7 +60,7 @@ public class WebInput extends RequestInput {
 		Assert.notNull(headers, "HttpHeaders is required'");
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
-		this.id = (id != null ? id : ObjectUtils.identityToString(this));
+		this.id = (id != null) ? id : ObjectUtils.identityToString(this);
 	}
 
 	private static Map<String, Object> validateQuery(Map<String, Object> body) {
@@ -68,10 +71,10 @@ public class WebInput extends RequestInput {
 		return body;
 	}
 
-
 	/**
-	 * Return the URI of the HTTP request including
-	 * {@link UriComponents#getQueryParams() URL query parameters}.
+	 * Return the URI of the HTTP request including {@link UriComponents#getQueryParams()
+	 * URL query parameters}.
+	 * @return the HTTP request URI
 	 */
 	public UriComponents getUri() {
 		return this.uri;
@@ -79,6 +82,7 @@ public class WebInput extends RequestInput {
 
 	/**
 	 * Return the headers of the request.
+	 * @return the HTTP request headers
 	 */
 	public HttpHeaders getHeaders() {
 		return this.headers;
@@ -86,10 +90,11 @@ public class WebInput extends RequestInput {
 
 	/**
 	 * Return the identifier for the request, which may be a subscription id for
-	 * correlating request and response messages, or the underlying request or
-	 * connection id, when available, or otherwise it's an
+	 * correlating request and response messages, or the underlying request or connection
+	 * id, when available, or otherwise it's an
 	 * {@link ObjectUtils#identityToString(Object) identity} hash based this
 	 * {@code WebInput} instance.
+	 * @return the HTTP request identifier
 	 */
 	public String getId() {
 		return this.id;

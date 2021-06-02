@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.List;
@@ -24,6 +25,9 @@ import reactor.util.context.ContextView;
 
 /**
  * {@link DataFetcherExceptionResolver} that resolves exceptions synchronously.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public interface SyncDataFetcherExceptionResolver extends DataFetcherExceptionResolver {
 
@@ -43,6 +47,7 @@ public interface SyncDataFetcherExceptionResolver extends DataFetcherExceptionRe
 	 * Implement this method to resolve exceptions.
 	 * @param exception the exception to resolve
 	 * @param environment the environment for the invoked {@code DataFetcher}
+	 * @return the list of resolved GraphQL errors
 	 */
 	List<GraphQLError> doResolveException(Throwable exception, DataFetchingEnvironment environment);
 

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import graphql.ExecutionInput;
@@ -41,20 +42,20 @@ import org.springframework.util.Assert;
  * <li>Re-establish Reactor Context passed via {@link ExecutionInput}.
  * <li>Re-establish ThreadLocal context passed via {@link ExecutionInput}.
  * </ul>
+ *
+ * @author Rossen Stoyanchev
  */
-class ContextDataFetcherDecorator implements DataFetcher<Object> {
+final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final DataFetcher<?> delegate;
 
 	private final boolean subscription;
-
 
 	private ContextDataFetcherDecorator(DataFetcher<?> delegate, boolean subscription) {
 		Assert.notNull(delegate, "'delegate' DataFetcher is required");
 		this.delegate = delegate;
 		this.subscription = subscription;
 	}
-
 
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
@@ -88,16 +89,15 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		return value;
 	}
 
-
 	/**
-	 * {@link GraphQLTypeVisitor} that wraps non-GraphQL data fetchers and
-	 * adapts them if they return {@link Flux} or {@link Mono}.
+	 * {@link GraphQLTypeVisitor} that wraps non-GraphQL data fetchers and adapts them if
+	 * they return {@link Flux} or {@link Mono}.
 	 */
 	static GraphQLTypeVisitor TYPE_VISITOR = new GraphQLTypeVisitorStub() {
 
 		@Override
-		public TraversalControl visitGraphQLFieldDefinition(
-				GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
+		public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition fieldDefinition,
+				TraverserContext<GraphQLSchemaElement> context) {
 
 			GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 			GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();

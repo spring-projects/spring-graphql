@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.web;
 
 import org.reactivestreams.Publisher;
@@ -25,11 +26,11 @@ public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
 
 	@Override
 	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
-		return next.handle(webInput).map(output ->
-				output.transform(builder -> {
-					Publisher<?> publisher = output.getData();
-					assertThat(publisher).isNotNull();
-					builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
-				}));
+		return next.handle(webInput).map((output) -> output.transform((builder) -> {
+			Publisher<?> publisher = output.getData();
+			assertThat(publisher).isNotNull();
+			builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
+		}));
 	}
+
 }

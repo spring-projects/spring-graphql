@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql;
 
 import graphql.GraphQL;
@@ -27,11 +28,9 @@ public class TestGraphQlSource implements GraphQlSource {
 
 	private final GraphQL graphQl;
 
-
 	public TestGraphQlSource(GraphQL graphQl) {
 		this.graphQl = graphQl;
 	}
-
 
 	@Override
 	public GraphQL graphQl() {
@@ -42,4 +41,5 @@ public class TestGraphQlSource implements GraphQlSource {
 	public GraphQLSchema schema() {
 		throw new UnsupportedOperationException();
 	}
+
 }
