@@ -1,13 +1,12 @@
 # Spring GraphQL
-
-Experimental project for [GraphQL](https://graphql.org/) support in Spring applications with [GraphQL Java](https://github.com/graphql-java/graphql-java).
+[GraphQL](https://graphql.org/) support for Spring applications with [GraphQL Java](https://github.com/graphql-java/graphql-java).
 
 [![Build status](https://ci.spring.io/api/v1/teams/spring-graphql/pipelines/spring-graphql/jobs/build/badge)](https://ci.spring.io/teams/spring-graphql/pipelines/spring-graphql)
 
 
 ## Getting started
 
-This project is tested against Spring Boot 2.4+, but should work on 2.3 as well.
+This project is tested against Spring Boot 2.4+.
 
 You can start by creating a project on https://start.spring.io and select the `spring-boot-starter-web` or `spring-boot-starter-webflux` starter,
 depending on the type of web application you'd like to build. Once the project is generated, you can manually add the
