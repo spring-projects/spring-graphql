@@ -38,6 +38,59 @@ class SampleApplicationTests {
 	}
 
 	@Test
+	void printError() {
+		String query = "{" +
+				"  employees{ " +
+				"    name" +
+				"    salary" +
+				"  }" +
+				"}";
+
+
+		client.post().uri("")
+				.bodyValue("{  \"query\": \"" + query + "\"}")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody(String.class)
+				.consumeWith(System.out::println);
+
+	}
+
+	@Test
+	void anonoymousThenUnauthorized() {
+		String query = "{" +
+				"  employees{ " +
+				"    name" +
+				"    salary" +
+				"  }" +
+				"}";
+
+		client.post().uri("")
+				.bodyValue("{  \"query\": \"" + query + "\"}")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody().jsonPath("errors[0].extensions.classification").isEqualTo("UNAUTHORIZED");
+
+	}
+
+	@Test
+	void userRoleThenForbidden() {
+		String query = "{" +
+				"  employees{ " +
+				"    name" +
+				"    salary" +
+				"  }" +
+				"}";
+
+		client.post().uri("")
+				.headers(h -> h.setBasicAuth("rob", "rob"))
+				.bodyValue("{  \"query\": \"" + query + "\"}")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody().jsonPath("errors[0].extensions.classification").isEqualTo("FORBIDDEN");
+	}
+
+	@Test
 	void canQueryName() {
 		String query = "{" +
 				"  employees{ " +
