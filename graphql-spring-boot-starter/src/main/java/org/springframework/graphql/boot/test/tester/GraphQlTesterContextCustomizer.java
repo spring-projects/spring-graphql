@@ -35,6 +35,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.Ordered;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.test.context.TestContextAnnotationUtils;
@@ -142,12 +143,12 @@ class GraphQlTesterContextCustomizer implements ContextCustomizer {
 			return this.object;
 		}
 
-		private GraphQlTester createGraphQlTester() {
+		private WebGraphQlTester createGraphQlTester() {
 			WebTestClient webTestClient = this.applicationContext.getBean(WebTestClient.class);
 			boolean sslEnabled = isSslEnabled(this.applicationContext);
 			String port = this.applicationContext.getEnvironment().getProperty("local.server.port", "8080");
 			WebTestClient mutatedWebClient = webTestClient.mutate().baseUrl(getBaseUrl(sslEnabled, port)).build();
-			return GraphQlTester.create(mutatedWebClient);
+			return WebGraphQlTester.create(mutatedWebClient);
 		}
 
 		private String getBaseUrl(boolean sslEnabled, String port) {

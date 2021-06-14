@@ -25,69 +25,17 @@ import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.GraphQlService;
 import org.springframework.lang.Nullable;
-import org.springframework.test.web.reactive.server.WebTestClient;
 
 /**
- * Main entry point for testing GraphQL with requests performed either as an HTTP client
- * via {@link WebTestClient} or directly via a {@link WebGraphQlHandler}.
+ * Contract for testing GraphQL requests.
  *
- *
- * <p>
- * GraphQL requests to Spring MVC without an HTTP server: <pre class="code">
- * &#064;SpringBootTest
- * &#064;AutoConfigureMockMvc
- * public class MyTests {
- *
- *  private GraphQlTester graphQlTester;
- *
- *  &#064;BeforeEach
- *  public void setUp(&#064;Autowired MockMvc mockMvc) {
- *      WebTestClient client = MockMvcWebTestClient.bindTo(mockMvc).baseUrl("/graphql").build();
- *      this.graphQlTester = GraphQlTester.create(client);
- *  }
- * </pre>
- *
- * <p>
- * GraphQL requests to Spring WebFlux without an HTTP server: <pre class="code">
- * &#064;SpringBootTest
- * &#064;AutoConfigureWebTestClient
- * public class MyTests {
- *
- *  private GraphQlTester graphQlTester;
- *
- *  &#064;BeforeEach
- *  public void setUp(&#064;Autowired WebTestClient client) {
- *      this.graphQlTester = GraphQlTester.create(client);
- *  }
- * </pre>
- *
- * <p>
- * GraphQL requests to a running server: <pre class="code">
- * &#064;SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
- * public class MyTests {
- *
- *  private GraphQlTester graphQlTester;
- *
- *  &#064;BeforeEach
- *  public void setUp(&#064;Autowired WebTestClient client) {
- *      this.graphQlTester = GraphQlTester.create(client);
- *  }
- * </pre>
- *
- * <p>
- * GraphQL requests to any {@link WebGraphQlHandler}: <pre class="code">
- * &#064;SpringBootTest
- * public class MyTests {
- *
- *  private GraphQlTester graphQlTester;
- *
- *  &#064;BeforeEach
- *  public void setUp(&#064;Autowired WebGraphQLHandler handler) {
- *      this.graphQlTester = GraphQlTester.create(handler);
- *  }
- * </pre>
+ * <p>The workflow declared to prepare, execute, and verify requests is not tied
+ * to any specific underlying transport. Use {@link WebGraphQlTester} to test
+ * GraphQL requests over a Web transport. This class can also be used to perform
+ * calls directly on {@link graphql.GraphQL}, without a transport, via
+ * {@link GraphQlService}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -103,27 +51,17 @@ public interface GraphQlTester {
 	 */
 	RequestSpec query(String query);
 
-	/**
-	 * Create a {@code GraphQlTester} that performs GraphQL requests as an HTTP client
-	 * through the given {@link WebTestClient}. Depending on how the {@code WebTestClient}
-	 * is set up, tests may be with or without a server. See setup examples in class-level
-	 * Javadoc.
-	 * @param client the web client to perform requests with
-	 * @return the created {@code GraphQlTester} instance
-	 */
-	static GraphQlTester create(WebTestClient client) {
-		return new DefaultGraphQlTester(client);
-	}
 
 	/**
 	 * Create a {@code GraphQlTester} that performs GraphQL requests through the given
-	 * {@link WebGraphQlHandler}.
-	 * @param handler the handler to execute requests with
-	 * @return the created {@code GraphQlTester} instance
+	 * {@link GraphQlService}.
+	 * @param service the service to execute requests with
+	 * @return the created {@code GraphQlTester}
 	 */
-	static GraphQlTester create(WebGraphQlHandler handler) {
-		return new DefaultGraphQlTester(handler);
+	static GraphQlTester create(GraphQlService service) {
+		return new DefaultGraphQlTester(service);
 	}
+
 
 	/**
 	 * Declare options to perform a GraphQL request.

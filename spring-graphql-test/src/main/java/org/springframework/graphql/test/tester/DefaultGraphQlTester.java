@@ -16,8 +16,6 @@
 
 package org.springframework.graphql.test.tester;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,24 +35,17 @@ import com.jayway.jsonpath.TypeRef;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.GraphQLError;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
 import org.springframework.test.util.AssertionErrors;
 import org.springframework.test.util.JsonExpectationsHelper;
 import org.springframework.test.util.JsonPathExpectationsHelper;
-import org.springframework.test.web.reactive.server.EntityExchangeResult;
-import org.springframework.test.web.reactive.server.FluxExchangeResult;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
@@ -77,19 +68,16 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 	private final RequestStrategy requestStrategy;
 
-	private final Configuration jsonPathConfig;
 
-	DefaultGraphQlTester(WebTestClient client) {
-		this.jsonPathConfig = initJsonPathConfig();
-		this.requestStrategy = new WebTestClientRequestStrategy(client, this.jsonPathConfig);
+	DefaultGraphQlTester(GraphQlService service) {
+		this(new GraphQlServiceRequestStrategy(service, initJsonPathConfig()));
 	}
 
-	DefaultGraphQlTester(WebGraphQlHandler handler) {
-		this.jsonPathConfig = initJsonPathConfig();
-		this.requestStrategy = new DirectRequestStrategy(handler, this.jsonPathConfig);
+	DefaultGraphQlTester(RequestStrategy requestStrategy) {
+		this.requestStrategy = requestStrategy;
 	}
 
-	private Configuration initJsonPathConfig() {
+	protected static Configuration initJsonPathConfig() {
 		return (jackson2Present ? Jackson2Configuration.create() : Configuration.builder().build());
 	}
 
@@ -120,65 +108,17 @@ class DefaultGraphQlTester implements GraphQlTester {
 	}
 
 	/**
-	 * {@link RequestStrategy} that works as an HTTP client with requests executed through
-	 * {@link WebTestClient} that in turn may work connect with or without a live server
-	 * for Spring MVC and WebFlux.
+	 * Base class for a {@link RequestStrategy} that perform GraphQL requests
+	 * without an underlying transport and where {@link RequestInput} provides
+	 * sufficient input.
 	 */
-	private static class WebTestClientRequestStrategy implements RequestStrategy {
+	protected abstract static class AbstractDirectRequestStrategy implements RequestStrategy {
 
-		private final WebTestClient client;
+		protected static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
 
 		private final Configuration jsonPathConfig;
 
-		WebTestClientRequestStrategy(WebTestClient client, Configuration jsonPathConfig) {
-			this.client = client;
-			this.jsonPathConfig = jsonPathConfig;
-		}
-
-		@Override
-		public ResponseSpec execute(RequestInput requestInput) {
-			EntityExchangeResult<byte[]> result = this.client.post().contentType(MediaType.APPLICATION_JSON)
-					.bodyValue(requestInput).exchange().expectStatus().isOk().expectHeader()
-					.contentType(MediaType.APPLICATION_JSON).expectBody().returnResult();
-
-			byte[] bytes = result.getResponseBodyContent();
-			Assert.notNull(bytes, "Expected GraphQL response content");
-			String content = new String(bytes, StandardCharsets.UTF_8);
-			DocumentContext documentContext = JsonPath.parse(content, this.jsonPathConfig);
-
-			return new DefaultResponseSpec(documentContext, result::assertWithDiagnostics);
-		}
-
-		@Override
-		public SubscriptionSpec executeSubscription(RequestInput requestInput) {
-			FluxExchangeResult<TestExecutionResult> exchangeResult = this.client.post()
-					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM).bodyValue(requestInput)
-					.exchange().expectStatus().isOk().expectHeader().contentType(MediaType.TEXT_EVENT_STREAM)
-					.returnResult(TestExecutionResult.class);
-
-			return new DefaultSubscriptionSpec(exchangeResult.getResponseBody().cast(ExecutionResult.class),
-					this.jsonPathConfig, exchangeResult::assertWithDiagnostics);
-		}
-
-	}
-
-	/**
-	 * {@link RequestStrategy} that performs requests directly on {@link GraphQL}.
-	 */
-	private static class DirectRequestStrategy implements RequestStrategy {
-
-		private static final URI DEFAULT_URL = URI.create("http://localhost:8080/graphql");
-
-		private static final HttpHeaders DEFAULT_HEADERS = new HttpHeaders();
-
-		private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
-
-		private final WebGraphQlHandler graphQlHandler;
-
-		private final Configuration jsonPathConfig;
-
-		DirectRequestStrategy(WebGraphQlHandler handler, Configuration jsonPathConfig) {
-			this.graphQlHandler = handler;
+		protected AbstractDirectRequestStrategy(Configuration jsonPathConfig) {
 			this.jsonPathConfig = jsonPathConfig;
 		}
 
@@ -196,19 +136,16 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 			List<GraphQLError> errors = result.getErrors();
 			Consumer<Runnable> assertDecorator = assertDecorator(input);
-			assertDecorator
-					.accept(() -> AssertionErrors.assertTrue("Response has " + errors.size() + " unexpected error(s).",
-							CollectionUtils.isEmpty(errors)));
+			assertDecorator.accept(() -> AssertionErrors.assertTrue(
+					"Response has " + errors.size() + " unexpected error(s).", CollectionUtils.isEmpty(errors)));
 
 			return new DefaultSubscriptionSpec(result.getData(), this.jsonPathConfig, assertDecorator);
 		}
 
-		private ExecutionResult executeInternal(RequestInput input) {
-			WebInput webInput = new WebInput(DEFAULT_URL, DEFAULT_HEADERS, input.toMap(), null);
-			ExecutionResult result = this.graphQlHandler.handle(webInput).block(DEFAULT_TIMEOUT);
-			Assert.notNull(result, "Expected ExecutionResult");
-			return result;
-		}
+		/**
+		 * Sub-classes implement this to actual perform the request.
+		 */
+		protected abstract ExecutionResult executeInternal(RequestInput input);
 
 		private Consumer<Runnable> assertDecorator(RequestInput input) {
 			return (assertion) -> {
@@ -221,6 +158,25 @@ class DefaultGraphQlTester implements GraphQlTester {
 			};
 		}
 
+	}
+
+	/**
+	 * {@link RequestStrategy} that performs requests through a {@link GraphQlService}.
+	 */
+	protected static class GraphQlServiceRequestStrategy extends AbstractDirectRequestStrategy {
+
+		private final GraphQlService graphQlService;
+
+		protected GraphQlServiceRequestStrategy(GraphQlService service, Configuration jsonPathConfig) {
+			super(jsonPathConfig);
+			this.graphQlService = service;
+		}
+
+		protected ExecutionResult executeInternal(RequestInput input) {
+			ExecutionResult result = this.graphQlService.execute(input.toExecutionInput()).block(DEFAULT_TIMEOUT);
+			Assert.notNull(result, "Expected ExecutionResult");
+			return result;
+		}
 	}
 
 	/**
@@ -375,7 +331,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 	/**
 	 * {@link ResponseSpec} that operates on the response from a GraphQL HTTP request.
 	 */
-	private static final class DefaultResponseSpec implements ResponseSpec, ErrorSpec {
+	protected static final class DefaultResponseSpec implements ResponseSpec, ErrorSpec {
 
 		private final ResponseContainer responseContainer;
 
@@ -385,7 +341,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 		 * @param assertDecorator decorator to apply around assertions, e.g. to add extra
 		 * contextual information such as HTTP request and response body details
 		 */
-		private DefaultResponseSpec(DocumentContext documentContext, Consumer<Runnable> assertDecorator) {
+		protected DefaultResponseSpec(DocumentContext documentContext, Consumer<Runnable> assertDecorator) {
 			this.responseContainer = new ResponseContainer(documentContext, assertDecorator);
 		}
 
@@ -714,7 +670,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 	 * {@link SubscriptionSpec} implementation that operates on a {@link Publisher} of
 	 * {@link ExecutionResult}.
 	 */
-	private static class DefaultSubscriptionSpec implements SubscriptionSpec {
+	protected static class DefaultSubscriptionSpec implements SubscriptionSpec {
 
 		private final Publisher<ExecutionResult> publisher;
 
@@ -722,7 +678,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Consumer<Runnable> assertDecorator;
 
-		<T> DefaultSubscriptionSpec(Publisher<ExecutionResult> publisher, Configuration jsonPathConfig,
+		protected <T> DefaultSubscriptionSpec(Publisher<ExecutionResult> publisher, Configuration jsonPathConfig,
 				Consumer<Runnable> decorator) {
 
 			this.publisher = publisher;

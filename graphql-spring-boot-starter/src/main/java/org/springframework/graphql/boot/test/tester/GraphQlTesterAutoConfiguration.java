@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.boot.GraphQlProperties;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -45,9 +46,9 @@ public class GraphQlTesterAutoConfiguration {
 	public static class WebTestClientGraphQlTesterConfiguration {
 
 		@Bean
-		public GraphQlTester clientGraphQlTester(WebTestClient webTestClient, GraphQlProperties properties) {
+		public WebGraphQlTester clientGraphQlTester(WebTestClient webTestClient, GraphQlProperties properties) {
 			WebTestClient mutatedWebTestClient = webTestClient.mutate().baseUrl(properties.getPath()).build();
-			return GraphQlTester.create(mutatedWebTestClient);
+			return WebGraphQlTester.create(mutatedWebTestClient);
 		}
 
 	}
@@ -58,8 +59,8 @@ public class GraphQlTesterAutoConfiguration {
 	public static class WebGraphQlHandlerGraphQlTesterConfiguration {
 
 		@Bean
-		public GraphQlTester handlerGraphQlTester(WebGraphQlHandler handler) {
-			return GraphQlTester.create(handler);
+		public WebGraphQlTester handlerGraphQlTester(WebGraphQlHandler handler) {
+			return WebGraphQlTester.create(handler);
 		}
 
 	}

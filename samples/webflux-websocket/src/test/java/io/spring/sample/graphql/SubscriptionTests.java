@@ -24,6 +24,7 @@ import reactor.test.StepVerifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.graphql.web.WebGraphQlHandler;
 
 // @formatter:off
@@ -38,7 +39,7 @@ public class SubscriptionTests {
 
 	@BeforeEach
 	public void setUp(@Autowired WebGraphQlHandler handler) {
-		this.graphQlTester = GraphQlTester.create(webInput ->
+		this.graphQlTester = WebGraphQlTester.create(webInput ->
 				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
