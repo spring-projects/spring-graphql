@@ -24,24 +24,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class SampleWiring implements RuntimeWiringCustomizer {
 
-	private final DataRepository dataRepository;
+	private final DataRepository repository;
 
 	public SampleWiring(@Autowired DataRepository dataRepository) {
-		this.dataRepository = dataRepository;
+		this.repository = dataRepository;
 	}
 
 	@Override
-	public void customize(RuntimeWiring.Builder builder) {
-
-		builder.type("Query", typeBuilder -> typeBuilder.dataFetcher("greeting", this.dataRepository::getBasic));
-
-		builder.type("Query", typeBuilder -> typeBuilder.dataFetcher("greetingMono", this.dataRepository::getGreeting));
-
-		builder.type("Query",
-				typeBuilder -> typeBuilder.dataFetcher("greetingsFlux", this.dataRepository::getGreetings));
-
-		builder.type("Subscription",
-				typeBuilder -> typeBuilder.dataFetcher("greetings", this.dataRepository::getGreetingsStream));
+	public void customize(RuntimeWiring.Builder wiringBuilder) {
+		// @formatter:off
+		wiringBuilder.type("Query", builder -> builder.dataFetcher("greeting", this.repository::getBasic));
+		wiringBuilder.type("Query", builder -> builder.dataFetcher("greetingMono", this.repository::getGreeting));
+		wiringBuilder.type("Query", builder -> builder.dataFetcher("greetingsFlux", this.repository::getGreetings));
+		wiringBuilder.type("Subscription", builder -> builder.dataFetcher("greetings", this.repository::getGreetingsStream));
+		// @formatter:on
 	}
 
 }

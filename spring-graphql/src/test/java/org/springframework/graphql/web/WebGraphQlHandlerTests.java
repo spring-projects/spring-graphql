@@ -39,17 +39,20 @@ import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// @formatter:off
+
 /**
  * Tests for {@link WebGraphQlHandler}, common to both HTTP and WebSocket.
  */
 public class WebGraphQlHandlerTests {
 
-	private static final WebInput webInput = new WebInput(URI.create("http://abc.org"), new HttpHeaders(),
-			Collections.singletonMap("query", "{ greeting }"), "1");
+	private static final WebInput webInput = new WebInput(
+			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"), "1");
 
 	@Test
 	void reactorContextPropagation() {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+		GraphQL graphQl = GraphQlTestUtils.initGraphQl(
+				"type Query { greeting: String }", "Query", "greeting",
 				(env) -> Mono.deferContextual((context) -> {
 					Object name = context.get("name");
 					return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
@@ -70,7 +73,8 @@ public class WebGraphQlHandlerTests {
 				(env) -> {
 					throw new IllegalArgumentException("Invalid greeting");
 				},
-				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(GraphqlErrorBuilder
+				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+						GraphqlErrorBuilder
 						.newError(env).message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 						.errorType(ErrorType.BAD_REQUEST).build()))));
 
@@ -93,15 +97,16 @@ public class WebGraphQlHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+			GraphQL graphQl = GraphQlTestUtils.initGraphQl(
+					"type Query { greeting: String }", "Query", "greeting",
 					(env) -> "Hello " + nameThreadLocal.get());
 
 			GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
 
 			WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-					.interceptor(
-							(input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.handle(input)))
-					.threadLocalAccessor(threadLocalAccessor).build();
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.handle(input)))
+					.threadLocalAccessor(threadLocalAccessor)
+					.build();
 
 			Map<String, Object> data = handler.handle(webInput).block().getData();
 
@@ -122,17 +127,17 @@ public class WebGraphQlHandlerTests {
 					(env) -> {
 						throw new IllegalArgumentException("Invalid greeting");
 					},
-					(SyncDataFetcherExceptionResolver) (ex,
-							env) -> Collections.singletonList(GraphqlErrorBuilder.newError(env)
+					(SyncDataFetcherExceptionResolver) (ex, env) -> Collections.singletonList(
+							GraphqlErrorBuilder.newError(env)
 									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
 									.errorType(ErrorType.BAD_REQUEST).build()));
 
 			GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
 
 			WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-					.interceptor(
-							(input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.handle(input)))
-					.threadLocalAccessor(threadLocalAccessor).build();
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.handle(input)))
+					.threadLocalAccessor(threadLocalAccessor)
+					.build();
 
 			WebOutput webOutput = handler.handle(webInput).block();
 

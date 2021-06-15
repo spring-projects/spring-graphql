@@ -44,6 +44,8 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
+// @formatter:off
+
 /**
  * Unit tests for {@link GraphQlWebSocketHandler}.
  */
@@ -53,7 +55,8 @@ public class GraphQlWebSocketHandlerTests {
 
 	@Test
 	void query() {
-		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}"),
+		TestWebSocketSession session = handle(Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage(BookTestUtils.BOOK_QUERY)));
 
 		StepVerifier.create(session.getOutput())
@@ -64,51 +67,61 @@ public class GraphQlWebSocketHandlerTests {
 						.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 						.extractingByKey("bookById", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 						.containsEntry("name", "Nineteen Eighty-Four"))
-				.consumeNextWith((message) -> assertMessageType(message, "complete")).verifyComplete();
+				.consumeNextWith((message) -> assertMessageType(message, "complete"))
+				.verifyComplete();
 	}
 
 	@Test
 	void subscription() {
-		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}"),
+		TestWebSocketSession session = handle(Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION)));
 
-		BiConsumer<WebSocketMessage, String> bookPayloadAssertion = (message, bookId) -> assertThat(decode(message))
-				.hasSize(3).containsEntry("id", BookTestUtils.SUBSCRIPTION_ID).containsEntry("type", "next")
-				.extractingByKey("payload", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-				.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-				.extractingByKey("bookSearch", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-				.containsEntry("id", bookId);
+		BiConsumer<WebSocketMessage, String> bookPayloadAssertion = (message, bookId) ->
+				assertThat(decode(message))
+						.hasSize(3).containsEntry("id", BookTestUtils.SUBSCRIPTION_ID).containsEntry("type", "next")
+						.extractingByKey("payload", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+						.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+						.extractingByKey("bookSearch", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+						.containsEntry("id", bookId);
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
 				.consumeNextWith((message) -> bookPayloadAssertion.accept(message, "1"))
 				.consumeNextWith((message) -> bookPayloadAssertion.accept(message, "5"))
-				.consumeNextWith((message) -> assertMessageType(message, "complete")).verifyComplete();
+				.consumeNextWith((message) -> assertMessageType(message, "complete"))
+				.verifyComplete();
 	}
 
 	@Test
 	void unauthorizedWithoutMessageType() {
-		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}"),
+		TestWebSocketSession session = handle(Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage("{\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\"}")));
 
 		StepVerifier.create(session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, "connection_ack")).verifyComplete();
+				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
+				.verifyComplete();
 
-		StepVerifier.create(session.closeStatus()).expectNext(new CloseStatus(4400, "Invalid message"))
+		StepVerifier.create(session.closeStatus())
+				.expectNext(new CloseStatus(4400, "Invalid message"))
 				.verifyComplete();
 	}
 
 	@Test
 	void invalidMessageWithoutId() {
-		Flux<WebSocketMessage> input = Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}"),
+		Flux<WebSocketMessage> input = Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage("{\"type\":\"subscribe\"}")); // No message id
 
 		TestWebSocketSession session = handle(input);
 
 		StepVerifier.create(session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, "connection_ack")).verifyComplete();
+				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
+				.verifyComplete();
 
-		StepVerifier.create(session.closeStatus()).expectNext(new CloseStatus(4400, "Invalid message"))
+		StepVerifier.create(session.closeStatus())
+				.expectNext(new CloseStatus(4400, "Invalid message"))
 				.verifyComplete();
 	}
 
@@ -122,43 +135,47 @@ public class GraphQlWebSocketHandlerTests {
 
 	@Test
 	void tooManyConnectionInitRequests() {
-		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}"),
+		TestWebSocketSession session = handle(Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage("{\"type\":\"connection_init\"}")));
 
 		StepVerifier.create(session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, "connection_ack")).verifyComplete();
+				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
+				.verifyComplete();
 
-		StepVerifier.create(session.closeStatus()).expectNext(new CloseStatus(4429, "Too many initialisation requests"))
+		StepVerifier.create(session.closeStatus())
+				.expectNext(new CloseStatus(4429, "Too many initialisation requests"))
 				.verifyComplete();
 	}
 
 	@Test
 	void connectionInitTimeout() {
-		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(BookTestUtils.initWebGraphQlHandler(),
-				ServerCodecConfigurer.create(), Duration.ofMillis(50));
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
+				BookTestUtils.initWebGraphQlHandler(), ServerCodecConfigurer.create(), Duration.ofMillis(50));
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.empty());
 		handler.handle(session).block();
 
 		StepVerifier.create(session.closeStatus())
-				.expectNext(new CloseStatus(4408, "Connection initialisation timeout")).verifyComplete();
+				.expectNext(new CloseStatus(4408, "Connection initialisation timeout"))
+				.verifyComplete();
 	}
 
 	@Test
 	void subscriptionExists() {
-		TestWebSocketSession session = handle(
-				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}"),
-						toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION),
-						toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION)),
-				new ConsumeOneAndNeverCompleteInterceptor());
+		Flux<WebSocketMessage> messageFlux = Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\"}"),
+				toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION),
+				toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION));
+
+		TestWebSocketSession session = handle(messageFlux, new ConsumeOneAndNeverCompleteInterceptor());
 
 		// Collect messages until session closed
 		List<Map<String, Object>> messages = new ArrayList<>();
 		session.getOutput().subscribe((message) -> messages.add(decode(message)));
 
 		StepVerifier.create(session.closeStatus())
-				.expectNext(
-						new CloseStatus(4409, "Subscriber for " + BookTestUtils.SUBSCRIPTION_ID + " already exists"))
+				.expectNext(new CloseStatus(4409, "Subscriber for " + BookTestUtils.SUBSCRIPTION_ID + " already exists"))
 				.verifyComplete();
 
 		assertThat(messages.size()).isEqualTo(2);
@@ -188,8 +205,10 @@ public class GraphQlWebSocketHandlerTests {
 	}
 
 	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebInterceptor... interceptors) {
-		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(BookTestUtils.initWebGraphQlHandler(interceptors),
-				ServerCodecConfigurer.create(), Duration.ofSeconds(60));
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
+				BookTestUtils.initWebGraphQlHandler(interceptors),
+				ServerCodecConfigurer.create(),
+				Duration.ofSeconds(60));
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
 		handler.handle(session).block();

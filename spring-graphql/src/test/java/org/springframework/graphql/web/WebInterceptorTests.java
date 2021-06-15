@@ -31,6 +31,8 @@ import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// @formatter:off
+
 /**
  * Unit tests for a {@link WebInterceptor} chain.
  */
@@ -44,7 +46,9 @@ public class WebInterceptorTests {
 		StringBuilder output = new StringBuilder();
 
 		WebGraphQlHandler handler = WebGraphQlHandler.builder((input) -> emptyExecutionResult())
-				.interceptors(Arrays.asList(new OrderInterceptor(1, output), new OrderInterceptor(2, output),
+				.interceptors(Arrays.asList(
+						new OrderInterceptor(1, output),
+						new OrderInterceptor(2, output),
 						new OrderInterceptor(3, output)))
 				.build();
 
@@ -55,8 +59,7 @@ public class WebInterceptorTests {
 	@Test
 	void responseHeader() {
 		WebGraphQlHandler handler = WebGraphQlHandler.builder((input) -> emptyExecutionResult())
-				.interceptor((input, next) -> next.handle(input).map(
-						(output) -> output.transform((builder) -> builder.responseHeader("testHeader", "testValue"))))
+				.interceptor((input, next) -> next.handle(input).map((output) -> output.transform((builder) -> builder.responseHeader("testHeader", "testValue"))))
 				.build();
 
 		HttpHeaders headers = handler.handle(webInput).block().getResponseHeaders();
@@ -68,13 +71,16 @@ public class WebInterceptorTests {
 	void executionInputCustomization() {
 		AtomicReference<String> actualName = new AtomicReference<>();
 
-		WebGraphQlHandler handler = WebGraphQlHandler.builder((input) -> {
-			actualName.set(input.getOperationName());
-			return emptyExecutionResult();
-		}).interceptor((webInput, next) -> {
-			webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
-			return next.handle(webInput);
-		}).build();
+		WebGraphQlHandler handler = WebGraphQlHandler.builder(
+				(input) -> {
+					actualName.set(input.getOperationName());
+					return emptyExecutionResult();
+				})
+				.interceptor((webInput, next) -> {
+					webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
+					return next.handle(webInput);
+				})
+				.build();
 
 		handler.handle(webInput).block();
 
@@ -99,10 +105,12 @@ public class WebInterceptorTests {
 		@Override
 		public Mono<WebOutput> intercept(WebInput input, WebGraphQlHandler next) {
 			this.output.append(":pre").append(this.order);
-			return next.handle(input).map((output) -> {
-				this.output.append(":post").append(this.order);
-				return output;
-			}).subscribeOn(Schedulers.boundedElastic());
+			return next.handle(input)
+					.map((output) -> {
+						this.output.append(":post").append(this.order);
+						return output;
+					})
+					.subscribeOn(Schedulers.boundedElastic());
 		}
 
 	}

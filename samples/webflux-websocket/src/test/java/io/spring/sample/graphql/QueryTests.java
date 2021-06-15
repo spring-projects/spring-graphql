@@ -21,8 +21,10 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.web.WebGraphQlHandler;
+
+// @formatter:off
 
 /**
  * GraphQL query tests directly via {@link GraphQL}.
@@ -34,19 +36,25 @@ public class QueryTests {
 
 	@BeforeEach
 	public void setUp(@Autowired WebGraphQlHandler handler) {
-		this.graphQlTester = GraphQlTester
-				.create(webInput -> handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
+		this.graphQlTester = GraphQlTester.create(webInput ->
+				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 	@Test
 	void greetingMono() {
-		this.graphQlTester.query("{greetingMono}").execute().path("greetingMono").entity(String.class)
+		this.graphQlTester.query("{greetingMono}")
+				.execute()
+				.path("greetingMono")
+				.entity(String.class)
 				.isEqualTo("Hello James");
 	}
 
 	@Test
 	void greetingsFlux() {
-		this.graphQlTester.query("{greetingsFlux}").execute().path("greetingsFlux").entityList(String.class)
+		this.graphQlTester.query("{greetingsFlux}")
+				.execute()
+				.path("greetingsFlux")
+				.entityList(String.class)
 				.containsExactly("Hi James", "Bonjour James", "Hola James", "Ciao James", "Zdravo James");
 	}
 

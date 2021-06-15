@@ -50,7 +50,6 @@ import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.servlet.HandlerMapping;
-import org.springframework.web.servlet.function.RequestPredicates;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -58,6 +57,9 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 import org.springframework.web.socket.server.support.WebSocketHandlerMapping;
 import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler;
+
+import static org.springframework.web.servlet.function.RequestPredicates.accept;
+import static org.springframework.web.servlet.function.RequestPredicates.contentType;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for enabling Spring GraphQL over
@@ -100,14 +102,18 @@ public class WebMvcGraphQlAutoConfiguration {
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + path);
 		}
-		RouterFunctions.Builder builder = RouterFunctions.route().GET(path, (req) -> ServerResponse.ok().body(resource))
-				.POST(path, RequestPredicates.contentType(MediaType.APPLICATION_JSON)
-						.and(RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
+		// @formatter:off
+		RouterFunctions.Builder builder = RouterFunctions.route()
+				.GET(path, (req) -> ServerResponse.ok().body(resource))
+				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
-			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(), (req) -> ServerResponse.ok()
-					.contentType(MediaType.TEXT_PLAIN).body(printer.print(graphQlSource.schema())));
+			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
+					(req) -> ServerResponse.ok()
+							.contentType(MediaType.TEXT_PLAIN)
+							.body(printer.print(graphQlSource.schema())));
 		}
+		// @formatter:on
 		return builder.build();
 	}
 
@@ -121,9 +127,12 @@ public class WebMvcGraphQlAutoConfiguration {
 		public GraphQlWebSocketHandler graphQlWebSocketHandler(WebGraphQlHandler webGraphQlHandler,
 				GraphQlProperties properties, HttpMessageConverters converters) {
 
+			// @formatter:off
 			HttpMessageConverter<?> converter = converters.getConverters().stream()
-					.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON)).findFirst()
+					.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
+					.findFirst()
 					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
+			// @formatter:on
 
 			return new GraphQlWebSocketHandler(webGraphQlHandler, converter,
 					properties.getWebsocket().getConnectionInitTimeout());

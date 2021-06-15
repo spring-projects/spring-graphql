@@ -1,7 +1,10 @@
 package io.spring.sample.graphql;
 
+import java.util.Collections;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.reactive.context.ReactiveWebApplicationContext;
@@ -10,7 +13,7 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunctions;
 
-import java.util.Collections;
+// @formatter:off
 
 @SpringBootTest()
 class SampleApplicationTests {

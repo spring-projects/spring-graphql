@@ -5,7 +5,6 @@ import java.util.Map;
 
 import graphql.schema.idl.RuntimeWiring;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.boot.RuntimeWiringCustomizer;
 import org.springframework.stereotype.Component;
 

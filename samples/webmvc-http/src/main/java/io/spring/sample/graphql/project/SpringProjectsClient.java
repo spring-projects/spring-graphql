@@ -2,10 +2,7 @@ package io.spring.sample.graphql.project;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.hateoas.CollectionModel;
@@ -13,27 +10,35 @@ import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.client.Hop;
 import org.springframework.hateoas.client.Traverson;
 import org.springframework.hateoas.server.core.TypeReferences;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 @Component
 public class SpringProjectsClient {
 
-	private static final TypeReferences.CollectionModelType<Release> releaseCollection = new TypeReferences.CollectionModelType<Release>() {
-	};
+	// @formatter:off
+
+	private static final TypeReferences.CollectionModelType<Release> releaseCollection =
+			new TypeReferences.CollectionModelType<Release>() {};
+
+	// @formatter:on
 
 	private final Traverson traverson;
 
 	public SpringProjectsClient(RestTemplateBuilder builder) {
-		RestTemplate restTemplate = builder
-				.messageConverters(Traverson.getDefaultMessageConverters(MediaTypes.HAL_JSON)).build();
+		List<HttpMessageConverter<?>> converters = Traverson.getDefaultMessageConverters(MediaTypes.HAL_JSON);
+		RestTemplate restTemplate = builder.messageConverters(converters).build();
 		this.traverson = new Traverson(URI.create("https://spring.io/api/"), MediaTypes.HAL_JSON);
 		this.traverson.setRestOperations(restTemplate);
 	}
 
 	public Project fetchProject(String projectSlug) {
-		return this.traverson.follow("projects").follow(Hop.rel("project").withParameter("id", projectSlug))
+		// @formatter:off
+		return this.traverson.follow("projects")
+				.follow(Hop.rel("project").withParameter("id", projectSlug))
 				.toObject(Project.class);
+		// @formatter:on
 	}
 
 	public List<Release> fetchProjectReleases(String projectSlug) {

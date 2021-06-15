@@ -45,12 +45,14 @@ import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.HandlerMapping;
-import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.server.support.WebSocketUpgradeHandlerPredicate;
+
+import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
+import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for enabling Spring GraphQL over
@@ -90,15 +92,18 @@ public class WebFluxGraphQlAutoConfiguration {
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + path);
 		}
+		// @formatter:off
 		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(path, (req) -> ServerResponse.ok().bodyValue(resource))
-				.POST(path, RequestPredicates.accept(MediaType.APPLICATION_JSON)
-						.and(RequestPredicates.contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
+				.POST(path, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
-			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(), (req) -> ServerResponse.ok()
-					.contentType(MediaType.TEXT_PLAIN).bodyValue(printer.print(graphQlSource.schema())));
+			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
+					(req) -> ServerResponse.ok()
+							.contentType(MediaType.TEXT_PLAIN)
+							.bodyValue(printer.print(graphQlSource.schema())));
 		}
+		// @formatter:on
 		return builder.build();
 	}
 

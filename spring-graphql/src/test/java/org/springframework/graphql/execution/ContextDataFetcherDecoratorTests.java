@@ -35,6 +35,8 @@ import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// @formatter:off
+
 /**
  * Tests for {@link ContextDataFetcherDecorator}.
  */
@@ -76,10 +78,11 @@ public class ContextDataFetcherDecoratorTests {
 	void fluxDataFetcherSubscription() throws Exception {
 		GraphQL graphQl = GraphQlTestUtils.initGraphQl(
 				"type Query { greeting: String } type Subscription { greetings: String }", "Subscription", "greetings",
-				(env) -> Mono.delay(Duration.ofMillis(50)).flatMapMany((aLong) -> Flux.deferContextual((context) -> {
-					String name = context.get("name");
-					return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
-				})));
+				(env) -> Mono.delay(Duration.ofMillis(50))
+						.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
+							String name = context.get("name");
+							return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
+						})));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
 		ContextManager.setReactorContext(Context.of("name", "007"), input);
@@ -87,7 +90,9 @@ public class ContextDataFetcherDecoratorTests {
 		Publisher<String> publisher = graphQl.executeAsync(input).get().getData();
 
 		List<String> actual = Flux.from(publisher).cast(ExecutionResult.class)
-				.map((result) -> ((Map<String, ?>) result.getData()).get("greetings")).cast(String.class).collectList()
+				.map((result) -> ((Map<String, ?>) result.getData()).get("greetings"))
+				.cast(String.class)
+				.collectList()
 				.block();
 
 		assertThat(actual).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
@@ -99,7 +104,8 @@ public class ContextDataFetcherDecoratorTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
+			GraphQL graphQl = GraphQlTestUtils.initGraphQl(
+					"type Query { greeting: String }", "Query", "greeting",
 					(env) -> "Hello " + nameThreadLocal.get());
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
@@ -107,7 +113,8 @@ public class ContextDataFetcherDecoratorTests {
 			ContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
-					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input))).block();
+					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)))
+					.block();
 
 			Map<String, Object> data = result.getData();
 			assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");

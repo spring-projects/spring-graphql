@@ -28,17 +28,33 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
+// @formatter:off
+
 public abstract class BookTestUtils {
 
 	public static final String SUBSCRIPTION_ID = "1";
 
-	public static final String BOOK_QUERY = "{" + "\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\","
-			+ "\"type\":\"subscribe\"," + "\"payload\":{\"query\": \"" + "  query TestQuery {"
-			+ "    bookById(id: \\\"1\\\"){ " + "      id" + "      name" + "      author" + "  }}\"}" + "}";
+	public static final String BOOK_QUERY = "{" +
+			"\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\"," +
+			"\"type\":\"subscribe\"," +
+			"\"payload\":{\"query\": \"" +
+			"  query TestQuery {" +
+			"    bookById(id: \\\"1\\\"){ " +
+			"      id" + "      name" +
+			"      author" + "  }}\"}" +
+			"}";
 
-	public static final String BOOK_SUBSCRIPTION = "{" + "\"id\":\"" + SUBSCRIPTION_ID + "\","
-			+ "\"type\":\"subscribe\"," + "\"payload\":{\"query\": \"" + "  subscription TestSubscription {"
-			+ "    bookSearch(author: \\\"George\\\") {" + "      id" + "      name" + "      author" + "  }}\"}" + "}";
+	public static final String BOOK_SUBSCRIPTION = "{" +
+			"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
+			"\"type\":\"subscribe\"," +
+			"\"payload\":{\"query\": \"" +
+			"  subscription TestSubscription {" +
+			"    bookSearch(author: \\\"George\\\") {" +
+			"      id" +
+			"      name" +
+			"      author" +
+			"  }}\"}" +
+			"}";
 
 	private static final Map<Long, Book> booksMap = new HashMap<>(4);
 	static {
@@ -51,21 +67,26 @@ public abstract class BookTestUtils {
 
 	public static WebGraphQlHandler initWebGraphQlHandler(WebInterceptor... interceptors) {
 		return WebGraphQlHandler.builder(new ExecutionGraphQlService(graphQlSource()))
-				.interceptors(Arrays.asList(interceptors)).build();
+				.interceptors(Arrays.asList(interceptors))
+				.build();
 	}
 
 	private static GraphQlSource graphQlSource() {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		builder.type(TypeRuntimeWiring.newTypeWiring("Query").dataFetcher("bookById", (env) -> {
-			Long id = Long.parseLong(env.getArgument("id"));
-			return booksMap.get(id);
-		}));
-		builder.type(TypeRuntimeWiring.newTypeWiring("Subscription").dataFetcher("bookSearch", (env) -> {
-			String author = env.getArgument("author");
-			return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
-		}));
-		return GraphQlSource.builder().schemaResource(new ClassPathResource("books/schema.graphqls"))
-				.runtimeWiring(builder.build()).build();
+		builder.type(TypeRuntimeWiring.newTypeWiring("Query")
+				.dataFetcher("bookById", (env) -> {
+					Long id = Long.parseLong(env.getArgument("id"));
+					return booksMap.get(id);
+				}));
+		builder.type(TypeRuntimeWiring.newTypeWiring("Subscription")
+				.dataFetcher("bookSearch", (env) -> {
+					String author = env.getArgument("author");
+					return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
+				}));
+		return GraphQlSource.builder()
+				.schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.runtimeWiring(builder.build())
+				.build();
 	}
 
 }

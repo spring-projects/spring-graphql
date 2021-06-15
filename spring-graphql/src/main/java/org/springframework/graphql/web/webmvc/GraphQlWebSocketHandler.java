@@ -72,8 +72,12 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
-	private static final List<String> SUB_PROTOCOL_LIST = Arrays.asList("graphql-transport-ws",
-			"subscriptions-transport-ws");
+	// @formatter:off
+
+	private static final List<String> SUB_PROTOCOL_LIST =
+			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
+
+	// @formatter:on
 
 	private final WebGraphQlHandler graphQlHandler;
 
@@ -119,11 +123,18 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		SessionState sessionState = new SessionState(session.getId());
 		this.sessionInfoMap.put(session.getId(), sessionState);
 
-		Mono.delay(this.initTimeoutDuration).then(Mono.fromRunnable(() -> {
-			if (sessionState.isConnectionInitNotProcessed()) {
-				GraphQlStatus.closeSession(session, GraphQlStatus.INIT_TIMEOUT_STATUS);
-			}
-		})).subscribe();
+		// @formatter:off
+
+		Mono.delay(this.initTimeoutDuration)
+				.then(Mono.fromRunnable(() -> {
+						if (sessionState.isConnectionInitNotProcessed()) {
+							GraphQlStatus.closeSession(session, GraphQlStatus.INIT_TIMEOUT_STATUS);
+						}
+				}))
+				.subscribe();
+
+		// @formatter:on
+
 	}
 
 	@Override
@@ -154,10 +165,12 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			if (logger.isDebugEnabled()) {
 				logger.debug("Executing: " + input);
 			}
-			this.graphQlHandler.handle(input).flatMapMany((output) -> handleWebOutput(session, input.getId(), output))
-					.publishOn(sessionState.getScheduler()) // Serial blocking send via
-															// single thread
+			// @formatter:off
+			this.graphQlHandler.handle(input)
+					.flatMapMany((output) -> handleWebOutput(session, input.getId(), output))
+					.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 					.subscribe(new SendMessageSubscriber(id, session, sessionState));
+			// @formatter:on
 			return;
 		case COMPLETE:
 			if (id != null) {
@@ -199,6 +212,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		return info;
 	}
 
+	// @formatter:off
+
 	@SuppressWarnings("unchecked")
 	private Flux<TextMessage> handleWebOutput(WebSocketSession session, String id, WebOutput output) {
 		if (logger.isDebugEnabled()) {
@@ -209,12 +224,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		Flux<ExecutionResult> outputFlux;
 		if (output.getData() instanceof Publisher) {
 			// Subscription
-			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData()).doOnSubscribe((subscription) -> {
-				Subscription prev = getSessionInfo(session).getSubscriptions().putIfAbsent(id, subscription);
-				if (prev != null) {
-					throw new SubscriptionExistsException();
-				}
-			});
+			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+					.doOnSubscribe((subscription) -> {
+							Subscription prev = getSessionInfo(session).getSubscriptions().putIfAbsent(id, subscription);
+							if (prev != null) {
+								throw new SubscriptionExistsException();
+							}
+					});
 		}
 		else {
 			// Single response operation (query or mutation)
@@ -222,22 +238,27 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					: Flux.error(new IllegalStateException("Execution failed: " + output.getErrors())));
 		}
 
-		return outputFlux.map((result) -> {
-			Map<String, Object> dataMap = result.toSpecification();
-			return encode(id, MessageType.NEXT, dataMap);
-		}).concatWith(Mono.fromCallable(() -> encode(id, MessageType.COMPLETE, null))).onErrorResume((ex) -> {
-			if (ex instanceof SubscriptionExistsException) {
-				CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
-				GraphQlStatus.closeSession(session, status);
-				return Flux.empty();
-			}
-			ErrorType errorType = ErrorType.DataFetchingException;
-			String message = ex.getMessage();
-			Map<String, Object> errorMap = GraphqlErrorBuilder.newError().errorType(errorType).message(message).build()
-					.toSpecification();
-			return Mono.just(encode(id, MessageType.ERROR, errorMap));
-		});
+		return outputFlux
+				.map((result) -> {
+						Map<String, Object> dataMap = result.toSpecification();
+						return encode(id, MessageType.NEXT, dataMap);
+				})
+				.concatWith(Mono.fromCallable(() -> encode(id, MessageType.COMPLETE, null)))
+				.onErrorResume((ex) -> {
+						if (ex instanceof SubscriptionExistsException) {
+							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
+							GraphQlStatus.closeSession(session, status);
+							return Flux.empty();
+						}
+						ErrorType errorType = ErrorType.DataFetchingException;
+						String message = ex.getMessage();
+						Map<String, Object> errorMap = GraphqlErrorBuilder.newError().errorType(errorType).message(message).build()
+								.toSpecification();
+						return Mono.just(encode(id, MessageType.ERROR, errorMap));
+				});
 	}
+
+	// @formatter:on
 
 	@SuppressWarnings("unchecked")
 	private <T> TextMessage encode(@Nullable String id, MessageType messageType, @Nullable Object payload) {
@@ -282,8 +303,16 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private enum MessageType {
 
-		CONNECTION_INIT("connection_init"), CONNECTION_ACK("connection_ack"), SUBSCRIBE("subscribe"), NEXT(
-				"next"), ERROR("error"), COMPLETE("complete");
+		// @formatter:off
+
+		CONNECTION_INIT("connection_init"),
+		CONNECTION_ACK("connection_ack"),
+		SUBSCRIBE("subscribe"),
+		NEXT("next"),
+		ERROR("error"),
+		COMPLETE("complete");
+
+		// @formatter:on
 
 		private static final Map<String, MessageType> messageTypes = new HashMap<>(6);
 
@@ -312,15 +341,17 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static class GraphQlStatus {
 
+		// @formatter:off
+
 		private static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
 
 		private static final CloseStatus UNAUTHORIZED_STATUS = new CloseStatus(4401, "Unauthorized");
 
-		private static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408,
-				"Connection initialisation timeout");
+		private static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408, "Connection initialisation timeout");
 
-		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429,
-				"Too many initialisation requests");
+		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429, "Too many initialisation requests");
+
+		// @formatter:on
 
 		static void closeSession(WebSocketSession session, CloseStatus status) {
 			try {

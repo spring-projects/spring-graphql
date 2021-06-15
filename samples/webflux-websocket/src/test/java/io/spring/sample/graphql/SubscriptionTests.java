@@ -23,8 +23,10 @@ import reactor.test.StepVerifier;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.web.WebGraphQlHandler;
+
+// @formatter:off
 
 /**
  * GraphQL subscription tests directly via {@link GraphQL}.
@@ -36,29 +38,36 @@ public class SubscriptionTests {
 
 	@BeforeEach
 	public void setUp(@Autowired WebGraphQlHandler handler) {
-		this.graphQlTester = GraphQlTester
-				.create(webInput -> handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
+		this.graphQlTester = GraphQlTester.create(webInput ->
+				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 	@Test
 	void subscriptionWithEntityPath() {
-		String query = "subscription { greetings }";
+		Flux<String> result = this.graphQlTester.query("subscription { greetings }")
+				.executeSubscription()
+				.toFlux("greetings", String.class);
 
-		Flux<String> result = this.graphQlTester.query(query).executeSubscription().toFlux("greetings", String.class);
-
-		StepVerifier.create(result).expectNext("Hi James").expectNext("Bonjour James").expectNext("Hola James")
-				.expectNext("Ciao James").expectNext("Zdravo James").verifyComplete();
+		StepVerifier.create(result)
+				.expectNext("Hi James")
+				.expectNext("Bonjour James")
+				.expectNext("Hola James")
+				.expectNext("Ciao James")
+				.expectNext("Zdravo James")
+				.verifyComplete();
 	}
 
 	@Test
 	void subscriptionWithResponseSpec() {
-		String query = "subscription { greetings }";
+		Flux<GraphQlTester.ResponseSpec> result = this.graphQlTester.query("subscription { greetings }")
+				.executeSubscription()
+				.toFlux();
 
-		Flux<GraphQlTester.ResponseSpec> result = this.graphQlTester.query(query).executeSubscription().toFlux();
-
-		StepVerifier.create(result).consumeNextWith(spec -> spec.path("greetings").valueExists())
+		StepVerifier.create(result)
+				.consumeNextWith(spec -> spec.path("greetings").valueExists())
 				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Bonjour James\""))
-				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Hola James\"")).expectNextCount(2)
+				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Hola James\""))
+				.expectNextCount(2)
 				.verifyComplete();
 	}
 

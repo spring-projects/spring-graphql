@@ -43,7 +43,7 @@ import org.springframework.web.client.ExtractingResponseErrorHandler;
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
-	private static Log logger = LogFactory.getLog(ExtractingResponseErrorHandler.class);
+	private static final Log logger = LogFactory.getLog(ExtractingResponseErrorHandler.class);
 
 	private final List<DataFetcherExceptionResolver> resolvers;
 
@@ -63,17 +63,23 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		return invokeChain(exception, parameters.getDataFetchingEnvironment());
 	}
 
-	@SuppressWarnings("ConstantConditions")
+	// @formatter:off
+
 	DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
 		// For now we have to block:
 		// https://github.com/graphql-java/graphql-java/issues/2356
 		try {
-			return Flux.fromIterable(this.resolvers).flatMap((resolver) -> resolver.resolveException(ex, env)).next()
+			return Flux.fromIterable(this.resolvers)
+					.flatMap((resolver) -> resolver.resolveException(ex, env))
+					.next()
 					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
-					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env))).contextWrite((context) -> {
+					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env)))
+					.contextWrite((context) -> {
 						ContextView contextView = ContextManager.getReactorContext(env);
 						return (contextView.isEmpty() ? context : context.putAll(contextView));
-					}).toFuture().get();
+					})
+					.toFuture()
+					.get();
 		}
 		catch (Exception ex2) {
 			if (logger.isWarnEnabled()) {
@@ -84,9 +90,13 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	}
 
 	private DataFetcherExceptionHandlerResult applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
-		GraphQLError error = GraphqlErrorBuilder.newError(env).message(ex.getMessage())
-				.errorType(ErrorType.INTERNAL_ERROR).build();
+		GraphQLError error = GraphqlErrorBuilder.newError(env)
+				.message(ex.getMessage())
+				.errorType(ErrorType.INTERNAL_ERROR)
+				.build();
 		return DataFetcherExceptionHandlerResult.newResult(error).build();
 	}
+
+	// @formatter:on
 
 }
