@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 import graphql.schema.idl.TypeRuntimeWiring;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -37,6 +36,10 @@ import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import static org.hamcrest.Matchers.containsString;
+
+// @formatter:off
+
 class WebFluxApplicationContextTests {
 
 	private static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
@@ -49,57 +52,97 @@ class WebFluxApplicationContextTests {
 	@Test
 	void query() {
 		testWithWebClient((client) -> {
-			String query = "{" + "  bookById(id: \\\"book-1\\\"){ " + "    id" + "    name" + "    pageCount"
-					+ "    author" + "  }" + "}";
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount"	+
+					"    author" +
+					"  }" +
+					"}";
 
-			client.post().uri("").bodyValue("{  \"query\": \"" + query + "\"}").exchange().expectStatus().isOk()
-					.expectBody().jsonPath("data.bookById.name").isEqualTo("GraphQL for beginners");
+			client.post().uri("").bodyValue("{  \"query\": \"" + query + "\"}")
+					.exchange()
+					.expectStatus()
+					.isOk()
+					.expectBody()
+					.jsonPath("data.bookById.name")
+					.isEqualTo("GraphQL for beginners");
 		});
 	}
 
 	@Test
 	void queryMissing() {
-		testWithWebClient((client) -> client.post().uri("").bodyValue("{}").exchange().expectStatus().isBadRequest());
+		testWithWebClient((client) ->
+				client.post().uri("").bodyValue("{}")
+						.exchange()
+						.expectStatus()
+						.isBadRequest());
 	}
 
 	@Test
 	void queryIsInvalidJson() {
-		testWithWebClient((client) -> client.post().uri("").bodyValue(":)").exchange().expectStatus().isBadRequest());
+		testWithWebClient((client) ->
+				client.post().uri("").bodyValue(":)")
+						.exchange()
+						.expectStatus()
+						.isBadRequest());
 	}
 
 	@Test
 	void interceptedQuery() {
 		testWithWebClient((client) -> {
-			String query = "{" + "  bookById(id: \\\"book-1\\\"){ " + "    id" + "    name" + "    pageCount"
-					+ "    author" + "  }" + "}";
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount" +
+					"    author" +
+					"  }" +
+					"}";
 
-			client.post().uri("").bodyValue("{  \"query\": \"" + query + "\"}").exchange().expectStatus().isOk()
-					.expectHeader().valueEquals("X-Custom-Header", "42");
+			client.post().uri("").bodyValue("{  \"query\": \"" + query + "\"}")
+					.exchange()
+					.expectStatus()
+					.isOk()
+					.expectHeader()
+					.valueEquals("X-Custom-Header", "42");
 		});
 	}
 
 	@Test
 	void schemaEndpoint() {
-		testWithWebClient((client) -> client.get().uri("/schema").accept(MediaType.ALL).exchange().expectStatus().isOk()
-				.expectHeader().contentType(MediaType.TEXT_PLAIN).expectBody(String.class)
-				.value(Matchers.containsString("type Book")));
+		testWithWebClient((client) ->
+				client.get().uri("/schema").accept(MediaType.ALL)
+						.exchange()
+						.expectStatus()
+						.isOk()
+						.expectHeader()
+						.contentType(MediaType.TEXT_PLAIN)
+						.expectBody(String.class)
+						.value(containsString("type Book")));
 	}
 
 	private void testWithWebClient(Consumer<WebTestClient> consumer) {
 		testWithApplicationContext((context) -> {
-			WebTestClient client = WebTestClient.bindToApplicationContext(context).configureClient()
+			WebTestClient client = WebTestClient.bindToApplicationContext(context)
+					.configureClient()
 					.defaultHeaders((headers) -> {
 						headers.setContentType(MediaType.APPLICATION_JSON);
 						headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-					}).baseUrl(BASE_URL).build();
+					})
+					.baseUrl(BASE_URL)
+					.build();
 			consumer.accept(client);
 		});
 	}
 
 	private void testWithApplicationContext(ContextConsumer<ApplicationContext> consumer) {
-		new ReactiveWebApplicationContextRunner().withConfiguration(AUTO_CONFIGURATIONS)
+		new ReactiveWebApplicationContextRunner()
+				.withConfiguration(AUTO_CONFIGURATIONS)
 				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
-				.withPropertyValues("spring.main.web-application-type=reactive",
+				.withPropertyValues(
+						"spring.main.web-application-type=reactive",
 						"spring.graphql.schema.printer.enabled=true",
 						"spring.graphql.schema.location=classpath:books/schema.graphqls")
 				.run(consumer);
@@ -110,8 +153,9 @@ class WebFluxApplicationContextTests {
 
 		@Bean
 		public RuntimeWiringCustomizer bookDataFetcher() {
-			return (runtimeWiring) -> runtimeWiring.type(TypeRuntimeWiring.newTypeWiring("Query")
-					.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
+			return (runtimeWiring) ->
+					runtimeWiring.type(TypeRuntimeWiring.newTypeWiring("Query")
+							.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
 		}
 
 	}
@@ -121,8 +165,8 @@ class WebFluxApplicationContextTests {
 
 		@Bean
 		public WebInterceptor customWebInterceptor() {
-			return (input, next) -> next.handle(input)
-					.map((output) -> output.transform((builder) -> builder.responseHeader("X-Custom-Header", "42")));
+			return (input, next) -> next.handle(input).map((output) ->
+					output.transform((builder) -> builder.responseHeader("X-Custom-Header", "42")));
 		}
 
 	}

@@ -82,9 +82,11 @@ class GraphQlTesterAutoConfigurationTests {
 
 		@Bean
 		WebTestClient webTestClient() {
-			RouterFunction<ServerResponse> routerFunction = RouterFunctions.route()
-					.POST("/graphql", (request) -> ServerResponse.ok().build()).build();
-			return WebTestClient.bindToRouterFunction(routerFunction).build();
+			// @formatter:off
+			RouterFunction<ServerResponse> routes =
+					RouterFunctions.route().POST("/graphql", (request) -> ServerResponse.ok().build()).build();
+			return WebTestClient.bindToRouterFunction(routes).build();
+			// @formatter:on
 		}
 
 		@Bean
