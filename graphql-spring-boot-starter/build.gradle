@@ -3,7 +3,6 @@ import org.springframework.boot.gradle.plugin.SpringBootPlugin
 plugins {
 	id 'org.springframework.boot' version '2.5.0' apply false
 	id 'java-library'
-	id 'org.springframework.graphql.conventions'
 }
 
 group = 'org.springframework.experimental'

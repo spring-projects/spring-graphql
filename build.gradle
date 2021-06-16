@@ -25,7 +25,6 @@ subprojects {
 
 configure(moduleProjects) {
 	apply plugin: 'java-library'
-	apply plugin: 'org.springframework.graphql.conventions'
 
 	java {
 		sourceCompatibility = JavaVersion.VERSION_1_8
