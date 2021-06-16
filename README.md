@@ -72,7 +72,7 @@ repositories {
 </repositories>
 ```
 
-You can now add a GraphQL schema in `src/main/resources/schema.graphqls` such as:
+You can now add a GraphQL schema in `src/main/resources/graphql/schema.graphqls` such as:
 
 ```
 type Query {
