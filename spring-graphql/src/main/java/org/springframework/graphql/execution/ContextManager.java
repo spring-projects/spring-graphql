@@ -63,15 +63,24 @@ public abstract class ContextManager {
 	}
 
 	/**
-	 * Use the given accessor to extract ThreadLocal value, and return a Reactor context
-	 * that contains both the extracted values and the accessor.
+	 * Use the given accessor to extract ThreadLocal values and save them in a
+	 * sub-map in the given {@link Context}, so those can be restored later
+	 * around the execution of data fetchers and exception resolvers. The accessor
+	 * instance is also saved in the Reactor Context so it can be used to
+	 * actually restore and reset ThreadLocal values.
 	 * @param accessor the accessor to use
-	 * @return the reactor {@link ContextView}
+	 * @param context the context to write to if there are ThreadLocal values
+	 * @return a new Reactor {@link ContextView} or the {@code Context} instance
+	 * that was passed in, if there were no ThreadLocal values to extract.
 	 */
-	public static ContextView extractThreadLocalValues(ThreadLocalAccessor accessor) {
+	public static Context extractThreadLocalValues(ThreadLocalAccessor accessor, Context context) {
 		Map<String, Object> valuesMap = new LinkedHashMap<>();
 		accessor.extractValues(valuesMap);
-		return Context.of(THREAD_LOCAL_VALUES_KEY, valuesMap, THREAD_LOCAL_ACCESSOR_KEY, accessor);
+		if (valuesMap.isEmpty()) {
+			return context;
+		}
+		return context.putAll((ContextView) Context.of(
+				THREAD_LOCAL_VALUES_KEY, valuesMap, THREAD_LOCAL_ACCESSOR_KEY, accessor));
 	}
 
 	/**

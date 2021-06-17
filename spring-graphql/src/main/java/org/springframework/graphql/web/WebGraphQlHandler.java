@@ -24,8 +24,8 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 
 /**
- * Contract to handle a GraphQL over HTTP or WebSocket request that forms the basis of a
- * {@link WebInterceptor} delegation chain.
+ * Common contract to handle a GraphQL request over HTTP or WebSocket for use
+ * with both Spring MVC and Spring WebFlux.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -50,8 +50,8 @@ public interface WebGraphQlHandler {
 	}
 
 	/**
-	 * Builder for {@link WebGraphQlHandler} that represents a {@link WebInterceptor}
-	 * chain followed by a {@link GraphQlService}.
+	 * Builder for a {@link WebGraphQlHandler} that executes a
+	 * {@link WebInterceptor} chain followed by a {@link GraphQlService}.
 	 */
 	interface Builder {
 
@@ -70,9 +70,10 @@ public interface WebGraphQlHandler {
 		Builder interceptors(List<WebInterceptor> interceptors);
 
 		/**
-		 * Configure accessors for ThreadLocal variables to use to extract ThreadLocal
-		 * values at the Web framework level, have those propagated and re-established at
-		 * the DataFetcher level.
+		 * Configure accessors for ThreadLocal variables to use to extract
+		 * ThreadLocal values at the start of GraphQL execution in the web layer,
+		 * and have those saved, and restored around the invocation of data
+		 * fetchers and exception resolvers.
 		 * @param accessors the accessors to add
 		 * @return this builder
 		 */

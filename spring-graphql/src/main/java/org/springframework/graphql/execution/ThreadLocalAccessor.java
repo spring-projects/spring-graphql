@@ -22,44 +22,51 @@ import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * Interface to be implemented by a framework or an application in order to assist with
- * extracting ThreadLocal values at the web layer, which can then be re-established for
- * DataFetcher's that are potentially executing on a different thread.
+ * Interface to be implemented to assist with the extraction of ThreadLocal
+ * values at the start of GraphQL request execution, e.g. in the web layer.
+ * Those values are saved in {@link graphql.ExecutionInput} and restored later
+ * around the invocation of data fetchers and exception resolvers which may be
+ * in a different thread.
  *
- * <p>
- * Implementations may be declared as beans in Spring configuration and ordered as defined
- * in {@link ObjectProvider#orderedStream()}.
+ * <p>Implementations of this interface are typically declared as beans in
+ * Spring configuration and are invoked in order as defined in
+ * {@link ObjectProvider#orderedStream()}.
+ *
+ * <p>Currently supported for GraphQL requests over HTTP and WebSocket in
+ * Spring MVC applications.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see org.springframework.graphql.web.WebGraphQlHandler.Builder#threadLocalAccessor(ThreadLocalAccessor...)
  */
 public interface ThreadLocalAccessor {
 
 	/**
-	 * Extract ThreadLocal values and add them to the given Map which is then passed to
-	 * {@link #restoreValues(Map)} and {@link #resetValues(Map)} before and after the
-	 * execution of a {@link graphql.schema.DataFetcher}.
-	 * @param container container for ThreadLocal values
+	 * Extract ThreadLocal values and add them to the given Map, so they can be
+	 * saved and subsequently {@link #restoreValues(Map) restored} around the
+	 * invocation of data fetchers and exception resolvers.
+	 * @param container to add extracted ThreadLocal values to
 	 */
 	void extractValues(Map<String, Object> container);
 
 	/**
-	 * Re-establish ThreadLocal context by looking up values, previously extracted via
-	 * {@link #extractValues(Map)}.
-	 * @param values the saved ThreadLocal values
+	 * Restore ThreadLocal context by looking up previously
+	 * {@link #extractValues(Map) extracted} values.
+	 * @param values previously extracted saved ThreadLocal values
 	 */
 	void restoreValues(Map<String, Object> values);
 
 	/**
-	 * Reset ThreadLocal context for the given values, previously extracted via
-	 * {@link #extractValues(Map)}.
-	 * @param values the saved ThreadLocal values
+	 * Reset ThreadLocal context for the given, previously
+	 * {@link #extractValues(Map) extracted} and then
+	 * {@link #restoreValues(Map) restored} values.
+	 * @param values previously extracted saved ThreadLocal values
 	 */
 	void resetValues(Map<String, Object> values);
 
 	/**
-	 * Create a composite accessor that delegates to all of the given accessors.
-	 * @param accessors the accessors to aggregate
+	 * Create a composite accessor that applies all of the given ThreadLocal accessors.
+	 * @param accessors the accessors to apply
 	 * @return the composite accessor
 	 */
 	static ThreadLocalAccessor composite(List<ThreadLocalAccessor> accessors) {

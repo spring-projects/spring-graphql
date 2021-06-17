@@ -109,7 +109,7 @@ public class ContextDataFetcherDecoratorTests {
 					(env) -> "Hello " + nameThreadLocal.get());
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextView view = ContextManager.extractThreadLocalValues(accessor);
+			ContextView view = ContextManager.extractThreadLocalValues(accessor, Context.empty());
 			ContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
