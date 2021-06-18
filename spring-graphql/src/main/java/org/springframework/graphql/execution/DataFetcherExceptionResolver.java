@@ -27,12 +27,9 @@ import reactor.core.publisher.Mono;
  * {@code GraphQLError}'s to add to the GraphQL response. Implementations are typically
  * declared as beans in Spring configuration and invoked in order until one emits a List.
  *
- * <p>
- * Use the {@link SingleErrorExceptionResolver} convenience adapter when you need to
- * resolve exceptions to a single {@code GraphQLError} only.
- *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see SyncDataFetcherExceptionResolver
  */
 public interface DataFetcherExceptionResolver {
 
