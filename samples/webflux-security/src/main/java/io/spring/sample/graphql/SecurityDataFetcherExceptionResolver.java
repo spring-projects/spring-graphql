@@ -6,6 +6,7 @@ import java.util.List;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
@@ -38,6 +39,11 @@ public class SecurityDataFetcherExceptionResolver implements DataFetcherExceptio
 				.switchIfEmpty(unauthorized(environment));
 		}
 		return Mono.empty();
+	}
+
+	public void setAuthenticationTrustResolver(AuthenticationTrustResolver authenticationTrustResolver) {
+		Assert.notNull(authenticationTrustResolver, "authenticationTrustResolver cannot be null");
+		this.authenticationTrustResolver = authenticationTrustResolver;
 	}
 
 	private Mono<List<GraphQLError>> unauthorized(DataFetchingEnvironment environment) {
