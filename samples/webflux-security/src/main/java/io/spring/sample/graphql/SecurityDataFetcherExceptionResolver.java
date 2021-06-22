@@ -28,7 +28,7 @@ public class SecurityDataFetcherExceptionResolver implements DataFetcherExceptio
 	@Override
 	public Mono<List<GraphQLError>> resolveException(Throwable exception, DataFetchingEnvironment environment) {
 		if (exception instanceof AuthenticationException) {
-			// TOTO: should this be empty ?
+			return unauthorized(environment);
 		}
 		if (exception instanceof AccessDeniedException) {
 			return ReactiveSecurityContextHolder.getContext()
