@@ -42,6 +42,7 @@ public class SecurityDataFetcherExceptionResolver implements DataFetcherExceptio
 
 	private AuthenticationTrustResolver authenticationTrustResolver = new AuthenticationTrustResolverImpl();
 
+
 	@Override
 	public Mono<List<GraphQLError>> resolveException(Throwable exception, DataFetchingEnvironment environment) {
 		if (exception instanceof AuthenticationException) {
