@@ -30,10 +30,13 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
+import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
 import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.repository.Repository;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
@@ -44,9 +47,9 @@ import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.HttpHeaders;
 
 /**
- * Unit tests for {@link QuerydslDataFetcherSupport}.
+ * Unit tests for {@link QuerydslDataFetcher}.
  */
-class QuerydslDataFetcherSupportTests {
+class QuerydslDataFetcherTests {
 
 	@Test
 	void shouldFetchSingleItems() {
@@ -55,7 +58,7 @@ class QuerydslDataFetcherSupportTests {
 		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcherSupport
+				.dataFetcher("bookById", QuerydslDataFetcher
 						.builder(mockRepository)
 						.single()));
 
@@ -63,7 +66,7 @@ class QuerydslDataFetcherSupportTests {
 				URI.create("http://abc.org"), new HttpHeaders(), Collections
 				.singletonMap("query", "{ bookById(id: 1) {name}}"), "1")).block();
 
-		// TODO: getData interferes with method overries
+		// TODO: getData interferes with method overrides
 		assertThat((Object) output.getData())
 				.isEqualTo(Collections.singletonMap("bookById", Collections
 						.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
@@ -78,7 +81,7 @@ class QuerydslDataFetcherSupportTests {
 				.thenReturn(Arrays.asList(book1, book2));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("books", QuerydslDataFetcherSupport
+				.dataFetcher("books", QuerydslDataFetcher
 						.builder(mockRepository)
 						.many()));
 
@@ -99,7 +102,7 @@ class QuerydslDataFetcherSupportTests {
 		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcherSupport
+				.dataFetcher("bookById", QuerydslDataFetcher
 						.builder(mockRepository)
 						.projectAs(BookProjection.class)
 						.single()));
@@ -120,7 +123,7 @@ class QuerydslDataFetcherSupportTests {
 		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcherSupport
+				.dataFetcher("bookById", QuerydslDataFetcher
 						.builder(mockRepository)
 						.projectAs(BookDto.class)
 						.single()));
@@ -139,7 +142,7 @@ class QuerydslDataFetcherSupportTests {
 		MockRepository mockRepository = mock(MockRepository.class);
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("books", QuerydslDataFetcherSupport
+				.dataFetcher("books", QuerydslDataFetcher
 						.builder(mockRepository)
 						.customizer((QuerydslBinderCustomizer<QBook>) (bindings, book) -> bindings.bind(book.name)
 								.firstOptional((path, value) -> value.map(path::startsWith)))
@@ -159,7 +162,55 @@ class QuerydslDataFetcherSupportTests {
 				.and(QBook.book.author.eq("Doug")));
 	}
 
+	@Test
+	void shouldReactivelyFetchSingleItems() {
+		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
+		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
+		when(mockRepository.findOne(any())).thenReturn(Mono.just(book));
+
+		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
+				.dataFetcher("bookById", QuerydslDataFetcher
+						.builder(mockRepository)
+						.single()));
+
+		WebOutput output = handler.handle(new WebInput(
+				URI.create("http://abc.org"), new HttpHeaders(), Collections
+				.singletonMap("query", "{ bookById(id: 1) {name}}"), "1")).block();
+
+		// TODO: getData interferes with method overries
+		assertThat((Object) output.getData())
+				.isEqualTo(Collections.singletonMap("bookById", Collections
+						.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
+	}
+
+	@Test
+	void shouldReactivelyFetchMultipleItems() {
+		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
+		Book book2 = new Book(53L, "Breaking Bad", "Heisenberg");
+		when(mockRepository.findAll((Predicate) null))
+				.thenReturn(Flux.just(book1, book2));
+
+		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
+				.dataFetcher("books", QuerydslDataFetcher
+						.builder(mockRepository)
+						.many()));
+
+		WebOutput output = handler.handle(new WebInput(
+				URI.create("http://abc.org"), new HttpHeaders(), Collections
+				.singletonMap("query", "{ books {name}}"), "1")).block();
+
+		assertThat((Object) output.getData())
+				.isEqualTo(Collections.singletonMap("books", Arrays.asList(Collections
+						.singletonMap("name", "Hitchhiker's Guide to the Galaxy"), Collections
+						.singletonMap("name", "Breaking Bad"))));
+	}
+
 	interface MockRepository extends Repository<Book, Long>, QuerydslPredicateExecutor<Book> {
+
+	}
+
+	interface ReactiveMockRepository extends Repository<Book, Long>, ReactiveQuerydslPredicateExecutor<Book> {
 
 	}
 
@@ -199,6 +250,7 @@ class QuerydslDataFetcherSupportTests {
 		public String getName() {
 			return "The book is: " + name;
 		}
+
 	}
 
 }
