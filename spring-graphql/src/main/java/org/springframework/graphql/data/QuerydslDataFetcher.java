@@ -51,71 +51,96 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 /**
- * Utility to implement {@link DataFetcher} based on Querydsl {@link Predicate} through {@link QuerydslPredicateExecutor}.
- * Actual instances can be created through a {@link #builder(QuerydslPredicateExecutor) builder} to query for
- * {@link QuerydslDataFetcherBuilder#single()} or {@link QuerydslDataFetcherBuilder#many()} objects.
- * Example:
+ * Entrypoint to create {@link DataFetcher} using repositories through Querydsl.
+ * Exposes builders accepting {@link QuerydslPredicateExecutor} or
+ * {@link ReactiveQuerydslPredicateExecutor} that support customization of bindings
+ * and interface- and DTO projections. Instances can be created through a
+ * {@link #builder(QuerydslPredicateExecutor) builder} to query for
+ * {@link Builder#single()} or {@link Builder#many()} objects.
+ * <p>Example:
  * <pre class="code">
- * interface BookRepository extends Repository&lt;Book, String&gt;, QuerydslPredicateExecutor&lt;Book&gt;{}
+ * interface BookRepository extends Repository&lt;Book, String&gt;,
+ *                              QuerydslPredicateExecutor&lt;Book&gt;{}
  *
  * BookRepository repository = …;
  * TypeRuntimeWiring wiring = …;
  *
  * wiring.dataFetcher("books", QuerydslDataFetcher.builder(repository).many())
- *       .dataFetcher("book", QuerydslDataFetcher.builder(repositories).single());
+ *       .dataFetcher("book", QuerydslDataFetcher.builder(repository).single());
+ * </pre>
+ *
+ * <p>
+ * {@link DataFetcher} returning reactive types such as {@link Mono} and {@link Flux}
+ * can be constructed from a {@link ReactiveQuerydslPredicateExecutor} using
+ * {@link #builder(ReactiveQuerydslPredicateExecutor) builder}.
+ * <p>For example:
+ * <pre class="code">
+ * interface BookRepository extends Repository&lt;Book, String&gt;,
+ *                              ReactiveQuerydslPredicateExecutor&lt;Book&gt;{}
+ *
+ * BookRepository repository = …;
+ * TypeRuntimeWiring wiring = …;
+ *
+ * wiring.dataFetcher("books", QuerydslDataFetcher.builder(repository).many())
+ *       .dataFetcher("book", QuerydslDataFetcher.builder(repository).single());
  * </pre>
  *
  * @param <T> returned result type
  * @author Mark Paluch
  * @since 1.0.0
  * @see QuerydslPredicateExecutor
+ * @see ReactiveQuerydslPredicateExecutor
  * @see Predicate
  * @see QuerydslBinderCustomizer
  */
 public abstract class QuerydslDataFetcher<T> {
 
-	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(DefaultConversionService
-			.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
+	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
+			DefaultConversionService
+					.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
 
 	private final TypeInformation<T> domainType;
 
 	private final QuerydslBinderCustomizer<EntityPath<?>> customizer;
 
-	QuerydslDataFetcher(ClassTypeInformation<T> domainType, QuerydslBinderCustomizer<EntityPath<?>> customizer) {
+	QuerydslDataFetcher(ClassTypeInformation<T> domainType,
+			QuerydslBinderCustomizer<EntityPath<?>> customizer) {
 		this.customizer = customizer;
 		this.domainType = domainType;
 	}
 
 	/**
-	 * Create a new {@link QuerydslDataFetcherBuilder} accepting {@link QuerydslPredicateExecutor}.
+	 * Create a new {@link Builder} accepting {@link QuerydslPredicateExecutor}
+	 * to build a {@link DataFetcher}.
 	 * @param executor the repository object to use
 	 * @param <T> result type
 	 * @return a new builder
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> QuerydslDataFetcherBuilder<T, T> builder(QuerydslPredicateExecutor<T> executor) {
+	public static <T> Builder<T, T> builder(QuerydslPredicateExecutor<T> executor) {
 
 		Class<?> repositoryInterface = getRepositoryInterface(executor);
 		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
 
-		return new QuerydslDataFetcherBuilder<>(executor, (ClassTypeInformation<T>) ClassTypeInformation
+		return new Builder<>(executor, (ClassTypeInformation<T>) ClassTypeInformation
 				.from(metadata.getDomainType()), (bindings, root) -> {
 		}, Function.identity());
 	}
 
 	/**
-	 * Create a new {@link ReactiveQuerydslDataFetcherBuilder} accepting {@link ReactiveQuerydslPredicateExecutor}.
+	 * Create a new {@link ReactiveBuilder} accepting
+	 * {@link ReactiveQuerydslPredicateExecutor} to build a reactive {@link DataFetcher}.
 	 * @param executor the repository object to use
 	 * @param <T> result type
 	 * @return a new builder
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> ReactiveQuerydslDataFetcherBuilder<T, T> builder(ReactiveQuerydslPredicateExecutor<T> executor) {
+	public static <T> ReactiveBuilder<T, T> builder(ReactiveQuerydslPredicateExecutor<T> executor) {
 
 		Class<?> repositoryInterface = getRepositoryInterface(executor);
 		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
 
-		return new ReactiveQuerydslDataFetcherBuilder<>(executor, (ClassTypeInformation<T>) ClassTypeInformation
+		return new ReactiveBuilder<>(executor, (ClassTypeInformation<T>) ClassTypeInformation
 				.from(metadata.getDomainType()), (bindings, root) -> {
 		}, Function.identity());
 	}
@@ -134,12 +159,12 @@ public abstract class QuerydslDataFetcher<T> {
 			parameters.put(entry.getKey(), Collections.singletonList(entry.getValue()));
 		}
 
-		return BUILDER
-				.getPredicate(domainType, (MultiValueMap) parameters, bindings);
+		return BUILDER.getPredicate(domainType, (MultiValueMap) parameters, bindings);
 	}
 
-	private static <S, T> Function<S, T> createProjectionFunction(Class<T> projectionType) {
-		// TODO: SpelAwareProxyProjectionFactory, DtoMappingContext, and EntityInstantiators should be reused to avoid duplicate class metadata.
+	private static <S, T> Function<S, T> createProjection(Class<T> projectionType) {
+		// TODO: SpelAwareProxyProjectionFactory, DtoMappingContext, and EntityInstantiators
+		//  should be reused to avoid duplicate class metadata.
 		Assert.notNull(projectionType, "Projection type must not be null");
 
 		if (projectionType.isInterface()) {
@@ -154,6 +179,8 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 	private static Class<?> getRepositoryInterface(Object executor) {
+
+		Assert.isInstanceOf(Repository.class, executor);
 
 		Type[] genericInterfaces = executor.getClass().getGenericInterfaces();
 		for (Type genericInterface : genericInterfaces) {
@@ -176,12 +203,13 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 	/**
-	 * Builder for a Querydsl-based {@link DataFetcher}. Note that builder instances are immutable and return a new
-	 * instance of the builder when calling configuration methods.
+	 * Builder for a Querydsl-based {@link DataFetcher}. Note that builder
+	 * instances are immutable and return a new instance of the builder
+	 * when calling configuration methods.
 	 * @param <T> domain type
 	 * @param <R> result type
 	 */
-	public static class QuerydslDataFetcherBuilder<T, R> {
+	public static class Builder<T, R> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
@@ -191,7 +219,8 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final Function<T, R> resultConverter;
 
-		QuerydslDataFetcherBuilder(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
+		Builder(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
 				Function<T, R> resultConverter) {
 			this.executor = executor;
 			this.domainType = domainType;
@@ -200,28 +229,30 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Project results returned from the {@link QuerydslPredicateExecutor} into the target
-		 * {@code projectionType}. Projection types can be either interfaces declaring getters
-		 * for properties to expose or regular classes outside the entity type hierarchy for
+		 * Project results returned from the {@link QuerydslPredicateExecutor}
+		 * into the target {@code projectionType}. Projection types can be
+		 * either interfaces declaring getters for properties to expose or
+		 * regular classes outside the entity type hierarchy for
 		 * DTO projection.
 		 * @param projectionType projection type
-		 * @return a new {@link QuerydslDataFetcherBuilder} instance with all previously configured options and {@code projectionType}
-		 * applied
+		 * @return a new {@link Builder} instance with all previously
+		 * configured options and {@code projectionType} applied
 		 */
-		public <P> QuerydslDataFetcherBuilder<T, P> projectAs(Class<P> projectionType) {
+		public <P> Builder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new QuerydslDataFetcherBuilder<>(executor, domainType, customizer, createProjectionFunction(projectionType));
+			return new Builder<>(executor, domainType, customizer, createProjection(projectionType));
 		}
 
 		/**
 		 * Apply a {@link QuerydslBinderCustomizer}.
-		 * @param customizer the customizer to customize bindings for the actual query
-		 * @return a new {@link QuerydslDataFetcherBuilder} instance with all previously configured options and
-		 * {@code QuerydslBinderCustomizer} applied
+		 * @param customizer the customizer to customize bindings for the
+		 * actual query
+		 * @return a new {@link Builder} instance with all previously configured
+		 * options and {@code QuerydslBinderCustomizer} applied
 		 */
-		public QuerydslDataFetcherBuilder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+		public Builder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
-			return new QuerydslDataFetcherBuilder<>(executor, domainType, customizer, resultConverter);
+			return new Builder<>(executor, domainType, customizer, resultConverter);
 		}
 
 		/**
@@ -229,7 +260,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * @return a {@link DataFetcher} based on Querydsl to fetch one object
 		 */
 		public DataFetcher<R> single() {
-			return new SingleEntityQuerydslDataFetcher<>(executor, domainType, customizer, resultConverter);
+			return new SingleEntityFetcher<>(executor, domainType, customizer, resultConverter);
 		}
 
 		/**
@@ -237,18 +268,19 @@ public abstract class QuerydslDataFetcher<T> {
 		 * @return a {@link DataFetcher} based on Querydsl to fetch many objects
 		 */
 		public DataFetcher<Iterable<R>> many() {
-			return new ManyEntityQuerydslDataFetcher<>(executor, domainType, customizer, resultConverter);
+			return new ManyEntityFetcher<>(executor, domainType, customizer, resultConverter);
 		}
 
 	}
 
 	/**
-	 * Builder for a reactive Querydsl-based {@link DataFetcher}. Note that builder instances are immutable and return a new
-	 * instance of the builder when calling configuration methods.
+	 * Builder for a reactive Querydsl-based {@link DataFetcher}. Note that builder
+	 * instances are immutable and return a new instance of the builder when
+	 * calling configuration methods.
 	 * @param <T> domain type
 	 * @param <R> result type
 	 */
-	public static class ReactiveQuerydslDataFetcherBuilder<T, R> {
+	public static class ReactiveBuilder<T, R> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
@@ -258,7 +290,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final Function<T, R> resultConverter;
 
-		ReactiveQuerydslDataFetcherBuilder(ReactiveQuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
+		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor,
+				ClassTypeInformation<T> domainType,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
 				Function<T, R> resultConverter) {
 			this.executor = executor;
 			this.domainType = domainType;
@@ -267,28 +301,30 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Project results returned from the {@link QuerydslPredicateExecutor} into the target
-		 * {@code projectionType}. Projection types can be either interfaces declaring getters
-		 * for properties to expose or regular classes outside the entity type hierarchy for
+		 * Project results returned from the {@link QuerydslPredicateExecutor}
+		 * into the target {@code projectionType}. Projection types can be
+		 * either interfaces declaring getters for properties to expose or
+		 * regular classes outside the entity type hierarchy for
 		 * DTO projection.
 		 * @param projectionType projection type
-		 * @return a new {@link ReactiveQuerydslDataFetcherBuilder} instance with all previously configured options and {@code projectionType}
-		 * applied
+		 * @return a new {@link Builder} instance with all previously
+		 * configured options and {@code projectionType} applied
 		 */
-		public <P> ReactiveQuerydslDataFetcherBuilder<T, P> projectAs(Class<P> projectionType) {
+		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new ReactiveQuerydslDataFetcherBuilder<>(executor, domainType, customizer, createProjectionFunction(projectionType));
+			return new ReactiveBuilder<>(executor, domainType, customizer, createProjection(projectionType));
 		}
 
 		/**
 		 * Apply a {@link QuerydslBinderCustomizer}.
-		 * @param customizer the customizer to customize bindings for the actual query
-		 * @return a new {@link ReactiveQuerydslDataFetcherBuilder} instance with all previously configured options and
-		 * {@code QuerydslBinderCustomizer} applied
+		 * @param customizer the customizer to customize bindings for the
+		 * actual query
+		 * @return a new {@link Builder} instance with all previously configured
+		 * options and {@code QuerydslBinderCustomizer} applied
 		 */
-		public ReactiveQuerydslDataFetcherBuilder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+		public ReactiveBuilder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
-			return new ReactiveQuerydslDataFetcherBuilder<>(executor, domainType, customizer, resultConverter);
+			return new ReactiveBuilder<>(executor, domainType, customizer, resultConverter);
 		}
 
 		/**
@@ -296,7 +332,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * @return a {@link DataFetcher} based on Querydsl to fetch one object
 		 */
 		public DataFetcher<Mono<R>> single() {
-			return new ReactiveSingleEntityQuerydslDataFetcher<>(executor, domainType, customizer, resultConverter);
+			return new ReactiveSingleEntityFetcher<>(executor, domainType, customizer, resultConverter);
 		}
 
 		/**
@@ -304,20 +340,22 @@ public abstract class QuerydslDataFetcher<T> {
 		 * @return a {@link DataFetcher} based on Querydsl to fetch many objects
 		 */
 		public DataFetcher<Flux<R>> many() {
-			return new ReactiveManyEntityQuerydslDataFetcher<>(executor, domainType, customizer, resultConverter);
+			return new ReactiveManyEntityFetcher<>(executor, domainType, customizer, resultConverter);
 		}
 
 	}
 
-	static class SingleEntityQuerydslDataFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<R> {
+	static class SingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<R> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
 		private final Function<T, R> resultConverter;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		SingleEntityQuerydslDataFetcher(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer, Function<T, R> resultConverter) {
+		SingleEntityFetcher(QuerydslPredicateExecutor<T> executor,
+				ClassTypeInformation<T> domainType,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
+				Function<T, R> resultConverter) {
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
 			this.resultConverter = resultConverter;
@@ -331,15 +369,18 @@ public abstract class QuerydslDataFetcher<T> {
 
 	}
 
-	static class ManyEntityQuerydslDataFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Iterable<R>> {
+	static class ManyEntityFetcher<T, R> extends QuerydslDataFetcher<T>
+			implements DataFetcher<Iterable<R>> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
 		private final Function<T, R> resultConverter;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ManyEntityQuerydslDataFetcher(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer, Function<T, R> resultConverter) {
+		ManyEntityFetcher(QuerydslPredicateExecutor<T> executor,
+				ClassTypeInformation<T> domainType,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
+				Function<T, R> resultConverter) {
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
 			this.resultConverter = resultConverter;
@@ -353,15 +394,17 @@ public abstract class QuerydslDataFetcher<T> {
 
 	}
 
-	static class ReactiveSingleEntityQuerydslDataFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Mono<R>> {
+	static class ReactiveSingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Mono<R>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
 		private final Function<T, R> resultConverter;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ReactiveSingleEntityQuerydslDataFetcher(ReactiveQuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer, Function<T, R> resultConverter) {
+		ReactiveSingleEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
+				ClassTypeInformation<T> domainType,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
+				Function<T, R> resultConverter) {
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
 			this.resultConverter = resultConverter;
@@ -374,15 +417,17 @@ public abstract class QuerydslDataFetcher<T> {
 
 	}
 
-	static class ReactiveManyEntityQuerydslDataFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Flux<R>> {
+	static class ReactiveManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Flux<R>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
 		private final Function<T, R> resultConverter;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ReactiveManyEntityQuerydslDataFetcher(ReactiveQuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer, Function<T, R> resultConverter) {
+		ReactiveManyEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
+				ClassTypeInformation<T> domainType,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
+				Function<T, R> resultConverter) {
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
 			this.resultConverter = resultConverter;

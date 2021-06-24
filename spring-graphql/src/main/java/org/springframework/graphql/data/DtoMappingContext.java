@@ -26,8 +26,8 @@ import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.util.TypeInformation;
 
 /**
- * Lightweight {@link org.springframework.data.mapping.context.MappingContext} to provide class metadata
- * for entity to DTO mapping.
+ * Lightweight {@link org.springframework.data.mapping.context.MappingContext}
+ * to provide class metadata for entity to DTO mapping.
  *
  * @author Mark Paluch
  * @since 1.0.0
@@ -37,8 +37,8 @@ class DtoMappingContext extends AbstractMappingContext<DtoMappingContext.DtoPers
 
 	@Override
 	protected boolean shouldCreatePersistentEntityFor(TypeInformation<?> type) {
-		// No Java std lib type introspection to not interfere with encapsulation. We do not want to get into
-		// the business of materializing Java types.
+		// No Java std lib type introspection to not interfere with encapsulation.
+		// We do not want to get into the business of materializing Java types.
 		if (type.getType().getName().startsWith("java.") || type.getType().getName()
 				.startsWith("javax.")) {
 			return false;
