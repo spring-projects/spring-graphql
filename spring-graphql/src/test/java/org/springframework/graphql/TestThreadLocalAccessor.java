@@ -34,8 +34,15 @@ public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
 	@Nullable
 	private Long threadId;
 
+	private boolean suppressThreadIdCheck;
+
 	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal) {
+		this(threadLocal, false);
+	}
+
+	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal, boolean suppressThreadIdCheck) {
 		this.threadLocal = threadLocal;
+		this.suppressThreadIdCheck = suppressThreadIdCheck;
 	}
 
 	@Override
@@ -61,10 +68,16 @@ public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
 	}
 
 	private void saveThreadId() {
+		if (this.suppressThreadIdCheck) {
+			return;
+		}
 		this.threadId = Thread.currentThread().getId();
 	}
 
 	private void checkThreadId() {
+		if (this.suppressThreadIdCheck) {
+			return;
+		}
 		assertThat(this.threadId).as("No threadId to check. Was extractValues not called?").isNotNull();
 		assertThat(Thread.currentThread().getId() != this.threadId)
 				.as("ThreadLocal value extracted and restored on the same thread. Propagation not tested effectively.")

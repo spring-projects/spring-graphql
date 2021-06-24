@@ -38,6 +38,8 @@ public abstract class ContextManager {
 
 	private static final String CONTEXT_VIEW_KEY = ContextManager.class.getName() + ".CONTEXT_VIEW";
 
+	private static final String THREAD_ID = ContextManager.class.getName() + ".THREAD_ID";
+
 	private static final String THREAD_LOCAL_VALUES_KEY = ContextManager.class.getName() + ".THREAD_VALUES_ACCESSOR";
 
 	private static final String THREAD_LOCAL_ACCESSOR_KEY = ContextManager.class.getName() + ".THREAD_LOCAL_ACCESSOR";
@@ -80,38 +82,39 @@ public abstract class ContextManager {
 			return context;
 		}
 		return context.putAll((ContextView) Context.of(
-				THREAD_LOCAL_VALUES_KEY, valuesMap, THREAD_LOCAL_ACCESSOR_KEY, accessor));
+				THREAD_LOCAL_VALUES_KEY, valuesMap,
+				THREAD_LOCAL_ACCESSOR_KEY, accessor,
+				THREAD_ID, Thread.currentThread().getId()));
 	}
 
 	/**
-	 * Look up saved ThreadLocal values and use them to re-establish ThreadLocal context.
+	 * Look up saved ThreadLocal values and restore them if any are found.
+	 * This is a no-op if invoked on the thread that values were extracted on.
 	 * @param contextView the reactor {@link ContextView}
 	 */
 	static void restoreThreadLocalValues(ContextView contextView) {
 		ThreadLocalAccessor accessor = getThreadLocalAccessor(contextView);
 		if (accessor != null) {
-			accessor.restoreValues(getThreadLocalValues(contextView));
+			accessor.restoreValues(contextView.get(THREAD_LOCAL_VALUES_KEY));
 		}
 	}
 
 	/**
-	 * Look up saved ThreadLocal values and remove associated ThreadLocal context.
+	 * Look up saved ThreadLocal values and remove the ThreadLocal values.
+	 * This is a no-op if invoked on the thread that values were extracted on.
 	 * @param contextView the reactor {@link ContextView}
 	 */
 	static void resetThreadLocalValues(ContextView contextView) {
 		ThreadLocalAccessor accessor = getThreadLocalAccessor(contextView);
 		if (accessor != null) {
-			accessor.resetValues(getThreadLocalValues(contextView));
+			accessor.resetValues(contextView.get(THREAD_LOCAL_VALUES_KEY));
 		}
 	}
 
 	@Nullable
-	private static ThreadLocalAccessor getThreadLocalAccessor(ContextView contextView) {
-		return (contextView.hasKey(THREAD_LOCAL_ACCESSOR_KEY) ? contextView.get(THREAD_LOCAL_ACCESSOR_KEY) : null);
-	}
-
-	private static Map<String, Object> getThreadLocalValues(ContextView contextView) {
-		return contextView.get(THREAD_LOCAL_VALUES_KEY);
+	private static ThreadLocalAccessor getThreadLocalAccessor(ContextView view) {
+		Long id = view.getOrDefault(THREAD_ID, null);
+		return (id != null && id != Thread.currentThread().getId() ? view.get(THREAD_LOCAL_ACCESSOR_KEY) : null);
 	}
 
 }
