@@ -11,13 +11,19 @@ dependencies {
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
 
+	compileOnly 'com.querydsl:querydsl-core:4.4.0'
+	compileOnly 'org.springframework.data:spring-data-commons'
+
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
+	testImplementation 'org.mockito:mockito-core:3.11.1'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
 	testImplementation 'org.springframework:spring-websocket'
 	testImplementation 'org.springframework:spring-test'
+	testImplementation 'org.springframework.data:spring-data-commons'
+	testImplementation 'com.querydsl:querydsl-core:4.4.0'
 	testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 
