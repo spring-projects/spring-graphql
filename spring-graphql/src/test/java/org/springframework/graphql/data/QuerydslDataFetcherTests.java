@@ -58,18 +58,14 @@ class QuerydslDataFetcherTests {
 		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcher
-						.builder(mockRepository)
-						.single()));
+				.dataFetcher("bookById", QuerydslDataFetcher.builder(mockRepository).single()));
 
-		WebOutput output = handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ bookById(id: 1) {name}}"), "1")).block();
+		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
 
 		// TODO: getData interferes with method overrides
-		assertThat((Object) output.getData())
-				.isEqualTo(Collections.singletonMap("bookById", Collections
-						.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
+		assertThat((Object) output.getData()).isEqualTo(
+				Collections.singletonMap("bookById",
+						Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
 	}
 
 	@Test
@@ -77,22 +73,17 @@ class QuerydslDataFetcherTests {
 		MockRepository mockRepository = mock(MockRepository.class);
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
 		Book book2 = new Book(53L, "Breaking Bad", "Heisenberg");
-		when(mockRepository.findAll((Predicate) null))
-				.thenReturn(Arrays.asList(book1, book2));
+		when(mockRepository.findAll((Predicate) null)).thenReturn(Arrays.asList(book1, book2));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("books", QuerydslDataFetcher
-						.builder(mockRepository)
-						.many()));
+				.dataFetcher("books", QuerydslDataFetcher.builder(mockRepository).many()));
 
-		WebOutput output = handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ books {name}}"), "1")).block();
+		WebOutput output = handler.handle(input("{ books {name}}")).block();
 
-		assertThat((Object) output.getData())
-				.isEqualTo(Collections.singletonMap("books", Arrays.asList(Collections
-						.singletonMap("name", "Hitchhiker's Guide to the Galaxy"), Collections
-						.singletonMap("name", "Breaking Bad"))));
+		assertThat((Object) output.getData()).isEqualTo(
+				Collections.singletonMap("books", Arrays.asList(
+						Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"),
+						Collections.singletonMap("name", "Breaking Bad"))));
 	}
 
 	@Test
@@ -107,13 +98,11 @@ class QuerydslDataFetcherTests {
 						.projectAs(BookProjection.class)
 						.single()));
 
-		WebOutput output = handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ bookById(id: 1) {name}}"), "1")).block();
+		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
 
-		assertThat((Object) output.getData())
-				.isEqualTo(Collections.singletonMap("bookById", Collections
-						.singletonMap("name", "Hitchhiker's Guide to the Galaxy by Douglas Adams")));
+		assertThat((Object) output.getData()).isEqualTo(
+				Collections.singletonMap("bookById",
+						Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy by Douglas Adams")));
 	}
 
 	@Test
@@ -128,13 +117,11 @@ class QuerydslDataFetcherTests {
 						.projectAs(BookDto.class)
 						.single()));
 
-		WebOutput output = handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ bookById(id: 1) {name}}"), "1")).block();
+		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
 
-		assertThat((Object) output.getData())
-				.isEqualTo(Collections.singletonMap("bookById", Collections
-						.singletonMap("name", "The book is: Hitchhiker's Guide to the Galaxy")));
+		assertThat((Object) output.getData()).isEqualTo(
+				Collections.singletonMap("bookById",
+						Collections.singletonMap("name", "The book is: Hitchhiker's Guide to the Galaxy")));
 	}
 
 	@Test
@@ -144,13 +131,12 @@ class QuerydslDataFetcherTests {
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
 				.dataFetcher("books", QuerydslDataFetcher
 						.builder(mockRepository)
-						.customizer((QuerydslBinderCustomizer<QBook>) (bindings, book) -> bindings.bind(book.name)
-								.firstOptional((path, value) -> value.map(path::startsWith)))
+						.customizer((QuerydslBinderCustomizer<QBook>) (bindings, book) ->
+								bindings.bind(book.name)
+										.firstOptional((path, value) -> value.map(path::startsWith)))
 						.many()));
 
-		handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ books(name: \"H\", author: \"Doug\") {name}}"), "1")).block();
+		handler.handle(input("{ books(name: \"H\", author: \"Doug\") {name}}")).block();
 
 
 		ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
@@ -158,8 +144,7 @@ class QuerydslDataFetcherTests {
 
 		Predicate predicate = predicateCaptor.getValue();
 
-		assertThat(predicate).isEqualTo(QBook.book.name.startsWith("H")
-				.and(QBook.book.author.eq("Doug")));
+		assertThat(predicate).isEqualTo(QBook.book.name.startsWith("H").and(QBook.book.author.eq("Doug")));
 	}
 
 	@Test
@@ -169,18 +154,14 @@ class QuerydslDataFetcherTests {
 		when(mockRepository.findOne(any())).thenReturn(Mono.just(book));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcher
-						.builder(mockRepository)
-						.single()));
+				.dataFetcher("bookById", QuerydslDataFetcher.builder(mockRepository).single()));
 
-		WebOutput output = handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ bookById(id: 1) {name}}"), "1")).block();
+		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
 
 		// TODO: getData interferes with method overries
-		assertThat((Object) output.getData())
-				.isEqualTo(Collections.singletonMap("bookById", Collections
-						.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
+		assertThat((Object) output.getData()).isEqualTo(
+				Collections.singletonMap("bookById",
+						Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
 	}
 
 	@Test
@@ -188,22 +169,17 @@ class QuerydslDataFetcherTests {
 		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
 		Book book2 = new Book(53L, "Breaking Bad", "Heisenberg");
-		when(mockRepository.findAll((Predicate) null))
-				.thenReturn(Flux.just(book1, book2));
+		when(mockRepository.findAll((Predicate) null)).thenReturn(Flux.just(book1, book2));
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("books", QuerydslDataFetcher
-						.builder(mockRepository)
-						.many()));
+				.dataFetcher("books", QuerydslDataFetcher.builder(mockRepository).many()));
 
-		WebOutput output = handler.handle(new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections
-				.singletonMap("query", "{ books {name}}"), "1")).block();
+		WebOutput output = handler.handle(input("{ books {name}}")).block();
 
-		assertThat((Object) output.getData())
-				.isEqualTo(Collections.singletonMap("books", Arrays.asList(Collections
-						.singletonMap("name", "Hitchhiker's Guide to the Galaxy"), Collections
-						.singletonMap("name", "Breaking Bad"))));
+		assertThat((Object) output.getData()).isEqualTo(
+				Collections.singletonMap("books", Arrays.asList(
+						Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"),
+						Collections.singletonMap("name", "Breaking Bad"))));
 	}
 
 	interface MockRepository extends Repository<Book, Long>, QuerydslPredicateExecutor<Book> {
@@ -222,14 +198,18 @@ class QuerydslDataFetcherTests {
 
 	private static GraphQlSource graphQlSource(Consumer<TypeRuntimeWiring.Builder> configurer) {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		TypeRuntimeWiring.Builder wiringBuilder = TypeRuntimeWiring
-				.newTypeWiring("Query");
+		TypeRuntimeWiring.Builder wiringBuilder = TypeRuntimeWiring.newTypeWiring("Query");
 		configurer.accept(wiringBuilder);
 		builder.type(wiringBuilder);
 		return GraphQlSource.builder()
 				.schemaResource(new ClassPathResource("books/schema.graphqls"))
 				.runtimeWiring(builder.build())
 				.build();
+	}
+
+	private WebInput input(String query) {
+		return new WebInput(URI.create("http://abc.org"), new HttpHeaders(),
+				Collections.singletonMap("query", query), "1");
 	}
 
 	interface BookProjection {

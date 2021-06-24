@@ -17,11 +17,9 @@ public class ArtifactRepositoryDataWiring implements RuntimeWiringCustomizer {
 
 	@Override
 	public void customize(RuntimeWiring.Builder builder) {
-		builder.type("Query",
-				typeWiring -> typeWiring.dataFetcher("artifactRepositories", QuerydslDataFetcher
-						.builder(repositories).many())
-						.dataFetcher("artifactRepository", QuerydslDataFetcher
-						.builder(repositories).single()));
+		builder.type("Query", typeWiring -> typeWiring
+				.dataFetcher("artifactRepositories", QuerydslDataFetcher.builder(repositories).many())
+				.dataFetcher("artifactRepository", QuerydslDataFetcher.builder(repositories).single()));
 	}
 
 }

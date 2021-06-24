@@ -51,10 +51,10 @@ class DtoInstantiatingConverter<T> implements Converter<Object, T> {
 	public DtoInstantiatingConverter(Class<T> dtoType,
 			MappingContext<? extends PersistentEntity<?, ?>, ? extends PersistentProperty<?>> context,
 			EntityInstantiators entityInstantiators) {
+
 		this.targetType = dtoType;
 		this.context = context;
-		this.instantiator = entityInstantiators
-				.getInstantiatorFor(context.getRequiredPersistentEntity(dtoType));
+		this.instantiator = entityInstantiators.getInstantiatorFor(context.getRequiredPersistentEntity(dtoType));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -65,39 +65,32 @@ class DtoInstantiatingConverter<T> implements Converter<Object, T> {
 			return (T) source;
 		}
 
-		PersistentEntity<?, ?> sourceEntity = context
-				.getRequiredPersistentEntity(source.getClass());
+		PersistentEntity<?, ?> sourceEntity = this.context.getRequiredPersistentEntity(source.getClass());
 
-		PersistentPropertyAccessor<?> sourceAccessor = sourceEntity
-				.getPropertyAccessor(source);
-		PersistentEntity<?, ?> targetEntity = context
-				.getRequiredPersistentEntity(targetType);
-		PreferredConstructor<?, ? extends PersistentProperty<?>> constructor = targetEntity
-				.getPersistenceConstructor();
+		PersistentPropertyAccessor<?> sourceAccessor = sourceEntity.getPropertyAccessor(source);
+		PersistentEntity<?, ?> entity = this.context.getRequiredPersistentEntity(this.targetType);
+		PreferredConstructor<?, ? extends PersistentProperty<?>> constructor = entity.getPersistenceConstructor();
 
 		@SuppressWarnings({"rawtypes", "unchecked"})
-		Object dto = instantiator
-				.createInstance(targetEntity, new ParameterValueProvider() {
+		Object dto = this.instantiator.createInstance(entity, new ParameterValueProvider() {
 
 					@Override
 					public Object getParameterValue(Parameter parameter) {
-						return sourceAccessor.getProperty(sourceEntity
-								.getRequiredPersistentProperty(parameter.getName()));
+						return sourceAccessor.getProperty(
+								sourceEntity.getRequiredPersistentProperty(parameter.getName()));
 					}
 				});
 
-		PersistentPropertyAccessor<?> dtoAccessor = targetEntity
-				.getPropertyAccessor(dto);
+		PersistentPropertyAccessor<?> dtoAccessor = entity.getPropertyAccessor(dto);
 
-		targetEntity.doWithProperties((SimplePropertyHandler) property -> {
+		entity.doWithProperties((SimplePropertyHandler) property -> {
 
 			if (constructor.isConstructorParameter(property)) {
 				return;
 			}
 
 			dtoAccessor.setProperty(property,
-					sourceAccessor.getProperty(sourceEntity
-							.getRequiredPersistentProperty(property.getName())));
+					sourceAccessor.getProperty(sourceEntity.getRequiredPersistentProperty(property.getName())));
 		});
 
 		return (T) dto;

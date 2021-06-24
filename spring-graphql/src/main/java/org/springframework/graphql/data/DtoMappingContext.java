@@ -39,8 +39,7 @@ class DtoMappingContext extends AbstractMappingContext<DtoMappingContext.DtoPers
 	protected boolean shouldCreatePersistentEntityFor(TypeInformation<?> type) {
 		// No Java std lib type introspection to not interfere with encapsulation.
 		// We do not want to get into the business of materializing Java types.
-		if (type.getType().getName().startsWith("java.") || type.getType().getName()
-				.startsWith("javax.")) {
+		if (type.getType().getName().startsWith("java.") || type.getType().getName().startsWith("javax.")) {
 			return false;
 		}
 		return super.shouldCreatePersistentEntityFor(type);
@@ -52,8 +51,9 @@ class DtoMappingContext extends AbstractMappingContext<DtoMappingContext.DtoPers
 	}
 
 	@Override
-	protected DtoPersistentProperty createPersistentProperty(Property property, DtoPersistentEntity<?> owner,
-			SimpleTypeHolder simpleTypeHolder) {
+	protected DtoPersistentProperty createPersistentProperty(
+			Property property, DtoPersistentEntity<?> owner, SimpleTypeHolder simpleTypeHolder) {
+
 		return new DtoPersistentProperty(property, owner, simpleTypeHolder);
 	}
 
@@ -67,8 +67,10 @@ class DtoMappingContext extends AbstractMappingContext<DtoMappingContext.DtoPers
 
 	static class DtoPersistentProperty extends AnnotationBasedPersistentProperty<DtoPersistentProperty> {
 
-		public DtoPersistentProperty(Property property, PersistentEntity<?, DtoPersistentProperty> owner,
+		public DtoPersistentProperty(
+				Property property, PersistentEntity<?, DtoPersistentProperty> owner,
 				SimpleTypeHolder simpleTypeHolder) {
+
 			super(property, owner, simpleTypeHolder);
 		}
 
