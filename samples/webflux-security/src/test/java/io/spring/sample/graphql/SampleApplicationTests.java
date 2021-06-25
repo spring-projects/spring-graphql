@@ -15,45 +15,27 @@
  */
 package io.spring.sample.graphql;
 
-import java.util.Collections;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.reactive.context.ReactiveWebApplicationContext;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunctions;
+import org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester;
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.test.tester.WebGraphQlTester;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 // @formatter:off
 
 @SpringBootTest()
+@AutoConfigureWebTestClient
+@AutoConfigureGraphQlTester
 class SampleApplicationTests {
 
 	@Autowired
-	private ReactiveWebApplicationContext context;
-	private static final String BASE_URL = "https://spring.example.org/graphql";
-
-
-	WebTestClient client;
-
-	@BeforeEach
-	public void setup() {
-		this.client = WebTestClient
-				.bindToApplicationContext(this.context)
-				.apply(SecurityMockServerConfigurers.springSecurity())
-				.configureClient()
-				.filter(ExchangeFilterFunctions.basicAuthentication())
-				.defaultHeaders(headers -> {
-					headers.setContentType(MediaType.APPLICATION_JSON);
-					headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-				})
-				.baseUrl(BASE_URL)
-				.build();
-	}
+	private WebGraphQlTester graphQlTester;
 
 	@Test
 	void printError() {
@@ -64,18 +46,14 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-
-		client.post().uri("")
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody(String.class)
-				.consumeWith(System.out::println);
-
+		this.graphQlTester.query(query)
+				.execute()
+				.errors()
+				.satisfy(System.out::println);
 	}
 
 	@Test
-	void anonoymousThenUnauthorized() {
+	void anonymousThenUnauthorized() {
 		String query = "{" +
 				"  employees{ " +
 				"    name" +
@@ -83,12 +61,14 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-		client.post().uri("")
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody().jsonPath("errors[0].extensions.classification").isEqualTo("UNAUTHORIZED");
-
+		this.graphQlTester.query(query)
+				.execute()
+				.errors()
+				.satisfy(errors -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getExtensions().get("classification"))
+							.isEqualTo(ErrorType.UNAUTHORIZED.name());
+				});
 	}
 
 	@Test
@@ -100,12 +80,15 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-		client.post().uri("")
-				.headers(h -> h.setBasicAuth("rob", "rob"))
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody().jsonPath("errors[0].extensions.classification").isEqualTo("FORBIDDEN");
+		this.graphQlTester.query(query)
+				.headers(headers -> headers.setBasicAuth("rob", "rob"))
+				.execute()
+				.errors()
+				.satisfy(errors -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getExtensions().get("classification"))
+							.isEqualTo(ErrorType.FORBIDDEN.name());
+				});
 	}
 
 	@Test
@@ -116,13 +99,9 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-
-		client.post().uri("")
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody().jsonPath("data.employees[0].name").isEqualTo("Andi");
-
+		this.graphQlTester.query(query)
+				.execute()
+				.path("employees[0].name").entity(String.class).isEqualTo("Andi");
 	}
 
 	@Test
@@ -134,15 +113,14 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-
-		client.post().uri("")
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody()
-				.jsonPath("data.employees[0].name").isEqualTo("Andi")
-				.jsonPath("data.employees[0].salary").doesNotExist();
-
+		this.graphQlTester.query(query)
+				.execute()
+				.errors()
+				.satisfy(errors -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getExtensions().get("classification"))
+							.isEqualTo(ErrorType.UNAUTHORIZED.name());
+				});
 	}
 
 	@Test
@@ -154,16 +132,11 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-
-		client.post().uri("")
-				.headers(h -> h.setBasicAuth("admin", "admin"))
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody()
-				.jsonPath("data.employees[0].name").isEqualTo("Andi")
-				.jsonPath("data.employees[0].salary").isEqualTo("42");
-
+		this.graphQlTester.query(query)
+				.headers(headers -> headers.setBasicAuth("admin", "admin"))
+				.execute()
+				.path("employees[0].name").entity(String.class).isEqualTo("Andi")
+				.path("employees[0].salary").entity(int.class).isEqualTo(42);
 	}
 
 	@Test
@@ -175,14 +148,11 @@ class SampleApplicationTests {
 				"  }" +
 				"}";
 
-
-		client.post().uri("")
-				.headers(h -> h.setBasicAuth("admin", "INVALID"))
-				.bodyValue("{  \"query\": \"" + query + "\"}")
-				.exchange()
-				.expectStatus().isUnauthorized()
-				.expectBody()
-				.isEmpty();
-
+		assertThatThrownBy(() ->
+				this.graphQlTester.query(query)
+						.headers(headers -> headers.setBasicAuth("admin", "INVALID"))
+						.executeAndVerify())
+				.hasMessage("Status expected:<200 OK> but was:<401 UNAUTHORIZED>");
 	}
+
 }

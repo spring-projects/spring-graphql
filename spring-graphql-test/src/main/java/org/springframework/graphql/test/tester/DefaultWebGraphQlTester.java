@@ -18,6 +18,7 @@ package org.springframework.graphql.test.tester;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
@@ -51,6 +52,12 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 	}
 
 
+	@Override
+	public WebRequestSpec query(String query) {
+		return new DefaultWebRequestSpec(getRequestStrategy(), query);
+	}
+
+
 	/**
 	 * {@link RequestStrategy} that works as an HTTP client with requests executed through
 	 * {@link WebTestClient} that in turn may work connect with or without a live server
@@ -69,9 +76,20 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		@Override
 		public ResponseSpec execute(RequestInput requestInput) {
-			EntityExchangeResult<byte[]> result = this.client.post().contentType(MediaType.APPLICATION_JSON)
-					.bodyValue(requestInput).exchange().expectStatus().isOk().expectHeader()
-					.contentType(MediaType.APPLICATION_JSON).expectBody().returnResult();
+			Assert.isInstanceOf(WebInput.class, requestInput);
+			WebInput webInput = (WebInput) requestInput;
+
+			EntityExchangeResult<byte[]> result = this.client.post()
+					.contentType(MediaType.APPLICATION_JSON)
+					.headers(headers -> headers.putAll(webInput.getHeaders()))
+					.bodyValue(requestInput)
+					.exchange()
+					.expectStatus()
+					.isOk()
+					.expectHeader()
+					.contentType(MediaType.APPLICATION_JSON)
+					.expectBody()
+					.returnResult();
 
 			byte[] bytes = result.getResponseBodyContent();
 			Assert.notNull(bytes, "Expected GraphQL response content");
@@ -83,9 +101,19 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		@Override
 		public SubscriptionSpec executeSubscription(RequestInput requestInput) {
+			Assert.isInstanceOf(WebInput.class, requestInput);
+			WebInput webInput = (WebInput) requestInput;
+
 			FluxExchangeResult<TestExecutionResult> exchangeResult = this.client.post()
-					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM).bodyValue(requestInput)
-					.exchange().expectStatus().isOk().expectHeader().contentType(MediaType.TEXT_EVENT_STREAM)
+					.contentType(MediaType.APPLICATION_JSON)
+					.accept(MediaType.TEXT_EVENT_STREAM)
+					.headers(headers -> headers.putAll(webInput.getHeaders()))
+					.bodyValue(requestInput)
+					.exchange()
+					.expectStatus()
+					.isOk()
+					.expectHeader()
+					.contentType(MediaType.TEXT_EVENT_STREAM)
 					.returnResult(TestExecutionResult.class);
 
 			return new DefaultSubscriptionSpec(exchangeResult.getResponseBody().cast(ExecutionResult.class),
@@ -100,10 +128,6 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 	 */
 	private static class WebGraphQlHandlerRequestStrategy extends AbstractDirectRequestStrategy {
 
-		private static final URI DEFAULT_URL = URI.create("http://localhost:8080/graphql");
-
-		private static final HttpHeaders DEFAULT_HEADERS = new HttpHeaders();
-
 		private final WebGraphQlHandler graphQlHandler;
 
 		WebGraphQlHandlerRequestStrategy(WebGraphQlHandler handler, Configuration jsonPathConfig) {
@@ -111,12 +135,44 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 			this.graphQlHandler = handler;
 		}
 
-		protected ExecutionResult executeInternal(RequestInput input) {
-			WebInput webInput = new WebInput(DEFAULT_URL, DEFAULT_HEADERS, input.toMap(), null);
-			ExecutionResult result = this.graphQlHandler.handle(webInput).block(DEFAULT_TIMEOUT);
+		protected ExecutionResult executeInternal(RequestInput requestInput) {
+			Assert.isInstanceOf(WebInput.class, requestInput);
+			ExecutionResult result = this.graphQlHandler.handle((WebInput) requestInput).block(DEFAULT_TIMEOUT);
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
 		}
+	}
+
+	protected static final class DefaultWebRequestSpec extends DefaultRequestSpec implements WebRequestSpec {
+
+		private static final URI DEFAULT_URL = URI.create("");
+
+		private final HttpHeaders headers = new HttpHeaders();
+
+		public DefaultWebRequestSpec(RequestStrategy requestStrategy, String query) {
+			super(requestStrategy, query);
+		}
+
+		@Override
+		public WebRequestSpec header(String headerName, String... headerValues) {
+			for (String headerValue : headerValues) {
+				this.headers.add(headerName, headerValue);
+			}
+			return this;
+		}
+
+		@Override
+		public WebRequestSpec headers(Consumer<HttpHeaders> headersConsumer) {
+			headersConsumer.accept(this.headers);
+			return this;
+		}
+
+		@Override
+		protected RequestInput createRequestInput() {
+			RequestInput requestInput = super.createRequestInput();
+			return new WebInput(DEFAULT_URL, headers, requestInput.toMap(), null);
+		}
+
 	}
 
 }

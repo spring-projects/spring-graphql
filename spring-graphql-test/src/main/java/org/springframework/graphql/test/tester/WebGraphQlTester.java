@@ -15,7 +15,10 @@
  */
 package org.springframework.graphql.test.tester;
 
+import java.util.function.Consumer;
+
 import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 /**
@@ -80,6 +83,12 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 public interface WebGraphQlTester extends GraphQlTester {
 
 	/**
+	 * {@inheritDoc}
+	 * <p>The returned spec for Web request input also allows adding HTTP headers.
+	 */
+	WebRequestSpec query(String query);
+
+	/**
 	 * Create a {@code WebGraphQlTester} that performs GraphQL requests as an
 	 * HTTP client through the given {@link WebTestClient}. Depending on how the
 	 * {@code WebTestClient} is set up, tests may be with or without a server.
@@ -99,6 +108,33 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 */
 	static WebGraphQlTester create(WebGraphQlHandler handler) {
 		return new DefaultWebGraphQlTester(handler);
+	}
+
+	/**
+	 * Extends {@link GraphQlTester.RequestSpec} with further input options
+	 * applicable to Web requests.
+	 */
+	interface WebRequestSpec extends RequestSpec {
+
+		/**
+		 * Add the given, single header value under the given name.
+		 * @param headerName  the header name
+		 * @param headerValues the header value(s)
+		 * @return the same instance
+		 */
+		WebRequestSpec header(String headerName, String... headerValues);
+
+		/**
+		 * Manipulate the request's headers with the given consumer. The
+		 * headers provided to the consumer are "live", so that the consumer can
+		 * be used to {@linkplain HttpHeaders#set(String, String) overwrite}
+		 * existing header values, {@linkplain HttpHeaders#remove(Object) remove}
+		 * values, or use any of the other {@link HttpHeaders} methods.
+		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
+		 * @return this builder
+		 */
+		WebRequestSpec headers(Consumer<HttpHeaders> headersConsumer);
+
 	}
 
 }

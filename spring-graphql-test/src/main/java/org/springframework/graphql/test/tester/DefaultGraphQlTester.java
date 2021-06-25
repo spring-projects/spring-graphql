@@ -66,6 +66,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 				&& ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
 	}
 
+
 	private final RequestStrategy requestStrategy;
 
 
@@ -77,13 +78,19 @@ class DefaultGraphQlTester implements GraphQlTester {
 		this.requestStrategy = requestStrategy;
 	}
 
+
+	protected RequestStrategy getRequestStrategy() {
+		return this.requestStrategy;
+	}
+
+
 	protected static Configuration initJsonPathConfig() {
 		return (jackson2Present ? Jackson2Configuration.create() : Configuration.builder().build());
 	}
 
 	@Override
 	public RequestSpec query(String query) {
-		return new DefaultRequestSpec(query);
+		return new DefaultRequestSpec(this.requestStrategy, query);
 	}
 
 	/**
@@ -182,7 +189,9 @@ class DefaultGraphQlTester implements GraphQlTester {
 	/**
 	 * {@link RequestSpec} that collects the query, operationName, and variables.
 	 */
-	private final class DefaultRequestSpec implements RequestSpec {
+	protected static class DefaultRequestSpec implements RequestSpec {
+
+		private final RequestStrategy requestStrategy;
 
 		private final String query;
 
@@ -191,8 +200,10 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		private DefaultRequestSpec(String query) {
+		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
+			Assert.notNull(requestStrategy, "RequestStrategy is required");
 			Assert.notNull(query, "`query` is required");
+			this.requestStrategy = requestStrategy;
 			this.query = query;
 		}
 
@@ -216,21 +227,25 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public ResponseSpec execute() {
-			RequestInput input = new RequestInput(this.query, this.operationName, this.variables);
-			return DefaultGraphQlTester.this.requestStrategy.execute(input);
+			RequestInput input = createRequestInput();
+			return this.requestStrategy.execute(input);
 		}
 
 		@Override
 		public void executeAndVerify() {
-			RequestInput input = new RequestInput(this.query, this.operationName, this.variables);
-			ResponseSpec spec = DefaultGraphQlTester.this.requestStrategy.execute(input);
+			RequestInput input = createRequestInput();
+			ResponseSpec spec = this.requestStrategy.execute(input);
 			spec.path("$.errors").valueIsEmpty();
 		}
 
 		@Override
 		public SubscriptionSpec executeSubscription() {
-			RequestInput input = new RequestInput(this.query, this.operationName, this.variables);
-			return DefaultGraphQlTester.this.requestStrategy.executeSubscription(input);
+			RequestInput input = createRequestInput();
+			return this.requestStrategy.executeSubscription(input);
+		}
+
+		protected RequestInput createRequestInput() {
+			return new RequestInput(this.query, this.operationName, this.variables);
 		}
 
 	}
