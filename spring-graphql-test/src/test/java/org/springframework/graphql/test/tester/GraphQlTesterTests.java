@@ -44,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+// @formatter:off
+
 /**
  * Tests for {@link GraphQlTester}.
  *
@@ -92,7 +94,8 @@ public class GraphQlTesterTests {
 															// fields
 
 		assertThatThrownBy(() -> spec.path("me").matchesJsonStrictly("{\"friends\":[]}"))
-				.as("Extended fields should fail in strict mode").hasMessageContaining("Unexpected: name");
+				.as("Extended fields should fail in strict mode")
+				.hasMessageContaining("Unexpected: name");
 
 		assertThat(getActualQuery()).contains(query);
 	}
@@ -109,14 +112,20 @@ public class GraphQlTesterTests {
 		MovieCharacter han = MovieCharacter.create("Han Solo");
 		AtomicReference<MovieCharacter> personRef = new AtomicReference<>();
 
-		MovieCharacter actual = spec.path("me").entity(MovieCharacter.class).isEqualTo(luke).isNotEqualTo(han)
-				.satisfies(personRef::set).matches((movieCharacter) -> personRef.get().equals(movieCharacter))
-				.isSameAs(personRef.get()).isNotSameAs(luke).get();
+		MovieCharacter actual = spec.path("me")
+				.entity(MovieCharacter.class)
+				.isEqualTo(luke)
+				.isNotEqualTo(han)
+				.satisfies(personRef::set)
+				.matches((movieCharacter) -> personRef.get().equals(movieCharacter))
+				.isSameAs(personRef.get())
+				.isNotSameAs(luke).get();
 
 		assertThat(actual.getName()).isEqualTo("Luke Skywalker");
 
-		spec.path("").entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {
-		}).isEqualTo(Collections.singletonMap("me", luke));
+		spec.path("")
+				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
+				.isEqualTo(Collections.singletonMap("me", luke));
 
 		assertThat(getActualQuery()).contains(query);
 	}
@@ -125,8 +134,12 @@ public class GraphQlTesterTests {
 	void entityList() throws Exception {
 
 		String query = "{me {name, friends}}";
-		setResponse("{" + "  \"me\":{" + "      \"name\":\"Luke Skywalker\","
-				+ "      \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" + "  }" + "}");
+		setResponse("{" +
+				"  \"me\":{" +
+				"      \"name\":\"Luke Skywalker\","
+				+ "      \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+				"  }" +
+				"}");
 
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.query(query).execute();
 
@@ -134,14 +147,21 @@ public class GraphQlTesterTests {
 		MovieCharacter leia = MovieCharacter.create("Leia Organa");
 		MovieCharacter jabba = MovieCharacter.create("Jabba the Hutt");
 
-		List<MovieCharacter> actual = spec.path("me.friends").entityList(MovieCharacter.class).contains(han)
-				.containsExactly(han, leia).doesNotContain(jabba).hasSize(2).hasSizeGreaterThan(1).hasSizeLessThan(3)
+		List<MovieCharacter> actual = spec.path("me.friends")
+				.entityList(MovieCharacter.class)
+				.contains(han)
+				.containsExactly(han, leia)
+				.doesNotContain(jabba)
+				.hasSize(2)
+				.hasSizeGreaterThan(1)
+				.hasSizeLessThan(3)
 				.get();
 
 		assertThat(actual).containsExactly(han, leia);
 
-		spec.path("me.friends").entityList(new ParameterizedTypeReference<MovieCharacter>() {
-		}).containsExactly(han, leia);
+		spec.path("me.friends")
+				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
+				.containsExactly(han, leia);
 
 		assertThat(getActualQuery()).contains(query);
 	}
@@ -149,13 +169,19 @@ public class GraphQlTesterTests {
 	@Test
 	void operationNameAndVariables() throws Exception {
 
-		String query = "query HeroNameAndFriends($episode: Episode) {" + "  hero(episode: $episode) {" + "    name"
-				+ "  }" + "}";
+		String query = "query HeroNameAndFriends($episode: Episode) {" +
+				"  hero(episode: $episode) {" +
+				"    name"
+				+ "  }" +
+				"}";
 
 		setResponse("{\"hero\": {\"name\":\"R2-D2\"}}");
 
-		GraphQlTester.ResponseSpec spec = this.graphQlTester.query(query).operationName("HeroNameAndFriends")
-				.variable("episode", "JEDI").variables((map) -> map.put("foo", "bar")).execute();
+		GraphQlTester.ResponseSpec spec = this.graphQlTester.query(query)
+				.operationName("HeroNameAndFriends")
+				.variable("episode", "JEDI")
+				.variables((map) -> map.put("foo", "bar"))
+				.execute();
 
 		spec.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
 
@@ -195,12 +221,17 @@ public class GraphQlTesterTests {
 	void errorsPartiallyFiltered() throws Exception {
 
 		String query = "{me {name, friends}}";
-		setResponse(GraphqlErrorBuilder.newError().message("some error").build(),
+		setResponse(
+				GraphqlErrorBuilder.newError().message("some error").build(),
 				GraphqlErrorBuilder.newError().message("some other error").build());
 
-		assertThatThrownBy(() -> this.graphQlTester.query(query).execute().errors()
-				.filter((error) -> error.getMessage().equals("some error")).verify())
-						.hasMessageContaining("Response has 1 unexpected error(s) of 2 total.");
+		assertThatThrownBy(() ->
+				this.graphQlTester.query(query)
+						.execute()
+						.errors()
+						.filter((error) -> error.getMessage().equals("some error"))
+						.verify())
+				.hasMessageContaining("Response has 1 unexpected error(s) of 2 total.");
 
 		assertThat(getActualQuery()).contains(query);
 	}
@@ -209,11 +240,17 @@ public class GraphQlTesterTests {
 	void errorsFiltered() throws Exception {
 
 		String query = "{me {name, friends}}";
-		setResponse(GraphqlErrorBuilder.newError().message("some error").build(),
+		setResponse(
+				GraphqlErrorBuilder.newError().message("some error").build(),
 				GraphqlErrorBuilder.newError().message("some other error").build());
 
-		this.graphQlTester.query(query).execute().errors().filter((error) -> error.getMessage().startsWith("some "))
-				.verify().path("me").pathDoesNotExist();
+		this.graphQlTester.query(query)
+				.execute()
+				.errors()
+				.filter((error) -> error.getMessage().startsWith("some "))
+				.verify()
+				.path("me")
+				.pathDoesNotExist();
 
 		assertThat(getActualQuery()).contains(query);
 	}
@@ -222,16 +259,23 @@ public class GraphQlTesterTests {
 	void errorsConsumed() throws Exception {
 
 		String query = "{me {name, friends}}";
-		setResponse(
-				GraphqlErrorBuilder.newError().message("Invalid query").location(new SourceLocation(1, 2)).build());
+		setResponse(GraphqlErrorBuilder.newError()
+				.message("Invalid query")
+				.location(new SourceLocation(1, 2))
+				.build());
 
-		this.graphQlTester.query(query).execute().errors().satisfy((errors) -> {
-			assertThat(errors).hasSize(1);
-			assertThat(errors.get(0).getMessage()).isEqualTo("Invalid query");
-			assertThat(errors.get(0).getLocations()).hasSize(1);
-			assertThat(errors.get(0).getLocations().get(0).getLine()).isEqualTo(1);
-			assertThat(errors.get(0).getLocations().get(0).getColumn()).isEqualTo(2);
-		}).path("me").pathDoesNotExist();
+		this.graphQlTester.query(query)
+				.execute()
+				.errors()
+				.satisfy((errors) -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getMessage()).isEqualTo("Invalid query");
+					assertThat(errors.get(0).getLocations()).hasSize(1);
+					assertThat(errors.get(0).getLocations().get(0).getLine()).isEqualTo(1);
+					assertThat(errors.get(0).getLocations().get(0).getColumn()).isEqualTo(2);
+				})
+				.path("me")
+				.pathDoesNotExist();
 
 		assertThat(getActualQuery()).contains(query);
 	}
