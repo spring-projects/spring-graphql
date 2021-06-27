@@ -137,14 +137,14 @@ public interface GraphQlTester {
 	/**
 	 * Declare options to gather input for a GraphQL request and execute it.
 	 */
-	interface RequestSpec extends ExecuteSpec {
+	interface RequestSpec<T extends RequestSpec<T>> extends ExecuteSpec {
 
 		/**
 		 * Set the operation name.
 		 * @param name the operation name
 		 * @return this request spec
 		 */
-		RequestSpec operationName(@Nullable String name);
+		T operationName(@Nullable String name);
 
 		/**
 		 * Add a variable.
@@ -152,14 +152,7 @@ public interface GraphQlTester {
 		 * @param value the variable value
 		 * @return this request spec
 		 */
-		RequestSpec variable(String name, Object value);
-
-		/**
-		 * Modify variables by accessing the underlying map.
-		 * @param variablesConsumer a callback for the map of variables
-		 * @return this request spec
-		 */
-		RequestSpec variables(Consumer<Map<String, Object>> variablesConsumer);
+		T variable(String name, Object value);
 
 	}
 

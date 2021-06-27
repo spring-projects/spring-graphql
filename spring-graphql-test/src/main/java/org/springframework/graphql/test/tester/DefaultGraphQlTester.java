@@ -74,7 +74,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 
 	@Override
-	public RequestSpec query(String query) {
+	public RequestSpec<?> query(String query) {
 		return new DefaultRequestSpec(this.requestStrategy, query);
 	}
 
@@ -216,9 +216,10 @@ class DefaultGraphQlTester implements GraphQlTester {
 	}
 
 	/**
-	 * {@link RequestSpec} that collects the query, operationName, and variables.
+	 * Assist with collecting the input for {@link GraphQlTester.RequestSpec},
+	 * helping to avoid challenges with generics in the builder hierarchy.
 	 */
-	protected static class DefaultRequestSpec implements RequestSpec {
+	final static class RequestSpecDelegate {
 
 		private final RequestStrategy requestStrategy;
 
@@ -229,52 +230,88 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
+		protected RequestSpecDelegate(RequestStrategy requestStrategy, String query) {
 			Assert.notNull(requestStrategy, "RequestStrategy is required");
 			Assert.notNull(query, "`query` is required");
 			this.requestStrategy = requestStrategy;
 			this.query = query;
 		}
 
-		@Override
-		public RequestSpec operationName(@Nullable String name) {
+		public void operationName(@Nullable String name) {
 			this.operationName = name;
-			return this;
 		}
 
-		@Override
-		public RequestSpec variable(String name, Object value) {
+		public void variable(String name, Object value) {
 			this.variables.put(name, value);
+		}
+
+		public ResponseSpec execute() {
+			return execute(createRequestInput());
+		}
+
+		public ResponseSpec execute(RequestInput input) {
+			return this.requestStrategy.execute(input);
+		}
+
+		public void executeAndVerify() {
+			executeAndVerify(createRequestInput());
+		}
+
+		public void executeAndVerify(RequestInput input) {
+			ResponseSpec spec = this.requestStrategy.execute(input);
+			spec.path("$.errors").valueIsEmpty();
+		}
+
+		public SubscriptionSpec executeSubscription() {
+			return executeSubscription(createRequestInput());
+		}
+
+		public SubscriptionSpec executeSubscription(RequestInput input) {
+			return this.requestStrategy.executeSubscription(input);
+		}
+
+		public RequestInput createRequestInput() {
+			return new RequestInput(this.query, this.operationName, this.variables);
+		}
+
+	}
+
+	/**
+	 * {@link RequestSpec} that collects the query, operationName, and variables.
+	 */
+	static class DefaultRequestSpec implements RequestSpec<DefaultRequestSpec> {
+
+		private final RequestSpecDelegate delegate;
+
+		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
+			this.delegate = new RequestSpecDelegate(requestStrategy, query);
+		}
+
+		@Override
+		public DefaultRequestSpec operationName(@Nullable String name) {
+			this.delegate.operationName(name);
 			return this;
 		}
 
 		@Override
-		public RequestSpec variables(Consumer<Map<String, Object>> variablesConsumer) {
-			variablesConsumer.accept(this.variables);
+		public DefaultRequestSpec variable(String name, Object value) {
+			this.delegate.variable(name, value);
 			return this;
 		}
 
 		@Override
 		public ResponseSpec execute() {
-			RequestInput input = createRequestInput();
-			return this.requestStrategy.execute(input);
+			return this.delegate.execute();
 		}
 
 		@Override
 		public void executeAndVerify() {
-			RequestInput input = createRequestInput();
-			ResponseSpec spec = this.requestStrategy.execute(input);
-			spec.path("$.errors").valueIsEmpty();
+			this.delegate.executeAndVerify();
 		}
 
 		@Override
 		public SubscriptionSpec executeSubscription() {
-			RequestInput input = createRequestInput();
-			return this.requestStrategy.executeSubscription(input);
-		}
-
-		protected RequestInput createRequestInput() {
-			return new RequestInput(this.query, this.operationName, this.variables);
+			return this.delegate.executeSubscription();
 		}
 
 	}

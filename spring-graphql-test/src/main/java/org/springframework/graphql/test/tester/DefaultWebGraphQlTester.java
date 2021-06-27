@@ -208,14 +208,16 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 	}
 
-	private static final class DefaultWebRequestSpec extends DefaultRequestSpec implements WebRequestSpec {
+	private static final class DefaultWebRequestSpec implements WebRequestSpec {
 
 		private static final URI DEFAULT_URL = URI.create("");
+
+		private final RequestSpecDelegate delegate;
 
 		private final HttpHeaders headers = new HttpHeaders();
 
 		DefaultWebRequestSpec(RequestStrategy requestStrategy, String query, @Nullable HttpHeaders headers) {
-			super(requestStrategy, query);
+			this.delegate = new RequestSpecDelegate(requestStrategy, query);
 			if (!CollectionUtils.isEmpty(headers)) {
 				this.headers.putAll(headers);
 			}
@@ -236,8 +238,34 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 		}
 
 		@Override
-		protected RequestInput createRequestInput() {
-			RequestInput requestInput = super.createRequestInput();
+		public WebRequestSpec operationName(@Nullable String name) {
+			this.delegate.operationName(name);
+			return this;
+		}
+
+		@Override
+		public WebRequestSpec variable(String name, Object value) {
+			this.delegate.variable(name, value);
+			return this;
+		}
+
+		@Override
+		public ResponseSpec execute() {
+			return this.delegate.execute(createRequestInput());
+		}
+
+		@Override
+		public void executeAndVerify() {
+			this.delegate.executeAndVerify(createRequestInput());
+		}
+
+		@Override
+		public SubscriptionSpec executeSubscription() {
+			return this.delegate.executeSubscription(createRequestInput());
+		}
+
+		private RequestInput createRequestInput() {
+			RequestInput requestInput = this.delegate.createRequestInput();
 			return new WebInput(DEFAULT_URL, this.headers, requestInput.toMap(), null);
 		}
 

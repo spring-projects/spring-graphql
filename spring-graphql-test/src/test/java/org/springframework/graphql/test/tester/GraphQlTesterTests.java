@@ -180,7 +180,7 @@ public class GraphQlTesterTests {
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.query(query)
 				.operationName("HeroNameAndFriends")
 				.variable("episode", "JEDI")
-				.variables((map) -> map.put("foo", "bar"))
+				.variable("foo", "bar")
 				.execute();
 
 		spec.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));

@@ -162,7 +162,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 * Extends {@link GraphQlTester.RequestSpec} with further input options
 	 * applicable to Web requests.
 	 */
-	interface WebRequestSpec extends RequestSpec {
+	interface WebRequestSpec extends RequestSpec<WebRequestSpec> {
 
 		/**
 		 * Add the given, single header value under the given name.
