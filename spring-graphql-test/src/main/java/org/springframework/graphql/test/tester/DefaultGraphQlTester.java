@@ -32,8 +32,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.TypeRef;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import org.reactivestreams.Publisher;
@@ -47,7 +46,6 @@ import org.springframework.test.util.AssertionErrors;
 import org.springframework.test.util.JsonExpectationsHelper;
 import org.springframework.test.util.JsonPathExpectationsHelper;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -58,20 +56,11 @@ import org.springframework.util.StringUtils;
  */
 class DefaultGraphQlTester implements GraphQlTester {
 
-	private static final boolean jackson2Present;
-
-	static {
-		ClassLoader classLoader = DefaultGraphQlTester.class.getClassLoader();
-		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader)
-				&& ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
-	}
-
-
 	private final RequestStrategy requestStrategy;
 
 
-	DefaultGraphQlTester(GraphQlService service) {
-		this(new GraphQlServiceRequestStrategy(service, initJsonPathConfig()));
+	DefaultGraphQlTester(GraphQlService service, Configuration config, Duration responseTimeout) {
+		this(new GraphQlServiceRequestStrategy(service, config, responseTimeout));
 	}
 
 	DefaultGraphQlTester(RequestStrategy requestStrategy) {
@@ -84,17 +73,48 @@ class DefaultGraphQlTester implements GraphQlTester {
 	}
 
 
-	protected static Configuration initJsonPathConfig() {
-		return (jackson2Present ? Jackson2Configuration.create() : Configuration.builder().build());
-	}
-
 	@Override
 	public RequestSpec query(String query) {
 		return new DefaultRequestSpec(this.requestStrategy, query);
 	}
 
+
 	/**
-	 * Encapsulate how a GraphQL request is performed.
+	 * Default implementation to build {@link GraphQlTester}.
+	 */
+	final static class DefaultBuilder implements Builder<DefaultBuilder> {
+
+		private final GraphQlService service;
+
+		private final BuilderDelegate delegate = new BuilderDelegate();
+
+		DefaultBuilder(GraphQlService service) {
+			Assert.notNull(service, "GraphQlService is required.");
+			this.service = service;
+		}
+
+		@Override
+		public DefaultBuilder jsonPathConfig(Configuration config) {
+			this.delegate.jsonPathConfig(config);
+			return this;
+		}
+
+		@Override
+		public DefaultBuilder responseTimeout(Duration timeout) {
+			this.delegate.responseTimeout(timeout);
+			return this;
+		}
+
+		@Override
+		public GraphQlTester build() {
+			return new DefaultGraphQlTester(
+					this.service, this.delegate.initJsonPathConfig(), this.delegate.getResponseTimeout());
+		}
+
+	}
+
+	/**
+	 * Internal strategy abstracting how a GraphQL request is performed.
 	 */
 	interface RequestStrategy {
 
@@ -121,12 +141,17 @@ class DefaultGraphQlTester implements GraphQlTester {
 	 */
 	protected abstract static class AbstractDirectRequestStrategy implements RequestStrategy {
 
-		protected static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
-
 		private final Configuration jsonPathConfig;
 
-		protected AbstractDirectRequestStrategy(Configuration jsonPathConfig) {
+		private final Duration responseTimeout;
+
+		protected AbstractDirectRequestStrategy(Configuration jsonPathConfig, Duration responseTimeout) {
 			this.jsonPathConfig = jsonPathConfig;
+			this.responseTimeout = responseTimeout;
+		}
+
+		protected Duration getResponseTimeout() {
+			return this.responseTimeout;
 		}
 
 		@Override
@@ -174,13 +199,17 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final GraphQlService graphQlService;
 
-		protected GraphQlServiceRequestStrategy(GraphQlService service, Configuration jsonPathConfig) {
-			super(jsonPathConfig);
+		protected GraphQlServiceRequestStrategy(
+				GraphQlService service, Configuration jsonPathConfig, Duration responseTimeout) {
+
+			super(jsonPathConfig, responseTimeout);
+			Assert.notNull(service, "GraphQlService is required.");
 			this.graphQlService = service;
 		}
 
 		protected ExecutionResult executeInternal(RequestInput input) {
-			ExecutionResult result = this.graphQlService.execute(input.toExecutionInput()).block(DEFAULT_TIMEOUT);
+			ExecutionInput executionInput = input.toExecutionInput();
+			ExecutionResult result = this.graphQlService.execute(executionInput).block(getResponseTimeout());
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
 		}
@@ -707,15 +736,6 @@ class DefaultGraphQlTester implements GraphQlTester {
 				DocumentContext context = JsonPath.parse(result.toSpecification(), this.jsonPathConfig);
 				return new DefaultResponseSpec(context, this.assertDecorator);
 			});
-		}
-
-	}
-
-	private static class Jackson2Configuration {
-
-		static Configuration create() {
-			return Configuration.builder().jsonProvider(new JacksonJsonProvider())
-					.mappingProvider(new JacksonMappingProvider()).build();
 		}
 
 	}

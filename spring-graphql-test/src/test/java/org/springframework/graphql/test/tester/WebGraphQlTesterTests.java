@@ -71,27 +71,62 @@ public class WebGraphQlTesterTests {
 		return Stream.of(new MockWebServerSetup(), new MockWebGraphQlHandlerSetup());
 	}
 
+
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void pathAndValueExistsAndEmptyChecks(GraphQlTesterSetup setup) throws Exception {
+	void headers(GraphQlTesterSetup setup) throws Exception {
 
 		String query = "{me {name, friends}}";
 		setup.response("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
-		GraphQlTester.ResponseSpec spec = setup.graphQlTester().query(query).execute();
+		GraphQlTester.ResponseSpec spec = setup.graphQlTester().query(query)
+				.header("myHeader1", "myValue1a")
+				.header("myHeader1", "myValue1b")
+				.headers(headers -> headers.add("myHeader2", "myValue2"))
+				.execute();
 
-		spec.path("me.name").pathExists().valueExists().valueIsNotEmpty();
-		spec.path("me.friends").valueIsEmpty();
-		spec.path("hero").pathDoesNotExist().valueDoesNotExist().valueIsEmpty();
+		spec.path("me.name").entity(String.class).isEqualTo("Luke Skywalker");
 
-		setup.verifyRequest((input) -> assertThat(input.getQuery()).contains(query));
+		setup.verifyRequest((input) -> {
+			assertThat(input.getQuery()).contains(query);
+			assertThat(input.getHeaders().get("myHeader1")).containsExactly("myValue1a", "myValue1b");
+			assertThat(input.getHeaders().getFirst("myHeader2")).isEqualTo("myValue2");
+		});
+		setup.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void defaultHeaders(GraphQlTesterSetup setup) throws Exception {
+
+		String query = "{me {name, friends}}";
+		setup.response("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.ResponseSpec spec = setup.graphQlTesterBuilder()
+				.defaultHeader("myHeader1", "myValue1a")
+				.defaultHeader("myHeader1", "myValue1b")
+				.defaultHeaders(headers -> headers.add("myHeader2", "myValue2"))
+				.build()
+				.query(query)
+				.execute();
+
+		spec.path("me.name").entity(String.class).isEqualTo("Luke Skywalker");
+
+		setup.verifyRequest((input) -> {
+			assertThat(input.getQuery()).contains(query);
+			assertThat(input.getHeaders().get("myHeader1")).containsExactly("myValue1a", "myValue1b");
+			assertThat(input.getHeaders().getFirst("myHeader2")).isEqualTo("myValue2");
+		});
+
 		setup.shutdown();
 	}
 
 
 	private interface GraphQlTesterSetup {
 
-		GraphQlTester graphQlTester();
+		WebGraphQlTester graphQlTester();
+
+		WebGraphQlTester.Builder graphQlTesterBuilder();
 
 		default void response(String data) throws Exception {
 			response(data, Collections.emptyList());
@@ -115,11 +150,11 @@ public class WebGraphQlTesterTests {
 
 		private final MockWebServer server;
 
-		private final GraphQlTester graphQlTester;
+		private final WebGraphQlTester.Builder graphQlTesterBuilder;
 
 		MockWebServerSetup() {
 			this.server = new MockWebServer();
-			this.graphQlTester = WebGraphQlTester.create(initWebTestClient(this.server));
+			this.graphQlTesterBuilder = WebGraphQlTester.builder(initWebTestClient(this.server));
 		}
 
 		private static WebTestClient initWebTestClient(MockWebServer server) {
@@ -128,8 +163,13 @@ public class WebGraphQlTesterTests {
 		}
 
 		@Override
-		public GraphQlTester graphQlTester() {
-			return this.graphQlTester;
+		public WebGraphQlTester graphQlTester() {
+			return this.graphQlTesterBuilder.build();
+		}
+
+		@Override
+		public WebGraphQlTester.Builder graphQlTesterBuilder() {
+			return this.graphQlTesterBuilder;
 		}
 
 		@Override
@@ -160,10 +200,12 @@ public class WebGraphQlTesterTests {
 			RecordedRequest request = this.server.takeRequest();
 			assertThat(request.getHeader(HttpHeaders.CONTENT_TYPE)).isEqualTo("application/json");
 
+			HttpHeaders headers = new HttpHeaders();
+			request.getHeaders().names().forEach(name -> headers.put(name, request.getHeaders().values(name)));
+
 			String content = request.getBody().readUtf8();
-			Map<String, Object> map = new ObjectMapper().readValue(content, new TypeReference<Map<String, Object>>() {
-			});
-			WebInput webInput = new WebInput(request.getRequestUrl().uri(), new HttpHeaders(), map, null);
+			Map<String, Object> map = new ObjectMapper().readValue(content, new TypeReference<Map<String, Object>>() {});
+			WebInput webInput = new WebInput(request.getRequestUrl().uri(), headers, map, null);
 
 			consumer.accept(webInput);
 		}
@@ -181,15 +223,20 @@ public class WebGraphQlTesterTests {
 
 		private final ArgumentCaptor<WebInput> bodyCaptor = ArgumentCaptor.forClass(WebInput.class);
 
-		private final GraphQlTester graphQlTester;
+		private final WebGraphQlTester.Builder graphQlTesterBuilder;
 
 		MockWebGraphQlHandlerSetup() {
-			this.graphQlTester = WebGraphQlTester.create(this.handler);
+			this.graphQlTesterBuilder = WebGraphQlTester.builder(this.handler);
 		}
 
 		@Override
-		public GraphQlTester graphQlTester() {
-			return this.graphQlTester;
+		public WebGraphQlTester graphQlTester() {
+			return this.graphQlTesterBuilder.build();
+		}
+
+		@Override
+		public WebGraphQlTester.Builder graphQlTesterBuilder() {
+			return this.graphQlTesterBuilder;
 		}
 
 		@Override

@@ -16,11 +16,12 @@
 
 package org.springframework.graphql.test.tester;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.jayway.jsonpath.Configuration;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
@@ -43,25 +44,65 @@ import org.springframework.lang.Nullable;
 public interface GraphQlTester {
 
 	/**
-	 * Prepare to perform a GraphQL request with the given operation which may be a query,
-	 * mutation, or a subscription.
+	 * Prepare to perform a GraphQL request with the given operation which may
+	 * be a query, mutation, or a subscription.
 	 * @param query the operation to be performed
 	 * @return spec for response assertions
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	RequestSpec query(String query);
+	RequestSpec<?> query(String query);
 
 
 	/**
-	 * Create a {@code GraphQlTester} that performs GraphQL requests through the given
-	 * {@link GraphQlService}.
+	 * Create a {@code GraphQlTester} that performs GraphQL requests through the
+	 * given {@link GraphQlService}.
 	 * @param service the service to execute requests with
 	 * @return the created {@code GraphQlTester}
 	 */
 	static GraphQlTester create(GraphQlService service) {
-		return new DefaultGraphQlTester(service);
+		return builder(service).build();
 	}
 
+	/**
+	 * Return a builder with options to initialize a {@code GraphQlTester}.
+	 * @param service the service to execute requests with
+	 * @return the builder to use
+	 */
+	static Builder<?> builder(GraphQlService service) {
+		return new DefaultGraphQlTester.DefaultBuilder(service);
+	}
+
+
+	/**
+	 * A builder to create a {@link GraphQlTester} instance.
+	 */
+	interface Builder<T extends Builder<T>> {
+
+		/**
+		 * Provide JSONPath configuration settings, including a
+		 * {@link com.jayway.jsonpath.spi.json.JsonProvider} as well as a
+		 * {@link com.jayway.jsonpath.spi.mapper.MappingProvider} that are used
+		 * to serialize and deserialize GraphQL JSON content.
+		 * <p>By default the configuration is to use Jackson JSON if it is
+		 * present on the classpath.
+		 * @param config the JSONPath configuration to use
+		 * @return the same builder instance
+		 */
+		T jsonPathConfig(Configuration config);
+
+		/**
+		 * Max amount of time to wait for a GraphQL response.
+		 * <p>By default this is set to 5 seconds.
+		 * @param timeout the response timeout value
+		 */
+		T responseTimeout(Duration timeout);
+
+		/**
+		 * Build the {@code GraphQlTester}.
+		 * @return the created instance
+		 */
+		GraphQlTester build();
+	}
 
 	/**
 	 * Declare options to perform a GraphQL request.

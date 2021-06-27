@@ -88,6 +88,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 */
 	WebRequestSpec query(String query);
 
+
 	/**
 	 * Create a {@code WebGraphQlTester} that performs GraphQL requests as an
 	 * HTTP client through the given {@link WebTestClient}. Depending on how the
@@ -97,7 +98,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 * @return the created {@code WebGraphQlTester}
 	 */
 	static WebGraphQlTester create(WebTestClient client) {
-		return new DefaultWebGraphQlTester(client);
+		return builder(client).build();
 	}
 
 	/**
@@ -107,7 +108,54 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 * @return the created {@code WebGraphQlTester}
 	 */
 	static WebGraphQlTester create(WebGraphQlHandler handler) {
-		return new DefaultWebGraphQlTester(handler);
+		return builder(handler).build();
+	}
+
+	/**
+	 * Return a builder with options to initialize a {@code WebGraphQlTester}.
+	 * @param client the client to execute requests with
+	 * @return the builder to use
+	 */
+	static Builder builder(WebTestClient client) {
+		return new DefaultWebGraphQlTester.DefaultBuilder(client);
+	}
+
+	/**
+	 * Return a builder with options to initialize a {@code WebGraphQlHandler}.
+	 * @param handler the handler to execute requests with
+	 * @return the builder to use
+	 */
+	static Builder builder(WebGraphQlHandler handler) {
+		return new DefaultWebGraphQlTester.DefaultBuilder(handler);
+	}
+
+
+	/**
+	 * A builder to create a {@link WebGraphQlTester} instance.
+	 */
+	interface Builder extends GraphQlTester.Builder<Builder> {
+
+		/**
+		 * Add the given header to all requests that haven't added it.
+		 * @param headerName the header name
+		 * @param headerValues the header values
+		 */
+		Builder defaultHeader(String headerName, String... headerValues);
+
+		/**
+		 * Variant of {@link #defaultHeader(String, String...)} that provides
+		 * access to the underlying headers to inspect or modify directly.
+		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
+		 */
+		Builder defaultHeaders(Consumer<HttpHeaders> headersConsumer);
+
+		/**
+		 * Build the {@code WebGraphQlTester}.
+		 * @return the created instance
+		 */
+		@Override
+		WebGraphQlTester build();
+
 	}
 
 	/**
