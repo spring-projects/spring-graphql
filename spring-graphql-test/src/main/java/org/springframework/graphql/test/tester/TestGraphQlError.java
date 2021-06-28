@@ -27,6 +27,8 @@ import graphql.GraphqlErrorBuilder;
 import graphql.execution.ResultPath;
 import graphql.language.SourceLocation;
 
+import org.springframework.lang.Nullable;
+
 /**
  * {@link GraphQLError} with setters to use for deserialization.
  *
@@ -34,59 +36,74 @@ import graphql.language.SourceLocation;
  */
 class TestGraphQlError implements GraphQLError {
 
+	@Nullable
 	private String message;
 
+	@Nullable
 	private List<SourceLocation> locations;
 
+	@Nullable
 	private ErrorClassification errorType;
 
+	@Nullable
 	private List<Object> path;
 
+	@Nullable
 	private Map<String, Object> extensions;
 
 	private boolean expected;
 
+	@SuppressWarnings("unused")
 	void setMessage(String message) {
 		this.message = message;
 	}
 
 	@Override
+	@Nullable
 	public String getMessage() {
 		return this.message;
 	}
 
+	@SuppressWarnings("unused")
 	void setLocations(List<TestSourceLocation> locations) {
 		this.locations = TestSourceLocation.toSourceLocations(locations);
 	}
 
 	@Override
+	@Nullable
 	public List<SourceLocation> getLocations() {
 		return this.locations;
 	}
 
+	@SuppressWarnings("unused")
 	void setErrorType(ErrorClassification errorType) {
 		this.errorType = errorType;
 	}
 
 	@Override
+	@Nullable
 	public ErrorClassification getErrorType() {
 		return this.errorType;
 	}
 
+	@SuppressWarnings("unused")
 	void setPath(List<Object> path) {
 		this.path = path;
 	}
 
 	@Override
+	@Nullable
 	public List<Object> getPath() {
 		return this.path;
 	}
 
+	@SuppressWarnings("unused")
 	void setExtensions(Map<String, Object> extensions) {
 		this.extensions = extensions;
 	}
 
 	@Override
+	@Nullable
 	public Map<String, Object> getExtensions() {
 		return this.extensions;
 	}
@@ -136,35 +153,43 @@ class TestGraphQlError implements GraphQLError {
 
 		private int column;
 
+		@Nullable
 		private String sourceName;
 
+		@SuppressWarnings("unused")
 		void setLine(int line) {
 			this.line = line;
 		}
 
+		@SuppressWarnings("unused")
 		int getLine() {
 			return this.line;
 		}
 
+		@SuppressWarnings("unused")
 		void setColumn(int column) {
 			this.column = column;
 		}
 
+		@SuppressWarnings("unused")
 		int getColumn() {
 			return this.column;
 		}
 
+		@SuppressWarnings("unused")
 		void setSourceName(String sourceName) {
 			this.sourceName = sourceName;
 		}
 
+		@Nullable
+		@SuppressWarnings("unused")
 		String getSourceName() {
 			return this.sourceName;
 		}
 
 		static List<SourceLocation> toSourceLocations(List<TestSourceLocation> locations) {
 			return locations.stream()
-					.map((location) -> new SourceLocation(location.line, location.column, location.sourceName))
+					.map(loc -> new SourceLocation(loc.line, loc.column, loc.sourceName))
 					.collect(Collectors.toList());
 		}
 
