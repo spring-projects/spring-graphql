@@ -29,9 +29,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
@@ -60,8 +62,9 @@ import static org.mockito.Mockito.mock;
  * </ul>
  *
  * <p>
- * There is no actual handling via {@link graphql.GraphQL} in either scenario. The main
- * focus is to verify {@link GraphQlTester} request preparation and response handling.
+ * There is no actual handling via {@link graphql.GraphQL} in either scenario.
+ * The main focus is to verify {@link GraphQlTester} request preparation and
+ * response handling.
  */
 public class WebGraphQlTesterTests {
 
@@ -119,6 +122,28 @@ public class WebGraphQlTesterTests {
 		});
 
 		setup.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void errorsFilteredGlobally(GraphQlTesterSetup setup) throws Exception {
+
+		String query = "{me {name, friends}}";
+		setup.response(
+				GraphqlErrorBuilder.newError().message("some error").build(),
+				GraphqlErrorBuilder.newError().message("some other error").build());
+
+		setup.graphQlTesterBuilder()
+				.errorFilter((error) -> error.getMessage().startsWith("some "))
+				.build()
+				.query(query)
+				.execute()
+				.errors()
+				.verify()
+				.path("me")
+				.pathDoesNotExist();
+
+		setup.verifyRequest((input) -> assertThat(input.getQuery()).contains(query));
 	}
 
 
@@ -243,8 +268,7 @@ public class WebGraphQlTesterTests {
 		public void response(@Nullable String data, List<GraphQLError> errors) throws Exception {
 			ExecutionResultImpl.Builder builder = new ExecutionResultImpl.Builder();
 			if (data != null) {
-				builder.data(OBJECT_MAPPER.readValue(data, new TypeReference<Map<String, Object>>() {
-				}));
+				builder.data(OBJECT_MAPPER.readValue(data, new TypeReference<Map<String, Object>>() {}));
 			}
 			if (!CollectionUtils.isEmpty(errors)) {
 				builder.addErrors(errors);

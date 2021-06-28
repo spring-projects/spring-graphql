@@ -16,22 +16,25 @@
 package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
+import java.util.function.Predicate;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import graphql.GraphQLError;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
- * Assist with collecting the input for {@link GraphQlTester.Builder},
- * essentially to avoid challenges with generics in the builder hierarchy.
+ * Holds the input required for {@link GraphQlTester.Builder}, providing a
+ * convenient way to pass it together, while also helping to avoid challenges
+ * with builder hierarchy generics.
  *
  * @author Rossen Stoyanchev
  */
-final class BuilderDelegate {
+final class GraphQlTesterBuilderConfig {
 
 	private static final boolean jackson2Present;
 
@@ -43,9 +46,16 @@ final class BuilderDelegate {
 
 
 	@Nullable
+	private Predicate<GraphQLError> errorFilter;
+
+	@Nullable
 	private Configuration jsonPathConfig;
 
 	private Duration responseTimeout = Duration.ofSeconds(5);
+
+	public void errorFilter(Predicate<GraphQLError> predicate) {
+		this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
+	}
 
 	public void jsonPathConfig(@Nullable Configuration config) {
 		this.jsonPathConfig = config;
@@ -56,16 +66,17 @@ final class BuilderDelegate {
 		this.responseTimeout = timeout;
 	}
 
-	public Configuration initJsonPathConfig() {
-		if (this.jsonPathConfig != null) {
-			return this.jsonPathConfig;
+	@Nullable
+	public Predicate<GraphQLError> getErrorFilter() {
+		return this.errorFilter;
+	}
+
+	public Configuration getJsonPathConfig() {
+		if (this.jsonPathConfig == null) {
+			this.jsonPathConfig = (jackson2Present ?
+					Jackson2Configuration.create() : Configuration.builder().build());
 		}
-		else if (jackson2Present) {
-			return Jackson2Configuration.create();
-		}
-		else {
-			return Configuration.builder().build();
-		}
+		return this.jsonPathConfig;
 	}
 
 	public Duration getResponseTimeout() {

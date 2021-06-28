@@ -79,6 +79,16 @@ public interface GraphQlTester {
 	interface Builder<T extends Builder<T>> {
 
 		/**
+		 * Add a global filter for expected errors. All errors that match the
+		 * given predicate are treated as expected and ignored on
+		 * {@link GraphQlTester.ErrorSpec#verify()} or when
+		 * {@link TraverseSpec#path(String) traversing} to a data path.
+		 * @param predicate the error filter to add
+		 * @return the same builder instance
+		 */
+		T errorFilter(Predicate<GraphQLError> predicate);
+
+		/**
 		 * Provide JSONPath configuration settings, including a
 		 * {@link com.jayway.jsonpath.spi.json.JsonProvider} as well as a
 		 * {@link com.jayway.jsonpath.spi.mapper.MappingProvider} that are used
@@ -424,7 +434,7 @@ public interface GraphQlTester {
 		 * Add a filter for expected errors. All errors that match the predicate are
 		 * treated as expected and ignored on {@link #verify()} or when
 		 * {@link TraverseSpec#path(String) traversing} to a data path.
-		 * @param errorPredicate the predicate to add
+		 * @param errorPredicate the error filter to add
 		 * @return the same spec to add more filters before {@link #verify()}
 		 */
 		ErrorSpec filter(Predicate<GraphQLError> errorPredicate);

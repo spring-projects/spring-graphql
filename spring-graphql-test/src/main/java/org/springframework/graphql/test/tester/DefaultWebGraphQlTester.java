@@ -20,12 +20,14 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import graphql.ExecutionResult;
+import graphql.GraphQLError;
 
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.web.WebGraphQlHandler;
@@ -69,34 +71,38 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		private final Supplier<RequestStrategy> requestStrategySupplier;
 
-		private final BuilderDelegate delegate = new BuilderDelegate();
+		private final GraphQlTesterBuilderConfig builderConfig = new GraphQlTesterBuilderConfig();
 
 		@Nullable
 		private HttpHeaders headers;
 
 		DefaultBuilder(WebTestClient client) {
-			this.requestStrategySupplier = () ->
-					new WebTestClientRequestStrategy(
-							client.mutate().responseTimeout(this.delegate.getResponseTimeout()).build(),
-							this.delegate.initJsonPathConfig());
+			this.requestStrategySupplier = () -> {
+				Duration timeout = this.builderConfig.getResponseTimeout();
+				WebTestClient clientToUse = client.mutate().responseTimeout(timeout).build();
+				return new WebTestClientRequestStrategy(clientToUse, this.builderConfig);
+			};
 		}
 
 		DefaultBuilder(WebGraphQlHandler handler) {
-			this.requestStrategySupplier = () ->
-					new WebGraphQlHandlerRequestStrategy(handler,
-							this.delegate.initJsonPathConfig(),
-							this.delegate.getResponseTimeout());
+			this.requestStrategySupplier = () -> new WebGraphQlHandlerRequestStrategy(handler, this.builderConfig);
+		}
+
+		@Override
+		public WebGraphQlTester.Builder errorFilter(Predicate<GraphQLError> predicate) {
+			this.builderConfig.errorFilter(predicate);
+			return this;
 		}
 
 		@Override
 		public DefaultBuilder jsonPathConfig(Configuration config) {
-			this.delegate.jsonPathConfig(config);
+			this.builderConfig.jsonPathConfig(config);
 			return this;
 		}
 
 		@Override
 		public DefaultBuilder responseTimeout(Duration timeout) {
-			this.delegate.responseTimeout(timeout);
+			this.builderConfig.responseTimeout(timeout);
 			return this;
 		}
 
@@ -131,11 +137,20 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		private final WebTestClient client;
 
-		private final Configuration jsonPathConfig;
+		private final GraphQlTesterBuilderConfig builderConfig;
 
-		WebTestClientRequestStrategy(WebTestClient client, Configuration jsonPathConfig) {
+		WebTestClientRequestStrategy(WebTestClient client, GraphQlTesterBuilderConfig builderConfig) {
 			this.client = client;
-			this.jsonPathConfig = jsonPathConfig;
+			this.builderConfig = builderConfig;
+		}
+
+		@Nullable
+		private Predicate<GraphQLError> errorFilter() {
+			return this.builderConfig.getErrorFilter();
+		}
+
+		private Configuration jsonPathConfig() {
+			return this.builderConfig.getJsonPathConfig();
 		}
 
 		@Override
@@ -155,9 +170,9 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 			byte[] bytes = result.getResponseBodyContent();
 			Assert.notNull(bytes, "Expected GraphQL response content");
 			String content = new String(bytes, StandardCharsets.UTF_8);
-			DocumentContext documentContext = JsonPath.parse(content, this.jsonPathConfig);
+			DocumentContext documentContext = JsonPath.parse(content, jsonPathConfig());
 
-			return new DefaultResponseSpec(documentContext, result::assertWithDiagnostics);
+			return new DefaultResponseSpec(documentContext, errorFilter(), result::assertWithDiagnostics);
 		}
 
 		@Override
@@ -174,8 +189,9 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 					.contentType(MediaType.TEXT_EVENT_STREAM)
 					.returnResult(TestExecutionResult.class);
 
-			return new DefaultSubscriptionSpec(exchangeResult.getResponseBody().cast(ExecutionResult.class),
-					this.jsonPathConfig, exchangeResult::assertWithDiagnostics);
+			return new DefaultSubscriptionSpec(
+					exchangeResult.getResponseBody().cast(ExecutionResult.class),
+					errorFilter(), jsonPathConfig(), exchangeResult::assertWithDiagnostics);
 		}
 
 		private HttpHeaders getHeaders(RequestInput requestInput) {
@@ -193,15 +209,15 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		private final WebGraphQlHandler graphQlHandler;
 
-		WebGraphQlHandlerRequestStrategy(WebGraphQlHandler handler, Configuration config, Duration responseTimeout) {
-			super(config, responseTimeout);
+		WebGraphQlHandlerRequestStrategy(WebGraphQlHandler handler, GraphQlTesterBuilderConfig builderConfig) {
+			super(builderConfig);
 			this.graphQlHandler = handler;
 		}
 
 		protected ExecutionResult executeInternal(RequestInput input) {
 			Assert.isInstanceOf(WebInput.class, input);
 			WebInput webInput = (WebInput) input;
-			ExecutionResult result = this.graphQlHandler.handle(webInput).block(getResponseTimeout());
+			ExecutionResult result = this.graphQlHandler.handle(webInput).block(responseTimeout());
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
 		}

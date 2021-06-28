@@ -60,9 +60,9 @@ public class GraphQlTesterTests {
 
 	private final GraphQlService service = mock(GraphQlService.class);
 
-	private final ArgumentCaptor<ExecutionInput> inputCaptor = ArgumentCaptor.forClass(ExecutionInput.class);
-
 	private final GraphQlTester graphQlTester = GraphQlTester.create(this.service);
+
+	private final ArgumentCaptor<ExecutionInput> inputCaptor = ArgumentCaptor.forClass(ExecutionInput.class);
 
 
 	@Test
@@ -77,7 +77,7 @@ public class GraphQlTesterTests {
 		spec.path("me.friends").valueIsEmpty();
 		spec.path("hero").pathDoesNotExist().valueDoesNotExist().valueIsEmpty();
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -97,7 +97,7 @@ public class GraphQlTesterTests {
 				.as("Extended fields should fail in strict mode")
 				.hasMessageContaining("Unexpected: name");
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -127,7 +127,7 @@ public class GraphQlTesterTests {
 				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
 				.isEqualTo(Collections.singletonMap("me", luke));
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -163,7 +163,7 @@ public class GraphQlTesterTests {
 				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
 				.containsExactly(han, leia);
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -202,7 +202,7 @@ public class GraphQlTesterTests {
 		assertThatThrownBy(() -> this.graphQlTester.query(query).executeAndVerify())
 				.hasMessageContaining("Response has 1 unexpected error(s).");
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -214,7 +214,7 @@ public class GraphQlTesterTests {
 		assertThatThrownBy(() -> this.graphQlTester.query(query).execute().path("me"))
 				.hasMessageContaining("Response has 1 unexpected error(s).");
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -233,7 +233,7 @@ public class GraphQlTesterTests {
 						.verify())
 				.hasMessageContaining("Response has 1 unexpected error(s) of 2 total.");
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -252,7 +252,28 @@ public class GraphQlTesterTests {
 				.path("me")
 				.pathDoesNotExist();
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
+	}
+
+	@Test
+	void errorsFilteredGlobally() throws Exception {
+
+		String query = "{me {name, friends}}";
+		setResponse(
+				GraphqlErrorBuilder.newError().message("some error").build(),
+				GraphqlErrorBuilder.newError().message("some other error").build());
+
+		GraphQlTester.builder(this.service)
+				.errorFilter((error) -> error.getMessage().startsWith("some "))
+				.build()
+				.query(query)
+				.execute()
+				.errors()
+				.verify()
+				.path("me")
+				.pathDoesNotExist();
+
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	@Test
@@ -277,7 +298,7 @@ public class GraphQlTesterTests {
 				.path("me")
 				.pathDoesNotExist();
 
-		assertThat(getActualQuery()).contains(query);
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}
 
 	private void setResponse(String data) throws Exception {
@@ -298,10 +319,6 @@ public class GraphQlTesterTests {
 		}
 		ExecutionResult result = builder.build();
 		given(this.service.execute(this.inputCaptor.capture())).willReturn(Mono.just(result));
-	}
-
-	private String getActualQuery() {
-		return this.inputCaptor.getValue().getQuery();
 	}
 
 }

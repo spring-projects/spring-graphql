@@ -121,7 +121,7 @@ class TestGraphQlError implements GraphQLError {
 	 * Mark this error as expected if it matches the predicate.
 	 * @param predicate the error predicate
 	 */
-	void filter(Predicate<GraphQLError> predicate) {
+	void applyErrorFilterPredicate(Predicate<GraphQLError> predicate) {
 		this.expected |= predicate.test(this);
 	}
 
