@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
@@ -153,7 +154,16 @@ public abstract class QuerydslDataFetcher<T> {
 			parameters.put(entry.getKey(), Collections.singletonList(entry.getValue()));
 		}
 
-		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
+		Predicate predicate = BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
+
+		// Temporary workaround for this fix in Spring Data:
+		// https://github.com/spring-projects/spring-data-commons/issues/2396
+
+		if (predicate == null) {
+			predicate = new BooleanBuilder();
+		}
+
+		return predicate;
 	}
 
 	private static <S, T> Function<S, T> createProjection(Class<T> projectionType) {
