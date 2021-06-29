@@ -43,9 +43,6 @@ class TestGraphQlError implements GraphQLError {
 	private List<SourceLocation> locations;
 
 	@Nullable
-	private ErrorClassification errorType;
-
-	@Nullable
 	private List<Object> path;
 
 	@Nullable
@@ -75,15 +72,27 @@ class TestGraphQlError implements GraphQLError {
 		return this.locations;
 	}
 
-	@SuppressWarnings("unused")
-	void setErrorType(ErrorClassification errorType) {
-		this.errorType = errorType;
-	}
-
 	@Override
 	@Nullable
 	public ErrorClassification getErrorType() {
-		return this.errorType;
+		// Attempt the reverse of how errorType is serialized in GraphqlErrorHelper.toSpecification.
+		// However we can only do that for ErrorClassification enums that we know of.
+		String value = (getExtensions() != null ? (String) getExtensions().get("classification") : null);
+		if (value != null) {
+			try {
+				return graphql.ErrorType.valueOf(value);
+			}
+			catch (IllegalArgumentException ex) {
+				// ignore
+			}
+			try {
+				return org.springframework.graphql.execution.ErrorType.valueOf(value);
+			}
+			catch (IllegalArgumentException ex) {
+				// ignore
+			}
+		}
+		return null;
 	}
 
 	@SuppressWarnings("unused")

@@ -51,8 +51,7 @@ class SampleApplicationTests {
 				.errors()
 				.satisfy(errors -> {
 					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0).getExtensions().get("classification"))
-							.isEqualTo(ErrorType.UNAUTHORIZED.name());
+					assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.UNAUTHORIZED);
 				});
 	}
 
@@ -71,8 +70,7 @@ class SampleApplicationTests {
 				.errors()
 				.satisfy(errors -> {
 					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0).getExtensions().get("classification"))
-							.isEqualTo(ErrorType.FORBIDDEN.name());
+					assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.FORBIDDEN);
 				});
 	}
 
@@ -103,8 +101,7 @@ class SampleApplicationTests {
 				.errors()
 				.satisfy(errors -> {
 					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0).getExtensions().get("classification"))
-							.isEqualTo(ErrorType.UNAUTHORIZED.name());
+					assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.UNAUTHORIZED);
 				});
 	}
 
