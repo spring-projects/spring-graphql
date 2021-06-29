@@ -13,7 +13,7 @@ resource_types:
   type: registry-image
   source:
     repository: springio/artifactory-resource
-    tag: 0.0.12
+    tag: 0.0.14
 
 resources:
 - name: git-repo
