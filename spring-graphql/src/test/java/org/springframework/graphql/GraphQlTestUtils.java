@@ -57,7 +57,7 @@ public abstract class GraphQlTestUtils {
 				.build();
 
 		return GraphQlSource.builder()
-				.schemaResource(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
+				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
 				.runtimeWiring(wiring);
 	}
 

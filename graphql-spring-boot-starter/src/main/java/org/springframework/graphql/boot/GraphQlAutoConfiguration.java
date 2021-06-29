@@ -16,6 +16,10 @@
 
 package org.springframework.graphql.boot;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
@@ -27,9 +31,11 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.GraphQlSource;
 
@@ -55,6 +61,8 @@ public class GraphQlAutoConfiguration {
 	@ConditionalOnMissingBean(GraphQlSource.Builder.class)
 	public static class GraphQlSourceConfiguration {
 
+		private static final String SCHEMA_FILES_PATTERN = "*.graphqls";
+
 		@Bean
 		@ConditionalOnMissingBean
 		public RuntimeWiring runtimeWiring(ObjectProvider<RuntimeWiringCustomizer> customizers) {
@@ -64,15 +72,23 @@ public class GraphQlAutoConfiguration {
 		}
 
 		@Bean
-		public GraphQlSource.Builder graphQlSourceBuilder(GraphQlProperties properties, RuntimeWiring runtimeWiring,
-				ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider, ResourceLoader resourceLoader,
-				ObjectProvider<Instrumentation> instrumentationsProvider) {
+		public GraphQlSource.Builder graphQlSourceBuilder(ApplicationContext applicationContext, GraphQlProperties properties,
+				RuntimeWiring runtimeWiring, ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
+				ObjectProvider<Instrumentation> instrumentationsProvider) throws IOException {
 
-			String schemaLocation = properties.getSchema().getLocation();
-			return GraphQlSource.builder().schemaResource(resourceLoader.getResource(schemaLocation))
+			List<Resource> schemaResources = resolveSchemaResources(applicationContext, properties.getSchema().getLocations());
+			return GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
 					.runtimeWiring(runtimeWiring)
 					.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
 					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
+		}
+
+		private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
+			List<Resource> schemaResources = new ArrayList<>();
+			for (String location : schemaLocations) {
+				schemaResources.addAll(Arrays.asList(resolver.getResources(location + SCHEMA_FILES_PATTERN)));
+			}
+			return schemaResources;
 		}
 
 	}

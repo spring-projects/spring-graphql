@@ -84,7 +84,7 @@ public abstract class BookTestUtils {
 					return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
 				}));
 		return GraphQlSource.builder()
-				.schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.schemaResources(new ClassPathResource("books/schema.graphqls"))
 				.runtimeWiring(builder.build())
 				.build();
 	}

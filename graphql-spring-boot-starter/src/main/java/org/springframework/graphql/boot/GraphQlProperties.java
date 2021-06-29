@@ -17,6 +17,10 @@
 package org.springframework.graphql.boot;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -63,18 +67,24 @@ public class GraphQlProperties {
 	public static class Schema {
 
 		/**
-		 * Location of the GraphQL schema file.
+		 * Locations of GraphQL '*.graphqls' schema files.
 		 */
-		private String location = "classpath:graphql/schema.graphqls";
+		private List<String> locations = new ArrayList<>(Collections.singletonList("classpath:graphql/"));
 
 		private final Printer printer = new Printer();
 
-		public String getLocation() {
-			return this.location;
+		public List<String> getLocations() {
+			return this.locations;
 		}
 
-		public void setLocation(String location) {
-			this.location = location;
+		public void setLocations(List<String> locations) {
+			this.locations = appendSlashIfNecessary(locations);
+		}
+
+		private List<String> appendSlashIfNecessary(List<String> locations) {
+			return locations.stream()
+					.map(location -> location.endsWith("/") ? location : location + "/")
+					.collect(Collectors.toList());
 		}
 
 		public Printer getPrinter() {

@@ -144,7 +144,7 @@ class WebFluxApplicationContextTests {
 				.withPropertyValues(
 						"spring.main.web-application-type=reactive",
 						"spring.graphql.schema.printer.enabled=true",
-						"spring.graphql.schema.location=classpath:books/schema.graphqls")
+						"spring.graphql.schema.locations=classpath:books/")
 				.run(consumer);
 	}
 

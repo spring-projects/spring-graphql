@@ -114,7 +114,7 @@ class WebMvcApplicationContextTests {
 				.withPropertyValues(
 						"spring.main.web-application-type=servlet",
 						"spring.graphql.schema.printer.enabled=true",
-						"spring.graphql.schema.location=classpath:books/schema.graphqls")
+						"spring.graphql.schema.locations=classpath:books/")
 				.run((context) -> {
 					MediaType mediaType = MediaType.APPLICATION_JSON;
 					MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context)

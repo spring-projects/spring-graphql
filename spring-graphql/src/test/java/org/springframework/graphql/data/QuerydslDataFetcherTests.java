@@ -202,7 +202,7 @@ class QuerydslDataFetcherTests {
 		configurer.accept(wiringBuilder);
 		builder.type(wiringBuilder);
 		return GraphQlSource.builder()
-				.schemaResource(new ClassPathResource("books/schema.graphqls"))
+				.schemaResources(new ClassPathResource("books/schema.graphqls"))
 				.runtimeWiring(builder.build())
 				.build();
 	}

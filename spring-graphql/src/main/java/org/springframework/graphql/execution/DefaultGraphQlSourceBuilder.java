@@ -19,6 +19,7 @@ package org.springframework.graphql.execution;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -34,7 +35,6 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -42,11 +42,11 @@ import org.springframework.util.Assert;
  * {@link GraphQL} instance and wraps it with a {@link GraphQlSource} that returns it.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
 class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
-	@Nullable
-	private Resource schemaResource;
+	private List<Resource> schemaResources = new ArrayList<>();
 
 	private RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring().build();
 
@@ -64,8 +64,8 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	}
 
 	@Override
-	public GraphQlSource.Builder schemaResource(Resource resource) {
-		this.schemaResource = resource;
+	public GraphQlSource.Builder schemaResources(Resource... resources) {
+		this.schemaResources.addAll(Arrays.asList(resources));
 		return this;
 	}
 
@@ -102,7 +102,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	@Override
 	public GraphQlSource build() {
-		TypeDefinitionRegistry registry = parseSchemaResource();
+		TypeDefinitionRegistry registry = this.schemaResources.stream()
+				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
+				.orElseThrow(() -> new IllegalArgumentException("'schemaResources' should not be empty"));
 
 		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(registry, this.runtimeWiring);
 		for (GraphQLTypeVisitor visitor : this.typeVisitors) {
@@ -120,16 +122,16 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		return new CachedGraphQlSource(graphQl, schema);
 	}
 
-	private TypeDefinitionRegistry parseSchemaResource() {
-		Assert.notNull(this.schemaResource, "'schemaResource' not provided");
-		Assert.isTrue(this.schemaResource.exists(), "'schemaResource' does not exist");
+	private TypeDefinitionRegistry parseSchemaResource(Resource schemaResource) {
+		Assert.notNull(schemaResource, "'schemaResource' not provided");
+		Assert.isTrue(schemaResource.exists(), "'schemaResource' does not exist");
 		try {
-			try (InputStream inputStream = this.schemaResource.getInputStream()) {
+			try (InputStream inputStream = schemaResource.getInputStream()) {
 				return new SchemaParser().parse(inputStream);
 			}
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException("Failed to load resourceLocation " + this.schemaResource.toString());
+			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource.toString());
 		}
 	}
 

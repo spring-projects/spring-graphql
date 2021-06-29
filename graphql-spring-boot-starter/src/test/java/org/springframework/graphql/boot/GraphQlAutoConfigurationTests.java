@@ -39,19 +39,19 @@ class GraphQlAutoConfigurationTests {
 	void shouldFailWhenSchemaFileIsMissing() {
 		this.contextRunner.run((context) -> {
 			assertThat(context).hasFailed();
-			assertThat(context).getFailure().getRootCause().hasMessage("'schemaResource' does not exist");
+			assertThat(context).getFailure().getRootCause().hasMessage("'schemaResources' should not be empty");
 		});
 	}
 
 	@Test
 	void shouldCreateBuilderWithSdl() {
-		this.contextRunner.withPropertyValues("spring.graphql.schema.location:classpath:books/schema.graphqls")
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:books/")
 				.run((context) -> assertThat(context).hasSingleBean(GraphQlSource.class));
 	}
 
 	@Test
 	void shouldUseProgrammaticallyDefinedBuilder() {
-		this.contextRunner.withPropertyValues("spring.graphql.schema.location:classpath:books/schema.graphqls")
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:books/")
 				.withUserConfiguration(CustomGraphQlBuilderConfiguration.class).run((context) -> {
 					assertThat(context).hasBean("customGraphQlSourceBuilder");
 					assertThat(context).hasSingleBean(GraphQlSource.Builder.class);
@@ -63,7 +63,7 @@ class GraphQlAutoConfigurationTests {
 
 		@Bean
 		GraphQlSource.Builder customGraphQlSourceBuilder() {
-			return GraphQlSource.builder().schemaResource(new ClassPathResource("books/schema.graphqls"));
+			return GraphQlSource.builder().schemaResources(new ClassPathResource("books/schema.graphqls"));
 		}
 
 	}
