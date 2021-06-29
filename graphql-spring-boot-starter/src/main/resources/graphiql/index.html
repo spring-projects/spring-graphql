@@ -59,11 +59,10 @@
         src="https://unpkg.com/graphiql/graphiql.min.js"
         type="application/javascript"
 ></script>
-<script src="/renderExample.js" type="application/javascript"></script>
 <script>
-    function graphQLFetcher(graphQLParams) {
-        return fetch(
-            window.location,
+    function graphQLFetcher(path) {
+        return graphQLParams => fetch(
+            `${location.protocol}//${location.host}${path}`,
             {
                 method: 'post',
                 headers: {
@@ -80,9 +79,12 @@
         });
     }
 
+    const params = new URLSearchParams(window.location.search);
+    const path = params.get("path") || "/graphiql";
+    const gqlFetcher = graphQLFetcher(path);
     ReactDOM.render(
         React.createElement(GraphiQL, {
-            fetcher: graphQLFetcher,
+            fetcher: gqlFetcher,
             defaultVariableEditorOpen: true,
         }),
         document.getElementById('graphiql'),

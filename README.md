@@ -125,6 +125,9 @@ spring.graphql.schema.location=classpath:graphql/schema.graphqls
 # endpoint path is concatenated with the main path, so "/graphql/schema" by default
 spring.graphql.schema.printer.enabled=false
 spring.graphql.schema.printer.path=/schema
+# GraphiQL UI configuration
+spring.graphql.graphiql.enabled=true
+spring.graphql.graphiql.path=/graphiql
 # whether micrometer metrics should be collected for graphql queries
 management.metrics.graphql.autotime.enabled=true
 ````

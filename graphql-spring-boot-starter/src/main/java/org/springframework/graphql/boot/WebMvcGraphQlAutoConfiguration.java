@@ -97,18 +97,21 @@ public class WebMvcGraphQlAutoConfiguration {
 	public RouterFunction<ServerResponse> graphQlRouterFunction(GraphQlHttpHandler handler, GraphQlSource graphQlSource,
 			GraphQlProperties properties, ResourceLoader resourceLoader) {
 
-		String path = properties.getPath();
-		Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
+		String graphQLPath = properties.getPath();
 		if (logger.isInfoEnabled()) {
-			logger.info("GraphQL endpoint HTTP POST " + path);
+			logger.info("GraphQL endpoint HTTP POST " + graphQLPath);
 		}
 		// @formatter:off
 		RouterFunctions.Builder builder = RouterFunctions.route()
-				.GET(path, (req) -> ServerResponse.ok().body(resource))
-				.POST(path, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
+				.POST(graphQLPath, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
+		if (properties.getGraphiql().isEnabled()) {
+			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
+			WebMvcGraphiQlHandler graphiQLHandler = new WebMvcGraphiQlHandler(graphQLPath, resource);
+			builder = builder.GET(properties.getGraphiql().getPath(), graphiQLHandler::showGraphiQlPage);
+		}
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
-			builder = builder.GET(path + properties.getSchema().getPrinter().getPath(),
+			builder = builder.GET(graphQLPath + properties.getSchema().getPrinter().getPath(),
 					(req) -> ServerResponse.ok()
 							.contentType(MediaType.TEXT_PLAIN)
 							.body(printer.print(graphQlSource.schema())));
@@ -118,7 +121,7 @@ public class WebMvcGraphQlAutoConfiguration {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnClass({ ServerContainer.class, WebSocketHandler.class })
+	@ConditionalOnClass({ServerContainer.class, WebSocketHandler.class})
 	@ConditionalOnProperty(prefix = "spring.graphql.websocket", name = "path")
 	public static class WebSocketConfiguration {
 

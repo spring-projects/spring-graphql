@@ -36,6 +36,8 @@ public class GraphQlProperties {
 
 	private final Schema schema = new Schema();
 
+	private final GraphiQL graphiql = new GraphiQL();
+
 	private final WebSocket websocket = new WebSocket();
 
 	public String getPath() {
@@ -48,6 +50,10 @@ public class GraphQlProperties {
 
 	public Schema getSchema() {
 		return this.schema;
+	}
+
+	public GraphiQL getGraphiql() {
+		return this.graphiql;
 	}
 
 	public WebSocket getWebsocket() {
@@ -105,6 +111,35 @@ public class GraphQlProperties {
 
 		}
 
+	}
+
+	public static class GraphiQL {
+
+		/**
+		 * Path to the GraphiQL UI endpoint.
+		 */
+		private String path = "/graphiql";
+
+		/**
+		 * Whether the default GraphiQL UI is enabled.
+		 */
+		private boolean enabled = true;
+
+		public String getPath() {
+			return this.path;
+		}
+
+		public void setPath(String path) {
+			this.path = path;
+		}
+
+		public boolean isEnabled() {
+			return this.enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
 	}
 
 	public static class WebSocket {
