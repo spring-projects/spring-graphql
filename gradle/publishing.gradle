@@ -35,7 +35,7 @@ publishing {
 					name = project.description
 					description = project.description
 				}
-				url = "https://github.com/spring-projects-experimental/spring-graphql"
+				url = "https://github.com/spring-projects/spring-graphql"
 				organization {
 					name = "Spring IO"
 					url = "https://spring.io/projects"
@@ -48,9 +48,9 @@ publishing {
 					}
 				}
 				scm {
-					url = "https://github.com/spring-projects-experimental/spring-graphql"
-					connection = "scm:git:git://github.com/spring-projects-experimental/spring-graphql"
-					developerConnection = "scm:git:git://github.com/spring-projects-experimental/spring-graphql"
+					url = "https://github.com/spring-projects/spring-graphql"
+					connection = "scm:git:git://github.com/spring-projects/spring-graphql"
+					developerConnection = "scm:git:git://github.com/spring-projects/spring-graphql"
 				}
 				developers {
 					developer {
@@ -71,7 +71,7 @@ publishing {
 				}
 				issueManagement {
 					system = "GitHub"
-					url = "https://github.com/spring-projects-experimental/spring-graphql/issues"
+					url = "https://github.com/spring-projects/spring-graphql/issues"
 				}
 			}
 			versionMapping {
