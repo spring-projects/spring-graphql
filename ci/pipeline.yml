@@ -7,6 +7,10 @@ anchors:
     GRADLE_ENTERPRISE_ACCESS_KEY: ((gradle_enterprise_secret_access_key))
     GRADLE_ENTERPRISE_CACHE_USERNAME: ((gradle_enterprise_cache_user.username))
     GRADLE_ENTERPRISE_CACHE_PASSWORD: ((gradle_enterprise_cache_user.password))
+  artifactory-task-params: &artifactory-task-params
+    ARTIFACTORY_SERVER: ((artifactory-server))
+    ARTIFACTORY_USERNAME: ((artifactory-username))
+    ARTIFACTORY_PASSWORD: ((artifactory-password))
 
 resource_types:
 - name: artifactory-resource
@@ -88,9 +92,48 @@ jobs:
       threads: 8
     get_params:
       threads: 8
+- name: stage-milestone
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+      trigger: false
+    - task: stage
+      image: ci-image
+      file: git-repo/ci/tasks/stage-version.yml
+      params:
+        RELEASE_TYPE: M
+        <<: *gradle-enterprise-task-params
+    - put: artifactory-repo
+      params:
+        <<: *artifactory-params
+        repo: libs-staging-local
+    - put: git-repo
+      params:
+        repository: stage-git-repo
+- name: promote-milestone
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+      trigger: false
+    - get: artifactory-repo
+      trigger: false
+      passed: [stage-milestone]
+      params:
+        download_artifacts: false
+        save_build_info: true
+    - task: promote
+      image: ci-image
+      file: git-repo/ci/tasks/promote-version.yml
+      params:
+        RELEASE_TYPE: M
+        <<: *artifactory-task-params
 
 groups:
 - name: "builds"
   jobs: ["build"]
+- name: "releases"
+  jobs: [ "stage-milestone", "promote-milestone" ]
 - name: "ci-images"
   jobs: ["build-ci-images"]

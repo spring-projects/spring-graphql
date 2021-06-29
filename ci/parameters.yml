@@ -1,5 +1,5 @@
-github-repo: "https://github.com/spring-projects-experimental/spring-graphql.git"
-github-repo-name: "spring-projects-experimental/spring-graphql"
+github-repo: "https://github.com/spring-projects/spring-graphql.git"
+github-repo-name: "spring-projects/spring-graphql"
 docker-hub-organization: "springci"
 artifactory-server: "https://repo.spring.io"
 branch: "main"
