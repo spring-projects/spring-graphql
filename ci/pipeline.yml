@@ -92,7 +92,7 @@ jobs:
       threads: 8
       artifact_set:
         - include:
-            - "/**/spring-graphql-*-docs.zip"
+            - "/**/spring-graphql-docs-*.zip"
           properties:
             "zip.name": "spring-graphql"
             "zip.displayname": "Spring GraphQL"

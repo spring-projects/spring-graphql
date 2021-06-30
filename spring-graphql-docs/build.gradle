@@ -128,9 +128,6 @@ task docsZip(type: Zip, dependsOn: ['api', 'asciidoctor']) {
 	group = "Distribution"
 	description = "Builds -${archiveClassifier} archive containing api and reference " +
 			"for deployment at https://docs.spring.io/spring-graphql/docs."
-
-	archiveBaseName.set("spring-graphql")
-	archiveClassifier.set("docs")
 	from (api) {
 		into "javadoc-api"
 	}
