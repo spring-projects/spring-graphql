@@ -23,20 +23,21 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 /**
  * Servlet.fn handler for the GraphiQl UI.
+ *
  * @author Brian Clozel
  */
-class WebMvcGraphiQlHandler {
+class GraphiQlWebMvcHandler {
 
 	private final String graphQlPath;
 
 	private final Resource graphiQlResource;
 
-	public WebMvcGraphiQlHandler(String graphQlPath, Resource graphiQlResource) {
+	GraphiQlWebMvcHandler(String graphQlPath, Resource graphiQlResource) {
 		this.graphQlPath = graphQlPath;
 		this.graphiQlResource = graphiQlResource;
 	}
 
-	public ServerResponse showGraphiQlPage(ServerRequest request) {
+	ServerResponse showGraphiQlPage(ServerRequest request) {
 		if (request.param("path").isPresent()) {
 			return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.graphiQlResource);
 		}
@@ -44,4 +45,5 @@ class WebMvcGraphiQlHandler {
 			return ServerResponse.temporaryRedirect(request.uriBuilder().queryParam("path", this.graphQlPath).build()).build();
 		}
 	}
+
 }

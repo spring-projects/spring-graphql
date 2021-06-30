@@ -1,11 +1,11 @@
 package io.spring.sample.graphql.project;
 
 import graphql.schema.idl.RuntimeWiring;
-import org.springframework.graphql.boot.RuntimeWiringCustomizer;
+import org.springframework.graphql.boot.RuntimeWiringBuilderCustomizer;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ProjectDataWiring implements RuntimeWiringCustomizer {
+public class ProjectDataWiring implements RuntimeWiringBuilderCustomizer {
 
 	private final SpringProjectsClient client;
 

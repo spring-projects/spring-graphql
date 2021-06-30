@@ -19,18 +19,19 @@ package org.springframework.graphql.boot;
 import graphql.schema.idl.RuntimeWiring;
 
 /**
- * Callback interface that can be used to customize the GraphQL
- * {@link RuntimeWiring.Builder}.
+ * Callback interface that can be implemented by beans wishing to customize the
+ * {@link RuntimeWiring} via a {@link RuntimeWiring.Builder} whilst retaining default
+ * auto-configuration.
  *
  * @author Brian Clozel
  * @since 1.0.0
  */
 @FunctionalInterface
-public interface RuntimeWiringCustomizer {
+public interface RuntimeWiringBuilderCustomizer {
 
 	/**
-	 * Callback to customize a {@link RuntimeWiring.Builder} instance.
-	 * @param builder builder instance to customize
+	 * Customize the {@link RuntimeWiring.Builder} instance.
+	 * @param builder builder the builder to customize
 	 */
 	void customize(RuntimeWiring.Builder builder);
 

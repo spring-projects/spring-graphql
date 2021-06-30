@@ -44,13 +44,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // @formatter:off
 
-class WebMvcApplicationContextTests {
+class GraphQlWebMvcAutoConfigurationTests {
 
-	public static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
-			DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
-			HttpMessageConvertersAutoConfiguration.class, JacksonAutoConfiguration.class,
-			GraphQlAutoConfiguration.class, GraphQlServiceAutoConfiguration.class,
-			WebMvcGraphQlAutoConfiguration.class);
+	private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(DispatcherServletAutoConfiguration.class,
+					WebMvcAutoConfiguration.class, HttpMessageConvertersAutoConfiguration.class,
+					JacksonAutoConfiguration.class, GraphQlAutoConfiguration.class,
+					GraphQlServiceAutoConfiguration.class, GraphQlWebMvcAutoConfiguration.class))
+			.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
+			.withPropertyValues(
+					"spring.main.web-application-type=servlet",
+					"spring.graphql.schema.printer.enabled=true",
+					"spring.graphql.schema.locations=classpath:books/");
 
 	@Test
 	void endpointHandlesGraphQlQuery() {
@@ -108,20 +113,13 @@ class WebMvcApplicationContextTests {
 	}
 
 	private void testWith(MockMvcConsumer mockMvcConsumer) {
-		new WebApplicationContextRunner()
-				.withConfiguration(AUTO_CONFIGURATIONS)
-				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
-				.withPropertyValues(
-						"spring.main.web-application-type=servlet",
-						"spring.graphql.schema.printer.enabled=true",
-						"spring.graphql.schema.locations=classpath:books/")
-				.run((context) -> {
-					MediaType mediaType = MediaType.APPLICATION_JSON;
-					MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context)
-							.defaultRequest(post("/graphql").contentType(mediaType).accept(mediaType))
-							.build();
-					mockMvcConsumer.accept(mockMvc);
-				});
+		this.contextRunner.run((context) -> {
+			MediaType mediaType = MediaType.APPLICATION_JSON;
+			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context)
+					.defaultRequest(post("/graphql").contentType(mediaType).accept(mediaType))
+					.build();
+			mockMvcConsumer.accept(mockMvc);
+		});
 	}
 
 	private interface MockMvcConsumer {
@@ -131,10 +129,10 @@ class WebMvcApplicationContextTests {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	public static class DataFetchersConfiguration {
+	static class DataFetchersConfiguration {
 
 		@Bean
-		public RuntimeWiringCustomizer bookDataFetcher() {
+		RuntimeWiringBuilderCustomizer bookDataFetcher() {
 			return (builder) -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
 					.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
 		}
@@ -142,10 +140,10 @@ class WebMvcApplicationContextTests {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	public static class CustomWebInterceptor {
+	static class CustomWebInterceptor {
 
 		@Bean
-		public WebInterceptor customWebInterceptor() {
+		WebInterceptor customWebInterceptor() {
 			return (input, next) -> next.handle(input).map((output) ->
 					output.transform((builder) -> builder.responseHeader("X-Custom-Header", "42")));
 		}

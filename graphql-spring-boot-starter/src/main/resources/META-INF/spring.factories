@@ -2,12 +2,14 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.springframework.graphql.boot.actuate.metrics.GraphQlMetricsAutoConfiguration,\
 org.springframework.graphql.boot.GraphQlAutoConfiguration,\
 org.springframework.graphql.boot.GraphQlServiceAutoConfiguration,\
-org.springframework.graphql.boot.WebFluxGraphQlAutoConfiguration,\
-org.springframework.graphql.boot.WebMvcGraphQlAutoConfiguration
+org.springframework.graphql.boot.GraphQlWebFluxAutoConfiguration,\
+org.springframework.graphql.boot.GraphQlWebMvcAutoConfiguration
+
 # Spring Test @AutoConfigureGraphQlTester
 org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester=\
 org.springframework.graphql.boot.test.tester.WebTestClientMockMvcAutoConfiguration,\
 org.springframework.graphql.boot.test.tester.GraphQlTesterAutoConfiguration
+
 # Spring Test ContextCustomizerFactories
 org.springframework.test.context.ContextCustomizerFactory=\
 org.springframework.graphql.boot.test.tester.GraphQlTesterContextCustomizerFactory

@@ -2,12 +2,12 @@ package io.spring.sample.graphql.repository;
 
 import graphql.schema.idl.RuntimeWiring;
 
-import org.springframework.graphql.boot.RuntimeWiringCustomizer;
+import org.springframework.graphql.boot.RuntimeWiringBuilderCustomizer;
 import org.springframework.graphql.data.QuerydslDataFetcher;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ArtifactRepositoryDataWiring implements RuntimeWiringCustomizer {
+public class ArtifactRepositoryDataWiring implements RuntimeWiringBuilderCustomizer {
 
 	private final ArtifactRepositories repositories;
 
