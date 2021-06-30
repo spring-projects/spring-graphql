@@ -42,7 +42,7 @@ public class GraphQlProperties {
 
 	private final GraphiQL graphiql = new GraphiQL();
 
-	private final WebSocket websocket = new WebSocket();
+	private final Websocket websocket = new Websocket();
 
 	public String getPath() {
 		return this.path;
@@ -60,7 +60,7 @@ public class GraphQlProperties {
 		return this.graphiql;
 	}
 
-	public WebSocket getWebsocket() {
+	public Websocket getWebsocket() {
 		return this.websocket;
 	}
 
@@ -152,7 +152,7 @@ public class GraphQlProperties {
 		}
 	}
 
-	public static class WebSocket {
+	public static class Websocket {
 
 		/**
 		 * Path of the GraphQL WebSocket subscription endpoint.

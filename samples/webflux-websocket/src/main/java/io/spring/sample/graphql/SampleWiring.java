@@ -18,11 +18,11 @@ package io.spring.sample.graphql;
 import graphql.schema.idl.RuntimeWiring;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.graphql.boot.RuntimeWiringCustomizer;
+import org.springframework.graphql.boot.RuntimeWiringBuilderCustomizer;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SampleWiring implements RuntimeWiringCustomizer {
+public class SampleWiring implements RuntimeWiringBuilderCustomizer {
 
 	private final DataRepository repository;
 

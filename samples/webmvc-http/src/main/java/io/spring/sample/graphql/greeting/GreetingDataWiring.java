@@ -2,7 +2,7 @@ package io.spring.sample.graphql.greeting;
 
 import graphql.schema.idl.RuntimeWiring;
 
-import org.springframework.graphql.boot.RuntimeWiringCustomizer;
+import org.springframework.graphql.boot.RuntimeWiringBuilderCustomizer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -10,7 +10,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import static org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST;
 
 @Component
-public class GreetingDataWiring implements RuntimeWiringCustomizer {
+public class GreetingDataWiring implements RuntimeWiringBuilderCustomizer {
 
 	@Override
 	public void customize(RuntimeWiring.Builder builder) {

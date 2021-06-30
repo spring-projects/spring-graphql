@@ -27,9 +27,7 @@ import org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.HttpHandlerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
-import org.springframework.boot.test.context.runner.ContextConsumer;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.web.WebInterceptor;
@@ -40,14 +38,19 @@ import static org.hamcrest.Matchers.containsString;
 
 // @formatter:off
 
-class WebFluxApplicationContextTests {
-
-	private static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations.of(
-			HttpHandlerAutoConfiguration.class, WebFluxAutoConfiguration.class, CodecsAutoConfiguration.class,
-			JacksonAutoConfiguration.class, GraphQlAutoConfiguration.class, GraphQlServiceAutoConfiguration.class,
-			WebFluxGraphQlAutoConfiguration.class);
+class GraphQlWebFluxAutoConfigurationTests {
 
 	private static final String BASE_URL = "https://spring.example.org/graphql";
+
+	private final ReactiveWebApplicationContextRunner contextRunner = new ReactiveWebApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(HttpHandlerAutoConfiguration.class, WebFluxAutoConfiguration.class,
+					CodecsAutoConfiguration.class, JacksonAutoConfiguration.class, GraphQlAutoConfiguration.class,
+					GraphQlServiceAutoConfiguration.class, GraphQlWebFluxAutoConfiguration.class))
+			.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
+			.withPropertyValues(
+					"spring.main.web-application-type=reactive",
+					"spring.graphql.schema.printer.enabled=true",
+					"spring.graphql.schema.locations=classpath:books/");
 
 	@Test
 	void query() {
@@ -56,7 +59,7 @@ class WebFluxApplicationContextTests {
 					"  bookById(id: \\\"book-1\\\"){ " +
 					"    id" +
 					"    name" +
-					"    pageCount"	+
+					"    pageCount" +
 					"    author" +
 					"  }" +
 					"}";
@@ -124,7 +127,7 @@ class WebFluxApplicationContextTests {
 	}
 
 	private void testWithWebClient(Consumer<WebTestClient> consumer) {
-		testWithApplicationContext((context) -> {
+		this.contextRunner.run((context) -> {
 			WebTestClient client = WebTestClient.bindToApplicationContext(context)
 					.configureClient()
 					.defaultHeaders((headers) -> {
@@ -137,22 +140,11 @@ class WebFluxApplicationContextTests {
 		});
 	}
 
-	private void testWithApplicationContext(ContextConsumer<ApplicationContext> consumer) {
-		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AUTO_CONFIGURATIONS)
-				.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
-				.withPropertyValues(
-						"spring.main.web-application-type=reactive",
-						"spring.graphql.schema.printer.enabled=true",
-						"spring.graphql.schema.locations=classpath:books/")
-				.run(consumer);
-	}
-
 	@Configuration(proxyBeanMethods = false)
-	public static class DataFetchersConfiguration {
+	static class DataFetchersConfiguration {
 
 		@Bean
-		public RuntimeWiringCustomizer bookDataFetcher() {
+		RuntimeWiringBuilderCustomizer bookDataFetcher() {
 			return (runtimeWiring) ->
 					runtimeWiring.type(TypeRuntimeWiring.newTypeWiring("Query")
 							.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
@@ -161,10 +153,10 @@ class WebFluxApplicationContextTests {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	public static class CustomWebInterceptor {
+	static class CustomWebInterceptor {
 
 		@Bean
-		public WebInterceptor customWebInterceptor() {
+		WebInterceptor customWebInterceptor() {
 			return (input, next) -> next.handle(input).map((output) ->
 					output.transform((builder) -> builder.responseHeader("X-Custom-Header", "42")));
 		}

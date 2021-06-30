@@ -20,11 +20,11 @@ import java.util.Map;
 
 import graphql.schema.idl.RuntimeWiring;
 
-import org.springframework.graphql.boot.RuntimeWiringCustomizer;
+import org.springframework.graphql.boot.RuntimeWiringBuilderCustomizer;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SampleWiring implements RuntimeWiringCustomizer {
+public class SampleWiring implements RuntimeWiringBuilderCustomizer {
 
 	final EmployeeService employeeService;
 

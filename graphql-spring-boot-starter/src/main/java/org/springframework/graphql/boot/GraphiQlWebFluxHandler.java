@@ -25,20 +25,21 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 /**
  * WebFlux functional handler for the GraphiQl UI.
+ *
  * @author Brian Clozel
  */
-class WebFluxGraphiQlHandler {
+class GraphiQlWebFluxHandler {
 
 	private final String graphQlPath;
 
 	private final Resource graphiQlResource;
 
-	public WebFluxGraphiQlHandler(String graphQlPath, Resource graphiQlResource) {
+	GraphiQlWebFluxHandler(String graphQlPath, Resource graphiQlResource) {
 		this.graphQlPath = graphQlPath;
 		this.graphiQlResource = graphiQlResource;
 	}
 
-	public Mono<ServerResponse> showGraphiQlPage(ServerRequest request) {
+	Mono<ServerResponse> showGraphiQlPage(ServerRequest request) {
 		if (request.queryParam("path").isPresent()) {
 			return ServerResponse.ok().contentType(MediaType.TEXT_HTML).bodyValue(this.graphiQlResource);
 		}
