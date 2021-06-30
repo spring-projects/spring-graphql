@@ -21,4 +21,5 @@ include 'spring-graphql',
 	'samples:webmvc-http',
 	'samples:webmvc-http-security',
 	'samples:webflux-security',
-	'samples:webflux-websocket'
+	'samples:webflux-websocket',
+	'docs'

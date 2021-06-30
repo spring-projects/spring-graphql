@@ -90,6 +90,14 @@ jobs:
       build_number: "${BUILD_PIPELINE_NAME}-${BUILD_JOB_NAME}-${BUILD_NAME}"
       disable_checksum_uploads: true
       threads: 8
+      artifact_set:
+        - include:
+            - "/**/spring-graphql-*-docs.zip"
+          properties:
+            "zip.name": "spring-graphql"
+            "zip.displayname": "Spring GraphQL"
+            "zip.deployed": "false"
+            "zip.type": "docs"
     get_params:
       threads: 8
 - name: stage-milestone
