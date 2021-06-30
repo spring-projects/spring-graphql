@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.boot;
 
+import graphql.schema.GraphQLSchema;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -55,6 +56,19 @@ class GraphQlAutoConfigurationTests {
 				.withUserConfiguration(CustomGraphQlBuilderConfiguration.class).run((context) -> {
 					assertThat(context).hasBean("customGraphQlSourceBuilder");
 					assertThat(context).hasSingleBean(GraphQlSource.Builder.class);
+				});
+	}
+
+	@Test
+	void shouldScanLocationsForSchemaFiles() {
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:schema/")
+				.run((context) -> {
+					assertThat(context).hasSingleBean(GraphQlSource.class);
+					GraphQlSource graphQlSource = context.getBean(GraphQlSource.class);
+					GraphQLSchema schema = graphQlSource.schema();
+					assertThat(schema.getObjectType("Movie")).isNotNull();
+					assertThat(schema.getObjectType("Book")).isNotNull();
+					assertThat(schema.getObjectType("Store")).isNotNull();
 				});
 	}
 

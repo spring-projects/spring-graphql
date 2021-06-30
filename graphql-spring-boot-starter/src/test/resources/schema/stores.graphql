@@ -1,0 +1,10 @@
+type Store {
+    id: ID
+    location: Location
+}
+
+type Location {
+    address: String
+    city: String
+    country: String
+}

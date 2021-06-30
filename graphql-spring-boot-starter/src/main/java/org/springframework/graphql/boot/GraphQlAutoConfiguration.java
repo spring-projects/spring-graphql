@@ -60,7 +60,7 @@ public class GraphQlAutoConfiguration {
 	@ConditionalOnMissingBean(GraphQlSource.Builder.class)
 	public static class GraphQlSourceConfiguration {
 
-		private static final String SCHEMA_FILES_PATTERN = "*.graphqls";
+		private static final String[] SCHEMA_FILES_EXTENSIONS = new String[] {"*.graphqls", "*.graphql", "*.gql", "*.gqls"};
 
 		@Bean
 		@ConditionalOnMissingBean
@@ -85,7 +85,9 @@ public class GraphQlAutoConfiguration {
 		private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
 			List<Resource> schemaResources = new ArrayList<>();
 			for (String location : schemaLocations) {
-				schemaResources.addAll(Arrays.asList(resolver.getResources(location + SCHEMA_FILES_PATTERN)));
+				for (String extension : SCHEMA_FILES_EXTENSIONS) {
+					schemaResources.addAll(Arrays.asList(resolver.getResources(location + extension)));
+				}
 			}
 			return schemaResources;
 		}

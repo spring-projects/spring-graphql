@@ -1,0 +1,10 @@
+type Movie {
+    id: ID
+    title: String
+    director: Director
+}
+
+type Director {
+    id: ID
+    name: String
+}
