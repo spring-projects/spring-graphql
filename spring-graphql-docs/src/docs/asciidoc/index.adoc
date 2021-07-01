@@ -1,4 +1,5 @@
 = Spring GraphQL Documentation
+Brian Clozel; Andreas Marek; Rossen Stoyanchev
 :toc: left
 :toclevels: 4
 :tabsize: 4
@@ -116,7 +117,7 @@ public class PersonDataWiring implements RuntimeWiringCustomizer {
 ----
 
 You can now start your application!
-A GraphiQL web interface is available at `http://localhost:8080/graphql` and you can use GraphQL clients
+A GraphiQL web interface is available at `http://localhost:8080/graphiql` and you can use GraphQL clients
 to POST queries at the same location.
 
 
@@ -130,7 +131,7 @@ The Spring GraphQL project offers a few configuration properties to customize yo
 # web path to the graphql endpoint
 spring.graphql.path=/graphql
 # locations of the graphql schema files
-# scanning for files with well-known extensions: '*.graphqls', '*.gqls', '*.graphql', '*.gql'
+# scanning for files with well-known extensions: '.graphqls', '.gqls', '.graphql', '.gql'
 spring.graphql.schema.locations=classpath:graphql/
 # schema printer endpoint configuration
 # endpoint path is concatenated with the main path, so "/graphql/schema" by default
@@ -147,7 +148,7 @@ You can contribute `RuntimeWiringCustomizer` beans to the context in order to co
 
 === WebSocket support
 
-This project also supports WebSocket as a transport for GraphQL requests - you can use it to build [`Subscription` queries](http://spec.graphql.org/draft/#sec-Subscription).
+This project also supports WebSocket as a transport for GraphQL requests - you can use it to build http://spec.graphql.org/draft/#sec-Subscription[`Subscription` queries].
 This use case is powered by Reactor `Flux`, check out the `samples/webflux-websocket` sample application for more.
 
 To enable this support, you need to configure the `spring.graphql.websocket.path` property in your application
@@ -275,4 +276,6 @@ You can run them by cloning this repository and typing on the command line:
 ----
 $ ./gradlew :samples:webmvc-http:bootRun
 $ ./gradlew :samples:webflux-websocket:bootRun
+$ ./gradlew :samples:webmvc-http-security:bootRun
+$ ./gradlew :samples:webflux-security:bootRun
 ----
