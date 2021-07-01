@@ -42,6 +42,8 @@ import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.HandlerMapping;
@@ -87,18 +89,27 @@ public class GraphQlWebFluxAutoConfiguration {
 	@Bean
 	public RouterFunction<ServerResponse> graphQlEndpoint(GraphQlHttpHandler handler, GraphQlSource graphQlSource,
 			GraphQlProperties properties, ResourceLoader resourceLoader) {
+
 		String graphQLPath = properties.getPath();
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + graphQLPath);
 		}
 		// @formatter:off
 		RouterFunctions.Builder builder = RouterFunctions.route()
-				.POST(graphQLPath, accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)), handler::handleRequest);
+				.GET(graphQLPath, request ->
+						ServerResponse.status(HttpStatus.METHOD_NOT_ALLOWED)
+								.headers(headers -> headers.setAllow(Collections.singleton(HttpMethod.POST)))
+								.build())
+				.POST(graphQLPath,
+						accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)),
+						handler::handleRequest);
+
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
 			GraphiQlWebFluxHandler graphiQlHandler = new GraphiQlWebFluxHandler(graphQLPath, resource);
 			builder = builder.GET(properties.getGraphiql().getPath(), graphiQlHandler::showGraphiQlPage);
 		}
+
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
 			builder = builder.GET(graphQLPath + properties.getSchema().getPrinter().getPath(),

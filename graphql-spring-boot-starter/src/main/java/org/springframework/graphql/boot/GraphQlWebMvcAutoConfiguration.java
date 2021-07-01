@@ -47,6 +47,8 @@ import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webmvc.GraphQlHttpHandler;
 import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.servlet.HandlerMapping;
@@ -94,20 +96,30 @@ public class GraphQlWebMvcAutoConfiguration {
 	}
 
 	@Bean
-	public RouterFunction<ServerResponse> graphQlRouterFunction(GraphQlHttpHandler handler, GraphQlSource graphQlSource,
-			GraphQlProperties properties, ResourceLoader resourceLoader) {
+	public RouterFunction<ServerResponse> graphQlRouterFunction(GraphQlHttpHandler handler,
+			GraphQlSource graphQlSource, GraphQlProperties properties, ResourceLoader resourceLoader) {
+
 		String graphQLPath = properties.getPath();
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + graphQLPath);
 		}
+
 		// @formatter:off
 		RouterFunctions.Builder builder = RouterFunctions.route()
-				.POST(graphQLPath, contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)), handler::handleRequest);
+				.GET(graphQLPath, request ->
+						ServerResponse.status(HttpStatus.METHOD_NOT_ALLOWED)
+								.headers(headers -> headers.setAllow(Collections.singleton(HttpMethod.POST)))
+								.build())
+				.POST(graphQLPath,
+						contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)),
+						handler::handleRequest);
+
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
 			GraphiQlWebMvcHandler graphiQLHandler = new GraphiQlWebMvcHandler(graphQLPath, resource);
 			builder = builder.GET(properties.getGraphiql().getPath(), graphiQLHandler::showGraphiQlPage);
 		}
+
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
 			builder = builder.GET(graphQLPath + properties.getSchema().getPrinter().getPath(),

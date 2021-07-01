@@ -58,7 +58,7 @@ class GraphQlWebMvcAutoConfigurationTests {
 					"spring.graphql.schema.locations=classpath:books/");
 
 	@Test
-	void endpointHandlesGraphQlQuery() {
+	void query() {
 		testWith((mockMvc) -> {
 			String query = "{" +
 					"  bookById(id: \\\"book-1\\\"){ " +
@@ -73,6 +73,23 @@ class GraphQlWebMvcAutoConfigurationTests {
 					.andExpect(status().isOk())
 					.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 					.andExpect(jsonPath("data.bookById.name").value("GraphQL for beginners"));
+		});
+	}
+
+	@Test
+	void queryHttpGet() {
+		testWith((mockMvc) -> {
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount" +
+					"    author" +
+					"  }" +
+					"}";
+			mockMvc.perform(get("/graphql?query={query}", "{\"query\": \"" + query + "\"}"))
+					.andExpect(status().isMethodNotAllowed())
+					.andExpect(header().string("Allow", "POST"));
 		});
 	}
 

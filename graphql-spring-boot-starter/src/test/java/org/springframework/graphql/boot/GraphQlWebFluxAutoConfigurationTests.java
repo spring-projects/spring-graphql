@@ -31,6 +31,7 @@ import org.springframework.boot.test.context.runner.ReactiveWebApplicationContex
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -63,7 +64,6 @@ class GraphQlWebFluxAutoConfigurationTests {
 					"    author" +
 					"  }" +
 					"}";
-
 			client.post().uri("").bodyValue("{  \"query\": \"" + query + "\"}")
 					.exchange()
 					.expectStatus()
@@ -71,6 +71,25 @@ class GraphQlWebFluxAutoConfigurationTests {
 					.expectBody()
 					.jsonPath("data.bookById.name")
 					.isEqualTo("GraphQL for beginners");
+		});
+	}
+
+	@Test
+	void queryHttpGet() {
+		testWithWebClient((client) -> {
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount" +
+					"    author" +
+					"  }" +
+					"}";
+			client.get().uri("?query={query}", "{  \"query\": \"" + query + "\"}")
+					.exchange()
+					.expectStatus()
+					.isEqualTo(HttpStatus.METHOD_NOT_ALLOWED)
+					.expectHeader().valueEquals("Allow", "POST");
 		});
 	}
 
