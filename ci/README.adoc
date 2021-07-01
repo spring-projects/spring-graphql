@@ -1,6 +1,6 @@
 == Spring GraphQL Concourse pipeline
 
-The Spring GraphQL experimental project is using https://concourse-ci.org/[Concourse] for its CI build and other automated tasks.
+The Spring GraphQL project is using https://concourse-ci.org/[Concourse] for its CI build and other automated tasks.
 The Spring team has a dedicated Concourse instance available at https://ci.spring.io.
 
 === Setting up your development environment
@@ -29,7 +29,7 @@ The build pipelines are described in `pipeline.yml` file.
 This file is listing Concourse resources, i.e. build inputs and outputs such as container images, artifact repositories, source repositories, notification services, etc.
 It also describes jobs (a job is a sequence of inputs, tasks and outputs); jobs are organized by groups.
 
-The `pipeline.yml` definition contains `((parameters))` which are loaded from the `parameters.yml` file or from our https://docs.cloudfoundry.org/credhub/[credhub instance].
+The `pipeline.yml` definition contains `((parameters))` which are loaded from the `parameters.yml` file or from our https://www.vaultproject.io/[Vault instance].
 
 You'll find in this folder the following resources:
 * `pipeline.yml` the build pipeline
@@ -37,6 +37,7 @@ You'll find in this folder the following resources:
 * `images/` holds the container images definitions used in this pipeline
 * `scripts/` holds the build scripts that ship within the CI container images
 * `tasks` contains the task definitions used in the main `pipeline.yml`
+* `config` contains the Spring Boot configuration for the https://github.com/spring-io/github-changelog-generator[changelog generator] and https://github.com/spring-io/concourse-release-scripts[concourse-release-scripts]
 
 === Updating the build pipeline
 
@@ -48,4 +49,4 @@ The pipeline can be deployed using the following command:
 $ fly -t spring-graphql set-pipeline -p spring-graphql -c ci/pipeline.yml -l ci/parameters.yml
 ----
 
-NOTE: This assumes that you have credhub integration configured with the appropriate secrets.
+NOTE: This assumes that you have Vault configured with the appropriate secrets.

@@ -8,8 +8,8 @@ This project is governed by the [Spring Code of Conduct](CODE_OF_CONDUCT.adoc). 
 
 ## Documentation
 
-This project maintains its reference documentation ([published](https://docs.spring.io/spring-grapqhl/docs/current-SNAPSHOT/spring-graphql-reference/) and [source](docs/src/docs/asciidoc)) and an
-[API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/javadoc-api/).
+This project maintains its reference documentation ([published](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/reference/html/) and [source](docs/src/docs/asciidoc)) and an
+[API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/api/).
 
 
 ## Continuous Integration Builds
