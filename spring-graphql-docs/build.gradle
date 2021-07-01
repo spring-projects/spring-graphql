@@ -129,7 +129,7 @@ task docsZip(type: Zip, dependsOn: ['api', 'asciidoctor']) {
 	description = "Builds -${archiveClassifier} archive containing api and reference " +
 			"for deployment at https://docs.spring.io/spring-graphql/docs."
 	from (api) {
-		into "javadoc-api"
+		into "api"
 	}
 	from ("$asciidoctor.outputDir") {
 		into "reference/html"
