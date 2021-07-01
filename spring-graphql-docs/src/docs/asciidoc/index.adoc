@@ -165,7 +165,7 @@ spring.graphql.websocket.connection-init-timeout=60s
 
 === Extension points
 
-You can contribute [`WebInterceptor` beans](https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql/src/main/java/org/springframework/graphql/WebInterceptor.java)
+You can contribute https://github.com/spring-projects-experimental/spring-graphql/blob/master/spring-graphql/src/main/java/org/springframework/graphql/WebInterceptor.java[`WebInterceptor` beans]
 to the application context, so as to customize the `ExecutionInput` or the `ExecutionResult` of the query.
 A custom `WebInterceptor` can, for example, change the HTTP request/response headers.
 
@@ -173,8 +173,8 @@ A custom `WebInterceptor` can, for example, change the HTTP request/response hea
 
 When the `spring-boot-starter-test` dependency is on the classpath, Spring GraphQL provides a testing infrastructure for your application.
 
-Spring Boot allows you to test your web application with [with a mock environment](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-mock-environment)
-or [with a running server](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-running-server).
+Spring Boot allows you to test your web application with https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-mock-environment[with a mock environment]
+or https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-running-server[with a running server].
 In both cases, adding the `@AutoConfigureGraphQlTester` annotation on your test class will contribute a `GraphQlTester` bean you can inject and use in your tests:
 
 [source,java,indent=0,subs="verbatim,quotes"]
