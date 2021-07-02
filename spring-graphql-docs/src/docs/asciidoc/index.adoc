@@ -183,7 +183,8 @@ schema locations to check as follows:
 spring.graphql.schema.locations=classpath:graphql/
 ----
 
-The GraphQL schema can be viewed over HTTP at "/graphql/schema", if enabled:
+The GraphQL schema can be viewed over HTTP at "/graphql/schema", relative to the main graphql endpoint path.
+It is disabled by default:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----

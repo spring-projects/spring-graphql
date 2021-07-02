@@ -124,8 +124,7 @@ public class GraphQlWebMvcAutoConfiguration {
 
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaHandler schemaHandler = new SchemaHandler(graphQlSource);
-			String schemaPath = properties.getSchema().getPrinter().getPath();
-			builder = builder.GET(graphQLPath + schemaPath, schemaHandler::handleRequest);
+			builder = builder.GET(graphQLPath + "/schema", schemaHandler::handleRequest);
 		}
 
 		return builder.build();

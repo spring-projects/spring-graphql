@@ -98,25 +98,12 @@ public class GraphQlProperties {
 			 */
 			private boolean enabled = false;
 
-			/**
-			 * Path under the main GraphQL path where the schema is exposed.
-			 */
-			private String path = "/schema";
-
 			public boolean isEnabled() {
 				return this.enabled;
 			}
 
 			public void setEnabled(boolean enabled) {
 				this.enabled = enabled;
-			}
-
-			public String getPath() {
-				return this.path;
-			}
-
-			public void setPath(String path) {
-				this.path = path;
 			}
 
 		}

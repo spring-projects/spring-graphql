@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
-import graphql.schema.idl.SchemaPrinter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -115,8 +114,7 @@ public class GraphQlWebFluxAutoConfiguration {
 
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaHandler schemaHandler = new SchemaHandler(graphQlSource);
-			String schemaPath = properties.getSchema().getPrinter().getPath();
-			builder = builder.GET(graphQLPath + schemaPath, schemaHandler::handleRequest);
+			builder = builder.GET(graphQLPath + "/schema", schemaHandler::handleRequest);
 		}
 
 		return builder.build();
