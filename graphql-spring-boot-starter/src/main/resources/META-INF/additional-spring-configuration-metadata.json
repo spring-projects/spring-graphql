@@ -3,6 +3,20 @@
     {
       "name": "spring.graphql.locations",
       "defaultValue": "classpath:graphql/"
+    },
+    {
+      "name": "management.metrics.graphql.autotime.enabled",
+      "description": "Whether to automatically time graphql requests.",
+      "defaultValue": true
+    },
+    {
+      "name": "management.metrics.graphql.autotime.percentiles",
+      "description": "Computed non-aggregable percentiles to publish."
+    },
+    {
+      "name": "management.metrics.graphql.autotime.percentiles-histogram",
+      "description": "Whether percentile histograms should be published.",
+      "defaultValue": false
     }
   ]
 }

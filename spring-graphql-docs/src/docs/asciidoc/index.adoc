@@ -263,7 +263,15 @@ spring.graphql.graphiql.path=/graphiql
 === Metrics
 
 When the starter `spring-boot-starter-actuator` is present on the classpath, metrics for
-GraphQL requests are collected. You can configure metrics collection as follows:
+GraphQL requests are collected. You can disable metrics collection as follows:
+
+[source,properties,indent=0,subs="verbatim,quotes"]
+----
+management.metrics.graphql.autotime.enabled=false
+----
+
+Metrics can be exposed with an Actuator web endpoint.
+The following sections assume that its exposure is enabled in your application configuration, as follows:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
