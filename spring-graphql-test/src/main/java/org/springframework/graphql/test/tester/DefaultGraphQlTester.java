@@ -32,7 +32,6 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.TypeRef;
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import org.reactivestreams.Publisher;
@@ -217,8 +216,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		protected ExecutionResult executeInternal(RequestInput input) {
-			ExecutionInput executionInput = input.toExecutionInput();
-			ExecutionResult result = this.graphQlService.execute(executionInput).block(responseTimeout());
+			ExecutionResult result = this.graphQlService.execute(input).block(responseTimeout());
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
 		}

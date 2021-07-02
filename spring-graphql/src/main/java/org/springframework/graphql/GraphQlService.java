@@ -16,7 +16,6 @@
 
 package org.springframework.graphql;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
@@ -31,9 +30,9 @@ public interface GraphQlService {
 
 	/**
 	 * Perform the operation and return the result.
-	 * @param input the input for the {@link graphql.GraphQL} invocation
+	 * @param input container for the GraphQL request input
 	 * @return the execution result
 	 */
-	Mono<ExecutionResult> execute(ExecutionInput input);
+	Mono<ExecutionResult> execute(RequestInput input);
 
 }

@@ -22,6 +22,7 @@ import graphql.GraphQL;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.RequestInput;
 
 /**
  * Implementation of {@link GraphQlService} that performs GraphQL request execution
@@ -39,11 +40,12 @@ public class ExecutionGraphQlService implements GraphQlService {
 	}
 
 	@Override
-	public Mono<ExecutionResult> execute(ExecutionInput input) {
+	public Mono<ExecutionResult> execute(RequestInput input) {
+		ExecutionInput executionInput = input.toExecutionInput();
 		GraphQL graphQl = this.graphQlSource.graphQl();
 		return Mono.deferContextual((contextView) -> {
-			ContextManager.setReactorContext(contextView, input);
-			return Mono.fromFuture(graphQl.executeAsync(input));
+			ContextManager.setReactorContext(contextView, executionInput);
+			return Mono.fromFuture(graphQl.executeAsync(executionInput));
 		});
 	}
 

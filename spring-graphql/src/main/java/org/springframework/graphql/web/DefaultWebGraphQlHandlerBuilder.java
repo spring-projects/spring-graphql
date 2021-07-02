@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import graphql.ExecutionInput;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
@@ -81,13 +80,11 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	@Override
 	public WebGraphQlHandler build() {
-		List<WebInterceptor> interceptorsToUse = (this.interceptors != null) ? this.interceptors
-				: Collections.emptyList();
+		List<WebInterceptor> interceptorsToUse =
+				(this.interceptors != null) ? this.interceptors : Collections.emptyList();
 
-		WebGraphQlHandler targetHandler = (webInput) -> {
-			ExecutionInput executionInput = webInput.toExecutionInput();
-			return this.service.execute(executionInput).map((result) -> new WebOutput(webInput, result));
-		};
+		WebGraphQlHandler targetHandler = (webInput) ->
+				this.service.execute(webInput).map((result) -> new WebOutput(webInput, result));
 
 		// @formatter:off
 		WebGraphQlHandler interceptionChain = interceptorsToUse.stream()
