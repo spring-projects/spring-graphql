@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.boot;
+package org.springframework.graphql.web.webmvc;
+
+import java.net.URI;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -22,28 +24,39 @@ import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 /**
- * Servlet.fn handler for the GraphiQl UI.
+ * Spring MVC functional handler that renders a GraphiQl UI page.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  */
-class GraphiQlWebMvcHandler {
+public class GraphiQlHandler {
 
 	private final String graphQlPath;
 
 	private final Resource graphiQlResource;
 
-	GraphiQlWebMvcHandler(String graphQlPath, Resource graphiQlResource) {
+
+	/**
+	 * Create an instance.
+	 * @param graphQlPath the path to the GraphQL endpoint
+	 * @param graphiQlResource the GraphiQL page
+	 */
+	public GraphiQlHandler(String graphQlPath, Resource graphiQlResource) {
 		this.graphQlPath = graphQlPath;
 		this.graphiQlResource = graphiQlResource;
 	}
 
-	ServerResponse showGraphiQlPage(ServerRequest request) {
-		if (request.param("path").isPresent()) {
-			return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.graphiQlResource);
+
+	/**
+	 * Handle the request, serving the GraphiQL page as HTML or adding a "path"
+	 * param and redirecting back to the same URL if needed.
+	 */
+	public ServerResponse handleRequest(ServerRequest request) {
+		if (!request.param("path").isPresent()) {
+			URI url = request.uriBuilder().queryParam("path", this.graphQlPath).build();
+			return ServerResponse.temporaryRedirect(url).build();
 		}
-		else {
-			return ServerResponse.temporaryRedirect(request.uriBuilder().queryParam("path", this.graphQlPath).build()).build();
-		}
+		return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.graphiQlResource);
 	}
 
 }

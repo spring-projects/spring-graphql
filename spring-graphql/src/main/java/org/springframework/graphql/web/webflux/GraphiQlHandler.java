@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.boot;
+package org.springframework.graphql.web.webflux;
+
+import java.net.URI;
 
 import reactor.core.publisher.Mono;
 
@@ -24,27 +26,39 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 /**
- * WebFlux functional handler for the GraphiQl UI.
+ * Spring WebFlux functional handler that renders a GraphiQl UI page.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  */
-class GraphiQlWebFluxHandler {
+public class GraphiQlHandler {
 
 	private final String graphQlPath;
 
 	private final Resource graphiQlResource;
 
-	GraphiQlWebFluxHandler(String graphQlPath, Resource graphiQlResource) {
+
+	/**
+	 * Create an instance.
+	 * @param graphQlPath the path to the GraphQL endpoint
+	 * @param graphiQlResource the GraphiQL page
+	 */
+	public GraphiQlHandler(String graphQlPath, Resource graphiQlResource) {
 		this.graphQlPath = graphQlPath;
 		this.graphiQlResource = graphiQlResource;
 	}
 
-	Mono<ServerResponse> showGraphiQlPage(ServerRequest request) {
-		if (request.queryParam("path").isPresent()) {
-			return ServerResponse.ok().contentType(MediaType.TEXT_HTML).bodyValue(this.graphiQlResource);
+
+	/**
+	 * Handle the request, serving the GraphiQL page as HTML or adding a "path"
+	 * param and redirecting back to the same URL if needed.
+	 */
+	public Mono<ServerResponse> handleRequest(ServerRequest request) {
+		if (!request.queryParam("path").isPresent()) {
+			URI url = request.uriBuilder().queryParam("path", this.graphQlPath).build();
+			return ServerResponse.temporaryRedirect(url).build();
 		}
-		else {
-			return ServerResponse.temporaryRedirect(request.uriBuilder().queryParam("path", this.graphQlPath).build()).build();
-		}
+		return ServerResponse.ok().contentType(MediaType.TEXT_HTML).bodyValue(this.graphiQlResource);
 	}
+
 }

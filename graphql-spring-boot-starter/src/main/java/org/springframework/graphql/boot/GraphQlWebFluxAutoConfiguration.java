@@ -42,6 +42,7 @@ import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
+import org.springframework.graphql.web.webflux.GraphiQlHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -106,8 +107,8 @@ public class GraphQlWebFluxAutoConfiguration {
 
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-			GraphiQlWebFluxHandler graphiQlHandler = new GraphiQlWebFluxHandler(graphQLPath, resource);
-			builder = builder.GET(properties.getGraphiql().getPath(), graphiQlHandler::showGraphiQlPage);
+			GraphiQlHandler graphiQlHandler = new GraphiQlHandler(graphQLPath, resource);
+			builder = builder.GET(properties.getGraphiql().getPath(), graphiQlHandler::handleRequest);
 		}
 
 		if (properties.getSchema().getPrinter().isEnabled()) {

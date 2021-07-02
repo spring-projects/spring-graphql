@@ -47,6 +47,7 @@ import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webmvc.GraphQlHttpHandler;
 import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
+import org.springframework.graphql.web.webmvc.GraphiQlHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -116,14 +117,14 @@ public class GraphQlWebMvcAutoConfiguration {
 
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-			GraphiQlWebMvcHandler graphiQLHandler = new GraphiQlWebMvcHandler(graphQLPath, resource);
-			builder = builder.GET(properties.getGraphiql().getPath(), graphiQLHandler::showGraphiQlPage);
+			GraphiQlHandler graphiQLHandler = new GraphiQlHandler(graphQLPath, resource);
+			builder = builder.GET(properties.getGraphiql().getPath(), graphiQLHandler::handleRequest);
 		}
 
 		if (properties.getSchema().getPrinter().isEnabled()) {
 			SchemaPrinter printer = new SchemaPrinter();
 			builder = builder.GET(graphQLPath + properties.getSchema().getPrinter().getPath(),
-					(req) -> ServerResponse.ok()
+					(request) -> ServerResponse.ok()
 							.contentType(MediaType.TEXT_PLAIN)
 							.body(printer.print(graphQlSource.schema())));
 		}
