@@ -61,24 +61,26 @@ public class GraphQlHttpHandler {
 	 * @return the HTTP response
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest request) {
-		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF).flatMap((body) -> {
-			String id = request.exchange().getRequest().getId();
-			WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), body, id);
-			if (logger.isDebugEnabled()) {
-				logger.debug("Executing: " + input);
-			}
-			return this.graphQlHandler.handle(input);
-		}).flatMap((output) -> {
-			Map<String, Object> spec = output.toSpecification();
-			if (logger.isDebugEnabled()) {
-				logger.debug("Execution complete");
-			}
-			ServerResponse.BodyBuilder builder = ServerResponse.ok();
-			if (output.getResponseHeaders() != null) {
-				builder.headers((headers) -> headers.putAll(output.getResponseHeaders()));
-			}
-			return builder.bodyValue(spec);
-		});
+		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
+				.flatMap((body) -> {
+					String id = request.exchange().getRequest().getId();
+					WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), body, id);
+					if (logger.isDebugEnabled()) {
+						logger.debug("Executing: " + input);
+					}
+					return this.graphQlHandler.handle(input);
+				})
+				.flatMap((output) -> {
+					Map<String, Object> spec = output.toSpecification();
+					if (logger.isDebugEnabled()) {
+						logger.debug("Execution complete");
+					}
+					ServerResponse.BodyBuilder builder = ServerResponse.ok();
+					if (output.getResponseHeaders() != null) {
+						builder.headers((headers) -> headers.putAll(output.getResponseHeaders()));
+					}
+					return builder.bodyValue(spec);
+				});
 	}
 
 }
