@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import javax.websocket.server.ServerContainer;
 
 import graphql.GraphQL;
-import graphql.schema.idl.SchemaPrinter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -48,6 +47,7 @@ import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webmvc.GraphQlHttpHandler;
 import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
 import org.springframework.graphql.web.webmvc.GraphiQlHandler;
+import org.springframework.graphql.web.webmvc.SchemaHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -114,6 +114,7 @@ public class GraphQlWebMvcAutoConfiguration {
 				.POST(graphQLPath,
 						contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)),
 						handler::handleRequest);
+		// @formatter:on
 
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
@@ -122,13 +123,11 @@ public class GraphQlWebMvcAutoConfiguration {
 		}
 
 		if (properties.getSchema().getPrinter().isEnabled()) {
-			SchemaPrinter printer = new SchemaPrinter();
-			builder = builder.GET(graphQLPath + properties.getSchema().getPrinter().getPath(),
-					(request) -> ServerResponse.ok()
-							.contentType(MediaType.TEXT_PLAIN)
-							.body(printer.print(graphQlSource.schema())));
+			SchemaHandler schemaHandler = new SchemaHandler(graphQlSource);
+			String schemaPath = properties.getSchema().getPrinter().getPath();
+			builder = builder.GET(graphQLPath + schemaPath, schemaHandler::handleRequest);
 		}
-		// @formatter:on
+
 		return builder.build();
 	}
 

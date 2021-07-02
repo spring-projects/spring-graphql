@@ -43,6 +43,7 @@ import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.web.webflux.GraphiQlHandler;
+import org.springframework.graphql.web.webflux.SchemaHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -104,6 +105,7 @@ public class GraphQlWebFluxAutoConfiguration {
 				.POST(graphQLPath,
 						accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)),
 						handler::handleRequest);
+		// @formatter:on
 
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
@@ -112,13 +114,11 @@ public class GraphQlWebFluxAutoConfiguration {
 		}
 
 		if (properties.getSchema().getPrinter().isEnabled()) {
-			SchemaPrinter printer = new SchemaPrinter();
-			builder = builder.GET(graphQLPath + properties.getSchema().getPrinter().getPath(),
-					(req) -> ServerResponse.ok()
-							.contentType(MediaType.TEXT_PLAIN)
-							.bodyValue(printer.print(graphQlSource.schema())));
+			SchemaHandler schemaHandler = new SchemaHandler(graphQlSource);
+			String schemaPath = properties.getSchema().getPrinter().getPath();
+			builder = builder.GET(graphQLPath + schemaPath, schemaHandler::handleRequest);
 		}
-		// @formatter:on
+
 		return builder.build();
 	}
 
