@@ -5,46 +5,150 @@ Brian Clozel; Andreas Marek; Rossen Stoyanchev
 :tabsize: 4
 
 
-
+[[web]]
 == Web Transports
 
-TODO...
+Spring GraphQL supports GraphQL requests over HTTP and over WebSocket. It comes with a choice
+of handlers for Spring MVC and Spring WebFlux applications.
 
 
+
+[[web-http]]
 === HTTP
 
-TODO...
+`GraphQlHttpHandler` classes, in their respective WebMvc and WebFlux sub-packages, provide
+handling of GraphQL over HTTP requests and both delegate to a common <<web-interceptor>>
+chain for actual handling and query execution.
+
+The HTTP handlers for WebMvc and WebFlux have equivalent functionality. Both perform
+asynchronous execution of GraphQL queries, while the WebFlux handler also uses non-blocking
+I/O to write to the HTTP response.
+
+Requests should have the HTTP POST method with the query in the request body as defined in the
+https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md[GraphQL over HTTP]
+spec proposal.
+
+The handlers can be exposed as endpoints by declaring a `RouterFunction` bean and using
+the `RouterFunctions`, functional endpoint DSL for WebMvc or WebFlux respectively to
+create the mappings. The Boot starter does this by default, see <<boot-graphql-web>> for
+details or look in the `GraphQlWebMvcAutoConfiguration` or
+`GraphQlWebFluxAutoConfiguration` classes for example config.
 
 
+
+[[web-websocket]]
 === WebSocket
 
-TODO...
+`GraphQlWebSocketHandler` classes, in their respective WebMvc and WebFlux sub-packages,
+support GraphQL over WebSocket requests based on the
+https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[protocol] defined in the
+`graphql-ws` library that also lists a number of
+https://github.com/enisdenjo/graphql-ws#recipes[recipes] for use with various clients.
 
+[TIP]
+.GraphQL Over WebSocket Protocols
+====
+There are two such protocols, one in the
+https://github.com/apollographql/subscriptions-transport-ws[subscriptions-transport-ws]
+library and another in the
+https://github.com/enisdenjo/graphql-ws[graphql-ws] library. The former is not active and
+succeeded by the latter. Read this
+https://the-guild.dev/blog/graphql-over-websockets[blog post] for the history.
+====
+
+The WebSocket handlers for WebMvc and WebFlux have equivalent functionality. Both perform
+asynchronous execution of GraphQL queries, but the WebFlux handler also uses non-blocking
+I/O and back pressure to stream messages to the WebSocket connection.
+
+GraphQL over WebSocket protocol supports the execution both queries and streaming
+subscriptions and the <<web-interceptor>> can be used to intercept each query or
+subscription request.
+
+The handlers can be exposed as endpoints by declaring `SimpleUrlHandlerMapping` beans for
+WebMvc or WebFlux respectively. The Boot starter provides options to enable and conifgure
+all this, see<<boot-graphql-web>> for details or look in the `GraphQlWebMvcAutoConfiguration`
+or `GraphQlWebFluxAutoConfiguration` classes for example configuration.
+
+
+
+[[web-interceptor]]
 === `WebInterceptor` API
 
-TODO...
+Web transport handlers for <<web-http>> and for <<web-websocket>> delegate to a
+`WebGraphQlHandler` that represents a chain of `WebInterceptor` components, followed by a
+`GraphQlSource` that actually invokes the GraphQL Java engine.
+
+A `WebInterceptor` can be used to examine HTTP request input and potentially change the
+`ExecutionInput` passed to `graphql.GraphQL`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+class MyInterceptor implements WebInterceptor {
+
+	@Override
+	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
+		webInput.configureExecutionInput((executionInput, builder) -> {
+			Map<String, Object> map = ... ;
+			return builder.extensions(map).build();
+		});
+		return next.handle(webInput);
+	}
+}
+----
+
+A `WebInterceptor` can be used to inspect and potentially modify the `ExecutionResult`
+or add an HTTP response header:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+class MyInterceptor implements WebInterceptor {
+
+	@Override
+	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
+		return next.handle(webInput)
+				.map(webOutput -> {
+					Object data = webOutput.getData();
+					Object updatedData = ... ;
+					return webOutput.transform(builder -> builder.data(updatedData));
+				});
+	}
+}
+----
+
+`WebGraphQlHandler` provides a builder to assemble the processing chain given a
+a set of `WebInterceptor` components and a `GraphQlSource`. This handler is then passed
+to one of the web transport handlers. The Boot starter does all this by detecting beans
+of type `WebInterceptor` and using them to build the processing chain, see
+<<boot-graphql-web>> for details, or look in the `GraphQlWebMvcAutoConfiguration` or
+`GraphQlWebFluxAutoConfiguration` classes for example configuration.
 
 
+
+[[execution]]
 ==  Query Execution
 
 TODO...
 
 
+[[execution-configuring]]
 === Configuring the GraphQL Engine
 
 TODO...
 
 
+[[execution-datafetcher]]
 === `DataFetcher` Support
 
 TODO...
 
 
+[[execution-context]]
 === Context Management
 
 TODO...
 
 
+[[execution-exceptions]]
 === Exception Resolution
 
 TODO...
@@ -52,11 +156,13 @@ TODO...
 
 
 
+[[data]]
 == Data Integrations
 
 TODO...
 
 
+[[data-querydsl]]
 === QueryDsl
 
 TODO...
@@ -64,6 +170,7 @@ TODO...
 
 
 
+[[data-security]]
 == Security
 
 TODO...
@@ -71,6 +178,7 @@ TODO...
 
 
 
+[[testing]]
 == Testing
 
 TODO...
@@ -78,12 +186,14 @@ TODO...
 
 
 
+[[boot-graphql]]
 == Boot config
 
 This project is tested against Spring Boot 2.4+.
 
 
 
+[[boot-graphql-project]]
 === Project Setup
 
 To create a project, go to https://start.spring.io and select starter(s) for the
@@ -170,6 +280,7 @@ released in Spring Boot 2.7 building on Spring GraphQL 1.0.
 
 
 
+[[boot-graphql-schema]]
 === GraphQL Schema
 
 By default, GraphQL schema files are expected to be in `src/main/resources/graphql` and have
@@ -181,8 +292,8 @@ schema locations to check as follows:
 spring.graphql.schema.locations=classpath:graphql/
 ----
 
-The GraphQL schema can be viewed over HTTP at "/graphql/schema", relative to the main graphql endpoint path.
-It is disabled by default:
+The GraphQL schema can be viewed over HTTP at "/graphql/schema". This is not enabled by
+default:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
@@ -190,6 +301,7 @@ spring.graphql.schema.printer.enabled=false
 ----
 
 
+[[boot-graphql-datafetcher]]
 === `DataFetcher` Registration
 
 You can declare `RuntimeWiringCustomizer` beans in your Spring config and use those to
@@ -215,17 +327,18 @@ public class PersonDataWiring implements RuntimeWiringCustomizer {
 ----
 
 
+[[boot-graphql-web]]
 === Web Transports
 
-The GraphQL HTTP endpoint path is "/graphql" by default but can be customized:
+The GraphQL HTTP endpoint is at HTTP POST "/graphql" by default. The path can be customized:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
 spring.graphql.path=/graphql
 ----
 
-The GraphQL WebSocket endpoint path is "/graphql" by default. The below configuration
-properties apply to the WebSocket endpoint:
+The GraphQL WebSocket endpoint supports WebSocket handshakes at "/graphql" by default.
+The below shows the properties that apply for WebSocket handling:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
@@ -244,6 +357,7 @@ The GraphQL WebSocket endpoint is not enabled by default. To enable it:
 intercept for both GraphQL requests over HTTP and over WebSocket.
 
 
+[[boot-graphql-graphiql]]
 === GraphiQL Page
 
 The Spring Boot starter includes a https://github.com/graphql/graphiql[GraphiQL] page
@@ -258,6 +372,7 @@ spring.graphql.graphiql.path=/graphiql
 
 
 
+[[boot-graphql-metrics]]
 === Metrics
 
 When the starter `spring-boot-starter-actuator` is present on the classpath, metrics for
@@ -277,6 +392,7 @@ management.endpoints.web.exposure.include=health,metrics,info
 ----
 
 
+[[boot-graphql-metrics-request-timer]]
 ==== GraphQL Request Timer
 
 A Request metric timer is available at `/actuator/metrics/graphql.request`.
@@ -291,6 +407,7 @@ A Request metric timer is available at `/actuator/metrics/graphql.request`.
 |===
 
 
+[[boot-graphql-metrics-datafetcher-timer]]
 ==== GraphQL `DataFetcher` Timer
 
 A `DataFetcher` metric timer is available at `/actuator/metrics/graphql.datafetcher`.
@@ -309,6 +426,7 @@ A `DataFetcher` metric timer is available at `/actuator/metrics/graphql.datafetc
 |===
 
 
+[[boot-graphql-metrics-error-counter]]
 ==== GraphQL Error Counter
 
 A GraphQL error metric counter is available at `/actuator/metrics/graphql.error`.
@@ -328,6 +446,7 @@ A GraphQL error metric counter is available at `/actuator/metrics/graphql.error`
 
 
 
+[[boot-graphql-testing]]
 === Testing
 
 When the starter `spring-boot-starter-test` is present on the classpath, a `WebGraphQlTester`
@@ -414,6 +533,7 @@ chain and then calls GraphQL Java which returns a Reactive Streams `Publisher`.
 
 
 
+[[samples]]
 == Samples
 
 This Spring GraphQL repository contains
