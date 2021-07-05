@@ -36,6 +36,7 @@ import org.springframework.security.core.context.ReactiveSecurityContextHolder;
  *
  * @author Rob Winch
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class ReactiveSecurityDataFetcherExceptionResolver implements DataFetcherExceptionResolver {
 

@@ -32,6 +32,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
  *
  * @author Rob Winch
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class SecurityDataFetcherExceptionResolver extends DataFetcherExceptionResolverAdapter {
 

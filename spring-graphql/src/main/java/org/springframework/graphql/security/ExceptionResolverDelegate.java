@@ -29,6 +29,7 @@ import org.springframework.util.Assert;
  * Package private delegate class shared by the reactive and non-reactive resolver types.
  *
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 class ExceptionResolverDelegate {
 
