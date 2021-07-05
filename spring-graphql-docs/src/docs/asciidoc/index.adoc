@@ -11,9 +11,9 @@ Brian Clozel; Andreas Marek; Rossen Stoyanchev
 [[overview]]
 == Overview
 
-Spring GraphQL provides support for Spring applications built
+Spring GraphQL provides support for Spring applications built on
 https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between both
-teams, and our shared philosophy is to be less opinionated and more focused on
+teams. Our shared philosophy is to be less opinionated and more focused on
 comprehensive and wide-ranging support.
 
 Spring GraphQL is the successor of the
@@ -22,8 +22,8 @@ the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL appl
 
 The project is in a milestone phase towards a 1.0 release, currently, and looking for
 feedback. Please, use our
-https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report an
-issue, discuss a design issue, or request a feature.
+https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report a
+problem, discuss a design issue, or request a feature.
 
 To get started, please see the <<boot-graphql>> and the <<samples>> sections.
 
@@ -578,7 +578,7 @@ cannot be used for integration test of GraphQL over WebSocket requests.
 [[boot-graphql]]
 == Boot Starter
 
-This project works on Spring Boot 2.4+.
+This projects builds on Boot 2.5.x, but it should be compatible with the latest Boot 2.4.x.
 
 
 
