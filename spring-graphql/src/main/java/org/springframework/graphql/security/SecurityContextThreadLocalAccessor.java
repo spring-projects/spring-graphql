@@ -1,13 +1,18 @@
-package io.spring.sample.graphql;
+package org.springframework.graphql.security;
+
+import java.util.Map;
 
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
-@Component
+/**
+ * {@link ThreadLocalAccessor} to extract and restore security context through
+ * {@link SecurityContextHolder}.
+ *
+ * @author Rob Winch
+ * @author Rossen Stoyanchev
+ */
 public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor {
 
 	private static final String KEY = SecurityContext.class.getName();
@@ -28,4 +33,5 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor {
 	public void resetValues(Map<String, Object> values) {
 		SecurityContextHolder.clearContext();
 	}
+
 }
