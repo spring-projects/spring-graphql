@@ -4,46 +4,74 @@ Brian Clozel; Andreas Marek; Rossen Stoyanchev
 :toclevels: 4
 :tabsize: 4
 
+:repository: https://github.com/spring-projects/spring-graphql/tree/main
 
-[[web]]
+
+
+[[overview]]
+== Overview
+
+Spring GraphQL provides support for Spring applications built
+https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between both
+teams, and our shared philosophy is to be less opinionated and more focused on
+comprehensive and wide-ranging support.
+
+Spring GraphQL is the successor of the
+https://github.com/graphql-java/graphql-java-spring[GraphQL Java Spring] project from
+the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL applications.
+
+The project is in a milestone phase towards a 1.0 release, currently, and looking for
+feedback. Please, use our
+https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report an
+issue, discuss a design issue, or request a feature.
+
+To get started, please see the <<boot-graphql>> and the <<samples>> sections.
+
+
+
+[[web-transports]]
 == Web Transports
 
-Spring GraphQL supports GraphQL requests over HTTP and over WebSocket. It comes with a choice
-of handlers for Spring MVC and Spring WebFlux applications.
+Spring GraphQL supports GraphQL requests over HTTP and over WebSocket.
 
 
 
 [[web-http]]
 === HTTP
 
-`GraphQlHttpHandler` classes, in their respective WebMvc and WebFlux sub-packages, provide
-handling of GraphQL over HTTP requests and both delegate to a common <<web-interceptor>>
-chain for actual handling and query execution.
+`GraphQlHttpHandler` handles GraphQL over HTTP requests and delegates to the
+<<web-interception>> chain for request execution. There are two variants, one for
+Spring MVC and one for Spring WebFlux. Both handle requests asynchronously and have
+equivalent functionality, but rely on blocking vs non-blocking I/O respectively for
+writing the HTTP response.
 
-The HTTP handlers for WebMvc and WebFlux have equivalent functionality. Both perform
-asynchronous execution of GraphQL queries, while the WebFlux handler also uses non-blocking
-I/O to write to the HTTP response.
-
-Requests should have the HTTP POST method with the query in the request body as defined in the
+Requests must use HTTP POST with GraphQL request details included as JSON in the
+request body, as defined in the proposed
 https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md[GraphQL over HTTP]
-spec proposal.
+specification. Once the JSON body has been successfully decoded, the HTTP response
+status is always 200 (OK), and any errors from GraphQL request execution appear in the
+"errors" section of the GraphQL response.
 
-The handlers can be exposed as endpoints by declaring a `RouterFunction` bean and using
-the `RouterFunctions`, functional endpoint DSL for WebMvc or WebFlux respectively to
-create the mappings. The Boot starter does this by default, see <<boot-graphql-web>> for
-details or look in the `GraphQlWebMvcAutoConfiguration` or
-`GraphQlWebFluxAutoConfiguration` classes for example config.
+`GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
+bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
+Boot starter does this, see <<boot-graphql-web>> for details or check
+`GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
+
+The Spring GraphQL repository contains a Spring MVC
+{repository}/samples/webmvc-http[HTTP sample] application.
 
 
 
 [[web-websocket]]
 === WebSocket
 
-`GraphQlWebSocketHandler` classes, in their respective WebMvc and WebFlux sub-packages,
-support GraphQL over WebSocket requests based on the
+`GraphQlWebSocketHandler` handles GraphQL over WebSocket requests based on the
 https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[protocol] defined in the
-`graphql-ws` library that also lists a number of
-https://github.com/enisdenjo/graphql-ws#recipes[recipes] for use with various clients.
+https://github.com/enisdenjo/graphql-ws[graphql-ws] library. The main reason to use
+GraphQL over WebSocket is subscriptions which allow sending a stream of GraphQL
+responses, but it can also be used for regular queries with a single response.
+The handler delegates every request to the <<web-interception>> chain for further
+request execution.
 
 [TIP]
 .GraphQL Over WebSocket Protocols
@@ -56,30 +84,36 @@ succeeded by the latter. Read this
 https://the-guild.dev/blog/graphql-over-websockets[blog post] for the history.
 ====
 
-The WebSocket handlers for WebMvc and WebFlux have equivalent functionality. Both perform
-asynchronous execution of GraphQL queries, but the WebFlux handler also uses non-blocking
-I/O and back pressure to stream messages to the WebSocket connection.
+There are two variants of `GraphQlWebSocketHandler`, one for Spring MVC and one for
+Spring WebFlux. Both handle requests asynchronously and have equivalent functionality.
+The WebFlux handler also uses non-blocking I/O and back pressure to stream messages,
+which works well since in GraphQL Java a subscription response is a Reactive Streams
+`Publisher`.
 
-GraphQL over WebSocket protocol supports the execution both queries and streaming
-subscriptions and the <<web-interceptor>> can be used to intercept each query or
-subscription request.
+The `graphql-ws` project lists a number of
+https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 
-The handlers can be exposed as endpoints by declaring `SimpleUrlHandlerMapping` beans for
-WebMvc or WebFlux respectively. The Boot starter provides options to enable and conifgure
-all this, see<<boot-graphql-web>> for details or look in the `GraphQlWebMvcAutoConfiguration`
-or `GraphQlWebFluxAutoConfiguration` classes for example configuration.
+`GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
+`SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. The Boot
+starter has options to enable this, see <<boot-graphql-web>> for details or check
+`GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
+
+The Spring GraphQL repository contains a WebFlux
+{repository}/samples/webflux-websocket[WebSocket sample] application.
 
 
 
-[[web-interceptor]]
-=== `WebInterceptor` API
+[[web-interception]]
+=== Web Interception
 
-Web transport handlers for <<web-http>> and for <<web-websocket>> delegate to a
-`WebGraphQlHandler` that represents a chain of `WebInterceptor` components, followed by a
-`GraphQlSource` that actually invokes the GraphQL Java engine.
+<<web-http>> and <<web-websocket>> transport handlers delegate to a common Web
+interception chain for request execution. The chain consists of a sequence of
+`WebInterceptor` components, followed by a `GraphQlService` that invokes the GraphQL
+Java engine.
 
-A `WebInterceptor` can be used to examine HTTP request input and potentially change the
-`ExecutionInput` passed to `graphql.GraphQL`:
+`WebInteceptor` is as a common contract to use in both Spring MVC and WebFlux
+applications. Use it to intercept requests, inspect HTTP request headers, or to register a
+transformation of the `graphql.ExecutionInput`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -96,8 +130,8 @@ class MyInterceptor implements WebInterceptor {
 }
 ----
 
-A `WebInterceptor` can be used to inspect and potentially modify the `ExecutionResult`
-or add an HTTP response header:
+Use `WebInterceptor` also to intercept responses, add HTTP response headers, or transform
+the `graphql.ExecutionResult`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -115,57 +149,184 @@ class MyInterceptor implements WebInterceptor {
 }
 ----
 
-`WebGraphQlHandler` provides a builder to assemble the processing chain given a
-a set of `WebInterceptor` components and a `GraphQlSource`. This handler is then passed
-to one of the web transport handlers. The Boot starter does all this by detecting beans
-of type `WebInterceptor` and using them to build the processing chain, see
-<<boot-graphql-web>> for details, or look in the `GraphQlWebMvcAutoConfiguration` or
-`GraphQlWebFluxAutoConfiguration` classes for example configuration.
+`WebGraphQlHandler` provides a builder to initialize the Web interception chain. After
+you build the chain, you can use the resulting `WebGraphQlHandler` to initialize the HTTP
+or WebSocket transport handlers. The Boot starter configures all this,
+see <<boot-graphql-web>> for details, or check `GraphQlWebMvcAutoConfiguration` or
+`GraphQlWebFluxAutoConfiguration` for example config.
+
 
 
 
 [[execution]]
-==  Query Execution
+== Query Execution
 
-TODO...
+`GraphQlService` is the main Spring GraphQL abstraction to call GraphQL Java to execute
+requests. Underlying transports, such as the <<web-transports>>, delegate to `GraphQlService` to
+handle requests.
+
+The main implementation, `ExecutionGraphQlService`, is a thin facade around the
+invocation of `graphql.GraphQL`. It is configured with a `GraphQlSource` for access to
+the `graphql.GraphQL` instance.
 
 
-[[execution-configuring]]
-=== Configuring the GraphQL Engine
 
-TODO...
+[[execution-graphqlsource]]
+=== `GraphQLSource`
+
+`GraphQlSource` is a core Spring GraphQL abstraction for access to the
+`graphql.GraphQL` instance to use for request execution. It provides a builder API to
+initialize GraphQL Java and build a `GraphQlSource`.
+
+The default `GraphQlSource` builder, accessible via `GraphQlSource.builder()`, enables
+support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
+<<execution-exceptions>>.
 
 
-[[execution-datafetcher]]
-=== `DataFetcher` Support
 
-TODO...
+[[execution-reactive-datafetcher]]
+=== Reactive `DataFetcher`
+
+The default `GraphQlSource` builder enables support for a `DataFetcher` to return `Mono`
+or `Flux`. Both return types are adapted to a `CompletableFuture` with `Flux` values
+aggregated and turned into a List, unless the request is a GraphQL subscription request,
+in which case the return value remains a Reactive Streams `Publisher` for streaming
+GraphQL responses.
+
+A reactive `DataFetcher` can rely on access to Reactor context propagated from the
+transport layer, such as from a WebFlux request handling, see
+<<execution-context-webflux, WebFlux Context>>.
+
 
 
 [[execution-context]]
-=== Context Management
+=== Context Propagation
 
-TODO...
+Spring GraphQL provides support to transparently propagate context from the <<web-transports>>,
+through the GraphQL engine, and to `DataFetcher` and other components it invokes.
+This includes both `ThreadLocal` context from the Spring MVC request handling thread and
+Reactor `Context` from the WebFlux processing pipeline.
+
+
+[[execution-context-webmvc]]
+==== WebMvc
+
+A `DataFetcher` and other components invoked by GraphQL Java may not always execute on
+the same thread as the Spring MVC handler, for example if an asynchronous
+<<web-interception, `WebInterceptor`>> or `DataFetcher` switches to a different thread.
+
+Spring GraphQL supports propagating `ThreadLocal` values from the Servlet container
+thread to the thread a `DataFetcher` and other components invoked by the GraphQL engine
+execute on. To do this, an application needs to create a `ThreadLocalAccessor` to extract
+`ThreadLocal` values of interest:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public class RequestAttributesAccessor implements ThreadLocalAccessor {
+
+	private static final String KEY = RequestAttributesAccessor.class.getName();
+
+	@Override
+	public void extractValues(Map<String, Object> container) {
+		container.put(KEY, RequestContextHolder.getRequestAttributes());
+	}
+
+	@Override
+	public void restoreValues(Map<String, Object> values) {
+		if (values.containsKey(KEY)) {
+			RequestContextHolder.setRequestAttributes((RequestAttributes) values.get(KEY));
+		}
+	}
+
+	@Override
+	public void resetValues(Map<String, Object> values) {
+		RequestContextHolder.resetRequestAttributes();
+	}
+
+}
+----
+
+A `ThreadLocalAccessor` can be registered in the <<web-interception,WebGraphHandler>>
+builder. The Boot starter detects beans of this type and automatically registers them for
+Spring MVC application, see <<boot-graphql-web>>.
+
+
+[[execution-context-webflux]]
+==== WebFlux
+
+A <<execution-reactive-datafetcher>> can rely on access to Reactor context that
+originates from the WebFlux request handling chain. This includes Reactor context
+added by <<web-interception, WebInterceptor>> components.
+
 
 
 [[execution-exceptions]]
 === Exception Resolution
 
-TODO...
+GraphQL Java applications can register a `DataFetcherExceptionHandler` to decide how to
+represent exceptions from the data layer in the "errors" section of the GraphQL response.
+
+Spring GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
+by the <<execution-graphqlsource>> builder. It enables applications to register one or
+more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
+until one resolves the `Exception` to a list of `graphql.GraphQLError` objects.
+
+A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring GraphQL
+defines an `ErrorType` enum with common, error classification categories:
+
+- `BAD_REQUEST`
+- `UNAUTHORIZED`
+- `FORBIDDEN`
+- `NOT_FOUND`
+- `INTERNAL_ERROR`
+
+Applications can use this to classify errors. If an error remains unresolved, by
+default it is marked as `INTERNAL_ERROR`.
 
 
 
 
 [[data]]
-== Data Integrations
-
-TODO...
-
+== Data Integration
 
 [[data-querydsl]]
-=== QueryDsl
+=== Querydsl
 
-TODO...
+Spring GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
+the Spring Data
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions[Querydsl extension].
+
+For example, declare a repository as `QuerydslPredicateExecutor`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public interface AccountRepository extends QuerydslPredicateExecutor<Account> {
+}
+----
+
+Then use it to create a `DataFetcher`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    // For single result queries
+	DataFetcher<Account> dataFetcher =
+			QuerydslDataFetcher.builder(repository).single();
+
+    // For multi-result queries
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).many();
+----
+
+The `DataFetcher` builds a Querydsl `Predicate` from GraphQL request parameters, and
+uses it to fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA,
+MongoDB, and LDAP.
+
+If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
+`DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
+variant for MongoDB.
+
+The {repository}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
+uses Querydsl to fetch `artifactRepositories`.
 
 
 
@@ -173,7 +334,19 @@ TODO...
 [[data-security]]
 == Security
 
-TODO...
+The path to a <<web-transports, Web>> GraphQL endpoint can be secured with HTTP
+URL security to ensure that only authenticated users can access it. This does not,
+however, differentiate among different GraphQL requests on such a shared endpoint on
+a single URL.
+
+To apply more fine-grained security, add Spring Security annotations such as
+`@PreAuthorize` or `@Secured` to service methods involved in fetching specific parts of
+the GraphQL response. This should work due to <<execution-context>> that aims to make
+Security, and other context, available at the data fetching level.
+
+The Spring GraphQL repository contains samples for
+{repository}/samples/webmvc-http-security[Spring MVC] and for
+{repository}/samples/webflux-http-security[WebFlux].
 
 
 
@@ -181,15 +354,231 @@ TODO...
 [[testing]]
 == Testing
 
-TODO...
+You can test GraphQL requests using Spring's `WebTestClient`, just send and receive
+JSON, but a number of GraphQL specific details make this approach more cumbersome than it
+should be.
+
+
+
+[[testing-graphqltester]]
+=== `GraphQlTester`
+
+`GraphQlTester` defines a workflow to test GraphQL requests with the following benefits:
+
+- Verify GraphQL responses are 200 (OK).
+- Verify no unexpected errors under the "errors" key in the response.
+- Decode under the "data" key in the response.
+- Use JsonPath to decode different parts of the response.
+- Test subscriptions.
+
+To create `GraphQlTester`, you only need a `GraphQlService`, and no transport:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	GraphQlSource graphQlSource = GraphQlSource.builder()
+			.schemaResources(...)
+			.runtimeWiring(...)
+			.build();
+
+	GraphQlService graphQlService = new ExecutionGraphQlService(graphQlSource);
+
+	GraphQlTester graphQlTester = GraphQlTester.builder(graphQlService).build();
+----
+
+
+
+[[testing-webgraphqltester]]
+=== `WebGraphQlTester`
+
+`WebGraphQlTester` extends `GraphQlTester` to add a workflow and configuration specific
+to <<web-transports>>. You need one of the following inputs to create it:
+
+- `WebTestClient` -- perform requests as an HTTP client, either against <<web-http>>
+handlers without a server, or against a live server.
+- `WebGraphQlHandler` -- perform requests through the <<web-interception>> chain used
+by both <<web-http>> and <<web-websocket>> handlers, which in effect is testing without
+a Web framework. One reason to use this is for <<testing-subscriptions>>.
+
+For Spring WebFlux without a server, you can point to your Spring configuration:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	ApplicationContext context = ... ;
+
+	WebTestClient client =
+			WebTestClient.bindToApplicationContext(context)
+					.configureClient()
+					.baseUrl("/graphql")
+					.build();
+
+	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
+----
+
+For Spring MVC without a server, use the `MockMvcWebTestClient` builder:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	WebApplicationContext context = ... ;
+
+	WebTestClient client =
+			MockMvcWebTestClient.bindToApplicationContext(context)
+					.configureClient()
+					.baseUrl("/graphql")
+					.build();
+
+	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
+----
+
+For tests against a live, running server:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	WebTestClient client =
+			WebTestClient.bindToServer()
+					.baseUrl("http://localhost:8080/graphql")
+					.build();
+
+	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
+----
+
+
+
+[[testing-queries]]
+=== Queries
+
+Below is an example query test using
+https://github.com/json-path/JsonPath[JsonPath] to extract all release versions in the
+GraphQL response.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	String query = "{" +
+			"  project(slug:\"spring-framework\") {" +
+			"    releases {" +
+			"      version" +
+			"    }"+
+			"  }" +
+			"}";
+
+	graphQlTester.query(query)
+			.execute()
+			.path("project.releases[*].version")
+			.entityList(String.class)
+			.hasSizeGreaterThan(1);
+----
+
+The JsonPath is relative to the "data" section of the response.
+
+
+
+[[testing-errors]]
+=== Errors
+
+Tests cannot use verify data, if there are errors under the "errors" key in the response
+has errors. If necessary to ignore an error, use an error filter `Predicate`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.query(query)
+			.execute()
+			.errors()
+			.filter(error -> ...)
+			.verify()
+			.path("project.releases[*].version")
+			.entityList(String.class)
+			.hasSizeGreaterThan(1);
+----
+
+An error filter can be registered globally and apply to all tests:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	WebGraphQlTester graphQlTester = WebGraphQlTester.builder(client)
+			.errorFilter(error -> ...)
+			.build();
+----
+
+Or inspect all errors directly and that also marks them as filtered:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.query(query)
+			.execute()
+			.errors()
+			.satisfy(errors -> {
+				// ...
+			});
+----
+
+If a request does not have any response data (e.g. mutation), use `executeAndVerify`
+instead of `execute` to verify there are no errors in the response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.query(query).executeAndVerify();
+----
+
+
+
+[[testing-subscriptions]]
+=== Subscriptions
+
+The `executeSubscription` method defines a workflow specific to subscriptions which return
+a stream of responses instead of a single response.
+
+To test subscriptions, you can create `GraphQlTester` with a `GraphQlService`, which
+calls `graphql.GraphQL` directly and that returns a stream of responses:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	GraphQlService service = ... ;
+
+	GraphQlTester graphQlTester = GraphQlTester.builder(service).build();
+
+	Flux<String> result = graphQlTester.query("subscription { greetings }")
+		.executeSubscription()
+		.toFlux("greetings", String.class);  // decode each response
+----
+
+The `StepVerifier` from Project Reactor is useful to verify a stream:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	Flux<String> result = graphQlTester.query("subscription { greetings }")
+		.executeSubscription()
+		.toFlux("greetings", String.class);
+
+	StepVerifier.create(result)
+			.expectNext("Hi")
+			.expectNext("Bonjour")
+			.expectNext("Hola")
+			.verifyComplete();
+----
+
+To test with the <<web-interception>> chain, you can create `WebGraphQlTester` with a
+`WebGraphQlHandler`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	GraphQlService service = ... ;
+
+	WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
+		.interceptor((input, next) -> next.handle(input))
+		.build();
+
+	WebGraphQlTester graphQlTester = WebGraphQlTester.builder(handler).build();
+----
+
+Currently, Spring GraphQL does not support testing with a WebSocket client, and it
+cannot be used for integration test of GraphQL over WebSocket requests.
 
 
 
 
 [[boot-graphql]]
-== Boot config
+== Boot Starter
 
-This project is tested against Spring Boot 2.4+.
+This project works on Spring Boot 2.4+.
 
 
 
@@ -217,7 +606,7 @@ GraphQL transports you want to use:
 
 |===
 
-In the generated project, add the starter `graphql-spring-boot-starter` manually:
+In the generated project, add `graphql-spring-boot-starter` manually:
 
 [source,groovy,indent=0,subs="verbatim,quotes",role="primary"]
 .Gradle
@@ -270,18 +659,18 @@ repositories {
 ----
 
 [NOTE]
-.GraphQL Spring Boot Starter Group Id
+.Boot Starter Group Id
 ====
-The starter is scheduled to move from the Spring GraphQL repository to the Spring Boot
-repository, after Spring Boot 2.6 is released. The starter group id will then change
-from `org.springframework.experimental` to `org.springframework.boot` and will be
-released in Spring Boot 2.7 building on Spring GraphQL 1.0.
+The Boot starter will move from the Spring GraphQL repository to the Spring Boot
+repository, after Spring Boot 2.6 is released. The group id for the starter will then
+change from `org.springframework.experimental` to `org.springframework.boot` and will be
+released in Spring Boot 2.7.
 ====
 
 
 
 [[boot-graphql-schema]]
-=== GraphQL Schema
+=== Schema
 
 By default, GraphQL schema files are expected to be in `src/main/resources/graphql` and have
 the extension ".graphqls", ".graphql", ".gql", or ".gqls". You can customize the
@@ -328,7 +717,7 @@ public class PersonDataWiring implements RuntimeWiringCustomizer {
 
 
 [[boot-graphql-web]]
-=== Web Transports
+=== Web Endpoints
 
 The GraphQL HTTP endpoint is at HTTP POST "/graphql" by default. The path can be customized:
 
@@ -348,20 +737,24 @@ spring.graphql.websocket.path=/graphql
 spring.graphql.websocket.connection-init-timeout=60s
 ----
 
-The GraphQL WebSocket endpoint is not enabled by default. To enable it:
+The GraphQL WebSocket endpoint is off by default. To enable it:
 
 - For a Servlet application, add the WebSocket starter `spring-boot-starter-websocket`.
 - For a WebFlux application, set the `spring.graphql.websocket.path` application property.
 
-`WebInterceptor` beans declared in Spring configuration are detected and registered to
-intercept for both GraphQL requests over HTTP and over WebSocket.
+Declare a `WebInterceptor` bean to have it registered in the<<web-interception>> for
+GraphQL over HTTP and WebSocket requests.
+
+Declare a `ThreadLocalAccessor` bean to assist with the propagation of `ThreadLocal`
+values of interest in <<execution-context-webmvc>>.
+
 
 
 [[boot-graphql-graphiql]]
-=== GraphiQL Page
+=== GraphiQL
 
 The Spring Boot starter includes a https://github.com/graphql/graphiql[GraphiQL] page
-that is exposed at "/graphiql" by default. You can configure that as follows:
+that is exposed at "/graphiql" by default. You can configure this as follows:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
@@ -393,7 +786,7 @@ management.endpoints.web.exposure.include=health,metrics,info
 
 
 [[boot-graphql-metrics-request-timer]]
-==== GraphQL Request Timer
+==== Request Timer
 
 A Request metric timer is available at `/actuator/metrics/graphql.request`.
 
@@ -408,7 +801,7 @@ A Request metric timer is available at `/actuator/metrics/graphql.request`.
 
 
 [[boot-graphql-metrics-datafetcher-timer]]
-==== GraphQL `DataFetcher` Timer
+==== `DataFetcher` Timer
 
 A `DataFetcher` metric timer is available at `/actuator/metrics/graphql.datafetcher`.
 
@@ -427,7 +820,7 @@ A `DataFetcher` metric timer is available at `/actuator/metrics/graphql.datafetc
 
 
 [[boot-graphql-metrics-error-counter]]
-==== GraphQL Error Counter
+==== Error Counter
 
 A GraphQL error metric counter is available at `/actuator/metrics/graphql.error`.
 
@@ -498,7 +891,7 @@ public class MockMvcGraphQlTests {
 }
 ----
 
-Subscriptions can be tested without a WebSocket layer as shown below:
+Subscriptions can be tested without WebSocket as shown below:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -536,8 +929,8 @@ chain and then calls GraphQL Java which returns a Reactive Streams `Publisher`.
 [[samples]]
 == Samples
 
-This Spring GraphQL repository contains
-https://github.com/spring-projects/spring-graphql/tree/main/samples[sample applications] for various scenarios.
+This Spring GraphQL repository contains {repository}/samples[sample applications] for
+various scenarios.
 
 You can run those by cloning this repository and running main application classes from
 your IDE or by typing the following on the command line:
