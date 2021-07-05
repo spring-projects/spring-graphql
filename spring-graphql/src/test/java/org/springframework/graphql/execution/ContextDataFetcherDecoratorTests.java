@@ -51,7 +51,7 @@ public class ContextDataFetcherDecoratorTests {
 				}));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		ContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
 		Map<String, Object> data = graphQl.executeAsync(input).get().getData();
 
@@ -67,7 +67,7 @@ public class ContextDataFetcherDecoratorTests {
 				})));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greetings }").build();
-		ContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
 		Map<String, Object> data = graphQl.executeAsync(input).get().getData();
 
@@ -85,7 +85,7 @@ public class ContextDataFetcherDecoratorTests {
 						})));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
-		ContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
 		Publisher<String> publisher = graphQl.executeAsync(input).get().getData();
 
@@ -109,8 +109,8 @@ public class ContextDataFetcherDecoratorTests {
 					(env) -> "Hello " + nameThreadLocal.get());
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextView view = ContextManager.extractThreadLocalValues(accessor, Context.empty());
-			ContextManager.setReactorContext(view, input);
+			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
+			ReactorContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
 					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)))

@@ -59,15 +59,15 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
-		ContextView contextView = ContextManager.getReactorContext(environment);
+		ContextView contextView = ReactorContextManager.getReactorContext(environment);
 
 		Object value;
 		try {
-			ContextManager.restoreThreadLocalValues(contextView);
+			ReactorContextManager.restoreThreadLocalValues(contextView);
 			value = this.delegate.get(environment);
 		}
 		finally {
-			ContextManager.resetThreadLocalValues(contextView);
+			ReactorContextManager.resetThreadLocalValues(contextView);
 		}
 
 		if (this.subscription) {

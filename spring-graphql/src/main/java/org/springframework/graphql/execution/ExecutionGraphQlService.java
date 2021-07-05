@@ -25,8 +25,8 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.RequestInput;
 
 /**
- * Implementation of {@link GraphQlService} that performs GraphQL request execution
- * through {@link GraphQL#executeAsync(ExecutionInput)}.
+ * {@link GraphQlService} that uses a {@link GraphQlSource} to obtain a
+ * {@link GraphQL} instance and perform query execution.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -44,7 +44,7 @@ public class ExecutionGraphQlService implements GraphQlService {
 		ExecutionInput executionInput = input.toExecutionInput();
 		GraphQL graphQl = this.graphQlSource.graphQl();
 		return Mono.deferContextual((contextView) -> {
-			ContextManager.setReactorContext(contextView, executionInput);
+			ReactorContextManager.setReactorContext(contextView, executionInput);
 			return Mono.fromFuture(graphQl.executeAsync(executionInput));
 		});
 	}

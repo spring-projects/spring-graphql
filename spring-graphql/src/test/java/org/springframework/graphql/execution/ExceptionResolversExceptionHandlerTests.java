@@ -78,7 +78,7 @@ public class ExceptionResolversExceptionHandlerTests {
 								.errorType(ErrorType.BAD_REQUEST).build()))));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		ContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
@@ -103,8 +103,8 @@ public class ExceptionResolversExceptionHandlerTests {
 									.build()));
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextView view = ContextManager.extractThreadLocalValues(accessor, Context.empty());
-			ContextManager.setReactorContext(view, input);
+			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
+			ReactorContextManager.setReactorContext(view, input);
 
 			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
 					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)))

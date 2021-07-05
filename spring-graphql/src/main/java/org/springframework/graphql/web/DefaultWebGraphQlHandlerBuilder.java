@@ -24,7 +24,7 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.execution.ContextManager;
+import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -115,7 +115,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 		@Override
 		public Mono<WebOutput> handle(WebInput input) {
 			return this.delegate.handle(input).contextWrite((context) ->
-					ContextManager.extractThreadLocalValues(this.accessor, context));
+					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
 		}
 
 	}

@@ -26,25 +26,25 @@ import org.springframework.graphql.TestThreadLocalAccessor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link ContextManager}.
+ * Unit tests for {@link ReactorContextManager}.
  * @author Rossen Stoyanchev
  */
-public class ContextManagerTests {
+public class ReactorContextManagerTests {
 
 	@Test
 	void restoreThreadLocaValues() {
 		ThreadLocal<String> threadLocal = new ThreadLocal<>();
 		threadLocal.set("myValue");
 
-		Context context = ContextManager.extractThreadLocalValues(
+		Context context = ReactorContextManager.extractThreadLocalValues(
 				new TestThreadLocalAccessor<>(threadLocal), Context.empty());
 		try {
 			Mono.delay(Duration.ofMillis(10))
 					.doOnNext(aLong -> {
 						assertThat(threadLocal.get()).isNull();
-						ContextManager.restoreThreadLocalValues(context);
+						ReactorContextManager.restoreThreadLocalValues(context);
 						assertThat(threadLocal.get()).isEqualTo("myValue");
-						ContextManager.resetThreadLocalValues(context);
+						ReactorContextManager.resetThreadLocalValues(context);
 					})
 					.block();
 		}
@@ -58,15 +58,15 @@ public class ContextManagerTests {
 		ThreadLocal<String> threadLocal = new ThreadLocal<>();
 		threadLocal.set("myValue");
 
-		Context context = ContextManager.extractThreadLocalValues(
+		Context context = ReactorContextManager.extractThreadLocalValues(
 				new TestThreadLocalAccessor<>(threadLocal, true), Context.empty());
 
 		threadLocal.remove();
-		ContextManager.restoreThreadLocalValues(context);
+		ReactorContextManager.restoreThreadLocalValues(context);
 		assertThat(threadLocal.get()).isNull();
 
 		threadLocal.set("anotherValue");
-		ContextManager.resetThreadLocalValues(context);
+		ReactorContextManager.resetThreadLocalValues(context);
 		assertThat(threadLocal.get()).isEqualTo("anotherValue");
 	}
 

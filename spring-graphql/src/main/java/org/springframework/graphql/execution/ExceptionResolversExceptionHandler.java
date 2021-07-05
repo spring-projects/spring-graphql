@@ -37,7 +37,7 @@ import org.springframework.web.client.ExtractingResponseErrorHandler;
 
 /**
  * {@link DataFetcherExceptionHandler} that invokes {@link DataFetcherExceptionResolver}'s
- * in a sequence until one returns a non-null list of {@link GraphQLError}'s.
+ * in a sequence until one returns a list of {@link GraphQLError}'s.
  *
  * @author Rossen Stoyanchev
  */
@@ -75,7 +75,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
 					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env)))
 					.contextWrite((context) -> {
-						ContextView contextView = ContextManager.getReactorContext(env);
+						ContextView contextView = ReactorContextManager.getReactorContext(env);
 						return (contextView.isEmpty() ? context : context.putAll(contextView));
 					})
 					.toFuture()
@@ -92,13 +92,13 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	private Mono<List<GraphQLError>> resolveErrors(
 			Throwable ex, DataFetchingEnvironment environment, DataFetcherExceptionResolver resolver) {
 
-		ContextView contextView = ContextManager.getReactorContext(environment);
+		ContextView contextView = ReactorContextManager.getReactorContext(environment);
 		try {
-			ContextManager.restoreThreadLocalValues(contextView);
+			ReactorContextManager.restoreThreadLocalValues(contextView);
 			return resolver.resolveException(ex, environment);
 		}
 		finally {
-			ContextManager.resetThreadLocalValues(contextView);
+			ReactorContextManager.resetThreadLocalValues(contextView);
 		}
 	}
 
