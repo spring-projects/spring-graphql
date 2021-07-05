@@ -70,7 +70,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		// https://github.com/graphql-java/graphql-java/issues/2356
 		try {
 			return Flux.fromIterable(this.resolvers)
-					.flatMap((resolver) -> resolveErrors(ex, env, resolver))
+					.flatMap((resolver) -> resolver.resolveException(ex, env))
 					.next()
 					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
 					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env)))
@@ -86,19 +86,6 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 				logger.warn("Failed to handle " + ex.getMessage(), ex2);
 			}
 			return applyDefaultHandling(ex, env);
-		}
-	}
-
-	private Mono<List<GraphQLError>> resolveErrors(
-			Throwable ex, DataFetchingEnvironment environment, DataFetcherExceptionResolver resolver) {
-
-		ContextView contextView = ReactorContextManager.getReactorContext(environment);
-		try {
-			ReactorContextManager.restoreThreadLocalValues(contextView);
-			return resolver.resolveException(ex, environment);
-		}
-		finally {
-			ReactorContextManager.resetThreadLocalValues(contextView);
 		}
 	}
 

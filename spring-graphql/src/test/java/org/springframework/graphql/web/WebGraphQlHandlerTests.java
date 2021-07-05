@@ -21,10 +21,12 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -32,9 +34,10 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.TestGraphQlSource;
 import org.springframework.graphql.TestThreadLocalAccessor;
+import org.springframework.graphql.execution.DataFetcherExceptionResolver;
+import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.SyncDataFetcherExceptionResolver;
 import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -127,7 +130,7 @@ public class WebGraphQlHandlerTests {
 					(env) -> {
 						throw new IllegalArgumentException("Invalid greeting");
 					},
-					(SyncDataFetcherExceptionResolver) (ex, env) -> Collections.singletonList(
+					threadLocalContextAwareExceptionResolver((ex, env) ->
 							GraphqlErrorBuilder.newError(env)
 									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
 									.errorType(ErrorType.BAD_REQUEST).build()));
@@ -147,6 +150,20 @@ public class WebGraphQlHandlerTests {
 		finally {
 			nameThreadLocal.remove();
 		}
+	}
+
+	private static DataFetcherExceptionResolver threadLocalContextAwareExceptionResolver(
+			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
+
+		DataFetcherExceptionResolverAdapter adapter = new DataFetcherExceptionResolverAdapter() {
+
+			@Override
+			protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
+				return resolver.apply(ex, env);
+			}
+		};
+		adapter.setThreadLocalContextAware(true);
+		return adapter;
 	}
 
 }

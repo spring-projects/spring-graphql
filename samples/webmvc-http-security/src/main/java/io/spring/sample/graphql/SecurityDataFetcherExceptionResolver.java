@@ -1,14 +1,11 @@
 package io.spring.sample.graphql;
 
-import java.util.Collections;
-import java.util.List;
-
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
 
+import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.execution.SyncDataFetcherExceptionResolver;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
@@ -20,22 +17,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 @Component
-public class SecurityDataFetcherExceptionResolver implements SyncDataFetcherExceptionResolver {
+public class SecurityDataFetcherExceptionResolver extends DataFetcherExceptionResolverAdapter {
 
 	private AuthenticationTrustResolver authenticationTrustResolver = new AuthenticationTrustResolverImpl();
 
 	@Override
-	public List<GraphQLError> doResolveException(Throwable exception, DataFetchingEnvironment environment) {
-		if (exception instanceof AuthenticationException) {
-			return unauthorized(environment);
+	protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
+		if (ex instanceof AuthenticationException) {
+			return unauthorized(env);
 		}
-		if (exception instanceof AccessDeniedException) {
+		if (ex instanceof AccessDeniedException) {
 			SecurityContext context = SecurityContextHolder.getContext();
 			Authentication authentication = context.getAuthentication();
 			if (this.authenticationTrustResolver.isAnonymous(authentication)) {
-				return unauthorized(environment);
+				return unauthorized(env);
 			}
-			return forbidden(environment);
+			return forbidden(env);
 		}
 		return null;
 	}
@@ -45,20 +42,18 @@ public class SecurityDataFetcherExceptionResolver implements SyncDataFetcherExce
 		this.authenticationTrustResolver = authenticationTrustResolver;
 	}
 
-	private List<GraphQLError> unauthorized(DataFetchingEnvironment environment) {
-		return Collections.singletonList(
-				GraphqlErrorBuilder.newError(environment)
-						.errorType(ErrorType.UNAUTHORIZED)
-						.message("Unauthorized")
-						.build());
+	private GraphQLError unauthorized(DataFetchingEnvironment environment) {
+		return GraphqlErrorBuilder.newError(environment)
+				.errorType(ErrorType.UNAUTHORIZED)
+				.message("Unauthorized")
+				.build();
 	}
 
-	private List<GraphQLError> forbidden(DataFetchingEnvironment environment) {
-		return Collections.singletonList(
-				GraphqlErrorBuilder.newError(environment)
+	private GraphQLError forbidden(DataFetchingEnvironment environment) {
+		return GraphqlErrorBuilder.newError(environment)
 						.errorType(ErrorType.FORBIDDEN)
 						.message("Forbidden")
-						.build());
+						.build();
 	}
 
 }

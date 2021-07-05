@@ -271,6 +271,11 @@ by the <<execution-graphqlsource>> builder. It enables applications to register 
 more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
 until one resolves the `Exception` to a list of `graphql.GraphQLError` objects.
 
+`DataFetcherExceptionResolver` is an asynchronous contract. For most implementations, it
+would be sufficient to extend `DataFetcherExceptionResolverAdapter` and override
+one of its `resolveToSingleError` or `resolveToMultipleErrors` methods that
+resolve exceptions synchronously.
+
 A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring GraphQL
 defines an `ErrorType` enum with common, error classification categories:
 
