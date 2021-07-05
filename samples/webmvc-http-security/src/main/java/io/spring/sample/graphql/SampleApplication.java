@@ -16,8 +16,14 @@
 
 package io.spring.sample.graphql;
 
+import java.time.Duration;
+
+import reactor.core.publisher.Mono;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.graphql.web.WebInterceptor;
 
 @SpringBootApplication
 public class SampleApplication {
@@ -25,4 +31,13 @@ public class SampleApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SampleApplication.class, args);
 	}
+
+	@Bean
+	public WebInterceptor interceptor() {
+		return (input, next) -> {
+			// Switch threads to prove ThreadLocal context propagation works
+			return Mono.delay(Duration.ofMillis(10)).flatMap(aLong -> next.handle(input));
+		};
+	}
+
 }

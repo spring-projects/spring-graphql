@@ -17,6 +17,7 @@ package io.spring.sample.graphql;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.graphql.security.ReactiveSecurityDataFetcherExceptionResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -50,6 +51,11 @@ public class SecurityConfig {
 		UserDetails rob = userBuilder.username("rob").password("rob").roles("USER").build();
 		UserDetails admin = userBuilder.username("admin").password("admin").roles("USER", "ADMIN").build();
 		return new MapReactiveUserDetailsService(rob, admin);
+	}
+
+	@Bean
+	public ReactiveSecurityDataFetcherExceptionResolver dataFetcherExceptionResolver() {
+		return new ReactiveSecurityDataFetcherExceptionResolver();
 	}
 
 }

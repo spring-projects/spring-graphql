@@ -2,6 +2,9 @@ package io.spring.sample.graphql;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.security.SecurityContextThreadLocalAccessor;
+import org.springframework.graphql.security.SecurityDataFetcherExceptionResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -36,6 +39,16 @@ public class SecurityConfig {
 		UserDetails rob = userBuilder.username("rob").password("rob").roles("USER").build();
 		UserDetails admin = userBuilder.username("admin").password("admin").roles("USER", "ADMIN").build();
 		return new InMemoryUserDetailsManager(rob, admin);
+	}
+
+	@Bean
+	public SecurityDataFetcherExceptionResolver dataFetcherExceptionResolver() {
+		return new SecurityDataFetcherExceptionResolver();
+	}
+
+	@Bean
+	public ThreadLocalAccessor threadLocalAccessor() {
+		return new SecurityContextThreadLocalAccessor();
 	}
 
 }
