@@ -2,8 +2,6 @@ package io.spring.sample.graphql;
 
 import java.math.BigDecimal;
 
-import reactor.core.publisher.Mono;
-
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;

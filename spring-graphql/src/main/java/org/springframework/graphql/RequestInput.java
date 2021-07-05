@@ -31,8 +31,9 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * Common representation for GraphQL request input. This can be converted to
- * {@link ExecutionInput} via {@link #toExecutionInput()} and the {@code ExecutionInput}
- * further customized via {@link #configureExecutionInput(BiFunction)}.
+ * {@link ExecutionInput} via {@link #toExecutionInput()} and the
+ * {@code ExecutionInput} further customized via
+ * {@link #configureExecutionInput(BiFunction)}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

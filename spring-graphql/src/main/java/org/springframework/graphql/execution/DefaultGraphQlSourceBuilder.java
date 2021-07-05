@@ -46,7 +46,7 @@ import org.springframework.util.Assert;
  */
 class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
-	private List<Resource> schemaResources = new ArrayList<>();
+	private final List<Resource> schemaResources = new ArrayList<>();
 
 	private RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring().build();
 

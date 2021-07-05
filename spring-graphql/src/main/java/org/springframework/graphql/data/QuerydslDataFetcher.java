@@ -93,6 +93,8 @@ import org.springframework.util.MultiValueMap;
  * @see ReactiveQuerydslPredicateExecutor
  * @see Predicate
  * @see QuerydslBinderCustomizer
+ * @see <a href="https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions.querydsl">
+ * Spring Data Querydsl extension</a>
  */
 public abstract class QuerydslDataFetcher<T> {
 
