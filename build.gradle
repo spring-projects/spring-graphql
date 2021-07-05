@@ -12,7 +12,6 @@ subprojects {
 	apply plugin: 'io.spring.dependency-management'
 
 	group = 'org.springframework.graphql'
-	version = "1.0.0-SNAPSHOT"
 
 	repositories {
 		mavenCentral()
