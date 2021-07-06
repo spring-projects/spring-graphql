@@ -38,6 +38,9 @@ dependencies {
 	compileOnly 'io.micrometer:micrometer-core'
 	compileOnly 'org.springframework.boot:spring-boot-actuator-autoconfigure'
 
+	compileOnly 'org.springframework.security:spring-security-config'
+	compileOnly 'org.springframework.security:spring-security-web'
+
 	compileOnly project(':spring-graphql-test')
 	compileOnly 'org.springframework.boot:spring-boot-test'
 
@@ -57,6 +60,9 @@ dependencies {
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-websocket'
 	testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
 	testImplementation 'io.micrometer:micrometer-core'
+	testImplementation 'org.springframework.security:spring-security-config'
+	testImplementation 'org.springframework.security:spring-security-web'
+	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 

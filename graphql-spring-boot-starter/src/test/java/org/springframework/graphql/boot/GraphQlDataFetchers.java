@@ -22,6 +22,8 @@ import java.util.List;
 import graphql.schema.DataFetcher;
 import reactor.core.publisher.Flux;
 
+import org.springframework.lang.Nullable;
+
 public final class GraphQlDataFetchers {
 
 	private static List<Book> books = Arrays.asList(new Book("book-1", "GraphQL for beginners", 100, "John GraphQL"),
@@ -33,13 +35,20 @@ public final class GraphQlDataFetchers {
 	}
 
 	public static DataFetcher getBookByIdDataFetcher() {
-		return (environment) -> books.stream().filter((book) -> book.getId().equals(environment.getArgument("id")))
-				.findFirst().orElse(null);
+		return (environment) -> getBookById(environment.getArgument("id"));
 	}
 
-	public static DataFetcher getBooksOnSale() {
-		return (environment) -> Flux.fromIterable(books)
-				.filter((book) -> book.getPageCount() >= (int) environment.getArgument("minPages"));
+	public static DataFetcher getBooksOnSaleDataFetcher() {
+		return (environment) -> getBooksOnSale(environment.getArgument("minPages"));
+	}
+
+	@Nullable
+	public static Book getBookById(String id) {
+		  return books.stream().filter((book) -> book.getId().equals(id)).findFirst().orElse(null);
+	}
+
+	public static Flux<Book> getBooksOnSale(int minPages) {
+		return Flux.fromIterable(books).filter((book) -> book.getPageCount() >= minPages);
 	}
 
 }
