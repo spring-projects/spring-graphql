@@ -32,8 +32,6 @@ import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @formatter:off
-
 /**
  * Unit tests for a {@link WebInterceptor} chain.
  */

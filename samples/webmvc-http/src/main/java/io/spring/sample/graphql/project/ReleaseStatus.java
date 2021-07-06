@@ -10,12 +10,10 @@ public enum ReleaseStatus {
 
 	@JsonCreator
 	public static ReleaseStatus fromName(String name) {
-		// @formatter:off
 		return Arrays.stream(ReleaseStatus.values())
 				.filter(type -> type.name().equals(name))
 				.findFirst()
 				.orElse(ReleaseStatus.GENERAL_AVAILABILITY);
-		// @formatter:on
 	}
 
 }

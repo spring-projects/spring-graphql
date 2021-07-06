@@ -105,7 +105,6 @@ public class GraphQlWebMvcAutoConfiguration {
 			logger.info("GraphQL endpoint HTTP POST " + graphQLPath);
 		}
 
-		// @formatter:off
 		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(graphQLPath, request ->
 						ServerResponse.status(HttpStatus.METHOD_NOT_ALLOWED)
@@ -114,7 +113,6 @@ public class GraphQlWebMvcAutoConfiguration {
 				.POST(graphQLPath,
 						contentType(MediaType.APPLICATION_JSON).and(accept(MediaType.APPLICATION_JSON)),
 						handler::handleRequest);
-		// @formatter:on
 
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
@@ -139,12 +137,11 @@ public class GraphQlWebMvcAutoConfiguration {
 		@ConditionalOnMissingBean
 		public GraphQlWebSocketHandler graphQlWebSocketHandler(WebGraphQlHandler webGraphQlHandler,
 				GraphQlProperties properties, HttpMessageConverters converters) {
-			// @formatter:off
+
 			HttpMessageConverter<?> converter = converters.getConverters().stream()
 					.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
 					.findFirst()
 					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
-			// @formatter:on
 
 			return new GraphQlWebSocketHandler(webGraphQlHandler, converter,
 					properties.getWebsocket().getConnectionInitTimeout());

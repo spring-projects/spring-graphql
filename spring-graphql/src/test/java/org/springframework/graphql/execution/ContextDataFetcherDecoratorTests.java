@@ -35,8 +35,6 @@ import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @formatter:off
-
 /**
  * Tests for {@link ContextDataFetcherDecorator}.
  */

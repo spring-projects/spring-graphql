@@ -95,7 +95,7 @@ public class GraphQlWebFluxAutoConfiguration {
 		if (logger.isInfoEnabled()) {
 			logger.info("GraphQL endpoint HTTP POST " + graphQLPath);
 		}
-		// @formatter:off
+
 		RouterFunctions.Builder builder = RouterFunctions.route()
 				.GET(graphQLPath, request ->
 						ServerResponse.status(HttpStatus.METHOD_NOT_ALLOWED)
@@ -104,7 +104,6 @@ public class GraphQlWebFluxAutoConfiguration {
 				.POST(graphQLPath,
 						accept(MediaType.APPLICATION_JSON).and(contentType(MediaType.APPLICATION_JSON)),
 						handler::handleRequest);
-		// @formatter:on
 
 		if (properties.getGraphiql().isEnabled()) {
 			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");

@@ -27,8 +27,6 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.GraphQlSource;
 
-// @formatter:off
-
 /**
  * Utility methods for GraphQL tests.
  */

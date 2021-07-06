@@ -63,8 +63,6 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		return invokeChain(exception, parameters.getDataFetchingEnvironment());
 	}
 
-	// @formatter:off
-
 	DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
 		// For now we have to block:
 		// https://github.com/graphql-java/graphql-java/issues/2356
@@ -96,7 +94,5 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 				.build();
 		return DataFetcherExceptionHandlerResult.newResult(error).build();
 	}
-
-	// @formatter:on
 
 }

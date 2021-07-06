@@ -10,12 +10,10 @@ public enum ProjectStatus {
 
 	@JsonCreator
 	public static ProjectStatus fromName(String name) {
-		// @formatter:off
 		return Arrays.stream(ProjectStatus.values())
 				.filter(type -> type.name().equals(name))
 				.findFirst()
 				.orElse(ProjectStatus.ACTIVE);
-		// @formatter:on
 	}
 
 }

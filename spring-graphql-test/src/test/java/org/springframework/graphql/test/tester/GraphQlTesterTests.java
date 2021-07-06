@@ -44,8 +44,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-// @formatter:off
-
 /**
  * Tests for {@link GraphQlTester}.
  *

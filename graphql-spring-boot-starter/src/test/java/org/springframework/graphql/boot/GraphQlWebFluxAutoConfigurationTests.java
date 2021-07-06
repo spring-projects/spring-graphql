@@ -37,8 +37,6 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static org.hamcrest.Matchers.containsString;
 
-// @formatter:off
-
 class GraphQlWebFluxAutoConfigurationTests {
 
 	private static final String BASE_URL = "https://spring.example.org/graphql";

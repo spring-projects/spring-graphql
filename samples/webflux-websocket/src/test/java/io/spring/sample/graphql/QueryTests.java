@@ -25,8 +25,6 @@ import org.springframework.graphql.test.tester.GraphQlTester;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.graphql.web.WebGraphQlHandler;
 
-// @formatter:off
-
 /**
  * GraphQL query tests directly via {@link GraphQL}.
  */

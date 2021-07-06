@@ -17,12 +17,8 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class SpringProjectsClient {
 
-	// @formatter:off
-
 	private static final TypeReferences.CollectionModelType<Release> releaseCollection =
 			new TypeReferences.CollectionModelType<Release>() {};
-
-	// @formatter:on
 
 	private final Traverson traverson;
 
@@ -34,11 +30,9 @@ public class SpringProjectsClient {
 	}
 
 	public Project fetchProject(String projectSlug) {
-		// @formatter:off
 		return this.traverson.follow("projects")
 				.follow(Hop.rel("project").withParameter("id", projectSlug))
 				.toObject(Project.class);
-		// @formatter:on
 	}
 
 	public List<Release> fetchProjectReleases(String projectSlug) {

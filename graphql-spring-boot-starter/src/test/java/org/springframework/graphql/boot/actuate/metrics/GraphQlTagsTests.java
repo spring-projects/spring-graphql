@@ -29,8 +29,6 @@ import org.springframework.graphql.test.tester.TestExecutionResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @formatter:off
-
 /**
  * Tests for {@link GraphQlTags}
  *

@@ -42,8 +42,6 @@ import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @formatter:off
-
 /**
  * Tests for {@link WebGraphQlHandler}, common to both HTTP and WebSocket.
  */

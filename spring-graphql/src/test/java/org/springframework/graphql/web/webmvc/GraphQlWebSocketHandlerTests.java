@@ -44,8 +44,6 @@ import org.springframework.web.socket.WebSocketMessage;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @formatter:off
-
 /**
  * Unit tests for {@link GraphQlWebSocketHandler}.
  */

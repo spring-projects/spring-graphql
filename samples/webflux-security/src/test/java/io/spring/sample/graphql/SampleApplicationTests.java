@@ -27,8 +27,6 @@ import org.springframework.graphql.test.tester.WebGraphQlTester;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// @formatter:off
-
 @SpringBootTest()
 @AutoConfigureWebTestClient
 @AutoConfigureGraphQlTester

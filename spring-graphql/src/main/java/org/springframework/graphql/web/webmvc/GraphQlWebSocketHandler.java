@@ -72,12 +72,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
-	// @formatter:off
-
 	private static final List<String> SUB_PROTOCOL_LIST =
 			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
 
-	// @formatter:on
 
 	private final WebGraphQlHandler graphQlHandler;
 
@@ -123,8 +120,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		SessionState sessionState = new SessionState(session.getId());
 		this.sessionInfoMap.put(session.getId(), sessionState);
 
-		// @formatter:off
-
 		Mono.delay(this.initTimeoutDuration)
 				.then(Mono.fromRunnable(() -> {
 						if (sessionState.isConnectionInitNotProcessed()) {
@@ -132,8 +127,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						}
 				}))
 				.subscribe();
-
-		// @formatter:on
 
 	}
 
@@ -165,12 +158,10 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			if (logger.isDebugEnabled()) {
 				logger.debug("Executing: " + input);
 			}
-			// @formatter:off
 			this.graphQlHandler.handle(input)
 					.flatMapMany((output) -> handleWebOutput(session, input.getId(), output))
 					.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 					.subscribe(new SendMessageSubscriber(id, session, sessionState));
-			// @formatter:on
 			return;
 		case COMPLETE:
 			if (id != null) {
@@ -211,8 +202,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		Assert.notNull(info, "No SessionInfo for " + session);
 		return info;
 	}
-
-	// @formatter:off
 
 	@SuppressWarnings("unchecked")
 	private Flux<TextMessage> handleWebOutput(WebSocketSession session, String id, WebOutput output) {
@@ -258,8 +247,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				});
 	}
 
-	// @formatter:on
-
 	@SuppressWarnings("unchecked")
 	private <T> TextMessage encode(@Nullable String id, MessageType messageType, @Nullable Object payload) {
 		Map<String, Object> payloadMap = new HashMap<>(3);
@@ -303,16 +290,12 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private enum MessageType {
 
-		// @formatter:off
-
 		CONNECTION_INIT("connection_init"),
 		CONNECTION_ACK("connection_ack"),
 		SUBSCRIBE("subscribe"),
 		NEXT("next"),
 		ERROR("error"),
 		COMPLETE("complete");
-
-		// @formatter:on
 
 		private static final Map<String, MessageType> messageTypes = new HashMap<>(6);
 
@@ -341,8 +324,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static class GraphQlStatus {
 
-		// @formatter:off
-
 		private static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
 
 		private static final CloseStatus UNAUTHORIZED_STATUS = new CloseStatus(4401, "Unauthorized");
@@ -350,8 +331,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		private static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408, "Connection initialisation timeout");
 
 		private static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429, "Too many initialisation requests");
-
-		// @formatter:on
 
 		static void closeSession(WebSocketSession session, CloseStatus status) {
 			try {

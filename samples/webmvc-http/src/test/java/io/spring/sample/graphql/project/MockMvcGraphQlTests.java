@@ -26,8 +26,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @formatter:off
-
 /**
  * GraphQL requests via {@link GraphQlTester} connecting to {@link MockMvc}.
  */

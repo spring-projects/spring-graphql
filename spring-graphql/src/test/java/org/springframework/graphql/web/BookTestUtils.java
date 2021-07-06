@@ -28,8 +28,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
-// @formatter:off
-
 public abstract class BookTestUtils {
 
 	public static final String SUBSCRIPTION_ID = "1";

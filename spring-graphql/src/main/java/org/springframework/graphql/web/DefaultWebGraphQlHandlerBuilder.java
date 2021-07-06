@@ -86,12 +86,10 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 		WebGraphQlHandler targetHandler = (webInput) ->
 				this.service.execute(webInput).map((result) -> new WebOutput(webInput, result));
 
-		// @formatter:off
 		WebGraphQlHandler interceptionChain = interceptorsToUse.stream()
 				.reduce(WebInterceptor::andThen)
 				.map((interceptor) -> (WebGraphQlHandler) (input) -> interceptor.intercept(input, targetHandler))
 				.orElse(targetHandler);
-		// @formatter:on
 
 		return (CollectionUtils.isEmpty(this.accessors) ? interceptionChain
 				: new ThreadLocalExtractingHandler(interceptionChain, ThreadLocalAccessor.composite(this.accessors)));

@@ -69,15 +69,12 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
-	// @formatter:off
-
 	private static final List<String> SUB_PROTOCOL_LIST =
 			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
 
 	static final ResolvableType MAP_RESOLVABLE_TYPE =
 			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
 
-	// @formatter:off
 
 	private final WebGraphQlHandler graphQlHandler;
 
@@ -104,8 +101,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		this.initTimeoutDuration = connectionInitTimeout;
 	}
 
-	// @formatter:off
-
 	private static Decoder<?> initDecoder(ServerCodecConfigurer configurer) {
 		return configurer.getReaders().stream()
 				.filter((reader) -> reader.canRead(MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
@@ -121,8 +116,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
 	}
-
-	// @formatter:on
 
 	@Override
 	public List<String> getSubProtocols() {
@@ -144,16 +137,12 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		AtomicBoolean connectionInitProcessed = new AtomicBoolean();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
-		// @formatter:off
-
 		Mono.delay(this.initTimeoutDuration)
 				.then(Mono.defer(() ->
 						connectionInitProcessed.compareAndSet(false, true) ?
 								session.close(GraphQlStatus.INIT_TIMEOUT_STATUS) :
 								Mono.empty()))
 				.subscribe();
-
-		// @formatter:on
 
 		return session.send(session.receive().flatMap((message) -> {
 			Map<String, Object> map = decode(message);
@@ -209,8 +198,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		return payload;
 	}
 
-	// @formatter:off
-
 	@SuppressWarnings("unchecked")
 	private Flux<WebSocketMessage> handleWebOutput(WebSocketSession session, String id,
 			Map<String, Subscription> subscriptions, WebOutput output) {
@@ -258,8 +245,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				});
 	}
 
-	// @formatter:on
-
 	@SuppressWarnings("unchecked")
 	private <T> WebSocketMessage encode(WebSocketSession session, @Nullable String id, MessageType messageType,
 			@Nullable Object payload) {
@@ -281,16 +266,12 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private enum MessageType {
 
-		// @formatter:off
-
 		CONNECTION_INIT("connection_init"),
 		CONNECTION_ACK("connection_ack"),
 		SUBSCRIBE("subscribe"),
 		NEXT("next"),
 		ERROR("error"),
 		COMPLETE("complete");
-
-		// @formatter:on
 
 		private static final Map<String, MessageType> messageTypes = new HashMap<>(6);
 
@@ -319,8 +300,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private static class GraphQlStatus {
 
-		// @formatter:off
-
 		static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
 
 		static final CloseStatus UNAUTHORIZED_STATUS = new CloseStatus(4401, "Unauthorized");
@@ -328,8 +307,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		static final CloseStatus INIT_TIMEOUT_STATUS = new CloseStatus(4408, "Connection initialisation timeout");
 
 		static final CloseStatus TOO_MANY_INIT_REQUESTS_STATUS = new CloseStatus(4429, "Too many initialisation requests");
-
-		// @formatter:on
 
 		static <V> Flux<V> close(WebSocketSession session, CloseStatus status) {
 			return session.close(status).thenMany(Mono.empty());
