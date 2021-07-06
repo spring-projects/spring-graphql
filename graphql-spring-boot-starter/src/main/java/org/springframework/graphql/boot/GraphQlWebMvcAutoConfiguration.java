@@ -73,7 +73,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass(GraphQL.class)
+@ConditionalOnClass({GraphQL.class, GraphQlHttpHandler.class})
 @ConditionalOnBean(GraphQlSource.class)
 @AutoConfigureAfter(GraphQlServiceAutoConfiguration.class)
 public class GraphQlWebMvcAutoConfiguration {

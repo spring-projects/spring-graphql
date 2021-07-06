@@ -46,7 +46,7 @@ import org.springframework.graphql.execution.GraphQlSource;
  * @since 1.0.0
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(GraphQL.class)
+@ConditionalOnClass({GraphQL.class, GraphQlSource.class})
 @ConditionalOnMissingBean(GraphQlSource.class)
 @EnableConfigurationProperties(GraphQlProperties.class)
 public class GraphQlAutoConfiguration {

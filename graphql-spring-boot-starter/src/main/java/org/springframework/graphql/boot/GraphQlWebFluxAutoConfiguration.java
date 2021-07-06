@@ -66,7 +66,7 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-@ConditionalOnClass(GraphQL.class)
+@ConditionalOnClass({GraphQL.class, GraphQlHttpHandler.class})
 @ConditionalOnBean(GraphQlSource.class)
 @AutoConfigureAfter(GraphQlServiceAutoConfiguration.class)
 public class GraphQlWebFluxAutoConfiguration {
