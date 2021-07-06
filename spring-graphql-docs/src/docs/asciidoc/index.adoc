@@ -300,12 +300,15 @@ default it is marked as `INTERNAL_ERROR`.
 Spring GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
 the Spring Data
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions[Querydsl extension].
+Querydsl provides a flexible yet typesafe approach to express query predicates by
+generating a meta-model using annotation processors.
 
 For example, declare a repository as `QuerydslPredicateExecutor`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-public interface AccountRepository extends QuerydslPredicateExecutor<Account> {
+public interface AccountRepository extends Repository<Account, Long>,
+			QuerydslPredicateExecutor<Account> {
 }
 ----
 
@@ -329,6 +332,14 @@ MongoDB, and LDAP.
 If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
 variant for MongoDB.
+
+The Querydsl integration allows customizing the request parameters binding onto a
+`Predicate` by accepting a `QuerydslBinderCustomizer`. Request parameters are bound
+by default as "is equal to" for each available property in the request.
+
+`QuerydslDataFetcher` supports
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
+to transform query results before returning these for further GraphQL processing.
 
 The {repository}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
 uses Querydsl to fetch `artifactRepositories`.
