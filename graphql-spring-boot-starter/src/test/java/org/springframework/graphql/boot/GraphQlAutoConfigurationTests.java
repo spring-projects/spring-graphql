@@ -16,7 +16,10 @@
 
 package org.springframework.graphql.boot;
 
+import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.idl.RuntimeWiring;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -25,6 +28,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.execution.GraphQlSource;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,12 +78,45 @@ class GraphQlAutoConfigurationTests {
 				});
 	}
 
+	@Test
+	void shouldCreateRuntimeWiringBean() {
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:schema/")
+				.withUserConfiguration(CustomCodeRegistryBuilderConfiguration.class)
+				.run((context) -> {
+					assertThat(context).hasSingleBean(CodeRegistryBuilderCustomizer.class);
+					assertThat(context).hasSingleBean(GraphQLCodeRegistry.class);
+					assertThat(context).hasSingleBean(RuntimeWiring.class);
+				});
+	}
+
+	@Test
+	void shouldNotCreateGraphQLCodeRegistryBeanWithoutCustomConfig() {
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:schema/")
+				.run((context) -> {
+					assertThat(context).doesNotHaveBean(CodeRegistryBuilderCustomizer.class);
+					assertThat(context).doesNotHaveBean(GraphQLCodeRegistry.class);
+					assertThat(context).hasSingleBean(RuntimeWiring.class);
+				});
+	}
+
 	@Configuration(proxyBeanMethods = false)
 	static class CustomGraphQlBuilderConfiguration {
 
 		@Bean
 		GraphQlSource.Builder customGraphQlSourceBuilder() {
 			return GraphQlSource.builder().schemaResources(new ClassPathResource("books/schema.graphqls"));
+		}
+
+	}
+
+	@Configuration
+	static class CustomCodeRegistryBuilderConfiguration {
+
+		@Bean
+		CodeRegistryBuilderCustomizer codeRegistryBuilderCustomizer() {
+			Map<String, DataFetcher<?>> map = new HashMap<>();
+			map.put("bookById", GraphQlDataFetchers.getBookByIdDataFetcher());
+			return builder -> builder.dataFetchers("Query", map);
 		}
 
 	}

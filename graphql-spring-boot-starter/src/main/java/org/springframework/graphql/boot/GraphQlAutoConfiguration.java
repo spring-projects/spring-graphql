@@ -24,10 +24,12 @@ import java.util.stream.Collectors;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -64,8 +66,20 @@ public class GraphQlAutoConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
-		public RuntimeWiring runtimeWiring(ObjectProvider<RuntimeWiringBuilderCustomizer> customizers) {
+		public RuntimeWiring runtimeWiring(ObjectProvider<RuntimeWiringBuilderCustomizer> customizers, ObjectProvider<GraphQLCodeRegistry> codeRegistryProvider) {
 			RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
+			codeRegistryProvider.ifAvailable(
+					codeRegistry -> builder.codeRegistry(codeRegistry)
+			);
+			customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
+			return builder.build();
+		}
+
+		@Bean
+		@ConditionalOnBean(CodeRegistryBuilderCustomizer.class)
+		@ConditionalOnMissingBean
+		public GraphQLCodeRegistry codeRegistry(ObjectProvider<CodeRegistryBuilderCustomizer> customizers){
+			GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
 			customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 			return builder.build();
 		}
