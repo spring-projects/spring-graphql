@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
@@ -73,12 +74,14 @@ public class GraphQlAutoConfiguration {
 		@Bean
 		public GraphQlSource.Builder graphQlSourceBuilder(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
 				RuntimeWiring runtimeWiring, ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
+				ObjectProvider<Consumer<GraphQL.Builder>> graphqlBuildersProvider,
 				ObjectProvider<Instrumentation> instrumentationsProvider) throws IOException {
 
 			List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
 			return GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
 					.runtimeWiring(runtimeWiring)
 					.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
+					.configureGraphQl(graphqlBuildersProvider.orderedStream().reduce(Consumer::andThen).orElse(builder -> {}))
 					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
 		}
 
