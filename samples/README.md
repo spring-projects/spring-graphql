@@ -1,9 +1,8 @@
-This directory contains samples we test scenarios and features with.
+This directory contains samples to test scenarios and features with.
 
-All samples use the Boot starter, have integration tests you can run or debug, and expose a GraphiQL page to try queries with. Simply start the `main` application class and go to http://localhost:8080/graphiql. 
+All samples have integration tests you can run or debug, and expose a GraphiQL page at "/graphiql".
 
-To run from the command line, use:
+To run a sample from the command line:
 ```shell script
 $ ./gradlew :samples:{sample-directory-name}:bootRun
 ```
-
