@@ -1,25 +1,24 @@
 plugins {
-	id 'org.asciidoctor.jvm.convert' version '3.1.0'
-	id 'de.undercouch.download' version '4.1.1'
+	id 'org.asciidoctor.jvm.convert' version '3.3.2'
 }
 
 description = "Spring GraphQL reference documentation"
 
 configurations {
-	asciidoctorExt
+	asciidoctorExtensions
 }
 
 repositories {
 	maven {
 		url "https://repo.spring.io/release"
 		mavenContent {
-			includeGroup "io.spring.asciidoctor"
+			includeGroup "io.spring.asciidoctor.backends"
 		}
 	}
 }
 
 dependencies {
-	asciidoctorExt 'io.spring.asciidoctor:spring-asciidoctor-extensions-block-switch:0.6.0'
+	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
 }
 
 ext.javadocLinks = [
@@ -67,58 +66,22 @@ task api(type: Javadoc) {
 	destinationDir = file("$buildDir/docs/javadoc")
 }
 
-task downloadResources(type: Download) {
-	def version = "0.2.5"
-	src "https://repo.spring.io/release/io/spring/docresources/" +
-			"spring-doc-resources/$version/spring-doc-resources-${version}.zip"
-	dest project.file("$buildDir/docs/spring-doc-resources.zip")
-	onlyIfModified true
-	useETag "all"
-}
-
-task extractDocResources(type: Copy, dependsOn: downloadResources) {
-	from project.zipTree(downloadResources.dest);
-	into "$buildDir/docs/spring-docs-resources/"
-}
-
-asciidoctorj {
-	version = '2.4.3'
-	fatalWarnings ".*"
-	options doctype: 'book', eruby: 'erubis'
-	attributes([
-			icons: 'font',
-			idprefix: '',
-			idseparator: '-',
-			docinfo: 'shared',
-			revnumber: project.version,
-			sectanchors: '',
-			sectnums: '',
-			'source-highlighter': 'highlight.js',
-			highlightjsdir: 'js/highlight',
-			'highlightjs-theme': 'googlecode',
-			stylesdir: 'css/',
-			stylesheet: 'stylesheet.css'
-	])
-}
 
 /**
  * Generate the Spring GraphQL Reference documentation from "src/docs/asciidoc"
  * in "build/docs/reference/html".
  */
 asciidoctor {
+	configurations 'asciidoctorExtensions'
 	baseDirFollowsSourceDir()
-	configurations 'asciidoctorExt'
 	sources {
 		include '*.adoc'
 	}
-	outputDir "$buildDir/docs/reference/html"
 	logDocuments = true
-	resources {
-		from(sourceDir) {
-			include 'images/*.png', 'css/**', 'js/**'
-		}
-		from extractDocResources
+	outputOptions {
+		backends "spring-html"
 	}
+	outputDir "$buildDir/docs/reference/html"
 }
 
 /**
