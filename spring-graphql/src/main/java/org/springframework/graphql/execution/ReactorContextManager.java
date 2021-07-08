@@ -55,7 +55,7 @@ public abstract class ReactorContextManager {
 	 * @param input the GraphQL query input
 	 */
 	static void setReactorContext(ContextView contextView, ExecutionInput input) {
-		((GraphQLContext) input.getContext()).put(CONTEXT_VIEW_KEY, contextView);
+		input.getGraphQLContext().put(CONTEXT_VIEW_KEY, contextView);
 	}
 
 	/**
@@ -64,7 +64,7 @@ public abstract class ReactorContextManager {
 	 * @return the reactor {@link ContextView}
 	 */
 	static ContextView getReactorContext(DataFetchingEnvironment environment) {
-		GraphQLContext graphQlContext = environment.getContext();
+		GraphQLContext graphQlContext = environment.getGraphQlContext();
 		return graphQlContext.getOrDefault(CONTEXT_VIEW_KEY, Context.empty());
 	}
 

@@ -24,7 +24,7 @@ dependencyManagement {
 
 dependencies {
 	api project(':spring-graphql')
-	api 'com.graphql-java:graphql-java:16.2'
+	api 'com.graphql-java:graphql-java:0.0.0-2021-07-06T01-36-09-02444b78'
 	api 'io.projectreactor:reactor-core'
 	api 'org.springframework:spring-context'
 	api 'org.springframework.boot:spring-boot-starter'
