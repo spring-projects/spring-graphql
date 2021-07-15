@@ -111,7 +111,7 @@ interception chain for request execution. The chain consists of a sequence of
 `WebInterceptor` components, followed by a `GraphQlService` that invokes the GraphQL
 Java engine.
 
-`WebInteceptor` is as a common contract to use in both Spring MVC and WebFlux
+`WebInterceptor` is as a common contract to use in both Spring MVC and WebFlux
 applications. Use it to intercept requests, inspect HTTP request headers, or to register a
 transformation of the `graphql.ExecutionInput`:
 
@@ -362,7 +362,7 @@ Security, and other context, available at the data fetching level.
 
 The Spring GraphQL repository contains samples for
 {repository}/samples/webmvc-http-security[Spring MVC] and for
-{repository}/samples/webflux-http-security[WebFlux].
+{repository}/samples/webflux-security[WebFlux].
 
 
 
