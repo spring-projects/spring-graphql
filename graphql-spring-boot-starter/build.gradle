@@ -41,6 +41,9 @@ dependencies {
 	compileOnly 'org.springframework.security:spring-security-config'
 	compileOnly 'org.springframework.security:spring-security-web'
 
+	compileOnly 'com.querydsl:querydsl-core:4.4.0'
+	compileOnly 'org.springframework.data:spring-data-commons'
+
 	compileOnly project(':spring-graphql-test')
 	compileOnly 'org.springframework.boot:spring-boot-test'
 

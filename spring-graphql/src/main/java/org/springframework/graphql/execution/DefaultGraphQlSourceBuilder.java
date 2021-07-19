@@ -59,9 +59,6 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
 	};
 
-	DefaultGraphQlSourceBuilder() {
-		this.typeVisitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
-	}
 
 	@Override
 	public GraphQlSource.Builder schemaResources(Resource... resources) {
@@ -110,6 +107,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		for (GraphQLTypeVisitor visitor : this.typeVisitors) {
 			schema = SchemaTransformer.transformSchema(schema, visitor);
 		}
+
+		// This comes last, wraps other DataFetcher's
+		schema = SchemaTransformer.transformSchema(schema, ContextDataFetcherDecorator.TYPE_VISITOR);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
 		builder.defaultDataFetcherExceptionHandler(new ExceptionResolversExceptionHandler(this.exceptionResolvers));
