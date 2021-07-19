@@ -73,13 +73,16 @@ public class GraphQlAutoConfiguration {
 		@Bean
 		public GraphQlSource.Builder graphQlSourceBuilder(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
 				RuntimeWiring runtimeWiring, ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
-				ObjectProvider<Instrumentation> instrumentationsProvider) throws IOException {
+				ObjectProvider<Instrumentation> instrumentationsProvider,
+				ObjectProvider<GraphQlSourceBuilderCustomizer> customizersProvider) throws IOException {
 
 			List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
-			return GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
+			GraphQlSource.Builder builder = GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
 					.runtimeWiring(runtimeWiring)
 					.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
 					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
+			customizersProvider.forEach((customizer) -> customizer.customize(builder));
+			return builder;
 		}
 
 		private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
