@@ -18,6 +18,8 @@ package org.springframework.graphql.data;
 
 import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -26,6 +28,18 @@ import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLFieldsContainer;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLNamedOutputType;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.GraphQLTypeVisitorStub;
+import graphql.schema.PropertyDataFetcher;
+import graphql.util.TraversalControl;
+import graphql.util.TraverserContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -43,10 +57,12 @@ import org.springframework.data.querydsl.binding.QuerydslBindings;
 import org.springframework.data.querydsl.binding.QuerydslPredicateBuilder;
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.Streamable;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -142,6 +158,21 @@ public abstract class QuerydslDataFetcher<T> {
 		return new ReactiveBuilder<>(executor,
 				(ClassTypeInformation<T>) ClassTypeInformation.from(metadata.getDomainType()),
 				(bindings, root) -> {}, Function.identity());
+	}
+
+	/**
+	 * Create a {@link GraphQLTypeVisitor} that finds fields whose type matches
+	 * the domain type of the the given repositories and registers them as
+	 * {@link DataFetcher}s.
+	 * @param executors repositories to consider for registration
+	 * @param reactiveExecutors reactive repositories to consider for registration
+	 * @return the created visitor
+	 */
+	public static GraphQLTypeVisitor registrationTypeVisitor(
+			List<QuerydslPredicateExecutor<?>> executors,
+			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+
+		return new RegistrationTypeVisitor(executors, reactiveExecutors);
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -451,6 +482,88 @@ public abstract class QuerydslDataFetcher<T> {
 			return this.executor.findAll(buildPredicate(environment)).map(this.resultConverter);
 		}
 
+	}
+
+
+	/**
+	 * Visitor that auto-registers Querydsl repositories.
+	 */
+	private static class RegistrationTypeVisitor extends GraphQLTypeVisitorStub {
+
+		private final Map<String, Function<Boolean, DataFetcher<?>>> executorMap;
+
+		RegistrationTypeVisitor(
+				List<QuerydslPredicateExecutor<?>> executors,
+				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+
+			this.executorMap = initExecutorMap(executors, reactiveExecutors);
+		}
+
+		private Map<String, Function<Boolean, DataFetcher<?>>> initExecutorMap(
+				List<QuerydslPredicateExecutor<?>> executors,
+				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+
+			int size = executors.size() + reactiveExecutors.size();
+			Map<String, Function<Boolean, DataFetcher<?>>> map = new HashMap<>(size);
+
+			for (QuerydslPredicateExecutor<?> executor : executors) {
+				Class<?> repositoryInterface = getRepositoryInterface(executor);
+				RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
+				map.put(metadata.getDomainType().getSimpleName(), (single) -> single ?
+						QuerydslDataFetcher.builder(executor).single() :
+						QuerydslDataFetcher.builder(executor).many());
+			}
+
+			for (ReactiveQuerydslPredicateExecutor<?> reactiveExecutor : reactiveExecutors) {
+				Class<?> repositoryInterface = getRepositoryInterface(reactiveExecutor);
+				RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
+				map.put(metadata.getDomainType().getSimpleName(), (single) -> single ?
+						QuerydslDataFetcher.builder(reactiveExecutor).single() :
+						QuerydslDataFetcher.builder(reactiveExecutor).many());
+			}
+
+			return map;
+		}
+
+		@Override
+		public TraversalControl visitGraphQLFieldDefinition(
+				GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
+
+			GraphQLType fieldType = fieldDefinition.getType();
+			DataFetcher<?> dataFetcher = (fieldType instanceof GraphQLList ?
+					getDataFetcher(((GraphQLList) fieldType).getWrappedType(), false) :
+					getDataFetcher(fieldType, true));
+
+			if (dataFetcher != null) {
+				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
+				GraphQLCodeRegistry.Builder registry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
+				if (!hasDataFetcher(registry, parent, fieldDefinition)) {
+					registry.dataFetcher(parent, fieldDefinition, dataFetcher);
+				}
+			}
+
+			return TraversalControl.CONTINUE;
+		}
+
+		@Nullable
+		private DataFetcher<?> getDataFetcher(GraphQLType type, boolean single) {
+			if (type instanceof GraphQLNamedOutputType) {
+				String typeName = ((GraphQLNamedOutputType) type).getName();
+				Function<Boolean, DataFetcher<?>> factory = this.executorMap.get(typeName);
+				if (factory != null) {
+					return factory.apply(single);
+				}
+			}
+			return null;
+		}
+
+		private boolean hasDataFetcher(
+				GraphQLCodeRegistry.Builder registry, GraphQLFieldsContainer parent,
+				GraphQLFieldDefinition fieldDefinition) {
+
+			DataFetcher<?> fetcher = registry.getDataFetcher(parent, fieldDefinition);
+			return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
+		}
 	}
 
 }
