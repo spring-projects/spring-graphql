@@ -96,8 +96,10 @@ public interface GraphQlSource {
 		Builder exceptionResolvers(List<DataFetcherExceptionResolver> resolvers);
 
 		/**
-		 * Add {@link GraphQLTypeVisitor}'s to transform the underlying
-		 * {@link graphql.schema.GraphQLSchema} with.
+		 * Add {@link GraphQLTypeVisitor}s to visit all element of the created
+		 * {@link graphql.schema.GraphQLSchema}.
+		 * <p><strong>Note:</strong> Visitors are applied via
+		 * {@link graphql.schema.SchemaTraverser} and cannot change the schema.
 		 * @param typeVisitors the type visitors
 		 * @return the current builder
 		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema,

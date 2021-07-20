@@ -20,15 +20,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.SchemaTransformer;
+import graphql.schema.SchemaTraverser;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -104,18 +107,14 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 				.orElseThrow(() -> new IllegalArgumentException("'schemaResources' should not be empty"));
 
 		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(registry, this.runtimeWiring);
-		for (GraphQLTypeVisitor visitor : this.typeVisitors) {
-			schema = SchemaTransformer.transformSchema(schema, visitor);
-		}
-
-		// This comes last, wraps other DataFetcher's
-		schema = SchemaTransformer.transformSchema(schema, ContextDataFetcherDecorator.TYPE_VISITOR);
+		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
 		builder.defaultDataFetcherExceptionHandler(new ExceptionResolversExceptionHandler(this.exceptionResolvers));
 		if (!this.instrumentations.isEmpty()) {
 			builder = builder.instrumentation(new ChainedInstrumentation(this.instrumentations));
 		}
+
 		this.graphQlConfigurers.accept(builder);
 		GraphQL graphQl = builder.build();
 
@@ -134,6 +133,21 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource.toString());
 		}
 	}
+
+	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
+		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
+		visitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
+
+		GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
+		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, builder);
+
+		SchemaTraverser traverser = new SchemaTraverser();
+		traverser.depthFirstFullSchema(visitors, schema, vars);
+
+		return GraphQLSchema.newSchema(schema).codeRegistry(builder.build()).build();
+	}
+
+
 
 	/**
 	 * GraphQlSource that returns the built GraphQL instance and its schema.
