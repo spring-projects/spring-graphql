@@ -40,10 +40,12 @@ import org.springframework.graphql.execution.GraphQlSource;
 /**
  * {@link EnableAutoConfiguration Auto-configuration} that creates a
  * {@link GraphQlSourceBuilderCustomizer}s to detect Spring Data repositories
- * with Querydsl support and register them as {@code DataFetcher}s.
+ * with Querydsl support and register them as {@code DataFetcher}s for any
+ * queries with a matching return type.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see QuerydslDataFetcher#registrationTypeVisitor(List, List)
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)

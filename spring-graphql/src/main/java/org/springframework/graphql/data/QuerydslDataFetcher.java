@@ -161,9 +161,11 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 	/**
-	 * Create a {@link GraphQLTypeVisitor} that finds fields whose type matches
-	 * the domain type of the the given repositories and registers them as
-	 * {@link DataFetcher}s.
+	 * Create a {@link GraphQLTypeVisitor} that finds queries with a return type
+	 * whose name matches to the domain type name of the given repositories and
+	 * registers {@link DataFetcher}s for those queries.
+	 * <p><strong>Note:</strong> currently, this method will match only to
+	 * queries under the top-level "Query" type in the GraphQL schema.
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
@@ -529,13 +531,21 @@ public abstract class QuerydslDataFetcher<T> {
 		public TraversalControl visitGraphQLFieldDefinition(
 				GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
 
+			if (this.executorMap.isEmpty()) {
+				return TraversalControl.QUIT;
+			}
+
 			GraphQLType fieldType = fieldDefinition.getType();
+			GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
+			if (!parent.getName().equals("Query")) {
+				return TraversalControl.ABORT;
+			}
+
 			DataFetcher<?> dataFetcher = (fieldType instanceof GraphQLList ?
 					getDataFetcher(((GraphQLList) fieldType).getWrappedType(), false) :
 					getDataFetcher(fieldType, true));
 
 			if (dataFetcher != null) {
-				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 				GraphQLCodeRegistry.Builder registry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 				if (!hasDataFetcher(registry, parent, fieldDefinition)) {
 					registry.dataFetcher(parent, fieldDefinition, dataFetcher);
