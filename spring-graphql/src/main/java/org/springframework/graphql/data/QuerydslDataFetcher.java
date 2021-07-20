@@ -44,6 +44,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.mapping.model.EntityInstantiators;
@@ -66,6 +67,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 
 /**
  * Entry point to create {@link DataFetcher} using repositories through Querydsl.
@@ -488,7 +490,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 
 	/**
-	 * Visitor that auto-registers Querydsl repositories.
+	 * GraphQLTypeVisitor that auto-registers Querydsl Spring Data repositories.
 	 */
 	private static class RegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 
@@ -505,26 +507,43 @@ public abstract class QuerydslDataFetcher<T> {
 				List<QuerydslPredicateExecutor<?>> executors,
 				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
 
-			int size = executors.size() + reactiveExecutors.size();
-			Map<String, Function<Boolean, DataFetcher<?>>> map = new HashMap<>(size);
+			Map<String, Function<Boolean, DataFetcher<?>>> map = new HashMap<>();
 
 			for (QuerydslPredicateExecutor<?> executor : executors) {
-				Class<?> repositoryInterface = getRepositoryInterface(executor);
-				RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
-				map.put(metadata.getDomainType().getSimpleName(), (single) -> single ?
-						QuerydslDataFetcher.builder(executor).single() :
-						QuerydslDataFetcher.builder(executor).many());
+				String typeName = getTypeName(executor);
+				if (typeName != null) {
+					map.put(typeName, (single) -> single ?
+							QuerydslDataFetcher.builder(executor).single() :
+							QuerydslDataFetcher.builder(executor).many());
+				}
 			}
 
 			for (ReactiveQuerydslPredicateExecutor<?> reactiveExecutor : reactiveExecutors) {
-				Class<?> repositoryInterface = getRepositoryInterface(reactiveExecutor);
-				RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
-				map.put(metadata.getDomainType().getSimpleName(), (single) -> single ?
-						QuerydslDataFetcher.builder(reactiveExecutor).single() :
-						QuerydslDataFetcher.builder(reactiveExecutor).many());
+				String typeName = getTypeName(reactiveExecutor);
+				if (typeName != null) {
+					map.put(typeName, (single) -> single ?
+							QuerydslDataFetcher.builder(reactiveExecutor).single() :
+							QuerydslDataFetcher.builder(reactiveExecutor).many());
+				}
 			}
 
 			return map;
+		}
+
+		@Nullable
+		private String getTypeName(Object repository) {
+			GraphQlRepository annotation =
+					AnnotatedElementUtils.findMergedAnnotation(repository.getClass(), GraphQlRepository.class);
+
+			if (annotation == null) {
+				return null;
+			}
+			if (StringUtils.hasText(annotation.typeName())) {
+				return annotation.typeName();
+			}
+			Class<?> repositoryInterface = getRepositoryInterface(repository);
+			RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
+			return metadata.getDomainType().getSimpleName();
 		}
 
 		@Override

@@ -247,10 +247,12 @@ class QuerydslDataFetcherTests {
 	}
 
 
+	@GraphQlRepository
 	interface MockRepository extends Repository<Book, Long>, QuerydslPredicateExecutor<Book> {
 
 	}
 
+	@GraphQlRepository
 	interface ReactiveMockRepository extends Repository<Book, Long>, ReactiveQuerydslPredicateExecutor<Book> {
 
 	}

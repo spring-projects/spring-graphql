@@ -86,4 +86,24 @@ public class MockMvcGraphQlTests {
 				.satisfies(project -> assertThat(project.getReleases()).hasSizeGreaterThan(1));
 	}
 
+	@Test
+	void querydslRepositorySingle() {
+		String query = "query { artifactRepository(id: \"spring-releases\") { name } }";
+
+		this.graphQlTester.query(query)
+				.execute()
+				.path("artifactRepository.name")
+				.entity(String.class).isEqualTo("Spring Releases");
+	}
+
+	@Test
+	void querydslRepositoryMany() {
+		String query = "query { artifactRepositories { id } }";
+
+		this.graphQlTester.query(query)
+				.execute()
+				.path("artifactRepositories[*].id")
+				.entityList(String.class).containsExactly("spring-releases", "spring-milestones", "spring-snapshots");
+	}
+
 }

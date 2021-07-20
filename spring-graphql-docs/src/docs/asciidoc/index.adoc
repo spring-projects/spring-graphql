@@ -333,6 +333,13 @@ If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
 variant for MongoDB.
 
+The {repository}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
+uses Querydsl to fetch `artifactRepositories`.
+
+
+[[data-querydsl-customizations]]
+==== Customizations
+
 The Querydsl integration allows customizing the request parameters binding onto a
 `Predicate` by accepting a `QuerydslBinderCustomizer`. Request parameters are bound
 by default as "is equal to" for each available property in the request.
@@ -341,8 +348,21 @@ by default as "is equal to" for each available property in the request.
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
 to transform query results before returning these for further GraphQL processing.
 
-The {repository}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
-uses Querydsl to fetch `artifactRepositories`.
+
+[[data-querydsl-registration]]
+==== Auto Registration
+
+`QuerydslDataFetcher` exposes a `GraphQLTypeVisitor` that finds top-level queries whose
+return type matches the domain type of one or more Querydsl repositories, and registers
+a `DataFetcher` for each matching query. This includes both queries that return a single
+value and queries that return a list of values.
+
+The repository must be annotated with `@GraphQlRepository`. By default, the name of the
+GraphQL type returned by the query must match the simple name of the repository domain
+type. Of if they don't match, you can use the `typeName` attribute of
+`@GraphQlRepository` to set the GraphQL type name.
+
+Such repositories are auto-detected in the <<boot-repositories-querydsl,Boot starter>>.
 
 
 
@@ -730,6 +750,16 @@ public class PersonDataWiring implements RuntimeWiringCustomizer {
 	}
 }
 ----
+
+
+[[boot-repositories-querydsl]]
+=== Querydsl Repositories
+
+Spring Data repositories that extend `QuerydslPredicateExecutor` or
+`ReactiveQuerydslPredicateExecutor` and are annotated with `@GraphQlRepository` are
+detected and considered as candidates for `DataFetcher`
+<<data-querydsl-registration,auto registration>> for matching top-level queries.
+
 
 
 [[boot-graphql-web]]
