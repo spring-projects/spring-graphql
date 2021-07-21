@@ -29,25 +29,25 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DataRepository {
 
-	public String getBasic(DataFetchingEnvironment environment) {
+	public String getBasic() {
 		return "Hello world!";
 	}
 
-	public Mono<String> getGreeting(DataFetchingEnvironment environment) {
+	public Mono<String> getGreeting() {
 		return Mono.deferContextual(context -> {
 			Object name = context.get("name");
 			return Mono.delay(Duration.ofMillis(50)).map(aLong -> "Hello " + name);
 		});
 	}
 
-	public Flux<String> getGreetings(DataFetchingEnvironment environment) {
+	public Flux<String> getGreetings() {
 		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong -> Flux.deferContextual(context -> {
 			String name = context.get("name");
 			return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
 		}));
 	}
 
-	public Flux<String> getGreetingsStream(DataFetchingEnvironment environment) {
+	public Flux<String> getGreetingsStream() {
 		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong -> Flux.deferContextual(context -> {
 			String name = context.get("name");
 			return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);

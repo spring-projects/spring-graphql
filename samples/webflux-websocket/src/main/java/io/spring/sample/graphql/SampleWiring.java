@@ -32,10 +32,10 @@ public class SampleWiring implements RuntimeWiringBuilderCustomizer {
 
 	@Override
 	public void customize(RuntimeWiring.Builder wiringBuilder) {
-		wiringBuilder.type("Query", builder -> builder.dataFetcher("greeting", this.repository::getBasic));
-		wiringBuilder.type("Query", builder -> builder.dataFetcher("greetingMono", this.repository::getGreeting));
-		wiringBuilder.type("Query", builder -> builder.dataFetcher("greetingsFlux", this.repository::getGreetings));
-		wiringBuilder.type("Subscription", builder -> builder.dataFetcher("greetings", this.repository::getGreetingsStream));
+		wiringBuilder.type("Query", builder -> builder.dataFetcher("greeting", env -> this.repository.getBasic()));
+		wiringBuilder.type("Query", builder -> builder.dataFetcher("greetingMono", env -> this.repository.getGreeting()));
+		wiringBuilder.type("Query", builder -> builder.dataFetcher("greetingsFlux", env -> this.repository.getGreetings()));
+		wiringBuilder.type("Subscription", builder -> builder.dataFetcher("greetings", env -> this.repository.getGreetingsStream()));
 	}
 
 }
