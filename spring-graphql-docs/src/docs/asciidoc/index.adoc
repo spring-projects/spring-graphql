@@ -888,8 +888,73 @@ A GraphQL error metric counter is available at `/actuator/metrics/graphql.error`
 [[boot-graphql-testing]]
 === Testing
 
-When the starter `spring-boot-starter-test` is present on the classpath, a `WebGraphQlTester`
-is configured and available for injection into tests.
+For Spring GraphQL testing support, add the below to your classpath and that will make
+a `WebGraphQlTester` available for injection into tests:
+
+[source,groovy,indent=0,subs="verbatim,quotes",role="primary"]
+.Gradle
+----
+dependencies {
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.graphql:spring-graphql-test:1.0.0-SNAPSHOT'
+
+	// Also add this, unless `spring-boot-starter-webflux` is also present
+	testImplementation 'org.springframework:spring-webflux'
+
+	// ...
+}
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }  // Spring milestones
+	maven { url 'https://repo.spring.io/snapshot' }   // Spring snapshots
+}
+----
+[source,xml,indent=0,subs="verbatim,quotes",role="secondary"]
+.Maven
+----
+<dependencies>
+
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-test</artifactId>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework.graphql</groupId>
+		<artifactId>spring-graphql-test</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+		<scope>test</scope>
+	</dependency>
+
+	<!-- Also add this, unless "spring-boot-starter-webflux" is also present -->
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-webflux</artifactId>
+		<scope>test</scope>
+	</dependency>
+
+	<!-- ... -->
+
+</dependencies>
+
+<!-- For Spring project milestones or snapshot releases -->
+<repositories>
+	<repository>
+		<id>spring-milestones</id>
+		<name>Spring Milestones</name>
+		<url>https://repo.spring.io/milestone</url>
+	</repository>
+	<repository>
+		<id>spring-snapshots</id>
+		<name>Spring Snapshots</name>
+		<url>https://repo.spring.io/snapshot</url>
+		<snapshots>
+			<enabled>true</enabled>
+		</snapshots>
+	</repository>
+</repositories>
+----
 
 For GraphQL over HTTP with Spring MVC, using `MockMvc` as the server:
 
