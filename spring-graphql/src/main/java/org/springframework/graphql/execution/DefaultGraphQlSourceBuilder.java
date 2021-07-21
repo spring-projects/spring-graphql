@@ -138,13 +138,13 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
 		visitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
 
-		GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
-		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, builder);
+		GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
+		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, codeRegistry);
 
 		SchemaTraverser traverser = new SchemaTraverser();
 		traverser.depthFirstFullSchema(visitors, schema, vars);
 
-		return GraphQLSchema.newSchema(schema).codeRegistry(builder.build()).build();
+		return schema.transformWithoutTypes(builder -> builder.codeRegistry(codeRegistry));
 	}
 
 
