@@ -70,20 +70,18 @@ public abstract class BookTestUtils {
 	}
 
 	private static GraphQlSource graphQlSource() {
-		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		builder.type(TypeRuntimeWiring.newTypeWiring("Query")
-				.dataFetcher("bookById", (env) -> {
-					Long id = Long.parseLong(env.getArgument("id"));
-					return booksMap.get(id);
-				}));
-		builder.type(TypeRuntimeWiring.newTypeWiring("Subscription")
-				.dataFetcher("bookSearch", (env) -> {
-					String author = env.getArgument("author");
-					return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
-				}));
 		return GraphQlSource.builder()
 				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.runtimeWiring(builder.build())
+				.runtimeWiring(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
+						.dataFetcher("bookById", (env) -> {
+							Long id = Long.parseLong(env.getArgument("id"));
+							return booksMap.get(id);
+						}))
+						.type(TypeRuntimeWiring.newTypeWiring("Subscription")
+						.dataFetcher("bookSearch", (env) -> {
+							String author = env.getArgument("author");
+							return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
+						})))
 				.build();
 	}
 

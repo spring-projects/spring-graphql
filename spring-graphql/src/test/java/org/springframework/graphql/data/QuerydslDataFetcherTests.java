@@ -282,7 +282,7 @@ class QuerydslDataFetcherTests {
 		if (configurer != null) {
 			TypeRuntimeWiring.Builder typeBuilder = TypeRuntimeWiring.newTypeWiring("Query");
 			configurer.accept(typeBuilder);
-			graphQlSourceBuilder.runtimeWiring(RuntimeWiring.newRuntimeWiring().type(typeBuilder).build());
+			graphQlSourceBuilder.runtimeWiring(wiring -> wiring.type(typeBuilder));
 		}
 
 		GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(

@@ -50,13 +50,9 @@ public abstract class GraphQlTestUtils {
 	public static GraphQlSource.Builder initGraphQlSource(String schemaContent, String typeName, String fieldName,
 			DataFetcher<?> fetcher) {
 
-		RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
-				.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher))
-				.build();
-
 		return GraphQlSource.builder()
 				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
-				.runtimeWiring(wiring);
+				.runtimeWiring(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
 	}
 
 }

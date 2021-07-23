@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
-import graphql.schema.idl.RuntimeWiring;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -51,50 +50,33 @@ import org.springframework.graphql.execution.GraphQlSource;
 @EnableConfigurationProperties(GraphQlProperties.class)
 public class GraphQlAutoConfiguration {
 
+	private static final String[] SCHEMA_FILES_EXTENSIONS = new String[] {"*.graphqls", "*.graphql", "*.gql", "*.gqls"};
+
 	@Bean
-	public GraphQlSource graphQlSource(GraphQlSource.Builder builder) {
+	public GraphQlSource graphQlSource(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
+			ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
+			ObjectProvider<Instrumentation> instrumentationsProvider,
+			ObjectProvider<GraphQlSourceBuilderCustomizer> sourceCustomizers,
+			ObjectProvider<RuntimeWiringBuilderCustomizer> wiringCustomizers) throws IOException {
+
+
+		List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
+		GraphQlSource.Builder builder = GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
+				.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
+				.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
+		wiringCustomizers.orderedStream().forEach((customizer) -> builder.runtimeWiring(customizer::customize));
+		sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 		return builder.build();
 	}
 
-	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnMissingBean(GraphQlSource.Builder.class)
-	public static class GraphQlSourceConfiguration {
-
-		private static final String[] SCHEMA_FILES_EXTENSIONS = new String[] {"*.graphqls", "*.graphql", "*.gql", "*.gqls"};
-
-		@Bean
-		@ConditionalOnMissingBean
-		public RuntimeWiring runtimeWiring(ObjectProvider<RuntimeWiringBuilderCustomizer> customizers) {
-			RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-			customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
-			return builder.build();
-		}
-
-		@Bean
-		public GraphQlSource.Builder graphQlSourceBuilder(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
-				RuntimeWiring runtimeWiring, ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
-				ObjectProvider<Instrumentation> instrumentationsProvider,
-				ObjectProvider<GraphQlSourceBuilderCustomizer> customizersProvider) throws IOException {
-
-			List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
-			GraphQlSource.Builder builder = GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
-					.runtimeWiring(runtimeWiring)
-					.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
-					.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
-			customizersProvider.forEach((customizer) -> customizer.customize(builder));
-			return builder;
-		}
-
-		private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
-			List<Resource> schemaResources = new ArrayList<>();
-			for (String location : schemaLocations) {
-				for (String extension : SCHEMA_FILES_EXTENSIONS) {
-					schemaResources.addAll(Arrays.asList(resolver.getResources(location + extension)));
-				}
+	private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
+		List<Resource> schemaResources = new ArrayList<>();
+		for (String location : schemaLocations) {
+			for (String extension : SCHEMA_FILES_EXTENSIONS) {
+				schemaResources.addAll(Arrays.asList(resolver.getResources(location + extension)));
 			}
-			return schemaResources;
 		}
-
+		return schemaResources;
 	}
 
 }

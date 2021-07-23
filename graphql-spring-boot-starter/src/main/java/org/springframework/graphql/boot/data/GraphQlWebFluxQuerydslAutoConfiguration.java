@@ -50,7 +50,7 @@ import org.springframework.graphql.execution.GraphQlSource;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnClass({GraphQL.class, QuerydslPredicateExecutor.class })
-@ConditionalOnBean(GraphQlSource.Builder.class)
+@ConditionalOnBean(GraphQlSource.class)
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
 public class GraphQlWebFluxQuerydslAutoConfiguration {
 
