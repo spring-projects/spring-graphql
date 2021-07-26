@@ -3,7 +3,7 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: vito/oci-build-task
+    repository: concourse/oci-build-task
 inputs:
 - name: ci-images-git-repo
 outputs:
