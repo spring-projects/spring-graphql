@@ -25,7 +25,6 @@ import java.util.function.Consumer;
 
 import com.querydsl.core.types.Predicate;
 import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -282,7 +281,7 @@ class QuerydslDataFetcherTests {
 		if (configurer != null) {
 			TypeRuntimeWiring.Builder typeBuilder = TypeRuntimeWiring.newTypeWiring("Query");
 			configurer.accept(typeBuilder);
-			graphQlSourceBuilder.runtimeWiring(wiring -> wiring.type(typeBuilder));
+			graphQlSourceBuilder.configureRuntimeWiring(wiring -> wiring.type(typeBuilder));
 		}
 
 		GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(

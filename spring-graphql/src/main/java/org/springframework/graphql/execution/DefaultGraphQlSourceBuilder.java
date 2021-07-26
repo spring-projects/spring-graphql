@@ -71,7 +71,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	}
 
 	@Override
-	public GraphQlSource.Builder runtimeWiring(Consumer<RuntimeWiring.Builder> configurer) {
+	public GraphQlSource.Builder configureRuntimeWiring(Consumer<RuntimeWiring.Builder> configurer) {
 		Assert.notNull(configurer, "RuntimeWiring configurer is required");
 		this.runtimeWiringConfigurers = this.runtimeWiringConfigurers.andThen(configurer);
 		return this;

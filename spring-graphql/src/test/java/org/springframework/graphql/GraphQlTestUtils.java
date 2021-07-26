@@ -21,7 +21,6 @@ import java.util.Arrays;
 
 import graphql.GraphQL;
 import graphql.schema.DataFetcher;
-import graphql.schema.idl.RuntimeWiring;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
@@ -52,7 +51,7 @@ public abstract class GraphQlTestUtils {
 
 		return GraphQlSource.builder()
 				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
-				.runtimeWiring(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
+				.configureRuntimeWiring(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
 	}
 
 }

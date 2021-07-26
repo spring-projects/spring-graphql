@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
 import reactor.core.publisher.Flux;
 
@@ -72,7 +71,7 @@ public abstract class BookTestUtils {
 	private static GraphQlSource graphQlSource() {
 		return GraphQlSource.builder()
 				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.runtimeWiring(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
+				.configureRuntimeWiring(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
 						.dataFetcher("bookById", (env) -> {
 							Long id = Long.parseLong(env.getArgument("id"));
 							return booksMap.get(id);

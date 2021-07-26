@@ -59,12 +59,12 @@ public class GraphQlAutoConfiguration {
 			ObjectProvider<GraphQlSourceBuilderCustomizer> sourceCustomizers,
 			ObjectProvider<RuntimeWiringBuilderCustomizer> wiringCustomizers) throws IOException {
 
-
 		List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
-		GraphQlSource.Builder builder = GraphQlSource.builder().schemaResources(schemaResources.toArray(new Resource[0]))
+		GraphQlSource.Builder builder = GraphQlSource.builder()
+				.schemaResources(schemaResources.toArray(new Resource[0]))
 				.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
 				.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
-		wiringCustomizers.orderedStream().forEach((customizer) -> builder.runtimeWiring(customizer::customize));
+		wiringCustomizers.orderedStream().forEach((customizer) -> builder.configureRuntimeWiring(customizer::customize));
 		sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 		return builder.build();
 	}
