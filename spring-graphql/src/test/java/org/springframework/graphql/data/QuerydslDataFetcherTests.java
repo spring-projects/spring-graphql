@@ -286,7 +286,7 @@ class QuerydslDataFetcherTests {
 
 		GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
-				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor): Collections.emptyList()));
+				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor): Collections.emptyList()), customizers);
 
 		graphQlSourceBuilder.typeVisitors(Collections.singletonList(visitor));
 

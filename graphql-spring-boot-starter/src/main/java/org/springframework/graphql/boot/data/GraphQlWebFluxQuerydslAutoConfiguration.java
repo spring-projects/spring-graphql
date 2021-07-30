@@ -15,13 +15,9 @@
  */
 package org.springframework.graphql.boot.data;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.querydsl.core.types.dsl.EntityPathBase;
 import graphql.GraphQL;
 import graphql.schema.GraphQLTypeVisitor;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -32,10 +28,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
+import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.graphql.boot.GraphQlAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlSourceBuilderCustomizer;
 import org.springframework.graphql.data.QuerydslDataFetcher;
 import org.springframework.graphql.execution.GraphQlSource;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} that creates a
@@ -44,8 +45,8 @@ import org.springframework.graphql.execution.GraphQlSource;
  * queries with a matching return type.
  *
  * @author Rossen Stoyanchev
+ * @see QuerydslDataFetcher#registrationTypeVisitor(List, List, List)
  * @since 1.0.0
- * @see QuerydslDataFetcher#registrationTypeVisitor(List, List)
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
@@ -56,14 +57,18 @@ public class GraphQlWebFluxQuerydslAutoConfiguration {
 
 	@Bean
 	public GraphQlSourceBuilderCustomizer reactiveQuerydslRegistrar(
-			ObjectProvider<ReactiveQuerydslPredicateExecutor<?>> executorsProvider) {
+			ObjectProvider<ReactiveQuerydslPredicateExecutor<?>> executorsProvider,
+			ObjectProvider<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizer) {
 
 		return builder -> {
 			List<ReactiveQuerydslPredicateExecutor<?>> executors =
 					executorsProvider.stream().collect(Collectors.toList());
 
+			List<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizers = customizer.stream().collect(Collectors.toList());
+
+
 			if (!executors.isEmpty()) {
-				GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(Collections.emptyList(), executors);
+				GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(Collections.emptyList(), executors, customizers);
 				builder.typeVisitors(Collections.singletonList(visitor));
 			}
 		};

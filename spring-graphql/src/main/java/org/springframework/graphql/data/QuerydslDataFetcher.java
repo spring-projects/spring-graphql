@@ -16,33 +16,13 @@
 
 package org.springframework.graphql.data;
 
-import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Predicate;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLCodeRegistry;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLFieldsContainer;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNamedOutputType;
-import graphql.schema.GraphQLSchemaElement;
-import graphql.schema.GraphQLType;
-import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.GraphQLTypeVisitorStub;
-import graphql.schema.PropertyDataFetcher;
+import com.querydsl.core.types.dsl.EntityPathBase;
+import graphql.schema.*;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
@@ -68,6 +48,16 @@ import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Entry point to create {@link DataFetcher} using repositories through Querydsl.
@@ -168,15 +158,18 @@ public abstract class QuerydslDataFetcher<T> {
 	 * registers {@link DataFetcher}s for those queries.
 	 * <p><strong>Note:</strong> currently, this method will match only to
 	 * queries under the top-level "Query" type in the GraphQL schema.
-	 * @param executors repositories to consider for registration
+	 *
+	 * @param executors         repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
+	 * @param customizers       binder customizers to consider for customize executor
 	 * @return the created visitor
 	 */
 	public static GraphQLTypeVisitor registrationTypeVisitor(
 			List<QuerydslPredicateExecutor<?>> executors,
-			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors,
+			List<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizers) {
 
-		return new RegistrationTypeVisitor(executors, reactiveExecutors);
+		return new RegistrationTypeVisitor(executors, reactiveExecutors, customizers);
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -498,36 +491,78 @@ public abstract class QuerydslDataFetcher<T> {
 
 		RegistrationTypeVisitor(
 				List<QuerydslPredicateExecutor<?>> executors,
-				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors,
+				List<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizers) {
 
-			this.executorMap = initExecutorMap(executors, reactiveExecutors);
+			this.executorMap = initExecutorMap(executors, reactiveExecutors, customizers);
 		}
 
 		private Map<String, Function<Boolean, DataFetcher<?>>> initExecutorMap(
 				List<QuerydslPredicateExecutor<?>> executors,
-				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors,
+				List<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizers) {
 
 			Map<String, Function<Boolean, DataFetcher<?>>> map = new HashMap<>();
 
+			Map<String, QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizerMap = customizers.stream()
+					.collect(Collectors.toMap(
+							this::getCustomizerDomainTypeName,
+							Function.identity())
+					);
 			for (QuerydslPredicateExecutor<?> executor : executors) {
 				String typeName = getTypeName(executor);
 				if (typeName != null) {
-					map.put(typeName, (single) -> single ?
-							QuerydslDataFetcher.builder(executor).single() :
-							QuerydslDataFetcher.builder(executor).many());
+					map.put(typeName, single -> {
+
+						Builder<?, ?> builder = QuerydslDataFetcher.builder(executor);
+						QuerydslBinderCustomizer customizer = customizerMap.get(typeName);
+						if (customizer != null) {
+							builder = builder.customizer(customizer);
+						}
+
+						return Boolean.TRUE.equals(single) ? builder.single() : builder.many();
+                    });
 				}
 			}
 
 			for (ReactiveQuerydslPredicateExecutor<?> reactiveExecutor : reactiveExecutors) {
 				String typeName = getTypeName(reactiveExecutor);
 				if (typeName != null) {
-					map.put(typeName, (single) -> single ?
-							QuerydslDataFetcher.builder(reactiveExecutor).single() :
-							QuerydslDataFetcher.builder(reactiveExecutor).many());
+					map.put(typeName, (single) -> {
+						ReactiveBuilder<?, ?> builder = QuerydslDataFetcher.builder(reactiveExecutor);
+						QuerydslBinderCustomizer customizer = customizerMap.get(typeName);
+						if (customizer != null) {
+							builder = builder.customizer(customizer);
+						}
+
+						return Boolean.TRUE.equals(single) ? builder.single() : builder.many();
+					});
 				}
 			}
 
 			return map;
+		}
+
+		@Nullable
+		private String getCustomizerDomainTypeName(QuerydslBinderCustomizer<?> customizer) {
+
+			TypeInformation<?> customizerTypeInformation = ClassTypeInformation.from(customizer.getClass())
+					.getSuperTypeInformation(QuerydslBinderCustomizer.class);
+			if (customizerTypeInformation == null) {
+				return null;
+			}
+			TypeInformation<?> qEntityTypeInformation = customizerTypeInformation
+					.getTypeArguments().get(0);
+
+			TypeInformation<?> entityPathBaseTypeInformation = ClassTypeInformation.from(qEntityTypeInformation.getType())
+					.getSuperTypeInformation(EntityPathBase.class);
+			if (entityPathBaseTypeInformation == null) {
+				return null;
+			}
+			TypeInformation<?> entityTypeInformation = entityPathBaseTypeInformation
+					.getTypeArguments().get(0);
+
+			return entityTypeInformation.getType().getSimpleName();
 		}
 
 		@Nullable

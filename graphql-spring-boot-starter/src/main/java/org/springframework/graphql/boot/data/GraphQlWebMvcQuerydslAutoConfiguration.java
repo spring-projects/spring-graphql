@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.querydsl.core.types.dsl.EntityPathBase;
 import graphql.GraphQL;
 import graphql.schema.GraphQLTypeVisitor;
 
@@ -32,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
+import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.graphql.boot.GraphQlAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlSourceBuilderCustomizer;
 import org.springframework.graphql.data.QuerydslDataFetcher;
@@ -45,7 +47,7 @@ import org.springframework.graphql.execution.GraphQlSource;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see QuerydslDataFetcher#registrationTypeVisitor(List, List)
+ * @see QuerydslDataFetcher#registrationTypeVisitor(List, List, List)
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -57,7 +59,8 @@ public class GraphQlWebMvcQuerydslAutoConfiguration {
 	@Bean
 	public GraphQlSourceBuilderCustomizer querydslRegistrar(
 			ObjectProvider<QuerydslPredicateExecutor<?>> executorsProvider,
-			ObjectProvider<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutorsProvider) {
+			ObjectProvider<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutorsProvider,
+			ObjectProvider<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> querydslBinderCustomizer) {
 
 		return builder -> {
 			List<QuerydslPredicateExecutor<?>> executors =
@@ -66,8 +69,10 @@ public class GraphQlWebMvcQuerydslAutoConfiguration {
 			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors =
 					reactiveExecutorsProvider.stream().collect(Collectors.toList());
 
+			List<QuerydslBinderCustomizer<? extends EntityPathBase<?>>> customizers = querydslBinderCustomizer.stream().collect(Collectors.toList());
+
 			if (!executors.isEmpty()) {
-				GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(executors, reactiveExecutors);
+				GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(executors, reactiveExecutors, customizers);
 				builder.typeVisitors(Collections.singletonList(visitor));
 			}
 		};
