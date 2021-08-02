@@ -6,7 +6,12 @@ type Query {
 type Book {
     id: ID
     name: String
-    author: String
+    author: Author
+}
+
+type Author {
+    firstName: String
+    lastName: String
 }
 
 type Subscription {

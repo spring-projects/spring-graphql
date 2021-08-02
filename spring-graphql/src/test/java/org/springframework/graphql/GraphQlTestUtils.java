@@ -31,13 +31,16 @@ import org.springframework.graphql.execution.GraphQlSource;
  */
 public abstract class GraphQlTestUtils {
 
-	public static GraphQL initGraphQl(String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
+	public static GraphQL initGraphQl(
+			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
+
 		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher)
 				.build()
 				.graphQl();
 	}
 
-	public static GraphQL initGraphQl(String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher,
+	public static GraphQL initGraphQl(
+			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher,
 			DataFetcherExceptionResolver... resolvers) {
 
 		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher)
@@ -46,8 +49,8 @@ public abstract class GraphQlTestUtils {
 				.graphQl();
 	}
 
-	public static GraphQlSource.Builder initGraphQlSource(String schemaContent, String typeName, String fieldName,
-			DataFetcher<?> fetcher) {
+	public static GraphQlSource.Builder initGraphQlSource(
+			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
 
 		return GraphQlSource.builder()
 				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))

@@ -17,13 +17,12 @@
 package org.springframework.graphql.web;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 import graphql.schema.idl.TypeRuntimeWiring;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.BookSource;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
@@ -37,8 +36,13 @@ public abstract class BookTestUtils {
 			"\"payload\":{\"query\": \"" +
 			"  query TestQuery {" +
 			"    bookById(id: \\\"1\\\"){ " +
-			"      id" + "      name" +
-			"      author" + "  }}\"}" +
+			"      id" +
+			"      name" +
+			"      author {" +
+			"        firstName" +
+			"        lastName" +
+			"      }" +
+			"  }}\"}" +
 			"}";
 
 	public static final String BOOK_SUBSCRIPTION = "{" +
@@ -49,18 +53,12 @@ public abstract class BookTestUtils {
 			"    bookSearch(author: \\\"George\\\") {" +
 			"      id" +
 			"      name" +
-			"      author" +
+			"      author {" +
+			"        firstName" +
+			"        lastName" +
+			"      }" +
 			"  }}\"}" +
 			"}";
-
-	private static final Map<Long, Book> booksMap = new HashMap<>(4);
-	static {
-		booksMap.put(1L, new Book(1L, "Nineteen Eighty-Four", "George Orwell"));
-		booksMap.put(2L, new Book(2L, "The Great Gatsby", "F. Scott Fitzgerald"));
-		booksMap.put(3L, new Book(3L, "Catch-22", "Joseph Heller"));
-		booksMap.put(4L, new Book(4L, "To The Lighthouse", "Virginia Woolf"));
-		booksMap.put(5L, new Book(5L, "Animal Farm", "George Orwell"));
-	}
 
 	public static WebGraphQlHandler initWebGraphQlHandler(WebInterceptor... interceptors) {
 		return WebGraphQlHandler.builder(new ExecutionGraphQlService(graphQlSource()))
@@ -74,12 +72,13 @@ public abstract class BookTestUtils {
 				.configureRuntimeWiring(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
 						.dataFetcher("bookById", (env) -> {
 							Long id = Long.parseLong(env.getArgument("id"));
-							return booksMap.get(id);
+							return BookSource.getBook(id);
 						}))
 						.type(TypeRuntimeWiring.newTypeWiring("Subscription")
 						.dataFetcher("bookSearch", (env) -> {
 							String author = env.getArgument("author");
-							return Flux.fromIterable(booksMap.values()).filter((book) -> book.getAuthor().contains(author));
+							return Flux.fromIterable(BookSource.books())
+									.filter((book) -> book.getAuthor().getFullName().contains(author));
 						})))
 				.build();
 	}
