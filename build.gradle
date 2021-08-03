@@ -42,7 +42,7 @@ configure(moduleProjects) {
 			mavenBom "org.junit:junit-bom:5.7.2"
 		}
 		dependencies {
-			dependency 'com.graphql-java:graphql-java:0.0.0-2021-07-21T06-48-56-713bb637'
+			dependency 'com.graphql-java:graphql-java:17.0'
 			dependency 'org.assertj:assertj-core:3.19.0'
 			dependencySet(group: 'org.apache.logging.log4j', version: '2.14.1') {
 				entry 'log4j-api'
