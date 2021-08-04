@@ -40,6 +40,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.data.method.AnnotatedDataFetcherRegistrar;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
@@ -51,7 +52,7 @@ import org.springframework.graphql.web.webmvc.SchemaHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
@@ -79,6 +80,28 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
 public class GraphQlWebMvcAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebMvcAutoConfiguration.class);
+
+
+	@Bean
+	public AnnotatedDataFetcherRegistrar dataFetcherRegistrar(HttpMessageConverters converters) {
+		AnnotatedDataFetcherRegistrar registrar = new AnnotatedDataFetcherRegistrar();
+		registrar.setJsonMessageConverter(getJsonConverter(converters));
+		return registrar;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static GenericHttpMessageConverter<Object> getJsonConverter(HttpMessageConverters converters) {
+		return converters.getConverters().stream()
+				.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
+				.findFirst()
+				.map(converter -> (GenericHttpMessageConverter<Object>) converter)
+				.orElseThrow(() -> new IllegalStateException("No JSON converter"));
+	}
+
+	@Bean
+	public RuntimeWiringBuilderCustomizer annotatedDataFetcherRuntimeWiringCustomizer(AnnotatedDataFetcherRegistrar registrar) {
+		return registrar::register;
+	}
 
 	@Bean
 	@ConditionalOnBean(GraphQlService.class)
@@ -138,12 +161,7 @@ public class GraphQlWebMvcAutoConfiguration {
 		public GraphQlWebSocketHandler graphQlWebSocketHandler(WebGraphQlHandler webGraphQlHandler,
 				GraphQlProperties properties, HttpMessageConverters converters) {
 
-			HttpMessageConverter<?> converter = converters.getConverters().stream()
-					.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
-					.findFirst()
-					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
-
-			return new GraphQlWebSocketHandler(webGraphQlHandler, converter,
+			return new GraphQlWebSocketHandler(webGraphQlHandler, getJsonConverter(converters),
 					properties.getWebsocket().getConnectionInitTimeout());
 		}
 

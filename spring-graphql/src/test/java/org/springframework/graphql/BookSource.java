@@ -20,18 +20,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import reactor.core.publisher.Flux;
+
 public class BookSource {
 
-	private static final Map<Long, Book> booksMap = new HashMap<>(4);
+	private static final Map<Long, Book> booksMap = new HashMap<>();
+
+	private static final Map<Long, Author> authorsMap = new HashMap<>();
 
 	static {
-		booksMap.put(1L, new Book(1L, "Nineteen Eighty-Four", new Author("George", "Orwell")));
-		booksMap.put(2L, new Book(2L, "The Great Gatsby", new Author("F. Scott", "Fitzgerald")));
-		booksMap.put(3L, new Book(3L, "Catch-22", new Author("Joseph", "Heller")));
-		booksMap.put(4L, new Book(4L, "To The Lighthouse", new Author("Virginia", "Woolf")));
-		booksMap.put(5L, new Book(5L, "Animal Farm", new Author("George", "Orwell")));
-		booksMap.put(42L, new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author("Douglas", "Adams")));
-		booksMap.put(53L, new Book(53L, "Breaking Bad", new Author("Vince", "Gilligan")));
+		authorsMap.put(1L, new Author(1L, "George", "Orwell"));
+		authorsMap.put(2L, new Author(2L, "F. Scott", "Fitzgerald"));
+		authorsMap.put(3L, new Author(3L, "Joseph", "Heller"));
+		authorsMap.put(4L, new Author(4L, "Virginia", "Woolf"));
+		authorsMap.put(5L, new Author(5L, "Douglas", "Adams"));
+		authorsMap.put(6L, new Author(6L, "Vince", "Gilligan"));
+
+		booksMap.put(1L, new Book(1L, "Nineteen Eighty-Four", authorsMap.get(1L)));
+		booksMap.put(2L, new Book(2L, "The Great Gatsby", authorsMap.get(2L)));
+		booksMap.put(3L, new Book(3L, "Catch-22", authorsMap.get(3L)));
+		booksMap.put(4L, new Book(4L, "To The Lighthouse", authorsMap.get(4L)));
+		booksMap.put(5L, new Book(5L, "Animal Farm", authorsMap.get(1L)));
+		booksMap.put(42L, new Book(42L, "Hitchhiker's Guide to the Galaxy", authorsMap.get(5L)));
+		booksMap.put(53L, new Book(53L, "Breaking Bad", authorsMap.get(6L)));
 	}
 
 
@@ -45,6 +56,18 @@ public class BookSource {
 
 	public static Book getBook(Long id) {
 		return booksMap.get(id);
+	}
+
+	@SuppressWarnings("ConstantConditions")
+	public static List<Book> findBooksByAuthor(String author) {
+		return Flux.fromIterable(books())
+				.filter((book) -> book.getAuthor().getFullName().contains(author))
+				.collectList()
+				.block();
+	}
+
+	public static Author getAuthor(Long id) {
+		return authorsMap.get(id);
 	}
 
 }

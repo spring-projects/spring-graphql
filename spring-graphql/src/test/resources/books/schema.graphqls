@@ -1,6 +1,21 @@
 type Query {
     bookById(id: ID): Book
     books(id: ID, name: String, author: String): [Book]
+    booksByCriteria(criteria:BookCriteria): [Book]
+    authorById(id: ID): Author
+}
+
+type Mutation {
+    addAuthor(firstName: String, lastName: String): Author
+}
+
+type Subscription {
+    bookSearch(author: String) : Book!
+}
+
+input BookCriteria {
+    id: ID
+    author: String
 }
 
 type Book {
@@ -10,10 +25,7 @@ type Book {
 }
 
 type Author {
+    id: ID
     firstName: String
     lastName: String
-}
-
-type Subscription {
-    bookSearch(author: String) : Book!
 }

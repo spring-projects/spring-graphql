@@ -15,49 +15,27 @@
  */
 package org.springframework.graphql;
 
-public class Author {
+public class BookCriteria {
 
-	Long id;
+	private Long id;
 
-	String firstName;
+	private String author;
 
-	String lastName;
-
-	public Author() {
-	}
-
-	public Author(Long id, String firstName, String lastName) {
-		this.id = id;
-		this.firstName = firstName;
-		this.lastName = lastName;
-	}
-
-
-	public void setId(Long id) {
-		this.id = id;
-	}
 
 	public Long getId() {
 		return this.id;
 	}
 
-	public String getFirstName() {
-		return this.firstName;
+	public void setId(Long id) {
+		this.id = id;
 	}
 
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
+	public String getAuthor() {
+		return this.author;
 	}
 
-	public String getLastName() {
-		return this.lastName;
+	public void setAuthor(String author) {
+		this.author = author;
 	}
 
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
-	}
-
-	public String getFullName() {
-		return this.firstName + " " + this.lastName;
-	}
 }
