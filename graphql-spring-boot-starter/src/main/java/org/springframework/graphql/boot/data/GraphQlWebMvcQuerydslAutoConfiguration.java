@@ -34,7 +34,7 @@ import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
 import org.springframework.graphql.boot.GraphQlAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlSourceBuilderCustomizer;
-import org.springframework.graphql.data.QuerydslDataFetcher;
+import org.springframework.graphql.data.querydsl.QuerydslDataFetcher;
 import org.springframework.graphql.execution.GraphQlSource;
 
 /**

@@ -15,13 +15,12 @@
  */
 
 /**
- * Support for DataFetcher's based on handler methods typically annotated with
- * {@link org.springframework.graphql.data.method.annotation.SchemaMapping}
- * annotations.
+ * Support for {@link graphql.schema.DataFetcher}s backed by Querydsl based
+ * Spring Data repositories.
  */
 @NonNullApi
 @NonNullFields
-package org.springframework.graphql.data.method;
+package org.springframework.graphql.data.querydsl;
 
 import org.springframework.lang.NonNullApi;
 import org.springframework.lang.NonNullFields;

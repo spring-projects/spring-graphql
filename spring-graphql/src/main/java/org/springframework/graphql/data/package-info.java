@@ -15,8 +15,7 @@
  */
 
 /**
- * Spring Data support for GraphQL, including built-in Querydsl
- * {@link graphql.schema.DataFetcher} implementations.
+ * Support for various ways to implement {@link graphql.schema.DataFetcher}s.
  */
 @NonNullApi
 @NonNullFields
