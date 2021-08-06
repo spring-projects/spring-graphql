@@ -28,6 +28,7 @@ import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguratio
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -147,9 +148,10 @@ class GraphQlWebMvcAutoConfigurationTests {
 	static class DataFetchersConfiguration {
 
 		@Bean
-		RuntimeWiringBuilderCustomizer bookDataFetcher() {
-			return (builder) -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
-					.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
+		RuntimeWiringConfigurer bookDataFetcher() {
+			return (builder) -> builder.type(
+					TypeRuntimeWiring.newTypeWiring("Query")
+							.dataFetcher("bookById", GraphQlDataFetchers.getBookByIdDataFetcher()));
 		}
 
 	}

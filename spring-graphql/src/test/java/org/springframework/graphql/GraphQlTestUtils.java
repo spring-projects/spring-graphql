@@ -54,7 +54,7 @@ public abstract class GraphQlTestUtils {
 
 		return GraphQlSource.builder()
 				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
-				.configureRuntimeWiring(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
+				.runtimeWiringConfigurer(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
 	}
 
 }

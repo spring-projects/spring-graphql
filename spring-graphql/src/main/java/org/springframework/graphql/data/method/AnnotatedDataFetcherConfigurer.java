@@ -49,6 +49,7 @@ import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.data.method.annotation.support.InputArgumentMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.DataFetchingEnvironmentMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.SourceMethodArgumentResolver;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -60,14 +61,17 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- *
+ * A {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
+ * annotated handler methods in {@link GraphQlController @GraphQlController}
+ * classes and registers them as {@link DataFetcher}s.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class AnnotatedDataFetcherRegistrar implements ApplicationContextAware, InitializingBean {
+public class AnnotatedDataFetcherConfigurer
+		implements ApplicationContextAware, InitializingBean, RuntimeWiringConfigurer {
 
-	private final static Log logger = LogFactory.getLog(AnnotatedDataFetcherRegistrar.class);
+	private final static Log logger = LogFactory.getLog(AnnotatedDataFetcherConfigurer.class);
 
 
 	/**
@@ -175,7 +179,8 @@ public class AnnotatedDataFetcherRegistrar implements ApplicationContextAware, I
 	}
 
 
-	public void register(RuntimeWiring.Builder builder) {
+	@Override
+	public void configure(RuntimeWiring.Builder builder) {
 		Assert.state(this.argumentResolvers != null, "`argumentResolvers` not initialized");
 		Assert.state(this.applicationContext != null, "ApplicationContext is required");
 

@@ -33,8 +33,8 @@ import org.springframework.graphql.boot.GraphQlAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlDataFetchers;
 import org.springframework.graphql.boot.GraphQlServiceAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlWebMvcAutoConfiguration;
-import org.springframework.graphql.boot.RuntimeWiringBuilderCustomizer;
 import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.security.SecurityContextThreadLocalAccessor;
 import org.springframework.graphql.security.SecurityDataFetcherExceptionResolver;
 import org.springframework.http.MediaType;
@@ -148,9 +148,10 @@ class GraphQlWebMvcSecurityAutoConfigurationTests {
 	static class DataFetchersConfiguration {
 
 		@Bean
-		RuntimeWiringBuilderCustomizer bookDataFetcher(BookService bookService) {
-			return (builder) -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
-					.dataFetcher("bookById", environment -> bookService.getBookdById(environment.getArgument("id"))));
+		RuntimeWiringConfigurer bookDataFetcher(BookService bookService) {
+			return (builder) -> builder.type(
+					TypeRuntimeWiring.newTypeWiring("Query")
+							.dataFetcher("bookById", env -> bookService.getBookdById(env.getArgument("id"))));
 		}
 
 		@Bean

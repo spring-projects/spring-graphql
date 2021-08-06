@@ -36,6 +36,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for creating a
@@ -57,14 +58,14 @@ public class GraphQlAutoConfiguration {
 			ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
 			ObjectProvider<Instrumentation> instrumentationsProvider,
 			ObjectProvider<GraphQlSourceBuilderCustomizer> sourceCustomizers,
-			ObjectProvider<RuntimeWiringBuilderCustomizer> wiringCustomizers) throws IOException {
+			ObjectProvider<RuntimeWiringConfigurer> wiringConfigurers) throws IOException {
 
 		List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
 		GraphQlSource.Builder builder = GraphQlSource.builder()
 				.schemaResources(schemaResources.toArray(new Resource[0]))
 				.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
 				.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
-		wiringCustomizers.orderedStream().forEach((customizer) -> builder.configureRuntimeWiring(customizer::customize));
+		wiringConfigurers.orderedStream().forEach(builder::runtimeWiringConfigurer);
 		sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 		return builder.build();
 	}

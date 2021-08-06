@@ -79,15 +79,14 @@ public interface GraphQlSource {
 		Builder schemaResources(Resource... resources);
 
 		/**
-		 * Configure consumers that will be given access to the {@link RuntimeWiring.Builder} used to
-		 * build the {@link RuntimeWiring}. A {@link RuntimeWiring#newRuntimeWiring() default builder}
-		 * instance is created as a starting point.
-		 * @param configurer the runtime wiring configurer
+		 * Add a component that is given access to the {@link RuntimeWiring.Builder}
+		 * used to register {@link graphql.schema.DataFetcher}s, custom scalar
+		 * types, type resolvers, and more.
+		 * @param configurer the configurer to apply
 		 * @return the current builder
-		 * @see graphql.schema.idl.SchemaGenerator#makeExecutableSchema(TypeDefinitionRegistry,
-		 * RuntimeWiring)
+		 * @see graphql.schema.idl.SchemaGenerator#makeExecutableSchema(TypeDefinitionRegistry, RuntimeWiring)
 		 */
-		Builder configureRuntimeWiring(Consumer<RuntimeWiring.Builder> configurer);
+		Builder runtimeWiringConfigurer(RuntimeWiringConfigurer configurer);
 
 		/**
 		 * Add {@link DataFetcherExceptionResolver}'s to use for resolving exceptions from

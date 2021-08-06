@@ -116,13 +116,13 @@ spring.graphql.schema.printer.enabled=false
 [[boot-graphql-datafetcher]]
 == `DataFetcher` Registration
 
-You can declare `RuntimeWiringBuilderCustomizer` beans in your Spring config and use those to
+You can declare `RuntimeWiringConfigurer` beans in your Spring config and use those to
 register data fetchers, type resolvers, and more with the GraphQL engine:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 @Component
-public class PersonDataWiring implements RuntimeWiringBuilderCustomizer {
+public class PersonDataWiring implements RuntimeWiringConfigurer {
 
 	private final PersonService service;
 
@@ -131,7 +131,7 @@ public class PersonDataWiring implements RuntimeWiringBuilderCustomizer {
 	}
 
 	@Override
-	public void customize(RuntimeWiring.Builder builder) {
+	public void configure(RuntimeWiring.Builder builder) {
 		builder.type("Query", wiring ->
 				wiring.dataFetcher("people", env -> this.service.findAll()));
 	}

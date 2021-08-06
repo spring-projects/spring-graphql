@@ -40,7 +40,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.data.method.AnnotatedDataFetcherRegistrar;
+import org.springframework.graphql.data.method.AnnotatedDataFetcherConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
@@ -83,8 +83,8 @@ public class GraphQlWebMvcAutoConfiguration {
 
 
 	@Bean
-	public AnnotatedDataFetcherRegistrar dataFetcherRegistrar(HttpMessageConverters converters) {
-		AnnotatedDataFetcherRegistrar registrar = new AnnotatedDataFetcherRegistrar();
+	public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer(HttpMessageConverters converters) {
+		AnnotatedDataFetcherConfigurer registrar = new AnnotatedDataFetcherConfigurer();
 		registrar.setJsonMessageConverter(getJsonConverter(converters));
 		return registrar;
 	}
@@ -96,11 +96,6 @@ public class GraphQlWebMvcAutoConfiguration {
 				.findFirst()
 				.map(converter -> (GenericHttpMessageConverter<Object>) converter)
 				.orElseThrow(() -> new IllegalStateException("No JSON converter"));
-	}
-
-	@Bean
-	public RuntimeWiringBuilderCustomizer annotatedDataFetcherRuntimeWiringCustomizer(AnnotatedDataFetcherRegistrar registrar) {
-		return registrar::register;
 	}
 
 	@Bean

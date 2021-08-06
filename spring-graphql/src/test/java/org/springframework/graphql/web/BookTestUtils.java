@@ -69,7 +69,7 @@ public abstract class BookTestUtils {
 	private static GraphQlSource graphQlSource() {
 		return GraphQlSource.builder()
 				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.configureRuntimeWiring(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
+				.runtimeWiringConfigurer(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
 						.dataFetcher("bookById", (env) -> {
 							Long id = Long.parseLong(env.getArgument("id"));
 							return BookSource.getBook(id);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,26 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.springframework.graphql.boot;
+package org.springframework.graphql.execution;
 
 import graphql.schema.idl.RuntimeWiring;
 
 /**
- * Callback interface that can be implemented by beans wishing to customize the
- * {@link RuntimeWiring} via a {@link RuntimeWiring.Builder} whilst retaining default
- * auto-configuration.
+ * Component used to apply changes to the {@link RuntimeWiring.Builder} instance
+ * used in {@link GraphQlSource.Builder}.
  *
- * @author Brian Clozel
+ * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-@FunctionalInterface
-public interface RuntimeWiringBuilderCustomizer {
+public interface RuntimeWiringConfigurer {
 
 	/**
-	 * Customize the {@link RuntimeWiring.Builder} instance.
-	 * @param builder builder the builder to customize
+	 * Apply changes to the {@link RuntimeWiring.Builder} such as registering
+	 * {@link graphql.schema.DataFetcher}s, custom scalar types, and more.
+	 * @param builder the builder to configure
 	 */
-	void customize(RuntimeWiring.Builder builder);
+	void configure(RuntimeWiring.Builder builder);
 
 }

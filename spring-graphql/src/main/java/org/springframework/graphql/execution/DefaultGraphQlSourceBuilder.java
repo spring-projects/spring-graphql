@@ -51,8 +51,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private final List<Resource> schemaResources = new ArrayList<>();
 
-	private Consumer<RuntimeWiring.Builder> runtimeWiringConfigurers = (builder) -> {
-	};
+	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
 
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
@@ -71,9 +70,8 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	}
 
 	@Override
-	public GraphQlSource.Builder configureRuntimeWiring(Consumer<RuntimeWiring.Builder> configurer) {
-		Assert.notNull(configurer, "RuntimeWiring configurer is required");
-		this.runtimeWiringConfigurers = this.runtimeWiringConfigurers.andThen(configurer);
+	public GraphQlSource.Builder runtimeWiringConfigurer(RuntimeWiringConfigurer configurer) {
+		this.runtimeWiringConfigurers.add(configurer);
 		return this;
 	}
 
@@ -107,9 +105,10 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
 				.orElseThrow(() -> new IllegalArgumentException("'schemaResources' should not be empty"));
 
-		RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
-		this.runtimeWiringConfigurers.accept(runtimeWiring);
-		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring.build());
+		RuntimeWiring.Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
+		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));
+
+		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiringBuilder.build());
 		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);

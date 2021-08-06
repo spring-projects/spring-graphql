@@ -36,7 +36,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.data.method.AnnotatedDataFetcherRegistrar;
+import org.springframework.graphql.data.method.AnnotatedDataFetcherConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
@@ -75,15 +75,10 @@ public class GraphQlWebFluxAutoConfiguration {
 	private static final Log logger = LogFactory.getLog(GraphQlWebFluxAutoConfiguration.class);
 
 	@Bean
-	public AnnotatedDataFetcherRegistrar dataFetcherRegistrar(ServerCodecConfigurer configurer) {
-		AnnotatedDataFetcherRegistrar registrar = new AnnotatedDataFetcherRegistrar();
+	public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer(ServerCodecConfigurer configurer) {
+		AnnotatedDataFetcherConfigurer registrar = new AnnotatedDataFetcherConfigurer();
 		registrar.setServerCodecConfigurer(configurer);
 		return registrar;
-	}
-
-	@Bean
-	public RuntimeWiringBuilderCustomizer annotatedDataFetcherRuntimeWiringCustomizer(AnnotatedDataFetcherRegistrar registrar) {
-		return registrar::register;
 	}
 
 	@Bean

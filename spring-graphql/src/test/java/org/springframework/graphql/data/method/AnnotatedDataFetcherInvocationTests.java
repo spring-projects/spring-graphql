@@ -180,14 +180,14 @@ public class AnnotatedDataFetcherInvocationTests {
 		applicationContext.registerBean(beanClass);
 		applicationContext.refresh();
 
-		AnnotatedDataFetcherRegistrar registrar = new AnnotatedDataFetcherRegistrar();
-		registrar.setApplicationContext(applicationContext);
-		registrar.setServerCodecConfigurer(ServerCodecConfigurer.create());
-		registrar.afterPropertiesSet();
+		AnnotatedDataFetcherConfigurer configurer = new AnnotatedDataFetcherConfigurer();
+		configurer.setApplicationContext(applicationContext);
+		configurer.setServerCodecConfigurer(ServerCodecConfigurer.create());
+		configurer.afterPropertiesSet();
 
 		GraphQlSource graphQlSource = GraphQlSource.builder()
 				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.configureRuntimeWiring(registrar::register)
+				.runtimeWiringConfigurer(configurer::configure)
 				.build();
 
 		return graphQlSource.graphQl();

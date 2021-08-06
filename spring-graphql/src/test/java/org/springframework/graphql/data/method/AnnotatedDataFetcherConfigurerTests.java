@@ -37,10 +37,10 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link AnnotatedDataFetcherRegistrar}.
+ * Unit tests for {@link AnnotatedDataFetcherConfigurer}.
  * @author Rossen Stoyanchev
  */
-public class AnnotatedDataFetcherRegistrarTests {
+public class AnnotatedDataFetcherConfigurerTests {
 
 	@Test
 	void registerWithDefaultCoordinates() {
@@ -81,13 +81,13 @@ public class AnnotatedDataFetcherRegistrarTests {
 		appContext.registerBean(handlerType);
 		appContext.refresh();
 
-		AnnotatedDataFetcherRegistrar registrar = new AnnotatedDataFetcherRegistrar();
-		registrar.setJsonMessageConverter(new MappingJackson2HttpMessageConverter());
-		registrar.setApplicationContext(appContext);
-		registrar.afterPropertiesSet();
+		AnnotatedDataFetcherConfigurer configurer = new AnnotatedDataFetcherConfigurer();
+		configurer.setJsonMessageConverter(new MappingJackson2HttpMessageConverter());
+		configurer.setApplicationContext(appContext);
+		configurer.afterPropertiesSet();
 
 		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();
-		registrar.register(wiringBuilder);
+		configurer.configure(wiringBuilder);
 		return wiringBuilder;
 	}
 
