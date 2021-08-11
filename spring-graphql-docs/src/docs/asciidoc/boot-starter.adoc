@@ -113,30 +113,19 @@ spring.graphql.schema.printer.enabled=false
 ----
 
 
-[[boot-graphql-datafetcher]]
-== `DataFetcher` Registration
+[[boot-graphql-runtimewiring]]
+== RuntimeWiring
 
-You can declare `RuntimeWiringConfigurer` beans in your Spring config and use those to
-register data fetchers, type resolvers, and more with the GraphQL engine:
+The GraphQL Java `RuntimeWiring.Builder` can be used to register ``DataFetcher``s,
+type resolvers, custom scalar types, and more. You can declare `RuntimeWiringConfigurer`
+beans in your Spring config to get access to the `RuntimeWiring.Builder`. The Boot
+starter detects such beans adds them to <<execution-graphqlsource,GraphQlSource.Builder>>.
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@Component
-public class PersonDataWiring implements RuntimeWiringConfigurer {
-
-	private final PersonService service;
-
-	public PersonDataWiring(PersonService service) {
-		this.service = service;
-	}
-
-	@Override
-	public void configure(RuntimeWiring.Builder builder) {
-		builder.type("Query", wiring ->
-				wiring.dataFetcher("people", env -> this.service.findAll()));
-	}
-}
-----
+Typically, however, applications will not implement ``DataFetcher`` directly and will
+instead create <<controllers,annotated controllers>>. The Boot
+starter declares a `RuntimeWiringConfigurer` called `AnnotatedDataFetcherConfigurer` that
+detects `@GraphQlController` classes with annotated  handler methods and registers those
+as ``DataFetcher``s.
 
 
 [[boot-repositories-querydsl]]

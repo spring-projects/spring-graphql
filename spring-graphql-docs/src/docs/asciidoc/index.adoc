@@ -188,8 +188,8 @@ support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
 === Reactive `DataFetcher`
 
 The default `GraphQlSource` builder enables support for a `DataFetcher` to return `Mono`
-or `Flux`. Both return types are adapted to a `CompletableFuture` with `Flux` values
-aggregated and turned into a List, unless the request is a GraphQL subscription request,
+or `Flux` which adapts those to a `CompletableFuture` where `Flux` values are aggregated
+and turned into a List, unless the request is a GraphQL subscription request,
 in which case the return value remains a Reactive Streams `Publisher` for streaming
 GraphQL responses.
 
@@ -316,11 +316,11 @@ Then use it to create a `DataFetcher`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-    // For single result queries
+	// For single result queries
 	DataFetcher<Account> dataFetcher =
 			QuerydslDataFetcher.builder(repository).single();
 
-    // For multi-result queries
+	// For multi-result queries
 	DataFetcher<Iterable<Account>> dataFetcher =
 			QuerydslDataFetcher.builder(repository).many();
 ----
@@ -364,6 +364,234 @@ type. Of if they don't match, you can use the `typeName` attribute of
 
 Such repositories are auto-detected in the <<boot-repositories-querydsl,Boot starter>>.
 
+
+
+
+[[controllers]]
+== Annotated Controllers
+
+Spring GraphQL provides an annotation-based programming model where `@GraphQlController`
+components use annotations to declare handler methods with flexible method signatures to
+fetch the data for specific GraphQL fields. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	public class GreetingController {
+
+			@QueryMapping // <1>
+			public String hello() { // <2>
+				return "Hello, world!";
+			}
+
+	}
+----
+<1> Bind this method to a query, i.e. a field under the Query type.
+<2> Determine the query from the method name if not declared on the annotation.
+
+Spring GraphQL uses `RuntimeWiring.Builder` to register the above handler method as a
+`graphql.schema.DataFetcher` for the query named "hello".
+
+
+[[controllers-declaration]]
+=== Declaration
+
+You can define `@GraphQlController` beans as standard Spring bean definitions. The
+`@GraphQlController` stereotype allows for auto-detection, aligned with Spring general
+support for detecting `@Controller` and `@Component` classes on the classpath and
+auto-registering bean definitions for them. It also acts as a stereotype for the annotated
+class, indicating its role as a data fetching component in a GraphQL application.
+
+`AnnotatedDataFetcherConfigurer` detects `@GraphQlController` beans and registers their
+annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is an
+implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
+The Spring Boot starter automatically declares `AnnotatedDataFetcherConfigurer` as a bean
+and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
+support for annotated ``DataFetcher``s, see <<boot-graphql-runtimewiring>>.
+
+
+[[controllers-mapping]]
+=== Mapping
+
+The `@SchemaMapping` annotation maps a handler method to a field in the GraphQL schema
+and declares it to be the `DataFetcher` for that field. The annotation can specify the
+parent type name, and the field name:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	public class BookController {
+
+		@SchemaMapping(typeName="Book", field="author")
+		public Author getAuthor(Book book) {
+			// ...
+		}
+	}
+----
+
+The `@SchemaMapping` annotation can also leave out those attributes, in which case the
+field name defaults to the method name, while the type name defaults to the simple class
+name of the source/parent object injected into the method. For example, the below
+defaults to type "Book" and field "author":
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	public class BookController {
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+	}
+----
+
+The `@SchemaMapping` annotation can be declared at the class level to specify a default
+type name for all handler methods in the class.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	@SchemaMapping(typeName="Book")
+	public class BookController {
+
+		// @SchemaMapping methods for fields of the "Book" type
+
+	}
+----
+
+`@QueryMapping`, `@MutationMapping`, and `@SubscriptionMapping` are meta annotations that
+are themselves annotated with `@SchemaMapping` and have the typeName preset to `Query`,
+`Mutation`, or `Subscription` respectively. Effectively, these are shortcut annotations
+for fields under the Query, Mutation, and Subscription types respectively. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInput bookInput) {
+			// ...
+		}
+
+		@SubscriptionMapping
+		public Flux<Book> newPublications() {
+			// ...
+		}
+	}
+----
+
+
+[[controllers-methods]]
+=== Handler Methods
+
+`@SchemaMapping` handler methods have flexible signatures and can choose from a range of
+method arguments and return values..
+
+
+[[controllers-arguments]]
+==== Method Arguments
+
+Annotated handler methods can choose from one of the following method arguments:
+
+[cols="1,2"]
+|===
+| Method Argument | Description
+
+| `@Argument`
+| For access to field arguments with conversion.
+  See <<controllers-argument>>.
+
+| Source
+| For access to the source (i.e. parent/container) instance of the field.
+  See <<controllers-source>>.
+
+| `DataFetchingEnvironment`
+| For direct access to the underlying `DataFetchingEnvironment`.
+  See <<controllers-environment>>.
+
+|===
+
+
+[[controllers-return-values]]
+==== Return Values
+
+Annotated handler methods can return any value, including Reactor `Mono` and `Flux` as
+described in <<execution-reactive-datafetcher>>.
+
+
+
+[[controllers-argument]]
+==== `@Argument`
+
+In GraphQL Java, the `DataFetchingEnvironment` provides access to field-specific argument
+values. The arguments are available as simple scalar values such as String, or as a `Map`
+of values  for more complex input, or a `List` of values.
+
+Use `@Argument` to access an argument for the field that maps to the handler method. You
+can declare such a method parameter to be of any type. If necessary, Spring GraphQL
+converts the value by serializing it to JSON first and then to the target type.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInput bookInput) {
+			// ...
+		}
+	}
+----
+
+You can explicitly specify the argument name, for example `@Argument("bookInput")`, or if
+it not specified, it defaults to the method parameter name, but this requires the
+`-parameters` compiler flag with Java 8+ or debugging information from the compiler.
+
+By default, an `@Argument` is required, but you can make it optional by setting the
+`required` flag to false or by declaring the argument with `java.util.Optional`.
+
+
+[[controllers-source]]
+==== Source
+
+In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
+parent/container) instance of the field. To access this, simply declare a method parameter
+of the expected target type.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@GraphQlController
+	public class BookController {
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+	}
+----
+
+The source method argument also helps to determine the type name for the mapping.
+If the simple name of the Java class matches the GraphQL type, then there is no need to
+explicitly specify the type name in the `@SchemaMapping` annotation.
+
+
+[[controllers-environment]]
+==== `DataFetchingEnvironment`
+
+To access the `DataFetchingEnvironment` directly, simply declare a method parameter of
+the same type.
 
 
 
