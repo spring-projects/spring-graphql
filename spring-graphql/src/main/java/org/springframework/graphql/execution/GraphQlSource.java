@@ -86,7 +86,7 @@ public interface GraphQlSource {
 		 * @return the current builder
 		 * @see graphql.schema.idl.SchemaGenerator#makeExecutableSchema(TypeDefinitionRegistry, RuntimeWiring)
 		 */
-		Builder runtimeWiringConfigurer(RuntimeWiringConfigurer configurer);
+		Builder configureRuntimeWiring(RuntimeWiringConfigurer configurer);
 
 		/**
 		 * Add {@link DataFetcherExceptionResolver}'s to use for resolving exceptions from

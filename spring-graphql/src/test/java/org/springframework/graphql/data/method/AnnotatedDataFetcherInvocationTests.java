@@ -187,7 +187,7 @@ public class AnnotatedDataFetcherInvocationTests {
 
 		GraphQlSource graphQlSource = GraphQlSource.builder()
 				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.runtimeWiringConfigurer(configurer::configure)
+				.configureRuntimeWiring(configurer::configure)
 				.build();
 
 		return graphQlSource.graphQl();

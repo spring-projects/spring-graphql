@@ -40,9 +40,11 @@ public class ExecutionGraphQlService implements GraphQlService {
 	}
 
 	@Override
-	public Mono<ExecutionResult> execute(RequestInput input) {
-		ExecutionInput executionInput = input.toExecutionInput();
+	public final Mono<ExecutionResult> execute(RequestInput requestInput) {
+		ExecutionInput executionInput = requestInput.toExecutionInput();
+
 		GraphQL graphQl = this.graphQlSource.graphQl();
+
 		return Mono.deferContextual((contextView) -> {
 			ReactorContextManager.setReactorContext(contextView, executionInput);
 			return Mono.fromFuture(graphQl.executeAsync(executionInput));

@@ -65,7 +65,7 @@ public class GraphQlAutoConfiguration {
 				.schemaResources(schemaResources.toArray(new Resource[0]))
 				.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
 				.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
-		wiringConfigurers.orderedStream().forEach(builder::runtimeWiringConfigurer);
+		wiringConfigurers.orderedStream().forEach(builder::configureRuntimeWiring);
 		sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
 		return builder.build();
 	}

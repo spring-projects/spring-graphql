@@ -61,7 +61,7 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * A {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
+ * {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
  * annotated handler methods in {@link GraphQlController @GraphQlController}
  * classes and registers them as {@link DataFetcher}s.
  *
@@ -181,8 +181,8 @@ public class AnnotatedDataFetcherConfigurer
 
 	@Override
 	public void configure(RuntimeWiring.Builder builder) {
-		Assert.state(this.argumentResolvers != null, "`argumentResolvers` not initialized");
-		Assert.state(this.applicationContext != null, "ApplicationContext is required");
+		Assert.notNull(this.applicationContext, "ApplicationContext is required");
+		Assert.notNull(this.argumentResolvers, "`argumentResolvers` are required");
 
 		detectHandlerMethods().forEach((coordinates, handlerMethod) -> {
 			DataFetcher<?> dataFetcher = new AnnotatedDataFetcher(coordinates, handlerMethod, this.argumentResolvers);
@@ -301,7 +301,6 @@ public class AnnotatedDataFetcherConfigurer
 		if (hasTypeName && hasFieldName) {
 			return coordinates;
 		}
-
 		String typeName = coordinates.getTypeName();
 		if (!hasTypeName) {
 			for (MethodParameter parameter : handlerMethod.getMethodParameters()) {
@@ -315,7 +314,6 @@ public class AnnotatedDataFetcherConfigurer
 					"No parentType specified, and a source/container method argument was also not found: "  +
 							handlerMethod.getShortLogMessage());
 		}
-
 		return FieldCoordinates.coordinates(typeName,
 				(hasFieldName ? coordinates.getFieldName() : handlerMethod.getMethod().getName()));
 	}
@@ -333,7 +331,6 @@ public class AnnotatedDataFetcherConfigurer
 					return entry.getKey() + " => "  + method.getName() + methodParameters;
 				})
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
-
 	}
 
 }
