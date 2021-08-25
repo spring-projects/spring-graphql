@@ -516,6 +516,10 @@ Annotated handler methods can choose from one of the following method arguments:
 | For direct access to the underlying `DataFetchingEnvironment`.
   See <<controllers-environment>>.
 
+| `GraphQLContext`
+| For access to the context from the `DataFetchingEnvironment`.
+See <<controllers-graphql-context>>.
+
 |===
 
 
@@ -590,8 +594,15 @@ explicitly specify the type name in the `@SchemaMapping` annotation.
 [[controllers-environment]]
 ==== `DataFetchingEnvironment`
 
-To access the `DataFetchingEnvironment` directly, simply declare a method parameter of
-the same type.
+To access the `DataFetchingEnvironment` directly, declare a method parameter of the same
+type.
+
+
+[[controllers-graphql-context]]
+==== `GraphQLContext`
+
+To access the `GraphQLContext` from the `DataFetchingEnvironment`, declare a method
+parameter of the same type.
 
 
 

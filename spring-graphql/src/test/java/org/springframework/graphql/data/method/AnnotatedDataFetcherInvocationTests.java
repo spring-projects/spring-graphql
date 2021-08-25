@@ -18,8 +18,10 @@ package org.springframework.graphql.data.method;
 import java.util.List;
 import java.util.Map;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -108,7 +110,8 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQl(BookController.class).execute(query);
+		ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
+		ExecutionResult result = initGraphQl(BookController.class).execute(input);
 
 		assertThat(result.getErrors()).isEmpty();
 		Map<String, Object> data = result.getData();
@@ -118,6 +121,8 @@ public class AnnotatedDataFetcherInvocationTests {
 		assertThat(author.get("id")).isEqualTo("1");
 		assertThat(author.get("firstName")).isEqualTo("George");
 		assertThat(author.get("lastName")).isEqualTo("Orwell");
+
+		assertThat(input.getGraphQLContext().<String>get("key")).isEqualTo("value");
 	}
 
 	@Test
@@ -218,7 +223,8 @@ public class AnnotatedDataFetcherInvocationTests {
 		}
 
 		@QueryMapping
-		public Author authorById(DataFetchingEnvironment environment) {
+		public Author authorById(DataFetchingEnvironment environment, GraphQLContext context) {
+			context.put("key", "value");
 			String id = environment.getArgument("id");
 			return BookSource.getAuthor(Long.parseLong(id));
 		}

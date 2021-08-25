@@ -15,13 +15,14 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 
 /**
- * Resolver for a {@link DataFetchingEnvironment} argument.
+ * Resolver for {@link DataFetchingEnvironment} or {@link GraphQLContext} arguments.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -30,12 +31,19 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.getParameterType().equals(DataFetchingEnvironment.class);
+		Class<?> type = parameter.getParameterType();
+		return (type.equals(DataFetchingEnvironment.class) || type.equals(GraphQLContext.class));
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
-		return environment;
+		Class<?> type = parameter.getParameterType();
+		if (type.equals(GraphQLContext.class)) {
+			return environment.getGraphQlContext();
+		}
+		else {
+			return environment;
+		}
 	}
 
 }
