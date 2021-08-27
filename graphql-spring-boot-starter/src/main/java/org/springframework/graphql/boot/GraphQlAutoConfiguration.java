@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -51,6 +53,8 @@ import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 @EnableConfigurationProperties(GraphQlProperties.class)
 public class GraphQlAutoConfiguration {
 
+	private static final Log logger = LogFactory.getLog(GraphQlAutoConfiguration.class);
+
 	private static final String[] SCHEMA_FILES_EXTENSIONS = new String[] {"*.graphqls", "*.graphql", "*.gql", "*.gqls"};
 
 	@Bean
@@ -74,8 +78,16 @@ public class GraphQlAutoConfiguration {
 		List<Resource> schemaResources = new ArrayList<>();
 		for (String location : schemaLocations) {
 			for (String extension : SCHEMA_FILES_EXTENSIONS) {
-				schemaResources.addAll(Arrays.asList(resolver.getResources(location + extension)));
+				try {
+					schemaResources.addAll(Arrays.asList(resolver.getResources(location + extension)));
+				}
+				catch (IOException ex) {
+					logger.debug("Could not resolve schema location: '" + location + extension + "'", ex);
+				}
 			}
+		}
+		if (schemaResources.isEmpty()) {
+			throw new MissingSchemaException(schemaLocations, resolver);
 		}
 		return schemaResources;
 	}

@@ -9,6 +9,10 @@ org.springframework.graphql.boot.security.GraphQlWebMvcSecurityAutoConfiguration
 org.springframework.graphql.boot.data.GraphQlWebMvcQuerydslAutoConfiguration,\
 org.springframework.graphql.boot.data.GraphQlWebFluxQuerydslAutoConfiguration
 
+# Failure Analyzers
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+org.springframework.graphql.boot.MissingSchemaExceptionFailureAnalyzer
+
 # Spring Test @AutoConfigureGraphQlTester
 org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester=\
 org.springframework.graphql.boot.test.tester.WebTestClientMockMvcAutoConfiguration,\

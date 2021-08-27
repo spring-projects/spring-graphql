@@ -40,7 +40,7 @@ class GraphQlAutoConfigurationTests {
 	void shouldFailWhenSchemaFileIsMissing() {
 		this.contextRunner.run((context) -> {
 			assertThat(context).hasFailed();
-			assertThat(context).getFailure().getRootCause().hasMessage("'schemaResources' should not be empty");
+			assertThat(context).getFailure().getRootCause().isInstanceOf(MissingSchemaException.class);
 		});
 	}
 
