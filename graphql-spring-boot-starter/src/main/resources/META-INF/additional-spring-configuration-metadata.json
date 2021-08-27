@@ -1,7 +1,7 @@
 {
   "properties": [
     {
-      "name": "spring.graphql.locations",
+      "name": "spring.graphql.schema.locations",
       "defaultValue": "classpath:graphql/"
     },
     {
