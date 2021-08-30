@@ -15,14 +15,14 @@
  */
 package io.spring.sample.graphql.greeting;
 
-import org.springframework.graphql.data.method.annotation.GraphQlController;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import static org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST;
 
-@GraphQlController
+@Controller
 public class GreetingController {
 
 	@QueryMapping

@@ -27,12 +27,12 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.graphql.data.method.annotation.GraphQlController;
-import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -100,7 +100,7 @@ public class AnnotatedDataFetcherConfigurerTests {
 	}
 
 
-	@GraphQlController
+	@Controller
 	private static class BookController {
 
 

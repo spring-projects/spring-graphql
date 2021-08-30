@@ -370,7 +370,7 @@ Such repositories are auto-detected in the <<boot-repositories-querydsl,Boot sta
 [[controllers]]
 == Annotated Controllers
 
-Spring GraphQL provides an annotation-based programming model where `@GraphQlController`
+Spring GraphQL provides an annotation-based programming model where `@Controller`
 components use annotations to declare handler methods with flexible method signatures to
 fetch the data for specific GraphQL fields. For example:
 
@@ -396,13 +396,13 @@ Spring GraphQL uses `RuntimeWiring.Builder` to register the above handler method
 [[controllers-declaration]]
 === Declaration
 
-You can define `@GraphQlController` beans as standard Spring bean definitions. The
-`@GraphQlController` stereotype allows for auto-detection, aligned with Spring general
+You can define `@Controller` beans as standard Spring bean definitions. The
+`@Controller` stereotype allows for auto-detection, aligned with Spring general
 support for detecting `@Controller` and `@Component` classes on the classpath and
 auto-registering bean definitions for them. It also acts as a stereotype for the annotated
 class, indicating its role as a data fetching component in a GraphQL application.
 
-`AnnotatedDataFetcherConfigurer` detects `@GraphQlController` beans and registers their
+`AnnotatedDataFetcherConfigurer` detects `@Controller` beans and registers their
 annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is an
 implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
 The Spring Boot starter automatically declares `AnnotatedDataFetcherConfigurer` as a bean

@@ -18,11 +18,11 @@ package io.spring.sample.graphql;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.data.method.annotation.GraphQlController;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
+import org.springframework.stereotype.Controller;
 
-@GraphQlController
+@Controller
 public class SampleController {
 
 	private final DataRepository repository;

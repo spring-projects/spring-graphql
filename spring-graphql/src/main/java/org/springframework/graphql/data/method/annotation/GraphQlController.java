@@ -30,11 +30,12 @@ import org.springframework.stereotype.Controller;
  * {@link QueryMapping}, {@link MutationMapping}, and {@link SubscriptionMapping}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
+ * @deprecated in favor of using {@link Controller @Controller}
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Controller
+@Deprecated
 public @interface GraphQlController {
 }

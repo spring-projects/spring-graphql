@@ -41,13 +41,12 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
-import org.springframework.graphql.data.method.annotation.GraphQlController;
-import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.graphql.data.method.annotation.support.InputArgumentMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.DataFetchingEnvironmentMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.InputArgumentMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.SourceMethodArgumentResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.http.MediaType;
@@ -56,14 +55,15 @@ import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
  * {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
- * annotated handler methods in {@link GraphQlController @GraphQlController}
- * classes and registers them as {@link DataFetcher}s.
+ * annotated handler methods in {@link Controller @Controller} classes and
+ * registers them as {@link DataFetcher}s.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -227,7 +227,7 @@ public class AnnotatedDataFetcherConfigurer
 	}
 
 	private boolean isHandler(Class<?> beanType) {
-		return (AnnotatedElementUtils.hasAnnotation(beanType, GraphQlController.class) ||
+		return (AnnotatedElementUtils.hasAnnotation(beanType, Controller.class) ||
 				AnnotatedElementUtils.hasAnnotation(beanType, SchemaMapping.class));
 	}
 
