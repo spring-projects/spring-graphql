@@ -33,6 +33,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.ExtractingResponseErrorHandler;
 
 /**
@@ -88,11 +89,11 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	}
 
 	private DataFetcherExceptionHandlerResult applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
-		GraphQLError error = GraphqlErrorBuilder.newError(env)
-				.message(ex.getMessage())
-				.errorType(ErrorType.INTERNAL_ERROR)
-				.build();
-		return DataFetcherExceptionHandlerResult.newResult(error).build();
+		GraphqlErrorBuilder errorBuilder = GraphqlErrorBuilder.newError(env).errorType(ErrorType.INTERNAL_ERROR);
+		if (StringUtils.hasText(ex.getMessage())) {
+			errorBuilder.message(ex.getMessage());
+		}
+		return DataFetcherExceptionHandlerResult.newResult(errorBuilder.build()).build();
 	}
 
 }
