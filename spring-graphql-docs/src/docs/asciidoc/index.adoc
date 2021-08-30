@@ -376,7 +376,7 @@ fetch the data for specific GraphQL fields. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	public class GreetingController {
 
 			@QueryMapping // <1>
@@ -419,7 +419,7 @@ parent type name, and the field name:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	public class BookController {
 
 		@SchemaMapping(typeName="Book", field="author")
@@ -436,7 +436,7 @@ defaults to type "Book" and field "author":
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	public class BookController {
 
 		@SchemaMapping
@@ -451,7 +451,7 @@ type name for all handler methods in the class.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	@SchemaMapping(typeName="Book")
 	public class BookController {
 
@@ -467,7 +467,7 @@ for fields under the Query, Mutation, and Subscription types respectively. For e
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	public class BookController {
 
 		@QueryMapping
@@ -544,7 +544,7 @@ converts the value by serializing it to JSON first and then to the target type.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	public class BookController {
 
 		@QueryMapping
@@ -576,7 +576,7 @@ of the expected target type.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	@GraphQlController
+	@Controller
 	public class BookController {
 
 		@SchemaMapping
