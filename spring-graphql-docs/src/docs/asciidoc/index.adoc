@@ -566,6 +566,9 @@ it not specified, it defaults to the method parameter name, but this requires th
 By default, an `@Argument` is required, but you can make it optional by setting the
 `required` flag to false or by declaring the argument with `java.util.Optional`.
 
+You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
+values. The name attribute on `@Argument` must not be set.
+
 
 [[controllers-source]]
 ==== Source

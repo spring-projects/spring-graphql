@@ -37,7 +37,9 @@ import org.springframework.stereotype.Controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link AnnotatedDataFetcherConfigurer}.
+ * Unit tests for {@link AnnotatedDataFetcherConfigurer}, focusing on detection
+ * and mapping of handler methods to schema fields.
+ *
  * @author Rossen Stoyanchev
  */
 public class AnnotatedDataFetcherConfigurerTests {

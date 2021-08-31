@@ -53,7 +53,7 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class InputArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
+public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
 	private final ArgumentConverter argumentConverter;
 
@@ -62,16 +62,16 @@ public class InputArgumentMethodArgumentResolver implements HandlerMethodArgumen
 	 * {@link org.springframework.http.converter.HttpMessageConverter} to convert
 	 * Map-based input arguments to higher level Objects.
 	 */
-	public InputArgumentMethodArgumentResolver(GenericHttpMessageConverter<Object> converter) {
+	public ArgumentMethodArgumentResolver(GenericHttpMessageConverter<Object> converter) {
 		this.argumentConverter = new MessageConverterArgumentConverter(converter);
 	}
 
 	/**
 	 * Variant of
-	 * {@link #InputArgumentMethodArgumentResolver(GenericHttpMessageConverter)}
+	 * {@link #ArgumentMethodArgumentResolver(GenericHttpMessageConverter)}
 	 * to use an {@link Encoder} and {@link Decoder} to convert input arguments.
 	 */
-	public InputArgumentMethodArgumentResolver(Decoder<Object> decoder, Encoder<Object> encoder) {
+	public ArgumentMethodArgumentResolver(Decoder<Object> decoder, Encoder<Object> encoder) {
 		this.argumentConverter = new CodecArgumentConverter(decoder, encoder);
 	}
 

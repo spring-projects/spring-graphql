@@ -45,8 +45,9 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
+import org.springframework.graphql.data.method.annotation.support.ArgumentMapMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.DataFetchingEnvironmentMethodArgumentResolver;
-import org.springframework.graphql.data.method.annotation.support.InputArgumentMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.ArgumentMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.SourceMethodArgumentResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.http.MediaType;
@@ -159,17 +160,18 @@ public class AnnotatedDataFetcherConfigurer
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
 		this.argumentResolvers.addResolver(initInputArgumentMethodArgumentResolver());
+		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
 	}
 
-	private InputArgumentMethodArgumentResolver initInputArgumentMethodArgumentResolver() {
-		InputArgumentMethodArgumentResolver argumentResolver;
+	private ArgumentMethodArgumentResolver initInputArgumentMethodArgumentResolver() {
+		ArgumentMethodArgumentResolver argumentResolver;
 		if (this.jsonMessageConverter != null) {
-			argumentResolver = new InputArgumentMethodArgumentResolver(this.jsonMessageConverter);
+			argumentResolver = new ArgumentMethodArgumentResolver(this.jsonMessageConverter);
 		}
 		else if (this.jsonEncoder != null && this.jsonDecoder != null) {
-			argumentResolver = new InputArgumentMethodArgumentResolver(this.jsonDecoder, this.jsonEncoder);
+			argumentResolver = new ArgumentMethodArgumentResolver(this.jsonDecoder, this.jsonEncoder);
 		}
 		else {
 			throw new IllegalArgumentException(
