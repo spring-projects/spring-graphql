@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.data.method;
+package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
+
+import org.springframework.graphql.data.method.HandlerMethod;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
+import org.springframework.graphql.data.method.InvocableHandlerMethod;
 
 /**
  * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.

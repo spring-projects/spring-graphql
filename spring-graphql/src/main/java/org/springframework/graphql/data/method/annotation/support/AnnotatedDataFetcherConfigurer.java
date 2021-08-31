@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.data.method;
+package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -41,14 +41,13 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
+import org.springframework.graphql.data.method.HandlerMethod;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.graphql.data.method.annotation.support.ArgumentMapMethodArgumentResolver;
-import org.springframework.graphql.data.method.annotation.support.DataFetchingEnvironmentMethodArgumentResolver;
-import org.springframework.graphql.data.method.annotation.support.ArgumentMethodArgumentResolver;
-import org.springframework.graphql.data.method.annotation.support.SourceMethodArgumentResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;

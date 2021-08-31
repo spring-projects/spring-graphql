@@ -36,7 +36,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.data.method.AnnotatedDataFetcherConfigurer;
+import org.springframework.graphql.data.method.annotation.support.AnnotatedDataFetcherConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
