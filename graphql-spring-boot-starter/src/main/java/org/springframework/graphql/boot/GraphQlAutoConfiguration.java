@@ -38,6 +38,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.MissingSchemaException;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 
 /**
@@ -71,7 +72,12 @@ public class GraphQlAutoConfiguration {
 				.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
 		wiringConfigurers.orderedStream().forEach(builder::configureRuntimeWiring);
 		sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
-		return builder.build();
+		try {
+			return builder.build();
+		}
+		catch (MissingSchemaException exc) {
+			throw new InvalidSchemaLocationsException(properties.getSchema().getLocations(), resourcePatternResolver, exc);
+		}
 	}
 
 	private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
@@ -85,9 +91,6 @@ public class GraphQlAutoConfiguration {
 					logger.debug("Could not resolve schema location: '" + location + extension + "'", ex);
 				}
 			}
-		}
-		if (schemaResources.isEmpty()) {
-			throw new MissingSchemaException(schemaLocations, resolver);
 		}
 		return schemaResources;
 	}

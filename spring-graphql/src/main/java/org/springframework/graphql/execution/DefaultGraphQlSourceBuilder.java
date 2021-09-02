@@ -103,7 +103,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	public GraphQlSource build() {
 		TypeDefinitionRegistry registry = this.schemaResources.stream()
 				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
-				.orElseThrow(() -> new IllegalArgumentException("'schemaResources' should not be empty"));
+				.orElseThrow(MissingSchemaException::new);
 
 		RuntimeWiring.Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
 		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));

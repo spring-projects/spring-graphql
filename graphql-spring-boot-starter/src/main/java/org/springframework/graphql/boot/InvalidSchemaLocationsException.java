@@ -21,18 +21,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
 /**
- * {@link MissingSchemaException} thrown when no schema can be found in the provided locations.
+ * {@link InvalidSchemaLocationsException} thrown when no schema file could be found in the provided locations.
  *
  * @author Brian Clozel
+ * @since 1.0.0
  */
-public class MissingSchemaException extends RuntimeException {
+public class InvalidSchemaLocationsException extends NestedRuntimeException {
 
 	private final List<SchemaLocation> schemaLocations;
 
-	public MissingSchemaException(List<String> locations, ResourcePatternResolver resolver) {
+	public InvalidSchemaLocationsException(List<String> locations, ResourcePatternResolver resolver) {
+		this(locations, resolver, null);
+	}
+
+	public InvalidSchemaLocationsException(List<String> locations, ResourcePatternResolver resolver, Throwable cause) {
+		super("No schema file could be found in the provided locations.", cause);
 		List<SchemaLocation> providedLocations = new ArrayList<>();
 		for (String location : locations) {
 			try {

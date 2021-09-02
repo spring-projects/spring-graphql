@@ -11,7 +11,7 @@ org.springframework.graphql.boot.data.GraphQlWebFluxQuerydslAutoConfiguration
 
 # Failure Analyzers
 org.springframework.boot.diagnostics.FailureAnalyzer=\
-org.springframework.graphql.boot.MissingSchemaExceptionFailureAnalyzer
+org.springframework.graphql.boot.InvalidSchemaLocationsExceptionFailureAnalyzer
 
 # Spring Test @AutoConfigureGraphQlTester
 org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester=\

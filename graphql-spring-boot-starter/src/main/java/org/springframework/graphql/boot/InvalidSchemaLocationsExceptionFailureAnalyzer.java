@@ -21,17 +21,17 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 
 /**
  * An implementation of {@link AbstractFailureAnalyzer} to analyze failures caused by
- * {@link MissingSchemaException}.
+ * {@link InvalidSchemaLocationsException}.
  *
  * @author Brian Clozel
  */
-class MissingSchemaExceptionFailureAnalyzer extends AbstractFailureAnalyzer<MissingSchemaException> {
+class InvalidSchemaLocationsExceptionFailureAnalyzer extends AbstractFailureAnalyzer<InvalidSchemaLocationsException> {
 
 	@Override
-	protected FailureAnalysis analyze(Throwable rootFailure, MissingSchemaException cause) {
+	protected FailureAnalysis analyze(Throwable rootFailure, InvalidSchemaLocationsException cause) {
 		String message = "Could not find any GraphQL schema file under configured locations.";
 		StringBuilder action = new StringBuilder("Check that the following locations contain schema files: " + System.lineSeparator());
-		for (MissingSchemaException.SchemaLocation schemaLocation : cause.getSchemaLocations()) {
+		for (InvalidSchemaLocationsException.SchemaLocation schemaLocation : cause.getSchemaLocations()) {
 			action.append(String.format("- '%s' (%s)"  + System.lineSeparator(), schemaLocation.getUri(), schemaLocation.getLocation()));
 		}
 		return new FailureAnalysis(message, action.toString(), cause);

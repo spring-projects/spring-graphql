@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.MissingSchemaException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
