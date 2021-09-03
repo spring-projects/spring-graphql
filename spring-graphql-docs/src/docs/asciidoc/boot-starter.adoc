@@ -173,6 +173,19 @@ values of interest in <<index.adoc#execution-context-webmvc,Spring MVC>>.
 
 
 
+[[boot-graphql-exception-handling]]
+== Exception
+
+Spring GraphQL enables applications to register one or more Spring
+`DataFetcherExceptionResolver` components that are invoked sequentially until one
+resolves the Exception to a list of `graphql.GraphQLError` objects. See
+<<execution-exceptions>> for details.
+
+The Boot starter detects beans of type `DataFetcherExceptionResolver` and registers them
+automatically with the `GraphQlSource.Builder`.
+
+
+
 [[boot-graphql-graphiql]]
 == GraphiQL
 
@@ -184,7 +197,6 @@ that is exposed at "/graphiql" by default. You can configure this as follows:
 spring.graphql.graphiql.enabled=true
 spring.graphql.graphiql.path=/graphiql
 ----
-
 
 
 
