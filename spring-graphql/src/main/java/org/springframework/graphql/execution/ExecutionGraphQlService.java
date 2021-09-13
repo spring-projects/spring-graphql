@@ -16,9 +16,13 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
@@ -35,20 +39,44 @@ public class ExecutionGraphQlService implements GraphQlService {
 
 	private final GraphQlSource graphQlSource;
 
+	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
+
+
 	public ExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
 	}
 
+
+	/**
+	 * Add a registrar to get access to and configure the
+	 * {@link DataLoaderRegistry} for each request.
+	 * @param registrar the registrar to add
+	 */
+	public void addDataLoaderRegistrar(DataLoaderRegistrar registrar) {
+		this.dataLoaderRegistrars.add(registrar);
+	}
+
+
 	@Override
 	public final Mono<ExecutionResult> execute(RequestInput requestInput) {
-		ExecutionInput executionInput = requestInput.toExecutionInput();
-
+		ExecutionInput executionInput = initExecutionInput(requestInput);
 		GraphQL graphQl = this.graphQlSource.graphQl();
 
 		return Mono.deferContextual((contextView) -> {
 			ReactorContextManager.setReactorContext(contextView, executionInput);
 			return Mono.fromFuture(graphQl.executeAsync(executionInput));
 		});
+	}
+
+	private ExecutionInput initExecutionInput(RequestInput requestInput) {
+		ExecutionInput input = requestInput.toExecutionInput();
+		if (!this.dataLoaderRegistrars.isEmpty()) {
+			DataLoaderRegistry previousRegistry = input.getDataLoaderRegistry();
+			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().registerAll(previousRegistry).build();
+			this.dataLoaderRegistrars.forEach(registrar -> registrar.registerDataLoaders(newRegistry));
+			input = input.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+		}
+		return input;
 	}
 
 }

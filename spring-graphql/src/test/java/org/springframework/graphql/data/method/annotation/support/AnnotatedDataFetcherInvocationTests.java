@@ -39,7 +39,6 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.graphql.data.method.annotation.support.AnnotatedDataFetcherConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.stereotype.Controller;
@@ -104,7 +103,7 @@ public class AnnotatedDataFetcherInvocationTests {
 	@Test
 	void queryWithArgumentViaDataFetchingEnvironment() {
 		String query = "{ " +
-				"  authorById(id:\"1\") { " +
+				"  authorById(id:\"101\") { " +
 				"    id" +
 				"    firstName" +
 				"    lastName" +
@@ -119,7 +118,7 @@ public class AnnotatedDataFetcherInvocationTests {
 		assertThat(data).isNotNull();
 
 		Map<String, Object> author = getValue(data, "authorById");
-		assertThat(author.get("id")).isEqualTo("1");
+		assertThat(author.get("id")).isEqualTo("101");
 		assertThat(author.get("firstName")).isEqualTo("George");
 		assertThat(author.get("lastName")).isEqualTo("Orwell");
 
@@ -210,7 +209,7 @@ public class AnnotatedDataFetcherInvocationTests {
 
 		@QueryMapping
 		public Book bookById(@Argument Long id) {
-			return new Book(id, BookSource.getBook(id).getName(), null);
+			return BookSource.getBookWithoutAuthor(id);
 		}
 
 		@QueryMapping

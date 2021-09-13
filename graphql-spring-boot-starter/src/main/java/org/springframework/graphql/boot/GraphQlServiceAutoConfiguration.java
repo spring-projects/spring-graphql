@@ -25,6 +25,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
+import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
@@ -41,10 +43,19 @@ import org.springframework.graphql.execution.GraphQlSource;
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
 public class GraphQlServiceAutoConfiguration {
 
+	private final DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+
+	@Bean
+	public BatchLoaderRegistry batchLoaderRegistry() {
+		return this.batchLoaderRegistry;
+	}
+
 	@Bean
 	@ConditionalOnMissingBean
 	public GraphQlService graphQlService(GraphQlSource graphQlSource) {
-		return new ExecutionGraphQlService(graphQlSource);
+		ExecutionGraphQlService service = new ExecutionGraphQlService(graphQlSource);
+		service.addDataLoaderRegistrar(this.batchLoaderRegistry);
+		return service;
 	}
 
 }

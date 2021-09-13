@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import reactor.core.publisher.Flux;
 
@@ -26,36 +28,46 @@ public class BookSource {
 
 	private static final Map<Long, Book> booksMap = new HashMap<>();
 
+	private static final Map<Long, Book> booksWithoutAuthorsMap;
+
 	private static final Map<Long, Author> authorsMap = new HashMap<>();
 
 	static {
-		authorsMap.put(1L, new Author(1L, "George", "Orwell"));
-		authorsMap.put(2L, new Author(2L, "F. Scott", "Fitzgerald"));
-		authorsMap.put(3L, new Author(3L, "Joseph", "Heller"));
-		authorsMap.put(4L, new Author(4L, "Virginia", "Woolf"));
-		authorsMap.put(5L, new Author(5L, "Douglas", "Adams"));
-		authorsMap.put(6L, new Author(6L, "Vince", "Gilligan"));
+		authorsMap.put(101L, new Author(101L, "George", "Orwell"));
+		authorsMap.put(102L, new Author(102L, "F. Scott", "Fitzgerald"));
+		authorsMap.put(103L, new Author(103L, "Joseph", "Heller"));
+		authorsMap.put(104L, new Author(104L, "Virginia", "Woolf"));
+		authorsMap.put(105L, new Author(105L, "Douglas", "Adams"));
+		authorsMap.put(106L, new Author(106L, "Vince", "Gilligan"));
 
-		booksMap.put(1L, new Book(1L, "Nineteen Eighty-Four", authorsMap.get(1L)));
-		booksMap.put(2L, new Book(2L, "The Great Gatsby", authorsMap.get(2L)));
-		booksMap.put(3L, new Book(3L, "Catch-22", authorsMap.get(3L)));
-		booksMap.put(4L, new Book(4L, "To The Lighthouse", authorsMap.get(4L)));
-		booksMap.put(5L, new Book(5L, "Animal Farm", authorsMap.get(1L)));
-		booksMap.put(42L, new Book(42L, "Hitchhiker's Guide to the Galaxy", authorsMap.get(5L)));
-		booksMap.put(53L, new Book(53L, "Breaking Bad", authorsMap.get(6L)));
+		booksMap.put(1L, new Book(1L, "Nineteen Eighty-Four", authorsMap.get(101L)));
+		booksMap.put(2L, new Book(2L, "The Great Gatsby", authorsMap.get(102L)));
+		booksMap.put(3L, new Book(3L, "Catch-22", authorsMap.get(103L)));
+		booksMap.put(4L, new Book(4L, "To The Lighthouse", authorsMap.get(104L)));
+		booksMap.put(5L, new Book(5L, "Animal Farm", authorsMap.get(101L)));
+		booksMap.put(42L, new Book(42L, "Hitchhiker's Guide to the Galaxy", authorsMap.get(105L)));
+		booksMap.put(53L, new Book(53L, "Breaking Bad", authorsMap.get(106L)));
+
+		booksWithoutAuthorsMap = booksMap.values().stream()
+				.map(book -> new Book(book.getId(), book.getName(), book.getAuthorId()))
+				.collect(Collectors.toMap(Book::getId, Function.identity()));
 	}
 
-
-	public static Map<Long, Book> booksMap() {
-		return booksMap;
-	}
 
 	public static List<Book> books() {
 		return new ArrayList<>(booksMap.values());
 	}
 
+	public static List<Book> booksWithoutAuthors() {
+		return new ArrayList<>(booksWithoutAuthorsMap.values());
+	}
+
 	public static Book getBook(Long id) {
 		return booksMap.get(id);
+	}
+
+	public static Book getBookWithoutAuthor(Long id) {
+		return booksWithoutAuthorsMap.get(id);
 	}
 
 	@SuppressWarnings("ConstantConditions")

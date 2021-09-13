@@ -22,14 +22,24 @@ public class Book {
 
 	String name;
 
+	Long authorId;
+
 	Author author;
 
 	public Book() {
 	}
 
+	public Book(Long id, String name, Long authorId) {
+		this.id = id;
+		this.name = name;
+		this.authorId = authorId;
+		this.author = null;
+	}
+
 	public Book(Long id, String name, Author author) {
 		this.id = id;
 		this.name = name;
+		this.authorId = author.getId();
 		this.author = author;
 	}
 
@@ -47,6 +57,10 @@ public class Book {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Long getAuthorId() {
+		return this.authorId;
 	}
 
 	public Author getAuthor() {
