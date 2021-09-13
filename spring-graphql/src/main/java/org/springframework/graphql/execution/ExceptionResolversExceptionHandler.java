@@ -34,7 +34,6 @@ import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.ExtractingResponseErrorHandler;
 
 /**
  * {@link DataFetcherExceptionHandler} that invokes {@link DataFetcherExceptionResolver}'s
@@ -44,7 +43,7 @@ import org.springframework.web.client.ExtractingResponseErrorHandler;
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
-	private static final Log logger = LogFactory.getLog(ExtractingResponseErrorHandler.class);
+	private static final Log logger = LogFactory.getLog(ExceptionResolversExceptionHandler.class);
 
 	private final List<DataFetcherExceptionResolver> resolvers;
 
@@ -68,6 +67,9 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		// For now we have to block:
 		// https://github.com/graphql-java/graphql-java/issues/2356
 		try {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Resolving exception", ex);
+			}
 			return Flux.fromIterable(this.resolvers)
 					.flatMap((resolver) -> resolver.resolveException(ex, env))
 					.next()
@@ -90,9 +92,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	private DataFetcherExceptionHandlerResult applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
 		GraphqlErrorBuilder errorBuilder = GraphqlErrorBuilder.newError(env).errorType(ErrorType.INTERNAL_ERROR);
-		if (StringUtils.hasText(ex.getMessage())) {
-			errorBuilder.message(ex.getMessage());
-		}
+		errorBuilder.message(StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : ex.getClass().getSimpleName());
 		return DataFetcherExceptionHandlerResult.newResult(errorBuilder.build()).build();
 	}
 
