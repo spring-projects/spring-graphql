@@ -26,7 +26,7 @@ import org.springframework.core.annotation.AliasFor;
 /**
  * Annotation to express a mapping to a GraphQL Mutation operation.
  *
- * <p>Specifically, {@code @QueryMapping} is a <em>composed annotation</em> that
+ * <p>Specifically, {@code @MutationMapping} is a <em>composed annotation</em> that
  * acts as a shortcut for {@code @SchemaMapping(typeName = "Mutation")}.
  *
  * @author Rossen Stoyanchev
