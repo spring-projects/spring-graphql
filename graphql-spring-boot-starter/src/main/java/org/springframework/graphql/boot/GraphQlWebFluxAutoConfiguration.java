@@ -76,9 +76,9 @@ public class GraphQlWebFluxAutoConfiguration {
 
 	@Bean
 	public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer(ServerCodecConfigurer configurer) {
-		AnnotatedDataFetcherConfigurer registrar = new AnnotatedDataFetcherConfigurer();
-		registrar.setServerCodecConfigurer(configurer);
-		return registrar;
+		AnnotatedDataFetcherConfigurer dataFetcherConfigurer = new AnnotatedDataFetcherConfigurer();
+		dataFetcherConfigurer.setServerCodecConfigurer(configurer);
+		return dataFetcherConfigurer;
 	}
 
 	@Bean

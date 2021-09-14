@@ -84,9 +84,9 @@ public class GraphQlWebMvcAutoConfiguration {
 
 	@Bean
 	public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer(HttpMessageConverters converters) {
-		AnnotatedDataFetcherConfigurer registrar = new AnnotatedDataFetcherConfigurer();
-		registrar.setJsonMessageConverter(getJsonConverter(converters));
-		return registrar;
+		AnnotatedDataFetcherConfigurer dataFetcherConfigurer = new AnnotatedDataFetcherConfigurer();
+		dataFetcherConfigurer.setJsonMessageConverter(getJsonConverter(converters));
+		return dataFetcherConfigurer;
 	}
 
 	@SuppressWarnings("unchecked")

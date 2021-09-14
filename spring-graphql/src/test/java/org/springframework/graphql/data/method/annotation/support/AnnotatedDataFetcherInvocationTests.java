@@ -17,28 +17,36 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
+import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
+import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.stereotype.Controller;
@@ -64,7 +72,9 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQl(BookController.class).execute(query);
+		ExecutionResult result = initGraphQlService(BookController.class)
+				.execute(new RequestInput(query, null, null))
+				.block();
 
 		assertThat(result.getErrors()).isEmpty();
 		Map<String, Object> data = result.getData();
@@ -88,7 +98,9 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQl(BookController.class).execute(query);
+		ExecutionResult result = initGraphQlService(BookController.class)
+				.execute(new RequestInput(query, null, null))
+				.block();
 
 		assertThat(result.getErrors()).isEmpty();
 		Map<String, Object> data = result.getData();
@@ -110,8 +122,16 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
-		ExecutionResult result = initGraphQl(BookController.class).execute(input);
+		AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
+		RequestInput requestInput = new RequestInput(query, null, null);
+		requestInput.configureExecutionInput((executionInput, builder) -> {
+			contextRef.set(executionInput.getGraphQLContext());
+			return executionInput;
+		});
+
+		ExecutionResult result = initGraphQlService(BookController.class)
+				.execute(requestInput)
+				.block();
 
 		assertThat(result.getErrors()).isEmpty();
 		Map<String, Object> data = result.getData();
@@ -122,7 +142,7 @@ public class AnnotatedDataFetcherInvocationTests {
 		assertThat(author.get("firstName")).isEqualTo("George");
 		assertThat(author.get("lastName")).isEqualTo("Orwell");
 
-		assertThat(input.getGraphQLContext().<String>get("key")).isEqualTo("value");
+		assertThat(contextRef.get().<String>get("key")).isEqualTo("value");
 	}
 
 	@Test
@@ -135,7 +155,9 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQl(BookController.class).execute(operation);
+		ExecutionResult result = initGraphQlService(BookController.class)
+				.execute(new RequestInput(operation, null, null))
+				.block();
 
 		assertThat(result.getErrors()).isEmpty();
 		Map<String, Object> data = result.getData();
@@ -156,7 +178,9 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQl(BookController.class).execute(operation);
+		ExecutionResult result = initGraphQlService(BookController.class)
+				.execute(new RequestInput(operation, null, null))
+				.block();
 
 		assertThat(result.getErrors()).isEmpty();
 		Publisher<ExecutionResult> publisher = result.getData();
@@ -180,22 +204,12 @@ public class AnnotatedDataFetcherInvocationTests {
 	}
 
 
-	private GraphQL initGraphQl(Class<?> beanClass) {
+	private ExecutionGraphQlService initGraphQlService(Class<?> beanClass) {
 		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
-		applicationContext.registerBean(beanClass);
+		applicationContext.register(TestConfig.class);
 		applicationContext.refresh();
 
-		AnnotatedDataFetcherConfigurer configurer = new AnnotatedDataFetcherConfigurer();
-		configurer.setApplicationContext(applicationContext);
-		configurer.setServerCodecConfigurer(ServerCodecConfigurer.create());
-		configurer.afterPropertiesSet();
-
-		GraphQlSource graphQlSource = GraphQlSource.builder()
-				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.configureRuntimeWiring(configurer::configure)
-				.build();
-
-		return graphQlSource.graphQl();
+		return applicationContext.getBean(ExecutionGraphQlService.class);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -204,8 +218,51 @@ public class AnnotatedDataFetcherInvocationTests {
 	}
 
 
+	@Configuration
+	static class TestConfig {
+
+		@Bean
+		public BookController bookController() {
+			return new BookController(batchLoaderRegistry());
+		}
+
+		@Bean
+		public GraphQlService graphQlService(GraphQlSource graphQlSource) {
+			ExecutionGraphQlService service = new ExecutionGraphQlService(graphQlSource);
+			service.addDataLoaderRegistrar(batchLoaderRegistry());
+			return service;
+		}
+
+		@Bean
+		public GraphQlSource graphQlSource() {
+			return GraphQlSource.builder()
+					.schemaResources(new ClassPathResource("books/schema.graphqls"))
+					.configureRuntimeWiring(annotatedDataFetcherConfigurer())
+					.build();
+		}
+
+		@Bean
+		public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer() {
+			AnnotatedDataFetcherConfigurer registrar = new AnnotatedDataFetcherConfigurer();
+			registrar.setServerCodecConfigurer(ServerCodecConfigurer.create());
+			return registrar;
+		}
+
+		@Bean
+		public DefaultBatchLoaderRegistry batchLoaderRegistry() {
+			return new DefaultBatchLoaderRegistry();
+		}
+
+	}
+
+
 	@Controller
 	private static class BookController {
+
+		public BookController(BatchLoaderRegistry batchLoaderRegistry) {
+			batchLoaderRegistry.forTypePair(Long.class, Author.class)
+					.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
+		}
 
 		@QueryMapping
 		public Book bookById(@Argument Long id) {
@@ -218,8 +275,8 @@ public class AnnotatedDataFetcherInvocationTests {
 		}
 
 		@SchemaMapping
-		public Author author(Book book) {
-			return BookSource.getBook(book.getId()).getAuthor();
+		public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> dataLoader) {
+			return dataLoader.load(book.getAuthorId());
 		}
 
 		@QueryMapping

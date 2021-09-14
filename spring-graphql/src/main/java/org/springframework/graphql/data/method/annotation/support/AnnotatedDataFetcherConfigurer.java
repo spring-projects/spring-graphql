@@ -161,6 +161,9 @@ public class AnnotatedDataFetcherConfigurer
 		this.argumentResolvers.addResolver(initInputArgumentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
+		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
+
+		// This works as a fallback, after all other resolvers
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
 	}
 
