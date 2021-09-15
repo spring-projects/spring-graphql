@@ -186,6 +186,39 @@ automatically with the `GraphQlSource.Builder`.
 
 
 
+[[boot-graphql-batch-loader-registry]]
+== BatchLoaderRegistry
+
+Spring GraphQL supports the GraphQL Java <<execution-batching,batch feature>> and provides
+a `BatchLoaderRegistry` to store registrations of batch loading functions. The Boot
+starter declares a `BatchLoaderRegistry` bean and configures the `ExecutionGraphQlService`
+with it so that applications can simply autowire the registry into their controllers and
+register batch loading functions.
+
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	public BookController(BatchLoaderRegistry registry) {
+		registry.forTypePair(Long.class, Author.class).registerBatchLoader((authorIds, env) -> {
+			// load authors
+		});
+	}
+
+	@SchemaMapping
+	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
+		return loader.load(book.getAuthorId());
+	}
+
+}
+----
+
+
+
+
 [[boot-graphql-graphiql]]
 == GraphiQL
 

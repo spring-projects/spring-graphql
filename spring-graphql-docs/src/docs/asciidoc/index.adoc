@@ -290,6 +290,45 @@ default it is marked as `INTERNAL_ERROR`.
 
 
 
+[[execution-batching]]
+=== Batching
+
+Given a `Book` and its `Author`, we can create one `DataFetcher` to load books and another
+to load the author for each book. This enables queries to select only the data they need,
+but when loading multiple books we end up loading the author for each book individually,
+which is known as the N+1 select problem.
+
+To address the issue, GraphQL Java provides a
+https://www.graphql-java.com/documentation/v16/batching/[batching feature] that allows
+related entities, in this case the authors for all books, to be loaded together instead
+of individually. Here is an outline of that mechanism:
+
+ - At request time, an application can register a batch loading function in the
+`DataLoaderRegistry` for each request, that can load instances of a given entity such as
+`Author` from a set of unique keys.
+ - A `DataFetcher` can access the `DataLoader` for the entity and use it to load the
+entity by its unique key.
+ - The `DataLoader` does not load the entity immediately but rather returns a promise, and
+defers until it can use the batch loading function to load all related entities together.
+ - The `DataLoader` also maintains a cache of previously loaded entities.
+
+Spring GraphQL provides the `BatchLoaderRegistry` to store registrations of batch
+loading functions. This is given to the `ExecutionGraphQlService` that in turn uses
+it to make registrations in the `DataLoaderRegistry` for each request.
+
+A `DataFetcher` can then look up a registered `DataLoader` and use it to load entity
+instances, and likewise a controller method can declare a
+<<controllers-data-loader,DataLoader argument>> to access the registered loader for the
+entity.
+
+The Spring Boot starter declares a
+<<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>>, so that applications can
+simply autowire the registry into their controllers in order to register batch loading
+functions for entities.
+
+
+
+
 
 [[data]]
 == Data Integration
@@ -512,13 +551,17 @@ Annotated handler methods can choose from one of the following method arguments:
 | For access to the source (i.e. parent/container) instance of the field.
   See <<controllers-source>>.
 
-| `DataFetchingEnvironment`
-| For direct access to the underlying `DataFetchingEnvironment`.
-  See <<controllers-environment>>.
+| `DataLoader`
+| For access to a `DataLoader` in the `DataLoaderRegistry`.
+See <<controllers-data-loader>>.
 
 | `GraphQLContext`
 | For access to the context from the `DataFetchingEnvironment`.
 See <<controllers-graphql-context>>.
+
+| `DataFetchingEnvironment`
+| For direct access to the underlying `DataFetchingEnvironment`.
+See <<controllers-environment>>.
 
 |===
 
@@ -594,11 +637,39 @@ If the simple name of the Java class matches the GraphQL type, then there is no 
 explicitly specify the type name in the `@SchemaMapping` annotation.
 
 
-[[controllers-environment]]
-==== `DataFetchingEnvironment`
+[[controllers-data-loader]]
+==== `DataLoader`
 
-To access the `DataFetchingEnvironment` directly, declare a method parameter of the same
-type.
+When you register a batch loading function for an entity, as explained in
+<<execution-batching>>, you can access the `DataLoader` for the entity by declaring a
+method argument of type `DataLoader` and use it to load the entity:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	public BookController(BatchLoaderRegistry registry) {
+		registry.forTypePair(Long.class, Author.class).registerBatchLoader((authorIds, env) -> {
+			// load authors
+		});
+	}
+
+	@SchemaMapping
+	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
+		return loader.load(book.getAuthorId());
+	}
+
+}
+----
+
+By default, `BatchLoaderRegistry` uses the full class name of the value type (e.g. the
+class name for `Author`) for the key of the registration, and therefore simply declaring
+the `DataLoader` method argument with generic types provides enough information
+to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method argument
+resolver will also try the method argument name as the key but typically that should not
+be necessary.
+
 
 
 [[controllers-graphql-context]]
@@ -606,6 +677,13 @@ type.
 
 To access the `GraphQLContext` from the `DataFetchingEnvironment`, declare a method
 parameter of the same type.
+
+
+[[controllers-environment]]
+==== `DataFetchingEnvironment`
+
+To access the `DataFetchingEnvironment` directly, declare a method parameter of the same
+type.
 
 
 
