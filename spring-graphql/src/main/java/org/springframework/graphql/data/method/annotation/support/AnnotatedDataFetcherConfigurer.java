@@ -34,6 +34,7 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterizedTypeReference;
@@ -162,6 +163,10 @@ public class AnnotatedDataFetcherConfigurer
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
+
+		if (KotlinDetector.isKotlinPresent()) {
+			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
+		}
 
 		// This works as a fallback, after all other resolvers
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
