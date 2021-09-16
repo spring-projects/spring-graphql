@@ -1,7 +1,7 @@
 import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 plugins {
-	id 'org.springframework.boot' version '2.5.4' apply false
+	id 'org.springframework.boot' version "${bootVersion}" apply false
 	id 'java-library'
 }
 
@@ -24,7 +24,7 @@ dependencyManagement {
 
 dependencies {
 	api project(':spring-graphql')
-	api 'com.graphql-java:graphql-java:17.2'
+	api "com.graphql-java:graphql-java:${graphQlJavaVersion}"
 	api 'io.projectreactor:reactor-core'
 	api 'org.springframework:spring-context'
 	api 'org.springframework.boot:spring-boot-starter'

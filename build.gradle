@@ -4,6 +4,8 @@ plugins {
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
+	bootVersion = "2.5.4"
+	graphQlJavaVersion = "17.2"
 }
 
 description = "Spring GraphQL"
@@ -42,7 +44,7 @@ configure(moduleProjects) {
 			mavenBom "org.junit:junit-bom:5.7.2"
 		}
 		dependencies {
-			dependency 'com.graphql-java:graphql-java:17.2'
+			dependency "com.graphql-java:graphql-java:${graphQlJavaVersion}"
 			dependency 'org.assertj:assertj-core:3.20.2'
 			dependencySet(group: 'org.apache.logging.log4j', version: '2.14.1') {
 				entry 'log4j-api'
