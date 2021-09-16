@@ -5,28 +5,31 @@ dependencies {
 	api 'io.projectreactor:reactor-core'
 	api 'org.springframework:spring-context'
 
-    compileOnly "javax.annotation:javax.annotation-api:1.3.2"
+    compileOnly 'javax.annotation:javax.annotation-api'
 	compileOnly 'org.springframework:spring-webflux'
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
-	compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
+	compileOnly 'javax.servlet:javax.servlet-api'
 
 	compileOnly 'org.springframework.security:spring-security-core'
 
-	compileOnly 'com.querydsl:querydsl-core:4.4.0'
+	compileOnly 'com.querydsl:querydsl-core'
 	compileOnly 'org.springframework.data:spring-data-commons'
+
+	compileOnly 'com.google.code.findbugs:jsr305'
+	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
-	testImplementation 'org.mockito:mockito-core:3.11.1'
+	testImplementation 'org.mockito:mockito-core'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
 	testImplementation 'org.springframework:spring-websocket'
 	testImplementation 'org.springframework:spring-test'
 	testImplementation 'org.springframework.data:spring-data-commons'
-	testImplementation 'com.querydsl:querydsl-core:4.4.0'
-	testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
+	testImplementation 'com.querydsl:querydsl-core'
+	testImplementation 'javax.servlet:javax.servlet-api'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'

@@ -24,6 +24,7 @@ import org.springframework.core.NestedRuntimeException;
  * @author Brian Clozel
  * @since 1.0.0
  */
+@SuppressWarnings("serial")
 public class MissingSchemaException extends NestedRuntimeException {
 
 	public MissingSchemaException() {

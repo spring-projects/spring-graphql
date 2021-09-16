@@ -34,6 +34,7 @@ import org.springframework.lang.Nullable;
  *
  * @author Rossen Stoyanchev
  */
+@SuppressWarnings("serial")
 class TestGraphQlError implements GraphQLError {
 
 	@Nullable

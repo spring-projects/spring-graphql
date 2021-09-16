@@ -13,19 +13,17 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-hateoas'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'com.querydsl:querydsl-core'
+	implementation 'com.querydsl:querydsl-jpa'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.h2database:h2'
 	testImplementation project(':spring-graphql-test')
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-	implementation(
-            "com.querydsl:querydsl-core:4.4.0",
-            "com.querydsl:querydsl-jpa:4.4.0"
-    )
-	annotationProcessor "com.querydsl:querydsl-apt:4.4.0:jpa",
-            "org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final",
-            "javax.annotation:javax.annotation-api:1.3.2"
+	annotationProcessor 'com.querydsl:querydsl-apt:4.4.0:jpa',
+            'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final',
+            'javax.annotation:javax.annotation-api'
 }
 
 compileJava {

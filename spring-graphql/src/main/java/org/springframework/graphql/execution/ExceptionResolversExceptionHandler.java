@@ -57,6 +57,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	}
 
 	@Override
+	@Deprecated
 	public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters parameters) {
 		Throwable exception = parameters.getException();
 		exception = ((exception instanceof CompletionException) ? exception.getCause() : exception);

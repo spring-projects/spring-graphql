@@ -30,6 +30,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
  * @author Brian Clozel
  * @since 1.0.0
  */
+@SuppressWarnings("serial")
 public class InvalidSchemaLocationsException extends NestedRuntimeException {
 
 	private final List<SchemaLocation> schemaLocations;

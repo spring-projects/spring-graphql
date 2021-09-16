@@ -25,6 +25,7 @@ import org.springframework.core.NestedRuntimeException;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
+@SuppressWarnings("serial")
 public class MissingArgumentException extends NestedRuntimeException {
 
 	private final String argumentName;

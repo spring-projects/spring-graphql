@@ -314,6 +314,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	}
 
+	@SuppressWarnings("serial")
 	private static class SubscriptionExistsException extends RuntimeException {
 
 	}
