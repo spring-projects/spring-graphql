@@ -111,10 +111,6 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 			return null;
 		}
 
-		if (parameterType.isAssignableFrom(rawValue.getClass())) {
-			return returnValue(rawValue, parameterType);
-		}
-
 		if (rawValue instanceof List) {
 			Assert.isAssignable(List.class, parameterType,
 					"Argument '" + name + "' is a List while the @Argument method parameter is " + parameterType);
@@ -123,6 +119,8 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 			if (valueList.isEmpty() || elementType.isAssignableFrom(valueList.get(0).getClass())) {
 				return returnValue(rawValue, parameterType);
 			}
+		} else if (parameterType.isAssignableFrom(rawValue.getClass())) {
+			return returnValue(rawValue, parameterType);
 		}
 
 		Object decodedValue = this.argumentConverter.convert(rawValue, parameter);
