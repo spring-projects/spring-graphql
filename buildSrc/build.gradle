@@ -1,6 +1,5 @@
 plugins {
 	id "java-gradle-plugin"
-	id "io.spring.javaformat" version "${javaFormatVersion}"
 	id "checkstyle"
 }
 
@@ -26,9 +25,13 @@ checkstyle {
 
 gradlePlugin {
 	plugins {
-		conventionsPlugin {
-			id = "org.springframework.graphql.conventions"
-			implementationClass = "org.springframework.graphql.build.ConventionsPlugin"
+		formattingConventionsPlugin {
+			id = "org.springframework.graphql.formatting"
+			implementationClass = "org.springframework.graphql.build.format.FormattingConventionsPlugin"
+		}
+		compilerConventionsPlugin {
+			id = "org.springframework.graphql.compiler"
+			implementationClass = "org.springframework.graphql.build.compile.CompilerConventionsPlugin"
 		}
 	}
 }

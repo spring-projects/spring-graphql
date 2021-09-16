@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.build;
+package org.springframework.graphql.build.format;
 
 import io.spring.javaformat.gradle.FormatTask;
 import io.spring.javaformat.gradle.SpringJavaFormatPlugin;
@@ -32,7 +32,7 @@ import org.gradle.api.plugins.quality.CheckstylePlugin;
  *
  * @author Brian Clozel
  */
-public class ConventionsPlugin implements Plugin<Project> {
+public class FormattingConventionsPlugin implements Plugin<Project> {
 
 	@Override
 	public void apply(Project project) {
