@@ -159,8 +159,8 @@ public class AnnotatedDataFetcherConfigurer
 	@Override
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
-		this.argumentResolvers.addResolver(initInputArgumentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
+		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
 
@@ -171,22 +171,6 @@ public class AnnotatedDataFetcherConfigurer
 		// This works as a fallback, after all other resolvers
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
 	}
-
-	private ArgumentMethodArgumentResolver initInputArgumentMethodArgumentResolver() {
-		ArgumentMethodArgumentResolver argumentResolver;
-		if (this.jsonMessageConverter != null) {
-			argumentResolver = new ArgumentMethodArgumentResolver(this.jsonMessageConverter);
-		}
-		else if (this.jsonEncoder != null && this.jsonDecoder != null) {
-			argumentResolver = new ArgumentMethodArgumentResolver(this.jsonDecoder, this.jsonEncoder);
-		}
-		else {
-			throw new IllegalArgumentException(
-					"Neither HttpMessageConverter nor Encoder/Decoder for JSON provided");
-		}
-		return argumentResolver;
-	}
-
 
 	@Override
 	public void configure(RuntimeWiring.Builder builder) {
