@@ -87,6 +87,18 @@ class ArgumentMethodArgumentResolverTests {
 	}
 
 	@Test
+	void shouldResolveKotlinBeanArgument() throws Exception {
+		Method addBook = ClassUtils.getMethod(BookController.class, "ktAddBook", KotlinBookInput.class);
+		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(KotlinBookInput.class);
+		assertThat((KotlinBookInput) result).hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L);
+	}
+
+	@Test
 	void shouldResolveListOfJavaBeansArgument() throws Exception {
 		Method addBooks = ClassUtils.getMethod(BookController.class, "addBooks", List.class);
 		String payload = "{\"books\": [{ \"name\": \"first\", \"authorId\": 42}, { \"name\": \"second\", \"authorId\": 24}] }";
@@ -144,6 +156,11 @@ class ArgumentMethodArgumentResolverTests {
 
 		@MutationMapping
 		public Book addBook(@Argument BookInput bookInput) {
+			return null;
+		}
+
+		@MutationMapping
+		public Book ktAddBook(@Argument KotlinBookInput bookInput) {
 			return null;
 		}
 
