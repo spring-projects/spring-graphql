@@ -35,11 +35,11 @@ public class InvalidSchemaLocationsException extends NestedRuntimeException {
 
 	private final List<SchemaLocation> schemaLocations;
 
-	public InvalidSchemaLocationsException(List<String> locations, ResourcePatternResolver resolver) {
+	public InvalidSchemaLocationsException(String[] locations, ResourcePatternResolver resolver) {
 		this(locations, resolver, null);
 	}
 
-	public InvalidSchemaLocationsException(List<String> locations, ResourcePatternResolver resolver, Throwable cause) {
+	public InvalidSchemaLocationsException(String[] locations, ResourcePatternResolver resolver, Throwable cause) {
 		super("No schema file could be found in the provided locations.", cause);
 		List<SchemaLocation> providedLocations = new ArrayList<>();
 		for (String location : locations) {

@@ -56,8 +56,6 @@ public class GraphQlAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlAutoConfiguration.class);
 
-	private static final String[] SCHEMA_FILES_EXTENSIONS = new String[] {"*.graphqls", "*.graphql", "*.gql", "*.gqls"};
-
 	@Bean
 	public GraphQlSource graphQlSource(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
 			ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
@@ -65,7 +63,8 @@ public class GraphQlAutoConfiguration {
 			ObjectProvider<GraphQlSourceBuilderCustomizer> sourceCustomizers,
 			ObjectProvider<RuntimeWiringConfigurer> wiringConfigurers) throws IOException {
 
-		List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations());
+		List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations(),
+				properties.getSchema().getFileExtensions());
 		GraphQlSource.Builder builder = GraphQlSource.builder()
 				.schemaResources(schemaResources.toArray(new Resource[0]))
 				.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
@@ -80,15 +79,16 @@ public class GraphQlAutoConfiguration {
 		}
 	}
 
-	private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, List<String> schemaLocations) throws IOException {
+	private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, String[] schemaLocations, String[] fileExtensions) {
 		List<Resource> schemaResources = new ArrayList<>();
 		for (String location : schemaLocations) {
-			for (String extension : SCHEMA_FILES_EXTENSIONS) {
+			for (String extension : fileExtensions) {
+				String resourcePattern = location + "*" + extension;
 				try {
-					schemaResources.addAll(Arrays.asList(resolver.getResources(location + extension)));
+					schemaResources.addAll(Arrays.asList(resolver.getResources(resourcePattern)));
 				}
 				catch (IOException ex) {
-					logger.debug("Could not resolve schema location: '" + location + extension + "'", ex);
+					logger.debug("Could not resolve schema location: '" + resourcePattern + "'", ex);
 				}
 			}
 		}

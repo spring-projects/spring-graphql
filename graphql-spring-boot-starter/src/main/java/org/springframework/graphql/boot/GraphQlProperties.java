@@ -17,10 +17,7 @@
 package org.springframework.graphql.boot;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Arrays;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -67,24 +64,38 @@ public class GraphQlProperties {
 	public static class Schema {
 
 		/**
-		 * Locations of GraphQL '*.graphqls' schema files.
+		 * Locations of GraphQL schema files.
 		 */
-		private List<String> locations = new ArrayList<>(Collections.singletonList("classpath:graphql/"));
+		private String[] locations = new String[] { "classpath:graphql/"};
+
+		/**
+		 * File extensions for GraphQL schema files.
+		 */
+		private String[] fileExtensions = new String[] { ".graphqls", ".gqls"};
+
 
 		private final Printer printer = new Printer();
 
-		public List<String> getLocations() {
+		public String[] getLocations() {
 			return this.locations;
 		}
 
-		public void setLocations(List<String> locations) {
+		public void setLocations(String[] locations) {
 			this.locations = appendSlashIfNecessary(locations);
 		}
 
-		private List<String> appendSlashIfNecessary(List<String> locations) {
-			return locations.stream()
+		public String[] getFileExtensions() {
+			return this.fileExtensions;
+		}
+
+		public void setFileExtensions(String[] fileExtensions) {
+			this.fileExtensions = fileExtensions;
+		}
+
+		private String[] appendSlashIfNecessary(String[] locations) {
+			return Arrays.stream(locations)
 					.map(location -> location.endsWith("/") ? location : location + "/")
-					.collect(Collectors.toList());
+					.toArray(String[]::new);
 		}
 
 		public Printer getPrinter() {

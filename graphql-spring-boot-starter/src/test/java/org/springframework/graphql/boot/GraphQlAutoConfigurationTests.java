@@ -62,7 +62,8 @@ class GraphQlAutoConfigurationTests {
 
 	@Test
 	void shouldScanLocationsForSchemaFiles() {
-		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:schema/")
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:schema/",
+						"spring.graphql.schema.file-extensions:.gql,.gqls,.graphql,.graphqls")
 				.run((context) -> {
 					assertThat(context).hasSingleBean(GraphQlSource.class);
 					GraphQlSource graphQlSource = context.getBean(GraphQlSource.class);
