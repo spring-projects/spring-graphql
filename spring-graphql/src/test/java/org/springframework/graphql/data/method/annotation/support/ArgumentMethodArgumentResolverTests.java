@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.method.OptionalInput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -83,7 +84,78 @@ class ArgumentMethodArgumentResolverTests {
 		Object result = resolver.resolveArgument(methodParameter, environment);
 		assertThat(result).isNotNull().isInstanceOf(BookInput.class);
 		assertThat((BookInput) result).hasFieldOrPropertyWithValue("name", "test name")
-				.hasFieldOrPropertyWithValue("authorId", 42L);
+				.hasFieldOrPropertyWithValue("authorId", 42L)
+				.hasFieldOrPropertyWithValue("notes", OptionalInput.undefined());
+	}
+
+	@Test
+	void shouldResolveJavaBeanOptionalArgument() throws Exception {
+		Method addBook = ClassUtils.getMethod(BookController.class, "addBook", BookInput.class);
+		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42, \"notes\": \"Hello\"} }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(BookInput.class);
+		assertThat((BookInput) result)
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L)
+				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined("Hello"));
+	}
+
+	@Test
+	void shouldResolveJavaBeanOptionalNullArgument() throws Exception {
+		Method addBook = ClassUtils.getMethod(BookController.class, "addBook", BookInput.class);
+		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42, \"notes\": null} }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(BookInput.class);
+		assertThat((BookInput) result)
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L)
+				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined(null));
+	}
+
+	@Test
+	void shouldResolveKotlinBeanArgument() throws Exception {
+		Method addBook = ClassUtils.getMethod(BookController.class, "ktAddBook", KotlinBookInput.class);
+		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(KotlinBookInput.class);
+		assertThat((KotlinBookInput) result)
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L)
+				.hasFieldOrPropertyWithValue("notes", OptionalInput.undefined());
+	}
+
+	@Test
+	void shouldResolveKotlinBeanOptionalArgument() throws Exception {
+		Method addBook = ClassUtils.getMethod(BookController.class, "ktAddBook", KotlinBookInput.class);
+		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42, \"notes\": \"Hello\"} }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(KotlinBookInput.class);
+		assertThat((KotlinBookInput) result)
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L)
+				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined("Hello"));
+	}
+
+	@Test
+	void shouldResolveKotlinBeanOptionalNullArgument() throws Exception {
+		Method addBook = ClassUtils.getMethod(BookController.class, "ktAddBook", KotlinBookInput.class);
+		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42, \"notes\": null} }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(KotlinBookInput.class);
+		assertThat((KotlinBookInput) result)
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L)
+				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined(null));
 	}
 
 	@Test
@@ -128,6 +200,11 @@ class ArgumentMethodArgumentResolverTests {
 		}
 
 		@MutationMapping
+		public Book ktAddBook(@Argument KotlinBookInput bookInput) {
+			return null;
+		}
+
+		@MutationMapping
 		public List<Book> addBooks(@Argument List<Book> books) {
 			return null;
 		}
@@ -139,6 +216,8 @@ class ArgumentMethodArgumentResolverTests {
 		String name;
 
 		Long authorId;
+
+		OptionalInput<String> notes = OptionalInput.undefined();
 
 		public String getName() {
 			return this.name;
@@ -154,6 +233,14 @@ class ArgumentMethodArgumentResolverTests {
 
 		public void setAuthorId(Long authorId) {
 			this.authorId = authorId;
+		}
+
+		public OptionalInput<String> getNotes() {
+			return this.notes;
+		}
+
+		public void setNotes(OptionalInput<String> notes) {
+			this.notes = (notes == null) ? OptionalInput.defined(null) : notes;
 		}
 	}
 

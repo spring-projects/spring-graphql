@@ -28,8 +28,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.util.Assert;
+import org.springframework.graphql.data.method.OptionalInput;
 import org.springframework.validation.DataBinder;
 
 /**
@@ -41,6 +43,12 @@ import org.springframework.validation.DataBinder;
 class GraphQlArgumentInstantiator {
 
 	private final DataBinder converter = new DataBinder(null);
+
+	private final ConversionService conversionService = new OptionalInputArgumentConversionService();
+
+	GraphQlArgumentInstantiator() {
+		this.converter.setConversionService(this.conversionService);
+	}
 
 	/**
 	 * Instantiate the given target type and bind data from
@@ -63,6 +71,7 @@ class GraphQlArgumentInstantiator {
 			MutablePropertyValues propertyValues = extractPropertyValues(arguments);
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
+			dataBinder.setConversionService(this.conversionService);
 			dataBinder.bind(propertyValues);
 		}
 		else {
@@ -74,10 +83,14 @@ class GraphQlArgumentInstantiator {
 				String paramName = paramNames[i];
 				Object value = arguments.get(paramName);
 				MethodParameter methodParam = new MethodParameter(ctor, i);
-				if (value == null && methodParam.isOptional()) {
-					args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+				if (value == null) {
+					if (methodParam.getParameterType() == OptionalInput.class) {
+						args[i] = arguments.containsKey(paramName) ? OptionalInput.defined(null) : OptionalInput.undefined();
+					} else if(methodParam.isOptional()) {
+						args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+					}
 				}
-				else if (value != null && CollectionFactory.isApproximableCollectionType(value.getClass())) {
+				else if (CollectionFactory.isApproximableCollectionType(value.getClass())) {
 					TypeDescriptor typeDescriptor = new TypeDescriptor(methodParam);
 					Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
 					args[i] = instantiateCollection(elementType, (Collection<Object>) value);
