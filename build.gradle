@@ -5,7 +5,7 @@ plugins {
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
 	bootVersion = "2.5.4"
-	graphQlJavaVersion = "17.2"
+	graphQlJavaVersion = "17.3"
 }
 
 description = "Spring GraphQL"
