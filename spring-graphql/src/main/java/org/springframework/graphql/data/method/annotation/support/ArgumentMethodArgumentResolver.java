@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
@@ -107,13 +108,32 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 		Object target;
 		if (rawValue instanceof Map) {
 			Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
-			target = BeanUtils.instantiateClass(ctor);
-			DataBinder dataBinder = new DataBinder(target);
-			Assert.isTrue(ctor.getParameterCount() == 0,
-					() -> "Argument of type [" + targetType.getName() +
-							"] cannot be instantiated because of missing default constructor.");
-			MutablePropertyValues mpvs = extractPropertyValues((Map) rawValue);
-			dataBinder.bind(mpvs);
+			MutablePropertyValues propertyValues = extractPropertyValues((Map) rawValue);
+
+			if (ctor.getParameterCount() == 0) {
+				target = BeanUtils.instantiateClass(ctor);
+				DataBinder dataBinder = new DataBinder(target);
+				dataBinder.bind(propertyValues);
+			} else {
+				// Data class constructor
+				DataBinder binder = new DataBinder(null);
+				String[] paramNames = BeanUtils.getParameterNames(ctor);
+				Class<?>[] paramTypes = ctor.getParameterTypes();
+				Object[] args = new Object[paramTypes.length];
+				for (int i = 0; i < paramNames.length; i++) {
+					String paramName = paramNames[i];
+					Object value = propertyValues.get(paramName);
+					value = (value instanceof List ? ((List<?>) value).toArray() : value);
+					MethodParameter methodParam = new MethodParameter(ctor, i);
+					if (value == null && methodParam.isOptional()) {
+						args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+					}
+					else {
+						args[i] = binder.convertIfNecessary(value, paramTypes[i], methodParam);
+					}
+				}
+				target = BeanUtils.instantiateClass(ctor, args);
+			}
 		}
 		else if (targetType.isAssignableFrom(rawValue.getClass())) {
 			return returnValue(rawValue, targetType);
