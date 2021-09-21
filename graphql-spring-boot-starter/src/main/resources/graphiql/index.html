@@ -61,11 +61,12 @@
 ></script>
 <script>
     function graphQLFetcher(path) {
-        return graphQLParams => fetch(
+        return (graphQLParams, options = {}) => fetch(
             `${location.protocol}//${location.host}${path}`,
             {
                 method: 'post',
                 headers: {
+                    ...options.headers,
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                 },
@@ -86,6 +87,7 @@
         React.createElement(GraphiQL, {
             fetcher: gqlFetcher,
             defaultVariableEditorOpen: true,
+            headerEditorEnabled: true
         }),
         document.getElementById('graphiql'),
     );
