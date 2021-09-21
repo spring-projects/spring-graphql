@@ -1,11 +1,6 @@
 = Spring GraphQL Documentation
 Brian Clozel; Andreas Marek; Rossen Stoyanchev
-:toc: left
-:toclevels: 4
-:tabsize: 4
-
-:repository: https://github.com/spring-projects/spring-graphql/tree/main
-
+include::attributes.adoc[]
 
 
 [[overview]]
@@ -58,7 +53,7 @@ Boot starter does this, see <<boot-graphql-web>> for details or check
 `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
 
 The Spring GraphQL repository contains a Spring MVC
-{repository}/samples/webmvc-http[HTTP sample] application.
+{github-main-branch}/samples/webmvc-http[HTTP sample] application.
 
 
 
@@ -99,7 +94,7 @@ starter has options to enable this, see <<boot-graphql-web>> for details or chec
 `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
 
 The Spring GraphQL repository contains a WebFlux
-{repository}/samples/webflux-websocket[WebSocket sample] application.
+{github-main-branch}/samples/webflux-websocket[WebSocket sample] application.
 
 
 
@@ -372,7 +367,7 @@ If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
 variant for MongoDB.
 
-The {repository}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
+The {github-main-branch}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
 uses Querydsl to fetch `artifactRepositories`.
 
 
@@ -701,8 +696,8 @@ the GraphQL response. This should work due to <<execution-context>> that aims to
 Security, and other context, available at the data fetching level.
 
 The Spring GraphQL repository contains samples for
-{repository}/samples/webmvc-http-security[Spring MVC] and for
-{repository}/samples/webflux-security[WebFlux].
+{github-main-branch}/samples/webmvc-http-security[Spring MVC] and for
+{github-main-branch}/samples/webflux-security[WebFlux].
 
 
 
@@ -720,7 +715,7 @@ include::boot-starter.adoc[leveloffset=+1]
 [[samples]]
 == Samples
 
-This Spring GraphQL repository contains {repository}/samples[sample applications] for
+This Spring GraphQL repository contains {github-main-branch}/samples[sample applications] for
 various scenarios.
 
 You can run those by cloning this repository and running main application classes from

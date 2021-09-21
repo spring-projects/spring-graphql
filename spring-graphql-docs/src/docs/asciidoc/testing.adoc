@@ -38,12 +38,12 @@ To create `GraphQlTester`, you only need a `GraphQlService`, and no transport:
 == `WebGraphQlTester`
 
 `WebGraphQlTester` extends `GraphQlTester` to add a workflow and configuration specific
-to <<web-transports>>. You need one of the following inputs to create it:
+to <<index#web-transports>>. You need one of the following inputs to create it:
 
-- `WebTestClient` -- perform requests as an HTTP client, either against <<web-http>>
+- `WebTestClient` -- perform requests as an HTTP client, either against <<index#web-http>>
 handlers without a server, or against a live server.
-- `WebGraphQlHandler` -- perform requests through the <<web-interception>> chain used
-by both <<web-http>> and <<web-websocket>> handlers, which in effect is testing without
+- `WebGraphQlHandler` -- perform requests through the <<index#web-interception>> chain used
+by both <<index#web-http>> and <<index#web-websocket>> handlers, which in effect is testing without
 a Web framework. One reason to use this is for <<testing-subscriptions>>.
 
 For Spring WebFlux without a server, you can point to your Spring configuration:
@@ -202,7 +202,7 @@ The `StepVerifier` from Project Reactor is useful to verify a stream:
 			.verifyComplete();
 ----
 
-To test with the <<web-interception>> chain, you can create `WebGraphQlTester` with a
+To test with the <<index#web-interception>> chain, you can create `WebGraphQlTester` with a
 `WebGraphQlHandler`:
 
 [source,java,indent=0,subs="verbatim,quotes"]

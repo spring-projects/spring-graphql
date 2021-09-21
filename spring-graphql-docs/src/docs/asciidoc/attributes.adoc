@@ -1,0 +1,20 @@
+:!version-label:
+:doctype: book
+:idprefix:
+:idseparator: -
+:toc: left
+:toclevels: 4
+:tabsize: 4
+:numbered:
+:sectanchors:
+:sectnums:
+:hide-uri-scheme:
+:docinfo: shared,private
+:github-tag: main
+:github-repo: spring-projects/spring-graphql
+:github-raw: https://raw.githubusercontent.com/{github-repo}/{github-tag}
+:github-issues: https://github.com/{github-repo}/issues/
+:github-main-branch: https://github.com/{github-repo}/tree/main
+:github-wiki: https://github.com/{github-repo}/wiki
+:spring-boot-version: current
+:spring-boot-ref-docs: https://docs.spring.io/spring-boot/docs/{spring-boot-version}/reference/html

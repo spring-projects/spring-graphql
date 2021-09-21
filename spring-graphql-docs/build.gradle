@@ -1,4 +1,5 @@
 plugins {
+	id 'java'
 	id 'org.asciidoctor.jvm.convert' version '3.3.2'
 }
 
@@ -6,6 +7,18 @@ description = "Spring GraphQL reference documentation"
 
 configurations {
 	asciidoctorExtensions
+}
+
+jar {
+	enabled = false
+}
+
+javadoc {
+	enabled = false
+}
+
+dependencies {
+	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
 }
 
 repositories {
@@ -17,13 +30,10 @@ repositories {
 	}
 }
 
-dependencies {
-	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
-}
-
 ext.javadocLinks = [
 		"https://docs.oracle.com/javase/8/docs/api/",
-		"https://javadoc.io/doc/com.graphql-java/graphql-java/16.2/",
+		"https://javadoc.io/doc/com.graphql-java/graphql-java/${graphQlJavaVersion}/",
+		"https://docs.spring.io/spring-boot/docs/${bootVersion}/api/",
 		"https://docs.spring.io/spring-framework/docs/5.3.x/javadoc-api/"
 ] as String[]
 
@@ -82,6 +92,8 @@ asciidoctor {
 		backends "spring-html"
 	}
 	outputDir "$buildDir/docs/reference/html"
+	attributes 'spring-graphql-version': project.version,
+			'spring-boot-version': bootVersion
 }
 
 /**

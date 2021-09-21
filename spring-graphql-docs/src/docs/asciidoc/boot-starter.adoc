@@ -31,12 +31,12 @@ GraphQL transports you want to use:
 
 In the generated project, add `graphql-spring-boot-starter` manually:
 
-[source,groovy,indent=0,subs="verbatim,quotes",role="primary"]
+[source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
 .Gradle
 ----
 dependencies {
 	// Spring GraphQL Boot starter
-	implementation 'org.springframework.experimental:graphql-spring-boot-starter:1.0.0-SNAPSHOT'
+	implementation 'org.springframework.experimental:graphql-spring-boot-starter:{spring-graphql-version}'
 
 	// ...
 }
@@ -47,7 +47,7 @@ repositories {
 	maven { url 'https://repo.spring.io/snapshot' }   // Spring snapshots
 }
 ----
-[source,xml,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
 .Maven
 ----
 <dependencies>
@@ -56,7 +56,7 @@ repositories {
 	<dependency>
 		<groupId>org.springframework.experimental</groupId>
 		<artifactId>graphql-spring-boot-starter</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
+		<version>{spring-graphql-version}</version>
 	</dependency>
 
 	<!-- ... -->
@@ -119,10 +119,10 @@ spring.graphql.schema.printer.enabled=false
 The GraphQL Java `RuntimeWiring.Builder` can be used to register ``DataFetcher``s,
 type resolvers, custom scalar types, and more. You can declare `RuntimeWiringConfigurer`
 beans in your Spring config to get access to the `RuntimeWiring.Builder`. The Boot
-starter detects such beans adds them to <<execution-graphqlsource,GraphQlSource.Builder>>.
+starter detects such beans adds them to <<index#execution-graphqlsource,GraphQlSource.Builder>>.
 
 Typically, however, applications will not implement ``DataFetcher`` directly and will
-instead create <<controllers,annotated controllers>>. The Boot
+instead create <<index#controllers,annotated controllers>>. The Boot
 starter declares a `RuntimeWiringConfigurer` called `AnnotatedDataFetcherConfigurer` that
 detects `@Controller` classes with annotated handler methods and registers those as
 ``DataFetcher``s.
@@ -165,7 +165,7 @@ The GraphQL WebSocket endpoint is off by default. To enable it:
 - For a WebFlux application, set the `spring.graphql.websocket.path` application property.
 
 Declare a `WebInterceptor` bean to have it registered in the
-<<index.adoc#web-interception,Web Interception>> for  GraphQL over HTTP and WebSocket
+<<index#web-interception,Web Interception>> for  GraphQL over HTTP and WebSocket
 requests.
 
 Declare a `ThreadLocalAccessor` bean to assist with the propagation of `ThreadLocal`
@@ -179,7 +179,7 @@ values of interest in <<index.adoc#execution-context-webmvc,Spring MVC>>.
 Spring GraphQL enables applications to register one or more Spring
 `DataFetcherExceptionResolver` components that are invoked sequentially until one
 resolves the Exception to a list of `graphql.GraphQLError` objects. See
-<<execution-exceptions>> for details.
+<<index#execution-exceptions>> for details.
 
 The Boot starter detects beans of type `DataFetcherExceptionResolver` and registers them
 automatically with the `GraphQlSource.Builder`.
@@ -189,7 +189,7 @@ automatically with the `GraphQlSource.Builder`.
 [[boot-graphql-batch-loader-registry]]
 == BatchLoaderRegistry
 
-Spring GraphQL supports the GraphQL Java <<execution-batching,batch feature>> and provides
+Spring GraphQL supports the GraphQL Java <<index#execution-batching,batch feature>> and provides
 a `BatchLoaderRegistry` to store registrations of batch loading functions. The Boot
 starter declares a `BatchLoaderRegistry` bean and configures the `ExecutionGraphQlService`
 with it so that applications can simply autowire the registry into their controllers and
@@ -313,12 +313,12 @@ A GraphQL error metric counter is available at `/actuator/metrics/graphql.error`
 For Spring GraphQL testing support, add the below to your classpath and that will make
 a `WebGraphQlTester` available for injection into tests:
 
-[source,groovy,indent=0,subs="verbatim,quotes",role="primary"]
+[source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
 .Gradle
 ----
 dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.graphql:spring-graphql-test:1.0.0-SNAPSHOT'
+	testImplementation 'org.springframework.graphql:spring-graphql-test:{spring-graphql-version}'
 
 	// Also add this, unless `spring-boot-starter-webflux` is also present
 	testImplementation 'org.springframework:spring-webflux'
@@ -332,7 +332,7 @@ repositories {
 	maven { url 'https://repo.spring.io/snapshot' }   // Spring snapshots
 }
 ----
-[source,xml,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
 .Maven
 ----
 <dependencies>
@@ -345,7 +345,7 @@ repositories {
 	<dependency>
 		<groupId>org.springframework.graphql</groupId>
 		<artifactId>spring-graphql-test</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
+		<version>{spring-graphql-version}</version>
 		<scope>test</scope>
 	</dependency>
 
@@ -394,7 +394,7 @@ public class MockMvcGraphQlTests {
 ----
 
 For GraphQL over HTTP with Spring WebFlux, using a
-https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-mock-environment[mock server]:
+{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.with-mock-environment[mock server]:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -410,7 +410,7 @@ public class MockMvcGraphQlTests {
 ----
 
 For GraphQL over HTTP with a
-https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing.spring-boot-applications.with-running-server[running server]:
+{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.with-running-server[running server]:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
