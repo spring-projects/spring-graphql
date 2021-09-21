@@ -93,6 +93,16 @@ class GraphQlArgumentInstantiatorTests {
 		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
+	@Test
+	void shouldInstantiatePrimaryConstructorNestedBeanLists() throws Exception {
+		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		PrimaryConstructorNestedList result = instantiator.instantiate(PrimaryConstructorNestedList.class, environment.getArgument("nestedList"));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorNestedList.class);
+		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
+	}
+
 	private DataFetchingEnvironment initEnvironment(String jsonPayload) throws JsonProcessingException {
 		Map<String, Object> arguments = this.mapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {
 		});
@@ -144,6 +154,19 @@ class GraphQlArgumentInstantiatorTests {
 
 		public void setItems(List<Item> items) {
 			this.items = items;
+		}
+	}
+
+	static class PrimaryConstructorNestedList {
+
+		final List<Item> items;
+
+		public PrimaryConstructorNestedList(List<Item> items) {
+			this.items = items;
+		}
+
+		public List<Item> getItems() {
+			return items;
 		}
 	}
 

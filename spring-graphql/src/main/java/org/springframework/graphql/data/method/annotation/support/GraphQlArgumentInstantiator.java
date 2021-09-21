@@ -17,6 +17,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Constructor;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,10 @@ import java.util.Stack;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.PropertyValues;
+import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.validation.DataBinder;
 
 /**
@@ -52,9 +56,9 @@ class GraphQlArgumentInstantiator {
 	public <T> T instantiate(Class<T> targetType, Map<String, Object> arguments) {
 		Object target;
 		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
-		MutablePropertyValues propertyValues = extractPropertyValues(arguments);
 
 		if (ctor.getParameterCount() == 0) {
+			MutablePropertyValues propertyValues = extractPropertyValues(arguments);
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
 			dataBinder.bind(propertyValues);
@@ -67,11 +71,19 @@ class GraphQlArgumentInstantiator {
 			Object[] args = new Object[paramTypes.length];
 			for (int i = 0; i < paramNames.length; i++) {
 				String paramName = paramNames[i];
-				Object value = propertyValues.get(paramName);
-				value = (value instanceof List ? ((List<?>) value).toArray() : value);
+				Object value = arguments.get(paramName);
 				MethodParameter methodParam = new MethodParameter(ctor, i);
 				if (value == null && methodParam.isOptional()) {
 					args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+				}
+				else if (value != null && CollectionFactory.isApproximableCollectionType(value.getClass())) {
+					Collection<Object> rawCollection = (Collection<Object>) value;
+					Collection<Object> values = CollectionFactory.createApproximateCollection(value, rawCollection.size());
+
+					TypeDescriptor typeDescriptor = new TypeDescriptor(methodParam);
+					Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
+					rawCollection.forEach(item -> values.add(this.instantiate(elementType, (Map<String, Object>)item)));
+					args[i] = values;
 				}
 				else {
 					args[i] = binder.convertIfNecessary(value, paramTypes[i], methodParam);
