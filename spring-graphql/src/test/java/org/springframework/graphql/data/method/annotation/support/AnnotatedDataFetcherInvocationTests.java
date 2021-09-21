@@ -48,7 +48,6 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -243,9 +242,7 @@ public class AnnotatedDataFetcherInvocationTests {
 
 		@Bean
 		public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer() {
-			AnnotatedDataFetcherConfigurer registrar = new AnnotatedDataFetcherConfigurer();
-			registrar.setServerCodecConfigurer(ServerCodecConfigurer.create());
-			return registrar;
+			return new AnnotatedDataFetcherConfigurer();
 		}
 
 		@Bean

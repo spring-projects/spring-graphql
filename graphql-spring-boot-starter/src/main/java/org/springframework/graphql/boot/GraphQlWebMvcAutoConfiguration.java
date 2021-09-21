@@ -40,7 +40,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.data.method.annotation.support.AnnotatedDataFetcherConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
@@ -81,22 +80,6 @@ public class GraphQlWebMvcAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebMvcAutoConfiguration.class);
 
-
-	@Bean
-	public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer(HttpMessageConverters converters) {
-		AnnotatedDataFetcherConfigurer dataFetcherConfigurer = new AnnotatedDataFetcherConfigurer();
-		dataFetcherConfigurer.setJsonMessageConverter(getJsonConverter(converters));
-		return dataFetcherConfigurer;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static GenericHttpMessageConverter<Object> getJsonConverter(HttpMessageConverters converters) {
-		return converters.getConverters().stream()
-				.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
-				.findFirst()
-				.map(converter -> (GenericHttpMessageConverter<Object>) converter)
-				.orElseThrow(() -> new IllegalStateException("No JSON converter"));
-	}
 
 	@Bean
 	@ConditionalOnBean(GraphQlService.class)
@@ -158,6 +141,15 @@ public class GraphQlWebMvcAutoConfiguration {
 
 			return new GraphQlWebSocketHandler(webGraphQlHandler, getJsonConverter(converters),
 					properties.getWebsocket().getConnectionInitTimeout());
+		}
+
+		@SuppressWarnings("unchecked")
+		private static GenericHttpMessageConverter<Object> getJsonConverter(HttpMessageConverters converters) {
+			return converters.getConverters().stream()
+					.filter((candidate) -> candidate.canRead(Map.class, MediaType.APPLICATION_JSON))
+					.findFirst()
+					.map(converter -> (GenericHttpMessageConverter<Object>) converter)
+					.orElseThrow(() -> new IllegalStateException("No JSON converter"));
 		}
 
 		@Bean

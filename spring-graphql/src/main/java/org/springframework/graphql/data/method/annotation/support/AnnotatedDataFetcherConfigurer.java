@@ -40,8 +40,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.core.codec.Decoder;
-import org.springframework.core.codec.Encoder;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -50,11 +48,6 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
-import org.springframework.http.MediaType;
-import org.springframework.http.codec.DecoderHttpMessageReader;
-import org.springframework.http.codec.EncoderHttpMessageWriter;
-import org.springframework.http.codec.ServerCodecConfigurer;
-import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -97,58 +90,6 @@ public class AnnotatedDataFetcherConfigurer
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
-	@Nullable
-	private GenericHttpMessageConverter<Object> jsonMessageConverter;
-
-	@Nullable
-	private Encoder<Object> jsonEncoder;
-
-	@Nullable
-	private Decoder<Object> jsonDecoder;
-
-
-	/**
-	 * Configure the {@link org.springframework.http.converter.HttpMessageConverter}
-	 * to use to convert input arguments obtained from the
-	 * {@link DataFetchingEnvironment} and converted to the type of a declared
-	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
-	 * method parameter.
-	 * <p>This method is mutually exclusive with
-	 * {@link #setServerCodecConfigurer(ServerCodecConfigurer)} and is convenient
-	 * for use in a Spring MVC application but both variant can be used without
-	 * much difference.
-	 * @param converter the converter to use.
-	 */
-	public void setJsonMessageConverter(@Nullable GenericHttpMessageConverter<Object> converter) {
-		this.jsonMessageConverter = converter;
-	}
-
-	/**
-	 * Variant of {@link #setJsonMessageConverter(GenericHttpMessageConverter)}
-	 * to use an {@link Encoder} and {@link Decoder} to convert input arguments.
-	 * <p>This method is mutually exclusive with
-	 * {@link #setJsonMessageConverter(GenericHttpMessageConverter)} and is
-	 * convenient for use in a Spring WebFlux application but both variant can
-	 * be used without much difference.
-	 */
-	@SuppressWarnings("unchecked")
-	public void setServerCodecConfigurer(@Nullable ServerCodecConfigurer configurer) {
-		if (configurer == null) {
-			this.jsonDecoder = null;
-			this.jsonEncoder = null;
-			return;
-		}
-		this.jsonDecoder = configurer.getReaders().stream()
-				.filter((reader) -> reader.canRead(MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
-				.map((reader) -> ((DecoderHttpMessageReader<Object>) reader).getDecoder())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("No Decoder for JSON"));
-		this.jsonEncoder = configurer.getWriters().stream()
-				.filter((writer) -> writer.canWrite(MAP_RESOLVABLE_TYPE, MediaType.APPLICATION_JSON))
-				.map((writer) -> ((EncoderHttpMessageWriter<Object>) writer).getEncoder())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("No Encoder for JSON"));
-	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {

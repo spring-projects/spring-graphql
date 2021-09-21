@@ -31,7 +31,6 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +83,6 @@ public class AnnotatedDataFetcherDetectionTests {
 		appContext.refresh();
 
 		AnnotatedDataFetcherConfigurer configurer = new AnnotatedDataFetcherConfigurer();
-		configurer.setJsonMessageConverter(new MappingJackson2HttpMessageConverter());
 		configurer.setApplicationContext(appContext);
 		configurer.afterPropertiesSet();
 
