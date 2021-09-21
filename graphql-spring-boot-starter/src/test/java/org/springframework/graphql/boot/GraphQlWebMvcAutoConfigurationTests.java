@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -54,7 +55,10 @@ class GraphQlWebMvcAutoConfigurationTests {
 			.withPropertyValues(
 					"spring.main.web-application-type=servlet",
 					"spring.graphql.schema.printer.enabled=true",
-					"spring.graphql.schema.locations=classpath:books/");
+					"spring.graphql.schema.locations=classpath:books/",
+					"spring.graphql.cors.allowed-origins=https://example.com",
+					"spring.graphql.cors.allowed-methods=POST",
+					"spring.graphql.cors.allow-credentials=true");
 
 	@Test
 	void query() {
@@ -126,6 +130,28 @@ class GraphQlWebMvcAutoConfigurationTests {
 				.andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.TEXT_PLAIN))
 				.andExpect(content().string(Matchers.containsString("type Book"))));
+	}
+
+	@Test
+	void corsConfiguration() {
+		testWith((mockMvc) -> {
+			String query = "{" +
+					"  bookById(id: \\\"book-1\\\"){ " +
+					"    id" +
+					"    name" +
+					"    pageCount" +
+					"    author" +
+					"  }" +
+					"}";
+			MvcResult result = mockMvc.perform(post("/graphql")
+					.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+					.header(HttpHeaders.ORIGIN, "https://example.com")
+					.content("{\"query\": \"" + query + "\"}")).andReturn();
+			mockMvc.perform(asyncDispatch(result))
+					.andExpect(status().isOk())
+					.andExpect(header().stringValues(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com"))
+					.andExpect(header().stringValues(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+		});
 	}
 
 	private void testWith(MockMvcConsumer mockMvcConsumer) {

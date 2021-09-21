@@ -22,5 +22,46 @@
       "description": "Whether percentile histograms should be published.",
       "defaultValue": false
     }
+  ],
+  "hints": [
+    {
+      "name": "spring.graphql.cors.allowed-headers",
+      "values": [
+        {
+          "value": "*"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "spring.graphql.cors.allowed-methods",
+      "values": [
+        {
+          "value": "*"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "spring.graphql.cors.allowed-origins",
+      "values": [
+        {
+          "value": "*"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    }
   ]
 }

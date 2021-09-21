@@ -31,6 +31,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
@@ -47,7 +48,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.reactive.HandlerMapping;
+import org.springframework.web.reactive.config.CorsRegistry;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -69,6 +73,7 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 @ConditionalOnClass({GraphQL.class, GraphQlHttpHandler.class})
 @ConditionalOnBean(GraphQlSource.class)
 @AutoConfigureAfter(GraphQlServiceAutoConfiguration.class)
+@EnableConfigurationProperties(GraphQlCorsProperties.class)
 public class GraphQlWebFluxAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebFluxAutoConfiguration.class);
@@ -145,6 +150,27 @@ public class GraphQlWebFluxAutoConfiguration {
 			return mapping;
 		}
 
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	public static class GraphQlEndpointCorsConfiguration implements WebFluxConfigurer {
+
+		final GraphQlProperties graphql;
+
+		final GraphQlCorsProperties cors;
+
+		public GraphQlEndpointCorsConfiguration(GraphQlProperties graphql, GraphQlCorsProperties cors) {
+			this.graphql = graphql;
+			this.cors = cors;
+		}
+
+		@Override
+		public void addCorsMappings(CorsRegistry registry) {
+			CorsConfiguration configuration = cors.toCorsConfiguration();
+			if (configuration != null) {
+				registry.addMapping(graphql.getPath()).combine(configuration);
+			}
+		}
 	}
 
 }

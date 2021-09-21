@@ -232,6 +232,29 @@ spring.graphql.graphiql.path=/graphiql
 ----
 
 
+[[boot-graphql-cors]]
+== CORS configuration
+
+Spring web frameworks all support CORS (Cross-Origin Resource Sharing), which is a critical part
+of your web configuration if your GraphQL API is meant to be accessed by browsers using different domains.
+
+You can configure CORS support with properties:
+
+[source,properties,indent=0,subs="verbatim"]
+----
+spring.graphql.cors.allowed-origins=https://example.org # Comma-separated list of origins to allow. '*' allows all origins.
+spring.graphql.cors.allowed-origin-patterns= # Comma-separated list of origin patterns like 'https://*.example.com' to allow.
+spring.graphql.cors.allowed-methods=GET,POST # Comma-separated list of methods to allow. '*' allows all methods.
+spring.graphql.cors.allowed-headers= # Comma-separated list of headers to allow in a request. '*' allows all headers.
+spring.graphql.cors.exposed-headers= # Comma-separated list of headers to include in a response.
+spring.graphql.cors.allow-credentials= # Whether credentials are supported. When not set, credentials are not supported.
+spring.graphql.cors.max-age=1800s # How long the response from a pre-flight request can be cached by clients.
+----
+
+TIP: For more information about the properties and their meaning, check out the {javadoc}/org/springframework/graphql/boot/GraphQlCorsProperties.html[GraphQlCorsProperties Javadoc].
+
+You can also learn more about CORS and Spring support in {spring-framework-ref-docs}/web.html#mvc-cors[Spring MVC] and
+{spring-framework-ref-docs}/web-reactive.html#webflux-cors[Spring WebFlux].
 
 [[boot-graphql-metrics]]
 == Metrics

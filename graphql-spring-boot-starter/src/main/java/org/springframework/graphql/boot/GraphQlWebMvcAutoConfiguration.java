@@ -35,6 +35,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
@@ -52,7 +53,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.GenericHttpMessageConverter;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -76,6 +80,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
 @ConditionalOnClass({GraphQL.class, GraphQlHttpHandler.class})
 @ConditionalOnBean(GraphQlSource.class)
 @AutoConfigureAfter(GraphQlServiceAutoConfiguration.class)
+@EnableConfigurationProperties(GraphQlCorsProperties.class)
 public class GraphQlWebMvcAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebMvcAutoConfiguration.class);
@@ -164,6 +169,28 @@ public class GraphQlWebMvcAutoConfiguration {
 					new WebSocketHttpRequestHandler(handler, new DefaultHandshakeHandler())));
 			mapping.setOrder(2); // Ahead of HTTP endpoint ("routerFunctionMapping" bean)
 			return mapping;
+		}
+
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	public static class GraphQlEndpointCorsConfiguration implements WebMvcConfigurer {
+
+		final GraphQlProperties graphql;
+
+		final GraphQlCorsProperties cors;
+
+		public GraphQlEndpointCorsConfiguration(GraphQlProperties graphql, GraphQlCorsProperties cors) {
+			this.graphql = graphql;
+			this.cors = cors;
+		}
+
+		@Override
+		public void addCorsMappings(CorsRegistry registry) {
+			CorsConfiguration configuration = cors.toCorsConfiguration();
+			if (configuration != null) {
+				registry.addMapping(graphql.getPath()).combine(configuration);
+			}
 		}
 
 	}
