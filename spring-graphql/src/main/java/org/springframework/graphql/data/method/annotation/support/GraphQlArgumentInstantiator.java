@@ -87,7 +87,7 @@ class GraphQlArgumentInstantiator {
 					if (methodParam.getParameterType() == OptionalInput.class) {
 						args[i] = arguments.containsKey(paramName) ? OptionalInput.defined(null) : OptionalInput.undefined();
 					} else if(methodParam.isOptional()) {
-						args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+						args[i] = (methodParam.getParameterType() == Optional.class && arguments.containsKey(paramName) ? Optional.empty() : null);
 					}
 				}
 				else if (CollectionFactory.isApproximableCollectionType(value.getClass())) {

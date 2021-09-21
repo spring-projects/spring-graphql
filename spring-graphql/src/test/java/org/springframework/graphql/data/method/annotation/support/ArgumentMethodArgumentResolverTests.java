@@ -20,6 +20,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,6 +38,8 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
+
+import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -85,7 +88,7 @@ class ArgumentMethodArgumentResolverTests {
 		assertThat(result).isNotNull().isInstanceOf(BookInput.class);
 		assertThat((BookInput) result).hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L)
-				.hasFieldOrPropertyWithValue("notes", OptionalInput.undefined());
+				.hasFieldOrPropertyWithValue("notes", null);
 	}
 
 	@Test
@@ -99,7 +102,7 @@ class ArgumentMethodArgumentResolverTests {
 		assertThat((BookInput) result)
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L)
-				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined("Hello"));
+				.hasFieldOrPropertyWithValue("notes", Optional.of("Hello"));
 	}
 
 	@Test
@@ -113,7 +116,7 @@ class ArgumentMethodArgumentResolverTests {
 		assertThat((BookInput) result)
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L)
-				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined(null));
+				.hasFieldOrPropertyWithValue("notes", Optional.empty());
 	}
 
 	@Test
@@ -127,7 +130,7 @@ class ArgumentMethodArgumentResolverTests {
 		assertThat((KotlinBookInput) result)
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L)
-				.hasFieldOrPropertyWithValue("notes", OptionalInput.undefined());
+				.hasFieldOrPropertyWithValue("notes", null);
 	}
 
 	@Test
@@ -141,7 +144,7 @@ class ArgumentMethodArgumentResolverTests {
 		assertThat((KotlinBookInput) result)
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L)
-				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined("Hello"));
+				.hasFieldOrPropertyWithValue("notes", Optional.of("Hello"));
 	}
 
 	@Test
@@ -155,7 +158,7 @@ class ArgumentMethodArgumentResolverTests {
 		assertThat((KotlinBookInput) result)
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L)
-				.hasFieldOrPropertyWithValue("notes", OptionalInput.defined(null));
+				.hasFieldOrPropertyWithValue("notes", Optional.empty());
 	}
 
 	@Test
@@ -217,7 +220,8 @@ class ArgumentMethodArgumentResolverTests {
 
 		Long authorId;
 
-		OptionalInput<String> notes = OptionalInput.undefined();
+		@Nullable
+		Optional<String> notes = null;
 
 		public String getName() {
 			return this.name;
@@ -235,12 +239,13 @@ class ArgumentMethodArgumentResolverTests {
 			this.authorId = authorId;
 		}
 
-		public OptionalInput<String> getNotes() {
+		@Nullable
+		public Optional<String> getNotes() {
 			return this.notes;
 		}
 
-		public void setNotes(OptionalInput<String> notes) {
-			this.notes = (notes == null) ? OptionalInput.defined(null) : notes;
+		public void setNotes(@Nullable Optional<String> notes) {
+			this.notes = notes;
 		}
 	}
 
