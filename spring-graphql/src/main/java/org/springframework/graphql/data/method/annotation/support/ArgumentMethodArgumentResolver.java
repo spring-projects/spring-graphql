@@ -15,18 +15,12 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.lang.reflect.Constructor;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.MutablePropertyValues;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.TypeDescriptor;
@@ -47,6 +41,8 @@ import org.springframework.validation.DataBinder;
  * @since 1.0.0
  */
 public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
+
+	private final GraphQlArgumentInstantiator instantiator = new GraphQlArgumentInstantiator();
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
@@ -78,10 +74,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 			if (annotation.required()) {
 				throw new MissingArgumentException(name, parameter);
 			}
-			if (parameterType.getType().equals(Optional.class)) {
-				return Optional.empty();
-			}
-			return null;
+			returnValue(rawValue, parameterType.getType());
 		}
 
 		if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
@@ -100,40 +93,17 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	}
 
 	private Object returnValue(Object value, Class<?> parameterType) {
-		return (parameterType.equals(Optional.class) ? Optional.of(value) : value);
+		if (parameterType.equals(Optional.class)) {
+			return Optional.ofNullable(value);
+		}
+		return value;
 	}
 
 	@SuppressWarnings("unchecked")
 	private Object convert(Object rawValue, Class<?> targetType) {
 		Object target;
 		if (rawValue instanceof Map) {
-			Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
-			MutablePropertyValues propertyValues = extractPropertyValues((Map) rawValue);
-
-			if (ctor.getParameterCount() == 0) {
-				target = BeanUtils.instantiateClass(ctor);
-				DataBinder dataBinder = new DataBinder(target);
-				dataBinder.bind(propertyValues);
-			} else {
-				// Data class constructor
-				DataBinder binder = new DataBinder(null);
-				String[] paramNames = BeanUtils.getParameterNames(ctor);
-				Class<?>[] paramTypes = ctor.getParameterTypes();
-				Object[] args = new Object[paramTypes.length];
-				for (int i = 0; i < paramNames.length; i++) {
-					String paramName = paramNames[i];
-					Object value = propertyValues.get(paramName);
-					value = (value instanceof List ? ((List<?>) value).toArray() : value);
-					MethodParameter methodParam = new MethodParameter(ctor, i);
-					if (value == null && methodParam.isOptional()) {
-						args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
-					}
-					else {
-						args[i] = binder.convertIfNecessary(value, paramTypes[i], methodParam);
-					}
-				}
-				target = BeanUtils.instantiateClass(ctor, args);
-			}
+			target = this.instantiator.instantiate(targetType, (Map<String, Object>) rawValue);
 		}
 		else if (targetType.isAssignableFrom(rawValue.getClass())) {
 			return returnValue(rawValue, targetType);
@@ -146,41 +116,6 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 							targetType.getName() + "].");
 		}
 		return target;
-	}
-
-	private MutablePropertyValues extractPropertyValues(Map<String, Object> arguments) {
-		MutablePropertyValues mpvs = new MutablePropertyValues();
-		Stack<String> path = new Stack<>();
-		visitArgumentMap(arguments, mpvs, path);
-		return mpvs;
-	}
-
-	@SuppressWarnings("unchecked")
-	private void visitArgumentMap(Map<String, Object> arguments, MutablePropertyValues mpvs, Stack<String> path) {
-		for (String key : arguments.keySet()) {
-			path.push(key);
-			Object value = arguments.get(key);
-			if (value instanceof Map) {
-				visitArgumentMap((Map<String, Object>) value, mpvs, path);
-			}
-			else {
-				String propertyName = pathToPropertyName(path);
-				mpvs.add(propertyName, value);
-			}
-			path.pop();
-		}
-	}
-
-	private String pathToPropertyName(Stack<String> path) {
-		StringBuilder sb = new StringBuilder();
-		Iterator<String> it = path.iterator();
-		while (it.hasNext()) {
-			sb.append(it.next());
-			if (it.hasNext()) {
-				sb.append(".");
-			}
-		}
-		return sb.toString();
 	}
 
 }

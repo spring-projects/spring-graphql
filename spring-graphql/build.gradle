@@ -1,7 +1,6 @@
-plugins {
-	id 'org.jetbrains.kotlin.jvm' version '1.5.31'
-}
 description = "GraphQL Support for Spring Applications"
+
+apply plugin: "kotlin"
 
 dependencies {
 	api 'com.graphql-java:graphql-java'
@@ -21,6 +20,7 @@ dependencies {
 
 	compileOnly 'com.google.code.findbugs:jsr305'
 	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
+	compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
 
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
@@ -44,18 +44,5 @@ test {
 	useJUnitPlatform()
 	testLogging {
 		events "passed", "skipped", "failed"
-	}
-}
-repositories {
-	mavenCentral()
-}
-compileKotlin {
-	kotlinOptions {
-		jvmTarget = "1.8"
-	}
-}
-compileTestKotlin {
-	kotlinOptions {
-		jvmTarget = "1.8"
 	}
 }

@@ -87,15 +87,13 @@ class ArgumentMethodArgumentResolverTests {
 	}
 
 	@Test
-	void shouldResolveKotlinBeanArgument() throws Exception {
-		Method addBook = ClassUtils.getMethod(BookController.class, "ktAddBook", KotlinBookInput.class);
-		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }";
+	void shouldResolveDefaultValue() throws Exception  {
+		Method findWithDefault = ClassUtils.getMethod(BookController.class, "findWithDefault", Long.class);
+		String payload = "{\"name\": \"test\" }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(addBook, 0);
+		MethodParameter methodParameter = getMethodParameter(findWithDefault, 0);
 		Object result = resolver.resolveArgument(methodParameter, environment);
-		assertThat(result).isNotNull().isInstanceOf(KotlinBookInput.class);
-		assertThat((KotlinBookInput) result).hasFieldOrPropertyWithValue("name", "test name")
-				.hasFieldOrPropertyWithValue("authorId", 42L);
+		assertThat(result).isNotNull().isInstanceOf(Long.class).isEqualTo(42L);
 	}
 
 	@Test
@@ -110,20 +108,6 @@ class ArgumentMethodArgumentResolverTests {
 				.extracting("name").containsExactly("first", "second");
 	}
 
-	@Test
-	void shouldResolveNestedJavaBeanArgument() throws Exception {
-		Method addBookWithNestedAuthor = ClassUtils.getMethod(BookController.class, "addBookWithNestedAuthor", Book.class);
-		String payload = "{\"book\": { \"name\": \"test name\", \"author\": { \"firstName\": \"Jane\", \"lastName\": \"Spring\"} } }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(addBookWithNestedAuthor, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
-		assertThat(result).isNotNull().isInstanceOf(Book.class);
-		assertThat((Book) result).hasFieldOrPropertyWithValue("name", "test name");
-		assertThat(((Book) result).getAuthor()).isNotNull()
-				.hasFieldOrPropertyWithValue("firstName", "Jane")
-				.hasFieldOrPropertyWithValue("lastName", "Spring");
-	}
-
 	private MethodParameter getMethodParameter(Method method, int index) {
 		MethodParameter methodParameter = new MethodParameter(method, index);
 		methodParameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
@@ -135,12 +119,6 @@ class ArgumentMethodArgumentResolverTests {
 		});
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}
-
-	// BeanWrapper
-	// ModelAttributeProcessor for constructor based instantiation
-
-	// look at DGS PR for this issue
-
 
 	@Controller
 	static class BookController {
@@ -154,13 +132,13 @@ class ArgumentMethodArgumentResolverTests {
 			return null;
 		}
 
-		@MutationMapping
-		public Book addBook(@Argument BookInput bookInput) {
+		@QueryMapping
+		public Book findWithDefault(@Argument(defaultValue = "42") Long id) {
 			return null;
 		}
 
 		@MutationMapping
-		public Book ktAddBook(@Argument KotlinBookInput bookInput) {
+		public Book addBook(@Argument BookInput bookInput) {
 			return null;
 		}
 
@@ -169,10 +147,6 @@ class ArgumentMethodArgumentResolverTests {
 			return null;
 		}
 
-		@MutationMapping
-		public Book addBookWithNestedAuthor(@Argument Book book) {
-			return null;
-		}
 	}
 
 	static class BookInput {
