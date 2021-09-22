@@ -46,7 +46,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiateDefaultConstructor() throws Exception {
 		String payload = "{\"simpleBean\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		SimpleBean result = instantiator.instantiate(SimpleBean.class, environment.getArgument("simpleBean"));
+		SimpleBean result = instantiator.instantiate(environment.getArgument("simpleBean"), SimpleBean.class);
 
 		assertThat(result).isNotNull().isInstanceOf(SimpleBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
@@ -56,7 +56,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiatePrimaryConstructor() throws Exception {
 		String payload = "{\"constructorBean\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		ContructorBean result = instantiator.instantiate(ContructorBean.class, environment.getArgument("constructorBean"));
+		ContructorBean result = instantiator.instantiate(environment.getArgument("constructorBean"), ContructorBean.class);
 
 		assertThat(result).isNotNull().isInstanceOf(ContructorBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
@@ -66,7 +66,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldFailIfNoPrimaryConstructor() throws Exception {
 		String payload = "{\"noPrimary\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		assertThatThrownBy(() -> instantiator.instantiate(NoPrimaryConstructor.class, environment.getArgument("noPrimary")))
+		assertThatThrownBy(() -> instantiator.instantiate(environment.getArgument("noPrimary"), NoPrimaryConstructor.class))
 				.isInstanceOf(IllegalStateException.class).hasMessageContaining("No primary or single public constructor found");
 	}
 
@@ -74,7 +74,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiateNestedBean() throws Exception {
 		String payload = "{\"book\": { \"name\": \"test name\", \"author\": { \"firstName\": \"Jane\", \"lastName\": \"Spring\"} } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		Book result = instantiator.instantiate(Book.class, environment.getArgument("book"));
+		Book result = instantiator.instantiate(environment.getArgument("book"), Book.class);
 
 		assertThat(result).isNotNull().isInstanceOf(Book.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test name");
@@ -87,7 +87,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiateNestedBeanLists() throws Exception {
 		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		NestedList result = instantiator.instantiate(NestedList.class, environment.getArgument("nestedList"));
+		NestedList result = instantiator.instantiate(environment.getArgument("nestedList"), NestedList.class);
 
 		assertThat(result).isNotNull().isInstanceOf(NestedList.class);
 		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
@@ -97,7 +97,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiatePrimaryConstructorNestedBeanLists() throws Exception {
 		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		PrimaryConstructorNestedList result = instantiator.instantiate(PrimaryConstructorNestedList.class, environment.getArgument("nestedList"));
+		PrimaryConstructorNestedList result = instantiator.instantiate(environment.getArgument("nestedList"), PrimaryConstructorNestedList.class);
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorNestedList.class);
 		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");

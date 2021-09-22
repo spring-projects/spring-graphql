@@ -80,11 +80,8 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 		if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
 			Assert.isAssignable(Collection.class, parameterType.getType(),
 					"Argument '" + name + "' is a Collection while the @Argument method parameter is " + parameterType.getType());
-			Collection<Object> rawCollection = (Collection<Object>) rawValue;
-			Collection<Object> values = CollectionFactory.createApproximateCollection(rawValue, rawCollection.size());
 			Class<?> elementType = parameterType.getElementTypeDescriptor().getType();
-			rawCollection.forEach(item -> values.add(convert(item, elementType)));
-			return values;
+			return this.instantiator.instantiateCollection(elementType, (Collection<Object>) rawValue);
 		}
 
 		MethodParameter nestedParameter = parameter.nestedIfOptional();
@@ -103,7 +100,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	private Object convert(Object rawValue, Class<?> targetType) {
 		Object target;
 		if (rawValue instanceof Map) {
-			target = this.instantiator.instantiate(targetType, (Map<String, Object>) rawValue);
+			target = this.instantiator.instantiate((Map<String, Object>) rawValue, targetType);
 		}
 		else if (targetType.isAssignableFrom(rawValue.getClass())) {
 			return returnValue(rawValue, targetType);
