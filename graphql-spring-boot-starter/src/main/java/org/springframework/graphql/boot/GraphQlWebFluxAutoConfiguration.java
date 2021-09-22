@@ -155,20 +155,20 @@ public class GraphQlWebFluxAutoConfiguration {
 	@Configuration(proxyBeanMethods = false)
 	public static class GraphQlEndpointCorsConfiguration implements WebFluxConfigurer {
 
-		final GraphQlProperties graphql;
+		final GraphQlProperties graphQlProperties;
 
-		final GraphQlCorsProperties cors;
+		final GraphQlCorsProperties corsProperties;
 
-		public GraphQlEndpointCorsConfiguration(GraphQlProperties graphql, GraphQlCorsProperties cors) {
-			this.graphql = graphql;
-			this.cors = cors;
+		public GraphQlEndpointCorsConfiguration(GraphQlProperties graphQlProps, GraphQlCorsProperties corsProps) {
+			this.graphQlProperties = graphQlProps;
+			this.corsProperties = corsProps;
 		}
 
 		@Override
 		public void addCorsMappings(CorsRegistry registry) {
-			CorsConfiguration configuration = cors.toCorsConfiguration();
+			CorsConfiguration configuration = this.corsProperties.toCorsConfiguration();
 			if (configuration != null) {
-				registry.addMapping(graphql.getPath()).combine(configuration);
+				registry.addMapping(this.graphQlProperties.getPath()).combine(configuration);
 			}
 		}
 	}

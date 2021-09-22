@@ -24,6 +24,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.convert.DurationUnit;
+import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.cors.CorsConfiguration;
 
@@ -37,29 +38,31 @@ import org.springframework.web.cors.CorsConfiguration;
 @ConfigurationProperties(prefix = "spring.graphql.cors")
 public class GraphQlCorsProperties {
 	/**
-	 * Comma-separated list of origins to allow. '*' allows all origins. When credentials
-	 * are allowed, '*' cannot be used and origin patterns should be configured instead.
-	 * When no allowed origins or allowed origin patterns are set, CORS support is
-	 * disabled.
+	 * Comma-separated list of origins to allow with '*' allowing all origins.
+	 * When allow-credentials is enabled, '*' cannot be used, and setting
+	 * origin patterns should be considered instead.
+	 * When neither allowed origins nor allowed origin patterns are set,
+	 * cross-origin requests are effectively disabled.
 	 */
 	private List<String> allowedOrigins = new ArrayList<>();
 
 	/**
-	 * Comma-separated list of origin patterns to allow. Unlike allowed origins which only
-	 * supports '*', origin patterns are more flexible (for example
-	 * 'https://*.example.com') and can be used when credentials are allowed. When no
-	 * allowed origin patterns or allowed origins are set, CORS support is disabled.
+	 * Comma-separated list of origin patterns to allow. Unlike allowed origins
+	 * which only support '*', origin patterns are more flexible, e.g.
+	 * 'https://*.example.com', and can be used with allow-credentials.
+	 * When neither allowed origins nor allowed origin patterns are set,
+	 * cross-origin requests are effectively disabled.
 	 */
 	private List<String> allowedOriginPatterns = new ArrayList<>();
 
 	/**
-	 * Comma-separated list of methods to allow. '*' allows all methods. When not set,
-	 * defaults to GET.
+	 * Comma-separated list of HTTP methods to allow. '*' allows all methods.
+	 * When not set, defaults to GET.
 	 */
 	private List<String> allowedMethods = new ArrayList<>();
 
 	/**
-	 * Comma-separated list of headers to allow in a request. '*' allows all headers.
+	 * Comma-separated list of HTTP headers to allow in a request. '*' allows all headers.
 	 */
 	private List<String> allowedHeaders = new ArrayList<>();
 
@@ -71,6 +74,7 @@ public class GraphQlCorsProperties {
 	/**
 	 * Whether credentials are supported. When not set, credentials are not supported.
 	 */
+	@Nullable
 	private Boolean allowCredentials;
 
 	/**
@@ -120,6 +124,7 @@ public class GraphQlCorsProperties {
 		this.exposedHeaders = exposedHeaders;
 	}
 
+	@Nullable
 	public Boolean getAllowCredentials() {
 		return this.allowCredentials;
 	}
@@ -136,19 +141,20 @@ public class GraphQlCorsProperties {
 		this.maxAge = maxAge;
 	}
 
+	@Nullable
 	public CorsConfiguration toCorsConfiguration() {
 		if (CollectionUtils.isEmpty(this.allowedOrigins) && CollectionUtils.isEmpty(this.allowedOriginPatterns)) {
 			return null;
 		}
 		PropertyMapper map = PropertyMapper.get();
-		CorsConfiguration configuration = new CorsConfiguration();
-		map.from(this::getAllowedOrigins).to(configuration::setAllowedOrigins);
-		map.from(this::getAllowedOriginPatterns).to(configuration::setAllowedOriginPatterns);
-		map.from(this::getAllowedHeaders).whenNot(CollectionUtils::isEmpty).to(configuration::setAllowedHeaders);
-		map.from(this::getAllowedMethods).whenNot(CollectionUtils::isEmpty).to(configuration::setAllowedMethods);
-		map.from(this::getExposedHeaders).whenNot(CollectionUtils::isEmpty).to(configuration::setExposedHeaders);
-		map.from(this::getMaxAge).whenNonNull().as(Duration::getSeconds).to(configuration::setMaxAge);
-		map.from(this::getAllowCredentials).whenNonNull().to(configuration::setAllowCredentials);
-		return configuration;
+		CorsConfiguration config = new CorsConfiguration();
+		map.from(this::getAllowedOrigins).to(config::setAllowedOrigins);
+		map.from(this::getAllowedOriginPatterns).to(config::setAllowedOriginPatterns);
+		map.from(this::getAllowedHeaders).whenNot(CollectionUtils::isEmpty).to(config::setAllowedHeaders);
+		map.from(this::getAllowedMethods).whenNot(CollectionUtils::isEmpty).to(config::setAllowedMethods);
+		map.from(this::getExposedHeaders).whenNot(CollectionUtils::isEmpty).to(config::setExposedHeaders);
+		map.from(this::getMaxAge).whenNonNull().as(Duration::getSeconds).to(config::setMaxAge);
+		map.from(this::getAllowCredentials).whenNonNull().to(config::setAllowCredentials);
+		return config;
 	}
 }
