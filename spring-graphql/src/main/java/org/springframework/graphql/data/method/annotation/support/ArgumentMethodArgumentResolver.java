@@ -74,7 +74,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 			if (annotation.required()) {
 				throw new MissingArgumentException(name, parameter);
 			}
-			returnValue(rawValue, parameterType.getType());
+			return returnValue(rawValue, parameterType.getType());
 		}
 
 		if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {

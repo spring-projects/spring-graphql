@@ -97,6 +97,16 @@ class ArgumentMethodArgumentResolverTests {
 	}
 
 	@Test
+	void shouldNotFailIfArgumentNotRequired() throws Exception {
+		Method findByKeywords = ClassUtils.getMethod(BookController.class, "findByKeywords", List.class);
+		String payload = "{ }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(findByKeywords, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNull();
+	}
+
+	@Test
 	void shouldResolveListOfJavaBeansArgument() throws Exception {
 		Method addBooks = ClassUtils.getMethod(BookController.class, "addBooks", List.class);
 		String payload = "{\"books\": [{ \"name\": \"first\", \"authorId\": 42}, { \"name\": \"second\", \"authorId\": 24}] }";
@@ -137,6 +147,11 @@ class ArgumentMethodArgumentResolverTests {
 			return null;
 		}
 
+		@QueryMapping
+		public Book findByKeywords(@Argument(required = false) List<Keyword> keywords) {
+			return null;
+		}
+
 		@MutationMapping
 		public Book addBook(@Argument BookInput bookInput) {
 			return null;
@@ -169,6 +184,19 @@ class ArgumentMethodArgumentResolverTests {
 
 		public void setAuthorId(Long authorId) {
 			this.authorId = authorId;
+		}
+	}
+
+	static class Keyword {
+
+		String term;
+
+		public String getTerm() {
+			return this.term;
+		}
+
+		public void setTerm(String term) {
+			this.term = term;
 		}
 	}
 
