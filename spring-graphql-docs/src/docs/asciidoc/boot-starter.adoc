@@ -309,6 +309,20 @@ A `DataFetcher` metric timer is available at `/actuator/metrics/graphql.datafetc
 |"SUCCESS", "ERROR"
 |===
 
+[[boot-graphql-metrics-datafetcher-summary]]
+=== `DataFetcher` Distribution Summary
+
+A https://micrometer.io/docs/concepts#_distribution_summaries[distribution summary]
+that counts the number of non-trivial `DataFetcher` calls made per request.
+This metric is useful for detecting "N+1" data fetching issues and consider batch loading;
+it provides the `"TOTAL"` number of data fetcher calls made over the `"COUNT"` of recorded requests,
+as well as the `"MAX"` calls made for a single request over the considered period.
+
+The distribution is available at `/actuator/metrics/graphql.request.datafetch.count`.
+
+More options are available for
+{spring-boot-ref-docs}/application-properties.html#application-properties.actuator.management.metrics.distribution.maximum-expected-value[configuring distributions with application properties].
+
 
 [[boot-graphql-metrics-error-counter]]
 === Error Counter

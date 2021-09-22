@@ -17,6 +17,7 @@
 package org.springframework.graphql.boot.actuate.metrics;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicLong;
 
 import graphql.ExecutionResult;
 import graphql.execution.instrumentation.InstrumentationContext;
@@ -26,6 +27,7 @@ import graphql.execution.instrumentation.SimpleInstrumentationContext;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
 import graphql.schema.DataFetcher;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
@@ -41,10 +43,16 @@ class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 
 	private final AutoTimer autoTimer;
 
+	private final DistributionSummary dataFetchingSummary;
+
 	GraphQlMetricsInstrumentation(MeterRegistry registry, GraphQlTagsProvider tagsProvider, AutoTimer autoTimer) {
 		this.registry = registry;
 		this.tagsProvider = tagsProvider;
 		this.autoTimer = autoTimer;
+		this.dataFetchingSummary = DistributionSummary.builder("graphql.request.datafetch.count")
+				.baseUnit("calls")
+				.description("Count of DataFetcher calls per request.")
+				.register(this.registry);
 	}
 
 	@Override
@@ -66,9 +74,10 @@ class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 					if (!result.getErrors().isEmpty()) {
 						result.getErrors()
 								.forEach((error) -> GraphQlMetricsInstrumentation.this.registry.counter("graphql.error",
-										GraphQlMetricsInstrumentation.this.tagsProvider.getErrorTags(parameters, error))
+												GraphQlMetricsInstrumentation.this.tagsProvider.getErrorTags(parameters, error))
 										.increment());
 					}
+					GraphQlMetricsInstrumentation.this.dataFetchingSummary.record(state.getDataFetchingCount());
 				}
 			};
 		}
@@ -92,7 +101,6 @@ class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 						recordDataFetcherMetric(sample, dataFetcher, parameters, null);
 						return value;
 					}
-
 				}
 				catch (Throwable throwable) {
 					recordDataFetcherMetric(sample, dataFetcher, parameters, throwable);
@@ -108,6 +116,8 @@ class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 		Timer.Builder timer = this.autoTimer.builder("graphql.datafetcher");
 		timer.tags(this.tagsProvider.getDataFetchingTags(dataFetcher, parameters, throwable));
 		sample.stop(timer.register(this.registry));
+		RequestMetricsInstrumentationState state = parameters.getInstrumentationState();
+		state.incrementDataFetchingCount();
 	}
 
 	static class RequestMetricsInstrumentationState implements InstrumentationState {
@@ -117,6 +127,8 @@ class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 		private final Timer.Builder timer;
 
 		private Timer.Sample sample;
+
+		private AtomicLong dataFetchingCount = new AtomicLong(0L);
 
 		RequestMetricsInstrumentationState(AutoTimer autoTimer, MeterRegistry registry) {
 			this.timer = autoTimer.builder("graphql.request");
@@ -134,6 +146,14 @@ class GraphQlMetricsInstrumentation extends SimpleInstrumentation {
 
 		void stopTimer() {
 			this.sample.stop(this.timer.register(this.registry));
+		}
+
+		void incrementDataFetchingCount() {
+			this.dataFetchingCount.incrementAndGet();
+		}
+
+		long getDataFetchingCount() {
+			return this.dataFetchingCount.get();
 		}
 
 	}
