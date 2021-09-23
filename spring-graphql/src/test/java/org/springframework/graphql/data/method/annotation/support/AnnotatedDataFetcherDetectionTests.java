@@ -47,34 +47,34 @@ public class AnnotatedDataFetcherDetectionTests {
 	void registerWithDefaultCoordinates() {
 		RuntimeWiring.Builder wiringBuilder = initRuntimeWiringBuilder(BookController.class);
 
-		Map<String, Map<String, DataFetcher>> fetcherMap = wiringBuilder.build().getDataFetchers();
-		assertThat(fetcherMap).containsOnlyKeys("Query", "Mutation", "Subscription", "Book");
-		assertThat(fetcherMap.get("Query")).containsOnlyKeys("bookById", "bookByIdCustomized");
-		assertThat(fetcherMap.get("Mutation")).containsOnlyKeys("saveBook", "saveBookCustomized");
-		assertThat(fetcherMap.get("Subscription")).containsOnlyKeys("bookSearch", "bookSearchCustomized");
-		assertThat(fetcherMap.get("Book")).containsOnlyKeys("author", "authorCustomized");
+		Map<String, Map<String, DataFetcher>> map = wiringBuilder.build().getDataFetchers();
+		assertThat(map).containsOnlyKeys("Query", "Mutation", "Subscription", "Book");
+		assertThat(map.get("Query")).containsOnlyKeys("bookById", "bookByIdCustomized");
+		assertThat(map.get("Mutation")).containsOnlyKeys("saveBook", "saveBookCustomized");
+		assertThat(map.get("Subscription")).containsOnlyKeys("bookSearch", "bookSearchCustomized");
+		assertThat(map.get("Book")).containsOnlyKeys("author", "authorCustomized");
 
-		checkMappedMethod(fetcherMap, "Query", "bookById", "bookById");
-		checkMappedMethod(fetcherMap, "Mutation", "saveBook", "saveBook");
-		checkMappedMethod(fetcherMap, "Subscription", "bookSearch", "bookSearch");
-		checkMappedMethod(fetcherMap, "Book", "author", "author");
+		checkMappedMethod(map, "Query", "bookById", "bookById");
+		checkMappedMethod(map, "Mutation", "saveBook", "saveBook");
+		checkMappedMethod(map, "Subscription", "bookSearch", "bookSearch");
+		checkMappedMethod(map, "Book", "author", "author");
 	}
 
 	@Test
 	void registerWithExplicitCoordinates() {
 		RuntimeWiring.Builder wiringBuilder = initRuntimeWiringBuilder(BookController.class);
 
-		Map<String, Map<String, DataFetcher>> fetcherMap = wiringBuilder.build().getDataFetchers();
-		assertThat(fetcherMap).containsOnlyKeys("Query", "Mutation", "Subscription", "Book");
-		assertThat(fetcherMap.get("Query")).containsOnlyKeys("bookById", "bookByIdCustomized");
-		assertThat(fetcherMap.get("Mutation")).containsOnlyKeys("saveBook", "saveBookCustomized");
-		assertThat(fetcherMap.get("Subscription")).containsOnlyKeys("bookSearch", "bookSearchCustomized");
-		assertThat(fetcherMap.get("Book")).containsOnlyKeys("author", "authorCustomized");
+		Map<String, Map<String, DataFetcher>> map = wiringBuilder.build().getDataFetchers();
+		assertThat(map).containsOnlyKeys("Query", "Mutation", "Subscription", "Book");
+		assertThat(map.get("Query")).containsOnlyKeys("bookById", "bookByIdCustomized");
+		assertThat(map.get("Mutation")).containsOnlyKeys("saveBook", "saveBookCustomized");
+		assertThat(map.get("Subscription")).containsOnlyKeys("bookSearch", "bookSearchCustomized");
+		assertThat(map.get("Book")).containsOnlyKeys("author", "authorCustomized");
 
-		checkMappedMethod(fetcherMap, "Query", "bookByIdCustomized", "bookByIdWithNonMatchingMethodName");
-		checkMappedMethod(fetcherMap, "Mutation", "saveBookCustomized", "saveBookWithNonMatchingMethodName");
-		checkMappedMethod(fetcherMap, "Subscription", "bookSearchCustomized", "bookSearchWithNonMatchingMethodName");
-		checkMappedMethod(fetcherMap, "Book", "authorCustomized", "authorWithNonMatchingMethodName");
+		checkMappedMethod(map, "Query", "bookByIdCustomized", "bookByIdWithNonMatchingMethodName");
+		checkMappedMethod(map, "Mutation", "saveBookCustomized", "saveBookWithNonMatchingMethodName");
+		checkMappedMethod(map, "Subscription", "bookSearchCustomized", "bookSearchWithNonMatchingMethodName");
+		checkMappedMethod(map, "Book", "authorCustomized", "authorWithNonMatchingMethodName");
 	}
 
 	private RuntimeWiring.Builder initRuntimeWiringBuilder(Class<?> handlerType) {
@@ -93,10 +93,12 @@ public class AnnotatedDataFetcherDetectionTests {
 
 	@SuppressWarnings("rawtypes")
 	private void checkMappedMethod(
-			Map<String, Map<String, DataFetcher>> fetcherMap, String typeName, String fieldName, String methodName) {
+			Map<String, Map<String, DataFetcher>> dataFetcherMap, String typeName, String fieldName, String methodName) {
 
-		AnnotatedDataFetcher fetcher = (AnnotatedDataFetcher) fetcherMap.get(typeName).get(fieldName);
-		assertThat(fetcher.getHandlerMethod().getMethod().getName()).isEqualTo(methodName);
+		AnnotatedDataFetcherConfigurer.AnnotatedDataFetcher dataFetcher =
+				(AnnotatedDataFetcherConfigurer.AnnotatedDataFetcher) dataFetcherMap.get(typeName).get(fieldName);
+
+		assertThat(dataFetcher.getHandlerMethod().getMethod().getName()).isEqualTo(methodName);
 	}
 
 

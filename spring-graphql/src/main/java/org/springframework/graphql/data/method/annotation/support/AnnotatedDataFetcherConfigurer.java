@@ -17,9 +17,9 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -43,10 +43,8 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
-import org.springframework.graphql.data.method.annotation.MutationMapping;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.InvocableHandlerMethod;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
-import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
@@ -96,6 +94,11 @@ public class AnnotatedDataFetcherConfigurer
 		this.applicationContext = applicationContext;
 	}
 
+	protected final ApplicationContext obtainApplicationContext() {
+		Assert.state(this.applicationContext != null, "No ApplicationContext");
+		return this.applicationContext;
+	}
+
 
 	@Override
 	public void afterPropertiesSet() {
@@ -115,10 +118,10 @@ public class AnnotatedDataFetcherConfigurer
 
 	@Override
 	public void configure(RuntimeWiring.Builder builder) {
-		Assert.notNull(this.applicationContext, "ApplicationContext is required");
-		Assert.notNull(this.argumentResolvers, "`argumentResolvers` are required");
-
-		detectHandlerMethods().forEach((coordinates, handlerMethod) -> {
+		Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
+		findHandlerMethods().forEach((info) -> {
+			FieldCoordinates coordinates = info.getCoordinates();
+			HandlerMethod handlerMethod = info.getHandlerMethod();
 			DataFetcher<?> dataFetcher = new AnnotatedDataFetcher(coordinates, handlerMethod, this.argumentResolvers);
 			builder.type(coordinates.getTypeName(), typeBuilder ->
 					typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
@@ -128,15 +131,16 @@ public class AnnotatedDataFetcherConfigurer
 	/**
 	 * Scan beans in the ApplicationContext, detect and prepare a map of handler methods.
 	 */
-	private Map<FieldCoordinates, HandlerMethod> detectHandlerMethods() {
-		Map<FieldCoordinates, HandlerMethod> result = new HashMap<>();
-		for (String beanName : this.applicationContext.getBeanNamesForType(Object.class)) {
+	private Collection<MappingInfo> findHandlerMethods() {
+		ApplicationContext context = obtainApplicationContext();
+		Map<FieldCoordinates, MappingInfo> result = new HashMap<>();
+		for (String beanName : context.getBeanNamesForType(Object.class)) {
 			if (beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
 				continue;
 			}
 			Class<?> beanType = null;
 			try {
-				beanType = this.applicationContext.getType(beanName);
+				beanType = context.getType(beanName);
 			}
 			catch (Throwable ex) {
 				// An unresolvable bean type, probably from a lazy bean - let's ignore it.
@@ -144,99 +148,62 @@ public class AnnotatedDataFetcherConfigurer
 					logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 				}
 			}
-			if (beanType == null || !isHandler(beanType)) {
+			if (beanType == null || !AnnotatedElementUtils.hasAnnotation(beanType, Controller.class)) {
 				continue;
 			}
-			detectHandlerMethodsOnBean(beanName).forEach((coordinates, handlerMethod) -> {
-				HandlerMethod existing = result.put(coordinates, handlerMethod);
-				if (existing != null && !existing.equals(handlerMethod)) {
+			Class<?> beanClass = context.getType(beanName);
+			findHandlerMethods(beanName, beanClass).forEach((info) -> {
+				HandlerMethod handlerMethod = info.getHandlerMethod();
+				MappingInfo existing = result.put(info.getCoordinates(), info);
+				if (existing != null && !existing.getHandlerMethod().equals(handlerMethod)) {
 					throw new IllegalStateException(
 							"Ambiguous mapping. Cannot map '" + handlerMethod.getBean() + "' method \n" +
-									handlerMethod + "\nto " + coordinates + ": There is already '" +
-									existing.getBean() + "' bean method\n" + existing + " mapped.");
+									handlerMethod + "\nto " + info.getCoordinates() + ": There is already '" +
+									existing.getHandlerMethod().getBean() + "' bean method\n" + existing + " mapped.");
 				}
 			});
 		}
-		return result;
+		return result.values();
 	}
 
-	private boolean isHandler(Class<?> beanType) {
-		return (AnnotatedElementUtils.hasAnnotation(beanType, Controller.class) ||
-				AnnotatedElementUtils.hasAnnotation(beanType, SchemaMapping.class));
-	}
-
-	private Map<FieldCoordinates, HandlerMethod> detectHandlerMethodsOnBean(Object handler) {
-		Class<?> beanClass = (handler instanceof String ?
-				this.applicationContext.getType((String) handler) : handler.getClass());
-		if (beanClass == null) {
-			return Collections.emptyMap();
+	private Collection<MappingInfo> findHandlerMethods(Object handler, @Nullable Class<?> handlerClass) {
+		if (handlerClass == null) {
+			return Collections.emptyList();
 		}
 
-		Class<?> userClass = ClassUtils.getUserClass(beanClass);
-		Map<Method, FieldCoordinates> methodsMap =
-				MethodIntrospector.selectMethods(userClass, (Method method) -> getCoordinates(method, userClass));
-		if (methodsMap.isEmpty()) {
-			return Collections.emptyMap();
+		Class<?> userClass = ClassUtils.getUserClass(handlerClass);
+		Map<Method, MappingInfo> map =
+				MethodIntrospector.selectMethods(userClass, (Method method) -> getMappingInfo(method, handler, userClass));
+
+		Collection<MappingInfo> mappingInfos = map.values();
+
+		if (logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
+			logger.trace(formatMappings(userClass, mappingInfos));
 		}
 
-		Map<FieldCoordinates, HandlerMethod> result = new LinkedHashMap<>(methodsMap.size());
-		for (Map.Entry<Method, FieldCoordinates> entry : methodsMap.entrySet()) {
-			Method method = AopUtils.selectInvocableMethod(entry.getKey(), userClass);
-			HandlerMethod handlerMethod = (handler instanceof String ?
-					new HandlerMethod((String) handler, this.applicationContext.getAutowireCapableBeanFactory(), method) :
-					new HandlerMethod(handler, method));
-			FieldCoordinates coordinates = entry.getValue();
-			coordinates = updateCoordinates(coordinates, handlerMethod);
-			result.put(coordinates, handlerMethod);
-		}
-
-		if (logger.isTraceEnabled()) {
-			logger.trace(formatMappings(userClass, result));
-		}
-
-		return result;
+		return mappingInfos;
 	}
 
 	@Nullable
-	private FieldCoordinates getCoordinates(Method method, Class<?> handlerType) {
-		QueryMapping query = AnnotatedElementUtils.findMergedAnnotation(method, QueryMapping.class);
-		if (query != null) {
-			String name = (StringUtils.hasText(query.name()) ? query.name() : method.getName());
-			return FieldCoordinates.coordinates("Query", name);
+	private MappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
+		SchemaMapping annotation = AnnotatedElementUtils.findMergedAnnotation(method, SchemaMapping.class);
+		if (annotation == null) {
+			return null;
 		}
-		MutationMapping mutation = AnnotatedElementUtils.findMergedAnnotation(method, MutationMapping.class);
-		if (mutation != null) {
-			String name = (StringUtils.hasText(mutation.name()) ? mutation.name() : method.getName());
-			return FieldCoordinates.coordinates("Mutation", name);
-		}
-		SubscriptionMapping subscription = AnnotatedElementUtils.findMergedAnnotation(method, SubscriptionMapping.class);
-		if (subscription != null) {
-			String name = (StringUtils.hasText(subscription.name()) ? subscription.name() : method.getName());
-			return FieldCoordinates.coordinates("Subscription", name);
-		}
-		SchemaMapping schemaMapping = AnnotatedElementUtils.findMergedAnnotation(method, SchemaMapping.class);
-		if (schemaMapping != null) {
-			String typeName = schemaMapping.typeName();
-			String field = schemaMapping.field();
-			if (!StringUtils.hasText(typeName)) {
-				schemaMapping = AnnotatedElementUtils.findMergedAnnotation(handlerType, SchemaMapping.class);
-				if (schemaMapping != null) {
-					typeName = schemaMapping.typeName();
-				}
-			}
-			return FieldCoordinates.coordinates(typeName, field);
-		}
-		return null;
-	}
 
-	private FieldCoordinates updateCoordinates(FieldCoordinates coordinates, HandlerMethod handlerMethod) {
-		boolean hasTypeName = StringUtils.hasText(coordinates.getTypeName());
-		boolean hasFieldName = StringUtils.hasText(coordinates.getFieldName());
-		if (hasTypeName && hasFieldName) {
-			return coordinates;
+		String typeName = annotation.typeName();
+		String field = (StringUtils.hasText(annotation.field()) ? annotation.field() : method.getName());
+		HandlerMethod handlerMethod = createHandlerMethod(method, handler, handlerType);
+
+		if (!StringUtils.hasText(typeName)) {
+			SchemaMapping mapping = AnnotatedElementUtils.findMergedAnnotation(handlerType, SchemaMapping.class);
+			if (mapping != null) {
+				typeName = annotation.typeName();
+			}
 		}
-		String typeName = coordinates.getTypeName();
-		if (!hasTypeName) {
+
+		if (!StringUtils.hasText(typeName)) {
+			Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
 			for (MethodParameter parameter : handlerMethod.getMethodParameters()) {
 				HandlerMethodArgumentResolver resolver = this.argumentResolvers.getArgumentResolver(parameter);
 				if (resolver instanceof SourceMethodArgumentResolver) {
@@ -244,27 +211,104 @@ public class AnnotatedDataFetcherConfigurer
 					break;
 				}
 			}
-			Assert.hasText(typeName,
-					"No parentType specified, and a source/container method argument was also not found: "  +
-							handlerMethod.getShortLogMessage());
 		}
-		return FieldCoordinates.coordinates(typeName,
-				(hasFieldName ? coordinates.getFieldName() : handlerMethod.getMethod().getName()));
+
+		Assert.hasText(typeName,
+				"No parentType specified, and a source/parent method argument was also not found: "  +
+						handlerMethod.getShortLogMessage());
+
+		return new MappingInfo(typeName, field, handlerMethod);
 	}
 
-	private String formatMappings(Class<?> handlerType, Map<FieldCoordinates, HandlerMethod> mappings) {
+	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {
+		Method invocableMethod = AopUtils.selectInvocableMethod(method, handlerType);
+		return (handler instanceof String ?
+				new HandlerMethod((String) handler, obtainApplicationContext().getAutowireCapableBeanFactory(), invocableMethod) :
+				new HandlerMethod(handler, invocableMethod));
+	}
+
+	private String formatMappings(Class<?> handlerType, Collection<MappingInfo> mappings) {
 		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
 				.map(p -> p.substring(0, 1))
 				.collect(Collectors.joining(".", "", "." + handlerType.getSimpleName()));
-		return mappings.entrySet().stream()
-				.map(entry -> {
-					Method method = entry.getValue().getMethod();
+		return mappings.stream()
+				.map(mappingInfo -> {
+					Method method = mappingInfo.getHandlerMethod().getMethod();
 					String methodParameters = Arrays.stream(method.getParameterTypes())
 							.map(Class::getSimpleName)
 							.collect(Collectors.joining(",", "(", ")"));
-					return entry.getKey() + " => "  + method.getName() + methodParameters;
+					return mappingInfo.getCoordinates() + " => "  + method.getName() + methodParameters;
 				})
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
+	}
+
+
+	private static class MappingInfo {
+
+		private final FieldCoordinates coordinates;
+
+		private final HandlerMethod handlerMethod;
+
+		public MappingInfo(String typeName, String field, HandlerMethod handlerMethod) {
+			this.coordinates = FieldCoordinates.coordinates(typeName, field);
+			this.handlerMethod = handlerMethod;
+		}
+
+		public FieldCoordinates getCoordinates() {
+			return this.coordinates;
+		}
+
+		public HandlerMethod getHandlerMethod() {
+			return this.handlerMethod;
+		}
+	}
+
+
+	/**
+	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
+	 */
+	static class AnnotatedDataFetcher implements DataFetcher<Object> {
+
+		private final FieldCoordinates coordinates;
+
+		private final HandlerMethod handlerMethod;
+
+		private final HandlerMethodArgumentResolverComposite argumentResolvers;
+
+
+		public AnnotatedDataFetcher(FieldCoordinates coordinates, HandlerMethod handlerMethod,
+				HandlerMethodArgumentResolverComposite resolvers) {
+
+			this.coordinates = coordinates;
+			this.handlerMethod = handlerMethod;
+			this.argumentResolvers = resolvers;
+		}
+
+
+		/**
+		 * Return the {@link FieldCoordinates} the HandlerMethod is mapped to.
+		 */
+		public FieldCoordinates getCoordinates() {
+			return this.coordinates;
+		}
+
+		/**
+		 * Return the {@link HandlerMethod} used to fetch data.
+		 */
+		public HandlerMethod getHandlerMethod() {
+			return this.handlerMethod;
+		}
+
+
+		@Override
+		@SuppressWarnings("ConstantConditions")
+		public Object get(DataFetchingEnvironment environment) throws Exception {
+
+			InvocableHandlerMethod invocable =
+					new InvocableHandlerMethod(this.handlerMethod.createWithResolvedBean(), this.argumentResolvers);
+
+			return invocable.invoke(environment);
+		}
 	}
 
 }
