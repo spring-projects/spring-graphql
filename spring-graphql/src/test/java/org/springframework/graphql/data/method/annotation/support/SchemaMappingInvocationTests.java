@@ -48,15 +48,17 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests with invocation of DataFetcher's from annotated methods.
+ * Test GraphQL requests handled through {@code @SchemaMapping} methods.
+ *
  * @author Rossen Stoyanchev
  */
-public class AnnotatedDataFetcherInvocationTests {
+public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithScalarArgument() {
@@ -71,13 +73,11 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService(BookController.class)
+		ExecutionResult result = initGraphQlService()
 				.execute(new RequestInput(query, null, null))
 				.block();
 
-		assertThat(result.getErrors()).isEmpty();
-		Map<String, Object> data = result.getData();
-		assertThat(data).isNotNull();
+		Map<String, Object> data = getData(result);
 
 		Map<String, Object> book = getValue(data, "bookById");
 		assertThat(book.get("id")).isEqualTo("1");
@@ -97,14 +97,11 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService(BookController.class)
+		ExecutionResult result = initGraphQlService()
 				.execute(new RequestInput(query, null, null))
 				.block();
 
-		assertThat(result.getErrors()).isEmpty();
-		Map<String, Object> data = result.getData();
-		assertThat(data).isNotNull();
-
+		Map<String, Object> data = getData(result);
 		List<Map<String, Object>> bookList = getValue(data, "booksByCriteria");
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).get("name")).isEqualTo("Nineteen Eighty-Four");
@@ -128,13 +125,11 @@ public class AnnotatedDataFetcherInvocationTests {
 			return executionInput;
 		});
 
-		ExecutionResult result = initGraphQlService(BookController.class)
+		ExecutionResult result = initGraphQlService()
 				.execute(requestInput)
 				.block();
 
-		assertThat(result.getErrors()).isEmpty();
-		Map<String, Object> data = result.getData();
-		assertThat(data).isNotNull();
+		Map<String, Object> data = getData(result);
 
 		Map<String, Object> author = getValue(data, "authorById");
 		assertThat(author.get("id")).isEqualTo("101");
@@ -154,13 +149,11 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService(BookController.class)
+		ExecutionResult result = initGraphQlService()
 				.execute(new RequestInput(operation, null, null))
 				.block();
 
-		assertThat(result.getErrors()).isEmpty();
-		Map<String, Object> data = result.getData();
-		assertThat(data).isNotNull();
+		Map<String, Object> data = getData(result);
 
 		Map<String, Object> author = getValue(data, "addAuthor");
 		assertThat(author.get("id")).isEqualTo("99");
@@ -177,13 +170,11 @@ public class AnnotatedDataFetcherInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService(BookController.class)
+		ExecutionResult result = initGraphQlService()
 				.execute(new RequestInput(operation, null, null))
 				.block();
 
-		assertThat(result.getErrors()).isEmpty();
-		Publisher<ExecutionResult> publisher = result.getData();
-		assertThat(publisher).isNotNull();
+		Publisher<ExecutionResult> publisher = getData(result);
 
 		Flux<Map<String, Object>> bookFlux = Flux.from(publisher).map(rs -> {
 			Map<String, Object> map = rs.getData();
@@ -203,12 +194,20 @@ public class AnnotatedDataFetcherInvocationTests {
 	}
 
 
-	private ExecutionGraphQlService initGraphQlService(Class<?> beanClass) {
+	private ExecutionGraphQlService initGraphQlService() {
 		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
 		applicationContext.register(TestConfig.class);
 		applicationContext.refresh();
 
 		return applicationContext.getBean(ExecutionGraphQlService.class);
+	}
+
+	private <T> T getData(@Nullable ExecutionResult result) {
+		assertThat(result).isNotNull();
+		assertThat(result.getErrors()).isEmpty();
+		T data = result.getData();
+		assertThat(data).isNotNull();
+		return data;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -253,6 +252,7 @@ public class AnnotatedDataFetcherInvocationTests {
 	}
 
 
+	@SuppressWarnings("unused")
 	@Controller
 	private static class BookController {
 

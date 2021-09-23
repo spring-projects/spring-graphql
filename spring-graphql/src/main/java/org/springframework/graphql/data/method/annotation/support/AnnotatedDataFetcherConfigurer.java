@@ -122,7 +122,7 @@ public class AnnotatedDataFetcherConfigurer
 		findHandlerMethods().forEach((info) -> {
 			FieldCoordinates coordinates = info.getCoordinates();
 			HandlerMethod handlerMethod = info.getHandlerMethod();
-			DataFetcher<?> dataFetcher = new AnnotatedDataFetcher(coordinates, handlerMethod, this.argumentResolvers);
+			DataFetcher<?> dataFetcher = new SchemaMappingDataFetcher(coordinates, handlerMethod, this.argumentResolvers);
 			builder.type(coordinates.getTypeName(), typeBuilder ->
 					typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
 		});
@@ -267,7 +267,7 @@ public class AnnotatedDataFetcherConfigurer
 	/**
 	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
 	 */
-	static class AnnotatedDataFetcher implements DataFetcher<Object> {
+	static class SchemaMappingDataFetcher implements DataFetcher<Object> {
 
 		private final FieldCoordinates coordinates;
 
@@ -276,7 +276,7 @@ public class AnnotatedDataFetcherConfigurer
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
 
-		public AnnotatedDataFetcher(FieldCoordinates coordinates, HandlerMethod handlerMethod,
+		public SchemaMappingDataFetcher(FieldCoordinates coordinates, HandlerMethod handlerMethod,
 				HandlerMethodArgumentResolverComposite resolvers) {
 
 			this.coordinates = coordinates;
