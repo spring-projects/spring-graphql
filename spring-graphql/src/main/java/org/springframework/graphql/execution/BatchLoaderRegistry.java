@@ -44,15 +44,38 @@ import reactor.core.publisher.Mono;
 public interface BatchLoaderRegistry {
 
 	/**
-	 * Start the registration of a new function for batch loading data values by
-	 * specifying the key and value types.
-	 * @param keyType the type of the key that identifies the value
-	 * @param valueType the type of the data value
+	 * Begin the registration of a new batch load function by specifying the
+	 * types of the keys and values that will be used as input and output.
+	 *
+	 * <p>When this method is used, the name for the
+	 * {@link org.dataloader.DataLoader} is automatically set as defined in
+	 * {@link RegistrationSpec#withName(String)}, and likewise,
+	 * {@code @SchemaMapping} handler methods can transparenly locate and
+	 * inject a {@code DataLoader<T>} argument based on the generic type
+	 * {@code <T>}.
+	 *
+	 * @param keyType the type of keys that will be used as input
+	 * @param valueType the type of value that will be returned as output
 	 * @param <K> the key type
 	 * @param <V> the value type
 	 * @return a spec to complete the registration
 	 */
 	<K, V> RegistrationSpec<K, V> forTypePair(Class<K> keyType, Class<V> valueType);
+
+	/**
+	 * Begin the registration of a new batch load function by specifying the
+	 * name for the {@link org.dataloader.DataLoader}.
+	 *
+	 * <p><strong>Note:</strong> when this method is used, the parameter name
+	 * of a {@code DataLoader<T>} argument in a {@code @SchemaMapping} handler
+	 * method needs to match the name given here.
+	 *
+	 * @param name the name to use to register a {@code DataLoader}
+	 * @param <K> the type of keys that will be used as input
+	 * @param <V> the type of values that will be used as output
+	 * @return a spec to complete the registration
+	 */
+	<K, V> RegistrationSpec<K, V> forName(String name);
 
 
 	/**
@@ -66,7 +89,8 @@ public interface BatchLoaderRegistry {
 		/**
 		 * Customize the name under which the {@link org.dataloader.DataLoader}
 		 * is registered and can be accessed in the data layer.
-		 * <p>By default, this is the full class name of the value type.
+		 * <p>By default, this is the full class name of the value type, if the
+		 * value type is specified via {@link #forTypePair(Class, Class)}.
 		 * @param name the name to use
 		 * @return a spec to complete the registration
 		 */

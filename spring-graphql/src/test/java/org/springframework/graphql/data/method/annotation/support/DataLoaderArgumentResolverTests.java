@@ -28,7 +28,6 @@ import reactor.core.publisher.Flux;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.Author;
-import org.springframework.graphql.Book;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.util.ClassUtils;
@@ -57,6 +56,7 @@ public class DataLoaderArgumentResolverTests {
 
 	@Test
 	void resolveArgument() {
+
 		DataFetchingEnvironment environment = initEnvironment(registry ->
 				registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, env) -> Flux.empty()));
 
@@ -67,9 +67,7 @@ public class DataLoaderArgumentResolverTests {
 	@Test
 	void resolveArgumentViaParameterName() {
 		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forTypePair(Long.class, Author.class)
-						.withName("namedDataLoader")
-						.registerBatchLoader((ids, env) -> Flux.empty()));
+				registry.forName("namedDataLoader").registerBatchLoader((ids, env) -> Flux.empty()));
 
 		MethodParameter parameter = initParameter(1);
 		parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
@@ -90,9 +88,7 @@ public class DataLoaderArgumentResolverTests {
 	@Test
 	void resolveArgumentFailureWithoutParameterName() {
 		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forTypePair(Long.class, Author.class)
-						.withName("namedDataLoader")
-						.registerBatchLoader((ids, env) -> Flux.empty()));
+				registry.forName("namedDataLoader").registerBatchLoader((ids, env) -> Flux.empty()));
 
 		MethodParameter parameter = initParameter(1);
 		// Skip ParameterNameDiscovery
@@ -104,9 +100,7 @@ public class DataLoaderArgumentResolverTests {
 	@Test
 	void resolveArgumentFailureNoMatch() {
 		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forTypePair(Long.class, Book.class)
-						.withName("bookDataLoader")
-						.registerBatchLoader((ids, env) -> Flux.empty()));
+				registry.forName("bookDataLoader").registerBatchLoader((ids, env) -> Flux.empty()));
 
 		MethodParameter parameter = initParameter(0);
 		parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());

@@ -33,6 +33,10 @@ import org.dataloader.MappedBatchLoaderWithContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
+
 /**
  * A default implementation of {@link BatchLoaderRegistry} that accepts
  * registrations, and also an implementation of {@link DataLoaderRegistrar} to
@@ -50,7 +54,12 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry, DataLoad
 
 	@Override
 	public <K, V> RegistrationSpec<K, V> forTypePair(Class<K> keyType, Class<V> valueType) {
-		return new DefaultRegistrationSpec<>(valueType.getName());
+		return new DefaultRegistrationSpec<>(valueType);
+	}
+
+	@Override
+	public <K, V> RegistrationSpec<K, V> forName(String name) {
+		return new DefaultRegistrationSpec<>(name);
 	}
 
 	@Override
@@ -75,12 +84,21 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry, DataLoad
 
 	private class DefaultRegistrationSpec<K, V> implements RegistrationSpec<K, V> {
 
+		@Nullable
+		private final Class<?> valueType;
+
+		@Nullable
 		private String name;
 
 		private DataLoaderOptions options = DataLoaderOptions.newOptions();
 
+		public DefaultRegistrationSpec(Class<V> valueType) {
+			this.valueType = valueType;
+		}
+
 		public DefaultRegistrationSpec(String name) {
 			this.name = name;
+			this.valueType = null;
 		}
 
 		@Override
@@ -104,13 +122,21 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry, DataLoad
 		@Override
 		public void registerBatchLoader(BiFunction<List<K>, BatchLoaderEnvironment, Flux<V>> loader) {
 			DefaultBatchLoaderRegistry.this.loaders.add(
-					new ReactorBatchLoader<>(this.name, loader, this.options));
+					new ReactorBatchLoader<>(initName(), loader, this.options));
 		}
 
 		@Override
 		public void registerMappedBatchLoader(BiFunction<Set<K>, BatchLoaderEnvironment, Mono<Map<K, V>>> loader) {
 			DefaultBatchLoaderRegistry.this.mappedLoaders.add(
-					new ReactorMappedBatchLoader<>(this.name, loader, this.options));
+					new ReactorMappedBatchLoader<>(initName(), loader, this.options));
+		}
+
+		private String initName() {
+			if (StringUtils.hasText(this.name)) {
+				return this.name;
+			}
+			Assert.notNull(this.valueType, "Value type not available to select a default DataLoader name.");
+			return (StringUtils.hasText(this.name) ? this.name : this.valueType.getName());
 		}
 	}
 
