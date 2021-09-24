@@ -87,26 +87,6 @@ class ArgumentMethodArgumentResolverTests {
 	}
 
 	@Test
-	void shouldResolveDefaultValue() throws Exception  {
-		Method findWithDefault = ClassUtils.getMethod(BookController.class, "findWithDefault", Long.class);
-		String payload = "{\"name\": \"test\" }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(findWithDefault, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
-		assertThat(result).isNotNull().isInstanceOf(Long.class).isEqualTo(42L);
-	}
-
-	@Test
-	void shouldNotFailIfArgumentNotRequired() throws Exception {
-		Method findByKeywords = ClassUtils.getMethod(BookController.class, "findByKeywords", List.class);
-		String payload = "{ }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(findByKeywords, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
-		assertThat(result).isNull();
-	}
-
-	@Test
 	void shouldResolveListOfJavaBeansArgument() throws Exception {
 		Method addBooks = ClassUtils.getMethod(BookController.class, "addBooks", List.class);
 		String payload = "{\"books\": [{ \"name\": \"first\", \"authorId\": 42}, { \"name\": \"second\", \"authorId\": 24}] }";
@@ -139,16 +119,6 @@ class ArgumentMethodArgumentResolverTests {
 
 		@QueryMapping
 		public Book bookById(@Argument Long id) {
-			return null;
-		}
-
-		@QueryMapping
-		public Book findWithDefault(@Argument(defaultValue = "42") Long id) {
-			return null;
-		}
-
-		@QueryMapping
-		public Book findByKeywords(@Argument(required = false) List<Keyword> keywords) {
 			return null;
 		}
 

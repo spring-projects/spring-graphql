@@ -21,16 +21,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-
 import org.springframework.core.annotation.AliasFor;
 
 /**
  * Annotation to bind a method parameter to a GraphQL input
  * {@link graphql.schema.DataFetchingEnvironment#getArgument(String) argument}.
  *
- * <p>If the method parameter is {@link java.util.Map Map&lt;String, Object&gt;} or
+ * <p>If the method parameter is {@link java.util.Map Map&lt;String, Object&gt;}
  * and a parameter name is not specified, then the map parameter is populated
  * via {@link graphql.schema.DataFetchingEnvironment#getArguments()}.
+ *
+ * <p>This annotation  does not specify whether the input argument is required
+ * and if it should use a default value: this should be done at the schema
+ * in order to be enforced by the GraphQL engine itself.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -51,23 +54,5 @@ public @interface Argument {
 	 */
 	@AliasFor("value")
 	String name() default "";
-
-	/**
-	 * Whether the input argument is required.
-	 * <p>Defaults to {@code true}, leading to an exception being thrown
-	 * if the argument is missing. Switch this to {@code false} if you prefer
-	 * a {@code null} value when the parameter is not present.
-	 * <p>Alternatively, provide a {@link #defaultValue}, which implicitly
-	 * sets this flag to {@code false}.
-	 */
-	boolean required() default true;
-
-	/**
-	 * The default value to use as a fallback when an input argument is
-	 * not present or has an empty value.
-	 * <p>Supplying a default value implicitly sets {@link #required} to
-	 * {@code false}.
-	 */
-	String defaultValue() default ValueConstants.DEFAULT_NONE;
 
 }

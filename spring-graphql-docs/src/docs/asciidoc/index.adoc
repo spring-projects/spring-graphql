@@ -577,8 +577,7 @@ values. The arguments are available as simple scalar values such as String, or a
 of values  for more complex input, or a `List` of values.
 
 Use `@Argument` to access an argument for the field that maps to the handler method. You
-can declare such a method parameter to be of any type. If necessary, Spring GraphQL
-converts the value by serializing it to JSON first and then to the target type.
+can declare such a method parameter to be of any type.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -601,8 +600,8 @@ You can explicitly specify the argument name, for example `@Argument("bookInput"
 it not specified, it defaults to the method parameter name, but this requires the
 `-parameters` compiler flag with Java 8+ or debugging information from the compiler.
 
-By default, an `@Argument` is required, but you can make it optional by setting the
-`required` flag to false or by declaring the argument with `java.util.Optional`.
+The "required" character of an `@Argument` or its default value is controlled at the schema
+level.
 
 You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
 values. The name attribute on `@Argument` must not be set.

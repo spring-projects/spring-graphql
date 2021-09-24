@@ -64,16 +64,10 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 			}
 		}
 
-		Object rawValue = (ValueConstants.DEFAULT_NONE.equals(annotation.defaultValue()) ?
-				environment.getArgument(name) :
-				environment.getArgumentOrDefault(name, annotation.defaultValue()));
-
+		Object rawValue = environment.getArgument(name);
 		TypeDescriptor parameterType = new TypeDescriptor(parameter);
 
 		if (rawValue == null) {
-			if (annotation.required()) {
-				throw new MissingArgumentException(name, parameter);
-			}
 			return returnValue(rawValue, parameterType.getType());
 		}
 
