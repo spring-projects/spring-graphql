@@ -15,30 +15,26 @@
  */
 package org.springframework.graphql.data.method;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.DefaultParameterNameDiscoverer;
-import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.ReflectionUtils;
 
 /**
- * Extension of {@link HandlerMethod} that can resolve method arguments from a
- * {@link DataFetchingEnvironment} and invoke the method.
+ * An extension of {@link HandlerMethod} for annotated handler methods adapted
+ * to {@link graphql.schema.DataFetcher} with {@link DataFetchingEnvironment}
+ * as their input.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class InvocableHandlerMethod extends HandlerMethod {
+public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private static final Object[] EMPTY_ARGS = new Object[0];
 
@@ -48,7 +44,7 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
-	public InvocableHandlerMethod(HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers) {
+	public DataFetcherHandlerMethod(HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers) {
 		super(handlerMethod);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
@@ -125,42 +121,6 @@ public class InvocableHandlerMethod extends HandlerMethod {
 			}
 		}
 		return args;
-	}
-
-	/**
-	 * Invoke the handler method with the given argument values.
-	 */
-	@Nullable
-	protected Object doInvoke(Object... args) throws Exception {
-		Method method = getBridgedMethod();
-		ReflectionUtils.makeAccessible(method);
-		try {
-			if (KotlinDetector.isSuspendingFunction(method)) {
-				return CoroutinesUtils.invokeSuspendingFunction(method, getBean(), args);
-			}
-			return method.invoke(getBean(), args);
-		}
-		catch (IllegalArgumentException ex) {
-			assertTargetBean(method, getBean(), args);
-			String text = (ex.getMessage() != null ? ex.getMessage() : "Illegal argument");
-			throw new IllegalStateException(formatInvokeError(text, args), ex);
-		}
-		catch (InvocationTargetException ex) {
-			// Unwrap for DataFetcherExceptionResolvers ...
-			Throwable targetException = ex.getTargetException();
-			if (targetException instanceof RuntimeException) {
-				throw (RuntimeException) targetException;
-			}
-			else if (targetException instanceof Error) {
-				throw (Error) targetException;
-			}
-			else if (targetException instanceof Exception) {
-				throw (Exception) targetException;
-			}
-			else {
-				throw new IllegalStateException(formatInvokeError("Invocation failure", args), targetException);
-			}
-		}
 	}
 
 }
