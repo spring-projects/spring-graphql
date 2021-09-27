@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -98,6 +99,32 @@ class ArgumentMethodArgumentResolverTests {
 				.extracting("name").containsExactly("first", "second");
 	}
 
+    @Test
+    void shouldPassArgumentAsMap() throws Exception {
+        Method updateBook = ClassUtils.getMethod(BookController.class, "updateBook", Long.class, Map.class);
+        String payload = "{\"id\": 43, \"input\": { \"name\": \"new name\", \"description\": null, \"authorId\": 42} }";
+        DataFetchingEnvironment environment = initEnvironment(payload);
+        MethodParameter methodParameter = getMethodParameter(updateBook, 1);
+        Object result = resolver.resolveArgument(methodParameter, environment);
+        assertThat(result).isNotNull().isInstanceOf(Map.class);
+        assertThat(result)
+                .hasFieldOrPropertyWithValue("name", "new name")
+                .hasFieldOrPropertyWithValue("description", null)
+                .hasFieldOrPropertyWithValue("authorId", 42);
+    }
+
+    @Test
+    void shouldPassArgumentAsList() throws Exception {
+        Method updateBook = ClassUtils.getMethod(BookController.class, "updateBooks", List.class);
+        String payload = "{\"input\": [{ \"id\": 1, \"name\": \"first\" }, { \"id\": 2, \"name\": \"second\" }] }";
+        DataFetchingEnvironment environment = initEnvironment(payload);
+        MethodParameter methodParameter = getMethodParameter(updateBook, 0);
+        Object result = resolver.resolveArgument(methodParameter, environment);
+        assertThat(result).isNotNull().isInstanceOf(List.class);
+        assertThat(result).asList().allMatch(item -> item instanceof Map)
+                .extracting("name").containsExactly("first", "second");
+    }
+
 	private MethodParameter getMethodParameter(Method method, int index) {
 		MethodParameter methodParameter = new MethodParameter(method, index);
 		methodParameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
@@ -131,6 +158,16 @@ class ArgumentMethodArgumentResolverTests {
 		public List<Book> addBooks(@Argument List<Book> books) {
 			return null;
 		}
+
+		@MutationMapping
+		public List<Book> updateBook(@Argument Long id, @Argument Map<String, ?> input) {
+			return null;
+		}
+
+        @MutationMapping
+        public List<Book> updateBooks(@Argument List<Map<String, ?>> input) {
+            return null;
+        }
 
 	}
 

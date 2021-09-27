@@ -74,8 +74,17 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 		if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
 			Assert.isAssignable(Collection.class, parameterType.getType(),
 					"Argument '" + name + "' is a Collection while the @Argument method parameter is " + parameterType.getType());
+
+			if (parameterType.getElementTypeDescriptor().getType() == Map.class) {
+				return rawValue;
+			}
+
 			Class<?> elementType = parameterType.getElementTypeDescriptor().getType();
 			return this.instantiator.instantiateCollection(elementType, (Collection<Object>) rawValue);
+		}
+
+		if (parameterType.isMap()) {
+			return rawValue;
 		}
 
 		MethodParameter nestedParameter = parameter.nestedIfOptional();
