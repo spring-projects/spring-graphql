@@ -245,7 +245,7 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@Bean
-		public DefaultBatchLoaderRegistry batchLoaderRegistry() {
+		public BatchLoaderRegistry batchLoaderRegistry() {
 			return new DefaultBatchLoaderRegistry();
 		}
 

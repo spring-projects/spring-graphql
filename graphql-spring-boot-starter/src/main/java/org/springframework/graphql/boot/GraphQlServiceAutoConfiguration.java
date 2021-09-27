@@ -43,7 +43,7 @@ import org.springframework.graphql.execution.GraphQlSource;
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
 public class GraphQlServiceAutoConfiguration {
 
-	private final DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 
 	@Bean
 	public BatchLoaderRegistry batchLoaderRegistry() {

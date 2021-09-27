@@ -39,7 +39,7 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.execution.DataLoaderRegistrar;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
@@ -268,9 +268,9 @@ public class BatchMappingInvocationTests {
 		}
 
 		@Bean
-		public GraphQlService graphQlService(GraphQlSource source, DataLoaderRegistrar registrar) {
+		public GraphQlService graphQlService(GraphQlSource source, BatchLoaderRegistry registry) {
 			ExecutionGraphQlService service = new ExecutionGraphQlService(source);
-			service.addDataLoaderRegistrar(registrar);
+			service.addDataLoaderRegistrar(registry);
 			return service;
 		}
 
@@ -280,7 +280,7 @@ public class BatchMappingInvocationTests {
 		}
 
 		@Bean
-		public DefaultBatchLoaderRegistry batchLoaderRegistry() {
+		public BatchLoaderRegistry batchLoaderRegistry() {
 			return new DefaultBatchLoaderRegistry();
 		}
 	}

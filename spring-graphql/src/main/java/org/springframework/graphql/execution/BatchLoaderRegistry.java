@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Registry of functions that batch load data values given a set of keys.
+ * Registry for functions to batch load data values, given a set of keys.
  *
  * <p>At request time, each function is registered as a
  * {@link org.dataloader.DataLoader} in the {@link org.dataloader.DataLoaderRegistry}
@@ -41,7 +41,7 @@ import reactor.core.publisher.Mono;
  * @see org.dataloader.MappedBatchLoader
  * @see org.dataloader.DataLoader
  */
-public interface BatchLoaderRegistry {
+public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 
 	/**
 	 * Begin the registration of a new batch load function by specifying the

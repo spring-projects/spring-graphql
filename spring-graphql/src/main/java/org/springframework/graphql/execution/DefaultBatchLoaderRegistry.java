@@ -45,7 +45,7 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry, DataLoaderRegistrar {
+public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 	private final List<ReactorBatchLoader<?,?>> loaders = new ArrayList<>();
 

@@ -34,7 +34,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
  */
 public class DefaultBatchLoaderRegistryTests {
 
-	private final DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 
 	private final DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
 

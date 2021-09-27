@@ -18,7 +18,8 @@ package org.springframework.graphql.execution;
 import org.dataloader.DataLoaderRegistry;
 
 /**
- * Contract for access to the {@link DataLoaderRegistry} at request time.
+ * Contract for callback access to the {@link DataLoaderRegistry} as it is
+ * initialized for each request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

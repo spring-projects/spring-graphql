@@ -113,7 +113,7 @@ public class DataLoaderArgumentResolverTests {
 	}
 
 	private DataFetchingEnvironment initEnvironment(Consumer<BatchLoaderRegistry> registryConsumer) {
-		DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+		BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 		registryConsumer.accept(batchLoaderRegistry);
 
 		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();

@@ -57,7 +57,7 @@ public class BatchLoadingTests {
 			}));
 		});
 
-		DefaultBatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
+		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 		registry.forTypePair(Long.class, Author.class)
 				.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
 
