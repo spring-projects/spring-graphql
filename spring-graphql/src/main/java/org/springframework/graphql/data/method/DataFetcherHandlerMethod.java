@@ -61,7 +61,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	/**
 	 * Invoke the method after resolving its argument values in the context of
-	 * the given environment.
+	 * the given {@link DataFetchingEnvironment}.
 	 * <p>Argument values are commonly resolved through
 	 * {@link HandlerMethodArgumentResolver HandlerMethodArgumentResolvers}.
 	 * The {@code providedArgs} parameter however may supply argument values to

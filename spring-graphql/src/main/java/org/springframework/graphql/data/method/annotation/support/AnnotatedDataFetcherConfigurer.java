@@ -15,12 +15,16 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import graphql.schema.DataFetcher;
@@ -29,6 +33,9 @@ import graphql.schema.FieldCoordinates;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.dataloader.DataLoader;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -37,14 +44,15 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.graphql.data.method.BatchLoadHandlerMethod;
+import org.springframework.graphql.data.method.DataFetcherHandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
-import org.springframework.graphql.data.method.InvocableHandlerMethod;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
@@ -65,7 +73,6 @@ public class AnnotatedDataFetcherConfigurer
 
 	private final static Log logger = LogFactory.getLog(AnnotatedDataFetcherConfigurer.class);
 
-
 	/**
 	 * Bean name prefix for target beans behind scoped proxies. Used to exclude those
 	 * targets from handler method detection, in favor of the corresponding proxies.
@@ -77,9 +84,6 @@ public class AnnotatedDataFetcherConfigurer
 	 * but duplicated here to avoid a hard dependency on the spring-aop module.
 	 */
 	private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
-
-	private static final ResolvableType MAP_RESOLVABLE_TYPE =
-			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
 
 
 	@Nullable
@@ -119,12 +123,18 @@ public class AnnotatedDataFetcherConfigurer
 	@Override
 	public void configure(RuntimeWiring.Builder builder) {
 		Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
+
 		findHandlerMethods().forEach((info) -> {
-			FieldCoordinates coordinates = info.getCoordinates();
-			HandlerMethod handlerMethod = info.getHandlerMethod();
-			DataFetcher<?> dataFetcher = new SchemaMappingDataFetcher(coordinates, handlerMethod, this.argumentResolvers);
-			builder.type(coordinates.getTypeName(), typeBuilder ->
-					typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
+			DataFetcher<?> dataFetcher;
+			if (!info.isBatchMapping()) {
+				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers);
+			}
+			else {
+				String dataLoaderKey = registerBatchLoader(info);
+				dataFetcher = new BatchMappingDataFetcher(dataLoaderKey);
+			}
+			builder.type(info.getCoordinates().getTypeName(), typeBuilder ->
+					typeBuilder.dataFetcher(info.getCoordinates().getFieldName(), dataFetcher));
 		});
 	}
 
@@ -186,29 +196,59 @@ public class AnnotatedDataFetcherConfigurer
 
 	@Nullable
 	private MappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
-		SchemaMapping annotation = AnnotatedElementUtils.findMergedAnnotation(method, SchemaMapping.class);
-		if (annotation == null) {
+
+		Set<Annotation> annotations = AnnotatedElementUtils.findAllMergedAnnotations(
+				method, new LinkedHashSet<>(Arrays.asList(BatchMapping.class, SchemaMapping.class)));
+
+		if (annotations.isEmpty()) {
 			return null;
 		}
 
-		String typeName = annotation.typeName();
-		String field = (StringUtils.hasText(annotation.field()) ? annotation.field() : method.getName());
+		if (annotations.size() != 1) {
+			throw new IllegalArgumentException(
+					"Expected either @BatchMapping or @SchemaMapping, not both: " + method.toGenericString());
+		}
+
+		String typeName;
+		String field;
+		boolean batchMapping = false;
 		HandlerMethod handlerMethod = createHandlerMethod(method, handler, handlerType);
+
+		Annotation annotation = annotations.iterator().next();
+		if (annotation instanceof SchemaMapping) {
+			SchemaMapping mapping = (SchemaMapping) annotation;
+			typeName = mapping.typeName();
+			field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
+		}
+		else {
+			BatchMapping mapping = (BatchMapping) annotation;
+			typeName = mapping.typeName();
+			field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
+			batchMapping = true;
+		}
 
 		if (!StringUtils.hasText(typeName)) {
 			SchemaMapping mapping = AnnotatedElementUtils.findMergedAnnotation(handlerType, SchemaMapping.class);
 			if (mapping != null) {
-				typeName = annotation.typeName();
+				typeName = mapping.typeName();
 			}
 		}
 
 		if (!StringUtils.hasText(typeName)) {
-			Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
 			for (MethodParameter parameter : handlerMethod.getMethodParameters()) {
-				HandlerMethodArgumentResolver resolver = this.argumentResolvers.getArgumentResolver(parameter);
-				if (resolver instanceof SourceMethodArgumentResolver) {
-					typeName = parameter.getParameterType().getSimpleName();
-					break;
+				if (!batchMapping) {
+					Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
+					HandlerMethodArgumentResolver resolver = this.argumentResolvers.getArgumentResolver(parameter);
+					if (resolver instanceof SourceMethodArgumentResolver) {
+						typeName = parameter.getParameterType().getSimpleName();
+						break;
+					}
+				}
+				else {
+					if (Collection.class.isAssignableFrom(parameter.getParameterType())) {
+						typeName = parameter.nested().getNestedParameterType().getSimpleName();
+						break;
+					}
 				}
 			}
 		}
@@ -217,7 +257,7 @@ public class AnnotatedDataFetcherConfigurer
 				"No parentType specified, and a source/parent method argument was also not found: "  +
 						handlerMethod.getShortLogMessage());
 
-		return new MappingInfo(typeName, field, handlerMethod);
+		return new MappingInfo(typeName, field, batchMapping, handlerMethod);
 	}
 
 	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {
@@ -227,19 +267,46 @@ public class AnnotatedDataFetcherConfigurer
 				new HandlerMethod(handler, invocableMethod));
 	}
 
-	private String formatMappings(Class<?> handlerType, Collection<MappingInfo> mappings) {
+	private String formatMappings(Class<?> handlerType, Collection<MappingInfo> infos) {
 		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
 				.map(p -> p.substring(0, 1))
 				.collect(Collectors.joining(".", "", "." + handlerType.getSimpleName()));
-		return mappings.stream()
+		return infos.stream()
 				.map(mappingInfo -> {
 					Method method = mappingInfo.getHandlerMethod().getMethod();
-					String methodParameters = Arrays.stream(method.getParameterTypes())
-							.map(Class::getSimpleName)
+					String methodParameters = Arrays.stream(method.getGenericParameterTypes())
+							.map(Type::getTypeName)
 							.collect(Collectors.joining(",", "(", ")"));
 					return mappingInfo.getCoordinates() + " => "  + method.getName() + methodParameters;
 				})
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
+	}
+
+	@SuppressWarnings("unchecked")
+	private <P, F> String registerBatchLoader(MappingInfo info) {
+		if (!info.isBatchMapping()) {
+			throw new IllegalArgumentException("Not a @BatchMapping method: " + info);
+		}
+
+		String dataLoaderKey = info.getCoordinates().toString();
+		BatchLoadHandlerMethod invocable = new BatchLoadHandlerMethod(info.getHandlerMethod());
+		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
+
+		Class<?> clazz = info.getHandlerMethod().getReturnType().getParameterType();
+		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz)) {
+			registry.<P,F>forName(dataLoaderKey).registerBatchLoader((values, env) ->
+					(Flux<F>) invocable.invoke(values, env));
+		}
+		else if (clazz.equals(Mono.class) || clazz.equals(Map.class)) {
+			registry.<P,F>forName(dataLoaderKey).registerMappedBatchLoader((values, env) ->
+					(Mono<Map<P, F>>) invocable.invoke(values, env));
+		}
+		else {
+			throw new IllegalStateException("@BatchMapping method is expected to return " +
+					"Flux<V>, List<V>, Mono<Map<K, V>>, or Map<K, V>: " + info.getHandlerMethod());
+		}
+
+		return dataLoaderKey;
 	}
 
 
@@ -247,19 +314,31 @@ public class AnnotatedDataFetcherConfigurer
 
 		private final FieldCoordinates coordinates;
 
+		private final boolean batchMapping;
+
 		private final HandlerMethod handlerMethod;
 
-		public MappingInfo(String typeName, String field, HandlerMethod handlerMethod) {
+		public MappingInfo(String typeName, String field, boolean batchMapping, HandlerMethod handlerMethod) {
 			this.coordinates = FieldCoordinates.coordinates(typeName, field);
 			this.handlerMethod = handlerMethod;
+			this.batchMapping = batchMapping;
 		}
 
 		public FieldCoordinates getCoordinates() {
 			return this.coordinates;
 		}
 
+		public boolean isBatchMapping() {
+			return this.batchMapping;
+		}
+
 		public HandlerMethod getHandlerMethod() {
 			return this.handlerMethod;
+		}
+
+		@Override
+		public String toString() {
+			return this.coordinates + " -> " + this.handlerMethod.toString();
 		}
 	}
 
@@ -269,45 +348,53 @@ public class AnnotatedDataFetcherConfigurer
 	 */
 	static class SchemaMappingDataFetcher implements DataFetcher<Object> {
 
-		private final FieldCoordinates coordinates;
-
-		private final HandlerMethod handlerMethod;
+		private final MappingInfo info;
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
-
-		public SchemaMappingDataFetcher(FieldCoordinates coordinates, HandlerMethod handlerMethod,
-				HandlerMethodArgumentResolverComposite resolvers) {
-
-			this.coordinates = coordinates;
-			this.handlerMethod = handlerMethod;
+		public SchemaMappingDataFetcher(MappingInfo info, HandlerMethodArgumentResolverComposite resolvers) {
+			this.info = info;
 			this.argumentResolvers = resolvers;
 		}
-
 
 		/**
 		 * Return the {@link FieldCoordinates} the HandlerMethod is mapped to.
 		 */
 		public FieldCoordinates getCoordinates() {
-			return this.coordinates;
+			return this.info.getCoordinates();
 		}
 
 		/**
 		 * Return the {@link HandlerMethod} used to fetch data.
 		 */
 		public HandlerMethod getHandlerMethod() {
-			return this.handlerMethod;
+			return this.info.getHandlerMethod();
 		}
 
 
 		@Override
 		@SuppressWarnings("ConstantConditions")
 		public Object get(DataFetchingEnvironment environment) throws Exception {
+			return new DataFetcherHandlerMethod(getHandlerMethod(), this.argumentResolvers).invoke(environment);
+		}
+	}
 
-			InvocableHandlerMethod invocable =
-					new InvocableHandlerMethod(this.handlerMethod.createWithResolvedBean(), this.argumentResolvers);
 
-			return invocable.invoke(environment);
+	static class BatchMappingDataFetcher implements DataFetcher<Object> {
+
+		private final String dataLoaderKey;
+
+		public BatchMappingDataFetcher(String dataLoaderKey) {
+			this.dataLoaderKey = dataLoaderKey;
+		}
+
+		@Override
+		public Object get(DataFetchingEnvironment env) {
+			DataLoader<?, ?> dataLoader = env.getDataLoaderRegistry().getDataLoader(this.dataLoaderKey);
+			if  (dataLoader == null) {
+				throw new IllegalStateException("No DataLoader for key '" + this.dataLoaderKey + "'");
+			}
+			return dataLoader.load(env.getSource());
 		}
 	}
 
