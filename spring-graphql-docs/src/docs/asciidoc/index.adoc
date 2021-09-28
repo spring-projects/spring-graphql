@@ -288,33 +288,36 @@ default it is marked as `INTERNAL_ERROR`.
 [[execution-batching]]
 === Batching
 
-Given a `Book` and its `Author`, we can create one `DataFetcher` to load books and another
-to load the author for each book. This enables queries to select only the data they need,
-but when loading multiple books we end up loading the author for each book individually,
-which is known as the N+1 select problem.
+Given a `Book` and its `Author`, we can create one `DataFetcher` for books and another
+for the author of a book. This means books and authors aren't automatically loaded
+together, which enables queries to select the subset of data they need. However, when
+loading multiple books, the author for each book is loaded individually, and this is
+an issue known as the N+1 select problem.
 
 To address the issue, GraphQL Java provides a
 https://www.graphql-java.com/documentation/v16/batching/[batching feature] that allows
-related entities, in this case the authors for all books, to be loaded together instead
-of individually. Here is an outline of that mechanism:
+related entities, such as the authors for all books, to be loaded together. This is how
+the underlying mechanism works in GraphQL Java:
 
- - At request time, an application can register a batch loading function in the
-`DataLoaderRegistry` for each request, that can load instances of a given entity such as
-`Author` from a set of unique keys.
- - A `DataFetcher` can access the `DataLoader` for the entity and use it to load the
-entity by its unique key.
- - The `DataLoader` does not load the entity immediately but rather returns a promise, and
-defers until it can use the batch loading function to load all related entities together.
- - The `DataLoader` also maintains a cache of previously loaded entities.
+ - For each request, an application can register a batch loading function as a
+`DataLoader` in the `DataLoaderRegistry` to assist with loading instances of a given
+entity, such as `Author` from a set of unique keys.
+ - A `DataFetcher` can access the `DataLoader` for the entity and use it to load entity
+instances; for example the author `DataFetcher` obtains the authorId from the `Book`
+parent object, and uses it to load the `Author`.
+ - `DataLoader` does not load the entity immediately but rather returns a future, and
+defers until it is ready to batch load all related entities as one.
+ - `DataLoader` additionally maintains a cache of previously loaded entities that can
+further improve efficiency when the same entity is in multiple places of the response.
 
-Spring GraphQL provides the `BatchLoaderRegistry` to store registrations of batch
-loading functions. This is given to the `ExecutionGraphQlService` that in turn uses
-it to make registrations in the `DataLoaderRegistry` for each request.
-
-A `DataFetcher` can then look up a registered `DataLoader` and use it to load entity
-instances, and likewise a controller method can declare a
-<<controllers-data-loader,DataLoader argument>> to access the registered loader for the
-entity.
+Spring GraphQL exposes a `BatchLoaderRegistry` that accepts and stores registrations of
+batch loading functions. The `ExecutionGraphQlService` accepts the registry as input and
+uses it to make per request `DataLoader` registrations. A `DataFetcher` then looks up the
+`DataLoader` for an entity and uses it to load instances, or in an annotated controller,
+simply declare a <<controllers-data-loader,DataLoader argument>> to access  the
+registered loader. Annotated controllers also support a
+<<controllers-batch-mapping,@BatchMapping>> that avoids the need to use `DataLoader`
+directly.
 
 The Spring Boot starter declares a
 <<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>>, so that applications can
@@ -522,6 +525,99 @@ for fields under the Query, Mutation, and Subscription types respectively. For e
 ----
 
 
+[[controllers-batch-mapping]]
+=== Batch Mapping
+
+<<execution-batching>> addresses the N+1 select problem through the use of an
+`org.dataloader.DataLoader` to defer the loading of individual entity instances, so they
+can be loaded together. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	public BookController(BatchLoaderRegistry registry) {
+		registry.forTypePair(Long.class, Author.class).registerBatchLoader((authorIds, environment) -> {
+			// how to load authors for the given author id's...
+		});
+	}
+
+	@SchemaMapping
+	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
+		return loader.load(book.getAuthorId());
+	}
+
+}
+----
+
+For the straight-forward case of loading an associated entity, shown above, the
+`@SchemaMapping` method does nothing more than delegate to the `DataLoader`. This is
+boilerplate that can be avoided with a `@BatchMapping` method. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@BatchMapping
+		public Flux<Author> author(List<Book> books) {
+			// ...
+		}
+	}
+----
+
+The above becomes a batch loading function in the `BatchLoaderRegistry`
+where keys are `Book` instances and the loaded values their authors. In addition, a
+`DataFetcher` is also transparently bound to the `author` field of the type `Book`, which
+simply delegates to the `DataLoader` for authors, given its source/parent `Book` instance.
+
+[TIP]
+====
+To be used as a unique key, `Book` must implement `hashcode` and `equals`.
+====
+
+By default, the field name defaults to the method name, while the type name defaults to
+the simple class name of the input `List` element type. Both can be customized through
+annotation attributes. The type name can also be inherited from a class level
+`@SchemaMapping`.
+
+A `@BatchMapping` method can be a
+{javadoc}/org/springframework/graphql/execution/BatchLoaderRegistry.RegistrationSpec.html#registerMappedBatchLoader-java.util.function.BiFunction-[mapped batch loading] function:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@BatchMapping
+		public Mono<Map<Book, Author>> author(List<Book> books) {
+			// ...
+		}
+	}
+----
+
+It is possible to use imperative method signatures too, i.e. returning `List<V>` or
+`Map<K, V>`, which can be useful when there are no remote calls to make.
+
+`BatchMapping` methods support two types of arguments:
+
+[cols="1,2"]
+|===
+| Method Argument | Description
+
+| `List<K>`
+| The source/parent objects.
+
+| `BatchLoaderEnvironment`
+| The environment that is available in GraphQL Java to a
+  `org.dataloader.BatchLoaderWithContext`.
+
+|===
+
+
+
+
 [[controllers-methods]]
 === Handler Methods
 
@@ -664,6 +760,12 @@ to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method
 resolver will also try the method argument name as the key but typically that should not
 be necessary.
 
+[TIP]
+====
+For straight-forward cases where the `@SchemaMapping` simply delegates to a `DataLoader`,
+you can reduce boilerplate by using a <<controllers-batch-mapping,@BatchMapping>> method
+instead.
+====
 
 
 [[controllers-graphql-context]]
