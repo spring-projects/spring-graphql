@@ -28,10 +28,10 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Resolver that retrieves arguments of type {@link DataLoader} from the
- * {@link DataFetchingEnvironment}.
+ * Resolver for a {@link DataLoader} obtained via
+ * {@link DataFetchingEnvironment#getDataLoader(String)}.
  *
- * <p>The {@code DataLoader} is looked up by deriving the key using one of the following:
+ * <p>The {@code DataLoader} key is based on one of the following:
  * <ol>
  * <li>The full name of the value type from the DataLoader generic types.</li>
  * <li>The method parameter name.</li>

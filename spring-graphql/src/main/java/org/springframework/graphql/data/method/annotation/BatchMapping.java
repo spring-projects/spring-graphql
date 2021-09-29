@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Annotation for handler methods that batch load field values, given a list
+ * Annotation for a handler method that batch loads field values, given a list
  * of source/parent values. For example:
  *
  * <pre class="code">
@@ -34,9 +34,10 @@ import org.springframework.core.annotation.AliasFor;
  * }
  * </pre>
  *
- * <p>The annotated method is registered as a batch loading function and along
+ * <p>The annotated method is registered as a batch loading function via
+ * {@link org.springframework.graphql.execution.BatchLoaderRegistry}, and along
  * with it, a {@link graphql.schema.DataFetcher} for the field is registered
- * transparently that looks up the field through the registered
+ * transparently that looks up the field value through the registered
  * {@code DataLoader}.
  *
  * <p>Effectively, a shortcut for:
@@ -46,7 +47,7 @@ import org.springframework.core.annotation.AliasFor;
  * public class BookController {
  *
  *     public BookController(BatchLoaderRegistry registry) {
- *         registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, env) -> ...);
+ *         registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, environment) -> ...);
  *     }
  *
  *     &#064;SchemaMapping
@@ -60,7 +61,7 @@ import org.springframework.core.annotation.AliasFor;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface BatchMapping {
@@ -79,12 +80,12 @@ public @interface BatchMapping {
 	String value() default "";
 
 	/**
-	 * Customizes the name of the parent/container type for the GraphQL field.
-	 * <p>By default, if not specified, it is derived from the class name of the
-	 * List of source/parent values injected into the handler method.
-	 * <p>This value for this attribute can be initialized from a class-level
+	 * Customizes the name of the source/parent type for the GraphQL field.
+	 * <p>By default, if not specified, it is based on the simple class name of
+	 * the List of source/parent values injected into the handler method.
+	 * <p>The value for this attribute can also be inherited from a class-level
 	 * {@link SchemaMapping @SchemaMapping}. When used on both levels, the one
-	 * on the method level overrides the one at the class level.
+	 * here overrides the one at the class level.
 	 */
 	String typeName() default "";
 

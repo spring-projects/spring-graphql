@@ -696,8 +696,9 @@ You can explicitly specify the argument name, for example `@Argument("bookInput"
 it not specified, it defaults to the method parameter name, but this requires the
 `-parameters` compiler flag with Java 8+ or debugging information from the compiler.
 
-The "required" character of an `@Argument` or its default value is controlled at the schema
-level.
+The `@Argument` annotation does not have a "required" flag, nor the option to specify a
+default value. Both of these can be specified at the GraphQL schema level and are enforced
+by the GraphQL Engine.
 
 You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
 values. The name attribute on `@Argument` must not be set.

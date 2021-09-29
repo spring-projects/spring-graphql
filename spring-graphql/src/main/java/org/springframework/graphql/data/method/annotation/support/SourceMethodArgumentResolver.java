@@ -25,7 +25,7 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.util.Assert;
 
 /**
- * Resolver for parent/container of a field, obtained via
+ * Resolver for the source/parent of a field, obtained via
  * {@link DataFetchingEnvironment#getSource()}.
  *
  * <p>This resolver supports any non-simple value type, also excluding arrays

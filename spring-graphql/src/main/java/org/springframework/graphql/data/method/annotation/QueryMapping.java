@@ -32,7 +32,7 @@ import org.springframework.core.annotation.AliasFor;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-@Target(value = {ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @SchemaMapping(typeName = "Query")

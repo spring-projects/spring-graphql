@@ -31,9 +31,9 @@ import org.springframework.core.annotation.AliasFor;
  * and a parameter name is not specified, then the map parameter is populated
  * via {@link graphql.schema.DataFetchingEnvironment#getArguments()}.
  *
- * <p>This annotation  does not specify whether the input argument is required
- * and if it should use a default value: this should be done at the schema
- * in order to be enforced by the GraphQL engine itself.
+ * <p>Note that this annotation has neither a "required" flag nor the option to
+ * specify a default value, both of which can be specified at the GraphQL schema
+ * level and are enforced by the GraphQL Java engine.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

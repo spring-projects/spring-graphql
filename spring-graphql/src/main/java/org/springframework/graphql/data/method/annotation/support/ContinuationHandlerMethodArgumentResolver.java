@@ -33,7 +33,7 @@ public class ContinuationHandlerMethodArgumentResolver implements HandlerMethodA
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
+    public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
         return null;
     }
 

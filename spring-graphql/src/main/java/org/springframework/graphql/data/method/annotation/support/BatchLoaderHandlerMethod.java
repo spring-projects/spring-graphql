@@ -30,9 +30,10 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * An extension of {@link HandlerMethod} for annotated handler methods adapted
- * to a batch loader function with a list of values and {@link BatchLoaderEnvironment}
- * as their input.
+ * An extension of {@link HandlerMethod} for annotated handler methods adapted to
+ * {@link org.dataloader.BatchLoaderWithContext} or
+ * {@link org.dataloader.MappedBatchLoaderWithContext} with the list of keys and
+ * {@link BatchLoaderEnvironment} as their input.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -47,7 +48,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
 	/**
 	 * Invoke the underlying batch loading method, resolving its arguments from
-	 * the given keys for batch loading and the {@link BatchLoaderEnvironment}.
+	 * the given keys  and the {@link BatchLoaderEnvironment}.
 	 *
 	 * @param keys the batch loading keys
 	 * @param environment the environment available to batch loaders

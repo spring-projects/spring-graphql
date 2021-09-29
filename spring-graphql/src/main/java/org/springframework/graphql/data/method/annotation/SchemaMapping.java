@@ -52,7 +52,7 @@ public @interface SchemaMapping {
 	String value() default "";
 
 	/**
-	 * Customizes the name of the parent/container type for the GraphQL field.
+	 * Customizes the name of the source/parent type for the GraphQL field.
 	 * <p>By default, if not specified, it is derived from the class name of a
 	 * {@link DataFetchingEnvironment#getSource() source} argument injected into
 	 * the handler method.
