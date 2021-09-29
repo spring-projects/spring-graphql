@@ -103,6 +103,17 @@ class GraphQlArgumentInstantiatorTests {
 		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
+	@Test
+	void shouldInstantiateComplexNestedBean() throws Exception {
+		String payload = "{\"complex\": { \"item\": {\"name\": \"Item name\"}, \"name\": \"Hello\" } }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		PrimaryConstructorComplexInput result = instantiator.instantiate(environment.getArgument("complex"), PrimaryConstructorComplexInput.class);
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorComplexInput.class);
+		assertThat(result.item.name).isEqualTo("Item name");
+		assertThat(result.name).isEqualTo("Hello");
+	}
+
 	private DataFetchingEnvironment initEnvironment(String jsonPayload) throws JsonProcessingException {
 		Map<String, Object> arguments = this.mapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {
 		});
@@ -180,6 +191,25 @@ class GraphQlArgumentInstantiatorTests {
 
 		public void setName(String name) {
 			this.name = name;
+		}
+	}
+
+	static class PrimaryConstructorComplexInput {
+		final String name;
+
+		final Item item;
+
+		public PrimaryConstructorComplexInput(String name, Item item) {
+			this.name = name;
+			this.item = item;
+		}
+
+		public String getName() {
+			return this.name;
+		}
+
+		public Item getItem() {
+			return item;
 		}
 	}
 	
