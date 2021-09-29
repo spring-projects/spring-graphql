@@ -18,6 +18,7 @@ package org.springframework.graphql.execution;
 
 import java.io.File;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import graphql.GraphQL;
@@ -124,6 +125,14 @@ public interface GraphQlSource {
 		 * @return the current builder
 		 */
 		Builder configureGraphQl(Consumer<GraphQL.Builder> configurer);
+
+		/**
+		 * Provide a custom factory for creating an executable {@link GraphQLSchema} given
+		 * a {@link TypeDefinitionRegistry} and a {@link RuntimeWiring}
+		 * @param schemaFactory the schema factory
+		 * @return the current builder
+		 */
+		Builder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
 
 		/**
 		 * Build the {@link GraphQlSource}.

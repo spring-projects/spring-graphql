@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import graphql.GraphQL;
@@ -61,6 +62,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
 	};
+	
+	private BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory =
+			(typeRegistry, runtimeWiring) -> new SchemaGenerator().makeExecutableSchema(typeRegistry, runtimeWiring);
 
 
 	@Override
@@ -100,6 +104,12 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	}
 
 	@Override
+	public GraphQlSource.Builder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory) {
+		this.schemaFactory = schemaFactory;
+		return this;
+	}
+
+	@Override
 	public GraphQlSource build() {
 		TypeDefinitionRegistry registry = this.schemaResources.stream()
 				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
@@ -108,7 +118,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		RuntimeWiring.Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
 		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));
 
-		GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiringBuilder.build());
+		GraphQLSchema schema = schemaFactory.apply(registry, runtimeWiringBuilder.build());
 		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
