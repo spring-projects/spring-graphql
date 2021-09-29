@@ -123,7 +123,7 @@ starter detects such beans adds them to <<index#execution-graphqlsource,GraphQlS
 
 Typically, however, applications will not implement ``DataFetcher`` directly and will
 instead create <<index#controllers,annotated controllers>>. The Boot
-starter declares a `RuntimeWiringConfigurer` called `AnnotatedDataFetcherConfigurer` that
+starter declares a `RuntimeWiringConfigurer` called `AnnotatedControllerConfigurer` that
 detects `@Controller` classes with annotated handler methods and registers those as
 ``DataFetcher``s.
 

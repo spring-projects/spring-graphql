@@ -45,8 +45,6 @@ import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.graphql.data.method.BatchLoadHandlerMethod;
-import org.springframework.graphql.data.method.DataFetcherHandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -68,10 +66,10 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class AnnotatedDataFetcherConfigurer
+public class AnnotatedControllerConfigurer
 		implements ApplicationContextAware, InitializingBean, RuntimeWiringConfigurer {
 
-	private final static Log logger = LogFactory.getLog(AnnotatedDataFetcherConfigurer.class);
+	private final static Log logger = LogFactory.getLog(AnnotatedControllerConfigurer.class);
 
 	/**
 	 * Bean name prefix for target beans behind scoped proxies. Used to exclude those
@@ -289,7 +287,7 @@ public class AnnotatedDataFetcherConfigurer
 		}
 
 		String dataLoaderKey = info.getCoordinates().toString();
-		BatchLoadHandlerMethod invocable = new BatchLoadHandlerMethod(info.getHandlerMethod());
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(info.getHandlerMethod());
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 
 		Class<?> clazz = info.getHandlerMethod().getReturnType().getParameterType();

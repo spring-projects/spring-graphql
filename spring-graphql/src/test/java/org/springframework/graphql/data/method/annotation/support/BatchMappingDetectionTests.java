@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for {@link AnnotatedDataFetcherConfigurer}, focusing on detection
+ * Unit tests for {@link AnnotatedControllerConfigurer}, focusing on detection
  * and mapping of handler methods to schema fields.
  *
  * @author Rossen Stoyanchev
@@ -84,7 +84,7 @@ public class BatchMappingDetectionTests {
 		appContext.registerBean(BatchLoaderRegistry.class, () -> this.batchLoaderRegistry);
 		appContext.refresh();
 
-		AnnotatedDataFetcherConfigurer configurer = new AnnotatedDataFetcherConfigurer();
+		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(appContext);
 		configurer.afterPropertiesSet();
 

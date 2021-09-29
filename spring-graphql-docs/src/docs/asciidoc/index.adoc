@@ -439,10 +439,10 @@ support for detecting `@Controller` and `@Component` classes on the classpath an
 auto-registering bean definitions for them. It also acts as a stereotype for the annotated
 class, indicating its role as a data fetching component in a GraphQL application.
 
-`AnnotatedDataFetcherConfigurer` detects `@Controller` beans and registers their
+`AnnotatedControllerConfigurer` detects `@Controller` beans and registers their
 annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is an
 implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
-The Spring Boot starter automatically declares `AnnotatedDataFetcherConfigurer` as a bean
+The Spring Boot starter automatically declares `AnnotatedControllerConfigurer` as a bean
 and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
 support for annotated ``DataFetcher``s, see <<boot-graphql-runtimewiring>>.
 

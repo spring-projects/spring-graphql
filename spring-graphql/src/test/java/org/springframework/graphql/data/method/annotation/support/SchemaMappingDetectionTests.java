@@ -37,7 +37,7 @@ import org.springframework.util.StringUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link AnnotatedDataFetcherConfigurer}, focusing on detection
+ * Unit tests for {@link AnnotatedControllerConfigurer}, focusing on detection
  * and mapping of handler methods to schema fields.
  *
  * @author Rossen Stoyanchev
@@ -85,7 +85,7 @@ public class SchemaMappingDetectionTests {
 		appContext.registerBean(handlerType);
 		appContext.refresh();
 
-		AnnotatedDataFetcherConfigurer configurer = new AnnotatedDataFetcherConfigurer();
+		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(appContext);
 		configurer.afterPropertiesSet();
 
@@ -101,8 +101,8 @@ public class SchemaMappingDetectionTests {
 		String typeName = strings[0];
 		String field = strings[1];
 
-		AnnotatedDataFetcherConfigurer.SchemaMappingDataFetcher dataFetcher =
-				(AnnotatedDataFetcherConfigurer.SchemaMappingDataFetcher) map.get(typeName).get(field);
+		AnnotatedControllerConfigurer.SchemaMappingDataFetcher dataFetcher =
+				(AnnotatedControllerConfigurer.SchemaMappingDataFetcher) map.get(typeName).get(field);
 
 		assertThat(dataFetcher.getHandlerMethod().getMethod().getName()).isEqualTo(methodName);
 	}

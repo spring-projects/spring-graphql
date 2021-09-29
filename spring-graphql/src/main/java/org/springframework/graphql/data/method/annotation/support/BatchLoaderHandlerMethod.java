@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.data.method;
+package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Collection;
 import java.util.Map;
@@ -24,6 +24,8 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.graphql.data.method.HandlerMethod;
+import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -35,10 +37,10 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class BatchLoadHandlerMethod extends InvocableHandlerMethodSupport {
+public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
 
-	public BatchLoadHandlerMethod(HandlerMethod handlerMethod) {
+	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod) {
 		super(handlerMethod);
 	}
 

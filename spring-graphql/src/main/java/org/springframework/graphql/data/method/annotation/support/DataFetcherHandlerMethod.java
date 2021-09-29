@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.data.method;
+package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
 
@@ -22,6 +22,10 @@ import graphql.schema.DataFetchingEnvironment;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterNameDiscoverer;
+import org.springframework.graphql.data.method.HandlerMethod;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
+import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;

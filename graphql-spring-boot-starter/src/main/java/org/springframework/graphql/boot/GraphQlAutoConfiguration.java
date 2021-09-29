@@ -36,7 +36,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
-import org.springframework.graphql.data.method.annotation.support.AnnotatedDataFetcherConfigurer;
+import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.MissingSchemaException;
@@ -58,8 +58,8 @@ public class GraphQlAutoConfiguration {
 	private static final Log logger = LogFactory.getLog(GraphQlAutoConfiguration.class);
 
 	@Bean
-	public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer() {
-		return new AnnotatedDataFetcherConfigurer();
+	public AnnotatedControllerConfigurer annotatedControllerConfigurer() {
+		return new AnnotatedControllerConfigurer();
 	}
 
 	@Bean

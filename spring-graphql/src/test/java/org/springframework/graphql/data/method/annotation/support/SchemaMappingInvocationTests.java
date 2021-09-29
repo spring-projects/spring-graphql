@@ -240,8 +240,8 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@Bean
-		public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer() {
-			return new AnnotatedDataFetcherConfigurer();
+		public AnnotatedControllerConfigurer annotatedDataFetcherConfigurer() {
+			return new AnnotatedControllerConfigurer();
 		}
 
 		@Bean

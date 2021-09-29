@@ -260,7 +260,7 @@ public class BatchMappingInvocationTests {
 	private static class CourseConfig {
 
 		@Bean
-		public GraphQlSource graphQlSource(AnnotatedDataFetcherConfigurer configurer) {
+		public GraphQlSource graphQlSource(AnnotatedControllerConfigurer configurer) {
 			return GraphQlSource.builder()
 					.schemaResources(new ByteArrayResource(schema.getBytes(StandardCharsets.UTF_8)))
 					.configureRuntimeWiring(configurer)
@@ -275,8 +275,8 @@ public class BatchMappingInvocationTests {
 		}
 
 		@Bean
-		public AnnotatedDataFetcherConfigurer annotatedDataFetcherConfigurer() {
-			return new AnnotatedDataFetcherConfigurer();
+		public AnnotatedControllerConfigurer annotatedDataFetcherConfigurer() {
+			return new AnnotatedControllerConfigurer();
 		}
 
 		@Bean
