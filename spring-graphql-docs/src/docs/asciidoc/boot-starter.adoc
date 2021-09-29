@@ -95,17 +95,17 @@ released in Spring Boot 2.7.
 [[boot-graphql-schema]]
 == Schema
 
-By default, GraphQL schema files are expected to be in `src/main/resources/graphql` and have
-the extension ".graphqls", ".graphql", ".gql", or ".gqls". You can customize the
-schema locations to check as follows:
+By default, the Boot starter checks in `src/main/resources/graphql` for GraphQL schema
+files with extensions ".graphqls" or ".gqls". To customize this, use the following:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
 spring.graphql.schema.locations=classpath:graphql/
+spring.graphql.schema.fileExtensions=.graphqls, .gqls
 ----
 
-The GraphQL schema can be viewed over HTTP at "/graphql/schema". This is not enabled by
-default:
+The GraphQL schema can be viewed at HTTP GET /graphql/schema. This is off by default and
+needs to be enabled:
 
 [source,properties,indent=0,subs="verbatim,quotes"]
 ----
