@@ -30,6 +30,8 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
+import org.springframework.format.support.DefaultFormattingConversionService;
+import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -48,7 +50,7 @@ class ArgumentMethodArgumentResolverTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	ArgumentMethodArgumentResolver resolver = new ArgumentMethodArgumentResolver();
+	ArgumentMethodArgumentResolver resolver = new ArgumentMethodArgumentResolver(new DefaultFormattingConversionService());
 
 	@Test
 	void shouldSupportAnnotatedParameters() {
@@ -98,6 +100,17 @@ class ArgumentMethodArgumentResolverTests {
 				.extracting("name").containsExactly("first", "second");
 	}
 
+	@Test
+	void shouldResolveArgumentWithConversionService() throws Exception {
+		Method bookByKeyword = ClassUtils.getMethod(BookController.class, "bookByKeyword", Keyword.class);
+		String payload = "{\"keyword\": \"test\" }";
+		DataFetchingEnvironment environment = initEnvironment(payload);
+		MethodParameter methodParameter = getMethodParameter(bookByKeyword, 0);
+		Object result = resolver.resolveArgument(methodParameter, environment);
+		assertThat(result).isNotNull().isInstanceOf(Keyword.class);
+		assertThat((Keyword) result).hasFieldOrPropertyWithValue("term", "test");
+	}
+
 	private MethodParameter getMethodParameter(Method method, int index) {
 		MethodParameter methodParameter = new MethodParameter(method, index);
 		methodParameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
@@ -132,6 +145,11 @@ class ArgumentMethodArgumentResolverTests {
 			return null;
 		}
 
+		@QueryMapping
+		public List<Book> bookByKeyword(@Argument Keyword keyword) {
+			return null;
+		}
+
 	}
 
 	static class BookInput {
@@ -160,6 +178,14 @@ class ArgumentMethodArgumentResolverTests {
 	static class Keyword {
 
 		String term;
+
+		private Keyword(String term) {
+			this.term = term;
+		}
+
+		public static Keyword of(String term) {
+			return new Keyword(term);
+		}
 
 		public String getTerm() {
 			return this.term;

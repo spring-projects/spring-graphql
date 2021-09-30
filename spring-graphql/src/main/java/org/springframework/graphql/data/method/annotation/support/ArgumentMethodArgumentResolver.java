@@ -23,9 +23,11 @@ import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
@@ -41,7 +43,14 @@ import org.springframework.validation.DataBinder;
  */
 public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private final GraphQlArgumentInstantiator instantiator = new GraphQlArgumentInstantiator();
+	private final GraphQlArgumentInstantiator instantiator;
+
+	private final ConversionService conversionService;
+
+	public ArgumentMethodArgumentResolver(@Nullable ConversionService conversionService) {
+		this.conversionService = conversionService;
+		this.instantiator = new GraphQlArgumentInstantiator(conversionService);
+	}
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
@@ -100,6 +109,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 		}
 		else {
 			DataBinder converter = new DataBinder(null);
+			converter.setConversionService(this.conversionService);
 			target = converter.convertIfNecessary(rawValue, targetType);
 			Assert.isTrue(target != null,
 					() -> "Value of type [" + rawValue.getClass() + "] cannot be converted to argument of type [" +

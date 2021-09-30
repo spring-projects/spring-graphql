@@ -28,7 +28,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.validation.DataBinder;
 
@@ -40,7 +42,12 @@ import org.springframework.validation.DataBinder;
  */
 class GraphQlArgumentInstantiator {
 
-	private final DataBinder converter = new DataBinder(null);
+	private final DataBinder converter;
+
+	public GraphQlArgumentInstantiator(@Nullable ConversionService conversionService) {
+		this.converter = new DataBinder(null);
+		this.converter.setConversionService(conversionService);
+	}
 
 	/**
 	 * Instantiate the given target type and bind data from

@@ -40,7 +40,7 @@ class GraphQlArgumentInstantiatorTests {
 
 	private ObjectMapper mapper = new ObjectMapper();
 
-	private GraphQlArgumentInstantiator instantiator = new GraphQlArgumentInstantiator();
+	private GraphQlArgumentInstantiator instantiator = new GraphQlArgumentInstantiator(null);
 
 	@Test
 	void shouldInstantiateDefaultConstructor() throws Exception {

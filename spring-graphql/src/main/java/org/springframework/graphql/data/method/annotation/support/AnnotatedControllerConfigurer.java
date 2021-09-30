@@ -45,6 +45,7 @@ import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -90,10 +91,17 @@ public class AnnotatedControllerConfigurer
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
+	@Nullable
+	private ConversionService conversionService;
+
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
+	}
+
+	public void setConversionService(ConversionService conversionService) {
+		this.conversionService = conversionService;
 	}
 
 	protected final ApplicationContext obtainApplicationContext() {
@@ -106,7 +114,7 @@ public class AnnotatedControllerConfigurer
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
-		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver());
+		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(this.conversionService));
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
 

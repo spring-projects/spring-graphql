@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -36,7 +37,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInterceptor;
@@ -77,6 +80,13 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 public class GraphQlWebFluxAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebFluxAutoConfiguration.class);
+
+	@Bean
+	public AnnotatedControllerConfigurer annotatedControllerConfigurer(@Qualifier("webFluxConversionService") FormattingConversionService conversionService) {
+		AnnotatedControllerConfigurer annotatedControllerConfigurer = new AnnotatedControllerConfigurer();
+		annotatedControllerConfigurer.setConversionService(conversionService);
+		return annotatedControllerConfigurer;
+	}
 
 	@Bean
 	@ConditionalOnBean(GraphQlService.class)
