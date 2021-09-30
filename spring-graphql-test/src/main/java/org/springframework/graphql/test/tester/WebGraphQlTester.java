@@ -155,8 +155,8 @@ public interface WebGraphQlTester extends GraphQlTester {
 		 */
 		@Override
 		WebGraphQlTester build();
-
 	}
+
 
 	/**
 	 * Extends {@link GraphQlTester.RequestSpec} with further input options
@@ -182,6 +182,55 @@ public interface WebGraphQlTester extends GraphQlTester {
 		 * @return this builder
 		 */
 		WebRequestSpec headers(Consumer<HttpHeaders> headersConsumer);
+
+
+		/**
+		 * Execute the GraphQL request and return a spec for further inspection of
+		 * response data and errors.
+		 * @return options for asserting the response
+		 * @throws AssertionError if the request is performed over HTTP and the response
+		 * status is not 200 (OK).
+		 */
+		WebResponseSpec execute();
+
+		/**
+		 * Execute the GraphQL request as a subscription and return a spec with options to
+		 * transform the result stream.
+		 * @return spec with options to transform the subscription result stream
+		 * @throws AssertionError if the request is performed over HTTP and the response
+		 * status is not 200 (OK).
+		 */
+		WebSubscriptionSpec executeSubscription();
+
+	}
+
+
+	/**
+	 * Extension of {@code ResponseSpec} with access to HTTP response headers.
+	 */
+	interface WebResponseSpec extends ResponseSpec {
+
+		/**
+		 * Perform any necessary assertions on the HTTP response headers.
+		 * @param consumer the consumer to check the headers
+		 * @return options for asserting the response
+		 */
+		ResponseSpec httpHeadersSatisfy(Consumer<HttpHeaders> consumer);
+
+	}
+
+
+	/**
+	 * Extension of {@code SubscriptionSpec} with access to HTTP response headers.
+	 */
+	interface WebSubscriptionSpec extends SubscriptionSpec {
+
+		/**
+		 * Perform any necessary assertions on the HTTP response headers.
+		 * @param consumer the consumer to check the headers
+		 * @return options for asserting the response
+		 */
+		SubscriptionSpec httpHeadersSatisfy(Consumer<HttpHeaders> consumer);
 
 	}
 

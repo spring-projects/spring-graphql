@@ -155,7 +155,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 	 * without an underlying transport and where {@link RequestInput} provides
 	 * sufficient input.
 	 */
-	protected abstract static class AbstractDirectRequestStrategy implements RequestStrategy {
+	protected static class DirectRequestStrategySupport {
 
 		@Nullable
 		private final Predicate<GraphQLError> errorFilter;
@@ -164,7 +164,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Duration responseTimeout;
 
-		protected AbstractDirectRequestStrategy(
+		protected DirectRequestStrategySupport(
 				@Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig, Duration timeout) {
 
 			this.errorFilter = errorFilter;
@@ -176,31 +176,23 @@ class DefaultGraphQlTester implements GraphQlTester {
 			return this.responseTimeout;
 		}
 
-		@Override
-		public ResponseSpec execute(RequestInput input) {
-			ExecutionResult result = executeInternal(input);
+		protected ResponseSpec createResponseSpec(RequestInput input, ExecutionResult result) {
 			DocumentContext context = JsonPath.parse(result.toSpecification(), this.jsonPathConfig);
 			return new DefaultResponseSpec(context, this.errorFilter, assertDecorator(input));
 		}
 
-		@Override
-		public SubscriptionSpec executeSubscription(RequestInput input) {
-			ExecutionResult result = executeInternal(input);
-			AssertionErrors.assertTrue("Subscription did not return Publisher", result.getData() instanceof Publisher);
+		protected SubscriptionSpec createSubscriptionSpec(RequestInput input, ExecutionResult result) {
+			AssertionErrors.assertTrue(
+					"Subscription did not return Publisher", result.getData() instanceof Publisher);
 
-			List<GraphQLError> errors = result.getErrors();
 			Consumer<Runnable> assertDecorator = assertDecorator(input);
+			List<GraphQLError> errors = result.getErrors();
 			assertDecorator.accept(() -> AssertionErrors.assertTrue(
 					"Response has " + errors.size() + " unexpected error(s).", CollectionUtils.isEmpty(errors)));
 
-			return new DefaultSubscriptionSpec(
-					result.getData(), this.errorFilter, this.jsonPathConfig, assertDecorator);
+			Publisher<ExecutionResult> publisher = result.getData();
+			return new DefaultSubscriptionSpec(publisher, this.errorFilter, this.jsonPathConfig, assertDecorator);
 		}
-
-		/**
-		 * Sub-classes implement this to actual perform the request.
-		 */
-		protected abstract ExecutionResult executeInternal(RequestInput input);
 
 		private Consumer<Runnable> assertDecorator(RequestInput input) {
 			return (assertion) -> {
@@ -218,7 +210,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 	/**
 	 * {@link RequestStrategy} that performs requests through a {@link GraphQlService}.
 	 */
-	protected static class GraphQlServiceRequestStrategy extends AbstractDirectRequestStrategy {
+	protected static class GraphQlServiceRequestStrategy
+			extends DirectRequestStrategySupport implements RequestStrategy {
 
 		private final GraphQlService graphQlService;
 
@@ -230,7 +223,17 @@ class DefaultGraphQlTester implements GraphQlTester {
 			this.graphQlService = service;
 		}
 
-		protected ExecutionResult executeInternal(RequestInput input) {
+		@Override
+		public ResponseSpec execute(RequestInput input) {
+			return createResponseSpec(input, executeInternal(input));
+		}
+
+		@Override
+		public SubscriptionSpec executeSubscription(RequestInput input) {
+			return createSubscriptionSpec(input, executeInternal(input));
+		}
+
+		private ExecutionResult executeInternal(RequestInput input) {
 			ExecutionResult result = this.graphQlService.execute(input).block(responseTimeout());
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
