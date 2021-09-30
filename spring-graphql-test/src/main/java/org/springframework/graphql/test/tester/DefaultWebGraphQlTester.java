@@ -19,6 +19,8 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -228,12 +230,22 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		private static final URI DEFAULT_URL = URI.create("");
 
-		private final RequestSpecDelegate delegate;
+		private final RequestStrategy requestStrategy;
+
+		private final String query;
+
+		@Nullable
+		private String operationName;
+
+		private final Map<String, Object> variables = new LinkedHashMap<>();
 
 		private final HttpHeaders headers = new HttpHeaders();
 
 		DefaultWebRequestSpec(RequestStrategy requestStrategy, String query, @Nullable HttpHeaders headers) {
-			this.delegate = new RequestSpecDelegate(requestStrategy, query);
+			Assert.notNull(requestStrategy, "RequestStrategy is required");
+			Assert.notNull(query, "`query` is required");
+			this.requestStrategy = requestStrategy;
+			this.query = query;
 			if (!CollectionUtils.isEmpty(headers)) {
 				this.headers.putAll(headers);
 			}
@@ -255,36 +267,42 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		@Override
 		public WebRequestSpec operationName(@Nullable String name) {
-			this.delegate.operationName(name);
+			this.operationName = name;
 			return this;
 		}
 
 		@Override
 		public WebRequestSpec variable(String name, Object value) {
-			this.delegate.variable(name, value);
+			this.variables.put(name, value);
 			return this;
 		}
 
 		@Override
 		public ResponseSpec execute() {
-			return this.delegate.execute(createRequestInput());
+			return this.requestStrategy.execute(createRequestInput());
 		}
 
 		@Override
 		public void executeAndVerify() {
-			this.delegate.executeAndVerify(createRequestInput());
+			execute().path("$.errors").valueIsEmpty();
 		}
 
 		@Override
 		public SubscriptionSpec executeSubscription() {
-			return this.delegate.executeSubscription(createRequestInput());
+			return this.requestStrategy.executeSubscription(createRequestInput());
 		}
 
 		private RequestInput createRequestInput() {
-			RequestInput requestInput = this.delegate.createRequestInput();
-			return new WebInput(DEFAULT_URL, this.headers, requestInput.toMap(), null);
+			Map<String, Object> body = new LinkedHashMap<>(3);
+			body.put("query", this.query);
+			if (this.operationName != null) {
+				body.put("operationName", this.operationName);
+			}
+			if (!CollectionUtils.isEmpty(this.variables)) {
+				body.put("variables", new LinkedHashMap<>(this.variables));
+			}
+			return new WebInput(DEFAULT_URL, this.headers, body, null);
 		}
-
 	}
 
 }

@@ -114,8 +114,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 		public GraphQlTester build() {
 			return new DefaultGraphQlTester(this.service, this.builderConfig);
 		}
-
 	}
+
 
 	/**
 	 * Internal strategy abstracting how a GraphQL request is performed.
@@ -137,6 +137,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 		GraphQlTester.SubscriptionSpec executeSubscription(RequestInput input);
 
 	}
+
 
 	/**
 	 * Base class for a {@link RequestStrategy} that perform GraphQL requests
@@ -199,8 +200,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 				}
 			};
 		}
-
 	}
+
 
 	/**
 	 * {@link RequestStrategy} that performs requests through a {@link GraphQlService}.
@@ -222,11 +223,11 @@ class DefaultGraphQlTester implements GraphQlTester {
 		}
 	}
 
+
 	/**
-	 * Assist with collecting the input for {@link GraphQlTester.RequestSpec},
-	 * helping to avoid challenges with generics in the builder hierarchy.
+	 * {@link RequestSpec} that collects the query, operationName, and variables.
 	 */
-	final static class RequestSpecDelegate {
+	static class DefaultRequestSpec implements RequestSpec<DefaultRequestSpec> {
 
 		private final RequestStrategy requestStrategy;
 
@@ -237,91 +238,45 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		protected RequestSpecDelegate(RequestStrategy requestStrategy, String query) {
+		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
 			Assert.notNull(requestStrategy, "RequestStrategy is required");
 			Assert.notNull(query, "`query` is required");
 			this.requestStrategy = requestStrategy;
 			this.query = query;
 		}
 
-		public void operationName(@Nullable String name) {
-			this.operationName = name;
-		}
-
-		public void variable(String name, Object value) {
-			this.variables.put(name, value);
-		}
-
-		public ResponseSpec execute() {
-			return execute(createRequestInput());
-		}
-
-		public ResponseSpec execute(RequestInput input) {
-			return this.requestStrategy.execute(input);
-		}
-
-		public void executeAndVerify() {
-			executeAndVerify(createRequestInput());
-		}
-
-		public void executeAndVerify(RequestInput input) {
-			ResponseSpec spec = this.requestStrategy.execute(input);
-			spec.path("$.errors").valueIsEmpty();
-		}
-
-		public SubscriptionSpec executeSubscription() {
-			return executeSubscription(createRequestInput());
-		}
-
-		public SubscriptionSpec executeSubscription(RequestInput input) {
-			return this.requestStrategy.executeSubscription(input);
-		}
-
-		public RequestInput createRequestInput() {
-			return new RequestInput(this.query, this.operationName, this.variables);
-		}
-
-	}
-
-	/**
-	 * {@link RequestSpec} that collects the query, operationName, and variables.
-	 */
-	static class DefaultRequestSpec implements RequestSpec<DefaultRequestSpec> {
-
-		private final RequestSpecDelegate delegate;
-
-		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
-			this.delegate = new RequestSpecDelegate(requestStrategy, query);
-		}
-
 		@Override
 		public DefaultRequestSpec operationName(@Nullable String name) {
-			this.delegate.operationName(name);
+			this.operationName = name;
 			return this;
 		}
 
 		@Override
 		public DefaultRequestSpec variable(String name, Object value) {
-			this.delegate.variable(name, value);
+			this.variables.put(name, value);
 			return this;
 		}
 
 		@Override
 		public ResponseSpec execute() {
-			return this.delegate.execute();
+			return this.requestStrategy.execute(createRequestInput());
 		}
 
 		@Override
 		public void executeAndVerify() {
-			this.delegate.executeAndVerify();
+			execute().path("$.errors").valueIsEmpty();
 		}
 
 		@Override
 		public SubscriptionSpec executeSubscription() {
-			return this.delegate.executeSubscription();
+			return this.requestStrategy.executeSubscription(createRequestInput());
 		}
 
+		public RequestInput createRequestInput() {
+			return new RequestInput(this.query, this.operationName, this.variables);
+		}
 	}
+
 
 	private static class ErrorsContainer {
 
@@ -374,8 +329,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 									+ unexpected,
 							CollectionUtils.isEmpty(unexpected)));
 		}
-
 	}
+
 
 	/**
 	 * Container for a GraphQL response with access to data and errors.
@@ -426,8 +381,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 		<T> T read(JsonPath jsonPath, TypeRef<T> typeRef) {
 			return this.documentContext.read(jsonPath, typeRef);
 		}
-
 	}
+
 
 	/**
 	 * {@link ResponseSpec} that operates on the response from a GraphQL HTTP request.
@@ -614,8 +569,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 				}
 			});
 		}
-
 	}
+
 
 	/**
 	 * {@link EntitySpec} implementation.
@@ -697,8 +652,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 		private <T extends S> T self() {
 			return (T) this;
 		}
-
 	}
+
 
 	/**
 	 * {@link ListEntitySpec} implementation.
@@ -767,8 +722,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 					(getEntity() != null && getEntity().size() > boundary)));
 			return this;
 		}
-
 	}
+
 
 	/**
 	 * {@link SubscriptionSpec} implementation that operates on a {@link Publisher} of
@@ -802,7 +757,6 @@ class DefaultGraphQlTester implements GraphQlTester {
 				return new DefaultResponseSpec(context, this.errorFilter, this.assertDecorator);
 			});
 		}
-
 	}
 
 }
