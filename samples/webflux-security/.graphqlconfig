@@ -1,5 +1,5 @@
 {
-  "name": "Spring WebFlux WebSocket Sample Schema",
+  "name": "Spring WebFlux Security Sample Schema",
   "schemaPath": "src/main/resources/graphql/schema.graphqls",
   "extensions": {}
 }

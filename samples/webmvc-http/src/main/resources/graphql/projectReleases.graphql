@@ -1,0 +1,8 @@
+query project($slug: ID!) {
+    project(slug: $slug) {
+        repositoryUrl
+        releases {
+            version
+        }
+    }
+}

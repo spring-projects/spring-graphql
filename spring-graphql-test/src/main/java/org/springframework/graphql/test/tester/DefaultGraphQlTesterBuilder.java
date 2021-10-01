@@ -65,7 +65,7 @@ class DefaultGraphQlTesterBuilder
 		RequestStrategy strategy = new GraphQlServiceRequestStrategy(
 				this.service, getErrorFilter(), initJsonPathConfig(), initResponseTimeout());
 
-		return new DefaultGraphQlTester(strategy);
+		return new DefaultGraphQlTester(strategy, getQueryNameResolver());
 	}
 
 }

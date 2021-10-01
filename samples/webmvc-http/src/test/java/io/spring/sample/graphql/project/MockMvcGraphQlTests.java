@@ -39,15 +39,8 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void jsonPath() {
-		String query = "{" +
-				"  project(slug:\"spring-framework\") {" +
-				"    releases {" +
-				"      version" +
-				"    }"+
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("projectReleases")
+				.variable("slug", "spring-framework")
 				.execute()
 				.path("project.releases[*].version")
 				.entityList(String.class)
@@ -57,13 +50,8 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void jsonContent() {
-		String query = "{" +
-				"  project(slug:\"spring-framework\") {" +
-				"    repositoryUrl" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("projectRepositoryUrl")
+				.variable("slug", "spring-framework")
 				.execute()
 				.path("project")
 				.matchesJson("{\"repositoryUrl\":\"http://github.com/spring-projects/spring-framework\"}");
@@ -71,15 +59,8 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void decodedResponse() {
-		String query = "{" +
-				"  project(slug:\"spring-framework\") {" +
-				"    releases {" +
-				"      version" +
-				"    }"	+
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("projectReleases")
+				.variable("slug", "spring-framework")
 				.execute()
 				.path("project")
 				.entity(Project.class)
@@ -88,9 +69,8 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void querydslRepositorySingle() {
-		String query = "query { artifactRepository(id: \"spring-releases\") { name } }";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("artifactRepository")
+				.variable("id", "spring-releases")
 				.execute()
 				.path("artifactRepository.name")
 				.entity(String.class).isEqualTo("Spring Releases");
@@ -98,9 +78,7 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void querydslRepositoryMany() {
-		String query = "query { artifactRepositories { id } }";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("artifactRepositories")
 				.execute()
 				.path("artifactRepositories[*].id")
 				.entityList(String.class).containsExactly("spring-releases", "spring-milestones", "spring-snapshots");

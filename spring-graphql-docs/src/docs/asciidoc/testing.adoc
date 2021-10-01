@@ -101,9 +101,9 @@ GraphQL response.
 ----
 	String query = "{" +
 			"  project(slug:\"spring-framework\") {" +
-			"    releases {" +
-			"      version" +
-			"    }"+
+			"	releases {" +
+			"	  version" +
+			"	}"+
 			"  }" +
 			"}";
 
@@ -115,6 +115,40 @@ GraphQL response.
 ----
 
 The JsonPath is relative to the "data" section of the response.
+
+You can also create query files with extensions `.graphql` or `.gql` under `"graphql/"` on
+the classpath and refer to them by file name. For example, given a file called
+`projectReleases.graphql` in `src/main/resources/graphql`, with content:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+	query projectReleases($slug: ID!) {
+		project(slug: $slug) {
+			releases {
+				version
+			}
+		}
+	}
+----
+
+You can write the same test as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.queryName("projectReleases") <1>
+			.variable("slug", "spring-framework") <2>
+			.execute()
+			.path("project.releases[*].version")
+			.entityList(String.class)
+			.hasSizeGreaterThan(1);
+----
+<1> Refer to the query in the file named "projectReleases".
+<2> Set the `slug` variable.
+
+[TIP]
+====
+The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
+====
 
 
 

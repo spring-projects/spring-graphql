@@ -22,14 +22,7 @@ class SampleApplicationTests {
 
 	@Test
 	void printError() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"    salary" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(System.out::println);
@@ -37,14 +30,7 @@ class SampleApplicationTests {
 
 	@Test
 	void anonymousThenUnauthorized() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"    salary" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -55,14 +41,7 @@ class SampleApplicationTests {
 
 	@Test
 	void userRoleThenForbidden() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"    salary" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("employeesNamesAndSalaries")
 				.headers(headers -> headers.setBasicAuth("rob", "rob"))
 				.execute()
 				.errors()
@@ -74,27 +53,14 @@ class SampleApplicationTests {
 
 	@Test
 	void canQueryName() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("employeesNames")
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi");
 	}
 
 	@Test
 	void canNotQuerySalary() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"    salary" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -105,14 +71,7 @@ class SampleApplicationTests {
 
 	@Test
 	void canQuerySalaryAsAdmin() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"    salary" +
-				"  }" +
-				"}";
-
-		this.graphQlTester.query(query)
+		this.graphQlTester.queryName("employeesNamesAndSalaries")
 				.headers(headers -> headers.setBasicAuth("admin", "admin"))
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi")
@@ -121,15 +80,8 @@ class SampleApplicationTests {
 
 	@Test
 	void invalidCredentials() {
-		String query = "{" +
-				"  employees{ " +
-				"    name" +
-				"    salary" +
-				"  }" +
-				"}";
-
 		assertThatThrownBy(() ->
-				this.graphQlTester.query(query)
+				this.graphQlTester.queryName("employeesNamesAndSalaries")
 						.headers(headers -> headers.setBasicAuth("admin", "INVALID"))
 						.executeAndVerify())
 				.hasMessage("Status expected:<200 OK> but was:<401 UNAUTHORIZED>");
