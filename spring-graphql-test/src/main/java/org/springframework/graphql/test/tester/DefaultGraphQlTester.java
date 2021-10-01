@@ -62,12 +62,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 
 	DefaultGraphQlTester(RequestStrategy requestStrategy) {
+		Assert.notNull(requestStrategy, "RequestStrategy is required.");
 		this.requestStrategy = requestStrategy;
-	}
-
-
-	protected RequestStrategy getRequestStrategy() {
-		return this.requestStrategy;
 	}
 
 
@@ -78,11 +74,10 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 
 	/**
-	 * Default implementation to build {@link GraphQlTester}.
+	 * Base class support for
+	 * {@link GraphQlTester.Builder} and {@link WebGraphQlTester.Builder}.
 	 */
-	final static class DefaultBuilder implements Builder<DefaultBuilder> {
-
-		private final GraphQlService service;
+	static class BuilderSupport {
 
 		@Nullable
 		private Predicate<GraphQLError> errorFilter;
@@ -90,7 +85,48 @@ class DefaultGraphQlTester implements GraphQlTester {
 		@Nullable
 		private Configuration jsonPathConfig;
 
+		@Nullable
 		private Duration responseTimeout = Duration.ofSeconds(5);
+
+		protected void addErrorFilter(Predicate<GraphQLError> predicate) {
+			this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
+		}
+
+		@Nullable
+		protected Predicate<GraphQLError> getErrorFilter() {
+			return errorFilter;
+		}
+
+		protected void setJsonPathConfig(Configuration config) {
+			this.jsonPathConfig = config;
+		}
+
+		protected void setResponseTimeout(Duration timeout) {
+			Assert.notNull(timeout, "'timeout' is required");
+			this.responseTimeout = timeout;
+		}
+
+		@Nullable
+		protected Duration getResponseTimeout() {
+			return this.responseTimeout;
+		}
+
+		protected Configuration initJsonPathConfig() {
+			return JsonPathConfiguration.initialize(this.jsonPathConfig);
+		}
+
+		protected Duration initResponseTimeout() {
+			return (this.responseTimeout != null ? this.responseTimeout : Duration.ofSeconds(5));
+		}
+	}
+
+
+	/**
+	 * Default implementation to build {@link GraphQlTester}.
+	 */
+	static class DefaultBuilder extends BuilderSupport implements Builder<DefaultBuilder> {
+
+		private final GraphQlService service;
 
 		DefaultBuilder(GraphQlService service) {
 			Assert.notNull(service, "GraphQlService is required.");
@@ -99,29 +135,26 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public DefaultBuilder errorFilter(Predicate<GraphQLError> predicate) {
-			this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
+			addErrorFilter(predicate);
 			return this;
 		}
 
 		@Override
 		public DefaultBuilder jsonPathConfig(Configuration config) {
-			this.jsonPathConfig = config;
+			setJsonPathConfig(config);
 			return this;
 		}
 
 		@Override
 		public DefaultBuilder responseTimeout(Duration timeout) {
-			Assert.notNull(timeout, "'timeout' is required");
-			this.responseTimeout = timeout;
+			setResponseTimeout(timeout);
 			return this;
 		}
 
 		@Override
 		public GraphQlTester build() {
-			Configuration jsonPathConfig = JsonPathConfiguration.initialize(this.jsonPathConfig);
-
 			RequestStrategy strategy = new GraphQlServiceRequestStrategy(
-					this.service, this.errorFilter, jsonPathConfig, this.responseTimeout);
+					this.service, getErrorFilter(), initJsonPathConfig(), initResponseTimeout());
 
 			return new DefaultGraphQlTester(strategy);
 		}
@@ -138,24 +171,23 @@ class DefaultGraphQlTester implements GraphQlTester {
 		 * @param input the request input
 		 * @return the response spec
 		 */
-		GraphQlTester.ResponseSpec execute(RequestInput input);
+		ResponseSpec execute(RequestInput input);
 
 		/**
 		 * Perform a subscription with the given {@link RequestInput} container.
 		 * @param input the request input
 		 * @return the subscription spec
 		 */
-		GraphQlTester.SubscriptionSpec executeSubscription(RequestInput input);
+		SubscriptionSpec executeSubscription(RequestInput input);
 
 	}
 
 
 	/**
-	 * Base class for a {@link RequestStrategy} that perform GraphQL requests
-	 * without an underlying transport and where {@link RequestInput} provides
-	 * sufficient input.
+	 * Base class support for {@link RequestStrategy} and
+	 * {@link DefaultWebGraphQlTester.WebRequestStrategy} implementations.
 	 */
-	protected static class DirectRequestStrategySupport {
+	static class RequestStrategySupport {
 
 		@Nullable
 		private final Predicate<GraphQLError> errorFilter;
@@ -164,7 +196,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Duration responseTimeout;
 
-		protected DirectRequestStrategySupport(
+		protected RequestStrategySupport(
 				@Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig, Duration timeout) {
 
 			this.errorFilter = errorFilter;
@@ -172,26 +204,57 @@ class DefaultGraphQlTester implements GraphQlTester {
 			this.responseTimeout = timeout;
 		}
 
-		protected Duration responseTimeout() {
+		protected Configuration getJsonPathConfig() {
+			return this.jsonPathConfig;
+		}
+
+		protected Duration getResponseTimeout() {
 			return this.responseTimeout;
 		}
 
-		protected ResponseSpec createResponseSpec(RequestInput input, ExecutionResult result) {
+		protected ResponseSpec createResponseSpec(ExecutionResult result, Consumer<Runnable> assertDecorator) {
 			DocumentContext context = JsonPath.parse(result.toSpecification(), this.jsonPathConfig);
-			return new DefaultResponseSpec(context, this.errorFilter, assertDecorator(input));
+			return createResponseSpec(context, assertDecorator);
+		}
+
+		protected ResponseSpec createResponseSpec(DocumentContext context, Consumer<Runnable> assertDecorator) {
+			return new DefaultResponseSpec(context, this.errorFilter, assertDecorator);
+		}
+	}
+
+
+	/**
+	 * Base class for a {@link RequestStrategy} that perform GraphQL requests
+	 * without an underlying transport and where {@link RequestInput} provides
+	 * sufficient input.
+	 */
+	static class DirectRequestStrategySupport extends RequestStrategySupport {
+
+		protected DirectRequestStrategySupport(
+				@Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig, Duration timeout) {
+
+			super(errorFilter, jsonPathConfig, timeout);
+		}
+
+		protected ResponseSpec createResponseSpec(RequestInput input, ExecutionResult result) {
+			return createResponseSpec(result, assertDecorator(input));
 		}
 
 		protected SubscriptionSpec createSubscriptionSpec(RequestInput input, ExecutionResult result) {
-			AssertionErrors.assertTrue(
-					"Subscription did not return Publisher", result.getData() instanceof Publisher);
-
 			Consumer<Runnable> assertDecorator = assertDecorator(input);
-			List<GraphQLError> errors = result.getErrors();
-			assertDecorator.accept(() -> AssertionErrors.assertTrue(
-					"Response has " + errors.size() + " unexpected error(s).", CollectionUtils.isEmpty(errors)));
 
-			Publisher<ExecutionResult> publisher = result.getData();
-			return new DefaultSubscriptionSpec(publisher, this.errorFilter, this.jsonPathConfig, assertDecorator);
+			assertDecorator.accept(() -> AssertionErrors.assertTrue(
+					"Subscription did not return Publisher",
+					result.getData() instanceof Publisher));
+
+			assertDecorator.accept(() -> AssertionErrors.assertTrue(
+					"Response has " + result.getErrors().size() + " unexpected error(s).",
+					CollectionUtils.isEmpty(result.getErrors())));
+
+			return () -> {
+				Publisher<? extends ExecutionResult> publisher = result.getData();
+				return Flux.from(publisher).map((current) -> createResponseSpec(current, assertDecorator));
+			};
 		}
 
 		private Consumer<Runnable> assertDecorator(RequestInput input) {
@@ -234,7 +297,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private ExecutionResult executeInternal(RequestInput input) {
-			ExecutionResult result = this.graphQlService.execute(input).block(responseTimeout());
+			ExecutionResult result = this.graphQlService.execute(input).block(getResponseTimeout());
 			Assert.notNull(result, "Expected ExecutionResult");
 			return result;
 		}
@@ -242,11 +305,10 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 
 	/**
-	 * {@link RequestSpec} that collects the query, operationName, and variables.
+	 * Base class support for
+	 * {@link GraphQlTester.RequestSpec} and {@link WebGraphQlTester.RequestSpec}.
 	 */
-	static class DefaultRequestSpec implements RequestSpec<DefaultRequestSpec> {
-
-		private final RequestStrategy requestStrategy;
+	static class RequestSpecSupport {
 
 		private final String query;
 
@@ -255,22 +317,51 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
-			Assert.notNull(requestStrategy, "RequestStrategy is required");
+		protected RequestSpecSupport(String query) {
 			Assert.notNull(query, "`query` is required");
-			this.requestStrategy = requestStrategy;
 			this.query = query;
+		}
+
+		protected void setOperationName(@Nullable String name) {
+			this.operationName = name;
+		}
+
+		protected void addVariable(String name, Object value) {
+			this.variables.put(name, value);
+		}
+
+		protected void verify(ResponseSpec responseSpec) {
+			responseSpec.path("$.errors").valueIsEmpty();
+		}
+
+		protected RequestInput createRequestInput() {
+			return new RequestInput(this.query, this.operationName, this.variables);
+		}
+	}
+
+
+	/**
+	 * {@link RequestSpec} that collects the query, operationName, and variables.
+	 */
+	static class DefaultRequestSpec extends RequestSpecSupport implements RequestSpec<DefaultRequestSpec> {
+
+		private final RequestStrategy requestStrategy;
+
+		protected DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
+			super(query);
+			Assert.notNull(requestStrategy, "RequestStrategy is required");
+			this.requestStrategy = requestStrategy;
 		}
 
 		@Override
 		public DefaultRequestSpec operationName(@Nullable String name) {
-			this.operationName = name;
+			setOperationName(name);
 			return this;
 		}
 
 		@Override
 		public DefaultRequestSpec variable(String name, Object value) {
-			this.variables.put(name, value);
+			addVariable(name, value);
 			return this;
 		}
 
@@ -281,37 +372,76 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public void executeAndVerify() {
-			execute().path("$.errors").valueIsEmpty();
+			verify(execute());
 		}
 
 		@Override
 		public SubscriptionSpec executeSubscription() {
 			return this.requestStrategy.executeSubscription(createRequestInput());
 		}
-
-		public RequestInput createRequestInput() {
-			return new RequestInput(this.query, this.operationName, this.variables);
-		}
 	}
 
 
-	private static class ErrorsContainer {
+	/**
+	 * Container for a GraphQL response with access to data and errors.
+	 */
+	private static class ResponseContainer {
+
+		private static final TypeRef<List<TestGraphQlError>> ERROR_LIST_TYPE = new TypeRef<List<TestGraphQlError>>() {};
+
+		private static final JsonPath ERRORS_PATH = JsonPath.compile("$.errors");
 
 		private static final Predicate<GraphQLError> MATCH_ALL_PREDICATE = (error) -> true;
+
+
+		private final DocumentContext documentContext;
+
+		private final String jsonContent;
 
 		private final List<TestGraphQlError> errors;
 
 		private final Consumer<Runnable> assertDecorator;
 
-		ErrorsContainer(
-				List<TestGraphQlError> errors, @Nullable Predicate<GraphQLError> errorFilter,
+
+		ResponseContainer(
+				DocumentContext documentContext, @Nullable Predicate<GraphQLError> errorFilter,
 				Consumer<Runnable> assertDecorator) {
 
-			Assert.notNull(errors, "`errors` is required");
 			Assert.notNull(assertDecorator, "`assertDecorator` is required");
-			this.errors = errors;
+			this.documentContext = documentContext;
+			this.jsonContent = this.documentContext.jsonString();
+			this.errors = readErrors(documentContext);
 			this.assertDecorator = assertDecorator;
+
 			filterErrors(errorFilter);
+		}
+
+		private static List<TestGraphQlError> readErrors(DocumentContext documentContext) {
+			Assert.notNull(documentContext, "DocumentContext is required");
+			try {
+				return documentContext.read(ERRORS_PATH, ERROR_LIST_TYPE);
+			}
+			catch (PathNotFoundException ex) {
+				return Collections.emptyList();
+			}
+		}
+
+		String jsonContent() {
+			return this.jsonContent;
+		}
+
+		String jsonContent(JsonPath jsonPath) {
+			try {
+				Object content = this.documentContext.read(jsonPath);
+				return this.documentContext.configuration().jsonProvider().toJson(content);
+			}
+			catch (Exception ex) {
+				throw new AssertionError("JSON parsing error", ex);
+			}
+		}
+
+		<T> T read(JsonPath jsonPath, TypeRef<T> typeRef) {
+			return this.documentContext.read(jsonPath, typeRef);
 		}
 
 		void doAssert(Runnable task) {
@@ -341,62 +471,10 @@ class DefaultGraphQlTester implements GraphQlTester {
 					.accept(() -> AssertionErrors.assertTrue(
 							"Response has " + unexpected.size() + " unexpected error(s)"
 									+ ((unexpected.size() != this.errors.size())
-											? " of " + this.errors.size() + " total" : "")
+									? " of " + this.errors.size() + " total" : "")
 									+ ". " + "If expected, please use ResponseSpec#errors to filter them out: "
 									+ unexpected,
 							CollectionUtils.isEmpty(unexpected)));
-		}
-	}
-
-
-	/**
-	 * Container for a GraphQL response with access to data and errors.
-	 */
-	private static class ResponseContainer extends ErrorsContainer {
-
-		private static final TypeRef<List<TestGraphQlError>> ERROR_LIST_TYPE = new TypeRef<List<TestGraphQlError>>() {};
-
-		private static final JsonPath ERRORS_PATH = JsonPath.compile("$.errors");
-
-		private final DocumentContext documentContext;
-
-		private final String jsonContent;
-
-		ResponseContainer(
-				DocumentContext documentContext, @Nullable Predicate<GraphQLError> errorFilter,
-				Consumer<Runnable> assertDecorator) {
-
-			super(readErrors(documentContext), errorFilter, assertDecorator);
-			this.documentContext = documentContext;
-			this.jsonContent = this.documentContext.jsonString();
-		}
-
-		private static List<TestGraphQlError> readErrors(DocumentContext documentContext) {
-			Assert.notNull(documentContext, "DocumentContext is required");
-			try {
-				return documentContext.read(ERRORS_PATH, ERROR_LIST_TYPE);
-			}
-			catch (PathNotFoundException ex) {
-				return Collections.emptyList();
-			}
-		}
-
-		String jsonContent() {
-			return this.jsonContent;
-		}
-
-		String jsonContent(JsonPath jsonPath) {
-			try {
-				Object content = this.documentContext.read(jsonPath);
-				return this.documentContext.configuration().jsonProvider().toJson(content);
-			}
-			catch (Exception ex) {
-				throw new AssertionError("JSON parsing error", ex);
-			}
-		}
-
-		<T> T read(JsonPath jsonPath, TypeRef<T> typeRef) {
-			return this.documentContext.read(jsonPath, typeRef);
 		}
 	}
 
@@ -738,41 +816,6 @@ class DefaultGraphQlTester implements GraphQlTester {
 					"List at path '" + getInputPath() + "' should have size greater than " + boundary,
 					(getEntity() != null && getEntity().size() > boundary)));
 			return this;
-		}
-	}
-
-
-	/**
-	 * {@link SubscriptionSpec} implementation that operates on a {@link Publisher} of
-	 * {@link ExecutionResult}.
-	 */
-	protected static class DefaultSubscriptionSpec implements SubscriptionSpec {
-
-		private final Publisher<ExecutionResult> publisher;
-
-		@Nullable
-		private final Predicate<GraphQLError> errorFilter;
-
-		private final Configuration jsonPathConfig;
-
-		private final Consumer<Runnable> assertDecorator;
-
-		protected <T> DefaultSubscriptionSpec(
-				Publisher<ExecutionResult> publisher, @Nullable Predicate<GraphQLError> errorFilter,
-				Configuration jsonPathConfig, Consumer<Runnable> decorator) {
-
-			this.publisher = publisher;
-			this.errorFilter = errorFilter;
-			this.jsonPathConfig = jsonPathConfig;
-			this.assertDecorator = decorator;
-		}
-
-		@Override
-		public Flux<ResponseSpec> toFlux() {
-			return Flux.from(this.publisher).map((result) -> {
-				DocumentContext context = JsonPath.parse(result.toSpecification(), this.jsonPathConfig);
-				return new DefaultResponseSpec(context, this.errorFilter, this.assertDecorator);
-			});
 		}
 	}
 

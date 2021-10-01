@@ -19,20 +19,15 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
-import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -50,78 +45,69 @@ import org.springframework.util.CollectionUtils;
  *
  * @author Rossen Stoyanchev
  */
-class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQlTester {
+class DefaultWebGraphQlTester implements WebGraphQlTester {
+
+	private final WebRequestStrategy requestStrategy;
 
 	@Nullable
 	private final HttpHeaders defaultHeaders;
 
 
 	DefaultWebGraphQlTester(WebRequestStrategy requestStrategy, @Nullable HttpHeaders defaultHeaders) {
-		super(requestStrategy);
+		Assert.notNull(requestStrategy, "WebRequestStrategy is required.");
+		this.requestStrategy = requestStrategy;
 		this.defaultHeaders = defaultHeaders;
 	}
 
 
 	@Override
 	public WebRequestSpec query(String query) {
-		return new DefaultWebRequestSpec((WebRequestStrategy) getRequestStrategy(), query, this.defaultHeaders);
+		return new DefaultWebRequestSpec(this.requestStrategy, this.defaultHeaders, query);
 	}
 
 
 	/**
 	 * Default implementation to build {@link WebGraphQlTester}.
 	 */
-	final static class DefaultBuilder implements WebGraphQlTester.Builder {
+	final static class DefaultBuilder
+			extends DefaultGraphQlTester.BuilderSupport implements WebGraphQlTester.Builder {
 
 		@Nullable
-		private Predicate<GraphQLError> errorFilter;
+		private final WebTestClient client;
 
 		@Nullable
-		private Configuration jsonPathConfig;
-
-		@Nullable
-		private Duration responseTimeout;
-
-		private final Supplier<WebRequestStrategy> requestStrategySupplier;
+		private final WebGraphQlHandler handler;
 
 		@Nullable
 		private HttpHeaders headers;
 
 		DefaultBuilder(WebTestClient client) {
-			this.requestStrategySupplier = () -> {
-				WebTestClient clientToUse = (this.responseTimeout != null ?
-						client.mutate().responseTimeout(this.responseTimeout).build() : client);
-				return new WebTestClientRequestStrategy(clientToUse, this.errorFilter, initJsonPathConfig());
-			};
+			Assert.notNull(client, "WebTestClient is required.");
+			this.client = client;
+			this.handler = null;
 		}
 
 		DefaultBuilder(WebGraphQlHandler handler) {
-			this.requestStrategySupplier = () ->
-					new WebGraphQlHandlerRequestStrategy(
-							handler, this.errorFilter, initJsonPathConfig(),
-							(this.responseTimeout != null ? this.responseTimeout : Duration.ofSeconds(5)));
-		}
-
-		private Configuration initJsonPathConfig() {
-			return JsonPathConfiguration.initialize(this.jsonPathConfig);
+			Assert.notNull(handler, "WebGraphQlHandler is required.");
+			this.handler = handler;
+			this.client = null;
 		}
 
 		@Override
 		public WebGraphQlTester.Builder errorFilter(Predicate<GraphQLError> predicate) {
-			this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
+			addErrorFilter(predicate);
 			return this;
 		}
 
 		@Override
 		public DefaultBuilder jsonPathConfig(Configuration config) {
-			this.jsonPathConfig = config;
+			setJsonPathConfig(config);
 			return this;
 		}
 
 		@Override
 		public DefaultBuilder responseTimeout(Duration timeout) {
-			Assert.notNull(timeout, "'timeout' is required");
-			this.responseTimeout = timeout;
+			setResponseTimeout(timeout);
 			return this;
 		}
 
@@ -143,7 +129,23 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		@Override
 		public WebGraphQlTester build() {
-			return new DefaultWebGraphQlTester(this.requestStrategySupplier.get(), this.headers);
+			WebRequestStrategy requestStrategy;
+			if (this.client != null) {
+				WebTestClient clientToUse = this.client;
+				if (getResponseTimeout() != null) {
+					clientToUse = this.client.mutate().responseTimeout(getResponseTimeout()).build();
+				}
+				requestStrategy = new WebTestClientRequestStrategy(
+						clientToUse, getErrorFilter(), initJsonPathConfig(), getResponseTimeout());
+			}
+			else if (this.handler != null) {
+				requestStrategy = new WebGraphQlHandlerRequestStrategy(
+						this.handler, getErrorFilter(), initJsonPathConfig(), initResponseTimeout());
+			}
+			else {
+				throw new IllegalStateException("Neither client nor handler");
+			}
+			return new DefaultWebGraphQlTester(requestStrategy, this.headers);
 		}
 	}
 
@@ -152,54 +154,49 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 	 * Extension of {@code RequestStrategy} for performing a GraphQL request
 	 * in a web environment.
 	 */
-	interface WebRequestStrategy extends RequestStrategy {
+	interface WebRequestStrategy {
 
 		/**
-		 * Perform a request with the given {@link RequestInput} container.
+		 * Perform a request with the given {@link WebInput} container.
 		 * @param input the request input
 		 * @return the response spec
 		 */
-		WebResponseSpec execute(RequestInput input);
+		WebResponseSpec execute(WebInput input);
 
 		/**
-		 * Perform a subscription with the given {@link RequestInput} container.
+		 * Perform a subscription with the given {@link WebInput} container.
 		 * @param input the request input
 		 * @return the subscription spec
 		 */
-		WebSubscriptionSpec executeSubscription(RequestInput input);
+		WebSubscriptionSpec executeSubscription(WebInput input);
 
 	}
 
 
 
 	/**
-	 * {@link RequestStrategy} that works as an HTTP client with requests executed through
+	 * {@link WebRequestStrategy} that works as an HTTP client with requests executed through
 	 * {@link WebTestClient} that in turn may work connect with or without a live server
 	 * for Spring MVC and WebFlux.
 	 */
-	private static class WebTestClientRequestStrategy implements WebRequestStrategy {
+	private static class WebTestClientRequestStrategy
+			extends DefaultGraphQlTester.RequestStrategySupport implements WebRequestStrategy {
 
 		private final WebTestClient client;
 
-		@Nullable
-		private final Predicate<GraphQLError> errorFilter;
+		public WebTestClientRequestStrategy(WebTestClient client,
+				@Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig, Duration responseTimeout) {
 
-		private final Configuration jsonPathConfig;
-
-		public WebTestClientRequestStrategy(
-				WebTestClient client, @Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig) {
-
+			super(errorFilter, jsonPathConfig, responseTimeout);
 			this.client = client;
-			this.errorFilter = errorFilter;
-			this.jsonPathConfig = jsonPathConfig;
 		}
 
 		@Override
-		public WebResponseSpec execute(RequestInput requestInput) {
+		public WebResponseSpec execute(WebInput webInput) {
 			EntityExchangeResult<byte[]> result = this.client.post()
 					.contentType(MediaType.APPLICATION_JSON)
-					.headers(headers -> headers.putAll(getHeaders(requestInput)))
-					.bodyValue(requestInput.toMap())
+					.headers(headers -> headers.putAll(webInput.getHeaders()))
+					.bodyValue(webInput.toMap())
 					.exchange()
 					.expectStatus()
 					.isOk()
@@ -211,21 +208,19 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 			byte[] bytes = result.getResponseBodyContent();
 			Assert.notNull(bytes, "Expected GraphQL response content");
 			String content = new String(bytes, StandardCharsets.UTF_8);
-			DocumentContext documentContext = JsonPath.parse(content, this.jsonPathConfig);
 
-			ResponseSpec responseSpec =
-					new DefaultResponseSpec(documentContext, this.errorFilter, result::assertWithDiagnostics);
-
+			DocumentContext documentContext = JsonPath.parse(content, getJsonPathConfig());
+			ResponseSpec responseSpec = createResponseSpec(documentContext, result::assertWithDiagnostics);
 			return new DefaultWebResponseSpec(responseSpec, result.getResponseHeaders());
 		}
 
 		@Override
-		public WebSubscriptionSpec executeSubscription(RequestInput requestInput) {
+		public WebSubscriptionSpec executeSubscription(WebInput webInput) {
 			FluxExchangeResult<TestExecutionResult> exchangeResult = this.client.post()
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.TEXT_EVENT_STREAM)
-					.headers(headers -> headers.putAll(getHeaders(requestInput)))
-					.bodyValue(requestInput.toMap())
+					.headers(headers -> headers.putAll(webInput.getHeaders()))
+					.bodyValue(webInput.toMap())
 					.exchange()
 					.expectStatus()
 					.isOk()
@@ -233,25 +228,20 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 					.contentType(MediaType.TEXT_EVENT_STREAM)
 					.returnResult(TestExecutionResult.class);
 
-			SubscriptionSpec subscriptionSpec = new DefaultSubscriptionSpec(
-					exchangeResult.getResponseBody().cast(ExecutionResult.class),
-					this.errorFilter, this.jsonPathConfig, exchangeResult::assertWithDiagnostics);
+			Flux<ResponseSpec> flux = exchangeResult.getResponseBody()
+					.map((result) -> createResponseSpec(result, exchangeResult::assertWithDiagnostics));
 
-			return new DefaultWebSubscriptionSpec(subscriptionSpec, exchangeResult.getResponseHeaders());
+			return new DefaultWebSubscriptionSpec(() -> flux, exchangeResult.getResponseHeaders());
 		}
-
-		private HttpHeaders getHeaders(RequestInput requestInput) {
-			Assert.isInstanceOf(WebInput.class, requestInput);
-			return ((WebInput) requestInput).getHeaders();
-		}
-
 	}
 
+
 	/**
-	 * {@link RequestStrategy} that performs requests directly on
+	 * {@link WebRequestStrategy} that performs requests directly on
 	 * {@link WebGraphQlHandler}, i.e. Web request testing without a transport.
 	 */
-	private static class WebGraphQlHandlerRequestStrategy extends DirectRequestStrategySupport implements WebRequestStrategy {
+	private static class WebGraphQlHandlerRequestStrategy
+			extends DefaultGraphQlTester.DirectRequestStrategySupport implements WebRequestStrategy {
 
 		private final WebGraphQlHandler graphQlHandler;
 
@@ -263,51 +253,57 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 		}
 
 		@Override
-		public WebResponseSpec execute(RequestInput input) {
+		public WebResponseSpec execute(WebInput input) {
 			WebOutput webOutput = executeInternal(input);
 			ResponseSpec responseSpec = createResponseSpec(input, webOutput);
 			return new DefaultWebResponseSpec(responseSpec, webOutput.getResponseHeaders());
 		}
 
 		@Override
-		public WebSubscriptionSpec executeSubscription(RequestInput input) {
+		public WebSubscriptionSpec executeSubscription(WebInput input) {
 			WebOutput webOutput = executeInternal(input);
-			SubscriptionSpec spec = createSubscriptionSpec(input, webOutput);
-			return new DefaultWebSubscriptionSpec(spec, webOutput.getResponseHeaders());
+			SubscriptionSpec subscriptionSpec = createSubscriptionSpec(input, webOutput);
+			return new DefaultWebSubscriptionSpec(subscriptionSpec, webOutput.getResponseHeaders());
 		}
 
-		private WebOutput executeInternal(RequestInput input) {
-			Assert.isInstanceOf(WebInput.class, input);
-			WebInput webInput = (WebInput) input;
-			WebOutput webOutput = this.graphQlHandler.handle(webInput).block(responseTimeout());
+		private WebOutput executeInternal(WebInput webInput) {
+			WebOutput webOutput = this.graphQlHandler.handle(webInput).block(getResponseTimeout());
 			Assert.notNull(webOutput, "Expected WebOutput");
 			return webOutput;
 		}
 	}
 
-	private static final class DefaultWebRequestSpec implements WebRequestSpec {
+
+	private static final class DefaultWebRequestSpec
+			extends DefaultGraphQlTester.RequestSpecSupport implements WebRequestSpec {
 
 		private static final URI DEFAULT_URL = URI.create("");
 
 		private final WebRequestStrategy requestStrategy;
 
-		private final String query;
-
-		@Nullable
-		private String operationName;
-
-		private final Map<String, Object> variables = new LinkedHashMap<>();
-
 		private final HttpHeaders headers = new HttpHeaders();
 
-		DefaultWebRequestSpec(WebRequestStrategy requestStrategy, String query, @Nullable HttpHeaders headers) {
+		DefaultWebRequestSpec(
+				WebRequestStrategy requestStrategy, @Nullable HttpHeaders defaultHeaders, String query) {
+
+			super(query);
 			Assert.notNull(requestStrategy, "WebRequestStrategy is required");
-			Assert.notNull(query, "`query` is required");
 			this.requestStrategy = requestStrategy;
-			this.query = query;
-			if (!CollectionUtils.isEmpty(headers)) {
-				this.headers.putAll(headers);
+			if (!CollectionUtils.isEmpty(defaultHeaders)) {
+				this.headers.putAll(defaultHeaders);
 			}
+		}
+
+		@Override
+		public WebRequestSpec operationName(@Nullable String name) {
+			setOperationName(name);
+			return this;
+		}
+
+		@Override
+		public WebRequestSpec variable(String name, Object value) {
+			addVariable(name, value);
+			return this;
 		}
 
 		@Override
@@ -325,54 +321,34 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 		}
 
 		@Override
-		public WebRequestSpec operationName(@Nullable String name) {
-			this.operationName = name;
-			return this;
-		}
-
-		@Override
-		public WebRequestSpec variable(String name, Object value) {
-			this.variables.put(name, value);
-			return this;
-		}
-
-		@Override
 		public WebResponseSpec execute() {
-			return this.requestStrategy.execute(createRequestInput());
+			return this.requestStrategy.execute(createWebInput());
 		}
 
 		@Override
 		public void executeAndVerify() {
-			execute().path("$.errors").valueIsEmpty();
+			verify(execute());
 		}
 
 		@Override
 		public WebSubscriptionSpec executeSubscription() {
-			return this.requestStrategy.executeSubscription(createRequestInput());
+			return this.requestStrategy.executeSubscription(createWebInput());
 		}
 
-		private RequestInput createRequestInput() {
-			Map<String, Object> body = new LinkedHashMap<>(3);
-			body.put("query", this.query);
-			if (this.operationName != null) {
-				body.put("operationName", this.operationName);
-			}
-			if (!CollectionUtils.isEmpty(this.variables)) {
-				body.put("variables", new LinkedHashMap<>(this.variables));
-			}
-			return new WebInput(DEFAULT_URL, this.headers, body, null);
+		private WebInput createWebInput() {
+			return new WebInput(DEFAULT_URL, this.headers, createRequestInput().toMap(), null);
 		}
 	}
 
 
 	private static final class DefaultWebResponseSpec implements WebResponseSpec {
 
-		private final ResponseSpec delegate;
+		private final ResponseSpec responseSpec;
 
 		private final HttpHeaders headers;
 
-		public DefaultWebResponseSpec(ResponseSpec delegate, @Nullable HttpHeaders headers) {
-			this.delegate = delegate;
+		public DefaultWebResponseSpec(ResponseSpec responseSpec, @Nullable HttpHeaders headers) {
+			this.responseSpec = responseSpec;
 			this.headers = (headers != null ? headers : new HttpHeaders());
 		}
 
@@ -384,12 +360,12 @@ class DefaultWebGraphQlTester extends DefaultGraphQlTester implements WebGraphQl
 
 		@Override
 		public PathSpec path(String path) {
-			return this.delegate.path(path);
+			return this.responseSpec.path(path);
 		}
 
 		@Override
 		public ErrorSpec errors() {
-			return this.delegate.errors();
+			return this.responseSpec.errors();
 		}
 	}
 
