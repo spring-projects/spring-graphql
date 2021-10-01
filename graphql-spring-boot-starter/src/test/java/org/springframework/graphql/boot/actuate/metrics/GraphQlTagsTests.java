@@ -19,13 +19,12 @@ package org.springframework.graphql.boot.actuate.metrics;
 import java.util.Arrays;
 
 import graphql.ErrorType;
+import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import io.micrometer.core.instrument.Tag;
 import org.junit.jupiter.api.Test;
-
-import org.springframework.graphql.test.tester.TestExecutionResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,13 +37,15 @@ class GraphQlTagsTests {
 
 	@Test
 	void executionOutcomeShouldSucceed() {
-		Tag outcomeTag = GraphQlTags.executionOutcome(new TestExecutionResult(), null);
+		ExecutionResult result = ExecutionResultImpl.newExecutionResult().build();
+		Tag outcomeTag = GraphQlTags.executionOutcome(result, null);
 		assertThat(outcomeTag.getValue()).isEqualTo("SUCCESS");
 	}
 
 	@Test
 	void executionOutcomeShouldErrorWhenExceptionThrown() {
-		Tag tag = GraphQlTags.executionOutcome(new TestExecutionResult(), new IllegalArgumentException("test error"));
+		ExecutionResult result = ExecutionResultImpl.newExecutionResult().build();
+		Tag tag = GraphQlTags.executionOutcome(result, new IllegalArgumentException("test error"));
 		assertThat(tag.getValue()).isEqualTo("ERROR");
 	}
 

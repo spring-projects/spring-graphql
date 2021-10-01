@@ -26,14 +26,18 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
+import org.springframework.lang.Nullable;
+
 /**
- * {@link GraphQLError} with setters for deserialization.
+ * {@link GraphQLError} with setters, for internal use to use to deserialize
+ * from a response.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class TestExecutionResult implements ExecutionResult {
+final class TestExecutionResult implements ExecutionResult {
 
+	@Nullable
 	private Object data;
 
 	private List<GraphQLError> errors = Collections.emptyList();
@@ -46,6 +50,7 @@ public class TestExecutionResult implements ExecutionResult {
 
 	@Override
 	@SuppressWarnings("unchecked")
+	@Nullable
 	public <T> T getData() {
 		return (T) this.data;
 	}
@@ -75,7 +80,8 @@ public class TestExecutionResult implements ExecutionResult {
 
 	@Override
 	public Map<String, Object> toSpecification() {
-		ExecutionResultImpl.Builder builder = ExecutionResultImpl.newExecutionResult().addErrors(this.errors)
+		ExecutionResultImpl.Builder builder = ExecutionResultImpl.newExecutionResult()
+				.addErrors(this.errors)
 				.extensions(this.extensions);
 
 		if (isDataPresent()) {

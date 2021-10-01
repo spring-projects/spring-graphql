@@ -30,12 +30,13 @@ import graphql.language.SourceLocation;
 import org.springframework.lang.Nullable;
 
 /**
- * {@link GraphQLError} with setters to use for deserialization.
+ * {@link GraphQLError} with setters, for internal use to use to deserialize
+ * from a response.
  *
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings("serial")
-class TestGraphQlError implements GraphQLError {
+final class TestGraphQlError implements GraphQLError {
 
 	@Nullable
 	private String message;
