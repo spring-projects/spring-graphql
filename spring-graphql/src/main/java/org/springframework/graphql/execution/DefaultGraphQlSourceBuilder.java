@@ -39,6 +39,7 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -60,12 +61,12 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
+	@Nullable
+	private BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory;
+
 	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
 	};
 	
-	private BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory =
-			(typeRegistry, runtimeWiring) -> new SchemaGenerator().makeExecutableSchema(typeRegistry, runtimeWiring);
-
 
 	@Override
 	public GraphQlSource.Builder schemaResources(Resource... resources) {
@@ -98,14 +99,16 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	}
 
 	@Override
-	public GraphQlSource.Builder configureGraphQl(Consumer<GraphQL.Builder> configurer) {
-		this.graphQlConfigurers = this.graphQlConfigurers.andThen(configurer);
+	public GraphQlSource.Builder schemaFactory(
+			BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory) {
+
+		this.schemaFactory = schemaFactory;
 		return this;
 	}
 
 	@Override
-	public GraphQlSource.Builder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory) {
-		this.schemaFactory = schemaFactory;
+	public GraphQlSource.Builder configureGraphQl(Consumer<GraphQL.Builder> configurer) {
+		this.graphQlConfigurers = this.graphQlConfigurers.andThen(configurer);
 		return this;
 	}
 
@@ -117,8 +120,11 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 		RuntimeWiring.Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
 		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));
+		RuntimeWiring runtimeWiring = runtimeWiringBuilder.build();
 
-		GraphQLSchema schema = schemaFactory.apply(registry, runtimeWiringBuilder.build());
+		GraphQLSchema schema = (this.schemaFactory != null ?
+				this.schemaFactory.apply(registry, runtimeWiring) :
+				new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring));
 		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);

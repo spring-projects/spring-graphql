@@ -119,20 +119,23 @@ public interface GraphQlSource {
 		Builder instrumentation(List<Instrumentation> instrumentations);
 
 		/**
+		 * Configure a function to create the {@link GraphQLSchema} instance from the
+		 * given {@link TypeDefinitionRegistry} and {@link RuntimeWiring}. This may
+		 * be useful for federation to create a combined schema.
+		 * <p>By default, the schema is created with
+		 * {@link graphql.schema.idl.SchemaGenerator#makeExecutableSchema}.
+		 * @param schemaFactory the function to create the schema
+		 * @return the current builder
+		 */
+		Builder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
+
+		/**
 		 * Configure consumers to be given access to the {@link GraphQL.Builder} used to
 		 * build {@link GraphQL}.
 		 * @param configurer the configurer
 		 * @return the current builder
 		 */
 		Builder configureGraphQl(Consumer<GraphQL.Builder> configurer);
-
-		/**
-		 * Provide a custom factory for creating an executable {@link GraphQLSchema} given
-		 * a {@link TypeDefinitionRegistry} and a {@link RuntimeWiring}
-		 * @param schemaFactory the schema factory
-		 * @return the current builder
-		 */
-		Builder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
 
 		/**
 		 * Build the {@link GraphQlSource}.
