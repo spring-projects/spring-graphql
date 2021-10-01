@@ -147,14 +147,14 @@ public interface WebGraphQlTester extends GraphQlTester {
 		 * @param headerName the header name
 		 * @param headerValues the header values
 		 */
-		Builder defaultHeader(String headerName, String... headerValues);
+		Builder defaultHttpHeader(String headerName, String... headerValues);
 
 		/**
-		 * Variant of {@link #defaultHeader(String, String...)} that provides
+		 * Variant of {@link #defaultHttpHeader(String, String...)} that provides
 		 * access to the underlying headers to inspect or modify directly.
 		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
 		 */
-		Builder defaultHeaders(Consumer<HttpHeaders> headersConsumer);
+		Builder defaultHttpHeaders(Consumer<HttpHeaders> headersConsumer);
 
 		/**
 		 * Build the {@code WebGraphQlTester}.
@@ -177,7 +177,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 		 * @param headerValues the header value(s)
 		 * @return the same instance
 		 */
-		WebRequestSpec header(String headerName, String... headerValues);
+		WebRequestSpec httpHeader(String headerName, String... headerValues);
 
 		/**
 		 * Manipulate the request's headers with the given consumer. The
@@ -188,7 +188,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
 		 * @return this builder
 		 */
-		WebRequestSpec headers(Consumer<HttpHeaders> headersConsumer);
+		WebRequestSpec httpHeaders(Consumer<HttpHeaders> headersConsumer);
 
 
 		/**

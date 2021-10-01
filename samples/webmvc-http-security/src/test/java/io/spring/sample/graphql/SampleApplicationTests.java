@@ -42,7 +42,7 @@ class SampleApplicationTests {
 	@Test
 	void userRoleThenForbidden() {
 		this.graphQlTester.queryName("employeesNamesAndSalaries")
-				.headers(headers -> headers.setBasicAuth("rob", "rob"))
+				.httpHeaders(headers -> headers.setBasicAuth("rob", "rob"))
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -72,7 +72,7 @@ class SampleApplicationTests {
 	@Test
 	void canQuerySalaryAsAdmin() {
 		this.graphQlTester.queryName("employeesNamesAndSalaries")
-				.headers(headers -> headers.setBasicAuth("admin", "admin"))
+				.httpHeaders(headers -> headers.setBasicAuth("admin", "admin"))
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi")
 				.path("employees[0].salary").entity(int.class).isEqualTo(42);
@@ -82,7 +82,7 @@ class SampleApplicationTests {
 	void invalidCredentials() {
 		assertThatThrownBy(() ->
 				this.graphQlTester.queryName("employeesNamesAndSalaries")
-						.headers(headers -> headers.setBasicAuth("admin", "INVALID"))
+						.httpHeaders(headers -> headers.setBasicAuth("admin", "INVALID"))
 						.executeAndVerify())
 				.hasMessage("Status expected:<200 OK> but was:<401 UNAUTHORIZED>");
 	}

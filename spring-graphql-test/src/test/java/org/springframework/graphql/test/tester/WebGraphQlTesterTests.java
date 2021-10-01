@@ -80,9 +80,9 @@ public class WebGraphQlTesterTests {
 		setup.response("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
 		GraphQlTester.ResponseSpec spec = setup.graphQlTester().query(query)
-				.header("myHeader1", "myValue1a")
-				.header("myHeader1", "myValue1b")
-				.headers(headers -> headers.add("myHeader2", "myValue2"))
+				.httpHeader("myHeader1", "myValue1a")
+				.httpHeader("myHeader1", "myValue1b")
+				.httpHeaders(headers -> headers.add("myHeader2", "myValue2"))
 				.execute();
 
 		spec.path("me.name").entity(String.class).isEqualTo("Luke Skywalker");
@@ -103,9 +103,9 @@ public class WebGraphQlTesterTests {
 		setup.response("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
 		GraphQlTester.ResponseSpec spec = setup.graphQlTesterBuilder()
-				.defaultHeader("myHeader1", "myValue1a")
-				.defaultHeader("myHeader1", "myValue1b")
-				.defaultHeaders(headers -> headers.add("myHeader2", "myValue2"))
+				.defaultHttpHeader("myHeader1", "myValue1a")
+				.defaultHttpHeader("myHeader1", "myValue1b")
+				.defaultHttpHeaders(headers -> headers.add("myHeader2", "myValue2"))
 				.build()
 				.query(query)
 				.execute();

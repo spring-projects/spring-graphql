@@ -88,6 +88,30 @@ For tests against a live, running server:
 	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
 ----
 
+`WebGraphQlTester` supports setting HTTP request headers and access to HTTP response
+headers. This may be useful to inspect or set security related headers.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	this.graphQlTester.queryName("{ myQuery }")
+			.httpHeaders(headers -> headers.setBasicAuth("rob", "..."))
+			.execute()
+			.httpHeadersSatisfy(headers -> {
+				// check response headers
+			})
+			.path("myQuery.field1").entity(String.class).isEqualTo("value1")
+			.path("myQuery.field2").entity(String.class).isEqualTo("value2");
+----
+
+You can also set default request headers at the builder level:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	WebGraphQlTester tester = WebGraphQlTester.builder(client)
+		.defaultHttpHeaders(headers -> headers.setBasicAuth("rob", "..."))
+		.build();
+----
+
 
 
 [[testing-queries]]

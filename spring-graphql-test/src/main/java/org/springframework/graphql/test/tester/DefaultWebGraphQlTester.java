@@ -123,7 +123,7 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 		}
 
 		@Override
-		public WebRequestSpec header(String headerName, String... headerValues) {
+		public WebRequestSpec httpHeader(String headerName, String... headerValues) {
 			for (String headerValue : headerValues) {
 				this.headers.add(headerName, headerValue);
 			}
@@ -131,7 +131,7 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 		}
 
 		@Override
-		public WebRequestSpec headers(Consumer<HttpHeaders> headersConsumer) {
+		public WebRequestSpec httpHeaders(Consumer<HttpHeaders> headersConsumer) {
 			headersConsumer.accept(this.headers);
 			return this;
 		}

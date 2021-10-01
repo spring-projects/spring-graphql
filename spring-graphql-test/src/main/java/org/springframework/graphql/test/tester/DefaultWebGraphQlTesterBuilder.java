@@ -79,7 +79,7 @@ final class DefaultWebGraphQlTesterBuilder
 	}
 
 	@Override
-	public DefaultWebGraphQlTesterBuilder defaultHeader(String headerName, String... headerValues) {
+	public DefaultWebGraphQlTesterBuilder defaultHttpHeader(String headerName, String... headerValues) {
 		this.headers = (this.headers != null ? this.headers : new HttpHeaders());
 		for (String headerValue : headerValues) {
 			this.headers.add(headerName, headerValue);
@@ -88,7 +88,7 @@ final class DefaultWebGraphQlTesterBuilder
 	}
 
 	@Override
-	public WebGraphQlTester.Builder defaultHeaders(Consumer<HttpHeaders> headersConsumer) {
+	public WebGraphQlTester.Builder defaultHttpHeaders(Consumer<HttpHeaders> headersConsumer) {
 		this.headers = (this.headers != null ? this.headers : new HttpHeaders());
 		headersConsumer.accept(this.headers);
 		return this;
