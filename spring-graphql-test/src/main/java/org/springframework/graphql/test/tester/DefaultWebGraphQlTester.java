@@ -17,26 +17,13 @@
 package org.springframework.graphql.test.tester;
 
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
-import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
-import org.springframework.test.web.reactive.server.EntityExchangeResult;
-import org.springframework.test.web.reactive.server.FluxExchangeResult;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
@@ -67,215 +54,32 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 
 
 	/**
-	 * Default implementation to build {@link WebGraphQlTester}.
+	 * Factory for {@link WebGraphQlTester.ResponseSpec}, for use from
+	 * {@link WebRequestStrategy} implementations.
 	 */
-	final static class DefaultBuilder
-			extends DefaultGraphQlTester.BuilderSupport implements WebGraphQlTester.Builder {
+	static WebResponseSpec createResponseSpec(
+			ResponseSpec responseSpec, @Nullable HttpHeaders responseHeaders) {
 
-		@Nullable
-		private final WebTestClient client;
+		return new DefaultWebResponseSpec(responseSpec, responseHeaders);
+	}
 
-		@Nullable
-		private final WebGraphQlHandler handler;
+	/**
+	 * Factory for {@link WebGraphQlTester.SubscriptionSpec}, for use from
+	 * {@link WebRequestStrategy} implementations.
+	 */
+	static WebSubscriptionSpec createSubscriptionSpec(
+			SubscriptionSpec subscriptionSpec, @Nullable HttpHeaders responseHeaders) {
 
-		@Nullable
-		private HttpHeaders headers;
-
-		DefaultBuilder(WebTestClient client) {
-			Assert.notNull(client, "WebTestClient is required.");
-			this.client = client;
-			this.handler = null;
-		}
-
-		DefaultBuilder(WebGraphQlHandler handler) {
-			Assert.notNull(handler, "WebGraphQlHandler is required.");
-			this.handler = handler;
-			this.client = null;
-		}
-
-		@Override
-		public WebGraphQlTester.Builder errorFilter(Predicate<GraphQLError> predicate) {
-			addErrorFilter(predicate);
-			return this;
-		}
-
-		@Override
-		public DefaultBuilder jsonPathConfig(Configuration config) {
-			setJsonPathConfig(config);
-			return this;
-		}
-
-		@Override
-		public DefaultBuilder responseTimeout(Duration timeout) {
-			setResponseTimeout(timeout);
-			return this;
-		}
-
-		@Override
-		public DefaultBuilder defaultHeader(String headerName, String... headerValues) {
-			this.headers = (this.headers != null ? this.headers : new HttpHeaders());
-			for (String headerValue : headerValues) {
-				this.headers.add(headerName, headerValue);
-			}
-			return this;
-		}
-
-		@Override
-		public WebGraphQlTester.Builder defaultHeaders(Consumer<HttpHeaders> headersConsumer) {
-			this.headers = (this.headers != null ? this.headers : new HttpHeaders());
-			headersConsumer.accept(this.headers);
-			return this;
-		}
-
-		@Override
-		public WebGraphQlTester build() {
-			WebRequestStrategy requestStrategy;
-			if (this.client != null) {
-				WebTestClient clientToUse = this.client;
-				if (getResponseTimeout() != null) {
-					clientToUse = this.client.mutate().responseTimeout(getResponseTimeout()).build();
-				}
-				requestStrategy = new WebTestClientRequestStrategy(
-						clientToUse, getErrorFilter(), initJsonPathConfig(), getResponseTimeout());
-			}
-			else if (this.handler != null) {
-				requestStrategy = new WebGraphQlHandlerRequestStrategy(
-						this.handler, getErrorFilter(), initJsonPathConfig(), initResponseTimeout());
-			}
-			else {
-				throw new IllegalStateException("Neither client nor handler");
-			}
-			return new DefaultWebGraphQlTester(requestStrategy, this.headers);
-		}
+		return new DefaultWebSubscriptionSpec(subscriptionSpec, responseHeaders);
 	}
 
 
 	/**
-	 * Extension of {@code RequestStrategy} for performing a GraphQL request
-	 * in a web environment.
+	 * {@link WebRequestSpec} that also collects HTTP request headers, in
+	 * addition to the query, operationName, and variables.
 	 */
-	interface WebRequestStrategy {
-
-		/**
-		 * Perform a request with the given {@link WebInput} container.
-		 * @param input the request input
-		 * @return the response spec
-		 */
-		WebResponseSpec execute(WebInput input);
-
-		/**
-		 * Perform a subscription with the given {@link WebInput} container.
-		 * @param input the request input
-		 * @return the subscription spec
-		 */
-		WebSubscriptionSpec executeSubscription(WebInput input);
-
-	}
-
-
-
-	/**
-	 * {@link WebRequestStrategy} that works as an HTTP client with requests executed through
-	 * {@link WebTestClient} that in turn may work connect with or without a live server
-	 * for Spring MVC and WebFlux.
-	 */
-	private static class WebTestClientRequestStrategy
-			extends DefaultGraphQlTester.RequestStrategySupport implements WebRequestStrategy {
-
-		private final WebTestClient client;
-
-		public WebTestClientRequestStrategy(WebTestClient client,
-				@Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig, Duration responseTimeout) {
-
-			super(errorFilter, jsonPathConfig, responseTimeout);
-			this.client = client;
-		}
-
-		@Override
-		public WebResponseSpec execute(WebInput webInput) {
-			EntityExchangeResult<byte[]> result = this.client.post()
-					.contentType(MediaType.APPLICATION_JSON)
-					.headers(headers -> headers.putAll(webInput.getHeaders()))
-					.bodyValue(webInput.toMap())
-					.exchange()
-					.expectStatus()
-					.isOk()
-					.expectHeader()
-					.contentType(MediaType.APPLICATION_JSON)
-					.expectBody()
-					.returnResult();
-
-			byte[] bytes = result.getResponseBodyContent();
-			Assert.notNull(bytes, "Expected GraphQL response content");
-			String content = new String(bytes, StandardCharsets.UTF_8);
-
-			DocumentContext documentContext = JsonPath.parse(content, getJsonPathConfig());
-			ResponseSpec responseSpec = createResponseSpec(documentContext, result::assertWithDiagnostics);
-			return new DefaultWebResponseSpec(responseSpec, result.getResponseHeaders());
-		}
-
-		@Override
-		public WebSubscriptionSpec executeSubscription(WebInput webInput) {
-			FluxExchangeResult<TestExecutionResult> exchangeResult = this.client.post()
-					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.TEXT_EVENT_STREAM)
-					.headers(headers -> headers.putAll(webInput.getHeaders()))
-					.bodyValue(webInput.toMap())
-					.exchange()
-					.expectStatus()
-					.isOk()
-					.expectHeader()
-					.contentType(MediaType.TEXT_EVENT_STREAM)
-					.returnResult(TestExecutionResult.class);
-
-			Flux<ResponseSpec> flux = exchangeResult.getResponseBody()
-					.map((result) -> createResponseSpec(result, exchangeResult::assertWithDiagnostics));
-
-			return new DefaultWebSubscriptionSpec(() -> flux, exchangeResult.getResponseHeaders());
-		}
-	}
-
-
-	/**
-	 * {@link WebRequestStrategy} that performs requests directly on
-	 * {@link WebGraphQlHandler}, i.e. Web request testing without a transport.
-	 */
-	private static class WebGraphQlHandlerRequestStrategy
-			extends DefaultGraphQlTester.DirectRequestStrategySupport implements WebRequestStrategy {
-
-		private final WebGraphQlHandler graphQlHandler;
-
-		WebGraphQlHandlerRequestStrategy(WebGraphQlHandler handler,
-				@Nullable Predicate<GraphQLError> errorFilter, Configuration jsonPathConfig, Duration timeout) {
-
-			super(errorFilter, jsonPathConfig, timeout);
-			this.graphQlHandler = handler;
-		}
-
-		@Override
-		public WebResponseSpec execute(WebInput input) {
-			WebOutput webOutput = executeInternal(input);
-			ResponseSpec responseSpec = createResponseSpec(input, webOutput);
-			return new DefaultWebResponseSpec(responseSpec, webOutput.getResponseHeaders());
-		}
-
-		@Override
-		public WebSubscriptionSpec executeSubscription(WebInput input) {
-			WebOutput webOutput = executeInternal(input);
-			SubscriptionSpec subscriptionSpec = createSubscriptionSpec(input, webOutput);
-			return new DefaultWebSubscriptionSpec(subscriptionSpec, webOutput.getResponseHeaders());
-		}
-
-		private WebOutput executeInternal(WebInput webInput) {
-			WebOutput webOutput = this.graphQlHandler.handle(webInput).block(getResponseTimeout());
-			Assert.notNull(webOutput, "Expected WebOutput");
-			return webOutput;
-		}
-	}
-
-
 	private static final class DefaultWebRequestSpec
-			extends DefaultGraphQlTester.RequestSpecSupport implements WebRequestSpec {
+			extends GraphQlTesterRequestSpecSupport implements WebRequestSpec {
 
 		private static final URI DEFAULT_URL = URI.create("");
 
@@ -283,7 +87,7 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 
 		private final HttpHeaders headers = new HttpHeaders();
 
-		DefaultWebRequestSpec(
+		private DefaultWebRequestSpec(
 				WebRequestStrategy requestStrategy, @Nullable HttpHeaders defaultHeaders, String query) {
 
 			super(query);
@@ -341,20 +145,24 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 	}
 
 
+	/**
+	 * {@link WebResponseSpec} that exposes response headers and delegates
+	 * all other methods to the given {@link GraphQlTester.ResponseSpec}.
+	 */
 	private static final class DefaultWebResponseSpec implements WebResponseSpec {
 
 		private final ResponseSpec responseSpec;
 
-		private final HttpHeaders headers;
+		private final HttpHeaders responseHeaders;
 
-		public DefaultWebResponseSpec(ResponseSpec responseSpec, @Nullable HttpHeaders headers) {
+		public DefaultWebResponseSpec(ResponseSpec responseSpec, @Nullable HttpHeaders responseHeaders) {
 			this.responseSpec = responseSpec;
-			this.headers = (headers != null ? headers : new HttpHeaders());
+			this.responseHeaders = (responseHeaders != null ? responseHeaders : new HttpHeaders());
 		}
 
 		@Override
 		public ResponseSpec httpHeadersSatisfy(Consumer<HttpHeaders> consumer) {
-			consumer.accept(this.headers);
+			consumer.accept(this.responseHeaders);
 			return this;
 		}
 
@@ -370,13 +178,17 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 	}
 
 
+	/**
+	 * {@link WebSubscriptionSpec} that exposes response headers and delegates
+	 * all other methods to the given {@link GraphQlTester.SubscriptionSpec}.
+	 */
 	private static final class DefaultWebSubscriptionSpec implements WebSubscriptionSpec {
 
 		private final SubscriptionSpec delegate;
 
 		private final HttpHeaders headers;
 
-		public DefaultWebSubscriptionSpec(SubscriptionSpec delegate, @Nullable HttpHeaders headers) {
+		private DefaultWebSubscriptionSpec(SubscriptionSpec delegate, @Nullable HttpHeaders headers) {
 			this.delegate = delegate;
 			this.headers = (headers != null ? headers : new HttpHeaders());
 		}

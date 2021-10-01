@@ -69,7 +69,7 @@ public interface GraphQlTester {
 	 * @return the builder to use
 	 */
 	static Builder<?> builder(GraphQlService service) {
-		return new DefaultGraphQlTester.DefaultBuilder(service);
+		return new DefaultGraphQlTesterBuilder(service);
 	}
 
 

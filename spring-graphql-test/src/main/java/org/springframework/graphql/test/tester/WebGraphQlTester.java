@@ -117,7 +117,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 * @return the builder to use
 	 */
 	static Builder builder(WebTestClient client) {
-		return new DefaultWebGraphQlTester.DefaultBuilder(client);
+		return new DefaultWebGraphQlTesterBuilder(client);
 	}
 
 	/**
@@ -126,7 +126,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 * @return the builder to use
 	 */
 	static Builder builder(WebGraphQlHandler handler) {
-		return new DefaultWebGraphQlTester.DefaultBuilder(handler);
+		return new DefaultWebGraphQlTesterBuilder(handler);
 	}
 
 
@@ -206,7 +206,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 
 
 	/**
-	 * Extension of {@code ResponseSpec} with access to HTTP response headers.
+	 * Extension of {@code ResponseSpec} to expose access to HTTP response headers.
 	 */
 	interface WebResponseSpec extends ResponseSpec {
 
@@ -221,7 +221,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 
 
 	/**
-	 * Extension of {@code SubscriptionSpec} with access to HTTP response headers.
+	 * Extension of {@code SubscriptionSpec} to expose access to HTTP response headers.
 	 */
 	interface WebSubscriptionSpec extends SubscriptionSpec {
 
