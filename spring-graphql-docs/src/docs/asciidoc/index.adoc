@@ -314,7 +314,7 @@ Spring GraphQL exposes a `BatchLoaderRegistry` that accepts and stores registrat
 batch loading functions. The `ExecutionGraphQlService` accepts the registry as input and
 uses it to make per request `DataLoader` registrations. A `DataFetcher` then looks up the
 `DataLoader` for an entity and uses it to load instances, or in an annotated controller,
-simply declare a <<controllers-data-loader,DataLoader argument>> to access  the
+simply declare a <<controllers-schema-mapping-data-loader,DataLoader argument>> to access  the
 registered loader. Annotated controllers also support a
 <<controllers-batch-mapping,@BatchMapping>> that avoids the need to use `DataLoader`
 directly.
@@ -447,8 +447,8 @@ and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that
 support for annotated ``DataFetcher``s, see <<boot-graphql-runtimewiring>>.
 
 
-[[controllers-mapping]]
-=== Mapping
+[[controllers-schema-mapping]]
+=== `@SchemaMapping`
 
 The `@SchemaMapping` annotation maps a handler method to a field in the GraphQL schema
 and declares it to be the `DataFetcher` for that field. The annotation can specify the
@@ -524,9 +524,174 @@ for fields under the Query, Mutation, and Subscription types respectively. For e
 	}
 ----
 
+`@SchemaMapping` handler methods have flexible signatures and can choose from a range of
+method arguments and return values..
+
+
+[[controllers-schema-mapping-signature]]
+==== Method Signature
+
+Schema mapping handler methods can have any of the following method arguments:
+
+[cols="1,2"]
+|===
+| Method Argument | Description
+
+| `@Argument`
+| For access to field arguments with conversion.
+See <<controllers-schema-mapping-argument>>.
+
+| Source
+| For access to the source (i.e. parent/container) instance of the field.
+See <<controllers-schema-mapping-source>>.
+
+| `DataLoader`
+| For access to a `DataLoader` in the `DataLoaderRegistry`.
+See <<controllers-schema-mapping-data-loader>>.
+
+| `GraphQLContext`
+| For access to the context from the `DataFetchingEnvironment`.
+See <<controllers-schema-mapping-graphql-context>>.
+
+| `DataFetchingEnvironment`
+| For direct access to the underlying `DataFetchingEnvironment`.
+See <<controllers-schema-mapping-environment>>.
+
+|===
+
+Schema mapping handler methods can return any value, including Reactor `Mono` and
+`Flux` as described in <<execution-reactive-datafetcher>>.
+
+
+
+[[controllers-schema-mapping-argument]]
+==== `@Argument`
+
+In GraphQL Java, the `DataFetchingEnvironment` provides access to field-specific argument
+values. The arguments are available as simple scalar values such as String, or as a `Map`
+of values  for more complex input, or a `List` of values.
+
+Use `@Argument` to access an argument for the field that maps to the handler method. You
+can declare such a method parameter to be of any type.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInput bookInput) {
+			// ...
+		}
+	}
+----
+
+You can explicitly specify the argument name, for example `@Argument("bookInput")`, or if
+it not specified, it defaults to the method parameter name, but this requires the
+`-parameters` compiler flag with Java 8+ or debugging information from the compiler.
+
+The `@Argument` annotation does not have a "required" flag, nor the option to specify a
+default value. Both of these can be specified at the GraphQL schema level and are enforced
+by the GraphQL Engine.
+
+You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
+values. The name attribute on `@Argument` must not be set.
+
+
+[[controllers-schema-mapping-source]]
+==== Source
+
+In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
+parent/container) instance of the field. To access this, simply declare a method parameter
+of the expected target type.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+	}
+----
+
+The source method argument also helps to determine the type name for the mapping.
+If the simple name of the Java class matches the GraphQL type, then there is no need to
+explicitly specify the type name in the `@SchemaMapping` annotation.
+
+[TIP]
+====
+A <<controllers-batch-mapping>> handler method can batch load all authors for a query,
+given a list of source/parent books objects.
+====
+
+
+
+[[controllers-schema-mapping-data-loader]]
+==== `DataLoader`
+
+When you register a batch loading function for an entity, as explained in
+<<execution-batching>>, you can access the `DataLoader` for the entity by declaring a
+method argument of type `DataLoader` and use it to load the entity:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	public BookController(BatchLoaderRegistry registry) {
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+			// return Map<Long, Author>
+		});
+	}
+
+	@SchemaMapping
+	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
+		return loader.load(book.getAuthorId());
+	}
+
+}
+----
+
+By default, `BatchLoaderRegistry` uses the full class name of the value type (e.g. the
+class name for `Author`) for the key of the registration, and therefore simply declaring
+the `DataLoader` method argument with generic types provides enough information
+to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method argument
+resolver will also try the method argument name as the key but typically that should not
+be necessary.
+
+[TIP]
+====
+For straight-forward cases where the `@SchemaMapping` simply delegates to a `DataLoader`,
+you can reduce boilerplate by using a <<controllers-batch-mapping,@BatchMapping>> method
+instead.
+====
+
+
+[[controllers-schema-mapping-graphql-context]]
+==== `GraphQLContext`
+
+To access the `GraphQLContext` from the `DataFetchingEnvironment`, declare a method
+parameter of the same type.
+
+
+[[controllers-schema-mapping-environment]]
+==== `DataFetchingEnvironment`
+
+To access the `DataFetchingEnvironment` directly, declare a method parameter of the same
+type.
+
+
 
 [[controllers-batch-mapping]]
-=== Batch Mapping
+=== `@BatchMapping`
 
 <<execution-batching>> addresses the N+1 select problem through the use of an
 `org.dataloader.DataLoader` to defer the loading of individual entity instances, so they
@@ -582,25 +747,10 @@ the simple class name of the input `List` element type. Both can be customized t
 annotation attributes. The type name can also be inherited from a class level
 `@SchemaMapping`.
 
-A `@BatchMapping` method can also return a sequence of instances, and that needs to match
-the order of the source/parent objects:
+[[controllers-batch-mapping-signature]]
+==== Method Signature
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@BatchMapping
-		public Flux<Author> author(List<Book> books) {
-			// ...
-		}
-	}
-----
-
-It is possible to use imperative method signatures too, i.e. returning `Map<K, V>` or
-`List<V>`, which can be useful when there are no remote calls to make.
-
-`BatchMapping` methods support two types of arguments:
+Batch mapping methods support two types of arguments:
 
 [cols="1,2"]
 |===
@@ -611,176 +761,28 @@ It is possible to use imperative method signatures too, i.e. returning `Map<K, V
 
 | `BatchLoaderEnvironment`
 | The environment that is available in GraphQL Java to a
-  `org.dataloader.BatchLoaderWithContext`.
+`org.dataloader.BatchLoaderWithContext`.
 
 |===
 
-
-
-
-[[controllers-methods]]
-=== Handler Methods
-
-`@SchemaMapping` handler methods have flexible signatures and can choose from a range of
-method arguments and return values..
-
-
-[[controllers-arguments]]
-==== Method Arguments
-
-Annotated handler methods can choose from one of the following method arguments:
+Batch mapping methods can return:
 
 [cols="1,2"]
 |===
-| Method Argument | Description
+| Return Type | Description
 
-| `@Argument`
-| For access to field arguments with conversion.
-  See <<controllers-argument>>.
+| `Mono<Map<K,V>>`
+| A map with parent objects as keys, and batch loaded objects as values.
 
-| Source
-| For access to the source (i.e. parent/container) instance of the field.
-  See <<controllers-source>>.
+| `Flux<V>`
+| A sequence of batch loaded objects that must be in the same order as the source/parent
+  objects passed into the method.
 
-| `DataLoader`
-| For access to a `DataLoader` in the `DataLoaderRegistry`.
-See <<controllers-data-loader>>.
-
-| `GraphQLContext`
-| For access to the context from the `DataFetchingEnvironment`.
-See <<controllers-graphql-context>>.
-
-| `DataFetchingEnvironment`
-| For direct access to the underlying `DataFetchingEnvironment`.
-See <<controllers-environment>>.
+| `Map<K,V>`, `Flux<V>`
+| Imperative variants, e.g. without remote calls to make.
 
 |===
 
-
-[[controllers-return-values]]
-==== Return Values
-
-Annotated handler methods can return any value, including Reactor `Mono` and `Flux` as
-described in <<execution-reactive-datafetcher>>.
-
-
-
-[[controllers-argument]]
-==== `@Argument`
-
-In GraphQL Java, the `DataFetchingEnvironment` provides access to field-specific argument
-values. The arguments are available as simple scalar values such as String, or as a `Map`
-of values  for more complex input, or a `List` of values.
-
-Use `@Argument` to access an argument for the field that maps to the handler method. You
-can declare such a method parameter to be of any type.
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@QueryMapping
-		public Book bookById(@Argument Long id) {
-			// ...
-		}
-
-		@MutationMapping
-		public Book addBook(@Argument BookInput bookInput) {
-			// ...
-		}
-	}
-----
-
-You can explicitly specify the argument name, for example `@Argument("bookInput")`, or if
-it not specified, it defaults to the method parameter name, but this requires the
-`-parameters` compiler flag with Java 8+ or debugging information from the compiler.
-
-The `@Argument` annotation does not have a "required" flag, nor the option to specify a
-default value. Both of these can be specified at the GraphQL schema level and are enforced
-by the GraphQL Engine.
-
-You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
-values. The name attribute on `@Argument` must not be set.
-
-
-[[controllers-source]]
-==== Source
-
-In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
-parent/container) instance of the field. To access this, simply declare a method parameter
-of the expected target type.
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@SchemaMapping
-		public Author author(Book book) {
-			// ...
-		}
-	}
-----
-
-The source method argument also helps to determine the type name for the mapping.
-If the simple name of the Java class matches the GraphQL type, then there is no need to
-explicitly specify the type name in the `@SchemaMapping` annotation.
-
-
-[[controllers-data-loader]]
-==== `DataLoader`
-
-When you register a batch loading function for an entity, as explained in
-<<execution-batching>>, you can access the `DataLoader` for the entity by declaring a
-method argument of type `DataLoader` and use it to load the entity:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@Controller
-public class BookController {
-
-	public BookController(BatchLoaderRegistry registry) {
-		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
-			// return Map<Long, Author>
-		});
-	}
-
-	@SchemaMapping
-	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
-		return loader.load(book.getAuthorId());
-	}
-
-}
-----
-
-By default, `BatchLoaderRegistry` uses the full class name of the value type (e.g. the
-class name for `Author`) for the key of the registration, and therefore simply declaring
-the `DataLoader` method argument with generic types provides enough information
-to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method argument
-resolver will also try the method argument name as the key but typically that should not
-be necessary.
-
-[TIP]
-====
-For straight-forward cases where the `@SchemaMapping` simply delegates to a `DataLoader`,
-you can reduce boilerplate by using a <<controllers-batch-mapping,@BatchMapping>> method
-instead.
-====
-
-
-[[controllers-graphql-context]]
-==== `GraphQLContext`
-
-To access the `GraphQLContext` from the `DataFetchingEnvironment`, declare a method
-parameter of the same type.
-
-
-[[controllers-environment]]
-==== `DataFetchingEnvironment`
-
-To access the `DataFetchingEnvironment` directly, declare a method parameter of the same
-type.
 
 
 
