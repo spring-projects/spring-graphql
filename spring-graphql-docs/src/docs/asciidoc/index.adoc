@@ -538,8 +538,8 @@ can be loaded together. For example:
 public class BookController {
 
 	public BookController(BatchLoaderRegistry registry) {
-		registry.forTypePair(Long.class, Author.class).registerBatchLoader((authorIds, environment) -> {
-			// how to load authors for the given author id's...
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+			// return Map<Long, Author>
 		});
 	}
 
@@ -561,7 +561,7 @@ boilerplate that can be avoided with a `@BatchMapping` method. For example:
 	public class BookController {
 
 		@BatchMapping
-		public Flux<Author> author(List<Book> books) {
+		public Mono<Map<Book, Author>> author(List<Book> books) {
 			// ...
 		}
 	}
@@ -582,8 +582,8 @@ the simple class name of the input `List` element type. Both can be customized t
 annotation attributes. The type name can also be inherited from a class level
 `@SchemaMapping`.
 
-A `@BatchMapping` method can be a
-{javadoc}/org/springframework/graphql/execution/BatchLoaderRegistry.RegistrationSpec.html#registerMappedBatchLoader-java.util.function.BiFunction-[mapped batch loading] function:
+A `@BatchMapping` method can also return a sequence of instances, and that needs to match
+the order of the source/parent objects:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -591,14 +591,14 @@ A `@BatchMapping` method can be a
 	public class BookController {
 
 		@BatchMapping
-		public Mono<Map<Book, Author>> author(List<Book> books) {
+		public Flux<Author> author(List<Book> books) {
 			// ...
 		}
 	}
 ----
 
-It is possible to use imperative method signatures too, i.e. returning `List<V>` or
-`Map<K, V>`, which can be useful when there are no remote calls to make.
+It is possible to use imperative method signatures too, i.e. returning `Map<K, V>` or
+`List<V>`, which can be useful when there are no remote calls to make.
 
 `BatchMapping` methods support two types of arguments:
 
@@ -741,8 +741,8 @@ method argument of type `DataLoader` and use it to load the entity:
 public class BookController {
 
 	public BookController(BatchLoaderRegistry registry) {
-		registry.forTypePair(Long.class, Author.class).registerBatchLoader((authorIds, env) -> {
-			// load authors
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+			// return Map<Long, Author>
 		});
 	}
 

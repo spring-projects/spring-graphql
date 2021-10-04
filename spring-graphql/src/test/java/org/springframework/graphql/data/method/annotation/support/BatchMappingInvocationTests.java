@@ -25,9 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import graphql.ExecutionResult;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,6 +49,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Named.named;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Test GraphQL requests handled through {@code @BatchMapping} methods.
@@ -91,13 +95,13 @@ public class BatchMappingInvocationTests {
 			"}";
 
 
-	private static Class<?>[] controllerClasses() {
-		return new Class[] {
-				BatchFluxController.class,
-				BatchListController.class,
-				BatchMonoMapController.class,
-				BatchMapController.class
-		};
+	private static Stream<Arguments> controllerClasses() {
+		return Stream.of(
+				arguments(named("Returning Mono<Map<K,V>>", BatchMonoMapController.class)),
+				arguments(named("Returning Map<K,V>", BatchMapController.class)),
+				arguments(named("Returning Flux<V>", BatchFluxController.class)),
+				arguments(named("Returning List<V>", BatchListController.class))
+		);
 	}
 
 	@ParameterizedTest
@@ -199,34 +203,6 @@ public class BatchMappingInvocationTests {
 	}
 
 	@Controller
-	private static class BatchFluxController extends CourseController {
-
-		@BatchMapping
-		public Flux<Person> instructor(List<Course> courses) {
-			return Flux.fromIterable(courses).map(Course::instructor);
-		}
-
-		@BatchMapping
-		public Flux<List<Person>> students(List<Course> courses) {
-			return Flux.fromIterable(courses).map(Course::students);
-		}
-	}
-
-	@Controller
-	private static class BatchListController extends CourseController {
-
-		@BatchMapping
-		public List<Person> instructor(List<Course> courses) {
-			return courses.stream().map(Course::instructor).collect(Collectors.toList());
-		}
-
-		@BatchMapping
-		public List<List<Person>> students(List<Course> courses) {
-			return courses.stream().map(Course::students).collect(Collectors.toList());
-		}
-	}
-
-	@Controller
 	private static class BatchMonoMapController extends CourseController {
 
 		@BatchMapping
@@ -253,6 +229,34 @@ public class BatchMappingInvocationTests {
 		@BatchMapping
 		public Map<Course, List<Person>> students(List<Course> courses) {
 			return courses.stream().collect(Collectors.toMap(Function.identity(), Course::students));
+		}
+	}
+
+	@Controller
+	private static class BatchFluxController extends CourseController {
+
+		@BatchMapping
+		public Flux<Person> instructor(List<Course> courses) {
+			return Flux.fromIterable(courses).map(Course::instructor);
+		}
+
+		@BatchMapping
+		public Flux<List<Person>> students(List<Course> courses) {
+			return Flux.fromIterable(courses).map(Course::students);
+		}
+	}
+
+	@Controller
+	private static class BatchListController extends CourseController {
+
+		@BatchMapping
+		public List<Person> instructor(List<Course> courses) {
+			return courses.stream().map(Course::instructor).collect(Collectors.toList());
+		}
+
+		@BatchMapping
+		public List<List<Person>> students(List<Course> courses) {
+			return courses.stream().map(Course::students).collect(Collectors.toList());
 		}
 	}
 

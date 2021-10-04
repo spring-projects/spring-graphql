@@ -63,7 +63,7 @@ configure(moduleProjects) {
 			mavenBom "org.springframework.security:spring-security-bom:5.5.2"
 			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.5.31"
 			mavenBom "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.5.2"
-			mavenBom "org.junit:junit-bom:5.7.2"
+			mavenBom "org.junit:junit-bom:5.8.1"
 		}
 		dependencies {
 			dependency "com.graphql-java:graphql-java:${graphQlJavaVersion}"
