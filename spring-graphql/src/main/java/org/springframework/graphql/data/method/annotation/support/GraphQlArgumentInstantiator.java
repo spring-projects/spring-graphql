@@ -89,7 +89,9 @@ class GraphQlArgumentInstantiator {
 					Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
 					args[i] = instantiateCollection(elementType, (Collection<Object>) value);
 				}
-				else {
+				else if (value instanceof Map) {
+					args[i] = this.instantiate((Map<String, Object>) value, methodParam.getParameterType());
+				} else {
 					args[i] = this.converter.convertIfNecessary(value, paramTypes[i], methodParam);
 				}
 			}
