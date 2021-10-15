@@ -38,6 +38,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -45,7 +46,6 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,9 +121,7 @@ public class BatchMappingInvocationTests {
 				.execute(new RequestInput(query, null, null))
 				.block();
 
-		Map<String, Object> data = getData(result);
-		List<Map<String, Object>> actualCourses = (List<Map<String, Object>>) data.get("courses");
-
+		List<Map<String, Object>> actualCourses = GraphQlTestUtils.checkErrorsAndGetData(result, "courses");
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 
@@ -155,8 +153,7 @@ public class BatchMappingInvocationTests {
 				.execute(new RequestInput(query, null, null))
 				.block();
 
-		Map<String, Object> data = getData(result);
-		List<Map<String, Object>> actualCourses = (List<Map<String, Object>>) data.get("courses");
+		List<Map<String, Object>> actualCourses = GraphQlTestUtils.checkErrorsAndGetData(result, "courses");
 
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
@@ -183,14 +180,6 @@ public class BatchMappingInvocationTests {
 		applicationContext.refresh();
 
 		return applicationContext.getBean(ExecutionGraphQlService.class);
-	}
-
-	private <T> T getData(@Nullable ExecutionResult result) {
-		assertThat(result).isNotNull();
-		assertThat(result.getErrors()).isEmpty();
-		T data = result.getData();
-		assertThat(data).isNotNull();
-		return data;
 	}
 
 

@@ -38,6 +38,7 @@ import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -48,7 +49,6 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,13 +77,11 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(query, null, null))
 				.block();
 
-		Map<String, Object> data = getData(result);
-
-		Map<String, Object> book = getValue(data, "bookById");
+		Map<String, Object> book = GraphQlTestUtils.checkErrorsAndGetData(result, "bookById");
 		assertThat(book.get("id")).isEqualTo("1");
 		assertThat(book.get("name")).isEqualTo("Nineteen Eighty-Four");
 
-		Map<String, Object> author = getValue(book, "author");
+		Map<String, Object> author = (Map<String, Object>) book.get("author");
 		assertThat(author.get("firstName")).isEqualTo("George");
 		assertThat(author.get("lastName")).isEqualTo("Orwell");
 	}
@@ -101,8 +99,8 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(query, null, null))
 				.block();
 
-		Map<String, Object> data = getData(result);
-		List<Map<String, Object>> bookList = getValue(data, "booksByCriteria");
+		List<Map<String, Object>> bookList = GraphQlTestUtils.checkErrorsAndGetData(result, "booksByCriteria");
+
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).get("name")).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).get("name")).isEqualTo("Animal Farm");
@@ -129,9 +127,8 @@ public class SchemaMappingInvocationTests {
 				.execute(requestInput)
 				.block();
 
-		Map<String, Object> data = getData(result);
+		Map<String, Object> author = GraphQlTestUtils.checkErrorsAndGetData(result, "authorById");
 
-		Map<String, Object> author = getValue(data, "authorById");
 		assertThat(author.get("id")).isEqualTo("101");
 		assertThat(author.get("firstName")).isEqualTo("George");
 		assertThat(author.get("lastName")).isEqualTo("Orwell");
@@ -153,9 +150,7 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(operation, null, null))
 				.block();
 
-		Map<String, Object> data = getData(result);
-
-		Map<String, Object> author = getValue(data, "addAuthor");
+		Map<String, Object> author = GraphQlTestUtils.checkErrorsAndGetData(result, "addAuthor");
 		assertThat(author.get("id")).isEqualTo("99");
 		assertThat(author.get("firstName")).isEqualTo("James");
 		assertThat(author.get("lastName")).isEqualTo("Joyce");
@@ -174,7 +169,7 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(operation, null, null))
 				.block();
 
-		Publisher<ExecutionResult> publisher = getData(result);
+		Publisher<ExecutionResult> publisher = GraphQlTestUtils.checkErrorsAndGetData(result);
 
 		Flux<Map<String, Object>> bookFlux = Flux.from(publisher).map(rs -> {
 			Map<String, Object> map = rs.getData();
@@ -200,19 +195,6 @@ public class SchemaMappingInvocationTests {
 		applicationContext.refresh();
 
 		return applicationContext.getBean(ExecutionGraphQlService.class);
-	}
-
-	private <T> T getData(@Nullable ExecutionResult result) {
-		assertThat(result).isNotNull();
-		assertThat(result.getErrors()).isEmpty();
-		T data = result.getData();
-		assertThat(data).isNotNull();
-		return data;
-	}
-
-	@SuppressWarnings("unchecked")
-	private <T> T getValue(Map<String, Object> data, String key) {
-		return (T) data.get(key);
 	}
 
 

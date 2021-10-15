@@ -18,13 +18,18 @@ package org.springframework.graphql;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 
+import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.schema.DataFetcher;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.lang.Nullable;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Utility methods for GraphQL tests.
@@ -55,6 +60,21 @@ public abstract class GraphQlTestUtils {
 		return GraphQlSource.builder()
 				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
 				.configureRuntimeWiring(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> T checkErrorsAndGetData(@Nullable ExecutionResult result, String key) {
+		Map<String, Object> map = checkErrorsAndGetData(result);
+		return (T) map.get(key);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> T checkErrorsAndGetData(@Nullable ExecutionResult result) {
+		assertThat(result).isNotNull();
+		assertThat(result.getErrors()).as("Errors present in GraphQL response").isEmpty();
+		T data = result.getData();
+		assertThat(data).isNotNull();
+		return (T) data;
 	}
 
 }
