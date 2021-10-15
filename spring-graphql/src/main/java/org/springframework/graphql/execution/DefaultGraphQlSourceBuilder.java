@@ -29,10 +29,13 @@ import java.util.function.Consumer;
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
+import graphql.language.InterfaceTypeDefinition;
+import graphql.language.UnionTypeDefinition;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTraverser;
+import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -54,6 +57,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	private final List<Resource> schemaResources = new ArrayList<>();
 
 	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
+
+	@Nullable
+	private TypeResolver defaultTypeResolver;
 
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
@@ -77,6 +83,12 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	@Override
 	public GraphQlSource.Builder configureRuntimeWiring(RuntimeWiringConfigurer configurer) {
 		this.runtimeWiringConfigurers.add(configurer);
+		return this;
+	}
+
+	@Override
+	public GraphQlSource.Builder defaultTypeResolver(TypeResolver typeResolver) {
+		this.defaultTypeResolver = typeResolver;
 		return this;
 	}
 
@@ -122,9 +134,12 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));
 		RuntimeWiring runtimeWiring = runtimeWiringBuilder.build();
 
+		registerDefaultTypeResolver(registry, runtimeWiring);
+
 		GraphQLSchema schema = (this.schemaFactory != null ?
 				this.schemaFactory.apply(registry, runtimeWiring) :
 				new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring));
+
 		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
@@ -137,6 +152,14 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		GraphQL graphQl = builder.build();
 
 		return new CachedGraphQlSource(graphQl, schema);
+	}
+
+	private void registerDefaultTypeResolver(TypeDefinitionRegistry registry, RuntimeWiring runtimeWiring) {
+		TypeResolver typeResolver =
+				(this.defaultTypeResolver != null ? this.defaultTypeResolver : new ClassNameTypeResolver());
+		registry.types().values().stream()
+				.filter(def -> def instanceof UnionTypeDefinition || def instanceof InterfaceTypeDefinition)
+				.forEach(def -> runtimeWiring.getTypeResolvers().putIfAbsent(def.getName(), typeResolver));
 	}
 
 	private TypeDefinitionRegistry parseSchemaResource(Resource schemaResource) {

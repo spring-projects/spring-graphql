@@ -25,6 +25,7 @@ import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
@@ -88,6 +89,25 @@ public interface GraphQlSource {
 		 * @see graphql.schema.idl.SchemaGenerator#makeExecutableSchema(TypeDefinitionRegistry, RuntimeWiring)
 		 */
 		Builder configureRuntimeWiring(RuntimeWiringConfigurer configurer);
+
+		/**
+		 * Configure the default {@link TypeResolver} to use for GraphQL Interface
+		 * and Union types that don't already have such a registration after all
+		 * {@link #configureRuntimeWiring(RuntimeWiringConfigurer) RuntimeWiringConfigurer's}
+		 * have been applied.
+		 * <p>A GraphQL {@code TypeResolver} is used to determine the GraphQL Object
+		 * type of values returned from DataFetcher's of GraphQL Interface or
+		 * Union fields.
+		 * <p>By default this is set to {@link ClassNameTypeResolver}, which
+		 * tries to match the simple class name of the Object value to a GraphQL
+		 * Object type, and it also tries the same for supertypes (base classes
+		 * and interfaces). See the Javadoc of {@code ClassNameTypeResolver} for
+		 * further ways to customize matching a Java class to a GraphQL Object type.
+		 * @param typeResolver the {@code TypeResolver} to use
+		 * @return the current builder
+		 * @see ClassNameTypeResolver
+		 */
+		Builder defaultTypeResolver(TypeResolver typeResolver);
 
 		/**
 		 * Add {@link DataFetcherExceptionResolver}'s to use for resolving exceptions from

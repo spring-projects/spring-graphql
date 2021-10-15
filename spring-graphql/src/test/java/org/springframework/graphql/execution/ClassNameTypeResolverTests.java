@@ -1,0 +1,279 @@
+/*
+ * Copyright 2002-2021 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.springframework.graphql.execution;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import graphql.ExecutionResult;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.RequestInput;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Tests for interface and union type resolution via {@link ClassNameTypeResolver}.
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
+ */
+public class ClassNameTypeResolverTests {
+
+	private static final List<Animal> animalList = Arrays.asList(new Dog(), new Penguin());
+
+	private static final List<?> animalAndPlantList = Arrays.asList(new GrayWolf(), new GiantRedwood());
+
+	private static final String schema = "" +
+			"type Query {" +
+			"    animals: [Animal!]!," +
+			"    sightings: [Sighting!]!" +
+			"}" +
+			"interface Animal {" +
+			"    name: String!" +
+			"}" +
+			"type Bird implements Animal {" +
+			"    name: String!" +
+			"    flightless: Boolean!" +
+			"}" +
+			"type Mammal implements Animal {" +
+			"    name: String!" +
+			"    herbivore: Boolean!" +
+			"}" +
+			"type Plant {" +
+			"    family: String!" +
+			"}" +
+			"type Vegetable {" +
+			"    family: String!" +
+			"}" +
+			"union Sighting = Bird | Mammal | Plant | Vegetable ";
+
+
+	@Test
+	void typeResolutionViaSuperHierarchy() {
+
+		GraphQlSource graphQlSource =
+				GraphQlTestUtils.initGraphQlSource(schema, "Query", "animals", env -> animalList).build();
+
+		String query = "" +
+				"query Animals {" +
+				"  animals {" +
+				"    __typename" +
+				"    name" +
+				"    ... on Bird {" +
+				"      flightless" +
+				"    }" +
+				"    ... on Mammal {" +
+				"      herbivore" +
+				"    }" +
+				"  }" +
+				"}";
+
+		ExecutionResult result = new ExecutionGraphQlService(graphQlSource)
+				.execute(new RequestInput(query, null, null))
+				.block();
+
+		List<Map<String, Object>> actualAnimals = GraphQlTestUtils.checkErrorsAndGetData(result, "animals");
+
+		for (int i = 0; i < animalList.size(); i++) {
+			Map<String, Object> actualAnimal = actualAnimals.get(i);
+			Animal animal = animalList.get(i);
+			assertThat(actualAnimal.get("name")).isEqualTo(animal.getName());
+
+			if (animal instanceof Bird) {
+				assertThat(actualAnimal.get("flightless")).isEqualTo(((Bird) animal).isFlightless());
+			}
+			else if (animal instanceof Mammal) {
+				assertThat(actualAnimal.get("herbivore")).isEqualTo(((Mammal) animal).isHerbivore());
+			}
+			else {
+				throw new IllegalStateException();
+			}
+		}
+	}
+
+	@Test
+	void typeResolutionViaMapping() {
+
+		ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
+		typeResolver.addMapping(Tree.class, "Plant");
+
+		GraphQlSource graphQlSource =
+				GraphQlTestUtils.initGraphQlSource(schema, "Query", "sightings", env -> animalAndPlantList)
+						.defaultTypeResolver(typeResolver)
+						.build();
+
+		String query = "" +
+				"query Sightings {" +
+				"  sightings {" +
+				"    __typename" +
+				"    ... on Bird {" +
+				"      name" +
+				"    }" +
+				"    ... on Mammal {" +
+				"      name" +
+				"    }" +
+				"    ... on Plant {" +
+				"      family" +
+				"    }" +
+				"  }" +
+				"}";
+
+		ExecutionResult result = new ExecutionGraphQlService(graphQlSource)
+				.execute(new RequestInput(query, null, null))
+				.block();
+
+		List<Map<String, Object>> actualSightings = GraphQlTestUtils.checkErrorsAndGetData(result, "sightings");
+
+		for (int i = 0; i < animalAndPlantList.size(); i++) {
+			Map<String, Object> actualSighting = actualSightings.get(i);
+			Object sighting = animalAndPlantList.get(i);
+
+			if (sighting instanceof Animal) {
+				assertThat(actualSighting.get("name")).isEqualTo(((Animal) sighting).getName());
+			}
+			else if (sighting instanceof Tree) {
+				assertThat(actualSighting.get("family")).isEqualTo(((Tree) sighting).getFamily());
+			}
+			else {
+				throw new IllegalStateException();
+			}
+		}
+	}
+
+
+	interface Animal {
+
+		String getName();
+
+	}
+
+
+	interface Bird extends Animal {
+
+		boolean isFlightless();
+
+	}
+
+
+	interface Mammal extends Animal {
+
+		boolean isHerbivore();
+
+	}
+
+
+	static class BaseAnimal implements Animal {
+
+		final String name;
+
+		BaseAnimal(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String getName() {
+			return this.name;
+		}
+
+	}
+
+
+	static class BaseBird extends BaseAnimal implements Bird {
+
+		private final boolean flightless;
+
+		BaseBird(String name, boolean flightless) {
+			super(name);
+			this.flightless = flightless;
+		}
+
+		@Override
+		public boolean isFlightless() {
+			return this.flightless;
+		}
+
+	}
+
+
+	static class BaseMammal extends BaseAnimal implements Mammal {
+
+		private final boolean isHerbivore;
+
+		BaseMammal(String name, boolean isHerbivore) {
+			super(name);
+			this.isHerbivore = isHerbivore;
+		}
+
+		@Override
+		public boolean isHerbivore() {
+			return this.isHerbivore;
+		}
+
+	}
+
+
+	static class Penguin extends BaseBird {
+
+		Penguin() {
+			super("Penguin", true);
+		}
+
+	}
+
+
+	static class Dog extends BaseMammal {
+
+		Dog() {
+			super("Dog", false);
+		}
+
+	}
+
+
+	static class GrayWolf extends BaseMammal {
+
+		GrayWolf() {
+			super("Gray Wolf", false);
+		}
+
+	}
+
+
+	static class Tree {
+
+		private final String family;
+
+		Tree(String family) {
+			this.family = family;
+		}
+
+		public String getFamily() {
+			return family;
+		}
+	}
+
+
+	static class GiantRedwood extends Tree {
+
+		GiantRedwood() {
+			super("Redwood");
+		}
+
+	}
+
+}
