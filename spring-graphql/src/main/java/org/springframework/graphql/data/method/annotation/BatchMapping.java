@@ -29,7 +29,7 @@ import org.springframework.core.annotation.AliasFor;
  *
  * <pre class="code">
  * &#064;BatchMapping
- * public Flux&lt;Author&gt; author(List&lt;Book&gt; books) {
+ * public Mono&lt;Map&lt;Book, Author&gt;&gt; author(List&lt;Book&gt; books) {
  *     // ...
  * }
  * </pre>
@@ -47,16 +47,22 @@ import org.springframework.core.annotation.AliasFor;
  * public class BookController {
  *
  *     public BookController(BatchLoaderRegistry registry) {
- *         registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, environment) -> ...);
+ *         registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((ids, environment) -> ...);
  *     }
  *
  *     &#064;SchemaMapping
- *     public Author author(Book book, DataLoader&lt;Long, Author&gt; dataLoader) {
+ *     public CompletableFuture&lt;Author&gt; author(Book book, DataLoader&lt;Long, Author&gt; dataLoader) {
  *         return dataLoader.load(book.getAuthorId());
  *     }
  *
  * }
  * </pre>
+ *
+ * <p>In addition to returning {@code Mono<Map<K,T>>}, an {@code @BatchMapping}
+ * method can also return {@code Flux<T>}. However, in that case the returned
+ * sequence of values must match the number and order of the input keys. See
+ * {@link org.dataloader.BatchLoader} and {@link org.dataloader.MappedBatchLoader}
+ * for more details.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
