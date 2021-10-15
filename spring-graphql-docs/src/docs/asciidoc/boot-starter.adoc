@@ -128,6 +128,23 @@ detects `@Controller` classes with annotated handler methods and registers those
 ``DataFetcher``s.
 
 
+[[boot-graphql-runtimewiring-scalar]]
+=== Scalar Types
+
+`RuntimeWiringConfigurer` can be used to register custom scalar types:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Bean
+	RuntimeWiringConfigurer runtimeWiringConfigurer() {
+		GraphQLScalarType scalarType = ...;
+		return (wiringBuilder) -> wiringBuilder.scalar(scalarType);
+	}
+----
+
+
+
+
 [[boot-repositories-querydsl]]
 == Querydsl Repositories
 
