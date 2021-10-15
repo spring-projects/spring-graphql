@@ -17,12 +17,14 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingFieldSelectionSet;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 
 /**
- * Resolver for {@link DataFetchingEnvironment} or {@link GraphQLContext} arguments.
+ * Resolver for {@link DataFetchingEnvironment} as well as arguments of type
+ * {@link GraphQLContext} or {@link DataFetchingFieldSelectionSet}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -32,7 +34,8 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (type.equals(DataFetchingEnvironment.class) || type.equals(GraphQLContext.class));
+		return (type.equals(DataFetchingEnvironment.class) || type.equals(GraphQLContext.class) ||
+				type.equals(DataFetchingFieldSelectionSet.class));
 	}
 
 	@Override
@@ -41,8 +44,14 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 		if (type.equals(GraphQLContext.class)) {
 			return environment.getGraphQlContext();
 		}
-		else {
+		else if (type.equals(DataFetchingFieldSelectionSet.class)) {
+			return environment.getSelectionSet();
+		}
+		else if (type.equals(DataFetchingEnvironment.class)) {
 			return environment;
+		}
+		else {
+			throw new IllegalStateException("Unexpected method parameter type: " + parameter);
 		}
 	}
 

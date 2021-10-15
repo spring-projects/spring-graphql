@@ -553,6 +553,10 @@ See <<controllers-schema-mapping-data-loader>>.
 | For access to the context from the `DataFetchingEnvironment`.
 See <<controllers-schema-mapping-graphql-context>>.
 
+| `DataFetchingFieldSelectionSet`
+| For access to the selection set for the query through the `DataFetchingEnvironment`.
+See <<controllers-schema-mapping-selection-set>>.
+
 | `DataFetchingEnvironment`
 | For direct access to the underlying `DataFetchingEnvironment`.
 See <<controllers-schema-mapping-environment>>.
@@ -680,6 +684,14 @@ instead.
 
 To access the `GraphQLContext` from the `DataFetchingEnvironment`, declare a method
 parameter of the same type.
+
+
+[[controllers-schema-mapping-selection-set]]
+==== `DataFetchingFieldSelectionSet`
+
+To access the `DataFetchingFieldSelectionSet` from the `DataFetchingEnvironment`, declare
+a method parameter of the same type. This is useful to peek ahead at the fields that need
+to be fetched.
 
 
 [[controllers-schema-mapping-environment]]
