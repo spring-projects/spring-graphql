@@ -29,8 +29,8 @@ import org.springframework.util.Assert;
 
 /**
  * {@link TypeResolver} that tries to find a GraphQL Object type based on the
- * class name of an Object. If necessary, it walks up the base class and
- * interface hierarchy to find a match.
+ * class name of a value returned from a {@code DataFetcher}. If necessary, it
+ * walks up the base class and interface hierarchy to find a match.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -43,10 +43,10 @@ public class ClassNameTypeResolver implements TypeResolver {
 
 
 	/**
-	 * Customize how the name of a class, or base class/interface, is determined.
+	 * Customize how the name of a class, or a base class/interface, is determined.
 	 * An application can use this to adapt to a common naming convention, e.g.
-	 * removing "Impl" as a suffix, or "Base" as prefix, and so on.
-	 * <p>By default, this is {@link Class#getSimpleName()}.
+	 * remove an "Impl" suffix or a "Base" prefix, and so on.
+	 * <p>By default, this is just {@link Class#getSimpleName()}.
 	 * @param classNameExtractor the function to use
 	 */
 	public void setClassNameExtractor(Function<Class<?>, String> classNameExtractor) {
@@ -55,9 +55,9 @@ public class ClassNameTypeResolver implements TypeResolver {
 	}
 
 	/**
-	 * Add a mapping from a Java {@link Class} to a GraphQL Object type. The
-	 * given class can be a base class or an interface, in which case the mapping
-	 * applies to sub-classes too.
+	 * Add a mapping from a Java {@link Class} to a GraphQL Object type name.
+	 * The mapping applies to the given type and to all of its sub-classes
+	 * (for a base class) or implementations (for an interface).
 	 * @param clazz the Java class to map
 	 * @param graphQlTypeName the matching GraphQL object type
 	 */
@@ -67,11 +67,16 @@ public class ClassNameTypeResolver implements TypeResolver {
 
 
 	@Override
+	@Nullable
 	public GraphQLObjectType getType(TypeResolutionEnvironment environment) {
+
 		Class<?> clazz = environment.getObject().getClass();
-		GraphQLObjectType type = getTypeForClass(clazz, environment.getSchema());
-		Assert.state(type != null, "No GraphQL Object type for class: " + clazz.getName());
-		return type;
+		GraphQLSchema schema = environment.getSchema();
+
+		// We don't assert "not null" since GraphQL Java will do that anyway.
+		// Leaving the method nullable provides option for delegation.
+
+		return getTypeForClass(clazz, schema);
 	}
 
 	@Nullable
