@@ -36,7 +36,7 @@ public class QueryTests {
 	@BeforeEach
 	public void setUp(@Autowired WebGraphQlHandler handler) {
 		this.graphQlTester = WebGraphQlTester.create(webInput ->
-				handler.handle(webInput).contextWrite(context -> context.put("name", "James")));
+				handler.handleRequest(webInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 	@Test

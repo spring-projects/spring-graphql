@@ -62,7 +62,7 @@ public class WebGraphQlHandlerTests {
 		GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).build();
 
-		WebOutput webOutput = handler.handle(webInput).contextWrite((context) -> context.put("name", "007")).block();
+		WebOutput webOutput = handler.handleRequest(webInput).contextWrite((context) -> context.put("name", "007")).block();
 
 		Map<String, Object> data = webOutput.getData();
 		assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
@@ -82,7 +82,7 @@ public class WebGraphQlHandlerTests {
 		GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).build();
 
-		WebOutput webOutput = handler.handle(webInput).contextWrite((context) -> context.put("name", "007")).block();
+		WebOutput webOutput = handler.handleRequest(webInput).contextWrite((context) -> context.put("name", "007")).block();
 
 		Map<String, Object> data = webOutput.getData();
 		assertThat(data).hasSize(1).containsEntry("greeting", null);
@@ -105,11 +105,11 @@ public class WebGraphQlHandlerTests {
 			GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
 
 			WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.handle(input)))
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
 					.build();
 
-			Map<String, Object> data = handler.handle(webInput).block().getData();
+			Map<String, Object> data = handler.handleRequest(webInput).block().getData();
 
 			assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
 		}
@@ -136,11 +136,11 @@ public class WebGraphQlHandlerTests {
 			GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
 
 			WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.handle(input)))
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
 					.build();
 
-			WebOutput webOutput = handler.handle(webInput).block();
+			WebOutput webOutput = handler.handleRequest(webInput).block();
 
 			List<GraphQLError> errors = webOutput.getErrors();
 			assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");

@@ -72,7 +72,7 @@ public class GraphQlHttpHandler {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + input);
 		}
-		Mono<ServerResponse> responseMono = this.graphQlHandler.handle(input).map((output) -> {
+		Mono<ServerResponse> responseMono = this.graphQlHandler.handleRequest(input).map((output) -> {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Execution complete");
 			}

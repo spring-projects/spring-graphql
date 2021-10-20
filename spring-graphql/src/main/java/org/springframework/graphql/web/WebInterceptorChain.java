@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.graphql.web;
 
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static org.assertj.core.api.Assertions.assertThat;
+/**
+ * Contract that allows a {@link WebInterceptor} to delegate to the remainder
+ * of the chain.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
+ */
+public interface WebInterceptorChain {
 
-public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
-
-	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain next) {
-		return next.next(webInput).map((output) -> output.transform((builder) -> {
-			Publisher<?> publisher = output.getData();
-			assertThat(publisher).isNotNull();
-			builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));
-		}));
-	}
+	/**
+	 * Delegate to the next rest of the chain which can consist of more
+	 * {@code WebInterceptor} instances, and a {@link WebGraphQlHandler}.
+	 * @param webInput the input for the request
+	 * @return the output with the result from request execution
+	 */
+	Mono<WebOutput> next(WebInput webInput);
 
 }

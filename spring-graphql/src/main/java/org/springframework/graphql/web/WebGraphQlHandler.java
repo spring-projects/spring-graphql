@@ -17,6 +17,7 @@
 package org.springframework.graphql.web;
 
 import java.util.List;
+import java.util.Map;
 
 import reactor.core.publisher.Mono;
 
@@ -24,8 +25,8 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 
 /**
- * Common contract to handle a GraphQL request over HTTP or WebSocket for use
- * with both Spring MVC and Spring WebFlux.
+ * Contract for common handling of a GraphQL request received over HTTP or
+ * WebSocket, and executed on Spring MVC or Spring WebFlux.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -33,11 +34,32 @@ import org.springframework.graphql.execution.ThreadLocalAccessor;
 public interface WebGraphQlHandler {
 
 	/**
-	 * Perform request execution for the given input and return the result.
+	 * Execute the given request and return the resulting output.
 	 * @param input the GraphQL request input container
-	 * @return the execution result
+	 * @return the result from execution
 	 */
-	Mono<WebOutput> handle(WebInput input);
+	Mono<WebOutput> handleRequest(WebInput input);
+
+	/**
+	 * Handle the payload from the connection initialization message that a
+	 * GraphQL over WebSocket client must send after the WebSocket session is
+	 * established and before sending any requests.
+	 * @param payload the payload from the {@code ConnectionInit} message
+	 * @return an optional payload for the {@code ConnectionAck} message
+	 */
+	default Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
+		return Mono.empty();
+	}
+
+	/**
+	 * Handle the completion message that a GraphQL over WebSocket clients sends
+	 * before closing the WebSocket connection.
+	 * @return signals the end of completion handling
+	 */
+	default Mono<Void> handleWebSocketCompletion() {
+		return Mono.empty();
+	}
+
 
 	/**
 	 * Provides access to a builder to create a {@link WebGraphQlHandler} instance.
@@ -48,6 +70,7 @@ public interface WebGraphQlHandler {
 	static Builder builder(GraphQlService graphQlService) {
 		return new DefaultWebGraphQlHandlerBuilder(graphQlService);
 	}
+
 
 	/**
 	 * Builder for a {@link WebGraphQlHandler} that executes a

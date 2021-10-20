@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -28,11 +29,14 @@ import java.util.function.Consumer;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.graphql.web.BookTestUtils;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -121,6 +125,50 @@ public class GraphQlWebSocketHandlerTests {
 				.verifyComplete();
 
 		assertThat(this.session.getCloseStatus()).isEqualTo(new CloseStatus(4400, "Invalid message"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void connectionInitHandling() throws Exception {
+
+		WebSocketInterceptor interceptor = new WebSocketInterceptor() {
+
+			@Override
+			public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
+				Object value = payload.get("key");
+				return Mono.just(Collections.singletonMap("key", value + " acknowledged"));
+			}
+		};
+
+		handle(initWebSocketHandler(interceptor),
+				new TextMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}"));
+
+		StepVerifier.create(session.getOutput())
+				.consumeNextWith((message) -> {
+					Map<String, Object> content = decode(message);
+					assertThat(content).containsEntry("type", "connection_ack");
+					assertThat((Map<String, Object>) content.get("payload")).containsEntry("key", "A acknowledged");
+				})
+				.then(this.session::close) // Complete output Flux
+				.verifyComplete();
+	}
+
+	@Test
+	void connectionInitRejected() throws Exception {
+
+		WebSocketInterceptor interceptor = new WebSocketInterceptor() {
+
+			@Override
+			public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
+				return Mono.error(new IllegalStateException());
+			}
+		};
+
+		handle(initWebSocketHandler(interceptor), new TextMessage("{\"type\":\"connection_init\"}"));
+
+		StepVerifier.create(session.closeStatus())
+				.expectNext(new CloseStatus(4401, "Unauthorized"))
+				.verifyComplete();
 	}
 
 	@Test

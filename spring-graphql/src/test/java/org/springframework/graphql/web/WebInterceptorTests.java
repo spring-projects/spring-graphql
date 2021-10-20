@@ -51,7 +51,7 @@ public class WebInterceptorTests {
 						new OrderInterceptor(3, output)))
 				.build();
 
-		handler.handle(webInput).block();
+		handler.handleRequest(webInput).block();
 		assertThat(output.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
 	}
 
@@ -61,10 +61,10 @@ public class WebInterceptorTests {
 				output.transform((builder) -> builder.responseHeader("testHeader", "testValue"));
 
 		WebGraphQlHandler handler = WebGraphQlHandler.builder((input) -> emptyExecutionResult())
-				.interceptor((input, next) -> next.handle(input).map(headerFunction))
+				.interceptor((input, next) -> next.next(input).map(headerFunction))
 				.build();
 
-		HttpHeaders headers = handler.handle(webInput).block().getResponseHeaders();
+		HttpHeaders headers = handler.handleRequest(webInput).block().getResponseHeaders();
 
 		assertThat(headers.get("testHeader")).containsExactly("testValue");
 	}
@@ -80,11 +80,11 @@ public class WebInterceptorTests {
 				})
 				.interceptor((webInput, next) -> {
 					webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
-					return next.handle(webInput);
+					return next.next(webInput);
 				})
 				.build();
 
-		handler.handle(webInput).block();
+		handler.handleRequest(webInput).block();
 
 		assertThat(actualName.get()).isEqualTo("testOp");
 	}
@@ -105,9 +105,9 @@ public class WebInterceptorTests {
 		}
 
 		@Override
-		public Mono<WebOutput> intercept(WebInput input, WebGraphQlHandler next) {
+		public Mono<WebOutput> intercept(WebInput input, WebInterceptorChain next) {
 			this.output.append(":pre").append(this.order);
-			return next.handle(input)
+			return next.next(input)
 					.map((output) -> {
 						this.output.append(":post").append(this.order);
 						return output;

@@ -42,13 +42,13 @@ public interface WebInterceptor {
 
 	/**
 	 * Intercept a request and delegate for further handling and request execution via
-	 * {@link WebGraphQlHandler#handle(WebInput)}.
+	 * {@link WebGraphQlHandler#handleRequest(WebInput)}.
 	 * @param webInput container with HTTP request information and options to customize
 	 * the {@link ExecutionInput}.
-	 * @param next the handler to delegate to for request execution
+	 * @param next the rest of the chain to delegate to for request execution
 	 * @return a {@link Mono} with the result
 	 */
-	Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next);
+	Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain next);
 
 	/**
 	 * Return a composed {@link WebInterceptor} that invokes the current interceptor first

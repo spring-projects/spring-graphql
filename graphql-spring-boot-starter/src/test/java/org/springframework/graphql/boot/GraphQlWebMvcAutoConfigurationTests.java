@@ -187,7 +187,7 @@ class GraphQlWebMvcAutoConfigurationTests {
 
 		@Bean
 		WebInterceptor customWebInterceptor() {
-			return (input, next) -> next.handle(input).map((output) ->
+			return (webInput, interceptorChain) -> interceptorChain.next(webInput).map((output) ->
 					output.transform((builder) -> builder.responseHeader("X-Custom-Header", "42")));
 		}
 

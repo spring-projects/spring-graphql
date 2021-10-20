@@ -115,12 +115,12 @@ transformation of the `graphql.ExecutionInput`:
 class MyInterceptor implements WebInterceptor {
 
 	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
+	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
 		webInput.configureExecutionInput((executionInput, builder) -> {
 			Map<String, Object> map = ... ;
 			return builder.extensions(map).build();
 		});
-		return next.handle(webInput);
+		return chain.next(webInput);
 	}
 }
 ----
@@ -133,8 +133,8 @@ the `graphql.ExecutionResult`:
 class MyInterceptor implements WebInterceptor {
 
 	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebGraphQlHandler next) {
-		return next.handle(webInput)
+	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
+		return chain.next(webInput)
 				.map(webOutput -> {
 					Object data = webOutput.getData();
 					Object updatedData = ... ;

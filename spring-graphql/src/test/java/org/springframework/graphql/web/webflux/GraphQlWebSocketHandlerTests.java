@@ -27,6 +27,7 @@ import java.util.function.BiConsumer;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
@@ -36,6 +37,7 @@ import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.web.BookTestUtils;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -120,6 +122,47 @@ public class GraphQlWebSocketHandlerTests {
 
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4400, "Invalid message"))
+				.verifyComplete();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void connectionInitHandling() {
+		TestWebSocketSession session = handle(
+				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}")),
+				new WebSocketInterceptor() {
+
+					@Override
+					public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
+						Object value = payload.get("key");
+						return Mono.just(Collections.singletonMap("key", value + " acknowledged"));
+					}
+				});
+
+		StepVerifier.create(session.getOutput())
+				.consumeNextWith((message) -> {
+					Map<String, Object> content = decode(message);
+					assertThat(content).containsEntry("type", "connection_ack");
+					assertThat((Map<String, Object>) content.get("payload")).containsEntry("key", "A acknowledged");
+				})
+				.verifyComplete();
+	}
+
+	@Test
+	void connectionInitRejected() {
+		TestWebSocketSession session = handle(
+				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}")),
+				new WebSocketInterceptor() {
+
+					@Override
+					public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
+						return Mono.error(new IllegalStateException());
+					}
+				});
+
+		StepVerifier.create(session.getOutput()).verifyComplete();
+		StepVerifier.create(session.closeStatus())
+				.expectNext(new CloseStatus(4401, "Unauthorized"))
 				.verifyComplete();
 	}
 

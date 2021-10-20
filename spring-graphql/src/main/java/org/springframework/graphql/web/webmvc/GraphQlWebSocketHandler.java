@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,12 +87,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	/**
 	 * Create a new instance.
-	 * @param graphQlHandler common handler for GraphQL over HTTP requests
+	 * @param graphQlHandler common handler for GraphQL over WebSocket requests
 	 * @param converter for JSON encoding and decoding
 	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT} type
 	 * message must be received.
 	 */
-	public GraphQlWebSocketHandler(WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter,
+	public GraphQlWebSocketHandler(
+			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter,
 			Duration connectionInitTimeout) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
@@ -158,7 +160,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			if (logger.isDebugEnabled()) {
 				logger.debug("Executing: " + input);
 			}
-			this.graphQlHandler.handle(input)
+			this.graphQlHandler.handleRequest(input)
 					.flatMapMany((output) -> handleWebOutput(session, input.getId(), output))
 					.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 					.subscribe(new SendMessageSubscriber(id, session, sessionState));
@@ -170,14 +172,30 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					subscription.cancel();
 				}
 			}
+			this.graphQlHandler.handleWebSocketCompletion().block(Duration.ofSeconds(10));
 			return;
 		case CONNECTION_INIT:
 			if (sessionState.setConnectionInitProcessed()) {
 				GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 				return;
 			}
-			TextMessage outputMessage = encode(null, MessageType.CONNECTION_ACK, null);
-			session.sendMessage(outputMessage);
+			this.graphQlHandler.handleWebSocketInitialization(getPayload(map))
+					.defaultIfEmpty(Collections.emptyMap())
+					.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
+					.doOnNext(ackPayload -> {
+						TextMessage outputMessage = encode(null, MessageType.CONNECTION_ACK, ackPayload);
+						try {
+							session.sendMessage(outputMessage);
+						}
+						catch (IOException ex) {
+							throw new IllegalStateException(ex);
+						}
+					})
+					.onErrorResume(ex -> {
+						GraphQlStatus.closeSession(session, GraphQlStatus.UNAUTHORIZED_STATUS);
+						return Mono.empty();
+					})
+					.block(Duration.ofSeconds(10));
 			return;
 		default:
 			GraphQlStatus.closeSession(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
@@ -193,8 +211,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> getPayload(Map<String, Object> message) {
 		Map<String, Object> payload = (Map<String, Object>) message.get("payload");
-		Assert.notNull(payload, "No \"payload\" in message: " + message);
-		return payload;
+		return (payload != null ? payload : Collections.emptyMap());
 	}
 
 	private SessionState getSessionInfo(WebSocketSession session) {

@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -80,20 +82,68 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	@Override
 	public WebGraphQlHandler build() {
+
 		List<WebInterceptor> interceptorsToUse =
 				(this.interceptors != null) ? this.interceptors : Collections.emptyList();
 
-		WebGraphQlHandler targetHandler = (webInput) ->
-				this.service.execute(webInput).map((result) -> new WebOutput(webInput, result));
+		WebInterceptorChain interceptorChain = initWebInterceptorChain(interceptorsToUse);
+		WebSocketInterceptor webSocketInterceptor = initWebSocketInterceptor(interceptorsToUse);
 
-		WebGraphQlHandler interceptionChain = interceptorsToUse.stream()
-				.reduce(WebInterceptor::andThen)
-				.map((interceptor) -> (WebGraphQlHandler) (input) -> interceptor.intercept(input, targetHandler))
-				.orElse(targetHandler);
+		WebGraphQlHandler graphQlHandler = new WebGraphQlHandler() {
 
-		return (CollectionUtils.isEmpty(this.accessors) ? interceptionChain
-				: new ThreadLocalExtractingHandler(interceptionChain, ThreadLocalAccessor.composite(this.accessors)));
+			@Override
+			public Mono<WebOutput> handleRequest(WebInput input) {
+				return interceptorChain.next(input);
+			}
+
+			@Override
+			public Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
+				return (webSocketInterceptor != null ?
+						webSocketInterceptor.handleConnectionInitialization(payload) : Mono.empty());
+			}
+
+			@Override
+			public Mono<Void> handleWebSocketCompletion() {
+				return (webSocketInterceptor != null ?
+						webSocketInterceptor.handleConnectionCompletion() : Mono.empty());
+			}
+		};
+
+		if (!CollectionUtils.isEmpty(this.accessors)) {
+			graphQlHandler = new ThreadLocalExtractingHandler(
+					graphQlHandler, ThreadLocalAccessor.composite(this.accessors));
+		}
+
+		return graphQlHandler;
 	}
+
+	private WebInterceptorChain initWebInterceptorChain(List<WebInterceptor> interceptors) {
+
+		WebInterceptorChain targetHandler =
+				webInput -> service.execute(webInput).map((result) -> new WebOutput(webInput, result));
+
+		return interceptors.stream()
+				.reduce(WebInterceptor::andThen)
+				.map((interceptor) -> (WebInterceptorChain) (input) -> interceptor.intercept(input, targetHandler))
+				.orElse(targetHandler);
+	}
+
+	@Nullable
+	private WebSocketInterceptor initWebSocketInterceptor(List<WebInterceptor> interceptors) {
+
+		List<WebSocketInterceptor> filtered = interceptors.stream()
+				.filter(current -> current instanceof WebSocketInterceptor)
+				.map(current -> (WebSocketInterceptor) current)
+				.collect(Collectors.toList());
+
+		if (filtered.size() > 1) {
+			throw new IllegalArgumentException(
+					"There can be at most 1 WebSocketInterceptor. Found " + filtered.size() + ".");
+		}
+
+		return (!filtered.isEmpty() ? filtered.get(0) : null);
+	}
+
 
 	/**
 	 * {@link WebGraphQlHandler} that extracts ThreadLocal values and saves them in the
@@ -111,8 +161,20 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 		}
 
 		@Override
-		public Mono<WebOutput> handle(WebInput input) {
-			return this.delegate.handle(input).contextWrite((context) ->
+		public Mono<WebOutput> handleRequest(WebInput input) {
+			return this.delegate.handleRequest(input).contextWrite((context) ->
+					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
+		}
+
+		@Override
+		public Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
+			return this.delegate.handleWebSocketInitialization(payload).contextWrite((context) ->
+					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
+		}
+
+		@Override
+		public Mono<Void> handleWebSocketCompletion() {
+			return this.delegate.handleWebSocketCompletion().contextWrite((context) ->
 					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
 		}
 

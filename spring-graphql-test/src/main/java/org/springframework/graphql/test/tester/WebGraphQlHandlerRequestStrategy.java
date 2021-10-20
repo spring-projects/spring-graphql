@@ -62,7 +62,7 @@ class WebGraphQlHandlerRequestStrategy extends DirectRequestStrategySupport impl
 	}
 
 	private WebOutput executeInternal(WebInput webInput) {
-		WebOutput webOutput = this.graphQlHandler.handle(webInput).block(getResponseTimeout());
+		WebOutput webOutput = this.graphQlHandler.handleRequest(webInput).block(getResponseTimeout());
 		Assert.notNull(webOutput, "Expected WebOutput");
 		return webOutput;
 	}

@@ -34,9 +34,9 @@ public class SampleApplication {
 
 	@Bean
 	public WebInterceptor interceptor() {
-		return (input, next) -> {
+		return (webInput, interceptorChain) -> {
 			// Switch threads to prove ThreadLocal context propagation works
-			return Mono.delay(Duration.ofMillis(10)).flatMap(aLong -> next.handle(input));
+			return Mono.delay(Duration.ofMillis(10)).flatMap(aLong -> interceptorChain.next(webInput));
 		};
 	}
 

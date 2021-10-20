@@ -66,7 +66,7 @@ public class GraphQlHttpHandler {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}
-					return this.graphQlHandler.handle(input);
+					return this.graphQlHandler.handleRequest(input);
 				})
 				.flatMap((output) -> {
 					Map<String, Object> spec = output.toSpecification();

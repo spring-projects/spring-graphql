@@ -66,7 +66,7 @@ class QuerydslDataFetcherTests {
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, QuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
 					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, executor, null);
-					WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
+					WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
 					// TODO: getData interferes with method overrides
 					assertThat((Object) output.getData()).isEqualTo(
@@ -93,7 +93,7 @@ class QuerydslDataFetcherTests {
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, QuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
 					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, mockRepository, null);
-					WebOutput output = handler.handle(input("{ books {name}}")).block();
+					WebOutput output = handler.handleRequest(input("{ books {name}}")).block();
 
 					assertThat((Object) output.getData()).isEqualTo(
 							Collections.singletonMap("books", Arrays.asList(
@@ -118,7 +118,7 @@ class QuerydslDataFetcherTests {
 
 		// 1) Automatic registration only
 		WebGraphQlHandler handler = initWebGraphQlHandler(null, mockRepository, null);
-		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
+		WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
 		assertThat((Object) output.getData()).isEqualTo(
 				Collections.singletonMap("bookById", Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
@@ -128,7 +128,7 @@ class QuerydslDataFetcherTests {
 				builder -> builder.dataFetcher("bookById", env -> new Book(53L, "Breaking Bad", "Heisenberg")),
 				mockRepository, null);
 
-		output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
+		output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
 		assertThat((Object) output.getData()).isEqualTo(
 				Collections.singletonMap("bookById", Collections.singletonMap("name", "Breaking Bad")));
@@ -146,7 +146,7 @@ class QuerydslDataFetcherTests {
 						.projectAs(BookProjection.class)
 						.single()));
 
-		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
+		WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
 		assertThat((Object) output.getData()).isEqualTo(
 				Collections.singletonMap("bookById",
@@ -165,7 +165,7 @@ class QuerydslDataFetcherTests {
 						.projectAs(BookDto.class)
 						.single()));
 
-		WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
+		WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
 		assertThat((Object) output.getData()).isEqualTo(
 				Collections.singletonMap("bookById",
@@ -183,7 +183,7 @@ class QuerydslDataFetcherTests {
 								bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith)))
 						.many()));
 
-		handler.handle(input("{ books(name: \"H\", author: \"Doug\") {name}}")).block();
+		handler.handleRequest(input("{ books(name: \"H\", author: \"Doug\") {name}}")).block();
 
 
 		ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
@@ -202,7 +202,7 @@ class QuerydslDataFetcherTests {
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, ReactiveQuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
 					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, null, executor);
-					WebOutput output = handler.handle(input("{ bookById(id: 1) {name}}")).block();
+					WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
 					// TODO: getData interferes with method overrides
 					assertThat((Object) output.getData()).isEqualTo(
@@ -229,7 +229,7 @@ class QuerydslDataFetcherTests {
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, ReactiveQuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
 					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, null, mockRepository);
-					WebOutput output = handler.handle(input("{ books {name}}")).block();
+					WebOutput output = handler.handleRequest(input("{ books {name}}")).block();
 
 					assertThat((Object) output.getData()).isEqualTo(
 							Collections.singletonMap("books", Arrays.asList(

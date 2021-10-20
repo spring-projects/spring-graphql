@@ -18,6 +18,7 @@ package org.springframework.graphql.web.webflux;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,12 +87,13 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	/**
 	 * Create a new instance.
-	 * @param graphQlHandler common handler for GraphQL over HTTP requests
+	 * @param graphQlHandler common handler for GraphQL over WebSocket requests
 	 * @param configurer codec configurer for JSON encoding and decoding
 	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT} type
 	 * message must be received.
 	 */
-	public GraphQlWebSocketHandler(WebGraphQlHandler graphQlHandler, ServerCodecConfigurer configurer,
+	public GraphQlWebSocketHandler(
+			WebGraphQlHandler graphQlHandler, ServerCodecConfigurer configurer,
 			Duration connectionInitTimeout) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
@@ -163,7 +165,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + input);
 				}
-				return this.graphQlHandler.handle(input)
+				return this.graphQlHandler.handleRequest(input)
 						.flatMapMany((output) -> handleWebOutput(session, id, subscriptions, output))
 						.doOnTerminate(() -> subscriptions.remove(id));
 			case COMPLETE:
@@ -173,12 +175,15 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 						subscription.cancel();
 					}
 				}
-				return Flux.empty();
+				return this.graphQlHandler.handleWebSocketCompletion().thenMany(Flux.empty());
 			case CONNECTION_INIT:
 				if (!connectionInitProcessed.compareAndSet(false, true)) {
 					return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 				}
-				return Flux.just(encode(session, null, MessageType.CONNECTION_ACK, null));
+				return this.graphQlHandler.handleWebSocketInitialization(getPayload(map))
+						.defaultIfEmpty(Collections.emptyMap())
+						.flatMapMany(ackPayload -> Flux.just(encode(session, null, MessageType.CONNECTION_ACK, ackPayload)))
+						.onErrorResume(ex -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
 			default:
 				return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 			}
@@ -194,8 +199,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> getPayload(Map<String, Object> message) {
 		Map<String, Object> payload = (Map<String, Object>) message.get("payload");
-		Assert.notNull(payload, "No \"payload\" in message: " + message);
-		return payload;
+		return (payload != null ? payload : Collections.emptyMap());
 	}
 
 	@SuppressWarnings("unchecked")

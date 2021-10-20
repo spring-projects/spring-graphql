@@ -272,7 +272,7 @@ public class WebGraphQlTesterTests {
 			}
 			ExecutionResult result = builder.build();
 			WebOutput output = new WebOutput(mock(WebInput.class), result);
-			given(this.handler.handle(this.bodyCaptor.capture())).willReturn(Mono.just(output));
+			given(this.handler.handleRequest(this.bodyCaptor.capture())).willReturn(Mono.just(output));
 		}
 
 		@Override
