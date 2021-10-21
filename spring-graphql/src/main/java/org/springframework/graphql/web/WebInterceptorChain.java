@@ -27,8 +27,9 @@ import reactor.core.publisher.Mono;
 public interface WebInterceptorChain {
 
 	/**
-	 * Delegate to the next rest of the chain which can consist of more
-	 * {@code WebInterceptor} instances, and a {@link WebGraphQlHandler}.
+	 * Delegate to the next rest of the chain consisting of more interceptors
+	 * as well as a {@link org.springframework.graphql.GraphQlService} at the
+	 * end to actually handle the request through the GraphQL engine.
 	 * @param webInput the input for the request
 	 * @return the output with the result from request execution
 	 */

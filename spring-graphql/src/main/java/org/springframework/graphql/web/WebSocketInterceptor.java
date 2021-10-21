@@ -30,8 +30,8 @@ import reactor.core.publisher.Mono;
 public interface WebSocketInterceptor extends WebInterceptor {
 
 	@Override
-	default Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain next) {
-		return next.next(webInput);
+	default Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
+		return chain.next(webInput);
 	}
 
 	/**

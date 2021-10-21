@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
 
 	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain next) {
-		return next.next(webInput).map((output) -> output.transform((builder) -> {
+	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
+		return chain.next(webInput).map((output) -> output.transform((builder) -> {
 			Publisher<?> publisher = output.getData();
 			assertThat(publisher).isNotNull();
 			builder.data(Flux.from(publisher).take(1).concatWith(Flux.never()));

@@ -68,13 +68,12 @@ public abstract class GraphQlTestUtils {
 		return (T) map.get(key);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <T> T checkErrorsAndGetData(@Nullable ExecutionResult result) {
 		assertThat(result).isNotNull();
 		assertThat(result.getErrors()).as("Errors present in GraphQL response").isEmpty();
 		T data = result.getData();
 		assertThat(data).isNotNull();
-		return (T) data;
+		return data;
 	}
 
 }

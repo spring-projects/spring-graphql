@@ -119,13 +119,13 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	private WebInterceptorChain initWebInterceptorChain(List<WebInterceptor> interceptors) {
 
-		WebInterceptorChain targetHandler =
+		WebInterceptorChain endOfChain =
 				webInput -> service.execute(webInput).map((result) -> new WebOutput(webInput, result));
 
 		return interceptors.stream()
 				.reduce(WebInterceptor::andThen)
-				.map((interceptor) -> (WebInterceptorChain) (input) -> interceptor.intercept(input, targetHandler))
-				.orElse(targetHandler);
+				.map((interceptor) -> (WebInterceptorChain) (input) -> interceptor.intercept(input, endOfChain))
+				.orElse(endOfChain);
 	}
 
 	@Nullable
@@ -168,14 +168,12 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 		@Override
 		public Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
-			return this.delegate.handleWebSocketInitialization(payload).contextWrite((context) ->
-					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
+			return this.delegate.handleWebSocketInitialization(payload);
 		}
 
 		@Override
 		public Mono<Void> handleWebSocketCompletion() {
-			return this.delegate.handleWebSocketCompletion().contextWrite((context) ->
-					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
+			return this.delegate.handleWebSocketCompletion();
 		}
 
 	}

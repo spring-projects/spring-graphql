@@ -105,9 +105,9 @@ public class WebInterceptorTests {
 		}
 
 		@Override
-		public Mono<WebOutput> intercept(WebInput input, WebInterceptorChain next) {
+		public Mono<WebOutput> intercept(WebInput input, WebInterceptorChain chain) {
 			this.output.append(":pre").append(this.order);
-			return next.next(input)
+			return chain.next(input)
 					.map((output) -> {
 						this.output.append(":post").append(this.order);
 						return output;

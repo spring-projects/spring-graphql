@@ -25,8 +25,8 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 
 /**
- * Contract for common handling of a GraphQL request received over HTTP or
- * WebSocket, and executed on Spring MVC or Spring WebFlux.
+ * Contract for common handling of a GraphQL request over HTTP or WebSocket,
+ * for use with Spring MVC or Spring WebFlux.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -79,7 +79,12 @@ public interface WebGraphQlHandler {
 	interface Builder {
 
 		/**
-		 * Configure interceptors to be invoked before the target {@code GraphQlService}.
+		 * Configure interceptors to be invoked before the target
+		 * {@code GraphQlService}.
+		 * <p>One of the interceptors can be of type {@link WebSocketInterceptor}
+		 * to handle data from the first {@code ConnectionInit} message expected
+		 * on a GraphQL over WebSocket session, as well as the {@code Complete}
+		 * message expected at the end of a session.
 		 * @param interceptors the interceptors to add
 		 * @return this builder
 		 */

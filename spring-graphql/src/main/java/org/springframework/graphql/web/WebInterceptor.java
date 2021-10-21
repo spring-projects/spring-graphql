@@ -24,16 +24,15 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.Assert;
 
 /**
- * Interceptor for intercepting GraphQL over HTTP or WebSocket requests. Provides
- * information about the HTTP request or WebSocket handshake, allows customization of the
- * {@link ExecutionInput} and of the {@link ExecutionResult} from request execution.
+ * Interceptor for intercepting GraphQL over HTTP or GraphQL over WebSocket
+ * requests. Provides information about the HTTP request or WebSocket handshake,
+ * and allows customization of the {@link ExecutionInput} as well as of the
+ * {@link ExecutionResult}.
  *
- * <p>
- * Interceptors may be declared as beans in Spring configuration and ordered as defined in
- * {@link ObjectProvider#orderedStream()}.
+ * <p> Interceptors are typically declared as beans in Spring configuration and
+ * ordered as defined in {@link ObjectProvider#orderedStream()}.
  *
- * <p>
- * Supported for Spring MVC and WebFlux.
+ * <p> Supported for Spring MVC and WebFlux.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -41,18 +40,20 @@ import org.springframework.util.Assert;
 public interface WebInterceptor {
 
 	/**
-	 * Intercept a request and delegate for further handling and request execution via
-	 * {@link WebGraphQlHandler#handleRequest(WebInput)}.
-	 * @param webInput container with HTTP request information and options to customize
-	 * the {@link ExecutionInput}.
-	 * @param next the rest of the chain to delegate to for request execution
+	 * Intercept a request and possibly delegate to the rest of the chain
+	 * consisting of more interceptors as well as a
+	 * {@link org.springframework.graphql.GraphQlService} at the end to actually
+	 * handle the request through the GraphQL engine.
+	 * @param webInput container for HTTP request information and options to
+	 * customize the {@link ExecutionInput}.
+	 * @param chain the rest of the chain to delegate to for request execution
 	 * @return a {@link Mono} with the result
 	 */
-	Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain next);
+	Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain);
 
 	/**
-	 * Return a composed {@link WebInterceptor} that invokes the current interceptor first
-	 * one and then the one one passed in.
+	 * Return a composed {@link WebInterceptor} that invokes the current
+	 * interceptor first and then the one one passed in.
 	 * @param interceptor the interceptor to compose the current one with
 	 * @return the composed WebInterceptor
 	 */
