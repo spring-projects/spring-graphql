@@ -17,6 +17,7 @@
 package org.springframework.graphql.data.querydsl;
 
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -25,18 +26,7 @@ import java.util.function.Function;
 
 import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Predicate;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLCodeRegistry;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLFieldsContainer;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNamedOutputType;
-import graphql.schema.GraphQLSchemaElement;
-import graphql.schema.GraphQLType;
-import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.GraphQLTypeVisitorStub;
-import graphql.schema.PropertyDataFetcher;
+import graphql.schema.*;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import reactor.core.publisher.Flux;
@@ -118,8 +108,7 @@ public abstract class QuerydslDataFetcher<T> {
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
 
-	// visible to subtypes in the same package
-	final TypeInformation<T> domainType;
+	private final TypeInformation<T> domainType;
 
 	private final QuerydslBinderCustomizer<EntityPath<?>> customizer;
 
@@ -183,6 +172,20 @@ public abstract class QuerydslDataFetcher<T> {
 			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
 
 		return new RegistrationTypeVisitor(executors, reactiveExecutors);
+	}
+
+	protected boolean requiresProjection(Class<?> resultType) {
+		return !resultType.equals(this.domainType.getType());
+	}
+	protected Collection<String> buildPropertyPaths(DataFetchingFieldSelectionSet selection,
+			Class<?> resultType){
+		// Compute selection only for non-projections
+		if(resultType.equals(this.domainType.getType())
+		   || this.domainType.getType().isAssignableFrom(resultType)
+		   || this.domainType.isSubTypeOf(resultType)) {
+			return PropertySelection.create(this.domainType, selection).toList();
+		}
+		return Collections.emptyList();
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -430,12 +433,14 @@ public abstract class QuerydslDataFetcher<T> {
 			return this.executor.findBy(buildPredicate(environment), q -> {
 				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) q;
 
-				if(this.sort.isSorted()){
+				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if(!this.resultType.equals(this.domainType.getType())){
+				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
+				} else {
+					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.first();
@@ -470,12 +475,14 @@ public abstract class QuerydslDataFetcher<T> {
 			return this.executor.findBy(buildPredicate(environment), q -> {
 				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) q;
 
-				if(this.sort.isSorted()){
+				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if(!this.resultType.equals(this.domainType.getType())){
+				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
+				} else {
+					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.all();
@@ -511,12 +518,14 @@ public abstract class QuerydslDataFetcher<T> {
 			return this.executor.findBy(buildPredicate(environment), q -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) q;
 
-				if(this.sort.isSorted()){
+				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if(!this.resultType.equals(this.domainType.getType())){
+				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
+				} else {
+					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.first();
@@ -552,12 +561,14 @@ public abstract class QuerydslDataFetcher<T> {
 			return this.executor.findBy(buildPredicate(environment), q -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) q;
 
-				if(this.sort.isSorted()){
+				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if(!this.resultType.equals(this.domainType.getType())){
+				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
+				} else {
+					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.all();

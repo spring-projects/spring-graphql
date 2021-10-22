@@ -17,6 +17,7 @@
 package org.springframework.graphql.data.querydsl;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.graphql.Author;
 
 public class Book {
 
@@ -24,12 +25,12 @@ public class Book {
 
 	String name;
 
-	String author;
+	Author author;
 
 	public Book() {
 	}
 
-	public Book(Long id, String name, String author) {
+	public Book(Long id, String name, Author author) {
 		this.id = id;
 		this.name = name;
 		this.author = author;
@@ -51,11 +52,11 @@ public class Book {
 		this.name = name;
 	}
 
-	public String getAuthor() {
+	public Author getAuthor() {
 		return this.author;
 	}
 
-	public void setAuthor(String author) {
+	public void setAuthor(Author author) {
 		this.author = author;
 	}
 
