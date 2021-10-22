@@ -33,9 +33,13 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.keyvalue.core.KeyValueTemplate;
+import org.springframework.data.keyvalue.repository.support.KeyValueRepositoryFactory;
+import org.springframework.data.map.MapKeyValueAdapter;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
 import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.Repository;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
@@ -57,16 +61,18 @@ import static org.mockito.Mockito.when;
  */
 class QuerydslDataFetcherTests {
 
+	private KeyValueRepositoryFactory repositoryFactory = new KeyValueRepositoryFactory(new KeyValueTemplate(new MapKeyValueAdapter()));
+	private MockRepository mockRepository = repositoryFactory.getRepository(MockRepository.class);
+
 	@Test
 	void shouldFetchSingleItems() {
-		MockRepository mockRepository = mock(MockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
-		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
+		mockRepository.save(book);
 
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, QuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
 					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, executor, null);
-					WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
+					WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
 
 					// TODO: getData interferes with method overrides
 					assertThat((Object) output.getData()).isEqualTo(
@@ -85,10 +91,9 @@ class QuerydslDataFetcherTests {
 
 	@Test
 	void shouldFetchMultipleItems() {
-		MockRepository mockRepository = mock(MockRepository.class);
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
 		Book book2 = new Book(53L, "Breaking Bad", "Heisenberg");
-		when(mockRepository.findAll(any(Predicate.class))).thenReturn(Arrays.asList(book1, book2));
+		mockRepository.saveAll(Arrays.asList(book1, book2));
 
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, QuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
@@ -97,8 +102,8 @@ class QuerydslDataFetcherTests {
 
 					assertThat((Object) output.getData()).isEqualTo(
 							Collections.singletonMap("books", Arrays.asList(
-									Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"),
-									Collections.singletonMap("name", "Breaking Bad"))));
+									Collections.singletonMap("name", "Breaking Bad"),
+									Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"))));
 				};
 
 		// explicit wiring
@@ -114,7 +119,7 @@ class QuerydslDataFetcherTests {
 	void shouldFavorExplicitWiring() {
 		MockRepository mockRepository = mock(MockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
-		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
+		when(mockRepository.findBy(any(), any())).thenReturn(Optional.of(book));
 
 		// 1) Automatic registration only
 		WebGraphQlHandler handler = initWebGraphQlHandler(null, mockRepository, null);
@@ -136,9 +141,8 @@ class QuerydslDataFetcherTests {
 
 	@Test
 	void shouldFetchSingleItemsWithInterfaceProjection() {
-		MockRepository mockRepository = mock(MockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
-		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
+		mockRepository.save(book);
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
 				.dataFetcher("bookById", QuerydslDataFetcher
@@ -146,7 +150,7 @@ class QuerydslDataFetcherTests {
 						.projectAs(BookProjection.class)
 						.single()));
 
-		WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
+		WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
 
 		assertThat((Object) output.getData()).isEqualTo(
 				Collections.singletonMap("bookById",
@@ -155,9 +159,8 @@ class QuerydslDataFetcherTests {
 
 	@Test
 	void shouldFetchSingleItemsWithDtoProjection() {
-		MockRepository mockRepository = mock(MockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
-		when(mockRepository.findOne(any())).thenReturn(Optional.of(book));
+		mockRepository.save(book);
 
 		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
 				.dataFetcher("bookById", QuerydslDataFetcher
@@ -165,7 +168,7 @@ class QuerydslDataFetcherTests {
 						.projectAs(BookDto.class)
 						.single()));
 
-		WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
+		WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
 
 		assertThat((Object) output.getData()).isEqualTo(
 				Collections.singletonMap("bookById",
@@ -187,7 +190,7 @@ class QuerydslDataFetcherTests {
 
 
 		ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
-		verify(mockRepository).findAll(predicateCaptor.capture());
+		verify(mockRepository).findBy(predicateCaptor.capture(), any());
 
 		Predicate predicate = predicateCaptor.getValue();
 		assertThat(predicate).isEqualTo(QBook.book.name.startsWith("H").and(QBook.book.author.eq("Doug")));
@@ -197,7 +200,7 @@ class QuerydslDataFetcherTests {
 	void shouldReactivelyFetchSingleItems() {
 		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
-		when(mockRepository.findOne(any())).thenReturn(Mono.just(book));
+		when(mockRepository.findBy(any(), any())).thenReturn(Mono.just(book));
 
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, ReactiveQuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
@@ -224,7 +227,7 @@ class QuerydslDataFetcherTests {
 		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", "Douglas Adams");
 		Book book2 = new Book(53L, "Breaking Bad", "Heisenberg");
-		when(mockRepository.findAll((Predicate) any())).thenReturn(Flux.just(book1, book2));
+		when(mockRepository.findBy(any(), any())).thenReturn(Flux.just(book1, book2));
 
 		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, ReactiveQuerydslPredicateExecutor<?>> tester =
 				(wiringConfigurer, executor) -> {
@@ -248,7 +251,7 @@ class QuerydslDataFetcherTests {
 
 
 	@GraphQlRepository
-	interface MockRepository extends Repository<Book, Long>, QuerydslPredicateExecutor<Book> {
+	interface MockRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book> {
 
 	}
 

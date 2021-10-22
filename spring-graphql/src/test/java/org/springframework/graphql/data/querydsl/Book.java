@@ -16,9 +16,11 @@
 
 package org.springframework.graphql.data.querydsl;
 
+import org.springframework.data.annotation.Id;
+
 public class Book {
 
-	Long id;
+	@Id Long id;
 
 	String name;
 
