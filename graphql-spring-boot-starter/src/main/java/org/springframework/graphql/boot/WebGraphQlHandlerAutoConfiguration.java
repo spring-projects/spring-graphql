@@ -16,23 +16,31 @@
 
 package org.springframework.graphql.boot;
 
+import java.util.stream.Collectors;
+
 import graphql.GraphQL;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.web.WebInterceptor;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for creating a
- * {@link GraphQlService}.
+ * {@link WebGraphQlHandler}.
  *
  * @author Brian Clozel
  * @since 1.0.0
@@ -41,11 +49,12 @@ import org.springframework.graphql.execution.GraphQlSource;
 @ConditionalOnClass({GraphQL.class, GraphQlService.class})
 @ConditionalOnMissingBean(GraphQlService.class)
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
-public class GraphQlServiceAutoConfiguration {
+public class WebGraphQlHandlerAutoConfiguration {
 
 	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 
 	@Bean
+	@ConditionalOnMissingBean
 	public BatchLoaderRegistry batchLoaderRegistry() {
 		return this.batchLoaderRegistry;
 	}
@@ -56,6 +65,23 @@ public class GraphQlServiceAutoConfiguration {
 		ExecutionGraphQlService service = new ExecutionGraphQlService(graphQlSource);
 		service.addDataLoaderRegistrar(this.batchLoaderRegistry);
 		return service;
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public AnnotatedControllerConfigurer annotatedControllerConfigurer() {
+		AnnotatedControllerConfigurer annotatedControllerConfigurer = new AnnotatedControllerConfigurer();
+		annotatedControllerConfigurer.setConversionService(new DefaultFormattingConversionService());
+		return annotatedControllerConfigurer;
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public WebGraphQlHandler webGraphQlHandler(GraphQlService service, ObjectProvider<WebInterceptor> interceptorsProvider,
+			ObjectProvider<ThreadLocalAccessor> accessorsProvider) {
+		return WebGraphQlHandler.builder(service)
+				.interceptors(interceptorsProvider.orderedStream().collect(Collectors.toList()))
+				.threadLocalAccessors(accessorsProvider.orderedStream().collect(Collectors.toList())).build();
 	}
 
 }

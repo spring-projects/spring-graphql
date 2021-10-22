@@ -23,7 +23,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.boot.GraphQlProperties;
-import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -34,20 +34,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
- * Tests for {@link GraphQlTesterAutoConfiguration}
+ * Tests for {@link WebGraphQlTesterAutoConfiguration}
  *
  * @author Brian Clozel
  */
 class GraphQlTesterAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(GraphQlTesterAutoConfiguration.class));
+			.withConfiguration(AutoConfigurations.of(WebGraphQlTesterAutoConfiguration.class));
 
 	@Test
 	void shouldNotBeConfiguredWithoutGraphQlHandlerNorWebTestClient() {
 		this.contextRunner.run((context) -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).doesNotHaveBean(GraphQlTester.class);
+			assertThat(context).doesNotHaveBean(WebGraphQlTester.class);
 		});
 	}
 
@@ -55,7 +55,7 @@ class GraphQlTesterAutoConfigurationTests {
 	void shouldBeConfiguredWhenGraphQlHandlerPresent() {
 		this.contextRunner.withUserConfiguration(HandlerConfiguration.class).run((context) -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(GraphQlTester.class);
+			assertThat(context).hasSingleBean(WebGraphQlTester.class);
 		});
 	}
 
@@ -63,7 +63,7 @@ class GraphQlTesterAutoConfigurationTests {
 	void shouldBeConfiguredWhenWebTestClientPresent() {
 		this.contextRunner.withUserConfiguration(WebTestClientConfiguration.class).run((context) -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(GraphQlTester.class);
+			assertThat(context).hasSingleBean(WebGraphQlTester.class);
 		});
 	}
 

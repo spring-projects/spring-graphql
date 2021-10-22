@@ -17,14 +17,11 @@
 package org.springframework.graphql.boot;
 
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 import graphql.GraphQL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -37,12 +34,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.format.support.FormattingConversionService;
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.web.webflux.GraphiQlHandler;
@@ -75,26 +68,11 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnClass({GraphQL.class, GraphQlHttpHandler.class})
 @ConditionalOnBean(GraphQlSource.class)
-@AutoConfigureAfter(GraphQlServiceAutoConfiguration.class)
+@AutoConfigureAfter(WebGraphQlHandlerAutoConfiguration.class)
 @EnableConfigurationProperties(GraphQlCorsProperties.class)
 public class GraphQlWebFluxAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebFluxAutoConfiguration.class);
-
-	@Bean
-	public AnnotatedControllerConfigurer annotatedControllerConfigurer(@Qualifier("webFluxConversionService") FormattingConversionService conversionService) {
-		AnnotatedControllerConfigurer annotatedControllerConfigurer = new AnnotatedControllerConfigurer();
-		annotatedControllerConfigurer.setConversionService(conversionService);
-		return annotatedControllerConfigurer;
-	}
-
-	@Bean
-	@ConditionalOnBean(GraphQlService.class)
-	@ConditionalOnMissingBean
-	public WebGraphQlHandler webGraphQlHandler(GraphQlService service, ObjectProvider<WebInterceptor> interceptors) {
-		return WebGraphQlHandler.builder(service)
-				.interceptors(interceptors.orderedStream().collect(Collectors.toList())).build();
-	}
 
 	@Bean
 	@ConditionalOnMissingBean

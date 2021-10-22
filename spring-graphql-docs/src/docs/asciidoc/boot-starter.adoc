@@ -119,7 +119,7 @@ spring.graphql.schema.printer.enabled=false
 The GraphQL Java `RuntimeWiring.Builder` can be used to register ``DataFetcher``s,
 type resolvers, custom scalar types, and more. You can declare `RuntimeWiringConfigurer`
 beans in your Spring config to get access to the `RuntimeWiring.Builder`. The Boot
-starter detects such beans adds them to <<index#execution-graphqlsource,GraphQlSource.Builder>>.
+starter detects such beans and adds them to <<index#execution-graphqlsource,GraphQlSource.Builder>>.
 
 Typically, however, applications will not implement ``DataFetcher`` directly and will
 instead create <<index#controllers,annotated controllers>>. The Boot
@@ -364,8 +364,12 @@ A GraphQL error metric counter is available at `/actuator/metrics/graphql.error`
 [[boot-graphql-testing]]
 == Testing
 
-For Spring GraphQL testing support, add the below to your classpath and that will make
-a `WebGraphQlTester` available for injection into tests:
+Spring GraphQL offers many ways to test your application: with or without a live server, using the transport
+or testing directly the engine. You'll be using a lot the <<testing#testing-webgraphqltester,WebGraphQlTester>>,
+so make sure you're familiar with it before writing your first test.
+
+The Spring Boot starter will help you and configure the testing infrastructure; all you to start
+is to add the following to your classpath:
 
 [source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
 .Gradle
@@ -374,7 +378,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.graphql:spring-graphql-test:{spring-graphql-version}'
 
-	// Also add this, unless `spring-boot-starter-webflux` is also present
+	// Also add this, unless spring-boot-starter-webflux is also present
 	testImplementation 'org.springframework:spring-webflux'
 
 	// ...
@@ -432,6 +436,89 @@ repositories {
 </repositories>
 ----
 
+In the next sections, we'll see the various options available for testing your Spring GraphQL application.
+
+[[boot-graphql-testing-graphqltest]]
+=== Testing GraphQL components only
+
+You can test your Spring GraphQL `@Controller` and GraphQL components with the `@GraphQlTest` annotation.
+`@GraphQlTest` auto-configures the Spring GraphQL infrastructure ad limits scanned beans to `@Controller`,
+`RuntimeWiringConfigurer`, `JsonComponent`, `WebInterceptor`, `Converter`, `GenericConverter`
+Regular `@Component` and `@ConfigurationProperties` beans are not scanned when the `@GraphQlTest` annotation is used.
+`@EnableConfigurationProperties` can be used to include `@ConfigurationProperties` beans.
+
+This arrangement is quite similar to the
+{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.spring-mvc-tests[@WevMvcTest support],
+except that the web framework of choice (Spring MVC or Spring WebFlux) is not involved at all as requests are performed
+directly against the `WebGraphQlHandler`.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@GraphQlTest(controllers = BookController.class)
+public class BookControllerTests {
+
+	@Autowired
+	private WebGraphQlTester graphQlTester;
+
+	@MockBean
+	private BookRepository bookRepository;
+
+	@Test
+	void bookdByIdShouldReturnSpringBook() {
+		given(this.bookRepository.findById(42L)).willReturn(new Book(42L, "Spring GraphQL"));
+		String query = //
+		graphQlTester.query(query).execute()
+				.path("data.bookById.name").entity(String.class).isEqualTo("Spring GraphQL");
+	}
+
+}
+----
+
+This mode is also useful for testing subscriptions without involving the transport protocol.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@GraphQlTest(controllers = GreetingController.class)
+public class GreetingControllerTests {
+
+	@Autowired
+	private WebGraphQlTester graphQlTester;
+
+	@Test
+	void subscription() {
+		Flux<String> result = this.graphQlTester.query("subscription { greetings }")
+				.executeSubscription()
+				.toFlux("greetings", String.class);
+
+		// Use StepVerifier from "reactor-test" to verify the stream...
+		StepVerifier.create(result)
+				.expectNext("Hi")
+				.expectNext("Bonjour")
+				.expectNext("Hola")
+				.verifyComplete();
+	}
+
+}
+----
+
+The above subscription test is performed directly against the `WebGraphQlHandler` that
+both HTTP and WebSocket transports delegate to. It passes through the `WebInterceptor`
+chain and then calls GraphQL Java which returns a Reactive Streams `Publisher`.
+
+[NOTE]
+.Testing multiple controllers with `@GraphQlTest`
+====
+Because GraphQL is not about REST endpoints but navigating relations in an object graph,
+multiple `@Controller` components can be involved in a single query.
+For this case, `@GraphQlTest` supports testing multiple controllers with its `controllers` annotation attribute.
+====
+
+[[boot-graphql-testing-mock]]
+=== Testing the HTTP transport with a Mock server
+
+If your test requires more integration with application components, you can choose to test the entire
+application and involve the transport layers and the Web framework.
+
 For GraphQL over HTTP with Spring MVC, using `MockMvc` as the server:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -463,13 +550,18 @@ public class MockMvcGraphQlTests {
 }
 ----
 
-For GraphQL over HTTP with a
-{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.with-running-server[running server]:
+
+
+[[boot-graphql-testing-live]]
+=== Testing the HTTP transport with a live server
+
+You can also run tests against  the full application infrastructure, including a live server.
+Just like {spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.with-running-server[REST endpoints testing],
+you can use a `WebEnvironment.RANDOM_PORT` environment and test queries using `WebGraphQlTester`.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureGraphQlTester
 public class MockMvcGraphQlTests {
 
 	@Autowired
@@ -477,35 +569,3 @@ public class MockMvcGraphQlTests {
 
 }
 ----
-
-Subscriptions can be tested without WebSocket as shown below:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@SpringBootTest
-@AutoConfigureGraphQlTester
-public class MockMvcGraphQlTests {
-
-	@Autowired
-	private WebGraphQlTester graphQlTester;
-
-	@Test
-	void subscription() {
-		Flux<String> result = this.graphQlTester.query("subscription { greetings }")
-				.executeSubscription()
-				.toFlux("greetings", String.class);
-
-		// Use StepVerifier from "reactor-test" to verify the stream...
-		StepVerifier.create(result)
-				.expectNext("Hi")
-				.expectNext("Bonjour")
-				.expectNext("Hola")
-				.verifyComplete();
-	}
-
-}
-----
-
-The above subscription test is performed directly against the `WebGraphQlHandler` that
-both HTTP and WebSocket transports delegate to. It passes through the `WebInterceptor`
-chain and then calls GraphQL Java which returns a Reactive Streams `Publisher`.

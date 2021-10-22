@@ -24,8 +24,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 /**
  * Main entry point for testing GraphQL over a Web transport with requests
  * executed {@link #create(WebTestClient) via WebTestClient} or
- * {@link #create(WebGraphQlHandler) via WebGraphQlHandler}. See the below for
- * examples with different scenarios.
+ * {@link #create(WebGraphQlHandler) via WebGraphQlHandler}.
+ *
  *
  * <p>
  * GraphQL requests to Spring MVC without an HTTP server: <pre class="code">

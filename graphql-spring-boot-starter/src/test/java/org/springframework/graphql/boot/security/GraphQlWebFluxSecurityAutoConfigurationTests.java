@@ -35,7 +35,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.boot.Book;
 import org.springframework.graphql.boot.GraphQlAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlDataFetchers;
-import org.springframework.graphql.boot.GraphQlServiceAutoConfiguration;
+import org.springframework.graphql.boot.WebGraphQlHandlerAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlWebFluxAutoConfiguration;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -66,7 +66,7 @@ class GraphQlWebFluxSecurityAutoConfigurationTests {
 	private final ReactiveWebApplicationContextRunner contextRunner = new ReactiveWebApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(HttpHandlerAutoConfiguration.class, WebFluxAutoConfiguration.class,
 					CodecsAutoConfiguration.class, JacksonAutoConfiguration.class, GraphQlAutoConfiguration.class,
-					GraphQlServiceAutoConfiguration.class, GraphQlWebFluxAutoConfiguration.class,
+					WebGraphQlHandlerAutoConfiguration.class, GraphQlWebFluxAutoConfiguration.class,
 					GraphQlWebFluxSecurityAutoConfiguration.class, ReactiveSecurityAutoConfiguration.class))
 			.withUserConfiguration(DataFetchersConfiguration.class, SecurityConfig.class)
 			.withPropertyValues(
