@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
@@ -47,9 +46,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.data.mapping.model.EntityInstantiators;
-import org.springframework.data.projection.ProjectionFactory;
-import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
 import org.springframework.data.querydsl.SimpleEntityPathResolver;
@@ -60,8 +57,9 @@ import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
+import org.springframework.data.repository.query.FluentQuery;
+import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
 import org.springframework.data.util.ClassTypeInformation;
-import org.springframework.data.util.Streamable;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.lang.Nullable;
@@ -120,11 +118,12 @@ public abstract class QuerydslDataFetcher<T> {
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
 
-	private final TypeInformation<T> domainType;
+	// visible to subtypes in the same package
+	final TypeInformation<T> domainType;
 
 	private final QuerydslBinderCustomizer<EntityPath<?>> customizer;
 
-	QuerydslDataFetcher(ClassTypeInformation<T> domainType, QuerydslBinderCustomizer<EntityPath<?>> customizer) {
+	QuerydslDataFetcher(TypeInformation<T> domainType, QuerydslBinderCustomizer<EntityPath<?>> customizer) {
 		this.customizer = customizer;
 		this.domainType = domainType;
 	}
@@ -140,10 +139,13 @@ public abstract class QuerydslDataFetcher<T> {
 	public static <T> Builder<T, T> builder(QuerydslPredicateExecutor<T> executor) {
 		Class<?> repositoryInterface = getRepositoryInterface(executor);
 		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
+		Class<T> domainType = (Class<T>) metadata.getDomainType();
 
 		return new Builder<>(executor,
-				(ClassTypeInformation<T>) ClassTypeInformation.from(metadata.getDomainType()),
-				(bindings, root) -> {}, Function.identity());
+				ClassTypeInformation.from(domainType),
+				domainType,
+				Sort.unsorted(),
+				(bindings, root) -> {});
 	}
 
 	/**
@@ -157,10 +159,13 @@ public abstract class QuerydslDataFetcher<T> {
 	public static <T> ReactiveBuilder<T, T> builder(ReactiveQuerydslPredicateExecutor<T> executor) {
 		Class<?> repositoryInterface = getRepositoryInterface(executor);
 		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
+		Class<T> domainType = (Class<T>) metadata.getDomainType();
 
 		return new ReactiveBuilder<>(executor,
-				(ClassTypeInformation<T>) ClassTypeInformation.from(metadata.getDomainType()),
-				(bindings, root) -> {}, Function.identity());
+				ClassTypeInformation.from(domainType),
+				domainType,
+				Sort.unsorted(),
+				(bindings, root) -> {});
 	}
 
 	/**
@@ -192,32 +197,7 @@ public abstract class QuerydslDataFetcher<T> {
 			parameters.put(entry.getKey(), Collections.singletonList(entry.getValue()));
 		}
 
-		Predicate predicate = BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
-
-		// Temporary workaround for this fix in Spring Data:
-		// https://github.com/spring-projects/spring-data-commons/issues/2396
-
-		if (predicate == null) {
-			predicate = new BooleanBuilder();
-		}
-
-		return predicate;
-	}
-
-	private static <S, T> Function<S, T> createProjection(Class<T> projectionType) {
-		// TODO: SpelAwareProxyProjectionFactory, DtoMappingContext, and EntityInstantiators
-		//  should be reused to avoid duplicate class metadata.
-		Assert.notNull(projectionType, "Projection type must not be null");
-
-		if (projectionType.isInterface()) {
-			ProjectionFactory projectionFactory = new SpelAwareProxyProjectionFactory();
-			return element -> projectionFactory.createProjection(projectionType, element);
-		}
-
-		DtoInstantiatingConverter<T> converter = new DtoInstantiatingConverter<>(projectionType,
-				new DtoMappingContext(), new EntityInstantiators());
-
-		return converter::convert;
+		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
 	}
 
 	private static Class<?> getRepositoryInterface(Object executor) {
@@ -251,18 +231,22 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final ClassTypeInformation<T> domainType;
 
+		private final Class<R> resultType;
+
+		private final Sort sort;
+
 		private final QuerydslBinderCustomizer<? extends EntityPath<T>> customizer;
 
-		private final Function<T, R> resultConverter;
-
 		Builder(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
-				Function<T, R> resultConverter) {
+				Class<R> resultType,
+				Sort sort,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			this.executor = executor;
 			this.domainType = domainType;
+			this.resultType = resultType;
+			this.sort = sort;
 			this.customizer = customizer;
-			this.resultConverter = resultConverter;
 		}
 
 		/**
@@ -278,7 +262,19 @@ public abstract class QuerydslDataFetcher<T> {
 		public <P> Builder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
 			return new Builder<>(
-					this.executor, this.domainType, this.customizer, createProjection(projectionType));
+					this.executor, this.domainType, projectionType, this.sort, this.customizer);
+		}
+
+		/**
+		 * Apply a {@link Sort} order.
+		 * @param sort the default sort order
+		 * @return a new {@link Builder} instance with all previously configured
+		 * options and {@code Sort} applied
+		 */
+		public Builder<T, R> sortBy(Sort sort) {
+			Assert.notNull(sort, "Sort must not be null");
+			return new Builder<>(
+					this.executor, this.domainType, this.resultType, sort, customizer);
 		}
 
 		/**
@@ -291,7 +287,7 @@ public abstract class QuerydslDataFetcher<T> {
 		public Builder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
 			return new Builder<>(
-					this.executor, this.domainType, customizer, this.resultConverter);
+					this.executor, this.domainType, this.resultType, this.sort, customizer);
 		}
 
 		/**
@@ -300,7 +296,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public DataFetcher<R> single() {
 			return new SingleEntityFetcher<>(
-					this.executor, this.domainType, this.customizer, this.resultConverter);
+					this.executor, this.domainType, this.resultType, this.sort, this.customizer);
 		}
 
 		/**
@@ -309,7 +305,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public DataFetcher<Iterable<R>> many() {
 			return new ManyEntityFetcher<>(
-					this.executor, this.domainType, this.customizer, this.resultConverter);
+					this.executor, this.domainType, this.resultType, this.sort, this.customizer);
 		}
 
 	}
@@ -325,21 +321,25 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
-		private final ClassTypeInformation<T> domainType;
+		private final TypeInformation<T> domainType;
+
+		private final Class<R> resultType;
+
+		private final Sort sort;
 
 		private final QuerydslBinderCustomizer<? extends EntityPath<T>> customizer;
 
-		private final Function<T, R> resultConverter;
-
 		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor,
-				ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
-				Function<T, R> resultConverter) {
+				TypeInformation<T> domainType,
+				Class<R> resultType,
+				Sort sort,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			this.executor = executor;
 			this.domainType = domainType;
+			this.resultType = resultType;
+			this.sort = sort;
 			this.customizer = customizer;
-			this.resultConverter = resultConverter;
 		}
 
 		/**
@@ -355,7 +355,19 @@ public abstract class QuerydslDataFetcher<T> {
 		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
 			return new ReactiveBuilder<>(
-					this.executor, this.domainType, this.customizer, createProjection(projectionType));
+					this.executor, this.domainType, projectionType, this.sort, this.customizer);
+		}
+
+		/**
+		 * Apply a {@link Sort} order.
+		 * @param sort the default sort order
+		 * @return a new {@link Builder} instance with all previously configured
+		 * options and {@code Sort} applied
+		 */
+		public ReactiveBuilder<T, R> sortBy(Sort sort) {
+			Assert.notNull(sort, "Sort must not be null");
+			return new ReactiveBuilder<>(
+					this.executor, this.domainType, this.resultType, sort, customizer);
 		}
 
 		/**
@@ -368,7 +380,7 @@ public abstract class QuerydslDataFetcher<T> {
 		public ReactiveBuilder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
 			return new ReactiveBuilder<>(
-					this.executor, this.domainType, customizer, this.resultConverter);
+					this.executor, this.domainType, this.resultType, this.sort, customizer);
 		}
 
 		/**
@@ -377,7 +389,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public DataFetcher<Mono<R>> single() {
 			return new ReactiveSingleEntityFetcher<>(
-					this.executor, this.domainType, this.customizer, this.resultConverter);
+					this.executor, this.domainType, this.resultType, this.sort, this.customizer);
 		}
 
 		/**
@@ -386,7 +398,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public DataFetcher<Flux<R>> many() {
 			return new ReactiveManyEntityFetcher<>(
-					this.executor, this.domainType, this.customizer, this.resultConverter);
+					this.executor, this.domainType, this.resultType, this.sort, this.customizer);
 		}
 
 	}
@@ -395,24 +407,39 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
-		private final Function<T, R> resultConverter;
+		private final Class<R> resultType;
+
+		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		SingleEntityFetcher(QuerydslPredicateExecutor<T> executor,
-				ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
-				Function<T, R> resultConverter) {
+				TypeInformation<T> domainType,
+				Class<R> resultType,
+				Sort sort,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
-			this.resultConverter = resultConverter;
+			this.resultType = resultType;
+			this.sort = sort;
 		}
 
 		@Override
-		@SuppressWarnings("ConstantConditions")
+		@SuppressWarnings({"ConstantConditions", "unchecked"})
 		public R get(DataFetchingEnvironment environment) {
-			Predicate predicate = buildPredicate(environment);
-			return this.executor.findOne(predicate).map(this.resultConverter).orElse(null);
+			return this.executor.findBy(buildPredicate(environment), q -> {
+				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) q;
+
+				if(this.sort.isSorted()){
+					queryToUse = queryToUse.sortBy(this.sort);
+				}
+
+				if(!this.resultType.equals(this.domainType.getType())){
+					queryToUse = queryToUse.as(this.resultType);
+				}
+
+				return queryToUse.first();
+			}).orElse(null);
 		}
 
 	}
@@ -421,22 +448,38 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
-		private final Function<T, R> resultConverter;
+		private final Class<R> resultType;
+
+		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		ManyEntityFetcher(QuerydslPredicateExecutor<T> executor,
-				ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
-				Function<T, R> resultConverter) {
+				TypeInformation<T> domainType,
+				Class<R> resultType,
+				Sort sort,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
-			this.resultConverter = resultConverter;
+			this.resultType = resultType;
+			this.sort = sort;
 		}
 
 		@Override
+		@SuppressWarnings("unchecked")
 		public Iterable<R> get(DataFetchingEnvironment environment) {
-			Predicate predicate = buildPredicate(environment);
-			return Streamable.of(this.executor.findAll(predicate)).map(this.resultConverter).toList();
+			return this.executor.findBy(buildPredicate(environment), q -> {
+				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) q;
+
+				if(this.sort.isSorted()){
+					queryToUse = queryToUse.sortBy(this.sort);
+				}
+
+				if(!this.resultType.equals(this.domainType.getType())){
+					queryToUse = queryToUse.as(this.resultType);
+				}
+
+				return queryToUse.all();
+			});
 		}
 
 	}
@@ -445,22 +488,39 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
-		private final Function<T, R> resultConverter;
+		private final Class<R> resultType;
+
+		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		ReactiveSingleEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
-				ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
-				Function<T, R> resultConverter) {
+				TypeInformation<T> domainType,
+				Class<R> resultType,
+				Sort sort,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
-			this.resultConverter = resultConverter;
+			this.resultType = resultType;
+			this.sort = sort;
 		}
 
 		@Override
+		@SuppressWarnings("unchecked")
 		public Mono<R> get(DataFetchingEnvironment environment) {
-			return this.executor.findOne(buildPredicate(environment)).map(this.resultConverter);
+			return this.executor.findBy(buildPredicate(environment), q -> {
+				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) q;
+
+				if(this.sort.isSorted()){
+					queryToUse = queryToUse.sortBy(this.sort);
+				}
+
+				if(!this.resultType.equals(this.domainType.getType())){
+					queryToUse = queryToUse.as(this.resultType);
+				}
+
+				return queryToUse.first();
+			});
 		}
 
 	}
@@ -469,22 +529,39 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
-		private final Function<T, R> resultConverter;
+		private final Class<R> resultType;
+
+		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		ReactiveManyEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
-				ClassTypeInformation<T> domainType,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer,
-				Function<T, R> resultConverter) {
+				TypeInformation<T> domainType,
+				Class<R> resultType,
+				Sort sort,
+				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
-			this.resultConverter = resultConverter;
+			this.resultType = resultType;
+			this.sort = sort;
 		}
 
 		@Override
+		@SuppressWarnings("unchecked")
 		public Flux<R> get(DataFetchingEnvironment environment) {
-			return this.executor.findAll(buildPredicate(environment)).map(this.resultConverter);
+			return this.executor.findBy(buildPredicate(environment), q -> {
+				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) q;
+
+				if(this.sort.isSorted()){
+					queryToUse = queryToUse.sortBy(this.sort);
+				}
+
+				if(!this.resultType.equals(this.domainType.getType())){
+					queryToUse = queryToUse.as(this.resultType);
+				}
+
+				return queryToUse.all();
+			});
 		}
 
 	}
