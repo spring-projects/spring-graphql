@@ -525,7 +525,7 @@ For GraphQL over HTTP with Spring MVC, using `MockMvc` as the server:
 ----
 @SpringBootTest
 @AutoConfigureMockMvc
-@AutoConfigureGraphQlTester
+@AutoConfigureWebGraphQlTester
 public class MockMvcGraphQlTests {
 
 	@Autowired
@@ -541,7 +541,7 @@ For GraphQL over HTTP with Spring WebFlux, using a
 ----
 @SpringBootTest
 @AutoConfigureWebTestClient
-@AutoConfigureGraphQlTester
+@AutoConfigureWebGraphQlTester
 public class MockMvcGraphQlTests {
 
 	@Autowired
