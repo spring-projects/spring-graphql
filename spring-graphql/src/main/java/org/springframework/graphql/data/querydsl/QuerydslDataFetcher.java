@@ -59,13 +59,15 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 /**
- * Entry point to create {@link DataFetcher} using repositories through Querydsl.
- * Exposes builders accepting {@link QuerydslPredicateExecutor} or
- * {@link ReactiveQuerydslPredicateExecutor} that support customization of bindings
- * and interface- and DTO projections. Instances can be created through a
- * {@link #builder(QuerydslPredicateExecutor) builder} to query for
- * {@link Builder#single()} or {@link Builder#many()} objects.
- * <p>Example:
+ * Main class to create a {@link DataFetcher} from a Querydsl repository.
+ * To create an instance, use one of the following:
+ * <ul>
+ * <li>{@link #builder(QuerydslPredicateExecutor)}
+ * <li>{@link #builder(ReactiveQuerydslPredicateExecutor)}
+ * </ul>
+ *
+ * <p>For example:
+ *
  * <pre class="code">
  * interface BookRepository extends
  *         Repository&lt;Book, String&gt;, QuerydslPredicateExecutor&lt;Book&gt;{}
@@ -73,25 +75,16 @@ import org.springframework.util.StringUtils;
  * TypeRuntimeWiring wiring = … ;
  * BookRepository repository = … ;
  *
- * wiring.dataFetcher("books", QuerydslDataFetcher.builder(repository).many())
- *       .dataFetcher("book", QuerydslDataFetcher.builder(repository).single());
+ * DataFetcher&lt;?&gt; forMany =
+ *         wiring.dataFetcher("books", QuerydslDataFetcher.builder(repository).many());
+ *
+ * DataFetcher&lt;?&gt; forSingle =
+ *         wiring.dataFetcher("book", QuerydslDataFetcher.builder(repository).single());
  * </pre>
  *
- * <p>
- * {@link DataFetcher} returning reactive types such as {@link Mono} and {@link Flux}
- * can be constructed from a {@link ReactiveQuerydslPredicateExecutor} using
- * {@link #builder(ReactiveQuerydslPredicateExecutor) builder}.
- * <p>For example:
- * <pre class="code">
- * interface BookRepository extends
- *         Repository&lt;Book, String&gt;, ReactiveQuerydslPredicateExecutor&lt;Book&gt;{}
- *
- * TypeRuntimeWiring wiring = …;
- * BookRepository repository = …;
- *
- * wiring.dataFetcher("books", QuerydslDataFetcher.builder(repository).many())
- *       .dataFetcher("book", QuerydslDataFetcher.builder(repository).single());
- * </pre>
+ * <p>See methods on {@link Builder} and {@link ReactiveBuilder} for further
+ * options on GraphQL Query argument to Querydsl Predicate bindings, result
+ * projections, and sorting.
  *
  * @param <T> returned result type
  * @author Mark Paluch
@@ -108,14 +101,54 @@ public abstract class QuerydslDataFetcher<T> {
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
 
+
 	private final TypeInformation<T> domainType;
 
 	private final QuerydslBinderCustomizer<EntityPath<?>> customizer;
 
+
 	QuerydslDataFetcher(TypeInformation<T> domainType, QuerydslBinderCustomizer<EntityPath<?>> customizer) {
-		this.customizer = customizer;
 		this.domainType = domainType;
+		this.customizer = customizer;
 	}
+
+
+	/**
+	 * Prepare a {@link Predicate} from GraphQL query arguments, also applying
+	 * any {@link QuerydslBinderCustomizer} that may have been configured.
+	 * @param environment contextual info for the GraphQL query
+	 * @return the resulting predicate
+	 */
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	protected Predicate buildPredicate(DataFetchingEnvironment environment) {
+		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
+		QuerydslBindings bindings = new QuerydslBindings();
+
+		EntityPath<?> path = SimpleEntityPathResolver.INSTANCE.createPath(this.domainType.getType());
+		this.customizer.customize(bindings, path);
+
+		for (Map.Entry<String, Object> entry : environment.getArguments().entrySet()) {
+			parameters.put(entry.getKey(), Collections.singletonList(entry.getValue()));
+		}
+
+		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
+	}
+
+	protected boolean requiresProjection(Class<?> resultType) {
+		return !resultType.equals(this.domainType.getType());
+	}
+
+	protected Collection<String> buildPropertyPaths(DataFetchingFieldSelectionSet selection, Class<?> resultType){
+
+		// Compute selection only for non-projections
+		if (this.domainType.getType().equals(resultType) ||
+				this.domainType.getType().isAssignableFrom(resultType) ||
+				this.domainType.isSubTypeOf(resultType)) {
+			return PropertySelection.create(this.domainType, selection).toList();
+		}
+		return Collections.emptyList();
+	}
+
 
 	/**
 	 * Create a new {@link Builder} accepting {@link QuerydslPredicateExecutor}
@@ -124,17 +157,8 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param <T> result type
 	 * @return a new builder
 	 */
-	@SuppressWarnings("unchecked")
 	public static <T> Builder<T, T> builder(QuerydslPredicateExecutor<T> executor) {
-		Class<?> repositoryInterface = getRepositoryInterface(executor);
-		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
-		Class<T> domainType = (Class<T>) metadata.getDomainType();
-
-		return new Builder<>(executor,
-				ClassTypeInformation.from(domainType),
-				domainType,
-				Sort.unsorted(),
-				(bindings, root) -> {});
+		return new Builder<>(executor, getDomainType(executor));
 	}
 
 	/**
@@ -144,17 +168,8 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param <T> result type
 	 * @return a new builder
 	 */
-	@SuppressWarnings("unchecked")
 	public static <T> ReactiveBuilder<T, T> builder(ReactiveQuerydslPredicateExecutor<T> executor) {
-		Class<?> repositoryInterface = getRepositoryInterface(executor);
-		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
-		Class<T> domainType = (Class<T>) metadata.getDomainType();
-
-		return new ReactiveBuilder<>(executor,
-				ClassTypeInformation.from(domainType),
-				domainType,
-				Sort.unsorted(),
-				(bindings, root) -> {});
+		return new ReactiveBuilder<>(executor, getDomainType(executor));
 	}
 
 	/**
@@ -174,33 +189,12 @@ public abstract class QuerydslDataFetcher<T> {
 		return new RegistrationTypeVisitor(executors, reactiveExecutors);
 	}
 
-	protected boolean requiresProjection(Class<?> resultType) {
-		return !resultType.equals(this.domainType.getType());
-	}
-	protected Collection<String> buildPropertyPaths(DataFetchingFieldSelectionSet selection,
-			Class<?> resultType){
-		// Compute selection only for non-projections
-		if(resultType.equals(this.domainType.getType())
-		   || this.domainType.getType().isAssignableFrom(resultType)
-		   || this.domainType.isSubTypeOf(resultType)) {
-			return PropertySelection.create(this.domainType, selection).toList();
-		}
-		return Collections.emptyList();
-	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	protected Predicate buildPredicate(DataFetchingEnvironment environment) {
-		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
-		QuerydslBindings bindings = new QuerydslBindings();
-
-		EntityPath<?> path = SimpleEntityPathResolver.INSTANCE.createPath(this.domainType.getType());
-		this.customizer.customize(bindings, path);
-
-		for (Map.Entry<String, Object> entry : environment.getArguments().entrySet()) {
-			parameters.put(entry.getKey(), Collections.singletonList(entry.getValue()));
-		}
-
-		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
+	@SuppressWarnings("unchecked")
+	private static <T> Class<T> getDomainType(Object executor) {
+		Class<?> repositoryInterface = getRepositoryInterface(executor);
+		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
+		return (Class<T>) metadata.getDomainType();
 	}
 
 	private static Class<?> getRepositoryInterface(Object executor) {
@@ -221,6 +215,7 @@ public abstract class QuerydslDataFetcher<T> {
 				String.format("Cannot resolve repository interface from %s", executor));
 	}
 
+
 	/**
 	 * Builder for a Querydsl-based {@link DataFetcher}. Note that builder
 	 * instances are immutable and return a new instance of the builder
@@ -240,10 +235,17 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final QuerydslBinderCustomizer<? extends EntityPath<T>> customizer;
 
+		@SuppressWarnings("unchecked")
+		Builder(QuerydslPredicateExecutor<T> executor, Class<R> domainType) {
+			this(executor,
+					ClassTypeInformation.from((Class<T>) domainType),
+					domainType,
+					Sort.unsorted(),
+					(bindings, root) -> {});
+		}
+
 		Builder(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+				Class<R> resultType, Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			this.executor = executor;
 			this.domainType = domainType;
@@ -264,8 +266,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public <P> Builder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new Builder<>(
-					this.executor, this.domainType, projectionType, this.sort, this.customizer);
+			return new Builder<>(this.executor, this.domainType, projectionType, this.sort, this.customizer);
 		}
 
 		/**
@@ -276,21 +277,18 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public Builder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
-			return new Builder<>(
-					this.executor, this.domainType, this.resultType, sort, customizer);
+			return new Builder<>(this.executor, this.domainType, this.resultType, sort, customizer);
 		}
 
 		/**
 		 * Apply a {@link QuerydslBinderCustomizer}.
-		 * @param customizer the customizer to customize bindings for the
-		 * actual query
+		 * @param customizer to customize the GraphQL query to Querydsl Predicate binding
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied
 		 */
 		public Builder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
-			return new Builder<>(
-					this.executor, this.domainType, this.resultType, this.sort, customizer);
+			return new Builder<>(this.executor, this.domainType, this.resultType, this.sort, customizer);
 		}
 
 		/**
@@ -313,6 +311,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 	}
 
+
 	/**
 	 * Builder for a reactive Querydsl-based {@link DataFetcher}. Note that builder
 	 * instances are immutable and return a new instance of the builder when
@@ -331,6 +330,15 @@ public abstract class QuerydslDataFetcher<T> {
 		private final Sort sort;
 
 		private final QuerydslBinderCustomizer<? extends EntityPath<T>> customizer;
+
+		@SuppressWarnings("unchecked")
+		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor, Class<R> domainType) {
+			this(executor,
+					ClassTypeInformation.from((Class<T>) domainType),
+					domainType,
+					Sort.unsorted(),
+					(bindings, root) -> {});
+		}
 
 		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor,
 				TypeInformation<T> domainType,
@@ -357,8 +365,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new ReactiveBuilder<>(
-					this.executor, this.domainType, projectionType, this.sort, this.customizer);
+			return new ReactiveBuilder<>(this.executor, this.domainType, projectionType, this.sort, this.customizer);
 		}
 
 		/**
@@ -369,21 +376,18 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public ReactiveBuilder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
-			return new ReactiveBuilder<>(
-					this.executor, this.domainType, this.resultType, sort, customizer);
+			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType, sort, customizer);
 		}
 
 		/**
 		 * Apply a {@link QuerydslBinderCustomizer}.
-		 * @param customizer the customizer to customize bindings for the
-		 * actual query
+		 * @param customizer to customize the GraphQL query to Querydsl Predicate binding
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied
 		 */
 		public ReactiveBuilder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
-			return new ReactiveBuilder<>(
-					this.executor, this.domainType, this.resultType, this.sort, customizer);
+			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType, this.sort, customizer);
 		}
 
 		/**
@@ -405,6 +409,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 	}
+
 
 	private static class SingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<R> {
 
@@ -429,18 +434,20 @@ public abstract class QuerydslDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings({"ConstantConditions", "unchecked"})
-		public R get(DataFetchingEnvironment environment) {
-			return this.executor.findBy(buildPredicate(environment), q -> {
-				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) q;
+		public R get(DataFetchingEnvironment env) {
+			return this.executor.findBy(buildPredicate(env), query -> {
+				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) query;
 
 				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if (requiresProjection(this.resultType)){
-					queryToUse = queryToUse.as(this.resultType);
-				} else {
-					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
+				Class<R> resultType = this.resultType;
+				if (requiresProjection(resultType)){
+					queryToUse = queryToUse.as(resultType);
+				}
+				else {
+					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), resultType));
 				}
 
 				return queryToUse.first();
@@ -448,6 +455,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 	}
+
 
 	private static class ManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Iterable<R>> {
 
@@ -471,9 +479,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Iterable<R> get(DataFetchingEnvironment environment) {
-			return this.executor.findBy(buildPredicate(environment), q -> {
-				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) q;
+		public Iterable<R> get(DataFetchingEnvironment env) {
+			return this.executor.findBy(buildPredicate(env), query -> {
+				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) query;
 
 				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
@@ -481,8 +489,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
-				} else {
-					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
+				}
+				else {
+					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.all();
@@ -490,6 +499,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 	}
+
 
 	private static class ReactiveSingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Mono<R>> {
 
@@ -514,9 +524,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Mono<R> get(DataFetchingEnvironment environment) {
-			return this.executor.findBy(buildPredicate(environment), q -> {
-				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) q;
+		public Mono<R> get(DataFetchingEnvironment env) {
+			return this.executor.findBy(buildPredicate(env), query -> {
+				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
 				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
@@ -524,8 +534,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
-				} else {
-					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
+				}
+				else {
+					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.first();
@@ -533,6 +544,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 	}
+
 
 	private static class ReactiveManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements DataFetcher<Flux<R>> {
 
@@ -557,9 +569,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Flux<R> get(DataFetchingEnvironment environment) {
-			return this.executor.findBy(buildPredicate(environment), q -> {
-				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) q;
+		public Flux<R> get(DataFetchingEnvironment env) {
+			return this.executor.findBy(buildPredicate(env), query -> {
+				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
 				if (this.sort.isSorted()){
 					queryToUse = queryToUse.sortBy(this.sort);
@@ -567,8 +579,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 				if (requiresProjection(this.resultType)){
 					queryToUse = queryToUse.as(this.resultType);
-				} else {
-					queryToUse = queryToUse.project(buildPropertyPaths(environment.getSelectionSet(), this.resultType));
+				}
+				else {
+					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
 				return queryToUse.all();
