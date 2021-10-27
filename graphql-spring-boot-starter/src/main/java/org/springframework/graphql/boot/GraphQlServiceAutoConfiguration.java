@@ -16,11 +16,8 @@
 
 package org.springframework.graphql.boot;
 
-import java.util.stream.Collectors;
-
 import graphql.GraphQL;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -34,9 +31,7 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInterceptor;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for creating a
@@ -47,9 +42,8 @@ import org.springframework.graphql.web.WebInterceptor;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass({GraphQL.class, GraphQlService.class})
-@ConditionalOnMissingBean(GraphQlService.class)
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
-public class WebGraphQlHandlerAutoConfiguration {
+public class GraphQlServiceAutoConfiguration {
 
 	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 
@@ -73,15 +67,6 @@ public class WebGraphQlHandlerAutoConfiguration {
 		AnnotatedControllerConfigurer annotatedControllerConfigurer = new AnnotatedControllerConfigurer();
 		annotatedControllerConfigurer.setConversionService(new DefaultFormattingConversionService());
 		return annotatedControllerConfigurer;
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	public WebGraphQlHandler webGraphQlHandler(GraphQlService service, ObjectProvider<WebInterceptor> interceptorsProvider,
-			ObjectProvider<ThreadLocalAccessor> accessorsProvider) {
-		return WebGraphQlHandler.builder(service)
-				.interceptors(interceptorsProvider.orderedStream().collect(Collectors.toList()))
-				.threadLocalAccessors(accessorsProvider.orderedStream().collect(Collectors.toList())).build();
 	}
 
 }

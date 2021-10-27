@@ -46,7 +46,7 @@ class GraphQlWebFluxAutoConfigurationTests {
 	private final ReactiveWebApplicationContextRunner contextRunner = new ReactiveWebApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(HttpHandlerAutoConfiguration.class, WebFluxAutoConfiguration.class,
 					CodecsAutoConfiguration.class, JacksonAutoConfiguration.class, GraphQlAutoConfiguration.class,
-					WebGraphQlHandlerAutoConfiguration.class, GraphQlWebFluxAutoConfiguration.class))
+					GraphQlServiceAutoConfiguration.class, GraphQlWebFluxAutoConfiguration.class))
 			.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
 			.withPropertyValues(
 					"spring.main.web-application-type=reactive",

@@ -453,7 +453,7 @@ beans. To include `@ConfigurationProperties` beans, use `@EnableConfigurationPro
 ====
 The arrangement is similar to the
 {spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.spring-mvc-tests[@WevMvcTest support],
-except there is no web framework in use, and `WebGraphQlHandler` is used to perform requests.
+except there is no web framework in use, and `GraphQlService` is used to perform requests.
 ====
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -462,7 +462,7 @@ except there is no web framework in use, and `WebGraphQlHandler` is used to perf
 public class BookControllerTests {
 
 	@Autowired
-	private WebGraphQlTester graphQlTester;
+	private GraphQlTester graphQlTester;
 
 	@MockBean
 	private BookRepository bookRepository;
@@ -486,7 +486,7 @@ This mode is useful to test subscriptions without a WebSocket transport.
 public class GreetingControllerTests {
 
 	@Autowired
-	private WebGraphQlTester graphQlTester;
+	private GraphQlTester graphQlTester;
 
 	@Test
 	void subscription() {
@@ -505,9 +505,9 @@ public class GreetingControllerTests {
 }
 ----
 
-`WebGraphQlHandler` is used to perform the above test. It represents common infrastructure
+`GraphQlService` is used to perform the above test. It represents common infrastructure
 for HTTP and WebSocket transports that both Spring WebMvc and WebFlux handlers delegate to.
-Therefore, it does not involve a web framework, but it does apply the `WebInterceptor`
+Therefore, it does not involve a web framework and does not apply the `WebInterceptor`
 chain  before and after the call to the GraphQL Java engine,  which returns a Reactive
 Streams `Publisher`.
 
@@ -526,30 +526,13 @@ its `controllers` attribute.
 You can write fuller integration tests with a Web client and a Web framework, Spring MVC or
 WebFlux, but without running a live server, i.e. using a mock request and response.
 
-For GraphQL over HTTP with Spring MVC, using `MockMvc` as the server:
+For GraphQL over HTTP with a {spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.with-mock-environment[mock server]:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 @SpringBootTest
-@AutoConfigureMockMvc
 @AutoConfigureWebGraphQlTester
-public class MockMvcGraphQlTests {
-
-	@Autowired
-	private WebGraphQlTester graphQlTester;
-
-}
-----
-
-For GraphQL over HTTP with Spring WebFlux, using a
-{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.with-mock-environment[mock server]:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@SpringBootTest
-@AutoConfigureWebTestClient
-@AutoConfigureWebGraphQlTester
-public class MockMvcGraphQlTests {
+public class MockWebGraphQlTests {
 
 	@Autowired
 	private WebGraphQlTester graphQlTester;

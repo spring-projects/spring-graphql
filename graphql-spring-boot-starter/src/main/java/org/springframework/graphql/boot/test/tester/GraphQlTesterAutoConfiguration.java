@@ -22,29 +22,27 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.boot.GraphQlProperties;
-import org.springframework.graphql.test.tester.WebGraphQlTester;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.boot.GraphQlServiceAutoConfiguration;
+import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
- * Auto-configuration for {@link WebGraphQlTester}.
+ * Auto-configuration for {@link GraphQlTester}.
  *
  * @author Brian Clozel
  * @since 1.0.0
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass({WebClient.class, WebTestClient.class, WebGraphQlTester.class})
-@AutoConfigureAfter(value = WebTestClientMockMvcAutoConfiguration.class,
-		name = "org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration")
-public class WebGraphQlTesterAutoConfiguration {
+@ConditionalOnClass({GraphQlTester.class})
+@AutoConfigureAfter(value = GraphQlServiceAutoConfiguration.class)
+public class GraphQlTesterAutoConfiguration {
+
 
 	@Bean
-	@ConditionalOnBean(WebTestClient.class)
+	@ConditionalOnBean(GraphQlService.class)
 	@ConditionalOnMissingBean
-	public WebGraphQlTester webTestClientGraphQlTester(WebTestClient webTestClient, GraphQlProperties properties) {
-		WebTestClient mutatedWebTestClient = webTestClient.mutate().baseUrl(properties.getPath()).build();
-		return WebGraphQlTester.create(mutatedWebTestClient);
+	public GraphQlTester graphQlTester(GraphQlService graphQlService) {
+		return GraphQlTester.create(graphQlService);
 	}
 
 }

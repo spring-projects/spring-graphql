@@ -1,6 +1,6 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.springframework.graphql.boot.GraphQlAutoConfiguration,\
-org.springframework.graphql.boot.WebGraphQlHandlerAutoConfiguration,\
+org.springframework.graphql.boot.GraphQlServiceAutoConfiguration,\
 org.springframework.graphql.boot.GraphQlWebFluxAutoConfiguration,\
 org.springframework.graphql.boot.GraphQlWebMvcAutoConfiguration,\
 org.springframework.graphql.boot.actuate.metrics.GraphQlMetricsAutoConfiguration,\
@@ -14,6 +14,10 @@ org.springframework.boot.diagnostics.FailureAnalyzer=\
 org.springframework.graphql.boot.InvalidSchemaLocationsExceptionFailureAnalyzer
 
 # Spring Test @AutoConfigureGraphQlTester
+org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester=\
+org.springframework.graphql.boot.test.tester.GraphQlTesterAutoConfiguration
+
+# Spring Test @AutoConfigureWebGraphQlTester
 org.springframework.graphql.boot.test.tester.AutoConfigureWebGraphQlTester=\
 org.springframework.graphql.boot.test.tester.WebTestClientMockMvcAutoConfiguration,\
 org.springframework.graphql.boot.test.tester.WebGraphQlTesterAutoConfiguration
@@ -27,4 +31,4 @@ org.springframework.graphql.boot.test.AutoConfigureGraphQl=\
 org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration,\
 org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration,\
 org.springframework.graphql.boot.GraphQlAutoConfiguration,\
-org.springframework.graphql.boot.WebGraphQlHandlerAutoConfiguration
+org.springframework.graphql.boot.GraphQlServiceAutoConfiguration

@@ -26,57 +26,6 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * executed {@link #create(WebTestClient) via WebTestClient} or
  * {@link #create(WebGraphQlHandler) via WebGraphQlHandler}.
  *
- *
- * <p>
- * GraphQL requests to Spring MVC without an HTTP server: <pre class="code">
- * &#064;SpringBootTest
- * &#064;AutoConfigureMockMvc
- * &#064;AutoConfigureGraphQlTester
- * public class MyTests {
- *
- *   &#064;Autowired
- *   private WebGraphQlTester graphQlTester;
- * }
- * </pre>
- *
- * <p>
- * GraphQL requests to Spring WebFlux without an HTTP server: <pre class="code">
- * &#064;SpringBootTest
- * &#064;AutoConfigureWebTestClient
- * &#064;AutoConfigureGraphQlTester
- * public class MyTests {
- *
- *   &#064;Autowired
- *   private WebGraphQlTester graphQlTester;
- * }
- * </pre>
- *
- * <p>
- * GraphQL requests to a running server: <pre class="code">
- * &#064;SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
- * &#064;AutoConfigureWebTestClient
- * &#064;AutoConfigureGraphQlTester
- * public class MyTests {
- *
- *   &#064;Autowired
- *   private WebGraphQlTester graphQlTester;
- * }
- * </pre>
- *
- * <p>
- * GraphQL requests handled directly through a {@link WebGraphQlHandler}: <pre class="code">
- * &#064;SpringBootTest
- * public class MyTests {
- *
- *   private WebGraphQlTester graphQlTester;
- *
- *   &#064;BeforeEach
- *   public void setUp(&#064;Autowired WebGraphQLHandler handler) {
- *       this.graphQlTester = GraphQlTester.create(handler);
- *   }
- * }
- * </pre>
- *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */

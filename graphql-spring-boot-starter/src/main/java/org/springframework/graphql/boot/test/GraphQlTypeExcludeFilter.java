@@ -27,7 +27,6 @@ import org.springframework.boot.test.autoconfigure.filter.StandardAnnotationCust
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.converter.GenericConverter;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
-import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
@@ -52,7 +51,6 @@ public class GraphQlTypeExcludeFilter extends StandardAnnotationCustomizableType
 		includes.add(RuntimeWiringConfigurer.class);
 		includes.add(Converter.class);
 		includes.add(GenericConverter.class);
-		includes.add(WebInterceptor.class);
 		for (String optionalInclude : OPTIONAL_INCLUDES) {
 			try {
 				includes.add(ClassUtils.forName(optionalInclude, null));

@@ -26,20 +26,19 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.graphql.web.WebGraphQlHandler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
- * Tests for {@link WebGraphQlHandlerAutoConfiguration}.
+ * Tests for {@link GraphQlServiceAutoConfiguration}.
  *
  * @author Brian Clozel
  */
-class WebGraphQlHandlerAutoConfigurationTests {
+class GraphQlServiceAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(WebGraphQlHandlerAutoConfiguration.class))
+			.withConfiguration(AutoConfigurations.of(GraphQlServiceAutoConfiguration.class))
 			.withUserConfiguration(GraphQlSourceConfiguration.class);
 
 	@Test
@@ -48,7 +47,6 @@ class WebGraphQlHandlerAutoConfigurationTests {
 			assertThat(context).hasSingleBean(BatchLoaderRegistry.class);
 			assertThat(context).hasSingleBean(GraphQlService.class);
 			assertThat(context).hasSingleBean(AnnotatedControllerConfigurer.class);
-			assertThat(context).hasSingleBean(WebGraphQlHandler.class);
 		});
 	}
 

@@ -22,44 +22,54 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.boot.GraphQlProperties;
+import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.RouterFunctions;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 /**
- * Tests for {@link GraphQlTesterAutoConfiguration}
+ * Tests for {@link WebGraphQlTesterAutoConfiguration}
  *
  * @author Brian Clozel
  */
-class GraphQlTesterAutoConfigurationTests {
+class WebGraphQlTesterAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(GraphQlTesterAutoConfiguration.class));
+			.withConfiguration(AutoConfigurations.of(WebGraphQlTesterAutoConfiguration.class));
 
 	@Test
-	void shouldNotBeConfiguredWithoutGraphQlService() {
+	void shouldNotBeConfiguredWithoutWebTestClient() {
 		this.contextRunner.run((context) -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).doesNotHaveBean(GraphQlTester.class);
+			assertThat(context).doesNotHaveBean(WebGraphQlTester.class);
 		});
 	}
 
 	@Test
-	void shouldBeConfiguredWhenGraphQlServicePresent() {
-		this.contextRunner.withUserConfiguration(GraphQlServiceConfiguration.class).run((context) -> {
+	void shouldBeConfiguredWhenWebTestClientPresent() {
+		this.contextRunner.withUserConfiguration(WebTestClientConfiguration.class).run((context) -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(GraphQlTester.class);
+			assertThat(context).hasSingleBean(WebGraphQlTester.class);
 		});
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	static class GraphQlServiceConfiguration {
+	static class WebTestClientConfiguration {
 
 		@Bean
-		GraphQlService graphQlService() {
-			return mock(GraphQlService.class);
+		WebTestClient webTestClient() {
+			RouterFunction<ServerResponse> routes =
+					RouterFunctions.route().POST("/graphql", (request) -> ServerResponse.ok().build()).build();
+			return WebTestClient.bindToRouterFunction(routes).build();
+		}
+
+		@Bean
+		GraphQlProperties graphQlProperties() {
+			return new GraphQlProperties();
 		}
 
 	}

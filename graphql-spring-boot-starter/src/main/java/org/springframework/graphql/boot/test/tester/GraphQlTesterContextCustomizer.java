@@ -97,7 +97,7 @@ class GraphQlTesterContextCustomizer implements ContextCustomizer {
 		public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 			if (BeanFactoryUtils.beanNamesForTypeIncludingAncestors((ListableBeanFactory) this.beanFactory,
 					GraphQlTester.class, false, false).length == 0) {
-				registry.registerBeanDefinition(GraphQlTester.class.getName(),
+				registry.registerBeanDefinition(WebGraphQlTester.class.getName(),
 						new RootBeanDefinition(GraphQlTesterContextCustomizer.GraphQlTesterFactory.class));
 			}
 		}

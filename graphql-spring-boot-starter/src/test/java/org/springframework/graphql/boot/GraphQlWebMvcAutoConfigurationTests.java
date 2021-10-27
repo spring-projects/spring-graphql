@@ -50,7 +50,7 @@ class GraphQlWebMvcAutoConfigurationTests {
 			.withConfiguration(AutoConfigurations.of(DispatcherServletAutoConfiguration.class,
 					WebMvcAutoConfiguration.class, HttpMessageConvertersAutoConfiguration.class,
 					JacksonAutoConfiguration.class, GraphQlAutoConfiguration.class,
-					WebGraphQlHandlerAutoConfiguration.class, GraphQlWebMvcAutoConfiguration.class))
+					GraphQlServiceAutoConfiguration.class, GraphQlWebMvcAutoConfiguration.class))
 			.withUserConfiguration(DataFetchersConfiguration.class, CustomWebInterceptor.class)
 			.withPropertyValues(
 					"spring.main.web-application-type=servlet",

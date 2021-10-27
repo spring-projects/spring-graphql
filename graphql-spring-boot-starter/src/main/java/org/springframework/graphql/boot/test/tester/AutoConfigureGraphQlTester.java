@@ -24,28 +24,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
- * Annotation that can be applied to a test class to enable a {@link WebGraphQlTester}.
- *
- * <p>This annotation should be used with {@link org.springframework.boot.test.context.SpringBootTest @SpringBootTest}
- * tests with Spring MVC or Spring WebFlux mock infrastructures.
+ * Annotation that can be applied to a test class to enable a {@link GraphQlTester}.
  *
  * @author Brian Clozel
  * @since 1.0.0
- * @see WebTestClientMockMvcAutoConfiguration
- * @see WebGraphQlTesterAutoConfiguration
+ * @see GraphQlTesterAutoConfiguration
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@AutoConfigureMockMvc
-@AutoConfigureWebTestClient
 @ImportAutoConfiguration
-public @interface AutoConfigureWebGraphQlTester {
+public @interface AutoConfigureGraphQlTester {
 
 }

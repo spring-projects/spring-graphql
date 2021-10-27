@@ -29,7 +29,6 @@ import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.core.type.classreading.SimpleMetadataReaderFactory;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
-import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.WebInterceptorChain;
@@ -58,7 +57,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
-		assertThat(excludes(filter, ExampleWebInterceptor.class)).isFalse();
+		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
 		assertThat(excludes(filter, ExampleModule.class)).isFalse();
 	}
 
@@ -70,7 +69,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
-		assertThat(excludes(filter, ExampleWebInterceptor.class)).isFalse();
+		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
 		assertThat(excludes(filter, ExampleModule.class)).isFalse();
 	}
 
@@ -94,7 +93,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isFalse();
-		assertThat(excludes(filter, ExampleWebInterceptor.class)).isFalse();
+		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
 		assertThat(excludes(filter, ExampleModule.class)).isFalse();
 	}
 
@@ -106,7 +105,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
-		assertThat(excludes(filter, ExampleWebInterceptor.class)).isFalse();
+		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
 		assertThat(excludes(filter, ExampleModule.class)).isFalse();
 	}
 

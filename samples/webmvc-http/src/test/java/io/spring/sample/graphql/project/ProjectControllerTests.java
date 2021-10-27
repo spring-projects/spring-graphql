@@ -15,41 +15,59 @@
  */
 package io.spring.sample.graphql.project;
 
+import java.util.Collections;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.boot.test.tester.AutoConfigureWebGraphQlTester;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.graphql.boot.test.GraphQlTest;
 import org.springframework.graphql.test.tester.GraphQlTester;
-import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 
 /**
- * GraphQL requests via {@link GraphQlTester} connecting to {@link MockMvc}.
+ * GraphQL requests via {@link GraphQlTester}.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@AutoConfigureWebGraphQlTester
-public class MockMvcGraphQlTests {
+@GraphQlTest(ProjectController.class)
+public class ProjectControllerTests {
 
 	@Autowired
 	private GraphQlTester graphQlTester;
 
+	@MockBean
+	private SpringProjectsClient projectsClient;
+
+	private Project springFramework;
+
+	private Release latestRelease;
+
+	@BeforeEach
+	void setup() {
+		this.springFramework = new Project("spring-framework", "Spring Framework",
+				"http://github.com/spring-projects/spring-framework", ProjectStatus.ACTIVE);
+		this.latestRelease = new Release(this.springFramework, "5.3.0", ReleaseStatus.GENERAL_AVAILABILITY);
+	}
+
 	@Test
 	void jsonPath() {
+		given(this.projectsClient.fetchProject(eq("spring-framework"))).willReturn(this.springFramework);
+		given(this.projectsClient.fetchProjectReleases(eq("spring-framework"))).willReturn(Collections.singletonList(this.latestRelease));
 		this.graphQlTester.queryName("projectReleases")
 				.variable("slug", "spring-framework")
 				.execute()
 				.path("project.releases[*].version")
 				.entityList(String.class)
-				.hasSizeGreaterThan(1);
+				.hasSize(1);
 
 	}
 
 	@Test
 	void jsonContent() {
+		given(this.projectsClient.fetchProject(eq("spring-framework"))).willReturn(this.springFramework);
 		this.graphQlTester.queryName("projectRepositoryUrl")
 				.variable("slug", "spring-framework")
 				.execute()
@@ -59,29 +77,14 @@ public class MockMvcGraphQlTests {
 
 	@Test
 	void decodedResponse() {
+		given(this.projectsClient.fetchProject(eq("spring-framework"))).willReturn(this.springFramework);
+		given(this.projectsClient.fetchProjectReleases(eq("spring-framework"))).willReturn(Collections.singletonList(this.latestRelease));
 		this.graphQlTester.queryName("projectReleases")
 				.variable("slug", "spring-framework")
 				.execute()
 				.path("project")
 				.entity(Project.class)
-				.satisfies(project -> assertThat(project.getReleases()).hasSizeGreaterThan(1));
-	}
-
-	@Test
-	void querydslRepositorySingle() {
-		this.graphQlTester.queryName("artifactRepository")
-				.variable("id", "spring-releases")
-				.execute()
-				.path("artifactRepository.name")
-				.entity(String.class).isEqualTo("Spring Releases");
-	}
-
-	@Test
-	void querydslRepositoryMany() {
-		this.graphQlTester.queryName("artifactRepositories")
-				.execute()
-				.path("artifactRepositories[*].id")
-				.entityList(String.class).containsExactly("spring-releases", "spring-milestones", "spring-snapshots");
+				.satisfies(project -> assertThat(project.getReleases()).hasSize(1));
 	}
 
 }

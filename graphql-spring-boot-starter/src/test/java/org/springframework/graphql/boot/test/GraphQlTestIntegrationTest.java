@@ -19,7 +19,7 @@ package org.springframework.graphql.boot.test;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
  * Integration test for {@link GraphQlTest @GraphQlTest} annotated tests.
@@ -31,7 +31,7 @@ import org.springframework.graphql.test.tester.WebGraphQlTester;
 public class GraphQlTestIntegrationTest {
 
 	@Autowired
-	private WebGraphQlTester graphQlTester;
+	private GraphQlTester graphQlTester;
 
 	@Test
 	void getBookdByIdShouldReturnTestBook() {

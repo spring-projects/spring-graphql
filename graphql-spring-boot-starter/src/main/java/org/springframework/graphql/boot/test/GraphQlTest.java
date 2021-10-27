@@ -34,6 +34,7 @@ import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.core.env.Environment;
+import org.springframework.graphql.boot.test.tester.AutoConfigureGraphQlTester;
 import org.springframework.graphql.boot.test.tester.AutoConfigureWebGraphQlTester;
 import org.springframework.test.context.BootstrapWith;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -44,13 +45,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
  * <p>
  * Using this annotation will disable full auto-configuration and instead apply only
  * configuration relevant to GraphQL tests (i.e. {@code @Controller},
- * {@code @JsonComponent}, {@code Converter}/{@code GenericConverter},
- * {@code WebInterceptor} and {@code RuntimeWiringConfigurer} beans but not
- * {@code @Component}, {@code @Service} or {@code @Repository} beans).
+ * {@code @JsonComponent}, {@code Converter}/{@code GenericConverter}
+ * and {@code RuntimeWiringConfigurer} beans but not
+ * {@code WebInterceptor}, {@code @Component}, {@code @Service} or {@code @Repository} beans).
  * <p>
  * By default, tests annotated with {@code @GraphQlTest} will also auto-configure a
- * {@link org.springframework.graphql.test.tester.WebGraphQlTester}. For more fine-grained control of GraphQlTester the
- * {@link AutoConfigureWebGraphQlTester @AutoConfigureGraphQlTester} annotation can be used.
+ * {@link org.springframework.graphql.test.tester.GraphQlTester}. For more fine-grained control of GraphQlTester the
+ * {@link AutoConfigureGraphQlTester @AutoConfigureGraphQlTester} annotation can be used.
  * <p>
  * Typically {@code @GraphQlTest} is used in combination with
  * {@link org.springframework.boot.test.mock.mockito.MockBean @MockBean} or
@@ -64,7 +65,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
  *
  * @author Brian Clozel
  * @since 1.0.0
- * @see AutoConfigureWebGraphQlTester
+ * @see AutoConfigureGraphQlTester
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -77,7 +78,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @AutoConfigureCache
 @AutoConfigureJson
 @AutoConfigureGraphQl
-@AutoConfigureWebGraphQlTester
+@AutoConfigureGraphQlTester
 @ImportAutoConfiguration
 public @interface GraphQlTest {
 

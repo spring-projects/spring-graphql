@@ -33,6 +33,10 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
  * @author Brian Clozel
  * @since 1.0.0
  * @see GraphQlTest
+ * @see org.springframework.boot.autoconfigure.http.codec.CodecsAutoConfiguration
+ * @see org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration
+ * @see org.springframework.graphql.boot.GraphQlAutoConfiguration
+ * @see org.springframework.graphql.boot.GraphQlServiceAutoConfiguration
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

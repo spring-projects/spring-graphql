@@ -14,6 +14,16 @@ public class Project {
 
 	private List<Release> releases;
 
+	public Project() {
+	}
+
+	public Project(String slug, String name, String repositoryUrl, ProjectStatus status) {
+		this.slug = slug;
+		this.name = name;
+		this.repositoryUrl = repositoryUrl;
+		this.status = status;
+	}
+
 	public String getSlug() {
 		return this.slug;
 	}

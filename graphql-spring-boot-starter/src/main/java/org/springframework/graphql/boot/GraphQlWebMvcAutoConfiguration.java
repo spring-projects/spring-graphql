@@ -18,6 +18,7 @@ package org.springframework.graphql.boot;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.websocket.server.ServerContainer;
 
@@ -25,9 +26,9 @@ import graphql.GraphQL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -38,8 +39,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.webmvc.GraphQlHttpHandler;
 import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
 import org.springframework.graphql.web.webmvc.GraphiQlHandler;
@@ -73,8 +77,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({GraphQL.class, GraphQlHttpHandler.class})
-@ConditionalOnBean(GraphQlSource.class)
-@AutoConfigureAfter(WebGraphQlHandlerAutoConfiguration.class)
+@AutoConfigureAfter(GraphQlServiceAutoConfiguration.class)
 @EnableConfigurationProperties(GraphQlCorsProperties.class)
 public class GraphQlWebMvcAutoConfiguration {
 
@@ -84,6 +87,15 @@ public class GraphQlWebMvcAutoConfiguration {
 	@ConditionalOnMissingBean
 	public GraphQlHttpHandler graphQlHttpHandler(WebGraphQlHandler webGraphQlHandler) {
 		return new GraphQlHttpHandler(webGraphQlHandler);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public WebGraphQlHandler webGraphQlHandler(GraphQlService service, ObjectProvider<WebInterceptor> interceptorsProvider,
+			ObjectProvider<ThreadLocalAccessor> accessorsProvider) {
+		return WebGraphQlHandler.builder(service)
+				.interceptors(interceptorsProvider.orderedStream().collect(Collectors.toList()))
+				.threadLocalAccessors(accessorsProvider.orderedStream().collect(Collectors.toList())).build();
 	}
 
 	@Bean
@@ -119,7 +131,7 @@ public class GraphQlWebMvcAutoConfiguration {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnClass({ ServerContainer.class, WebSocketHandler.class })
+	@ConditionalOnClass({ServerContainer.class, WebSocketHandler.class})
 	@ConditionalOnProperty(prefix = "spring.graphql.websocket", name = "path")
 	public static class WebSocketConfiguration {
 

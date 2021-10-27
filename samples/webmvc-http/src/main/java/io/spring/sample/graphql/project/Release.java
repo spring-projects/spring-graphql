@@ -12,6 +12,16 @@ public class Release {
 
 	private boolean current;
 
+	public Release() {
+	}
+
+	public Release(Project project, String version, ReleaseStatus status) {
+		this.version = version;
+		this.status = status;
+		this.apiDocUrl = String.format("https://docs.spring.io/%s/docs/%s/javadoc-api/", project.getSlug(), version);
+		this.referenceDocUrl = String.format("https://docs.spring.io/%s/docs/%s/reference/html/", project.getSlug(), version);
+	}
+
 	public String getVersion() {
 		return this.version;
 	}
