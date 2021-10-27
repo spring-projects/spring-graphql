@@ -22,23 +22,27 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.boot.test.GraphQlTest;
 import org.springframework.graphql.test.tester.GraphQlTester;
-import org.springframework.graphql.test.tester.WebGraphQlTester;
-import org.springframework.graphql.web.WebGraphQlHandler;
 
 /**
  * GraphQL subscription tests directly via {@link GraphQL}.
  */
-@SpringBootTest
+@GraphQlTest(controllers = SampleController.class,
+		includeFilters = @ComponentScan.Filter(
+				type = FilterType.ASSIGNABLE_TYPE,
+				classes = {ContextWebFilter.class, DataRepository.class}))
 public class SubscriptionTests {
 
 	private GraphQlTester graphQlTester;
 
 	@BeforeEach
-	public void setUp(@Autowired WebGraphQlHandler handler) {
-		this.graphQlTester = WebGraphQlTester.create(webInput ->
-				handler.handleRequest(webInput).contextWrite(context -> context.put("name", "James")));
+	public void setUp(@Autowired GraphQlService service) {
+		this.graphQlTester = GraphQlTester.create(requestInput ->
+				service.execute(requestInput).contextWrite(context -> context.put("name", "James")));
 	}
 
 	@Test
