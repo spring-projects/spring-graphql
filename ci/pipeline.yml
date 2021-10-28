@@ -11,7 +11,11 @@ anchors:
     ARTIFACTORY_SERVER: ((artifactory-server))
     ARTIFACTORY_USERNAME: ((artifactory-username))
     ARTIFACTORY_PASSWORD: ((artifactory-password))
-
+  registry-mirror-vars: &registry-mirror-vars
+    registry-mirror-host: ((registry-mirror-host))
+    registry-mirror-username: ((registry-mirror-username))
+    registry-mirror-password: ((registry-mirror-password))
+    
 resource_types:
 - name: artifactory-resource
   type: registry-image
@@ -63,6 +67,7 @@ jobs:
       image: ci-image
     vars:
       ci-image-name: ci-image
+      <<: *registry-mirror-vars
   - put: ci-image
     params:
       image: ci-image/image.tar
