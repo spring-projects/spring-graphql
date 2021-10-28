@@ -20,8 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.boot.test.GraphQlTest;
 import org.springframework.graphql.test.tester.GraphQlTester;
@@ -29,10 +28,8 @@ import org.springframework.graphql.test.tester.GraphQlTester;
 /**
  * GraphQL query tests directly via {@link GraphQL}.
  */
-@GraphQlTest(controllers = SampleController.class,
-		includeFilters = @ComponentScan.Filter(
-				type = FilterType.ASSIGNABLE_TYPE,
-				classes = {ContextWebFilter.class, DataRepository.class}))
+@GraphQlTest(SampleController.class)
+@Import(TestConfig.class)
 public class QueryTests {
 
 	private GraphQlTester graphQlTester;

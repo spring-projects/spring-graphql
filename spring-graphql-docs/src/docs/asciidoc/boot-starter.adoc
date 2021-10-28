@@ -440,25 +440,44 @@ repositories {
 The following sections cover a range of options for testing a Spring GraphQL application.
 
 [[boot-graphql-testing-graphqltest]]
-=== Standalone GraphQL Server Tests
+=== GraphQL Slice Tests
 
-Use `@GraphQlTest` to test Spring GraphQL data `@Controller` and related GraphQL components
-without involving a Web transport or a Web framework (Spring MVC or WebFlux).
-`@GraphQlTest` auto-configures Spring GraphQL infrastructure and limits scanned beans to
-`@Controller`, `RuntimeWiringConfigurer`, `JsonComponent`, `WebInterceptor`, `Converter`,
-and `GenericConverter`, but excludes regular `@Component` and `@ConfigurationProperties`
-beans. To include `@ConfigurationProperties` beans, use `@EnableConfigurationProperties`.
+Use `@GraphQlTest` on a test class to create GraphQL tests focused on GraphQL request
+execution, without involving a Web layer, and loading only a subset of the application
+configuration.
+
+By default, `@GraphQlTest` limits scanning to the following beans:
+
+- `@Controller`
+- `RuntimeWiringConfigurer`
+- `JsonComponent`
+- `Converter`
+- `GenericConverter`
+
+Use the `controllers` attribute of `@GraphQlTest` to specify a controller class, or to
+list all data controllers required to perform requests in a test class. Leaving it empty,
+includes all controllers.
+
+To add collaborator and/or other components to a test class, use one of the following:
+
+- `@MockBean` fields in the test class.
+- `@Import` an `@Configuration` class into the test class.
+- Create a `@TestConfiguration` nested class.
+- Broaden the component scan via `includeFilters` on `@GraphQlTest`.
+
+To add properties, use the `properties` attribute of `@GraphQlTest`, or add
+`@EnableConfigurationProperties` on the test class.
 
 [NOTE]
 ====
-The arrangement is similar to the
-{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.spring-mvc-tests[@WevMvcTest support],
-except there is no web framework in use, and `GraphQlService` is used to perform requests.
+`@GraphQlTest` is comparable to
+{spring-boot-ref-docs}/features.html#features.testing.spring-boot-applications.spring-mvc-tests[@WevMvcTest],
+which also uses test "slices" to create focused Web controller tests.
 ====
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-@GraphQlTest(controllers = BookController.class)
+@GraphQlTest(BookController.class)
 public class BookControllerTests {
 
 	@Autowired
@@ -478,11 +497,11 @@ public class BookControllerTests {
 }
 ----
 
-This mode is useful to test subscriptions without a WebSocket transport.
+This mode is useful to test subscriptions without WebSocket.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-@GraphQlTest(controllers = GreetingController.class)
+@GraphQlTest(GreetingController.class)
 public class GreetingControllerTests {
 
 	@Autowired
@@ -505,20 +524,9 @@ public class GreetingControllerTests {
 }
 ----
 
-`GraphQlService` is used to perform the above test. It represents common infrastructure
-for HTTP and WebSocket transports that both Spring WebMvc and WebFlux handlers delegate to.
-Therefore, it does not involve a web framework and does not apply the `WebInterceptor`
-chain  before and after the call to the GraphQL Java engine,  which returns a Reactive
-Streams `Publisher`.
+`GraphQlService` performS the above request by calling directly the GraphQL Java engine,
+which returns a Reactive Streams `Publisher`.
 
-[NOTE]
-.Testing multiple controllers with `@GraphQlTest`
-====
-Because GraphQL is not about REST endpoints but navigating relations in an object graph,
-multiple `@Controller` components can be involved in a single query.
-For this case, the `@GraphQlTest` annotation supports testing multiple controllers through
-its `controllers` attribute.
-====
 
 [[boot-graphql-testing-mock]]
 === Client and Mock Server Tests

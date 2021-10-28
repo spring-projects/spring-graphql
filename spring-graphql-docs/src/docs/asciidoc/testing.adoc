@@ -1,9 +1,9 @@
 [[testing]]
 = Testing
 
-You can test GraphQL requests using Spring's `WebTestClient`, just send and receive
-JSON, but a number of GraphQL specific details make this approach more cumbersome than it
-should be.
+It's possible to test GraphQL requests with Spring's `WebTestClient`, just sending and
+receiving JSON, but a number of GraphQL specific details make this approach more
+cumbersome than is necessary.
 
 
 
@@ -12,7 +12,6 @@ should be.
 
 `GraphQlTester` defines a workflow to test GraphQL requests with the following benefits:
 
-- Verify GraphQL responses are 200 (OK).
 - Verify no unexpected errors under the "errors" key in the response.
 - Decode under the "data" key in the response.
 - Use JsonPath to decode different parts of the response.
@@ -38,7 +37,10 @@ To create `GraphQlTester`, you only need a `GraphQlService`, and no transport:
 == `WebGraphQlTester`
 
 `WebGraphQlTester` extends `GraphQlTester` to add a workflow and configuration specific
-to <<index#web-transports>>. You need one of the following inputs to create it:
+to <<index#web-transports>>, and it always verifies GraphQL HTTP responses are 200 (OK).
+
+
+To create `WebGraphQlTester`, you need one of the following inputs:
 
 - `WebTestClient` -- perform requests as an HTTP client, either against <<index#web-http>>
 handlers without a server, or against a live server.
@@ -61,7 +63,7 @@ For Spring WebFlux without a server, you can point to your Spring configuration:
 	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
 ----
 
-For Spring MVC without a server, use the `MockMvcWebTestClient` builder:
+For Spring MVC without a server, the same but using `MockMvcWebTestClient`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -76,7 +78,7 @@ For Spring MVC without a server, use the `MockMvcWebTestClient` builder:
 	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
 ----
 
-For tests against a live, running server:
+To test against a live, running server:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
