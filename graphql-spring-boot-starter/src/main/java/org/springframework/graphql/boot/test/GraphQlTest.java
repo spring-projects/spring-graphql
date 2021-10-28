@@ -40,28 +40,37 @@ import org.springframework.test.context.BootstrapWith;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
- * Annotation that can be used for a Spring GraphQL test that focuses
- * <strong>only</strong> on Spring GraphQL components, without involving web frameworks.
+ * Annotation to perform GraphQL tests focusing on GraphQL request execution
+ * without a Web layer, and loading only a subset of the application
+ * configuration.
  * <p>
- * Using this annotation will disable full auto-configuration and instead apply only
- * configuration relevant to GraphQL tests (i.e. {@code @Controller},
- * {@code @JsonComponent}, {@code Converter}/{@code GenericConverter}
- * and {@code RuntimeWiringConfigurer} beans but not
- * {@code WebInterceptor}, {@code @Component}, {@code @Service} or {@code @Repository} beans).
+ * The annotation disables full auto-configuration and instead loads only
+ * components relevant to GraphQL tests, including the following:
+ * <ul>
+ * <li>{@code @Controller}
+ * <li>{@code RuntimeWiringConfigurer}
+ * <li>{@code @JsonComponent}
+ * <li>{@code Converter}
+ * <li>{@code GenericConverter}
+ * </ul>
  * <p>
- * By default, tests annotated with {@code @GraphQlTest} will also auto-configure a
- * {@link org.springframework.graphql.test.tester.GraphQlTester}. For more fine-grained control of GraphQlTester the
- * {@link AutoConfigureGraphQlTester @AutoConfigureGraphQlTester} annotation can be used.
+ * The annotation does not automatically load {@code @Component}, {@code @Service},
+ * {@code @Repository}, and other beans.
+ * <p>
+ * By default, tests annotated with {@code @GraphQlTest} have a
+ * {@link org.springframework.graphql.test.tester.GraphQlTester} configured.
+ * For more fine-grained control of the GraphQlTester, use
+ * {@link AutoConfigureGraphQlTester @AutoConfigureGraphQlTester}.
  * <p>
  * Typically {@code @GraphQlTest} is used in combination with
  * {@link org.springframework.boot.test.mock.mockito.MockBean @MockBean} or
- * {@link org.springframework.context.annotation.Import @Import} to create any collaborators required by your
- * {@code @Controller} beans.
+ * {@link org.springframework.context.annotation.Import @Import} to load any
+ * collaborators and other components required for the tests.
  * <p>
- * If you are looking to load your full application configuration and use {@code WebGraphQlTester},
- * you should consider {@link org.springframework.boot.test.context.SpringBootTest @SpringBootTest} combined with
- * {@link AutoConfigureWebGraphQlTester @AutoConfigureWebGraphQlTester} rather than this
- * annotation.
+ * To load your full application configuration instead and test via
+ * {@code WebGraphQlTester}, consider using
+ * {@link org.springframework.boot.test.context.SpringBootTest @SpringBootTest}
+ * combined with {@link AutoConfigureWebGraphQlTester @AutoConfigureWebGraphQlTester}.
  *
  * @author Brian Clozel
  * @since 1.0.0
@@ -112,9 +121,8 @@ public @interface GraphQlTest {
 	 * Determines if default filtering should be used with
 	 * {@link SpringBootApplication @SpringBootApplication}. By default, only
 	 * {@code @Controller} (when no explicit {@link #controllers() controllers} are
-	 * defined), {@code @ControllerAdvice}, {@code WebInterceptor}
-	 * and {@code RuntimeWiringConfigurer} beans are
-	 * included.
+	 * defined), {@code RuntimeWiringConfigurer}, {@code @JsonComponent},
+	 * {@code Converter}, and {@code GenericConverter} beans are included.
 	 * @see #includeFilters()
 	 * @see #excludeFilters()
 	 * @return if default filters should be used
