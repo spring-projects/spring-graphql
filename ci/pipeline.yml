@@ -2,7 +2,7 @@ anchors:
   docker-resource-source: &docker-resource-source
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    tag: master
+    tag: ((milestone))
   gradle-enterprise-task-params: &gradle-enterprise-task-params
     GRADLE_ENTERPRISE_ACCESS_KEY: ((gradle_enterprise_secret_access_key))
     GRADLE_ENTERPRISE_CACHE_USERNAME: ((gradle_enterprise_cache_user.username))
