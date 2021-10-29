@@ -84,7 +84,7 @@ public class ClassNameTypeResolverTests {
 				"}";
 
 		ExecutionResult result = new ExecutionGraphQlService(graphQlSource)
-				.execute(new RequestInput(query, null, null))
+				.execute(new RequestInput(query, null, null, null))
 				.block();
 
 		List<Map<String, Object>> actualAnimals = GraphQlTestUtils.checkErrorsAndGetData(result, "animals");
@@ -134,7 +134,7 @@ public class ClassNameTypeResolverTests {
 				"}";
 
 		ExecutionResult result = new ExecutionGraphQlService(graphQlSource)
-				.execute(new RequestInput(query, null, null))
+				.execute(new RequestInput(query, null, null, null))
 				.block();
 
 		List<Map<String, Object>> actualSightings = GraphQlTestUtils.checkErrorsAndGetData(result, "sightings");

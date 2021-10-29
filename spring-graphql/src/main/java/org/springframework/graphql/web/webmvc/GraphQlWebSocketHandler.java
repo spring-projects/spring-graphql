@@ -156,7 +156,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			URI uri = session.getUri();
 			Assert.notNull(uri, "Expected handshake url");
 			HttpHeaders headers = session.getHandshakeHeaders();
-			WebInput input = new WebInput(uri, headers, getPayload(map), id);
+			WebInput input = new WebInput(uri, headers, getPayload(map), null, id);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Executing: " + input);
 			}

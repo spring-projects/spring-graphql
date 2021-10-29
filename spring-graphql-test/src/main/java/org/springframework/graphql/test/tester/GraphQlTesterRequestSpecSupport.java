@@ -16,6 +16,7 @@
 package org.springframework.graphql.test.tester;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.graphql.RequestInput;
@@ -38,6 +39,9 @@ class GraphQlTesterRequestSpecSupport {
 
 	private final Map<String, Object> variables = new LinkedHashMap<>();
 
+	@Nullable
+	private Locale locale;
+
 
 	protected GraphQlTesterRequestSpecSupport(String query) {
 		Assert.notNull(query, "`query` is required");
@@ -53,12 +57,16 @@ class GraphQlTesterRequestSpecSupport {
 		this.variables.put(name, value);
 	}
 
+	protected void setLocale(Locale locale) {
+		this.locale = locale;
+	}
+
 	protected void verify(GraphQlTester.ResponseSpec responseSpec) {
 		responseSpec.path("$.errors").valueIsEmpty();
 	}
 
 	protected RequestInput createRequestInput() {
-		return new RequestInput(this.query, this.operationName, this.variables);
+		return new RequestInput(this.query, this.operationName, this.variables, this.locale);
 	}
 
 }

@@ -74,7 +74,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(query, null, null))
+				.execute(new RequestInput(query, null, null, null))
 				.block();
 
 		Map<String, Object> book = GraphQlTestUtils.checkErrorsAndGetData(result, "bookById");
@@ -96,7 +96,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(query, null, null))
+				.execute(new RequestInput(query, null, null, null))
 				.block();
 
 		List<Map<String, Object>> bookList = GraphQlTestUtils.checkErrorsAndGetData(result, "booksByCriteria");
@@ -117,7 +117,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
-		RequestInput requestInput = new RequestInput(query, null, null);
+		RequestInput requestInput = new RequestInput(query, null, null, null);
 		requestInput.configureExecutionInput((executionInput, builder) -> {
 			contextRef.set(executionInput.getGraphQLContext());
 			return executionInput;
@@ -147,7 +147,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(operation, null, null))
+				.execute(new RequestInput(operation, null, null, null))
 				.block();
 
 		Map<String, Object> author = GraphQlTestUtils.checkErrorsAndGetData(result, "addAuthor");
@@ -166,7 +166,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(operation, null, null))
+				.execute(new RequestInput(operation, null, null, null))
 				.block();
 
 		Publisher<ExecutionResult> publisher = GraphQlTestUtils.checkErrorsAndGetData(result);

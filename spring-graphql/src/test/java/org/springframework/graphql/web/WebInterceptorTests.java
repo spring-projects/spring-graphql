@@ -37,8 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class WebInterceptorTests {
 
-	private static final WebInput webInput = new WebInput(URI.create("http://abc.org"), new HttpHeaders(),
-			Collections.singletonMap("query", "{ notUsed }"), "1");
+	private static final WebInput webInput = new WebInput(
+			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ notUsed }"),
+			null, "1");
 
 	@Test
 	void interceptorOrder() {

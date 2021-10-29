@@ -72,7 +72,7 @@ public class BatchLoadingTests {
 				"  }" +
 				"}";
 
-		RequestInput input = new RequestInput(query, null, null);
+		RequestInput input = new RequestInput(query, null, null, null);
 		ExecutionResult result = service.execute(input).block();
 
 		assertThat(result.getErrors()).isEmpty();

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -110,6 +111,12 @@ class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public DefaultRequestSpec variable(String name, Object value) {
 			addVariable(name, value);
+			return this;
+		}
+
+		@Override
+		public DefaultRequestSpec locale(Locale locale) {
+			setLocale(locale);
 			return this;
 		}
 

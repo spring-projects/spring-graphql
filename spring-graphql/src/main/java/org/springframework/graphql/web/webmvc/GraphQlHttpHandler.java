@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
@@ -68,10 +69,15 @@ public class GraphQlHttpHandler {
 	 * {@link HttpMediaTypeNotSupportedException}.
 	 */
 	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
-		WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), readBody(request), null);
+
+		WebInput input = new WebInput(
+				request.uri(), request.headers().asHttpHeaders(), readBody(request),
+				LocaleContextHolder.getLocale(), null);
+
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + input);
 		}
+
 		Mono<ServerResponse> responseMono = this.graphQlHandler.handleRequest(input).map((output) -> {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Execution complete");
@@ -82,6 +88,7 @@ public class GraphQlHttpHandler {
 			}
 			return builder.body(output.toSpecification());
 		});
+
 		return ServerResponse.async(responseMono);
 	}
 

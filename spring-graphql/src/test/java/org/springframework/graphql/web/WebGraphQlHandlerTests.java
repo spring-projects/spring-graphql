@@ -48,7 +48,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebGraphQlHandlerTests {
 
 	private static final WebInput webInput = new WebInput(
-			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"), "1");
+			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"),
+			null, "1");
 
 	@Test
 	void reactorContextPropagation() {

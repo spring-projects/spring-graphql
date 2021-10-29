@@ -298,8 +298,9 @@ class QuerydslDataFetcherTests {
 	}
 
 	private WebInput input(String query) {
-		return new WebInput(URI.create("http://abc.org"), new HttpHeaders(),
-				Collections.singletonMap("query", query), "1");
+		return new WebInput(
+				URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", query),
+				null, "1");
 	}
 
 	interface BookProjection {

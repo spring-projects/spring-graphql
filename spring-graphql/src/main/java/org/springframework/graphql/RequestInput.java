@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiFunction;
 
@@ -47,18 +48,23 @@ public class RequestInput {
 
 	private final Map<String, Object> variables;
 
+	@Nullable
+	private final Locale locale;
+
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
-	public RequestInput(String query, @Nullable String operationName, @Nullable Map<String, Object> vars) {
+
+	public RequestInput(
+			String query, @Nullable String operationName, @Nullable Map<String, Object> vars,
+			@Nullable Locale locale) {
+
 		Assert.notNull(query, "'query' is required");
 		this.query = query;
 		this.operationName = operationName;
 		this.variables = ((vars != null) ? vars : Collections.emptyMap());
+		this.locale = locale;
 	}
 
-	public RequestInput(Map<String, Object> body) {
-		this(getKey("query", body), getKey("operationName", body), getKey("variables", body));
-	}
 
 	@SuppressWarnings("unchecked")
 	private static <T> T getKey(String key, Map<String, Object> body) {
@@ -66,8 +72,8 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the query name extracted from the request body. This is guaranteed to be a
-	 * non-empty string.
+	 * Return the query name extracted from the request. This is guaranteed to
+	 * be a non-empty string.
 	 * @return the query name
 	 */
 	public String getQuery() {
@@ -75,8 +81,8 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the operation name extracted from the request body or {@code null} if not
-	 * provided.
+	 * Return the operation name extracted from the request or {@code null} if
+	 * not provided.
 	 * @return the operation name or {@code null}
 	 */
 	@Nullable
@@ -85,12 +91,21 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the variables that can be referenced via $syntax extracted from the request
-	 * body or a {@code null} if not provided.
+	 * Return the variables that can be referenced via $syntax extracted from
+	 * the request body or a {@code null} if not provided.
 	 * @return the request variables or {@code null}
 	 */
 	public Map<String, Object> getVariables() {
 		return this.variables;
+	}
+
+	/**
+	 * Return the locale associated with the request, if available.
+	 * @return the locale of {@code null}
+	 */
+	@Nullable
+	public Locale getLocale() {
+		return this.locale;
 	}
 
 	/**
@@ -113,8 +128,12 @@ public class RequestInput {
 	 * @return the execution input
 	 */
 	public ExecutionInput toExecutionInput() {
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(this.query)
-				.operationName(this.operationName).variables(this.variables).build();
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
+				.query(this.query)
+				.operationName(this.operationName)
+				.variables(this.variables)
+				.locale(this.locale)
+				.build();
 
 		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
 			ExecutionInput current = executionInput;
@@ -142,9 +161,10 @@ public class RequestInput {
 
 	@Override
 	public String toString() {
-		return "Query='" + getQuery() + "'"
-				+ ((getOperationName() != null) ? ", Operation='" + getOperationName() + "'" : "")
-				+ (!CollectionUtils.isEmpty(getVariables()) ? ", Variables=" + getVariables() : "");
+		return "Query='" + getQuery() + "'" +
+				((getOperationName() != null) ? ", Operation='" + getOperationName() + "'" : "") +
+				(!CollectionUtils.isEmpty(getVariables()) ? ", Variables=" + getVariables() : "") +
+				(getLocale() != null ? ", Locale=" + getLocale() : "");
 	}
 
 }

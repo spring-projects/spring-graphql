@@ -17,6 +17,7 @@
 package org.springframework.graphql.web;
 
 import java.net.URI;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.graphql.RequestInput;
@@ -50,12 +51,16 @@ public class WebInput extends RequestInput {
 	 * @param uri the url for the HTTP request, or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param body the content of the request deserialized from JSON
+	 * @param locale the locale associated with the request, if any
 	 * @param id an identifier for the GraphQL request, e.g. a subscription id for
 	 * correlating request and response messages, or it could be an id associated with the
 	 * underlying request/connection id, if available
 	 */
-	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, @Nullable String id) {
-		super(validateQuery(body));
+	public WebInput(
+			URI uri, HttpHeaders headers, Map<String, Object> body,
+			@Nullable Locale locale, @Nullable String id) {
+
+		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), locale);
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
@@ -63,13 +68,14 @@ public class WebInput extends RequestInput {
 		this.id = (id != null) ? id : ObjectUtils.identityToString(this);
 	}
 
-	private static Map<String, Object> validateQuery(Map<String, Object> body) {
-		String query = (String) body.get("query");
-		if (!StringUtils.hasText(query)) {
+	@SuppressWarnings("unchecked")
+	private static <T> T getKey(String key, Map<String, Object> body) {
+		if (key.equals("query") && !StringUtils.hasText((String) body.get(key))) {
 			throw new ServerWebInputException("Query is required");
 		}
-		return body;
+		return (T) body.get(key);
 	}
+
 
 	/**
 	 * Return the URI of the HTTP request including {@link UriComponents#getQueryParams()

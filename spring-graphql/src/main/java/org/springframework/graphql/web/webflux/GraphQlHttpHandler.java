@@ -61,8 +61,10 @@ public class GraphQlHttpHandler {
 	public Mono<ServerResponse> handleRequest(ServerRequest request) {
 		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap((body) -> {
-					String id = request.exchange().getRequest().getId();
-					WebInput input = new WebInput(request.uri(), request.headers().asHttpHeaders(), body, id);
+					WebInput input = new WebInput(
+							request.uri(), request.headers().asHttpHeaders(), body,
+							request.exchange().getLocaleContext().getLocale(),
+							request.exchange().getRequest().getId());
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}

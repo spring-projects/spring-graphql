@@ -18,6 +18,7 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -173,6 +174,13 @@ public interface GraphQlTester {
 		 * @return this request spec
 		 */
 		T variable(String name, Object value);
+
+		/**
+		 * Set the locale to associate with the request.
+		 * @param locale the locale to use
+		 * @return this request spec
+		 */
+		T locale(Locale locale);
 
 	}
 

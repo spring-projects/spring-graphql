@@ -161,7 +161,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				if (id == null) {
 					return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 				}
-				WebInput input = new WebInput(handshakeInfo.getUri(), handshakeInfo.getHeaders(), getPayload(map), id);
+				WebInput input = new WebInput(
+						handshakeInfo.getUri(), handshakeInfo.getHeaders(), getPayload(map), null, id);
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + input);
 				}

@@ -17,6 +17,8 @@ package org.springframework.graphql.test.tester;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Locale;
 import java.util.function.Predicate;
 
 import com.jayway.jsonpath.Configuration;
@@ -82,7 +84,13 @@ final class WebTestClientRequestStrategy extends RequestStrategySupport implemen
 		FluxExchangeResult<TestExecutionResult> exchangeResult = this.client.post()
 				.contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.TEXT_EVENT_STREAM)
-				.headers(headers -> headers.putAll(webInput.getHeaders()))
+				.headers(headers -> {
+					Locale locale = webInput.getLocale();
+					if (locale != null) {
+						headers.setAcceptLanguageAsLocales(Collections.singletonList(locale));
+					}
+					headers.putAll(webInput.getHeaders());
+				})
 				.bodyValue(webInput.toMap())
 				.exchange()
 				.expectStatus()

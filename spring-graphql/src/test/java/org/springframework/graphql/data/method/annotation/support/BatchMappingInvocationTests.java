@@ -118,7 +118,7 @@ public class BatchMappingInvocationTests {
 				"}";
 
 		ExecutionResult result = initGraphQlService(controllerClass, CourseConfig.class)
-				.execute(new RequestInput(query, null, null))
+				.execute(new RequestInput(query, null, null, null))
 				.block();
 
 		List<Map<String, Object>> actualCourses = GraphQlTestUtils.checkErrorsAndGetData(result, "courses");
@@ -150,7 +150,7 @@ public class BatchMappingInvocationTests {
 				"}";
 
 		ExecutionResult result = initGraphQlService(controllerClass, CourseConfig.class)
-				.execute(new RequestInput(query, null, null))
+				.execute(new RequestInput(query, null, null, null))
 				.block();
 
 		List<Map<String, Object>> actualCourses = GraphQlTestUtils.checkErrorsAndGetData(result, "courses");

@@ -17,11 +17,13 @@
 package org.springframework.graphql.test.tester;
 
 import java.net.URI;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
 
+import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
@@ -123,6 +125,12 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 		}
 
 		@Override
+		public WebRequestSpec locale(Locale locale) {
+			setLocale(locale);
+			return this;
+		}
+
+		@Override
 		public WebRequestSpec httpHeader(String headerName, String... headerValues) {
 			for (String headerValue : headerValues) {
 				this.headers.add(headerName, headerValue);
@@ -152,7 +160,8 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 		}
 
 		private WebInput createWebInput() {
-			return new WebInput(DEFAULT_URL, this.headers, createRequestInput().toMap(), null);
+			RequestInput input = createRequestInput();
+			return new WebInput(DEFAULT_URL, this.headers, input.toMap(), input.getLocale(), null);
 		}
 	}
 
