@@ -119,7 +119,7 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 		}
 
 		@Override
-		public WebRequestSpec variable(String name, Object value) {
+		public WebRequestSpec variable(String name, @Nullable Object value) {
 			addVariable(name, value);
 			return this;
 		}

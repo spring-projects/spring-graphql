@@ -109,7 +109,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public DefaultRequestSpec variable(String name, Object value) {
+		public DefaultRequestSpec variable(String name, @Nullable Object value) {
 			addVariable(name, value);
 			return this;
 		}

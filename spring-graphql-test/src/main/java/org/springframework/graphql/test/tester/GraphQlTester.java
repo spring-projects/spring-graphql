@@ -173,7 +173,7 @@ public interface GraphQlTester {
 		 * @param value the variable value
 		 * @return this request spec
 		 */
-		T variable(String name, Object value);
+		T variable(String name, @Nullable Object value);
 
 		/**
 		 * Set the locale to associate with the request.
