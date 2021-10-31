@@ -49,7 +49,7 @@ class GraphQlTesterRequestSpecSupport {
 		this.operationName = name;
 	}
 
-	protected void addVariable(String name, Object value) {
+	protected void addVariable(String name, @Nullable Object value) {
 		this.variables.put(name, value);
 	}
 
