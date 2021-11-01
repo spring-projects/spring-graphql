@@ -593,15 +593,15 @@ See <<controllers-schema-mapping-data-loader>>.
 
 | `GraphQLContext`
 | For access to the context from the `DataFetchingEnvironment`.
-See <<controllers-schema-mapping-graphql-context>>.
 
 | `DataFetchingFieldSelectionSet`
 | For access to the selection set for the query through the `DataFetchingEnvironment`.
-See <<controllers-schema-mapping-selection-set>>.
+
+| `Locale`, `Optional<Locale>`
+| For access to the `Locale` from the `DataFetchingEnvironment`.
 
 | `DataFetchingEnvironment`
 | For direct access to the underlying `DataFetchingEnvironment`.
-See <<controllers-schema-mapping-environment>>.
 
 |===
 
@@ -719,28 +719,6 @@ For straight-forward cases where the `@SchemaMapping` simply delegates to a `Dat
 you can reduce boilerplate by using a <<controllers-batch-mapping,@BatchMapping>> method
 instead.
 ====
-
-
-[[controllers-schema-mapping-graphql-context]]
-==== `GraphQLContext`
-
-To access the `GraphQLContext` from the `DataFetchingEnvironment`, declare a method
-parameter of the same type.
-
-
-[[controllers-schema-mapping-selection-set]]
-==== `DataFetchingFieldSelectionSet`
-
-To access the `DataFetchingFieldSelectionSet` from the `DataFetchingEnvironment`, declare
-a method parameter of the same type. This is useful to peek ahead at the fields that need
-to be fetched.
-
-
-[[controllers-schema-mapping-environment]]
-==== `DataFetchingEnvironment`
-
-To access the `DataFetchingEnvironment` directly, declare a method parameter of the same
-type.
 
 
 

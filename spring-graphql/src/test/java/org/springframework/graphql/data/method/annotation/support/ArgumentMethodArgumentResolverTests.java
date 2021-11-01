@@ -118,8 +118,7 @@ class ArgumentMethodArgumentResolverTests {
 	}
 
 	private DataFetchingEnvironment initEnvironment(String jsonPayload) throws JsonProcessingException {
-		Map<String, Object> arguments = mapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {
-		});
+		Map<String, Object> arguments = mapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {});
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}
 

@@ -15,6 +15,9 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.util.Locale;
+import java.util.Optional;
+
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
@@ -23,8 +26,13 @@ import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 
 /**
- * Resolver for {@link DataFetchingEnvironment} as well as arguments of type
- * {@link GraphQLContext} or {@link DataFetchingFieldSelectionSet}.
+ * Resolver for {@link DataFetchingEnvironment} and related values that can be
+ * accessed through the {@link DataFetchingEnvironment} such as:
+ * <ul>
+ * <li>{@link GraphQLContext}
+ * <li>{@link DataFetchingFieldSelectionSet}
+ * <li>{@link Locale} or {@code Optional<Locale>}
+ * </ul>as well as arguments of type
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -35,7 +43,12 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
 		return (type.equals(DataFetchingEnvironment.class) || type.equals(GraphQLContext.class) ||
-				type.equals(DataFetchingFieldSelectionSet.class));
+				type.equals(DataFetchingFieldSelectionSet.class) ||
+				type.equals(Locale.class) || isOptionalLocale(parameter));
+	}
+
+	private static boolean isOptionalLocale(MethodParameter parameter) {
+		return parameter.nestedIfOptional().getNestedParameterType().equals(Locale.class);
 	}
 
 	@Override
@@ -46,6 +59,12 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 		}
 		else if (type.equals(DataFetchingFieldSelectionSet.class)) {
 			return environment.getSelectionSet();
+		}
+		else if (type.equals(Locale.class)) {
+			return environment.getLocale();
+		}
+		else if (isOptionalLocale(parameter)) {
+			return Optional.ofNullable(environment.getLocale());
 		}
 		else if (type.equals(DataFetchingEnvironment.class)) {
 			return environment;
