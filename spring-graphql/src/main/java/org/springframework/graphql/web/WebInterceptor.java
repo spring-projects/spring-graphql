@@ -36,6 +36,7 @@ import org.springframework.util.Assert;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see WebSocketInterceptor
  */
 public interface WebInterceptor {
 
@@ -53,8 +54,8 @@ public interface WebInterceptor {
 
 	/**
 	 * Return a composed {@link WebInterceptor} that invokes the current
-	 * interceptor first and then the one one passed in.
-	 * @param interceptor the interceptor to compose the current one with
+	 * interceptor first and then the one that is passed in.
+	 * @param interceptor the interceptor to delegate to after "this" interceptor
 	 * @return the composed WebInterceptor
 	 */
 	default WebInterceptor andThen(WebInterceptor interceptor) {

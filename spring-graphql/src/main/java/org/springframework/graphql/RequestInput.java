@@ -54,14 +54,21 @@ public class RequestInput {
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
 
+	/**
+	 * Create an instance.
+	 * @param query the query, mutation, or subscription for the request
+	 * @param operationName an optional, explicit name assigned to the query
+	 * @param  variables variables by which the query is parameterized
+	 * @param locale the locale associated with the request, if any
+	 */
 	public RequestInput(
-			String query, @Nullable String operationName, @Nullable Map<String, Object> vars,
+			String query, @Nullable String operationName, @Nullable Map<String, Object> variables,
 			@Nullable Locale locale) {
 
 		Assert.notNull(query, "'query' is required");
 		this.query = query;
 		this.operationName = operationName;
-		this.variables = ((vars != null) ? vars : Collections.emptyMap());
+		this.variables = ((variables != null) ? variables : Collections.emptyMap());
 		this.locale = locale;
 	}
 
@@ -72,18 +79,16 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the query name extracted from the request. This is guaranteed to
-	 * be a non-empty string.
-	 * @return the query name
+	 * Return the query, mutation, or subscription for the request.
+	 * @return the query, a non-empty string.
 	 */
 	public String getQuery() {
 		return this.query;
 	}
 
 	/**
-	 * Return the operation name extracted from the request or {@code null} if
-	 * not provided.
-	 * @return the operation name or {@code null}
+	 * Return the explicitly assigned name for the query.
+	 * @return the operation name or {@code null}.
 	 */
 	@Nullable
 	public String getOperationName() {
@@ -91,17 +96,16 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the variables that can be referenced via $syntax extracted from
-	 * the request body or a {@code null} if not provided.
-	 * @return the request variables or {@code null}
+	 * Return values for variable referenced within the query via $syntax.
+	 * @return a map of variables, or an empty map.
 	 */
 	public Map<String, Object> getVariables() {
 		return this.variables;
 	}
 
 	/**
-	 * Return the locale associated with the request, if available.
-	 * @return the locale of {@code null}
+	 * Return the locale associated with the request.
+	 * @return the locale of {@code null}.
 	 */
 	@Nullable
 	public Locale getLocale() {

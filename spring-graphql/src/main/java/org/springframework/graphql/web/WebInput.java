@@ -31,9 +31,10 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Container for the input of a GraphQL query over HTTP. The input includes the
- * {@link UriComponents URL} and the headers of the request, as well as the query name,
- * operation name, and variables from the request body.
+ * Container for the input of a GraphQL request over HTTP or WebSocket, including
+ * the URL and HTTP headers, along with the query, operation name, and variables
+ * from the body of the request. For WebSocket, the URL and HTTP headers  are
+ * those of the WebSocket handshake request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -48,10 +49,10 @@ public class WebInput extends RequestInput {
 
 	/**
 	 * Create an instance.
-	 * @param uri the url for the HTTP request, or WebSocket handshake
+	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param body the content of the request deserialized from JSON
-	 * @param locale the locale associated with the request, if any
+	 * @param locale the locale from the HTTP request, if any
 	 * @param id an identifier for the GraphQL request, e.g. a subscription id for
 	 * correlating request and response messages, or it could be an id associated with the
 	 * underlying request/connection id, if available
@@ -78,29 +79,23 @@ public class WebInput extends RequestInput {
 
 
 	/**
-	 * Return the URI of the HTTP request including {@link UriComponents#getQueryParams()
-	 * URL query parameters}.
-	 * @return the HTTP request URI
+	 * Return the URL for the HTTP request or WebSocket handshake.
 	 */
 	public UriComponents getUri() {
 		return this.uri;
 	}
 
 	/**
-	 * Return the headers of the request.
-	 * @return the HTTP request headers
+	 * Return the HTTP headers of the request or WebSocket handshake.
 	 */
 	public HttpHeaders getHeaders() {
 		return this.headers;
 	}
 
 	/**
-	 * Return the identifier for the request, which may be a subscription id for
-	 * correlating request and response messages, or the underlying request or connection
-	 * id, when available, or otherwise it's an
-	 * {@link ObjectUtils#identityToString(Object) identity} hash based this
-	 * {@code WebInput} instance.
-	 * @return the HTTP request identifier
+	 * Return an identifier for the request. This is useful to correlate
+	 * request and response messages on a multiplexed connection.
+	 * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket Protocol</a>
 	 */
 	public String getId() {
 		return this.id;
