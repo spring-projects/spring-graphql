@@ -86,7 +86,8 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		return result;
 	}
 
-	public <K> Object resolveArgument(
+	@Nullable
+	private  <K> Object resolveArgument(
 			MethodParameter parameter, Collection<K> keys, BatchLoaderEnvironment environment) {
 
 		Class<?> parameterType = parameter.getParameterType();
@@ -100,12 +101,15 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			collection.addAll(keys);
 			return collection;
 		}
-
-		if (parameterType.isInstance(environment)) {
+		else if (parameterType.isInstance(environment)) {
 			return environment;
 		}
-
-		throw new IllegalStateException(formatArgumentError(parameter, "Unexpected argument type."));
+		else if ("kotlin.coroutines.Continuation".equals(parameterType.getName())) {
+			return null;
+		}
+		else {
+			throw new IllegalStateException(formatArgumentError(parameter, "Unexpected argument type."));
+		}
 	}
 
 }
