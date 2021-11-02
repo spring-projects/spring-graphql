@@ -195,10 +195,11 @@ via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement 
 
 You can add a `RuntimeWiringConfigurer` to `GraphQlSource.Builder` to register:
 
- - custom scalar types.
- - a `TypeResolver`, if you need to override the
+ - Custom scalar types.
+ - Directives handling code.
+ - `TypeResolver`, if you need to override the
    <<execution-graphqlsource-default-type-resolver>> for a type.
- - a `DataFetcher` for a field, although most applications will simply configure
+ - `DataFetcher` for a field, although most applications will simply configure
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 

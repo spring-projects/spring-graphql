@@ -116,8 +116,8 @@ spring.graphql.schema.printer.enabled=false
 [[boot-graphql-runtimewiring]]
 == RuntimeWiring
 
-The GraphQL Java `RuntimeWiring.Builder` can be used to register ``DataFetcher``s,
-type resolvers, custom scalar types, and more. You can declare `RuntimeWiringConfigurer`
+The GraphQL Java `RuntimeWiring.Builder` can be used to register custom scalar types,
+directives, type resolvers, ``DataFetcher``s, and more. You can declare `RuntimeWiringConfigurer`
 beans in your Spring config to get access to the `RuntimeWiring.Builder`. The Boot
 starter detects such beans and adds them to <<index#execution-graphqlsource,GraphQlSource.Builder>>.
 
