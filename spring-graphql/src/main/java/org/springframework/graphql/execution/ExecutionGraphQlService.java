@@ -63,12 +63,12 @@ public class ExecutionGraphQlService implements GraphQlService {
 		return Mono.deferContextual((contextView) -> {
 			ExecutionInput executionInput = requestInput.toExecutionInput();
 			ReactorContextManager.setReactorContext(contextView, executionInput);
-			executionInput = regsterDataLoaders(executionInput);
+			executionInput = registerDataLoaders(executionInput);
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInput));
 		});
 	}
 
-	private ExecutionInput regsterDataLoaders(ExecutionInput executionInput) {
+	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
 		if (!this.dataLoaderRegistrars.isEmpty()) {
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 			DataLoaderRegistry previousRegistry = executionInput.getDataLoaderRegistry();
