@@ -16,7 +16,11 @@
 package org.springframework.graphql.execution;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
+import graphql.ExecutionInput;
+import graphql.GraphQLContext;
 import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderRegistry;
 import org.dataloader.stats.NoOpStatisticsCollector;
@@ -24,8 +28,11 @@ import org.dataloader.stats.StatisticsCollector;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
+import reactor.util.context.ContextView;
 
 import org.springframework.graphql.Book;
+import org.springframework.graphql.BookSource;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
@@ -40,24 +47,49 @@ public class DefaultBatchLoaderRegistryTests {
 
 
 	@Test
-	void batchLoader() {
-		this.batchLoaderRegistry.forTypePair(String.class, Book.class).registerBatchLoader((keys, environment) -> Flux.empty());
-		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry);
+	void batchLoader() throws Exception {
+		AtomicReference<String> valueRef = new AtomicReference<>();
+
+		this.batchLoaderRegistry.forTypePair(Long.class, Book.class)
+				.withOptions(options -> options.setBatchingEnabled(false)) // DataLoader invoked immediately
+				.registerBatchLoader((ids, environment) ->
+						Flux.deferContextual(contextView -> {
+							valueRef.set(contextView.get("key"));
+							return Flux.fromIterable(ids).map(BookSource::getBook);
+						}));
+
+		GraphQLContext graphQLContext = initGraphQLContext(Context.of("key", "value"));
+		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry, graphQLContext);
 
 		Map<String, DataLoader<?, ?>> map = this.dataLoaderRegistry.getDataLoadersMap();
 		assertThat(map).hasSize(1).containsKey(Book.class.getName());
+
+		// Invoke DataLoader to check the context
+		((DataLoader<Long, Book>) map.get(Book.class.getName())).load(1L).get();
+		assertThat(valueRef.get()).isEqualTo("value");
 	}
 
 	@Test
-	void mappedBatchLoader() {
-		this.batchLoaderRegistry
-				.forTypePair(String.class, Book.class)
-				.registerMappedBatchLoader((keys, environment) -> Mono.empty());
+	void mappedBatchLoader() throws Exception {
+		AtomicReference<String> valueRef = new AtomicReference<>();
 
-		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry);
+		this.batchLoaderRegistry.forTypePair(Long.class, Book.class)
+				.withOptions(options -> options.setBatchingEnabled(false)) // DataLoader invoked immediately
+				.registerMappedBatchLoader((ids, environment) ->
+						Mono.deferContextual(contextView -> {
+							valueRef.set(contextView.get("key"));
+							return Flux.fromIterable(ids).map(BookSource::getBook).collectMap(Book::getId, Function.identity());
+						}));
+
+		GraphQLContext graphQLContext = initGraphQLContext(Context.of("key", "value"));
+		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry, graphQLContext);
 
 		Map<String, DataLoader<?, ?>> map = this.dataLoaderRegistry.getDataLoadersMap();
 		assertThat(map).hasSize(1).containsKey(Book.class.getName());
+
+		// Invoke DataLoader to check the context
+		((DataLoader<Long, Book>) map.get(Book.class.getName())).load(1L).get();
+		assertThat(valueRef.get()).isEqualTo("value");
 	}
 
 	@Test
@@ -69,11 +101,17 @@ public class DefaultBatchLoaderRegistryTests {
 				.withOptions(options -> options.setStatisticsCollector(() -> collector))
 				.registerBatchLoader((keys, environment) -> Flux.empty());
 
-		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry);
+		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry, GraphQLContext.newContext().build());
 
 		Map<String, DataLoader<?, ?>> map = dataLoaderRegistry.getDataLoadersMap();
 		assertThat(map).hasSize(1).containsKey(name);
 		assertThat(map.get(name).getStatistics()).isSameAs(collector.getStatistics());
+	}
+
+	private GraphQLContext initGraphQLContext(ContextView context) {
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput().query("").build();
+		ReactorContextManager.setReactorContext(context, executionInput);
+		return executionInput.getGraphQLContext();
 	}
 
 }

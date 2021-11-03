@@ -22,10 +22,12 @@ import java.util.Map;
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import org.dataloader.BatchLoaderEnvironment;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Provides helper methods to save Reactor context in the {@link ExecutionInput}
@@ -66,6 +68,17 @@ public abstract class ReactorContextManager {
 	static ContextView getReactorContext(DataFetchingEnvironment environment) {
 		GraphQLContext graphQlContext = environment.getGraphQlContext();
 		return graphQlContext.getOrDefault(CONTEXT_VIEW_KEY, Context.empty());
+	}
+
+	/**
+	 * Return the Reactor {@link ContextView} saved in the given BatchLoaderEnvironment.
+	 * @param environment the BatchLoaderEnvironment
+	 * @return the reactor {@link ContextView}
+	 */
+	static ContextView getReactorContext(BatchLoaderEnvironment environment) {
+		Object context = environment.getContext();
+		Assert.isTrue(context instanceof GraphQLContext, "Expected GraphQLContext in BatchLoaderEnvironment");
+		return ((GraphQLContext) context).getOrDefault(CONTEXT_VIEW_KEY, Context.empty());
 	}
 
 	/**

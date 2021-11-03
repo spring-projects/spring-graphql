@@ -21,6 +21,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
+import graphql.ExecutionInput;
+import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.BatchLoaderEnvironment;
 import org.dataloader.DataLoaderOptions;
 import reactor.core.publisher.Flux;
@@ -99,6 +101,11 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 		/**
 		 * Customize the {@link DataLoaderOptions} to use to create the
 		 * {@link org.dataloader.DataLoader} via {@link org.dataloader.DataLoaderFactory}.
+		 * <p><strong>Note:</strong> Do not set
+		 * {@link DataLoaderOptions#setBatchLoaderContextProvider(BatchLoaderContextProvider)}
+		 * as this will be set later to a provider that returns the context from
+		 * {@link ExecutionInput#getGraphQLContext()}, so that batch loading
+		 * functions and data fetchers can rely on access to the same context.
 		 * @param optionsConsumer callback to customize the options, invoked
 		 * immediately and given access to the options instance
 		 * @return a spec to complete the registration
@@ -106,8 +113,13 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 		RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer);
 
 		/**
-		 * Replace the {@link DataLoaderOptions} to use to create the
+		 * Set the {@link DataLoaderOptions} to use to create the
 		 * {@link org.dataloader.DataLoader} via {@link org.dataloader.DataLoaderFactory}.
+		 * <p><strong>Note:</strong> Do not set
+		 * {@link DataLoaderOptions#setBatchLoaderContextProvider(BatchLoaderContextProvider)}
+		 * as this will be set later to a provider that returns the context from
+		 * {@link ExecutionInput#getGraphQLContext()}, so that batch loading
+		 * functions and data fetchers can rely on access to the same context.
 		 * @param options the options to use
 		 * @return a spec to complete the registration
 		 */

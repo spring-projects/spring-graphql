@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.util.List;
 import java.util.Map;
 
+import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
 import graphql.schema.idl.RuntimeWiring;
 import org.dataloader.BatchLoaderEnvironment;
@@ -61,7 +62,7 @@ public class BatchMappingDetectionTests {
 				"authorFlux", "authorList", "authorMonoMap", "authorMap", "authorEnvironment");
 
 		DataLoaderRegistry registry = new DataLoaderRegistry();
-		this.batchLoaderRegistry.registerDataLoaders(registry);
+		this.batchLoaderRegistry.registerDataLoaders(registry, GraphQLContext.newContext().build());
 		assertThat(registry.getDataLoadersMap()).containsOnlyKeys(
 				"Book.authorFlux", "Book.authorList", "Book.authorMonoMap", "Book.authorMap", "Book.authorEnvironment");
 	}

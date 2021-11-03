@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
+import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.dataloader.DataLoader;
@@ -117,7 +118,7 @@ public class DataLoaderArgumentResolverTests {
 		registryConsumer.accept(batchLoaderRegistry);
 
 		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();
-		batchLoaderRegistry.registerDataLoaders(registry);
+		batchLoaderRegistry.registerDataLoaders(registry, GraphQLContext.newContext().build());
 
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().dataLoaderRegistry(registry).build();
 	}

@@ -23,6 +23,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
+import graphql.GraphQLContext;
+import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.BatchLoaderEnvironment;
 import org.dataloader.BatchLoaderWithContext;
 import org.dataloader.DataLoader;
@@ -32,6 +34,7 @@ import org.dataloader.DataLoaderRegistry;
 import org.dataloader.MappedBatchLoaderWithContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -63,13 +66,16 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	}
 
 	@Override
-	public void registerDataLoaders(DataLoaderRegistry registry) {
+	public void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context) {
+		BatchLoaderContextProvider contextProvider = () -> context;
 		for (ReactorBatchLoader<?, ?> loader : this.loaders) {
-			DataLoader<?, ?> dataLoader = DataLoaderFactory.newDataLoader(loader, loader.getOptions());
+			DataLoaderOptions options = loader.getOptions().setBatchLoaderContextProvider(contextProvider);
+			DataLoader<?, ?> dataLoader = DataLoaderFactory.newDataLoader(loader, options);
 			registerDataLoader(loader.getName(), dataLoader, registry);
 		}
 		for (ReactorMappedBatchLoader<?, ?> loader : this.mappedLoaders) {
-			DataLoader<?, ?> dataLoader = DataLoaderFactory.newMappedDataLoader(loader, loader.getOptions());
+			DataLoaderOptions options = loader.getOptions().setBatchLoaderContextProvider(contextProvider);
+			DataLoader<?, ?> dataLoader = DataLoaderFactory.newMappedDataLoader(loader, options);
 			registerDataLoader(loader.getName(), dataLoader, registry);
 		}
 	}
@@ -141,6 +147,10 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	}
 
 
+	/**
+	 * {@link BatchLoaderWithContext} that delegates to a {@link Flux} batch
+	 * loading function and exposes Reactor context to it.
+	 */
 	private static class ReactorBatchLoader<K, V> implements BatchLoaderWithContext<K, V> {
 
 		private final String name;
@@ -168,11 +178,17 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
-			return this.loader.apply(keys, environment).collectList().toFuture();
+			ContextView contextView = ReactorContextManager.getReactorContext(environment);
+			return this.loader.apply(keys, environment).collectList().contextWrite(contextView).toFuture();
 		}
+
 	}
 
 
+	/**
+	 * {@link MappedBatchLoaderWithContext} that delegates to a {@link Mono}
+	 * batch loading function and exposes Reactor context to it.
+	 */
 	private static class ReactorMappedBatchLoader<K, V> implements MappedBatchLoaderWithContext<K, V> {
 
 		private final String name;
@@ -200,8 +216,10 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
-			return this.loader.apply(keys, environment).toFuture();
+			ContextView contextView = ReactorContextManager.getReactorContext(environment);
+			return this.loader.apply(keys, environment).contextWrite(contextView).toFuture();
 		}
+
 	}
 
 }

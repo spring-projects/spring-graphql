@@ -22,6 +22,7 @@ import java.util.List;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.GraphQLContext;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
 
@@ -59,24 +60,23 @@ public class ExecutionGraphQlService implements GraphQlService {
 
 	@Override
 	public final Mono<ExecutionResult> execute(RequestInput requestInput) {
-		ExecutionInput executionInput = initExecutionInput(requestInput);
-		GraphQL graphQl = this.graphQlSource.graphQl();
-
 		return Mono.deferContextual((contextView) -> {
+			ExecutionInput executionInput = requestInput.toExecutionInput();
 			ReactorContextManager.setReactorContext(contextView, executionInput);
-			return Mono.fromFuture(graphQl.executeAsync(executionInput));
+			executionInput = regsterDataLoaders(executionInput);
+			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInput));
 		});
 	}
 
-	private ExecutionInput initExecutionInput(RequestInput requestInput) {
-		ExecutionInput input = requestInput.toExecutionInput();
+	private ExecutionInput regsterDataLoaders(ExecutionInput executionInput) {
 		if (!this.dataLoaderRegistrars.isEmpty()) {
-			DataLoaderRegistry previousRegistry = input.getDataLoaderRegistry();
+			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
+			DataLoaderRegistry previousRegistry = executionInput.getDataLoaderRegistry();
 			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().registerAll(previousRegistry).build();
-			this.dataLoaderRegistrars.forEach(registrar -> registrar.registerDataLoaders(newRegistry));
-			input = input.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+			this.dataLoaderRegistrars.forEach(registrar -> registrar.registerDataLoaders(newRegistry, graphQLContext));
+			executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
 		}
-		return input;
+		return executionInput;
 	}
 
 }

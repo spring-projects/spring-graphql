@@ -15,14 +15,18 @@
  */
 package org.springframework.graphql.execution;
 
+import graphql.ExecutionInput;
+import graphql.GraphQLContext;
+import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.DataLoaderRegistry;
 
 /**
- * Contract for callback access to the {@link DataLoaderRegistry} as it is
- * initialized for each request.
+ * Contract for access to the {@link DataLoaderRegistry} for each request for
+ * the purpose of registering {@link org.dataloader.DataLoader} instances.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see ExecutionInput#getDataLoaderRegistry()
  */
 public interface DataLoaderRegistrar {
 
@@ -30,7 +34,10 @@ public interface DataLoaderRegistrar {
 	 * Callback that provides access to the {@link DataLoaderRegistry} from the
 	 * the {@link graphql.ExecutionInput}.
 	 * @param registry the registry to make registrations against
+	 * @param context the GraphQLContext from the ExecutionInput that registrars
+	 * should set in the {@link org.dataloader.DataLoaderOptions} so that batch
+	 * loaders can access it via {@link org.dataloader.BatchLoaderEnvironment}.
 	 */
-	void registerDataLoaders(DataLoaderRegistry registry);
+	void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context);
 
 }

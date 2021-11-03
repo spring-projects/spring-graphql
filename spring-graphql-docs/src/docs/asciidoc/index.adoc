@@ -353,14 +353,14 @@ defers until it is ready to batch load all related entities as one.
  - `DataLoader` additionally maintains a cache of previously loaded entities that can
 further improve efficiency when the same entity is in multiple places of the response.
 
-Spring GraphQL provides a `BatchLoaderRegistry` that accepts and stores registrations of
-batch loading functions. The `ExecutionGraphQlService` accepts the registry as input and
-uses it to make per request `DataLoader` registrations. A `DataFetcher` then looks up the
-`DataLoader` for an entity and uses it to load instances, or in an annotated controller,
-simply declare a <<controllers-schema-mapping-data-loader,DataLoader argument>> to access  the
-registered loader. Annotated controllers also support a
-<<controllers-batch-mapping,@BatchMapping>> that avoids the need to use `DataLoader`
-directly.
+Spring GraphQL provides:
+
+ - `BatchLoaderRegistry` that accepts and stores registrations of batch loading functions;
+This is used in `ExecutionGraphQlService` to make `DataLoader` registrations per request.
+ - <<controllers-schema-mapping-data-loader,DataLoader argument>> for `@SchemaMapping`
+methods to access the `DataLoader` for the field type.
+ - <<controllers-batch-mapping,@BatchMapping>> data controller methods that provide a
+shortcut and avoid the need to use `DataLoader` directly.
 
 The Spring Boot starter declares a
 <<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>>, so that applications can
