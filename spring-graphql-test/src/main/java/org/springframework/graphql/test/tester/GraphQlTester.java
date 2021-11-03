@@ -170,7 +170,8 @@ public interface GraphQlTester {
 		/**
 		 * Add a variable.
 		 * @param name the variable name
-		 * @param value the variable value
+		 * @param value the variable value, possibly {@code null} since GraphQL
+		 * supports providing null value vs not providing a value at all.
 		 * @return this request spec
 		 */
 		T variable(String name, @Nullable Object value);

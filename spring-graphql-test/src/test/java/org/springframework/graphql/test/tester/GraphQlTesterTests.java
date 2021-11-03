@@ -179,7 +179,7 @@ public class GraphQlTesterTests {
 				.operationName("HeroNameAndFriends")
 				.variable("episode", "JEDI")
 				.variable("foo", "bar")
-				.variable("optional", null)
+				.variable("keyOnly", null)
 				.execute();
 
 		spec.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
@@ -190,7 +190,7 @@ public class GraphQlTesterTests {
 		assertThat(input.getVariables()).hasSize(3);
 		assertThat(input.getVariables()).containsEntry("episode", "JEDI");
 		assertThat(input.getVariables()).containsEntry("foo", "bar");
-		assertThat(input.getVariables()).containsEntry("optional", null);
+		assertThat(input.getVariables()).containsEntry("keyOnly", null);
 	}
 
 	@Test
