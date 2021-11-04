@@ -16,7 +16,6 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
-import java.util.function.Consumer;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
@@ -38,7 +37,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Unit tests for {@link DataLoaderMethodArgumentResolver}.
- *
  * @author Rossen Stoyanchev
  */
 public class DataLoaderArgumentResolverTests {
@@ -47,6 +45,8 @@ public class DataLoaderArgumentResolverTests {
 			DataLoaderArgumentResolverTests.class, "handle", (Class<?>[]) null);
 
 	private final DataLoaderMethodArgumentResolver resolver = new DataLoaderMethodArgumentResolver();
+
+	private final BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 
 	@Test
@@ -57,70 +57,60 @@ public class DataLoaderArgumentResolverTests {
 
 	@Test
 	void resolveArgument() {
+		this.registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, env) -> Flux.empty());
 
-		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, env) -> Flux.empty()));
-
-		Object argument = this.resolver.resolveArgument(initParameter(0), environment);
+		Object argument = this.resolver.resolveArgument(initParameter(0), environment());
 		assertThat(argument).isNotNull();
 	}
 
 	@Test
 	void resolveArgumentViaParameterName() {
-		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forName("namedDataLoader").registerBatchLoader((ids, env) -> Flux.empty()));
+		this.registry.forName("namedDataLoader").registerBatchLoader((ids, env) -> Flux.empty());
 
 		MethodParameter parameter = initParameter(1);
 		parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 
-		Object argument = this.resolver.resolveArgument(parameter, environment);
+		Object argument = this.resolver.resolveArgument(parameter, environment());
 		assertThat(argument).isNotNull();
 	}
 
 	@Test
 	void resolveArgumentFailureWithoutGenericType() {
-		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, env) -> Flux.empty()));
+		this.registry.forTypePair(Long.class, Author.class).registerBatchLoader((ids, env) -> Flux.empty());
 
-		assertThatThrownBy(() -> this.resolver.resolveArgument(initParameter(2), environment))
+		assertThatThrownBy(() -> this.resolver.resolveArgument(initParameter(2), environment()))
 				.hasMessageContaining("declaring the DataLoader argument with generic types should help");
 	}
 
 	@Test
 	void resolveArgumentFailureWithoutParameterName() {
-		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forName("namedDataLoader").registerBatchLoader((ids, env) -> Flux.empty()));
+		this.registry.forName("namedDataLoader").registerBatchLoader((ids, env) -> Flux.empty());
 
 		MethodParameter parameter = initParameter(1);
 		// Skip ParameterNameDiscovery
 
-		assertThatThrownBy(() -> this.resolver.resolveArgument(parameter, environment))
+		assertThatThrownBy(() -> this.resolver.resolveArgument(parameter, environment()))
 				.hasMessageContaining("compiling with \"-parameters\" should help");
 	}
 
 	@Test
 	void resolveArgumentFailureNoMatch() {
-		DataFetchingEnvironment environment = initEnvironment(registry ->
-				registry.forName("bookDataLoader").registerBatchLoader((ids, env) -> Flux.empty()));
+		this.registry.forName("bookDataLoader").registerBatchLoader((ids, env) -> Flux.empty());
 
 		MethodParameter parameter = initParameter(0);
 		parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 
-		assertThatThrownBy(() -> this.resolver.resolveArgument(parameter, environment))
+		assertThatThrownBy(() -> this.resolver.resolveArgument(parameter, environment()))
 				.hasMessageContaining(
 						"Neither the name of the declared value type 'class org.springframework.graphql.Author' " +
 								"nor the method parameter name 'authorDataLoader' match to any DataLoader. " +
 								"The DataLoaderRegistry contains: [bookDataLoader]");
 	}
 
-	private DataFetchingEnvironment initEnvironment(Consumer<BatchLoaderRegistry> registryConsumer) {
-		BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
-		registryConsumer.accept(batchLoaderRegistry);
-
-		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();
-		batchLoaderRegistry.registerDataLoaders(registry, GraphQLContext.newContext().build());
-
-		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().dataLoaderRegistry(registry).build();
+	private DataFetchingEnvironment environment() {
+		DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
+		this.registry.registerDataLoaders(dataLoaderRegistry, GraphQLContext.newContext().build());
+		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().dataLoaderRegistry(dataLoaderRegistry).build();
 	}
 
 	private MethodParameter initParameter(int index) {

@@ -19,20 +19,20 @@ package org.springframework.graphql.data.querydsl;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.querydsl.core.types.Predicate;
+import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.idl.TypeRuntimeWiring;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.keyvalue.core.KeyValueTemplate;
 import org.springframework.data.keyvalue.repository.support.KeyValueRepositoryFactory;
 import org.springframework.data.map.MapKeyValueAdapter;
@@ -42,9 +42,12 @@ import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.Repository;
 import org.springframework.graphql.Author;
+import org.springframework.graphql.BookSource;
+import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -62,32 +65,29 @@ import static org.mockito.Mockito.when;
  */
 class QuerydslDataFetcherTests {
 
-	private KeyValueRepositoryFactory repositoryFactory = new KeyValueRepositoryFactory(new KeyValueTemplate(new MapKeyValueAdapter()));
-	private MockRepository mockRepository = repositoryFactory.getRepository(MockRepository.class);
+	private final KeyValueRepositoryFactory repositoryFactory =
+			new KeyValueRepositoryFactory(new KeyValueTemplate(new MapKeyValueAdapter()));
+
+	private final MockRepository mockRepository = repositoryFactory.getRepository(MockRepository.class);
+
 
 	@Test
 	void shouldFetchSingleItems() {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		mockRepository.save(book);
 
-		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, QuerydslPredicateExecutor<?>> tester =
-				(wiringConfigurer, executor) -> {
-					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, executor, null);
-					WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
+		Consumer<WebGraphQlHandler> tester = (handler) -> {
+			WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
 
-					// TODO: getData interferes with method overrides
-					assertThat((Object) output.getData()).isEqualTo(
-							Collections.singletonMap("bookById",
-									Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
-				};
+			Map<String, Object> map = GraphQlTestUtils.getData(output, "bookById");
+			assertThat(map).hasSize(1).containsEntry("name", book.getName());
+		};
 
 		// explicit wiring
-		tester.accept(
-				builder -> builder.dataFetcher("bookById", QuerydslDataFetcher.builder(mockRepository).single()),
-				null);
+		tester.accept(initHandler("bookById", QuerydslDataFetcher.builder(mockRepository).single()));
 
 		// auto registration
-		tester.accept(null, mockRepository);
+		tester.accept(initHandler(builder -> {}, mockRepository, null));
 	}
 
 	@Test
@@ -96,24 +96,20 @@ class QuerydslDataFetcherTests {
 		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
 		mockRepository.saveAll(Arrays.asList(book1, book2));
 
-		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, QuerydslPredicateExecutor<?>> tester =
-				(wiringConfigurer, executor) -> {
-					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, mockRepository, null);
-					WebOutput output = handler.handleRequest(input("{ books {name}}")).block();
+		Consumer<WebGraphQlHandler> tester = (handler) -> {
+			WebOutput output = handler.handleRequest(input("{ books {name}}")).block();
 
-					assertThat((Object) output.getData()).isEqualTo(
-							Collections.singletonMap("books", Arrays.asList(
-									Collections.singletonMap("name", "Breaking Bad"),
-									Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"))));
-				};
+			List<Map<String, Object>> data = GraphQlTestUtils.getData(output, "books");
+			assertThat(data).containsExactlyInAnyOrder(
+					Collections.singletonMap("name", "Breaking Bad"),
+					Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"));
+		};
 
 		// explicit wiring
-		tester.accept(
-				builder -> builder.dataFetcher("books", QuerydslDataFetcher.builder(mockRepository).many()),
-				null);
+		tester.accept(initHandler("books", QuerydslDataFetcher.builder(mockRepository).many()));
 
 		// auto registration
-		tester.accept(null, mockRepository);
+		tester.accept(initHandler(builder -> {}, mockRepository, null));
 	}
 
 	@Test
@@ -123,21 +119,21 @@ class QuerydslDataFetcherTests {
 		when(mockRepository.findBy(any(), any())).thenReturn(Optional.of(book));
 
 		// 1) Automatic registration only
-		WebGraphQlHandler handler = initWebGraphQlHandler(null, mockRepository, null);
+		WebGraphQlHandler handler = initHandler(builder -> {}, mockRepository, null);
 		WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
-		assertThat((Object) output.getData()).isEqualTo(
-				Collections.singletonMap("bookById", Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
+		Map<String, Object> map = GraphQlTestUtils.getData(output, "bookById");
+		assertThat(map).hasSize(1).containsEntry("name", "Hitchhiker's Guide to the Galaxy");
 
 		// 2) Automatic registration and explicit wiring
-		handler = initWebGraphQlHandler(
-				builder -> builder.dataFetcher("bookById", env -> new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"))),
-				mockRepository, null);
+		handler = initHandler(
+				"bookById", env -> new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg")),
+				mockRepository);
 
 		output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
-		assertThat((Object) output.getData()).isEqualTo(
-				Collections.singletonMap("bookById", Collections.singletonMap("name", "Breaking Bad")));
+		map = GraphQlTestUtils.getData(output, "bookById");
+		assertThat(map).hasSize(1).containsEntry("name", "Breaking Bad");
 	}
 
 	@Test
@@ -145,17 +141,13 @@ class QuerydslDataFetcherTests {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		mockRepository.save(book);
 
-		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcher
-						.builder(mockRepository)
-						.projectAs(BookProjection.class)
-						.single()));
+		WebGraphQlHandler handler = initHandler("bookById",
+				QuerydslDataFetcher.builder(mockRepository).projectAs(BookProjection.class).single());
 
 		WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
 
-		assertThat((Object) output.getData()).isEqualTo(
-				Collections.singletonMap("bookById",
-						Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy by Douglas Adams")));
+		Map<String, Object> map = GraphQlTestUtils.getData(output, "bookById");
+		assertThat(map).hasSize(1).containsEntry("name", "Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
 	@Test
@@ -163,29 +155,24 @@ class QuerydslDataFetcherTests {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		mockRepository.save(book);
 
-		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("bookById", QuerydslDataFetcher
-						.builder(mockRepository)
-						.projectAs(BookDto.class)
-						.single()));
+		WebGraphQlHandler handler = initHandler("bookById",
+				QuerydslDataFetcher.builder(mockRepository).projectAs(BookDto.class).single());
 
 		WebOutput output = handler.handleRequest(input("{ bookById(id: 42) {name}}")).block();
 
-		assertThat((Object) output.getData()).isEqualTo(
-				Collections.singletonMap("bookById",
-						Collections.singletonMap("name", "The book is: Hitchhiker's Guide to the Galaxy")));
+		Map<String, Object> map = GraphQlTestUtils.getData(output, "bookById");
+		assertThat(map).hasSize(1).containsEntry("name", "The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
 	@Test
 	void shouldConstructPredicateProperly() {
 		MockRepository mockRepository = mock(MockRepository.class);
 
-		WebGraphQlHandler handler = initWebGraphQlHandler(builder -> builder
-				.dataFetcher("books", QuerydslDataFetcher
-						.builder(mockRepository)
+		WebGraphQlHandler handler = initHandler("books",
+				QuerydslDataFetcher.builder(mockRepository)
 						.customizer((QuerydslBinderCustomizer<QBook>) (bindings, book) ->
 								bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith)))
-						.many()));
+						.many());
 
 		handler.handleRequest(input("{ books(name: \"H\", author: \"Doug\") {name}}")).block();
 
@@ -202,24 +189,18 @@ class QuerydslDataFetcherTests {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		when(mockRepository.findBy(any(), any())).thenReturn(Mono.just(book));
 
-		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, ReactiveQuerydslPredicateExecutor<?>> tester =
-				(wiringConfigurer, executor) -> {
-					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, null, executor);
-					WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
+		Consumer<WebGraphQlHandler> tester = (handler) -> {
+			WebOutput output = handler.handleRequest(input("{ bookById(id: 1) {name}}")).block();
 
-					// TODO: getData interferes with method overrides
-					assertThat((Object) output.getData()).isEqualTo(
-							Collections.singletonMap("bookById",
-									Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy")));
-				};
+			Map<String, Object> map = GraphQlTestUtils.getData(output, "bookById");
+			assertThat(map).hasSize(1).containsEntry("name", book.getName());
+		};
 
 		// explicit wiring
-		tester.accept(
-				builder -> builder.dataFetcher("bookById", QuerydslDataFetcher.builder(mockRepository).single()),
-				null);
+		tester.accept(initHandler("bookById", QuerydslDataFetcher.builder(mockRepository).single()));
 
 		// auto registration
-		tester.accept(null, mockRepository);
+		tester.accept(initHandler(builder -> {}, null, mockRepository));
 	}
 
 	@Test
@@ -229,24 +210,20 @@ class QuerydslDataFetcherTests {
 		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
 		when(mockRepository.findBy(any(), any())).thenReturn(Flux.just(book1, book2));
 
-		BiConsumer<Consumer<TypeRuntimeWiring.Builder>, ReactiveQuerydslPredicateExecutor<?>> tester =
-				(wiringConfigurer, executor) -> {
-					WebGraphQlHandler handler = initWebGraphQlHandler(wiringConfigurer, null, mockRepository);
-					WebOutput output = handler.handleRequest(input("{ books {name}}")).block();
+		Consumer<WebGraphQlHandler> tester = (handler) -> {
+			WebOutput output = handler.handleRequest(input("{ books {name}}")).block();
 
-					assertThat((Object) output.getData()).isEqualTo(
-							Collections.singletonMap("books", Arrays.asList(
-									Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"),
-									Collections.singletonMap("name", "Breaking Bad"))));
-				};
+			List<Map<String, Object>> data = GraphQlTestUtils.getData(output, "books");
+			assertThat(data).containsExactlyInAnyOrder(
+					Collections.singletonMap("name", "Breaking Bad"),
+					Collections.singletonMap("name", "Hitchhiker's Guide to the Galaxy"));
+		};
 
 		// explicit wiring
-		tester.accept(
-				builder -> builder.dataFetcher("books", QuerydslDataFetcher.builder(mockRepository).many()),
-				null);
+		tester.accept(initHandler("books", QuerydslDataFetcher.builder(mockRepository).many()));
 
 		// auto registration
-		tester.accept(null, mockRepository);
+		tester.accept(initHandler(builder -> {}, null, mockRepository));
 	}
 
 
@@ -260,48 +237,47 @@ class QuerydslDataFetcherTests {
 
 	}
 
-	static WebGraphQlHandler initWebGraphQlHandler(Consumer<TypeRuntimeWiring.Builder> configurer) {
-		return initWebGraphQlHandler(configurer, null, null);
+	static WebGraphQlHandler initHandler(String fieldName, DataFetcher<?> fetcher) {
+		return initHandler(fieldName, fetcher, null);
 	}
 
-	static WebGraphQlHandler initWebGraphQlHandler(
-			@Nullable Consumer<TypeRuntimeWiring.Builder> configurer,
+	static WebGraphQlHandler initHandler(
+			String fieldName, DataFetcher<?> fetcher, @Nullable QuerydslPredicateExecutor<?> executor) {
+
+		return initHandler(
+				GraphQlTestUtils.graphQlSource(BookSource.schema, "Query", fieldName, fetcher),
+				executor, null);
+	}
+
+	static WebGraphQlHandler initHandler(
+			RuntimeWiringConfigurer configurer,
 			@Nullable QuerydslPredicateExecutor<?> executor,
 			@Nullable ReactiveQuerydslPredicateExecutor<?> reactiveExecutor) {
 
-		return WebGraphQlHandler
-				.builder(new ExecutionGraphQlService(graphQlSource(configurer, executor, reactiveExecutor)))
-				.build();
+		return initHandler(
+				GraphQlTestUtils.graphQlSource(BookSource.schema, configurer),
+				executor,
+				reactiveExecutor);
 	}
 
-	private static GraphQlSource graphQlSource(
-			@Nullable Consumer<TypeRuntimeWiring.Builder> configurer,
+	private static WebGraphQlHandler initHandler(
+			GraphQlSource.Builder sourceBuilder,
 			@Nullable QuerydslPredicateExecutor<?> executor,
 			@Nullable ReactiveQuerydslPredicateExecutor<?> reactiveExecutor) {
-
-		GraphQlSource.Builder graphQlSourceBuilder = GraphQlSource.builder()
-				.schemaResources(new ClassPathResource("books/schema.graphqls"));
-
-		if (configurer != null) {
-			TypeRuntimeWiring.Builder typeBuilder = TypeRuntimeWiring.newTypeWiring("Query");
-			configurer.accept(typeBuilder);
-			graphQlSourceBuilder.configureRuntimeWiring(wiring -> wiring.type(typeBuilder));
-		}
 
 		GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
-				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor): Collections.emptyList()));
+				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor) : Collections.emptyList()));
 
-		graphQlSourceBuilder.typeVisitors(Collections.singletonList(visitor));
-
-		return graphQlSourceBuilder.build();
+		GraphQlSource source = sourceBuilder.typeVisitors(Collections.singletonList(visitor)).build();
+		ExecutionGraphQlService service = new ExecutionGraphQlService(source);
+		return WebGraphQlHandler.builder(service).build();
 	}
 
 	private WebInput input(String query) {
-		return new WebInput(
-				URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", query),
-				null, "1");
+		return new WebInput(URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), null, "1");
 	}
+
 
 	interface BookProjection {
 

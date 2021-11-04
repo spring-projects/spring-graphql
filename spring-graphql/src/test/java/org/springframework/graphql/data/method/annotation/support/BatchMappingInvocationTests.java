@@ -15,7 +15,6 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,7 +35,6 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
@@ -121,7 +119,7 @@ public class BatchMappingInvocationTests {
 				.execute(new RequestInput(query, null, null, null))
 				.block();
 
-		List<Map<String, Object>> actualCourses = GraphQlTestUtils.checkErrorsAndGetData(result, "courses");
+		List<Map<String, Object>> actualCourses = GraphQlTestUtils.getData(result, "courses");
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 
@@ -153,7 +151,7 @@ public class BatchMappingInvocationTests {
 				.execute(new RequestInput(query, null, null, null))
 				.block();
 
-		List<Map<String, Object>> actualCourses = GraphQlTestUtils.checkErrorsAndGetData(result, "courses");
+		List<Map<String, Object>> actualCourses = GraphQlTestUtils.getData(result, "courses");
 
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
@@ -253,15 +251,8 @@ public class BatchMappingInvocationTests {
 	private static class CourseConfig {
 
 		@Bean
-		public GraphQlSource graphQlSource(AnnotatedControllerConfigurer configurer) {
-			return GraphQlSource.builder()
-					.schemaResources(new ByteArrayResource(schema.getBytes(StandardCharsets.UTF_8)))
-					.configureRuntimeWiring(configurer)
-					.build();
-		}
-
-		@Bean
-		public GraphQlService graphQlService(GraphQlSource source, BatchLoaderRegistry registry) {
+		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer, BatchLoaderRegistry registry) {
+			GraphQlSource source = GraphQlTestUtils.graphQlSource(schema, configurer).build();
 			ExecutionGraphQlService service = new ExecutionGraphQlService(source);
 			service.addDataLoaderRegistrar(registry);
 			return service;

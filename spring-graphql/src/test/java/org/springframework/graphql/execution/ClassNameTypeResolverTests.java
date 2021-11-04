@@ -67,7 +67,7 @@ public class ClassNameTypeResolverTests {
 	void typeResolutionViaSuperHierarchy() {
 
 		GraphQlSource graphQlSource =
-				GraphQlTestUtils.initGraphQlSource(schema, "Query", "animals", env -> animalList).build();
+				GraphQlTestUtils.graphQlSource(schema, "Query", "animals", env -> animalList).build();
 
 		String query = "" +
 				"query Animals {" +
@@ -87,7 +87,7 @@ public class ClassNameTypeResolverTests {
 				.execute(new RequestInput(query, null, null, null))
 				.block();
 
-		List<Map<String, Object>> actualAnimals = GraphQlTestUtils.checkErrorsAndGetData(result, "animals");
+		List<Map<String, Object>> actualAnimals = GraphQlTestUtils.getData(result, "animals");
 
 		for (int i = 0; i < animalList.size(); i++) {
 			Map<String, Object> actualAnimal = actualAnimals.get(i);
@@ -113,7 +113,7 @@ public class ClassNameTypeResolverTests {
 		typeResolver.addMapping(Tree.class, "Plant");
 
 		GraphQlSource graphQlSource =
-				GraphQlTestUtils.initGraphQlSource(schema, "Query", "sightings", env -> animalAndPlantList)
+				GraphQlTestUtils.graphQlSource(schema, "Query", "sightings", env -> animalAndPlantList)
 						.defaultTypeResolver(typeResolver)
 						.build();
 
@@ -137,7 +137,7 @@ public class ClassNameTypeResolverTests {
 				.execute(new RequestInput(query, null, null, null))
 				.block();
 
-		List<Map<String, Object>> actualSightings = GraphQlTestUtils.checkErrorsAndGetData(result, "sightings");
+		List<Map<String, Object>> actualSightings = GraphQlTestUtils.getData(result, "sightings");
 
 		for (int i = 0; i < animalAndPlantList.size(); i++) {
 			Map<String, Object> actualSighting = actualSightings.get(i);

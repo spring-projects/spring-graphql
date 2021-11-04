@@ -17,16 +17,15 @@
 package org.springframework.graphql;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Map;
 
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.schema.DataFetcher;
 
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.graphql.execution.DataFetcherExceptionResolver;
+import org.springframework.core.io.Resource;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,39 +35,49 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public abstract class GraphQlTestUtils {
 
-	public static GraphQL initGraphQl(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
+	/**
+	 * Convenience method for a {@link GraphQlSource.Builder} with a single {@link DataFetcher}.
+	 *
+	 * @param schema either String content or a {@link Resource}.
+	 * @param typeName the parent type name (Query, Mutation, or Subscription).
+	 * @param fieldName the name of the operation
+	 * @param fetcher the fetcher to use
+	 *
+	 * @return the created builder
+	 */
+	public static GraphQlSource.Builder graphQlSource(
+			Object schema, String typeName, String fieldName, DataFetcher<?> fetcher) {
 
-		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher)
-				.build()
-				.graphQl();
+		return graphQlSource(schema,
+				wiring -> wiring.type(typeName, builder -> builder.dataFetcher(fieldName, fetcher)));
 	}
 
-	public static GraphQL initGraphQl(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher,
-			DataFetcherExceptionResolver... resolvers) {
-
-		return initGraphQlSource(schemaContent, typeName, fieldName, fetcher)
-				.exceptionResolvers(Arrays.asList(resolvers))
-				.build()
-				.graphQl();
-	}
-
-	public static GraphQlSource.Builder initGraphQlSource(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
+	/**
+	 * Convenience method for a {@link GraphQlSource.Builder} when multiple
+	 * {@link DataFetcher} registrations might be needed.
+	 *
+	 * @param schema either String content or a {@link Resource}.
+	 * @param configurer the configurer to apply to the RuntimeWiring
+	 *
+	 * @return the created builder
+	 */
+	public static GraphQlSource.Builder graphQlSource(Object schema, RuntimeWiringConfigurer configurer) {
+		Resource schemaResource = (schema instanceof String ?
+				new ByteArrayResource(((String) schema).getBytes(StandardCharsets.UTF_8)) :
+				(Resource) schema);
 
 		return GraphQlSource.builder()
-				.schemaResources(new ByteArrayResource(schemaContent.getBytes(StandardCharsets.UTF_8)))
-				.configureRuntimeWiring(wiring -> wiring.type(typeName, (builder) -> builder.dataFetcher(fieldName, fetcher)));
+				.schemaResources(schemaResource)
+				.configureRuntimeWiring(configurer);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> T checkErrorsAndGetData(@Nullable ExecutionResult result, String key) {
-		Map<String, Object> map = checkErrorsAndGetData(result);
+	public static <T> T getData(@Nullable ExecutionResult result, String key) {
+		Map<String, Object> map = getData(result);
 		return (T) map.get(key);
 	}
 
-	public static <T> T checkErrorsAndGetData(@Nullable ExecutionResult result) {
+	public static <T> T getData(@Nullable ExecutionResult result) {
 		assertThat(result).isNotNull();
 		assertThat(result.getErrors()).as("Errors present in GraphQL response").isEmpty();
 		T data = result.getData();

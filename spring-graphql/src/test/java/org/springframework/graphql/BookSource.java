@@ -24,7 +24,13 @@ import java.util.stream.Collectors;
 
 import reactor.core.publisher.Flux;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+
 public class BookSource {
+
+	public static final Resource schema = new ClassPathResource("books/schema.graphqls");
+
 
 	private static final Map<Long, Book> booksMap = new HashMap<>();
 

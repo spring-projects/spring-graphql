@@ -24,10 +24,10 @@ import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,8 +40,23 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class BatchLoadingTests {
 
+	private final BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
+
+
 	@Test
 	void batchLoader() {
+		String query = "{ " +
+				"  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
+				"    author {" +
+				"      firstName, " +
+				"      lastName " +
+				"    }" +
+				"  }" +
+				"}";
+
+		this.registry.forTypePair(Long.class, Author.class)
+				.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
+
 		ExecutionGraphQlService service = initExecutionGraphQlService(wiring -> {
 			wiring.type("Query", builder -> builder.dataFetcher("booksByCriteria", env -> {
 				Map<String, Object> criteria = env.getArgument("criteria");
@@ -57,23 +72,7 @@ public class BatchLoadingTests {
 			}));
 		});
 
-		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
-		registry.forTypePair(Long.class, Author.class)
-				.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
-
-		service.addDataLoaderRegistrar(registry);
-
-		String query = "{ " +
-				"  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
-				"    author {" +
-				"      firstName, " +
-				"      lastName " +
-				"    }" +
-				"  }" +
-				"}";
-
-		RequestInput input = new RequestInput(query, null, null, null);
-		ExecutionResult result = service.execute(input).block();
+		ExecutionResult result = service.execute(new RequestInput(query, null, null, null)).block();
 
 		assertThat(result.getErrors()).isEmpty();
 		Map<String, Object> data = result.getData();
@@ -88,11 +87,10 @@ public class BatchLoadingTests {
 	}
 
 	private ExecutionGraphQlService initExecutionGraphQlService(RuntimeWiringConfigurer configurer) {
-		GraphQlSource graphQlSource = GraphQlSource.builder()
-				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.configureRuntimeWiring(configurer)
-				.build();
-		return new ExecutionGraphQlService(graphQlSource);
+		GraphQlSource source = GraphQlTestUtils.graphQlSource(BookSource.schema, configurer).build();
+		ExecutionGraphQlService service = new ExecutionGraphQlService(source);
+		service.addDataLoaderRegistrar(this.registry);
+		return service;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -57,8 +57,7 @@ public class DataFetchingEnvironmentArgumentResolverTests {
 	@Test
 	void resolveGraphQlContext() {
 		GraphQLContext context = GraphQLContext.newContext().build();
-		DataFetchingEnvironment environment =
-				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().graphQLContext(context).build();
+		DataFetchingEnvironment environment = environment().graphQLContext(context).build();
 		Object actual = this.resolver.resolveArgument(parameter(0), environment);
 
 		assertThat(actual).isSameAs(context);
@@ -67,8 +66,7 @@ public class DataFetchingEnvironmentArgumentResolverTests {
 	@Test
 	void resolveSelectionSet() {
 		DataFetchingFieldSelectionSet selectionSet = mock(DataFetchingFieldSelectionSet.class);
-		DataFetchingEnvironment environment =
-				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().selectionSet(selectionSet).build();
+		DataFetchingEnvironment environment = environment().selectionSet(selectionSet).build();
 		Object actual = this.resolver.resolveArgument(parameter(1), environment);
 
 		assertThat(actual).isSameAs(selectionSet);
@@ -77,18 +75,17 @@ public class DataFetchingEnvironmentArgumentResolverTests {
 	@Test
 	void resolveLocale() {
 		Locale locale = Locale.ITALIAN;
-		DataFetchingEnvironment environment =
-				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().locale(locale).build();
+		DataFetchingEnvironment environment = environment().locale(locale).build();
 		Object actual = this.resolver.resolveArgument(parameter(2), environment);
 
 		assertThat(actual).isSameAs(locale);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	void resolveOptionalLocale() {
 		Locale locale = Locale.ITALIAN;
-		DataFetchingEnvironment environment =
-				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().locale(locale).build();
+		DataFetchingEnvironment environment = environment().locale(locale).build();
 		Optional<Locale> actual = (Optional<Locale>) this.resolver.resolveArgument(parameter(3), environment);
 
 		assertThat(actual).isNotNull();
@@ -96,14 +93,22 @@ public class DataFetchingEnvironmentArgumentResolverTests {
 		assertThat(actual.get()).isSameAs(locale);
 	}
 
+	private static DataFetchingEnvironmentImpl.Builder environment() {
+		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment();
+	}
+
 	private MethodParameter parameter(int index) {
 		return new MethodParameter(handleMethod, index);
 	}
 
 
-	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-	public void handle(GraphQLContext graphQLContext, DataFetchingFieldSelectionSet selectionSet,
-			Locale locale, Optional<Locale> optionalLocale, String s) {
+	@SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "unused"})
+	public void handle(
+			GraphQLContext graphQLContext,
+			DataFetchingFieldSelectionSet selectionSet,
+			Locale locale,
+			Optional<Locale> optionalLocale,
+			String s) {
 	}
 
 }

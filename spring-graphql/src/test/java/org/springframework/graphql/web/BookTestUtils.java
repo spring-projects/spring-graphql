@@ -18,11 +18,10 @@ package org.springframework.graphql.web;
 
 import java.util.Arrays;
 
-import graphql.schema.idl.TypeRuntimeWiring;
 import reactor.core.publisher.Flux;
 
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 
@@ -61,25 +60,22 @@ public abstract class BookTestUtils {
 			"}";
 
 	public static WebGraphQlHandler initWebGraphQlHandler(WebInterceptor... interceptors) {
-		return WebGraphQlHandler.builder(new ExecutionGraphQlService(graphQlSource()))
-				.interceptors(Arrays.asList(interceptors))
-				.build();
-	}
 
-	private static GraphQlSource graphQlSource() {
-		return GraphQlSource.builder()
-				.schemaResources(new ClassPathResource("books/schema.graphqls"))
-				.configureRuntimeWiring(builder -> builder.type(TypeRuntimeWiring.newTypeWiring("Query")
-						.dataFetcher("bookById", (env) -> {
-							Long id = Long.parseLong(env.getArgument("id"));
-							return BookSource.getBook(id);
-						}))
-						.type(TypeRuntimeWiring.newTypeWiring("Subscription")
-						.dataFetcher("bookSearch", (env) -> {
-							String author = env.getArgument("author");
-							return Flux.fromIterable(BookSource.books())
-									.filter((book) -> book.getAuthor().getFullName().contains(author));
-						})))
+		GraphQlSource source = GraphQlTestUtils.graphQlSource(BookSource.schema,
+				wiringBuilder -> {
+					wiringBuilder.type("Query", builder -> builder.dataFetcher("bookById", (env) -> {
+						Long id = Long.parseLong(env.getArgument("id"));
+						return BookSource.getBook(id);
+					}));
+					wiringBuilder.type("Subscription", builder -> builder.dataFetcher("bookSearch", (env) -> {
+						String author = env.getArgument("author");
+						return Flux.fromIterable(BookSource.books())
+								.filter((book) -> book.getAuthor().getFullName().contains(author));
+					}));
+				}).build();
+
+		return WebGraphQlHandler.builder(new ExecutionGraphQlService(source))
+				.interceptors(Arrays.asList(interceptors))
 				.build();
 	}
 

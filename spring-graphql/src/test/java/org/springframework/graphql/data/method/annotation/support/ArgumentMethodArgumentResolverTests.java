@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
-import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -43,7 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link ArgumentMethodArgumentResolver}.
- *
  * @author Brian Clozel
  */
 class ArgumentMethodArgumentResolverTests {
@@ -55,24 +53,25 @@ class ArgumentMethodArgumentResolverTests {
 	@Test
 	void shouldSupportAnnotatedParameters() {
 		Method bookById = ClassUtils.getMethod(BookController.class, "bookById", Long.class);
-		MethodParameter methodParameter = getMethodParameter(bookById, 0);
+		MethodParameter methodParameter = methodParam(bookById, 0);
+
 		assertThat(resolver.supportsParameter(methodParameter)).isTrue();
 	}
 
 	@Test
 	void shouldNotSupportParametersWithoutAnnotation() {
 		Method notSupported = ClassUtils.getMethod(BookController.class, "notSupported", String.class);
-		MethodParameter methodParameter = getMethodParameter(notSupported, 0);
+		MethodParameter methodParameter = methodParam(notSupported, 0);
+
 		assertThat(resolver.supportsParameter(methodParameter)).isFalse();
 	}
 
 	@Test
 	void shouldResolveBasicTypeArgument() throws Exception {
 		Method bookById = ClassUtils.getMethod(BookController.class, "bookById", Long.class);
-		String payload = "{\"id\": 42 }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(bookById, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
+		DataFetchingEnvironment environment = initEnvironment("{\"id\": 42 }");
+		Object result = resolver.resolveArgument(methodParam(bookById, 0), environment);
+
 		assertThat(result).isNotNull().isInstanceOf(Long.class).isEqualTo(42L);
 	}
 
@@ -81,8 +80,8 @@ class ArgumentMethodArgumentResolverTests {
 		Method addBook = ClassUtils.getMethod(BookController.class, "addBook", BookInput.class);
 		String payload = "{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(addBook, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
+		Object result = resolver.resolveArgument(methodParam(addBook, 0), environment);
+
 		assertThat(result).isNotNull().isInstanceOf(BookInput.class);
 		assertThat((BookInput) result).hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L);
@@ -93,8 +92,8 @@ class ArgumentMethodArgumentResolverTests {
 		Method addBooks = ClassUtils.getMethod(BookController.class, "addBooks", List.class);
 		String payload = "{\"books\": [{ \"name\": \"first\", \"authorId\": 42}, { \"name\": \"second\", \"authorId\": 24}] }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(addBooks, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
+		Object result = resolver.resolveArgument(methodParam(addBooks, 0), environment);
+
 		assertThat(result).isNotNull().isInstanceOf(List.class);
 		assertThat(result).asList().allMatch(item -> item instanceof Book)
 				.extracting("name").containsExactly("first", "second");
@@ -105,13 +104,13 @@ class ArgumentMethodArgumentResolverTests {
 		Method bookByKeyword = ClassUtils.getMethod(BookController.class, "bookByKeyword", Keyword.class);
 		String payload = "{\"keyword\": \"test\" }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		MethodParameter methodParameter = getMethodParameter(bookByKeyword, 0);
-		Object result = resolver.resolveArgument(methodParameter, environment);
+		Object result = resolver.resolveArgument(methodParam(bookByKeyword, 0), environment);
+
 		assertThat(result).isNotNull().isInstanceOf(Keyword.class);
 		assertThat((Keyword) result).hasFieldOrPropertyWithValue("term", "test");
 	}
 
-	private MethodParameter getMethodParameter(Method method, int index) {
+	private MethodParameter methodParam(Method method, int index) {
 		MethodParameter methodParameter = new MethodParameter(method, index);
 		methodParameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 		return methodParameter;
@@ -121,6 +120,7 @@ class ArgumentMethodArgumentResolverTests {
 		Map<String, Object> arguments = mapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {});
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}
+
 
 	@Controller
 	static class BookController {

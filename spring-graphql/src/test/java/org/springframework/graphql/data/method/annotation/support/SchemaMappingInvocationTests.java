@@ -32,7 +32,6 @@ import reactor.test.StepVerifier;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
@@ -77,7 +76,7 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(query, null, null, null))
 				.block();
 
-		Map<String, Object> book = GraphQlTestUtils.checkErrorsAndGetData(result, "bookById");
+		Map<String, Object> book = GraphQlTestUtils.getData(result, "bookById");
 		assertThat(book.get("id")).isEqualTo("1");
 		assertThat(book.get("name")).isEqualTo("Nineteen Eighty-Four");
 
@@ -99,7 +98,7 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(query, null, null, null))
 				.block();
 
-		List<Map<String, Object>> bookList = GraphQlTestUtils.checkErrorsAndGetData(result, "booksByCriteria");
+		List<Map<String, Object>> bookList = GraphQlTestUtils.getData(result, "booksByCriteria");
 
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).get("name")).isEqualTo("Nineteen Eighty-Four");
@@ -127,7 +126,7 @@ public class SchemaMappingInvocationTests {
 				.execute(requestInput)
 				.block();
 
-		Map<String, Object> author = GraphQlTestUtils.checkErrorsAndGetData(result, "authorById");
+		Map<String, Object> author = GraphQlTestUtils.getData(result, "authorById");
 
 		assertThat(author.get("id")).isEqualTo("101");
 		assertThat(author.get("firstName")).isEqualTo("George");
@@ -150,7 +149,7 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(operation, null, null, null))
 				.block();
 
-		Map<String, Object> author = GraphQlTestUtils.checkErrorsAndGetData(result, "addAuthor");
+		Map<String, Object> author = GraphQlTestUtils.getData(result, "addAuthor");
 		assertThat(author.get("id")).isEqualTo("99");
 		assertThat(author.get("firstName")).isEqualTo("James");
 		assertThat(author.get("lastName")).isEqualTo("Joyce");
@@ -169,10 +168,10 @@ public class SchemaMappingInvocationTests {
 				.execute(new RequestInput(operation, null, null, null))
 				.block();
 
-		Publisher<ExecutionResult> publisher = GraphQlTestUtils.checkErrorsAndGetData(result);
+		Publisher<ExecutionResult> publisher = GraphQlTestUtils.getData(result);
 
-		Flux<Map<String, Object>> bookFlux = Flux.from(publisher).map(rs -> {
-			Map<String, Object> map = rs.getData();
+		Flux<Map<String, Object>> bookFlux = Flux.from(publisher).map(executionResult -> {
+			Map<String, Object> map = executionResult.getData();
 			return (Map<String, Object>) map.get("bookSearch");
 		});
 
@@ -207,22 +206,15 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@Bean
-		public GraphQlService graphQlService(GraphQlSource graphQlSource) {
-			ExecutionGraphQlService service = new ExecutionGraphQlService(graphQlSource);
+		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer) {
+			GraphQlSource source = GraphQlTestUtils.graphQlSource(BookSource.schema, configurer).build();
+			ExecutionGraphQlService service = new ExecutionGraphQlService(source);
 			service.addDataLoaderRegistrar(batchLoaderRegistry());
 			return service;
 		}
 
 		@Bean
-		public GraphQlSource graphQlSource() {
-			return GraphQlSource.builder()
-					.schemaResources(new ClassPathResource("books/schema.graphqls"))
-					.configureRuntimeWiring(annotatedDataFetcherConfigurer())
-					.build();
-		}
-
-		@Bean
-		public AnnotatedControllerConfigurer annotatedDataFetcherConfigurer() {
+		public AnnotatedControllerConfigurer annotatedControllerConfigurer() {
 			return new AnnotatedControllerConfigurer();
 		}
 

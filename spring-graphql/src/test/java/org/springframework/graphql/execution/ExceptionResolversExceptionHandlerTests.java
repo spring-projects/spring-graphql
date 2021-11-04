@@ -40,16 +40,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link ExceptionResolversExceptionHandler}.
+ * @author Rossen Stoyanchev
  */
 public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveException() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
-				(env) -> {
-					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(ex, env) -> Mono.just(Collections.singletonList(
+		GraphQL graphQl = initGraphQl((ex, env) ->
+				Mono.just(Collections.singletonList(
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage())
 								.errorType(ErrorType.BAD_REQUEST).build())));
@@ -68,11 +66,8 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveExceptionWithReactorContext() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
-				(env) -> {
-					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+		GraphQL graphQl = initGraphQl((ex, env) ->
+				Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 								.errorType(ErrorType.BAD_REQUEST).build()))));
@@ -92,15 +87,11 @@ public class ExceptionResolversExceptionHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
-					(env) -> {
-						throw new IllegalArgumentException("Invalid greeting");
-					},
-					threadLocalContextAwareExceptionResolver((ex, env) ->
-							GraphqlErrorBuilder.newError(env)
-									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
-									.errorType(ErrorType.BAD_REQUEST)
-									.build()));
+			GraphQL graphQl = initGraphQl(threadLocalContextAwareExceptionResolver((ex, env) ->
+					GraphqlErrorBuilder.newError(env)
+							.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+							.errorType(ErrorType.BAD_REQUEST)
+							.build()));
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
@@ -120,11 +111,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void unresolvedException() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
-				(env) -> {
-					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(exception, environment) -> Mono.empty());
+		GraphQL graphQl = initGraphQl((exception, environment) -> Mono.empty());
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
@@ -141,11 +128,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void suppressedException() throws Exception {
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl("type Query { greeting: String }", "Query", "greeting",
-				(env) -> {
-					throw new IllegalArgumentException("Invalid greeting");
-				},
-				(ex, env) -> Mono.just(Collections.emptyList()));
+		GraphQL graphQl = initGraphQl((ex, env) -> Mono.just(Collections.emptyList()));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
@@ -153,6 +136,17 @@ public class ExceptionResolversExceptionHandlerTests {
 		Map<String, Object> data = result.getData();
 		assertThat(data).hasSize(1).containsEntry("greeting", null);
 		assertThat(result.getErrors()).hasSize(0);
+	}
+
+	private static GraphQL initGraphQl(DataFetcherExceptionResolver exceptionResolver) {
+		return GraphQlTestUtils.graphQlSource(
+						"type Query { greeting: String }",
+						"Query", "greeting", (env) -> {
+							throw new IllegalArgumentException("Invalid greeting");
+						})
+				.exceptionResolvers(Collections.singletonList(exceptionResolver))
+				.build()
+				.graphQl();
 	}
 
 	private static DataFetcherExceptionResolver threadLocalContextAwareExceptionResolver(

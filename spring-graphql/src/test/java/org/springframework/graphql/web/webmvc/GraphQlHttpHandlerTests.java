@@ -23,15 +23,14 @@ import java.util.Locale;
 
 import javax.servlet.ServletException;
 
-import graphql.GraphQL;
 import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlTestUtils;
-import org.springframework.graphql.TestGraphQlSource;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
+import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -78,8 +77,8 @@ public class GraphQlHttpHandlerTests {
 	private GraphQlHttpHandler createHttpHandler(
 			String schemaContent, String type, String field, DataFetcher<Object> dataFetcher) {
 
-		GraphQL graphQl = GraphQlTestUtils.initGraphQl(schemaContent, type, field, dataFetcher);
-		GraphQlService service = new ExecutionGraphQlService(new TestGraphQlSource(graphQl));
+		GraphQlSource source = GraphQlTestUtils.graphQlSource(schemaContent, type, field, dataFetcher).build();
+		GraphQlService service = new ExecutionGraphQlService(source);
 		return new GraphQlHttpHandler(WebGraphQlHandler.builder(service).build());
 	}
 
