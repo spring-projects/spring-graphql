@@ -34,7 +34,7 @@ import reactor.test.StepVerifier;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.web.BookTestUtils;
+import org.springframework.graphql.web.WebSocketHandlerTestSupport;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.WebInterceptor;
 import org.springframework.graphql.web.WebSocketInterceptor;
@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link GraphQlWebSocketHandler}.
  */
-public class GraphQlWebSocketHandlerTests {
+public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 	private static final Jackson2JsonDecoder decoder = new Jackson2JsonDecoder();
 
@@ -57,12 +57,12 @@ public class GraphQlWebSocketHandlerTests {
 	void query() {
 		TestWebSocketSession session = handle(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(BookTestUtils.BOOK_QUERY)));
+				toWebSocketMessage(BOOK_QUERY)));
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
 				.consumeNextWith((message) -> assertThat(decode(message)).hasSize(3)
-						.containsEntry("id", BookTestUtils.SUBSCRIPTION_ID).containsEntry("type", "next")
+						.containsEntry("id", SUBSCRIPTION_ID).containsEntry("type", "next")
 						.extractingByKey("payload", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 						.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 						.extractingByKey("bookById", as(InstanceOfAssertFactories.map(String.class, Object.class)))
@@ -75,11 +75,11 @@ public class GraphQlWebSocketHandlerTests {
 	void subscription() {
 		TestWebSocketSession session = handle(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION)));
+				toWebSocketMessage(BOOK_SUBSCRIPTION)));
 
 		BiConsumer<WebSocketMessage, String> bookPayloadAssertion = (message, bookId) ->
 				assertThat(decode(message))
-						.hasSize(3).containsEntry("id", BookTestUtils.SUBSCRIPTION_ID).containsEntry("type", "next")
+						.hasSize(3).containsEntry("id", SUBSCRIPTION_ID).containsEntry("type", "next")
 						.extractingByKey("payload", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 						.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 						.extractingByKey("bookSearch", as(InstanceOfAssertFactories.map(String.class, Object.class)))
@@ -97,7 +97,7 @@ public class GraphQlWebSocketHandlerTests {
 	void unauthorizedWithoutMessageType() {
 		TestWebSocketSession session = handle(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage("{\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\"}")));
+				toWebSocketMessage("{\"id\":\"" + SUBSCRIPTION_ID + "\"}")));
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
@@ -168,7 +168,7 @@ public class GraphQlWebSocketHandlerTests {
 
 	@Test
 	void unauthorizedWithoutConnectionInit() {
-		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION)));
+		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage(BOOK_SUBSCRIPTION)));
 
 		StepVerifier.create(session.getOutput()).verifyComplete();
 		StepVerifier.create(session.closeStatus()).expectNext(new CloseStatus(4401, "Unauthorized")).verifyComplete();
@@ -192,7 +192,7 @@ public class GraphQlWebSocketHandlerTests {
 	@Test
 	void connectionInitTimeout() {
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
-				BookTestUtils.initWebGraphQlHandler(), ServerCodecConfigurer.create(), Duration.ofMillis(50));
+				initHandler(), ServerCodecConfigurer.create(), Duration.ofMillis(50));
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.empty());
 		handler.handle(session).block();
@@ -206,8 +206,8 @@ public class GraphQlWebSocketHandlerTests {
 	void subscriptionExists() {
 		Flux<WebSocketMessage> messageFlux = Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION),
-				toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION));
+				toWebSocketMessage(BOOK_SUBSCRIPTION),
+				toWebSocketMessage(BOOK_SUBSCRIPTION));
 
 		TestWebSocketSession session = handle(messageFlux, new ConsumeOneAndNeverCompleteInterceptor());
 
@@ -216,7 +216,7 @@ public class GraphQlWebSocketHandlerTests {
 		session.getOutput().subscribe((message) -> messages.add(decode(message)));
 
 		StepVerifier.create(session.closeStatus())
-				.expectNext(new CloseStatus(4409, "Subscriber for " + BookTestUtils.SUBSCRIPTION_ID + " already exists"))
+				.expectNext(new CloseStatus(4409, "Subscriber for " + SUBSCRIPTION_ID + " already exists"))
 				.verifyComplete();
 
 		assertThat(messages.size()).isEqualTo(2);
@@ -228,18 +228,18 @@ public class GraphQlWebSocketHandlerTests {
 	void clientCompletion() {
 		Sinks.Many<WebSocketMessage> input = Sinks.many().unicast().onBackpressureBuffer();
 		input.tryEmitNext(toWebSocketMessage("{\"type\":\"connection_init\"}"));
-		input.tryEmitNext(toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION));
+		input.tryEmitNext(toWebSocketMessage(BOOK_SUBSCRIPTION));
 
 		TestWebSocketSession session = handle(input.asFlux(), new ConsumeOneAndNeverCompleteInterceptor());
 
-		String completeMessage = "{\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\",\"type\":\"complete\"}";
+		String completeMessage = "{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"complete\"}";
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
 				.consumeNextWith((message) -> assertMessageType(message, "next"))
 				.then(() -> input.tryEmitNext(toWebSocketMessage(completeMessage)))
 				.as("Second subscription with same id is possible only if the first was properly removed")
-				.then(() -> input.tryEmitNext(toWebSocketMessage(BookTestUtils.BOOK_SUBSCRIPTION)))
+				.then(() -> input.tryEmitNext(toWebSocketMessage(BOOK_SUBSCRIPTION)))
 				.consumeNextWith((message) -> assertMessageType(message, "next"))
 				.then(() -> input.tryEmitNext(toWebSocketMessage(completeMessage)))
 				.verifyTimeout(Duration.ofMillis(500));
@@ -247,7 +247,7 @@ public class GraphQlWebSocketHandlerTests {
 
 	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebInterceptor... interceptors) {
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
-				BookTestUtils.initWebGraphQlHandler(interceptors),
+				initHandler(interceptors),
 				ServerCodecConfigurer.create(),
 				Duration.ofSeconds(60));
 
@@ -271,7 +271,7 @@ public class GraphQlWebSocketHandlerTests {
 		Map<String, Object> map = decode(message);
 		assertThat(map).containsEntry("type", messageType);
 		if (!messageType.equals("connection_ack")) {
-			assertThat(map).containsEntry("id", BookTestUtils.SUBSCRIPTION_ID);
+			assertThat(map).containsEntry("id", SUBSCRIPTION_ID);
 		}
 	}
 

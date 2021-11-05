@@ -37,7 +37,7 @@ import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -47,7 +47,6 @@ import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -192,11 +191,11 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@Bean
-		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer) {
-			GraphQlSource source = GraphQlTestUtils.graphQlSource(BookSource.schema, configurer).build();
-			ExecutionGraphQlService service = new ExecutionGraphQlService(source);
-			service.addDataLoaderRegistrar(batchLoaderRegistry());
-			return service;
+		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer, BatchLoaderRegistry registry) {
+			return GraphQlSetup.schemaResource(BookSource.schema)
+					.runtimeWiring(configurer)
+					.dataLoaders(registry)
+					.toGraphQlService();
 		}
 
 		@Bean

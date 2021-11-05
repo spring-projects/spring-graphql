@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,13 +64,11 @@ public class ClassNameTypeResolverTests {
 			"}" +
 			"union Sighting = Bird | Mammal | Plant | Vegetable ";
 
+	private final GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent(schema);
+
 
 	@Test
 	void typeResolutionViaSuperHierarchy() {
-
-		GraphQlSource graphQlSource =
-				GraphQlTestUtils.graphQlSource(schema, "Query", "animals", env -> animalList).build();
-
 		String query = "" +
 				"query Animals {" +
 				"  animals {" +
@@ -85,7 +83,8 @@ public class ClassNameTypeResolverTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = new ExecutionGraphQlService(graphQlSource)
+		Mono<ExecutionResult> resultMono = graphQlSetup.queryFetcher("animals", env -> animalList)
+				.toGraphQlService()
 				.execute(new RequestInput(query, null, null, null));
 
 		GraphQlResponse response = GraphQlResponse.from(resultMono);
@@ -107,15 +106,6 @@ public class ClassNameTypeResolverTests {
 
 	@Test
 	void typeResolutionViaMapping() {
-
-		ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
-		typeResolver.addMapping(Tree.class, "Plant");
-
-		GraphQlSource graphQlSource =
-				GraphQlTestUtils.graphQlSource(schema, "Query", "sightings", env -> animalAndPlantList)
-						.defaultTypeResolver(typeResolver)
-						.build();
-
 		String query = "" +
 				"query Sightings {" +
 				"  sightings {" +
@@ -132,10 +122,15 @@ public class ClassNameTypeResolverTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = new ExecutionGraphQlService(graphQlSource)
+		ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
+		typeResolver.addMapping(Tree.class, "Plant");
+
+		Mono<ExecutionResult> result = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
+				.typeResolver(typeResolver)
+				.toGraphQlService()
 				.execute(new RequestInput(query, null, null, null));
 
-		GraphQlResponse response = GraphQlResponse.from(resultMono);
+		GraphQlResponse response = GraphQlResponse.from(result);
 		for (int i = 0; i < animalAndPlantList.size(); i++) {
 			Object sighting = animalAndPlantList.get(i);
 			if (sighting instanceof Animal) {

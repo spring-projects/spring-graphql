@@ -34,7 +34,7 @@ public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
 	@Nullable
 	private Long threadId;
 
-	private boolean suppressThreadIdCheck;
+	private final boolean suppressThreadIdCheck;
 
 	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal) {
 		this(threadLocal, false);

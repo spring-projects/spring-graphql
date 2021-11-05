@@ -32,7 +32,7 @@ import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,7 +45,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveException() throws Exception {
-		GraphQL graphQl = initGraphQl((ex, env) ->
+		GraphQL graphQl = graphQl((ex, env) ->
 				Mono.just(Collections.singletonList(
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage())
@@ -65,7 +65,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveExceptionWithReactorContext() throws Exception {
-		GraphQL graphQl = initGraphQl((ex, env) ->
+		GraphQL graphQl = graphQl((ex, env) ->
 				Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
@@ -87,7 +87,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQL graphQl = initGraphQl(threadLocalContextAwareExceptionResolver((ex, env) ->
+			GraphQL graphQl = graphQl(threadLocalContextAwareResolver((ex, env) ->
 					GraphqlErrorBuilder.newError(env)
 							.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
 							.errorType(ErrorType.BAD_REQUEST)
@@ -111,7 +111,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void unresolvedException() throws Exception {
-		GraphQL graphQl = initGraphQl((exception, environment) -> Mono.empty());
+		GraphQL graphQl = graphQl((exception, environment) -> Mono.empty());
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
@@ -127,7 +127,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void suppressedException() throws Exception {
-		GraphQL graphQl = initGraphQl((ex, env) -> Mono.just(Collections.emptyList()));
+		GraphQL graphQl = graphQl((ex, env) -> Mono.just(Collections.emptyList()));
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
@@ -136,18 +136,16 @@ public class ExceptionResolversExceptionHandlerTests {
 		assertThat(greeting).isNull();
 	}
 
-	private static GraphQL initGraphQl(DataFetcherExceptionResolver exceptionResolver) {
-		return GraphQlTestUtils.graphQlSource(
-						"type Query { greeting: String }",
-						"Query", "greeting", (env) -> {
-							throw new IllegalArgumentException("Invalid greeting");
-						})
-				.exceptionResolvers(Collections.singletonList(exceptionResolver))
-				.build()
-				.graphQl();
+	private static GraphQL graphQl(DataFetcherExceptionResolver exceptionResolver) {
+		return GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> {
+					throw new IllegalArgumentException("Invalid greeting");
+				})
+				.exceptionResolver(exceptionResolver)
+				.toGraphQl();
 	}
 
-	private static DataFetcherExceptionResolver threadLocalContextAwareExceptionResolver(
+	private static DataFetcherExceptionResolver threadLocalContextAwareResolver(
 			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
 
 		DataFetcherExceptionResolverAdapter adapter = new DataFetcherExceptionResolverAdapter() {

@@ -29,7 +29,8 @@ import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,20 +60,21 @@ public class BatchLoadingTests {
 		this.registry.forTypePair(Long.class, Author.class)
 				.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
 
-		ExecutionGraphQlService service = initExecutionGraphQlService(wiring -> {
-			wiring.type("Query", builder -> builder.dataFetcher("booksByCriteria", env -> {
-				Map<String, Object> criteria = env.getArgument("criteria");
-				String authorName = (String) criteria.get("author");
-				return BookSource.findBooksByAuthor(authorName).stream()
-						.map(book -> new Book(book.getId(), book.getName(), book.getAuthorId()))
-						.collect(Collectors.toList());
-			}));
-			wiring.type("Book", builder -> builder.dataFetcher("author", env -> {
-				Book book = env.getSource();
-				DataLoader<Long, Author> dataLoader = env.getDataLoader(Author.class.getName());
-				return dataLoader.load(book.getAuthorId());
-			}));
-		});
+		GraphQlService service = GraphQlSetup.schemaResource(BookSource.schema)
+				.queryFetcher("booksByCriteria", env -> {
+					Map<String, Object> criteria = env.getArgument("criteria");
+					String authorName = (String) criteria.get("author");
+					return BookSource.findBooksByAuthor(authorName).stream()
+							.map(book -> new Book(book.getId(), book.getName(), book.getAuthorId()))
+							.collect(Collectors.toList());
+				})
+				.dataFetcher("Book", "author", env -> {
+					Book book = env.getSource();
+					DataLoader<Long, Author> dataLoader = env.getDataLoader(Author.class.getName());
+					return dataLoader.load(book.getAuthorId());
+				})
+				.dataLoaders(this.registry)
+				.toGraphQlService();
 
 		Mono<ExecutionResult> resultMono = service.execute(new RequestInput(query, null, null, null));
 
@@ -83,13 +85,6 @@ public class BatchLoadingTests {
 		assertThat(author).isNotNull();
 		assertThat(author.getFirstName()).isEqualTo("George");
 		assertThat(author.getLastName()).isEqualTo("Orwell");
-	}
-
-	private ExecutionGraphQlService initExecutionGraphQlService(RuntimeWiringConfigurer configurer) {
-		GraphQlSource source = GraphQlTestUtils.graphQlSource(BookSource.schema, configurer).build();
-		ExecutionGraphQlService service = new ExecutionGraphQlService(source);
-		service.addDataLoaderRegistrar(this.registry);
-		return service;
 	}
 
 }

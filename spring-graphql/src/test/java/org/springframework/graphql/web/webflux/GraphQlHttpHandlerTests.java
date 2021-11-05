@@ -20,15 +20,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.GraphQlTestUtils;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -50,9 +45,9 @@ public class GraphQlHttpHandlerTests {
 
 	@Test
 	void locale() {
-		GraphQlHttpHandler handler = createHttpHandler(
-				"type Query { greeting: String }", "Query", "greeting",
-				(env) -> "Hello in " + env.getLocale());
+		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
+				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest =
 				MockServerHttpRequest.post("/").acceptLanguageAsLocales(Locale.FRENCH).build();
@@ -62,14 +57,6 @@ public class GraphQlHttpHandlerTests {
 
 		assertThat(httpResponse.getBodyAsString().block())
 				.isEqualTo("{\"data\":{\"greeting\":\"Hello in fr\"}}");
-	}
-
-	private GraphQlHttpHandler createHttpHandler(
-			String schemaContent, String type, String field, DataFetcher<Object> dataFetcher) {
-
-		GraphQlSource source = GraphQlTestUtils.graphQlSource(schemaContent, type, field, dataFetcher).build();
-		GraphQlService service = new ExecutionGraphQlService(source);
-		return new GraphQlHttpHandler(WebGraphQlHandler.builder(service).build());
 	}
 
 	private MockServerHttpResponse handleRequest(

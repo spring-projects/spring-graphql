@@ -23,15 +23,10 @@ import java.util.Locale;
 
 import javax.servlet.ServletException;
 
-import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.GraphQlTestUtils;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -54,8 +49,9 @@ public class GraphQlHttpHandlerTests {
 
 	@Test
 	void locale() throws Exception {
-		GraphQlHttpHandler handler = createHttpHandler(
-				"type Query { greeting: String }", "Query", "greeting", (env) -> "Hello in " + env.getLocale());
+		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
+				.toHttpHandler();
 
 		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");
 		servletRequest.setContentType("application/json");
@@ -72,14 +68,6 @@ public class GraphQlHttpHandlerTests {
 		finally {
 			LocaleContextHolder.resetLocaleContext();
 		}
-	}
-
-	private GraphQlHttpHandler createHttpHandler(
-			String schemaContent, String type, String field, DataFetcher<Object> dataFetcher) {
-
-		GraphQlSource source = GraphQlTestUtils.graphQlSource(schemaContent, type, field, dataFetcher).build();
-		GraphQlService service = new ExecutionGraphQlService(source);
-		return new GraphQlHttpHandler(WebGraphQlHandler.builder(service).build());
 	}
 
 	private MockHttpServletResponse handleRequest(

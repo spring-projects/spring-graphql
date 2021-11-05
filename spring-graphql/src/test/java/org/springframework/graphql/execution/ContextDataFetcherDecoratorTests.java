@@ -22,7 +22,6 @@ import java.util.List;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
-import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,7 +30,7 @@ import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,12 +43,13 @@ public class ContextDataFetcherDecoratorTests {
 
 	@Test
 	void monoDataFetcher() throws Exception {
-		GraphQL graphQl = initGraphQl(
-				"type Query { greeting: String }",
-				"Query", "greeting", (env) -> Mono.deferContextual((context) -> {
-					Object name = context.get("name");
-					return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
-				}));
+		GraphQL graphQl = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) ->
+						Mono.deferContextual((context) -> {
+							Object name = context.get("name");
+							return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
+						}))
+				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
@@ -62,33 +62,34 @@ public class ContextDataFetcherDecoratorTests {
 
 	@Test
 	void fluxDataFetcher() throws Exception {
-		GraphQL graphQl = initGraphQl(
-				"type Query { greetings: [String] }",
-				"Query", "greetings",
-				(env) -> Mono.delay(Duration.ofMillis(50))
-						.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
-							String name = context.get("name");
-							return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
-						})));
+		GraphQL graphQl = GraphQlSetup.schemaContent("type Query { greetings: [String] }")
+				.queryFetcher("greetings", (env) ->
+						Mono.delay(Duration.ofMillis(50))
+								.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
+									String name = context.get("name");
+									return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
+								})))
+				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greetings }").build();
 		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		List<String> data = GraphQlResponse.from(result).toList("greetings", String.class);;
+		List<String> data = GraphQlResponse.from(result).toList("greetings", String.class);
 		assertThat(data).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
 	}
 
 	@Test
 	void fluxDataFetcherSubscription() throws Exception {
-		GraphQL graphQl = initGraphQl(
-				"type Query { greeting: String } type Subscription { greetings: String }",
-				"Subscription", "greetings", (env) -> Mono.delay(Duration.ofMillis(50))
-						.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
-							String name = context.get("name");
-							return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
-						})));
+		GraphQL graphQl = GraphQlSetup.schemaContent("type Query { greeting: String } type Subscription { greetings: String }")
+				.subscriptionFetcher("greetings", (env) ->
+						Mono.delay(Duration.ofMillis(50))
+								.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
+									String name = context.get("name");
+									return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
+								})))
+				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
 		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
@@ -109,9 +110,9 @@ public class ContextDataFetcherDecoratorTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQL graphQl = initGraphQl(
-					"type Query { greeting: String }",
-					"Query", "greeting", (env) -> "Hello " + nameThreadLocal.get());
+			GraphQL graphQl = GraphQlSetup.schemaContent("type Query { greeting: String }")
+					.queryFetcher("greeting", (env) -> "Hello " + nameThreadLocal.get())
+					.toGraphQl();
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
@@ -126,13 +127,6 @@ public class ContextDataFetcherDecoratorTests {
 		finally {
 			nameThreadLocal.remove();
 		}
-	}
-
-	private static GraphQL initGraphQl(
-			String schemaContent, String typeName, String fieldName, DataFetcher<?> fetcher) {
-
-		return GraphQlTestUtils.graphQlSource(schemaContent, typeName, fieldName, fetcher)
-				.build().graphQl();
 	}
 
 }

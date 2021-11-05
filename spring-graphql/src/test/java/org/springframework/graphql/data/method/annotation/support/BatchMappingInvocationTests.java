@@ -40,14 +40,13 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
@@ -258,10 +257,10 @@ public class BatchMappingInvocationTests {
 
 		@Bean
 		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer, BatchLoaderRegistry registry) {
-			GraphQlSource source = GraphQlTestUtils.graphQlSource(schema, configurer).build();
-			ExecutionGraphQlService service = new ExecutionGraphQlService(source);
-			service.addDataLoaderRegistrar(registry);
-			return service;
+			return GraphQlSetup.schemaContent(schema)
+					.runtimeWiring(configurer)
+					.dataLoaders(registry)
+					.toGraphQlService();
 		}
 
 		@Bean

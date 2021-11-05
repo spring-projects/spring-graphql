@@ -16,21 +16,17 @@
 
 package org.springframework.graphql.web;
 
-import java.util.Arrays;
-
 import reactor.core.publisher.Flux;
 
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlTestUtils;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.GraphQlSetup;
 
-public abstract class BookTestUtils {
+public abstract class WebSocketHandlerTestSupport {
 
-	public static final String SUBSCRIPTION_ID = "1";
+	protected static final String SUBSCRIPTION_ID = "1";
 
-	public static final String BOOK_QUERY = "{" +
-			"\"id\":\"" + BookTestUtils.SUBSCRIPTION_ID + "\"," +
+	protected static final String BOOK_QUERY = "{" +
+			"\"id\":\"" + WebSocketHandlerTestSupport.SUBSCRIPTION_ID + "\"," +
 			"\"type\":\"subscribe\"," +
 			"\"payload\":{\"query\": \"" +
 			"  query TestQuery {" +
@@ -44,7 +40,7 @@ public abstract class BookTestUtils {
 			"  }}\"}" +
 			"}";
 
-	public static final String BOOK_SUBSCRIPTION = "{" +
+	protected static final String BOOK_SUBSCRIPTION = "{" +
 			"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
 			"\"type\":\"subscribe\"," +
 			"\"payload\":{\"query\": \"" +
@@ -59,24 +55,20 @@ public abstract class BookTestUtils {
 			"  }}\"}" +
 			"}";
 
-	public static WebGraphQlHandler initWebGraphQlHandler(WebInterceptor... interceptors) {
 
-		GraphQlSource source = GraphQlTestUtils.graphQlSource(BookSource.schema,
-				wiringBuilder -> {
-					wiringBuilder.type("Query", builder -> builder.dataFetcher("bookById", (env) -> {
-						Long id = Long.parseLong(env.getArgument("id"));
-						return BookSource.getBook(id);
-					}));
-					wiringBuilder.type("Subscription", builder -> builder.dataFetcher("bookSearch", (env) -> {
-						String author = env.getArgument("author");
-						return Flux.fromIterable(BookSource.books())
-								.filter((book) -> book.getAuthor().getFullName().contains(author));
-					}));
-				}).build();
-
-		return WebGraphQlHandler.builder(new ExecutionGraphQlService(source))
-				.interceptors(Arrays.asList(interceptors))
-				.build();
+	protected WebGraphQlHandler initHandler(WebInterceptor... interceptors) {
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.queryFetcher("bookById", environment -> {
+					Long id = Long.parseLong(environment.getArgument("id"));
+					return BookSource.getBook(id);
+				})
+				.subscriptionFetcher("bookSearch", environment -> {
+					String author = environment.getArgument("author");
+					return Flux.fromIterable(BookSource.books())
+							.filter((book) -> book.getAuthor().getFullName().contains(author));
+				})
+				.webInterceptor(interceptors)
+				.toWebGraphQlHandler();
 	}
 
 }

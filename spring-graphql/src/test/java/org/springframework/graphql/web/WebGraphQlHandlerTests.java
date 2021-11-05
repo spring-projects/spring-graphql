@@ -28,14 +28,11 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.GraphQlTestUtils;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,15 +47,13 @@ public class WebGraphQlHandlerTests {
 
 	@Test
 	void reactorContextPropagation() {
-		GraphQlSource graphQlSource = GraphQlTestUtils.graphQlSource(
-				"type Query { greeting: String }",
-				"Query", "greeting", (env) -> Mono.deferContextual((context) -> {
-					Object name = context.get("name");
-					return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
-				})).build();
-
-		GraphQlService service = new ExecutionGraphQlService(graphQlSource);
-		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).build();
+		WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) ->
+						Mono.deferContextual((context) -> {
+							Object name = context.get("name");
+							return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
+						}))
+				.toWebGraphQlHandler();
 
 		Mono<WebOutput> outputMono = handler.handleRequest(webInput)
 				.contextWrite((context) -> context.put("name", "007"));
@@ -69,25 +64,19 @@ public class WebGraphQlHandlerTests {
 
 	@Test
 	void reactorContextPropagationToExceptionResolver() {
-
-		GraphQlSource graphQlSource = GraphQlTestUtils.graphQlSource(
-						"type Query { greeting: String }",
-						"Query", "greeting", (env) -> {
-							throw new IllegalArgumentException("Invalid greeting");
-						})
-				.exceptionResolvers(Collections.singletonList(
-						(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+		WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> {
+					throw new IllegalArgumentException("Invalid greeting");
+				})
+				.exceptionResolver((ex, env) -> Mono.deferContextual((view) ->
+						Mono.just(Collections.singletonList(
 								GraphqlErrorBuilder.newError(env)
 										.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 										.errorType(ErrorType.BAD_REQUEST)
-										.build())))))
-				.build();
+										.build()))))
+				.toWebGraphQlHandler();
 
-		GraphQlService service = new ExecutionGraphQlService(graphQlSource);
-		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).build();
-
-		Mono<WebOutput> outputMono = handler.handleRequest(webInput)
-				.contextWrite((context) -> context.put("name", "007"));
+		Mono<WebOutput> outputMono = handler.handleRequest(webInput).contextWrite((cxt) -> cxt.put("name", "007"));
 
 		GraphQlResponse response = GraphQlResponse.from(outputMono);
 		assertThat(response.errorCount()).isEqualTo(1);
@@ -103,17 +92,11 @@ public class WebGraphQlHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQlSource graphQlSource = GraphQlTestUtils.graphQlSource(
-							"type Query { greeting: String }",
-							"Query", "greeting", env -> "Hello " + nameThreadLocal.get())
-					.build();
-
-			GraphQlService service = new ExecutionGraphQlService(graphQlSource);
-
-			WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
+			WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+					.queryFetcher("greeting", env -> "Hello " + nameThreadLocal.get())
+					.webInterceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
-					.build();
+					.toWebGraphQlHandler();
 
 			Mono<WebOutput> outputMono = handler.handleRequest(webInput);
 
@@ -131,25 +114,18 @@ public class WebGraphQlHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			GraphQlSource graphQlSource = GraphQlTestUtils.graphQlSource(
-					"type Query { greeting: String }",
-					"Query", "greeting", env -> {
+			WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+					.queryFetcher("greeting", env -> {
 						throw new IllegalArgumentException("Invalid greeting");
 					})
-					.exceptionResolvers(Collections.singletonList(
-							threadLocalContextAwareExceptionResolver((ex, env) ->
-									GraphqlErrorBuilder.newError(env)
-											.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
-											.errorType(ErrorType.BAD_REQUEST).build())
-					))
-					.build();
-
-			GraphQlService service = new ExecutionGraphQlService(graphQlSource);
-
-			WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
+					.exceptionResolver(threadLocalContextAwareExceptionResolver((ex, env) ->
+							GraphqlErrorBuilder.newError(env)
+									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+									.errorType(ErrorType.BAD_REQUEST).build())
+					)
+					.webInterceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
-					.build();
+					.toWebGraphQlHandler();
 
 			Mono<WebOutput> outputMono = handler.handleRequest(webInput);
 
