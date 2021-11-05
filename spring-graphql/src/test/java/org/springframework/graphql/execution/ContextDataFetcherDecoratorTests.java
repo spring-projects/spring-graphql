@@ -18,19 +18,19 @@ package org.springframework.graphql.execution;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
@@ -54,9 +54,10 @@ public class ContextDataFetcherDecoratorTests {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
-		Map<String, Object> data = graphQl.executeAsync(input).get().getData();
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
-		assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
+		String greeting = GraphQlResponse.from(executionResult).toEntity("greeting", String.class);
+		assertThat(greeting).isEqualTo("Hello 007");
 	}
 
 	@Test
@@ -75,7 +76,7 @@ public class ContextDataFetcherDecoratorTests {
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		List<String> data = GraphQlTestUtils.getData(result, "greetings");
+		List<String> data = GraphQlResponse.from(result).toList("greetings", String.class);;
 		assertThat(data).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
 	}
 
@@ -92,14 +93,14 @@ public class ContextDataFetcherDecoratorTests {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
 		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
 
-		Publisher<String> publisher = graphQl.executeAsync(input).get().getData();
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
-		List<String> actual = Flux.from(publisher).cast(ExecutionResult.class)
-				.map((result) -> GraphQlTestUtils.<String>getData(result, "greetings"))
-				.collectList()
-				.block();
+		Flux<String> greetingsFlux = GraphQlResponse.forSubscription(executionResult)
+				.map(response -> response.toEntity("greetings", String.class));
 
-		assertThat(actual).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
+		StepVerifier.create(greetingsFlux)
+				.expectNext("Hi 007", "Bonjour 007", "Hola 007")
+				.verifyComplete();
 	}
 
 	@Test
@@ -116,12 +117,11 @@ public class ContextDataFetcherDecoratorTests {
 			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
 			ReactorContextManager.setReactorContext(view, input);
 
-			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
-					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)))
-					.block();
+			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
+					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
 
-			Map<String, Object> data = GraphQlTestUtils.getData(result);
-			assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
+			String greeting = GraphQlResponse.from(resultMono).toEntity("greeting", String.class);
+			assertThat(greeting).isEqualTo("Hello 007");
 		}
 		finally {
 			nameThreadLocal.remove();

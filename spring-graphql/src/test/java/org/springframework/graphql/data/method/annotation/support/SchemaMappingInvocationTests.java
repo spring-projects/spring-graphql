@@ -16,7 +16,6 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,8 +24,8 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -36,6 +35,7 @@ import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
@@ -72,17 +72,15 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(query, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null));
 
-		Map<String, Object> book = GraphQlTestUtils.getData(result, "bookById");
-		assertThat(book.get("id")).isEqualTo("1");
-		assertThat(book.get("name")).isEqualTo("Nineteen Eighty-Four");
+		Book book = GraphQlResponse.from(resultMono).toEntity("bookById", Book.class);
+		assertThat(book.getId()).isEqualTo(1);
+		assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
 
-		Map<String, Object> author = (Map<String, Object>) book.get("author");
-		assertThat(author.get("firstName")).isEqualTo("George");
-		assertThat(author.get("lastName")).isEqualTo("Orwell");
+		Author author = book.getAuthor();
+		assertThat(author.getFirstName()).isEqualTo("George");
+		assertThat(author.getLastName()).isEqualTo("Orwell");
 	}
 
 	@Test
@@ -94,15 +92,12 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(query, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null));
 
-		List<Map<String, Object>> bookList = GraphQlTestUtils.getData(result, "booksByCriteria");
-
+		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
-		assertThat(bookList.get(0).get("name")).isEqualTo("Nineteen Eighty-Four");
-		assertThat(bookList.get(1).get("name")).isEqualTo("Animal Farm");
+		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
+		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
 	}
 
 	@Test
@@ -122,15 +117,12 @@ public class SchemaMappingInvocationTests {
 			return executionInput;
 		});
 
-		ExecutionResult result = initGraphQlService()
-				.execute(requestInput)
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService().execute(requestInput);
 
-		Map<String, Object> author = GraphQlTestUtils.getData(result, "authorById");
-
-		assertThat(author.get("id")).isEqualTo("101");
-		assertThat(author.get("firstName")).isEqualTo("George");
-		assertThat(author.get("lastName")).isEqualTo("Orwell");
+		Author author = GraphQlResponse.from(resultMono).toEntity("authorById", Author.class);
+		assertThat(author.getId()).isEqualTo(101);
+		assertThat(author.getFirstName()).isEqualTo("George");
+		assertThat(author.getLastName()).isEqualTo("Orwell");
 
 		assertThat(contextRef.get().<String>get("key")).isEqualTo("value");
 	}
@@ -145,14 +137,13 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(operation, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService()
+				.execute(new RequestInput(operation, null, null, null));
 
-		Map<String, Object> author = GraphQlTestUtils.getData(result, "addAuthor");
-		assertThat(author.get("id")).isEqualTo("99");
-		assertThat(author.get("firstName")).isEqualTo("James");
-		assertThat(author.get("lastName")).isEqualTo("Joyce");
+		Author author = GraphQlResponse.from(resultMono).toEntity("addAuthor", Author.class);
+		assertThat(author.getId()).isEqualTo(99);
+		assertThat(author.getFirstName()).isEqualTo("James");
+		assertThat(author.getLastName()).isEqualTo("Joyce");
 	}
 
 	@Test
@@ -164,31 +155,26 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService()
-				.execute(new RequestInput(operation, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService()
+				.execute(new RequestInput(operation, null, null, null));
 
-		Publisher<ExecutionResult> publisher = GraphQlTestUtils.getData(result);
-
-		Flux<Map<String, Object>> bookFlux = Flux.from(publisher).map(executionResult -> {
-			Map<String, Object> map = executionResult.getData();
-			return (Map<String, Object>) map.get("bookSearch");
-		});
+		Flux<Book> bookFlux = GraphQlResponse.forSubscription(resultMono)
+				.map(response -> response.toEntity("bookSearch", Book.class));
 
 		StepVerifier.create(bookFlux)
 				.consumeNextWith(book -> {
-					assertThat(book.get("id")).isEqualTo("1");
-					assertThat(book.get("name")).isEqualTo("Nineteen Eighty-Four");
+					assertThat(book.getId()).isEqualTo(1);
+					assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
 				})
 				.consumeNextWith(book -> {
-					assertThat(book.get("id")).isEqualTo("5");
-					assertThat(book.get("name")).isEqualTo("Animal Farm");
+					assertThat(book.getId()).isEqualTo(5);
+					assertThat(book.getName()).isEqualTo("Animal Farm");
 				})
 				.verifyComplete();
 	}
 
 
-	private ExecutionGraphQlService initGraphQlService() {
+	private ExecutionGraphQlService graphQlService() {
 		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
 		applicationContext.register(TestConfig.class);
 		applicationContext.refresh();

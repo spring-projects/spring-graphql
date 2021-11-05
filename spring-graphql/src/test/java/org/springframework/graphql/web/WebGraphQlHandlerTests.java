@@ -19,8 +19,6 @@ package org.springframework.graphql.web;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
@@ -29,6 +27,7 @@ import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.TestThreadLocalAccessor;
@@ -47,8 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebGraphQlHandlerTests {
 
 	private static final WebInput webInput = new WebInput(
-			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"),
-			null, "1");
+			URI.create("https://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"), null, "1");
 
 	@Test
 	void reactorContextPropagation() {
@@ -62,11 +60,11 @@ public class WebGraphQlHandlerTests {
 		GraphQlService service = new ExecutionGraphQlService(graphQlSource);
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).build();
 
-		WebOutput webOutput = handler.handleRequest(webInput)
-				.contextWrite((context) -> context.put("name", "007")).block();
+		Mono<WebOutput> outputMono = handler.handleRequest(webInput)
+				.contextWrite((context) -> context.put("name", "007"));
 
-		Map<String, Object> data = webOutput.getData();
-		assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
+		String greeting = GraphQlResponse.from(outputMono).toEntity("greeting", String.class);
+		assertThat(greeting).isEqualTo("Hello 007");
 	}
 
 	@Test
@@ -88,15 +86,15 @@ public class WebGraphQlHandlerTests {
 		GraphQlService service = new ExecutionGraphQlService(graphQlSource);
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).build();
 
-		WebOutput webOutput = handler.handleRequest(webInput)
-				.contextWrite((context) -> context.put("name", "007")).block();
+		Mono<WebOutput> outputMono = handler.handleRequest(webInput)
+				.contextWrite((context) -> context.put("name", "007"));
 
-		Map<String, Object> data = webOutput.getData();
-		assertThat(data).hasSize(1).containsEntry("greeting", null);
+		GraphQlResponse response = GraphQlResponse.from(outputMono);
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 
-		List<GraphQLError> errors = webOutput.getErrors();
-		assertThat(errors).hasSize(1);
-		assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+		String greeting = response.rawValue("greeting");
+		assertThat(greeting).isNull();
 	}
 
 	@Test
@@ -117,9 +115,10 @@ public class WebGraphQlHandlerTests {
 					.threadLocalAccessor(threadLocalAccessor)
 					.build();
 
-			Map<String, Object> data = handler.handleRequest(webInput).block().getData();
+			Mono<WebOutput> outputMono = handler.handleRequest(webInput);
 
-			assertThat(data).hasSize(1).containsEntry("greeting", "Hello 007");
+			String greeting = GraphQlResponse.from(outputMono).toEntity("greeting", String.class);
+			assertThat(greeting).isEqualTo("Hello 007");
 		}
 		finally {
 			nameThreadLocal.remove();
@@ -152,10 +151,11 @@ public class WebGraphQlHandlerTests {
 					.threadLocalAccessor(threadLocalAccessor)
 					.build();
 
-			WebOutput webOutput = handler.handleRequest(webInput).block();
+			Mono<WebOutput> outputMono = handler.handleRequest(webInput);
 
-			List<GraphQLError> errors = webOutput.getErrors();
-			assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+			GraphQlResponse response = GraphQlResponse.from(outputMono);
+			assertThat(response.errorCount()).isEqualTo(1);
+			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}
 		finally {
 			nameThreadLocal.remove();

@@ -23,10 +23,12 @@ import graphql.ExecutionResult;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
 
@@ -72,18 +74,15 @@ public class BatchLoadingTests {
 			}));
 		});
 
-		ExecutionResult result = service.execute(new RequestInput(query, null, null, null)).block();
+		Mono<ExecutionResult> resultMono = service.execute(new RequestInput(query, null, null, null));
 
-		assertThat(result.getErrors()).isEmpty();
-		Map<String, Object> data = result.getData();
-		assertThat(data).isNotNull();
+		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
+		assertThat(books).hasSize(2);
 
-		List<Map<String, Object>> bookList = getValue(data, "booksByCriteria");
-		assertThat(bookList).hasSize(2);
-		Map<String, Object> authorMap = (Map<String, Object>) bookList.get(0).get("author");
-		assertThat(authorMap).isNotNull();
-		assertThat(authorMap).containsEntry("firstName", "George");
-		assertThat(authorMap).containsEntry("lastName", "Orwell");
+		Author author = books.get(0).getAuthor();
+		assertThat(author).isNotNull();
+		assertThat(author.getFirstName()).isEqualTo("George");
+		assertThat(author.getLastName()).isEqualTo("Orwell");
 	}
 
 	private ExecutionGraphQlService initExecutionGraphQlService(RuntimeWiringConfigurer configurer) {
@@ -91,11 +90,6 @@ public class BatchLoadingTests {
 		ExecutionGraphQlService service = new ExecutionGraphQlService(source);
 		service.addDataLoaderRegistrar(this.registry);
 		return service;
-	}
-
-	@SuppressWarnings("unchecked")
-	private <T> T getValue(Map<String, Object> data, String key) {
-		return (T) data.get(key);
 	}
 
 }

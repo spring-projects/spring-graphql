@@ -35,6 +35,7 @@ dependencies {
 	testImplementation 'com.querydsl:querydsl-core'
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'javax.servlet:javax.servlet-api'
+	testImplementation 'com.jayway.jsonpath:json-path'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'

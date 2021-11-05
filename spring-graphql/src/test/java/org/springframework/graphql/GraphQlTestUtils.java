@@ -17,18 +17,13 @@
 package org.springframework.graphql;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
-import graphql.ExecutionResult;
 import graphql.schema.DataFetcher;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
-import org.springframework.lang.Nullable;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Utility methods for GraphQL tests.
@@ -36,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class GraphQlTestUtils {
 
 	/**
-	 * Convenience method for a {@link GraphQlSource.Builder} with a single {@link DataFetcher}.
+	 * Initialize a {@link GraphQlSource.Builder} with a single {@link DataFetcher}.
 	 *
 	 * @param schema either String content or a {@link Resource}.
 	 * @param typeName the parent type name (Query, Mutation, or Subscription).
@@ -53,8 +48,9 @@ public abstract class GraphQlTestUtils {
 	}
 
 	/**
-	 * Convenience method for a {@link GraphQlSource.Builder} when multiple
-	 * {@link DataFetcher} registrations might be needed.
+	 * Initialize a {@link GraphQlSource.Builder} with a {@link RuntimeWiringConfigurer},
+	 * which may be useful for multiple {@link DataFetcher} registrations, or for a
+	 * built-in implementation (e.g. for annotated handler methods).
 	 *
 	 * @param schema either String content or a {@link Resource}.
 	 * @param configurer the configurer to apply to the RuntimeWiring
@@ -69,20 +65,6 @@ public abstract class GraphQlTestUtils {
 		return GraphQlSource.builder()
 				.schemaResources(schemaResource)
 				.configureRuntimeWiring(configurer);
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <T> T getData(@Nullable ExecutionResult result, String key) {
-		Map<String, Object> map = getData(result);
-		return (T) map.get(key);
-	}
-
-	public static <T> T getData(@Nullable ExecutionResult result) {
-		assertThat(result).isNotNull();
-		assertThat(result.getErrors()).as("Errors present in GraphQL response").isEmpty();
-		T data = result.getData();
-		assertThat(data).isNotNull();
-		return data;
 	}
 
 }

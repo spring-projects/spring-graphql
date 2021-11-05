@@ -17,11 +17,13 @@ package org.springframework.graphql.execution;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import graphql.ExecutionResult;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
 
@@ -83,22 +85,19 @@ public class ClassNameTypeResolverTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = new ExecutionGraphQlService(graphQlSource)
-				.execute(new RequestInput(query, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = new ExecutionGraphQlService(graphQlSource)
+				.execute(new RequestInput(query, null, null, null));
 
-		List<Map<String, Object>> actualAnimals = GraphQlTestUtils.getData(result, "animals");
-
+		GraphQlResponse response = GraphQlResponse.from(resultMono);
 		for (int i = 0; i < animalList.size(); i++) {
-			Map<String, Object> actualAnimal = actualAnimals.get(i);
 			Animal animal = animalList.get(i);
-			assertThat(actualAnimal.get("name")).isEqualTo(animal.getName());
-
 			if (animal instanceof Bird) {
-				assertThat(actualAnimal.get("flightless")).isEqualTo(((Bird) animal).isFlightless());
+				Bird bird = (Bird) response.toEntity("animals[" + i + "]", animal.getClass());
+				assertThat(bird.isFlightless()).isEqualTo(((Bird) animal).isFlightless());
 			}
 			else if (animal instanceof Mammal) {
-				assertThat(actualAnimal.get("herbivore")).isEqualTo(((Mammal) animal).isHerbivore());
+				Mammal mammal = (Mammal) response.toEntity("animals[" + i + "]", animal.getClass());
+				assertThat(mammal.isHerbivore()).isEqualTo(((Mammal) animal).isHerbivore());
 			}
 			else {
 				throw new IllegalStateException();
@@ -133,21 +132,19 @@ public class ClassNameTypeResolverTests {
 				"  }" +
 				"}";
 
-		ExecutionResult result = new ExecutionGraphQlService(graphQlSource)
-				.execute(new RequestInput(query, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = new ExecutionGraphQlService(graphQlSource)
+				.execute(new RequestInput(query, null, null, null));
 
-		List<Map<String, Object>> actualSightings = GraphQlTestUtils.getData(result, "sightings");
-
+		GraphQlResponse response = GraphQlResponse.from(resultMono);
 		for (int i = 0; i < animalAndPlantList.size(); i++) {
-			Map<String, Object> actualSighting = actualSightings.get(i);
 			Object sighting = animalAndPlantList.get(i);
-
 			if (sighting instanceof Animal) {
-				assertThat(actualSighting.get("name")).isEqualTo(((Animal) sighting).getName());
+				Animal animal = (Animal) response.toEntity("sightings[" + i + "]", sighting.getClass());
+				assertThat(animal.getName()).isEqualTo(((Animal) sighting).getName());
 			}
 			else if (sighting instanceof Tree) {
-				assertThat(actualSighting.get("family")).isEqualTo(((Tree) sighting).getFamily());
+				Tree tree = (Tree) response.toEntity("sightings[" + i + "]", sighting.getClass());
+				assertThat(tree.getFamily()).isEqualTo(((Tree) sighting).getFamily());
 			}
 			else {
 				throw new IllegalStateException();
@@ -227,6 +224,7 @@ public class ClassNameTypeResolverTests {
 	}
 
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	static class Penguin extends BaseBird {
 
 		Penguin() {
@@ -236,6 +234,7 @@ public class ClassNameTypeResolverTests {
 	}
 
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	static class Dog extends BaseMammal {
 
 		Dog() {
@@ -245,6 +244,7 @@ public class ClassNameTypeResolverTests {
 	}
 
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	static class GrayWolf extends BaseMammal {
 
 		GrayWolf() {
@@ -268,6 +268,7 @@ public class ClassNameTypeResolverTests {
 	}
 
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	static class GiantRedwood extends Tree {
 
 		GiantRedwood() {

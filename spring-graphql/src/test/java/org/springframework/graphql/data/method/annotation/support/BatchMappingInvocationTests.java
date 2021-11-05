@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import graphql.ExecutionResult;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,6 +38,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.RequestInput;
@@ -44,6 +48,7 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +60,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  *
  * @author Rossen Stoyanchev
  */
-@SuppressWarnings({"unchecked", "unused"})
+@SuppressWarnings("unused")
 public class BatchMappingInvocationTests {
 
 	private static final Map<Long, Course> courseMap = new HashMap<>();
@@ -107,30 +112,31 @@ public class BatchMappingInvocationTests {
 	void oneToOne(Class<?> controllerClass) {
 		String query = "{ " +
 				"  courses { " +
+				"    id" +
 				"    name" +
 				"    instructor {" +
+				"      id" +
 				"      firstName" +
 				"      lastName" +
 				"    }" +
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService(controllerClass, CourseConfig.class)
-				.execute(new RequestInput(query, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService(controllerClass, CourseConfig.class)
+				.execute(new RequestInput(query, null, null, null));
 
-		List<Map<String, Object>> actualCourses = GraphQlTestUtils.getData(result, "courses");
+		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 
 		for (int i = 0; i < courses.size(); i++) {
-			Map<String, Object> actualCourse = actualCourses.get(i);
+			Course actualCourse = actualCourses.get(i);
 			Course course = courses.get(i);
-			assertThat(actualCourse.get("name")).isEqualTo(course.name());
+			assertThat(actualCourse).isEqualTo(course);
 
-			Map<String, Object> actualInstructor = (Map<String, Object>) actualCourse.get("instructor");
-			assertThat(actualInstructor.get("firstName")).isEqualTo(course.instructor().firstName());
-			assertThat(actualInstructor.get("lastName")).isEqualTo(course.instructor().lastName());
+			Person actualInstructor = actualCourse.instructor();
+			assertThat(actualInstructor.firstName()).isEqualTo(course.instructor().firstName());
+			assertThat(actualInstructor.lastName()).isEqualTo(course.instructor().lastName());
 		}
 	}
 
@@ -139,40 +145,40 @@ public class BatchMappingInvocationTests {
 	void oneToMany(Class<?> controllerClass) {
 		String query = "{ " +
 				"  courses { " +
+				"    id" +
 				"    name" +
 				"    students {" +
+				"      id" +
 				"      firstName" +
 				"      lastName" +
 				"    }" +
 				"  }" +
 				"}";
 
-		ExecutionResult result = initGraphQlService(controllerClass, CourseConfig.class)
-				.execute(new RequestInput(query, null, null, null))
-				.block();
+		Mono<ExecutionResult> resultMono = graphQlService(controllerClass, CourseConfig.class)
+				.execute(new RequestInput(query, null, null, null));
 
-		List<Map<String, Object>> actualCourses = GraphQlTestUtils.getData(result, "courses");
-
+		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 
 		for (int i = 0; i < courses.size(); i++) {
-			Map<String, Object> actualCourse = actualCourses.get(i);
+			Course actualCourse = actualCourses.get(i);
 			Course course = courses.get(i);
-			assertThat(actualCourse.get("name")).isEqualTo(course.name());
+			assertThat(actualCourse.name()).isEqualTo(course.name());
 
-			List<Map<String, Object>> actualStudents = (List<Map<String, Object>>) actualCourse.get("students");
+			List<Person> actualStudents = actualCourse.students();
 			List<Person> students = course.students();
 			assertThat(actualStudents).hasSize(students.size());
 
 			for (int j = 0; j < actualStudents.size(); j++) {
-				assertThat(actualStudents.get(i).get("firstName")).isEqualTo(students.get(i).firstName());
-				assertThat(actualStudents.get(i).get("lastName")).isEqualTo(students.get(i).lastName());
+				assertThat(actualStudents.get(i).firstName()).isEqualTo(students.get(i).firstName());
+				assertThat(actualStudents.get(i).lastName()).isEqualTo(students.get(i).lastName());
 			}
 		}
 	}
 
-	private ExecutionGraphQlService initGraphQlService(Class<?>... configClasses) {
+	private ExecutionGraphQlService graphQlService(Class<?>... configClasses) {
 		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
 		applicationContext.register(configClasses);
 		applicationContext.refresh();
@@ -280,6 +286,20 @@ public class BatchMappingInvocationTests {
 
 		private final List<Long> studentIds;
 
+		@JsonCreator
+		public Course(
+				@JsonProperty("id") Long id, @JsonProperty("name") String name,
+				@JsonProperty("instructor") @Nullable Person instructor,
+				@JsonProperty("students") @Nullable List<Person> students) {
+
+			this.id = id;
+			this.name = name;
+			this.instructorId = (instructor != null ? instructor.id() : -1);
+			this.studentIds = (students != null ?
+					students.stream().map(Person::id).collect(Collectors.toList()) :
+					Collections.emptyList());
+		}
+
 		public Course(Long id, String name, Long instructorId, List<Long> studentIds) {
 			this.id = id;
 			this.name = name;
@@ -343,7 +363,12 @@ public class BatchMappingInvocationTests {
 
 		private final String lastName;
 
-		public Person(Long id, String firstName, String lastName) {
+		@JsonCreator
+		public Person(
+				@JsonProperty("id") Long id,
+				@JsonProperty("firstName") String firstName,
+				@JsonProperty("lastName") String lastName) {
+
 			this.id = id;
 			this.firstName = firstName;
 			this.lastName = lastName;

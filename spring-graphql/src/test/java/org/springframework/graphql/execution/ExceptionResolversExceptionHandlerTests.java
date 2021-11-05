@@ -18,8 +18,6 @@ package org.springframework.graphql.execution;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 
 import graphql.ExecutionInput;
@@ -33,6 +31,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlTestUtils;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
@@ -55,13 +54,13 @@ public class ExceptionResolversExceptionHandlerTests {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		Map<String, Object> data = result.getData();
-		assertThat(data).hasSize(1).containsEntry("greeting", null);
+		GraphQlResponse response = GraphQlResponse.from(result);
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting");
+		assertThat(response.error(0).errorType()).isEqualTo("BAD_REQUEST");
 
-		List<GraphQLError> errors = result.getErrors();
-		assertThat(errors).hasSize(1);
-		assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting");
-		assertThat(errors.get(0).getErrorType().toString()).isEqualTo("BAD_REQUEST");
+		String greeting = response.rawValue("greeting");
+		assertThat(greeting).isNull();
 	}
 
 	@Test
@@ -77,8 +76,9 @@ public class ExceptionResolversExceptionHandlerTests {
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		List<GraphQLError> errors = result.getErrors();
-		assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+		GraphQlResponse response = GraphQlResponse.from(result);
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 	}
 
 	@Test
@@ -97,12 +97,12 @@ public class ExceptionResolversExceptionHandlerTests {
 			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
 			ReactorContextManager.setReactorContext(view, input);
 
-			ExecutionResult result = Mono.delay(Duration.ofMillis(10))
-					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)))
-					.block();
+			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10))
+					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
 
-			List<GraphQLError> errors = result.getErrors();
-			assertThat(errors.get(0).getMessage()).isEqualTo("Resolved error: Invalid greeting, name=007");
+			GraphQlResponse response = GraphQlResponse.from(result);
+			assertThat(response.errorCount()).isEqualTo(1);
+			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}
 		finally {
 			nameThreadLocal.remove();
@@ -116,14 +116,13 @@ public class ExceptionResolversExceptionHandlerTests {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		Map<String, Object> data = result.getData();
-		assertThat(data).hasSize(1).containsEntry("greeting", null);
+		GraphQlResponse response = GraphQlResponse.from(result);
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).message()).isEqualTo("Invalid greeting");
+		assertThat(response.error(0).errorType()).isEqualTo("INTERNAL_ERROR");
 
-		List<GraphQLError> errors = result.getErrors();
-		assertThat(errors).hasSize(1);
-		GraphQLError error = errors.get(0);
-		assertThat(error.getMessage()).isEqualTo("Invalid greeting");
-		assertThat(error.getErrorType().toString()).isEqualTo("INTERNAL_ERROR");
+		String greeting = response.rawValue("greeting");
+		assertThat(greeting).isNull();
 	}
 
 	@Test
@@ -133,9 +132,8 @@ public class ExceptionResolversExceptionHandlerTests {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		Map<String, Object> data = result.getData();
-		assertThat(data).hasSize(1).containsEntry("greeting", null);
-		assertThat(result.getErrors()).hasSize(0);
+		String greeting = GraphQlResponse.from(result).rawValue("greeting");
+		assertThat(greeting).isNull();
 	}
 
 	private static GraphQL initGraphQl(DataFetcherExceptionResolver exceptionResolver) {
