@@ -50,7 +50,7 @@ dependencies {
 	compileOnly 'org.springframework.boot:spring-boot-test'
 	compileOnly 'org.springframework.boot:spring-boot-test-autoconfigure'
 
-	compileOnly 'com.google.code.findbugs:jsr305'
+	compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
 

@@ -19,7 +19,6 @@ org.springframework.graphql.boot.test.tester.GraphQlTesterAutoConfiguration
 
 # Spring Test @AutoConfigureWebGraphQlTester
 org.springframework.graphql.boot.test.tester.AutoConfigureWebGraphQlTester=\
-org.springframework.graphql.boot.test.tester.WebTestClientMockMvcAutoConfiguration,\
 org.springframework.graphql.boot.test.tester.WebGraphQlTesterAutoConfiguration
 
 # Spring Test ContextCustomizerFactories

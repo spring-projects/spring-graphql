@@ -1,7 +1,8 @@
 [[boot-graphql]]
 = Boot Starter
 
-This projects builds on Boot 2.5.x, but it should be compatible with the latest Boot 2.4.x.
+This projects builds on Boot 2.6.x, but it should be compatible with the latest Boot 2.4.x.
+For QueryDSL-related features, Spring Data 2021.1.0 or later is required.
 
 
 

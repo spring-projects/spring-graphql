@@ -35,8 +35,8 @@ import org.springframework.web.reactive.function.client.WebClient;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass({WebClient.class, WebTestClient.class, WebGraphQlTester.class})
-@AutoConfigureAfter(value = WebTestClientMockMvcAutoConfiguration.class,
-		name = "org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration")
+@AutoConfigureAfter(name = {"org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration",
+"org.springframework.boot.test.autoconfigure.web.servlet.MockMvcAutoConfiguration"})
 public class WebGraphQlTesterAutoConfiguration {
 
 	@Bean

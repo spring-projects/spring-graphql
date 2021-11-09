@@ -13,9 +13,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-hateoas'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	// TODO: Remove after upgrade to Spring Boot 2.6
-	implementation 'org.springframework.data:spring-data-commons:2.6.0-RC1'
-	implementation 'org.springframework.data:spring-data-jpa:2.6.0-RC1'
 	implementation 'com.querydsl:querydsl-core'
 	implementation 'com.querydsl:querydsl-jpa'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -24,7 +21,7 @@ dependencies {
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-	annotationProcessor 'com.querydsl:querydsl-apt:4.4.0:jpa',
+	annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jpa',
             'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final',
             'javax.annotation:javax.annotation-api'
 }

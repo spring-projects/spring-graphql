@@ -36,7 +36,6 @@ import org.springframework.graphql.test.tester.WebGraphQlTester;
  *
  * @author Brian Clozel
  * @since 1.0.0
- * @see WebTestClientMockMvcAutoConfiguration
  * @see WebGraphQlTesterAutoConfiguration
  */
 @Target({ElementType.TYPE, ElementType.METHOD})

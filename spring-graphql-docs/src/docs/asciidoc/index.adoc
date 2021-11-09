@@ -22,6 +22,16 @@ problem, discuss a design issue, or request a feature.
 
 To get started, please see the <<boot-graphql>> and the <<samples>> sections.
 
+[[requirements]]
+== Requirements
+
+Spring GraphQL requires the following as a baseline:
+
+* JDK8
+* Spring Framework 5.3
+* GraphQL Java 17
+* Spring Data 2021.1.0 or later for QueryDSL features
+
 
 
 [[web-transports]]

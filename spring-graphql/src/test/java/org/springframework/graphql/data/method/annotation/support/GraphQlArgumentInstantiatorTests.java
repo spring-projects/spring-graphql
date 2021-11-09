@@ -67,7 +67,7 @@ class GraphQlArgumentInstantiatorTests {
 		String payload = "{\"noPrimary\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
 		assertThatThrownBy(() -> instantiator.instantiate(environment.getArgument("noPrimary"), NoPrimaryConstructor.class))
-				.isInstanceOf(IllegalStateException.class).hasMessageContaining("No primary or single public constructor found");
+				.isInstanceOf(IllegalStateException.class).hasMessageContaining("No primary or single unique constructor found");
 	}
 
 	@Test
