@@ -54,15 +54,16 @@ public class BatchMappingDetectionTests {
 	@Test
 	void registerWithDefaultCoordinates() {
 
-		Map<String, Map<String, DataFetcher>> map =
+		Map<String, Map<String, DataFetcher>> dataFetcherMap =
 				initRuntimeWiringBuilder(BookController.class).build().getDataFetchers();
 
-		assertThat(map).containsOnlyKeys("Book");
-		assertThat(map.get("Book")).containsOnlyKeys(
+		assertThat(dataFetcherMap).containsOnlyKeys("Book");
+		assertThat(dataFetcherMap.get("Book")).containsOnlyKeys(
 				"authorFlux", "authorList", "authorMonoMap", "authorMap", "authorEnvironment");
 
 		DataLoaderRegistry registry = new DataLoaderRegistry();
 		this.batchLoaderRegistry.registerDataLoaders(registry, GraphQLContext.newContext().build());
+
 		assertThat(registry.getDataLoadersMap()).containsOnlyKeys(
 				"Book.authorFlux", "Book.authorList", "Book.authorMonoMap", "Book.authorMap", "Book.authorEnvironment");
 	}
