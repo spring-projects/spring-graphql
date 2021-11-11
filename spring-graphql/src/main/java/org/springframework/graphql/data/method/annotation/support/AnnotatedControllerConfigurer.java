@@ -84,6 +84,10 @@ public class AnnotatedControllerConfigurer
 	 */
 	private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
 
+	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+			"org.springframework.security.core.context.SecurityContext",
+			AnnotatedControllerConfigurer.class.getClassLoader());
+
 
 	@Nullable
 	private ApplicationContext applicationContext;
@@ -117,6 +121,9 @@ public class AnnotatedControllerConfigurer
 		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(this.conversionService));
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
+		if (springSecurityPresent) {
+			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
+		}
 
 		if (KotlinDetector.isKotlinPresent()) {
 			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
@@ -288,28 +295,27 @@ public class AnnotatedControllerConfigurer
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
 	}
 
-	@SuppressWarnings("unchecked")
-	private <P, F> String registerBatchLoader(MappingInfo info) {
+	private String registerBatchLoader(MappingInfo info) {
 		if (!info.isBatchMapping()) {
 			throw new IllegalArgumentException("Not a @BatchMapping method: " + info);
 		}
 
 		String dataLoaderKey = info.getCoordinates().toString();
-		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(info.getHandlerMethod());
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 
-		Class<?> clazz = info.getHandlerMethod().getReturnType().getParameterType();
+		HandlerMethod handlerMethod = info.getHandlerMethod();
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod);
+
+		Class<?> clazz = handlerMethod.getReturnType().getParameterType();
 		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz)) {
-			registry.<P,F>forName(dataLoaderKey).registerBatchLoader((values, env) ->
-					(Flux<F>) invocable.invoke(values, env));
+			registry.forName(dataLoaderKey).registerBatchLoader(invocable::invokeForIterable);
 		}
 		else if (clazz.equals(Mono.class) || clazz.equals(Map.class)) {
-			registry.<P,F>forName(dataLoaderKey).registerMappedBatchLoader((values, env) ->
-					(Mono<Map<P, F>>) invocable.invoke(values, env));
+			registry.forName(dataLoaderKey).registerMappedBatchLoader(invocable::invokeForMap);
 		}
 		else {
 			throw new IllegalStateException("@BatchMapping method is expected to return " +
-					"Flux<V>, List<V>, Mono<Map<K, V>>, or Map<K, V>: " + info.getHandlerMethod());
+					"Flux<V>, List<V>, Mono<Map<K, V>>, or Map<K, V>: " + handlerMethod);
 		}
 
 		return dataLoaderKey;
@@ -358,9 +364,12 @@ public class AnnotatedControllerConfigurer
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
+		private final boolean subscription;
+
 		public SchemaMappingDataFetcher(MappingInfo info, HandlerMethodArgumentResolverComposite resolvers) {
 			this.info = info;
 			this.argumentResolvers = resolvers;
+			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
 
 		/**
@@ -381,7 +390,7 @@ public class AnnotatedControllerConfigurer
 		@Override
 		@SuppressWarnings("ConstantConditions")
 		public Object get(DataFetchingEnvironment environment) throws Exception {
-			return new DataFetcherHandlerMethod(getHandlerMethod(), this.argumentResolvers).invoke(environment);
+			return new DataFetcherHandlerMethod(getHandlerMethod(), this.argumentResolvers, this.subscription).invoke(environment);
 		}
 	}
 

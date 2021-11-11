@@ -18,6 +18,9 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.util.Arrays;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
@@ -47,11 +50,16 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
+	private final boolean subscription;
 
-	public DataFetcherHandlerMethod(HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers) {
+
+	public DataFetcherHandlerMethod(
+			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers, boolean subscription) {
+
 		super(handlerMethod);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
+		this.subscription = subscription;
 	}
 
 
@@ -66,25 +74,53 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	/**
 	 * Invoke the method after resolving its argument values in the context of
 	 * the given {@link DataFetchingEnvironment}.
+	 *
 	 * <p>Argument values are commonly resolved through
 	 * {@link HandlerMethodArgumentResolver HandlerMethodArgumentResolvers}.
 	 * The {@code providedArgs} parameter however may supply argument values to
 	 * be used directly, i.e. without argument resolution. Provided argument
 	 * values are checked before argument resolvers.
-	 * @param environment the GraphQL {@link DataFetchingEnvironment}
-	 * @return the raw value returned by the invoked method
-	 * @throws Exception raised if no suitable argument resolver can be found,
-	 * or if the method raised an exception
-	 * @see #getMethodArgumentValues
-	 * @see #doInvoke
+	 *
+	 * @param environment the GraphQL {@link DataFetchingEnvironment} to use to
+	 * resolve arguments.
+	 *
+	 * @return the raw value returned by the invoked method, which may also be
+	 * wrapped as a {@code Mono} in case of method arguments that require
+	 * asynchronous resolution, e.g. {@code Principal} in WebFlux; this method
+	 * may also return a {@code Mono<Throwable>} if the invocation fails.
 	 */
 	@Nullable
 	public Object invoke(DataFetchingEnvironment environment) throws Exception {
-		Object[] args = getMethodArgumentValues(environment);
-		if (logger.isTraceEnabled()) {
-			logger.trace("Arguments: " + Arrays.toString(args));
+		Object[] args;
+		try {
+			args = getMethodArgumentValues(environment);
 		}
-		return doInvoke(args);
+		catch (Throwable ex) {
+			return Mono.error(ex);
+		}
+
+		if (Arrays.stream(args).noneMatch(arg -> arg instanceof Mono)) {
+			return doInvoke(args);
+		}
+
+		return this.subscription ?
+				toArgsMono(args).flatMapMany(argValues -> {
+					Object result = doInvoke(argValues);
+					Assert.state(result instanceof Publisher, "Expected a Publisher from a Subscription response");
+					return Flux.from((Publisher<?>) result);
+				}) :
+				toArgsMono(args).flatMap(argValues -> {
+					Object result = doInvoke(argValues);
+					if (result instanceof Mono) {
+						return (Mono<?>) result;
+					}
+					else if (result instanceof Flux) {
+						return Flux.from((Flux<?>) result).collectList();
+					}
+					else {
+						return Mono.justOrEmpty(result);
+					}
+				});
 	}
 
 	/**
@@ -92,13 +128,14 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 * argument values and falling back to the configured argument resolvers.
 	 * <p>The resulting array will be passed into {@link #doInvoke}.
 	 */
-	protected Object[] getMethodArgumentValues(
+	private Object[] getMethodArgumentValues(
 			DataFetchingEnvironment environment, Object... providedArgs) throws Exception {
 
 		MethodParameter[] parameters = getMethodParameters();
 		if (ObjectUtils.isEmpty(parameters)) {
 			return EMPTY_ARGS;
 		}
+
 		Object[] args = new Object[parameters.length];
 		for (int i = 0; i < parameters.length; i++) {
 			MethodParameter parameter = parameters[i];

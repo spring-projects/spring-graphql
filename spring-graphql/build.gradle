@@ -32,6 +32,7 @@ dependencies {
 	testImplementation 'org.springframework:spring-test'
 	testImplementation 'org.springframework.data:spring-data-commons'
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
+	testImplementation 'org.springframework.security:spring-security-core'
 	testImplementation 'com.querydsl:querydsl-core'
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'javax.servlet:javax.servlet-api'

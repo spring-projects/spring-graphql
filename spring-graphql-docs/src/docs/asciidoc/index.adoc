@@ -605,6 +605,9 @@ See <<controllers-schema-mapping-data-loader>>.
 | `GraphQLContext`
 | For access to the context from the `DataFetchingEnvironment`.
 
+| `java.security.Principal`
+| Obtained from Spring Security context, if available.
+
 | `DataFetchingFieldSelectionSet`
 | For access to the selection set for the query through the `DataFetchingEnvironment`.
 
@@ -801,6 +804,9 @@ Batch mapping methods support two types of arguments:
 
 | `List<K>`
 | The source/parent objects.
+
+| `java.security.Principal`
+| Obtained from Spring Security context, if available.
 
 | `BatchLoaderEnvironment`
 | The environment that is available in GraphQL Java to a

@@ -19,13 +19,14 @@ import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.lang.Nullable;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
  * Strategy interface for resolving method parameters into argument values in
- * the context of a given request.
+ * the context of a given {@link DataFetchingEnvironment}.
+ *
+ * <p>Most implementations will be synchronous, simply resolving values from the
+ * {@code DataFetchingEnvironment}. However, a resolver may also return a
+ * {@link reactor.core.publisher.Mono} if it needs to be asynchronous.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -33,25 +34,21 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public interface HandlerMethodArgumentResolver {
 
 	/**
-	 * Whether the given {@linkplain MethodParameter method parameter} is
-	 * supported by this resolver.
-	 * @param parameter the method parameter to check
-	 * @return {@code true} if this resolver supports the supplied parameter;
-	 * {@code false} otherwise
+	 * Whether this resolver supports the given {@link MethodParameter}.
 	 */
 	boolean supportsParameter(MethodParameter parameter);
 
 	/**
-	 * Resolves a method parameter into an argument value from a given request.
-	 * A {@link ModelAndViewContainer} provides access to the model for the
-	 * request. A {@link WebDataBinderFactory} provides a way to create
-	 * a {@link WebDataBinder} instance when needed for data binding and
-	 * type conversion purposes.
+	 * Resolve a method parameter to a value.
+	 *
 	 * @param parameter the method parameter to resolve. This parameter must
-	 * have previously been passed to {@link #supportsParameter} which must
-	 * have returned {@code true}.
-	 * @param environment the GraphQL {@link DataFetchingEnvironment}
-	 * @return the resolved argument value, or {@code null} if not resolvable
+	 * have previously checked via {@link #supportsParameter}.
+	 * @param environment the environment to use to resolve the value
+	 *
+	 * @return the resolved value, which may be {@code null} if not resolved;
+	 * the value may also be a {@link reactor.core.publisher.Mono} if it
+	 * requires asynchronous resolution.
+	 *
 	 * @throws Exception in case of errors with the preparation of argument values
 	 */
 	@Nullable
