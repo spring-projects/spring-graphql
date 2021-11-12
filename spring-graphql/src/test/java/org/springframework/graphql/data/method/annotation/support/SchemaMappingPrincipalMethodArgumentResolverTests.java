@@ -30,6 +30,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.GraphQlResponse;
@@ -153,16 +154,13 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 	private Mono<ExecutionResult> executeAsync(
 			String schema, String op, Function<Context, Context> contextWriter) {
 
-		StaticApplicationContext context = new StaticApplicationContext();
-		context.getBeanFactory().registerSingleton("greetingController", greetingController);
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.registerBean(GreetingController.class, () -> greetingController);
 		context.refresh();
 
-		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
-		configurer.setApplicationContext(context);
-		configurer.afterPropertiesSet();
-
-		ExecutionGraphQlService graphQlService =
-				GraphQlSetup.schemaContent(schema).runtimeWiring(configurer).toGraphQlService();
+		ExecutionGraphQlService graphQlService = GraphQlSetup.schemaContent(schema)
+				.runtimeWiringForAnnotatedControllers(context)
+				.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> graphQlService.execute(new RequestInput(op, null, null, null)))

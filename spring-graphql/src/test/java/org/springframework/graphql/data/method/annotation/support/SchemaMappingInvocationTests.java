@@ -29,8 +29,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
@@ -46,7 +44,6 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -173,41 +170,18 @@ public class SchemaMappingInvocationTests {
 	}
 
 
-	private ExecutionGraphQlService graphQlService() {
-		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
-		applicationContext.register(TestConfig.class);
-		applicationContext.refresh();
+	private GraphQlService graphQlService() {
+		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
-		return applicationContext.getBean(ExecutionGraphQlService.class);
-	}
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.register(BookController.class);
+		context.registerBean(BatchLoaderRegistry.class, () -> registry);
+		context.refresh();
 
-
-	@Configuration
-	static class TestConfig {
-
-		@Bean
-		public BookController bookController() {
-			return new BookController(batchLoaderRegistry());
-		}
-
-		@Bean
-		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer, BatchLoaderRegistry registry) {
-			return GraphQlSetup.schemaResource(BookSource.schema)
-					.runtimeWiring(configurer)
-					.dataLoaders(registry)
-					.toGraphQlService();
-		}
-
-		@Bean
-		public AnnotatedControllerConfigurer annotatedControllerConfigurer() {
-			return new AnnotatedControllerConfigurer();
-		}
-
-		@Bean
-		public BatchLoaderRegistry batchLoaderRegistry() {
-			return new DefaultBatchLoaderRegistry();
-		}
-
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.runtimeWiringForAnnotatedControllers(context)
+				.dataLoaders(registry)
+				.toGraphQlService();
 	}
 
 

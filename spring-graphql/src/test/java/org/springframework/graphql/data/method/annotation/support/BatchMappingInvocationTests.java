@@ -29,11 +29,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,19 +46,18 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @SuppressWarnings("unused")
 public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 
-	private static Stream<Arguments> controllerClasses() {
+	private static Stream<Arguments> controllers() {
 		return Stream.of(
-				arguments(named("Returning Mono<Map<K,V>>", BatchMonoMapController.class)),
-				arguments(named("Returning Map<K,V>", BatchMapController.class)),
-				arguments(named("Returning Flux<V>", BatchFluxController.class)),
-				arguments(named("Returning List<V>", BatchListController.class))
+				arguments(named("Returning Mono<Map<K,V>>", new BatchMonoMapController())),
+				arguments(named("Returning Map<K,V>", new BatchMapController())),
+				arguments(named("Returning Flux<V>", new BatchFluxController())),
+				arguments(named("Returning List<V>", new BatchListController()))
 		);
 	}
 
-
 	@ParameterizedTest
-	@MethodSource("controllerClasses")
-	void oneToOne(Class<?> controllerClass) {
+	@MethodSource("controllers")
+	void oneToOne(CourseController controller) {
 		String query = "{ " +
 				"  courses { " +
 				"    id" +
@@ -73,7 +70,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService(controllerClass)
+		Mono<ExecutionResult> resultMono = createGraphQlService(controller)
 				.execute(new RequestInput(query, null, null, null));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
@@ -92,8 +89,8 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 	}
 
 	@ParameterizedTest
-	@MethodSource("controllerClasses")
-	void oneToMany(Class<?> controllerClass) {
+	@MethodSource("controllers")
+	void oneToMany(CourseController controller) {
 		String query = "{ " +
 				"  courses { " +
 				"    id" +
@@ -106,7 +103,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService(controllerClass)
+		Mono<ExecutionResult> resultMono = createGraphQlService(controller)
 				.execute(new RequestInput(query, null, null, null));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
@@ -127,15 +124,6 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				assertThat(actualStudents.get(i).lastName()).isEqualTo(students.get(i).lastName());
 			}
 		}
-	}
-
-	private ExecutionGraphQlService graphQlService(Class<?>... configClasses) {
-		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
-		applicationContext.register(configClasses);
-		applicationContext.register(BatchMappingTestSupport.CourseConfig.class);
-		applicationContext.refresh();
-
-		return applicationContext.getBean(ExecutionGraphQlService.class);
 	}
 
 

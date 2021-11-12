@@ -81,13 +81,13 @@ public class BatchMappingDetectionTests {
 	}
 
 	private RuntimeWiring.Builder initRuntimeWiringBuilder(Class<?> handlerType) {
-		AnnotationConfigApplicationContext appContext = new AnnotationConfigApplicationContext();
-		appContext.registerBean(handlerType);
-		appContext.registerBean(BatchLoaderRegistry.class, () -> this.batchLoaderRegistry);
-		appContext.refresh();
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.registerBean(handlerType);
+		context.registerBean(BatchLoaderRegistry.class, () -> this.batchLoaderRegistry);
+		context.refresh();
 
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
-		configurer.setApplicationContext(appContext);
+		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 
 		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();

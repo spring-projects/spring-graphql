@@ -17,7 +17,6 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.security.Principal;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,12 +31,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.security.SecurityContextThreadLocalAccessor;
 import org.springframework.lang.Nullable;
@@ -79,13 +75,13 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 
 	@ParameterizedTest
 	@MethodSource("controllers")
-	void resolveFromReactiveContext(CourseController courseController) {
+	void resolveFromReactiveContext(PrincipalCourseController courseController) {
 		testBatchLoading(courseController, this.reactiveContextWriter);
 	}
 
 	@ParameterizedTest
 	@MethodSource("controllers")
-	void resolveFromThreadLocalContext(CourseController courseController) {
+	void resolveFromThreadLocalContext(PrincipalCourseController courseController) {
 		SecurityContextHolder.setContext(new SecurityContextImpl(authentication));
 		try {
 			testBatchLoading(courseController, this.threadLocalContextWriter);
@@ -95,18 +91,11 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 		}
 	}
 
-	private void testBatchLoading(CourseController controller, Function<Context, Context> contextWriter) {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.getBeanFactory().registerSingleton("courseController", controller);
-		context.register(BatchMappingTestSupport.CourseConfig.class);
-		context.refresh();
-
-		ExecutionGraphQlService graphQlService = context.getBean(ExecutionGraphQlService.class);
-
+	private void testBatchLoading(PrincipalCourseController controller, Function<Context, Context> contextWriter) {
 		Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> {
 					String query = "{ courses { id instructor { id } } }";
-					return graphQlService.execute(new RequestInput(query, null, null, null));
+					return createGraphQlService(controller).execute(new RequestInput(query, null, null, null));
 				})
 				.contextWrite(contextWriter);
 
@@ -122,7 +111,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 
 
 	@SuppressWarnings("unused")
-	private static class CourseController {
+	private static class PrincipalCourseController extends CourseController {
 
 		@Nullable
 		protected Principal principal;
@@ -136,16 +125,12 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 			this.principal = principal;
 		}
 
-		@QueryMapping
-		public Collection<Course> courses() {
-			return BatchMappingTestSupport.courseMap.values();
-		}
 	}
 
 
 	@Controller
 	@SuppressWarnings("unused")
-	private static class BatchMonoMapController extends CourseController {
+	private static class BatchMonoMapController extends PrincipalCourseController {
 
 		@BatchMapping
 		public Mono<Map<Course, Person>> instructor(List<Course> courses, Principal principal) {
@@ -158,7 +143,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 
 	@Controller
 	@SuppressWarnings("unused")
-	private static class BatchMapController extends CourseController {
+	private static class BatchMapController extends PrincipalCourseController {
 
 		@BatchMapping
 		public Map<Course, Person> instructor(List<Course> courses, Principal principal) {
@@ -170,7 +155,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 
 	@Controller
 	@SuppressWarnings("unused")
-	private static class BatchFluxController extends CourseController {
+	private static class BatchFluxController extends PrincipalCourseController {
 
 		@BatchMapping
 		public Flux<Person> instructor(List<Course> courses, Principal principal) {
@@ -182,7 +167,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 
 	@Controller
 	@SuppressWarnings("unused")
-	private static class BatchListController extends CourseController {
+	private static class BatchListController extends PrincipalCourseController {
 
 		@BatchMapping
 		public List<Person> instructor(List<Course> courses, Principal principal) {

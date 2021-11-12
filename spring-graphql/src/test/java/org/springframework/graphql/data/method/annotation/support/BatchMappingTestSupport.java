@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -78,6 +78,20 @@ public class BatchMappingTestSupport {
 			"    lastName: String" +
 			"}";
 
+
+	protected GraphQlService createGraphQlService(CourseController controller) {
+		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
+
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.registerBean(CourseController.class, () -> controller);
+		context.registerBean(BatchLoaderRegistry.class, () -> registry);
+		context.refresh();
+
+		return GraphQlSetup.schemaContent(schema)
+				.runtimeWiringForAnnotatedControllers(context)
+				.dataLoaders(registry)
+				.toGraphQlService();
+	}
 
 
 	static class Course {
@@ -203,28 +217,6 @@ public class BatchMappingTestSupport {
 		@QueryMapping
 		public Collection<Course> courses() {
 			return courseMap.values();
-		}
-	}
-
-
-	static class CourseConfig {
-
-		@Bean
-		public GraphQlService graphQlService(AnnotatedControllerConfigurer configurer, BatchLoaderRegistry registry) {
-			return GraphQlSetup.schemaContent(schema)
-					.runtimeWiring(configurer)
-					.dataLoaders(registry)
-					.toGraphQlService();
-		}
-
-		@Bean
-		public AnnotatedControllerConfigurer annotatedDataFetcherConfigurer() {
-			return new AnnotatedControllerConfigurer();
-		}
-
-		@Bean
-		public BatchLoaderRegistry batchLoaderRegistry() {
-			return new DefaultBatchLoaderRegistry();
 		}
 	}
 
