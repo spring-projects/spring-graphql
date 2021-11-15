@@ -41,7 +41,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Rossen Stoyanchev
  */
-class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
+public class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
 	private static final Log logger = LogFactory.getLog(ExceptionResolversExceptionHandler.class);
 
@@ -51,7 +51,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	 * Create an instance.
 	 * @param resolvers the resolvers to use
 	 */
-	ExceptionResolversExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
+	public ExceptionResolversExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
 		Assert.notNull(resolvers, "'resolvers' is required");
 		this.resolvers = new ArrayList<>(resolvers);
 	}
