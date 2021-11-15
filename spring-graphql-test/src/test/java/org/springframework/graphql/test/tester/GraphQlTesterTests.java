@@ -277,6 +277,40 @@ public class GraphQlTesterTests {
 	}
 
 	@Test
+	void errorsExpected() throws Exception {
+
+		String query = "{me {name, friends}}";
+		setResponse(
+				GraphqlErrorBuilder.newError().message("some error").build(),
+				GraphqlErrorBuilder.newError().message("some other error").build());
+
+		this.graphQlTester.query(query)
+				.execute()
+				.errors()
+				.expect((error) -> error.getMessage().startsWith("some "))
+				.verify()
+				.path("me")
+				.pathDoesNotExist();
+
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
+	}
+
+	@Test
+	void errorsExpectedButNotFound() throws Exception {
+
+		String query = "{me {name, friends}}";
+		setResponse(
+				GraphqlErrorBuilder.newError().message("some error").build(),
+				GraphqlErrorBuilder.newError().message("some other error").build());
+
+		assertThatThrownBy(() ->
+				this.graphQlTester.query(query)
+						.execute()
+						.errors().expect((error) -> error.getMessage().startsWith("another ")))
+				.hasMessageStartingWith("No matching errors.");
+	}
+
+	@Test
 	void errorsConsumed() throws Exception {
 
 		String query = "{me {name, friends}}";

@@ -203,13 +203,19 @@ class DefaultGraphQlTester implements GraphQlTester {
 			this.assertDecorator.accept(task);
 		}
 
-		void filterErrors(@Nullable Predicate<GraphQLError> predicate) {
+		boolean filterErrors(@Nullable Predicate<GraphQLError> predicate) {
+			boolean filtered = false;
 			if (predicate != null) {
-				this.errors.forEach((error) -> {
-					// Error marked "filtered" if true
-					error.applyErrorFilterPredicate(predicate);
-				});
+				for (TestGraphQlError error : this.errors) {
+					filtered |= error.apply(predicate);
+				}
 			}
+			return filtered;
+		}
+
+		void expectErrors(@Nullable Predicate<GraphQLError> predicate) {
+			boolean filtered = filterErrors(predicate);
+			this.assertDecorator.accept(() -> AssertionErrors.assertTrue("No matching errors.", filtered));
 		}
 
 		void consumeErrors(Consumer<List<GraphQLError>> consumer) {
@@ -262,6 +268,12 @@ class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public ErrorSpec filter(Predicate<GraphQLError> predicate) {
 			this.responseContainer.filterErrors(predicate);
+			return this;
+		}
+
+		@Override
+		public ErrorSpec expect(Predicate<GraphQLError> predicate) {
+			this.responseContainer.expectErrors(predicate);
 			return this;
 		}
 

@@ -148,9 +148,12 @@ final class TestGraphQlError implements GraphQLError {
 	/**
 	 * Mark this error as expected if it matches the predicate.
 	 * @param predicate the error predicate
+	 * @return whether the predicate matched
 	 */
-	void applyErrorFilterPredicate(Predicate<GraphQLError> predicate) {
-		this.expected |= predicate.test(this);
+	boolean apply(Predicate<GraphQLError> predicate) {
+		boolean match = predicate.test(this);
+		this.expected |= match;
+		return match;
 	}
 
 	@Override

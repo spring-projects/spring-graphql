@@ -90,10 +90,8 @@ public interface GraphQlTester {
 	interface Builder<T extends Builder<T>> {
 
 		/**
-		 * Add a global filter for expected errors. All errors that match the
-		 * given predicate are treated as expected and ignored on
-		 * {@link GraphQlTester.ErrorSpec#verify()} or when
-		 * {@link TraverseSpec#path(String) traversing} to a data path.
+		 * Configure a global {@link ErrorSpec#filter(Predicate) filter} that
+		 * applies to all requests.
 		 * @param predicate the error filter to add
 		 * @return the same builder instance
 		 */
@@ -450,13 +448,31 @@ public interface GraphQlTester {
 	interface ErrorSpec {
 
 		/**
-		 * Add a filter for expected errors. All errors that match the predicate are
-		 * treated as expected and ignored on {@link #verify()} or when
+		 * Use this to filter out errors that are expected and can be ignored.
+		 * This can be useful for warnings or other notifications returned along
+		 * with the data.
+		 * <p>The configured filters are applied to all errors. Those that match
+		 * are treated as expected and are ignored on {@link #verify()} or when
 		 * {@link TraverseSpec#path(String) traversing} to a data path.
+		 * <p>In contrast to {@link #expect(Predicate)}, filters do not have to
+		 * match any errors, and don't imply that the errors must be present.
 		 * @param errorPredicate the error filter to add
 		 * @return the same spec to add more filters before {@link #verify()}
 		 */
 		ErrorSpec filter(Predicate<GraphQLError> errorPredicate);
+
+		/**
+		 * Use this to declare errors that are expected.
+		 * <p>Errors that match are treated as expected and are ignored on
+		 * {@link #verify()} or when {@link TraverseSpec#path(String) traversing}
+		 * to a data path.
+		 * <p>In contrast to {@link #filter(Predicate)}, use of this option
+		 * does imply that errors are  present or else an {@link AssertionError}
+		 * is raised.
+		 * @param errorPredicate the predicate for the expected error
+		 * @return the same spec to add more filters or expected errors
+		 */
+		ErrorSpec expect(Predicate<GraphQLError> errorPredicate);
 
 		/**
 		 * Verify there are either no errors or that there no unexpected errors that have
