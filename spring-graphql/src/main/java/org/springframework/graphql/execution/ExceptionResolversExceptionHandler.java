@@ -18,6 +18,7 @@ package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import graphql.GraphQLError;
@@ -58,43 +59,52 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	@Override
 	@Deprecated
-	public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters parameters) {
-		Throwable exception = parameters.getException();
-		exception = ((exception instanceof CompletionException) ? exception.getCause() : exception);
-		return invokeChain(exception, parameters.getDataFetchingEnvironment());
+	public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters handlerParameters) {
+		// This is not expected to be called but needs to be implemented until removed:
+		// https://github.com/graphql-java/graphql-java/issues/2545
+		throw new UnsupportedOperationException();
 	}
 
-	DataFetcherExceptionHandlerResult invokeChain(Throwable ex, DataFetchingEnvironment env) {
-		// For now we have to block:
-		// https://github.com/graphql-java/graphql-java/issues/2356
+	@Override
+	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(DataFetcherExceptionHandlerParameters params) {
+		Throwable exception = getException(params);
+		DataFetchingEnvironment environment = params.getDataFetchingEnvironment();
 		try {
 			if (logger.isDebugEnabled()) {
-				logger.debug("Resolving exception", ex);
+				logger.debug("Resolving exception", exception);
 			}
 			return Flux.fromIterable(this.resolvers)
-					.flatMap((resolver) -> resolver.resolveException(ex, env))
+					.flatMap((resolver) -> resolver.resolveException(exception, environment))
 					.next()
 					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
-					.switchIfEmpty(Mono.fromCallable(() -> applyDefaultHandling(ex, env)))
+					.switchIfEmpty(Mono.fromCallable(() -> createInternalError(exception, environment)))
 					.contextWrite((context) -> {
-						ContextView contextView = ReactorContextManager.getReactorContext(env);
+						ContextView contextView = ReactorContextManager.getReactorContext(environment);
 						return (contextView.isEmpty() ? context : context.putAll(contextView));
 					})
-					.toFuture()
-					.get();
+					.toFuture();
 		}
-		catch (Exception ex2) {
+		catch (Exception ex) {
 			if (logger.isWarnEnabled()) {
-				logger.warn("Failed to handle " + ex.getMessage(), ex2);
+				logger.warn("Failed to handle " + exception.getMessage(), ex);
 			}
-			return applyDefaultHandling(ex, env);
+			return CompletableFuture.completedFuture(createInternalError(exception, environment));
 		}
 	}
 
-	private DataFetcherExceptionHandlerResult applyDefaultHandling(Throwable ex, DataFetchingEnvironment env) {
-		GraphqlErrorBuilder errorBuilder = GraphqlErrorBuilder.newError(env).errorType(ErrorType.INTERNAL_ERROR);
-		errorBuilder.message(StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : ex.getClass().getSimpleName());
-		return DataFetcherExceptionHandlerResult.newResult(errorBuilder.build()).build();
+	private Throwable getException(DataFetcherExceptionHandlerParameters params) {
+		Throwable ex = params.getException();
+		return ((ex instanceof CompletionException) ? ex.getCause() : ex);
+	}
+
+	private DataFetcherExceptionHandlerResult createInternalError(Throwable ex, DataFetchingEnvironment env) {
+
+		GraphQLError error = GraphqlErrorBuilder.newError(env)
+				.errorType(ErrorType.INTERNAL_ERROR)
+				.message((StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : ex.getClass().getSimpleName()))
+				.build();
+
+		return DataFetcherExceptionHandlerResult.newResult(error).build();
 	}
 
 }
