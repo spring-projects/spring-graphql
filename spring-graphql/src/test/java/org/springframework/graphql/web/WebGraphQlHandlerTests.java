@@ -19,11 +19,9 @@ package org.springframework.graphql.web;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.function.BiFunction;
 
-import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
-import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -45,18 +43,25 @@ public class WebGraphQlHandlerTests {
 	private static final WebInput webInput = new WebInput(
 			URI.create("https://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"), null, "1");
 
+
+	private final GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent("type Query { greeting: String }");
+
+	private final DataFetcher<Object> errorDataFetcher = env -> {
+		throw new IllegalArgumentException("Invalid greeting");
+	};
+
+
 	@Test
 	void reactorContextPropagation() {
-		WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-				.queryFetcher("greeting", (env) ->
-						Mono.deferContextual((context) -> {
-							Object name = context.get("name");
-							return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
-						}))
-				.toWebGraphQlHandler();
+		DataFetcher<Object> dataFetcher = (env) -> Mono.deferContextual((context) -> {
+			Object name = context.get("name");
+			return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
+		});
 
-		Mono<WebOutput> outputMono = handler.handleRequest(webInput)
-				.contextWrite((context) -> context.put("name", "007"));
+		Mono<WebOutput> outputMono =
+				this.graphQlSetup.queryFetcher("greeting", dataFetcher).toWebGraphQlHandler()
+						.handleRequest(webInput)
+						.contextWrite((context) -> context.put("name", "007"));
 
 		String greeting = GraphQlResponse.from(outputMono).toEntity("greeting", String.class);
 		assertThat(greeting).isEqualTo("Hello 007");
@@ -64,19 +69,18 @@ public class WebGraphQlHandlerTests {
 
 	@Test
 	void reactorContextPropagationToExceptionResolver() {
-		WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-				.queryFetcher("greeting", (env) -> {
-					throw new IllegalArgumentException("Invalid greeting");
-				})
-				.exceptionResolver((ex, env) -> Mono.deferContextual((view) ->
-						Mono.just(Collections.singletonList(
-								GraphqlErrorBuilder.newError(env)
-										.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
-										.errorType(ErrorType.BAD_REQUEST)
-										.build()))))
-				.toWebGraphQlHandler();
+		DataFetcherExceptionResolver exceptionResolver =
+				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+						GraphqlErrorBuilder.newError(env)
+								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
+								.errorType(ErrorType.BAD_REQUEST)
+								.build())));
 
-		Mono<WebOutput> outputMono = handler.handleRequest(webInput).contextWrite((cxt) -> cxt.put("name", "007"));
+		Mono<WebOutput> outputMono = this.graphQlSetup.queryFetcher("greeting", this.errorDataFetcher)
+				.exceptionResolver(exceptionResolver)
+				.toWebGraphQlHandler()
+				.handleRequest(webInput)
+				.contextWrite((cxt) -> cxt.put("name", "007"));
 
 		GraphQlResponse response = GraphQlResponse.from(outputMono);
 		assertThat(response.errorCount()).isEqualTo(1);
@@ -92,13 +96,13 @@ public class WebGraphQlHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+
+			Mono<WebOutput> outputMono = this.graphQlSetup
 					.queryFetcher("greeting", env -> "Hello " + nameThreadLocal.get())
 					.webInterceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
-					.toWebGraphQlHandler();
-
-			Mono<WebOutput> outputMono = handler.handleRequest(webInput);
+					.toWebGraphQlHandler()
+					.handleRequest(webInput);
 
 			String greeting = GraphQlResponse.from(outputMono).toEntity("greeting", String.class);
 			assertThat(greeting).isEqualTo("Hello 007");
@@ -114,20 +118,18 @@ public class WebGraphQlHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			WebGraphQlHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-					.queryFetcher("greeting", env -> {
-						throw new IllegalArgumentException("Invalid greeting");
-					})
-					.exceptionResolver(threadLocalContextAwareExceptionResolver((ex, env) ->
-							GraphqlErrorBuilder.newError(env)
-									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
-									.errorType(ErrorType.BAD_REQUEST).build())
-					)
+			DataFetcherExceptionResolverAdapter exceptionResolver = DataFetcherExceptionResolverAdapter.from((ex, env) ->
+					GraphqlErrorBuilder.newError(env)
+							.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+							.errorType(ErrorType.BAD_REQUEST).build());
+			exceptionResolver.setThreadLocalContextAware(true);
+
+			Mono<WebOutput> outputMono = this.graphQlSetup.queryFetcher("greeting", this.errorDataFetcher)
+					.exceptionResolver(exceptionResolver)
 					.webInterceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
-					.toWebGraphQlHandler();
-
-			Mono<WebOutput> outputMono = handler.handleRequest(webInput);
+					.toWebGraphQlHandler()
+					.handleRequest(webInput);
 
 			GraphQlResponse response = GraphQlResponse.from(outputMono);
 			assertThat(response.errorCount()).isEqualTo(1);
@@ -136,20 +138,6 @@ public class WebGraphQlHandlerTests {
 		finally {
 			nameThreadLocal.remove();
 		}
-	}
-
-	private static DataFetcherExceptionResolver threadLocalContextAwareExceptionResolver(
-			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
-
-		DataFetcherExceptionResolverAdapter adapter = new DataFetcherExceptionResolverAdapter() {
-
-			@Override
-			protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
-				return resolver.apply(ex, env);
-			}
-		};
-		adapter.setThreadLocalContextAware(true);
-		return adapter;
 	}
 
 }

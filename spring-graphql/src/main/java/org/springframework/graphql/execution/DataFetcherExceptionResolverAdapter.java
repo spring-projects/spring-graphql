@@ -17,6 +17,7 @@ package org.springframework.graphql.execution;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
@@ -27,11 +28,14 @@ import org.springframework.lang.Nullable;
 
 /**
  * Adapter for {@link DataFetcherExceptionResolver} that pre-implements the
- * asynchronous contract and exposes the following synchronous methods:
+ * asynchronous contract and exposes the following synchronous protected methods:
  * <ul>
  * <li>{@link #resolveToSingleError}
  * <li>{@link #resolveToMultipleErrors}
  * </ul>
+ *
+ * <p>Use {@link #from(BiFunction)} to create an instance or extend this class
+ * and override one of its resolve methods.
  *
  * <p>Implementations can also express interest in ThreadLocal context
  * propagation, from the underlying transport thread, via
@@ -39,9 +43,17 @@ import org.springframework.lang.Nullable;
  *
  * @author Rossen Stoyanchev
  */
-public class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
+public abstract class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
 
 	private boolean threadLocalContextAware;
+
+
+	/**
+	 * Protected constructor since this class is meant to be extended to provide
+	 * the actual exception resolution logic.
+	 */
+	protected DataFetcherExceptionResolverAdapter() {
+	}
 
 
 	/**
@@ -109,6 +121,25 @@ public class DataFetcherExceptionResolverAdapter implements DataFetcherException
 	@Nullable
 	protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
 		return null;
+	}
+
+
+	/**
+	 * Factory method to create a {@link DataFetcherExceptionResolverAdapter} that
+	 * resolves exceptions with the given {@code BiFunction}.
+	 * @param resolver the resolver function to use
+	 * @return the created instance
+	 */
+	public static DataFetcherExceptionResolverAdapter from(
+			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
+
+		return new DataFetcherExceptionResolverAdapter() {
+
+			@Override
+			protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
+				return resolver.apply(ex, env);
+			}
+		};
 	}
 
 }
