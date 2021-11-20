@@ -1,11 +1,11 @@
 plugins {
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-	id 'org.jetbrains.kotlin.jvm' version '1.5.31' apply false
+	id 'org.jetbrains.kotlin.jvm' version '1.6.0' apply false
 }
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
-	bootVersion = "2.6.0-RC1"
+	bootVersion = "2.6.0"
 	graphQlJavaVersion = "17.3"
 }
 
@@ -57,12 +57,12 @@ configure(moduleProjects) {
 	dependencyManagement {
 		imports {
 			mavenBom "com.fasterxml.jackson:jackson-bom:2.13.0"
-			mavenBom "io.projectreactor:reactor-bom:2020.0.12"
-			mavenBom "org.springframework:spring-framework-bom:5.3.12"
-			mavenBom "org.springframework.data:spring-data-bom:2021.1.0-RC1"
-			mavenBom "org.springframework.security:spring-security-bom:5.6.0-RC1"
+			mavenBom "io.projectreactor:reactor-bom:2020.0.13"
+			mavenBom "org.springframework:spring-framework-bom:5.3.13"
+			mavenBom "org.springframework.data:spring-data-bom:2021.1.0"
+			mavenBom "org.springframework.security:spring-security-bom:5.6.0"
 			mavenBom "com.querydsl:querydsl-bom:5.0.0"
-			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.5.31"
+			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.6.0"
 			mavenBom "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.5.2"
 			mavenBom "org.junit:junit-bom:5.8.1"
 		}
