@@ -65,6 +65,7 @@ configure(moduleProjects) {
 			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.6.0"
 			mavenBom "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.5.2"
 			mavenBom "org.junit:junit-bom:5.8.1"
+			mavenBom "org.testcontainers:testcontainers-bom:1.16.2"
 		}
 		dependencies {
 			dependency "com.graphql-java:graphql-java:${graphQlJavaVersion}"
@@ -74,6 +75,14 @@ configure(moduleProjects) {
 			dependency "org.assertj:assertj-core:3.21.0"
 			dependency "com.jayway.jsonpath:json-path:2.5.0"
 			dependency "org.skyscreamer:jsonassert:1.5.0"
+			dependency "com.h2database:h2:1.4.200"
+			dependency "org.hibernate:hibernate-core:5.6.1.Final"
+			dependencySet(group: 'org.mongodb', version: '4.3.2') {
+				entry 'mongodb-driver-sync'
+				entry 'mongodb-driver-reactivestreams'
+				entry 'mongodb-driver-core'
+				entry 'bson'
+			}
 			dependencySet(group: 'org.apache.logging.log4j', version: '2.14.1') {
 				entry 'log4j-api'
 				entry 'log4j-core'

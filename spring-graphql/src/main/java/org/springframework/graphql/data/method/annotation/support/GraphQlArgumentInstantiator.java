@@ -39,8 +39,9 @@ import org.springframework.validation.DataBinder;
  * {@link graphql.schema.DataFetchingEnvironment} arguments.
  *
  * @author Brian Clozel
+ * @author Greg Turnquist
  */
-class GraphQlArgumentInstantiator {
+public class GraphQlArgumentInstantiator {
 
 	private final DataBinder converter;
 
