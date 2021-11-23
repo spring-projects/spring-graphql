@@ -45,8 +45,6 @@ public class WebInput extends RequestInput {
 
 	private final HttpHeaders headers;
 
-	private final String id;
-
 	/**
 	 * Create an instance.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
@@ -61,12 +59,11 @@ public class WebInput extends RequestInput {
 			URI uri, HttpHeaders headers, Map<String, Object> body,
 			@Nullable Locale locale, @Nullable String id) {
 
-		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), locale);
+		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), locale, id);
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
-		this.id = (id != null) ? id : ObjectUtils.identityToString(this);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -97,8 +94,9 @@ public class WebInput extends RequestInput {
 	 * request and response messages on a multiplexed connection.
 	 * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket Protocol</a>
 	 */
+	@Override
 	public String getId() {
-		return this.id;
+		return (super.getId() != null) ? super.getId() : ObjectUtils.getIdentityHexString(this);
 	}
 
 }

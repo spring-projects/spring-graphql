@@ -23,6 +23,8 @@ import java.util.Locale;
 
 import javax.servlet.ServletException;
 
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -52,13 +54,9 @@ public class GraphQlHttpHandlerTests {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
 				.toHttpHandler();
-
-		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");
-		servletRequest.setContentType("application/json");
-		servletRequest.setContent("{\"query\":\"{ greeting }\"}".getBytes(StandardCharsets.UTF_8));
-		servletRequest.setAsyncSupported(true);
-
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}");
 		LocaleContextHolder.setLocale(Locale.FRENCH);
+
 		try {
 			MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
 
@@ -68,6 +66,28 @@ public class GraphQlHttpHandlerTests {
 		finally {
 			LocaleContextHolder.resetLocaleContext();
 		}
+	}
+
+	@Test
+	void shouldSetExecutionId() throws Exception {
+		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { showId: ID! }")
+				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
+				.toHttpHandler();
+
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ showId }\"}");
+
+		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
+		DocumentContext document = JsonPath.parse(servletResponse.getContentAsString());
+		String id = document.read("data.showId", String.class);
+		assertThat(id).hasSize(8);
+	}
+
+	private MockHttpServletRequest createServletRequest(String query) {
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");
+		servletRequest.setContentType("application/json");
+		servletRequest.setContent(query.getBytes(StandardCharsets.UTF_8));
+		servletRequest.setAsyncSupported(true);
+		return servletRequest;
 	}
 
 	private MockHttpServletResponse handleRequest(

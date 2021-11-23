@@ -66,7 +66,7 @@ class GraphQlTesterRequestSpecSupport {
 	}
 
 	protected RequestInput createRequestInput() {
-		return new RequestInput(this.query, this.operationName, this.variables, this.locale);
+		return new RequestInput(this.query, this.operationName, this.variables, this.locale, null);
 	}
 
 }

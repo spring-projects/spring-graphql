@@ -85,7 +85,7 @@ public class ClassNameTypeResolverTests {
 
 		Mono<ExecutionResult> resultMono = graphQlSetup.queryFetcher("animals", env -> animalList)
 				.toGraphQlService()
-				.execute(new RequestInput(query, null, null, null));
+				.execute(new RequestInput(query, null, null, null, null));
 
 		GraphQlResponse response = GraphQlResponse.from(resultMono);
 		for (int i = 0; i < animalList.size(); i++) {
@@ -128,7 +128,7 @@ public class ClassNameTypeResolverTests {
 		Mono<ExecutionResult> result = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
 				.typeResolver(typeResolver)
 				.toGraphQlService()
-				.execute(new RequestInput(query, null, null, null));
+				.execute(new RequestInput(query, null, null, null, null));
 
 		GraphQlResponse response = GraphQlResponse.from(result);
 		for (int i = 0; i < animalAndPlantList.size(); i++) {

@@ -68,7 +68,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null));
+		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, null));
 
 		Book book = GraphQlResponse.from(resultMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
@@ -88,7 +88,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null));
+		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, null));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -107,7 +107,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
-		RequestInput requestInput = new RequestInput(query, null, null, null);
+		RequestInput requestInput = new RequestInput(query, null, null, null, null);
 		requestInput.configureExecutionInput((executionInput, builder) -> {
 			contextRef.set(executionInput.getGraphQLContext());
 			return executionInput;
@@ -134,7 +134,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		Mono<ExecutionResult> resultMono = graphQlService()
-				.execute(new RequestInput(operation, null, null, null));
+				.execute(new RequestInput(operation, null, null, null, null));
 
 		Author author = GraphQlResponse.from(resultMono).toEntity("addAuthor", Author.class);
 		assertThat(author.getId()).isEqualTo(99);
@@ -152,7 +152,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		Mono<ExecutionResult> resultMono = graphQlService()
-				.execute(new RequestInput(operation, null, null, null));
+				.execute(new RequestInput(operation, null, null, null, null));
 
 		Flux<Book> bookFlux = GraphQlResponse.forSubscription(resultMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));

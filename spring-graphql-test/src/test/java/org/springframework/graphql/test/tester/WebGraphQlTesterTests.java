@@ -45,6 +45,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -227,7 +228,7 @@ public class WebGraphQlTesterTests {
 
 			String content = request.getBody().readUtf8();
 			Map<String, Object> map = new ObjectMapper().readValue(content, new TypeReference<Map<String, Object>>() {});
-			WebInput webInput = new WebInput(request.getRequestUrl().uri(), headers, map, null, null);
+			WebInput webInput = new WebInput(request.getRequestUrl().uri(), headers, map, null, ObjectUtils.getIdentityHexString(request));
 
 			consumer.accept(webInput);
 		}

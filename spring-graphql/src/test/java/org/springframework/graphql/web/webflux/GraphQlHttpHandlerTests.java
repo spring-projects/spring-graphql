@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -57,6 +59,22 @@ public class GraphQlHttpHandlerTests {
 
 		assertThat(httpResponse.getBodyAsString().block())
 				.isEqualTo("{\"data\":{\"greeting\":\"Hello in fr\"}}");
+	}
+
+	@Test
+	void shouldSetExecutionId() {
+		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { showId: String }")
+				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
+				.toHttpHandlerWebFlux();
+
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/").build();
+
+		MockServerHttpResponse httpResponse = handleRequest(
+				httpRequest, handler, Collections.singletonMap("query", "{showId}"));
+
+		DocumentContext document = JsonPath.parse(httpResponse.getBodyAsString().block());
+		String id = document.read("data.showId", String.class);
+		assertThat(id).isEqualTo(httpRequest.getId());
 	}
 
 	private MockServerHttpResponse handleRequest(

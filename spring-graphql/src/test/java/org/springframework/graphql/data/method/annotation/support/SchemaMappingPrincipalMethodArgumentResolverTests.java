@@ -163,7 +163,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 				.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
-				.flatMap(aLong -> graphQlService.execute(new RequestInput(op, null, null, null)))
+				.flatMap(aLong -> graphQlService.execute(new RequestInput(op, null, null, null, null)))
 				.contextWrite(contextWriter);
 	}
 

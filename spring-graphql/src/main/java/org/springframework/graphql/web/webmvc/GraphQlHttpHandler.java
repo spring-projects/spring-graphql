@@ -30,6 +30,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -72,7 +73,7 @@ public class GraphQlHttpHandler {
 
 		WebInput input = new WebInput(
 				request.uri(), request.headers().asHttpHeaders(), readBody(request),
-				LocaleContextHolder.getLocale(), null);
+				LocaleContextHolder.getLocale(), ObjectUtils.getIdentityHexString(request));
 
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + input);

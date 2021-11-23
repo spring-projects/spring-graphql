@@ -29,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Default implementation of {@link WebGraphQlTester}.
@@ -161,7 +162,8 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 
 		private WebInput createWebInput() {
 			RequestInput input = createRequestInput();
-			return new WebInput(DEFAULT_URL, this.headers, input.toMap(), input.getLocale(), null);
+			return new WebInput(DEFAULT_URL, this.headers, input.toMap(), input.getLocale(),
+					(input.getId() != null) ? input.getId() : ObjectUtils.getIdentityHexString(input));
 		}
 	}
 

@@ -76,7 +76,7 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<ExecutionResult> resultMono = service.execute(new RequestInput(query, null, null, null));
+		Mono<ExecutionResult> resultMono = service.execute(new RequestInput(query, null, null, null, null));
 
 		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);
