@@ -5,3 +5,9 @@ build
 out
 *.iml
 .DS_Store
+
+# eclipse
+.classpath
+.project
+.settings/
+bin/
