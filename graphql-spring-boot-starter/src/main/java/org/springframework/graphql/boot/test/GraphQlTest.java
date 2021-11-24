@@ -49,6 +49,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
  * <ul>
  * <li>{@code @Controller}
  * <li>{@code RuntimeWiringConfigurer}
+ * <li>{@code DataLoaderRegistrar}
  * <li>{@code @JsonComponent}
  * <li>{@code Converter}
  * <li>{@code GenericConverter}

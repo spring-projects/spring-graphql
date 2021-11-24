@@ -19,7 +19,9 @@ package org.springframework.graphql.boot.test;
 import java.io.IOException;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import graphql.GraphQLContext;
 import graphql.schema.idl.RuntimeWiring;
+import org.dataloader.DataLoaderRegistry;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +30,7 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.core.type.classreading.SimpleMetadataReaderFactory;
+import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebInterceptor;
@@ -55,6 +58,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, Controller1.class)).isFalse();
 		assertThat(excludes(filter, Controller2.class)).isFalse();
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
+		assertThat(excludes(filter, ExampleDataLoaderRegistrar.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
 		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
@@ -67,6 +71,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, Controller1.class)).isFalse();
 		assertThat(excludes(filter, Controller2.class)).isTrue();
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
+		assertThat(excludes(filter, ExampleDataLoaderRegistrar.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
 		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
@@ -79,6 +84,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, Controller1.class)).isTrue();
 		assertThat(excludes(filter, Controller2.class)).isTrue();
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isTrue();
+		assertThat(excludes(filter, ExampleDataLoaderRegistrar.class)).isTrue();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
 		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
@@ -91,6 +97,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, Controller1.class)).isFalse();
 		assertThat(excludes(filter, Controller2.class)).isFalse();
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
+		assertThat(excludes(filter, ExampleDataLoaderRegistrar.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isFalse();
 		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
@@ -103,6 +110,7 @@ class GraphQlTypeExcludeFilterTests {
 		assertThat(excludes(filter, Controller1.class)).isTrue();
 		assertThat(excludes(filter, Controller2.class)).isFalse();
 		assertThat(excludes(filter, ExampleRuntimeWiringConfigurer.class)).isFalse();
+		assertThat(excludes(filter, ExampleDataLoaderRegistrar.class)).isFalse();
 		assertThat(excludes(filter, ExampleService.class)).isTrue();
 		assertThat(excludes(filter, ExampleRepository.class)).isTrue();
 		assertThat(excludes(filter, ExampleWebInterceptor.class)).isTrue();
@@ -162,6 +170,13 @@ class GraphQlTypeExcludeFilterTests {
 	static class ExampleRuntimeWiringConfigurer implements RuntimeWiringConfigurer {
 		@Override
 		public void configure(RuntimeWiring.Builder builder) {
+
+		}
+	}
+
+	static class ExampleDataLoaderRegistrar implements DataLoaderRegistrar {
+		@Override
+		public void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context) {
 
 		}
 	}
