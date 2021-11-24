@@ -50,13 +50,13 @@ import org.springframework.graphql.execution.RuntimeWiringConfigurer;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass({GraphQL.class, GraphQlSource.class})
-@ConditionalOnMissingBean(GraphQlSource.class)
 @EnableConfigurationProperties(GraphQlProperties.class)
 public class GraphQlAutoConfiguration {
 
 	private static final Log logger = LogFactory.getLog(GraphQlAutoConfiguration.class);
 
 	@Bean
+	@ConditionalOnMissingBean
 	public GraphQlSource graphQlSource(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
 			ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
 			ObjectProvider<Instrumentation> instrumentationsProvider,

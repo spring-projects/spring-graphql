@@ -28,6 +28,7 @@ import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.MissingSchemaException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link GraphQlAutoConfiguration}
@@ -74,12 +75,31 @@ class GraphQlAutoConfigurationTests {
 				});
 	}
 
+	@Test
+	void shouldBackOffWithCustomGraphQlSource() {
+		this.contextRunner.withUserConfiguration(CustomGraphQlSourceConfiguration.class)
+				.run((context) -> {
+					assertThat(context).getBeanNames(GraphQlSource.class).containsOnly("customGraphQlSource");
+					assertThat(context).hasSingleBean(GraphQlProperties.class);
+				});
+	}
+
 	@Configuration(proxyBeanMethods = false)
 	static class CustomGraphQlBuilderConfiguration {
 
 		@Bean
 		GraphQlSource.Builder customGraphQlSourceBuilder() {
 			return GraphQlSource.builder().schemaResources(new ClassPathResource("books/schema.graphqls"));
+		}
+
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class CustomGraphQlSourceConfiguration {
+
+		@Bean
+		GraphQlSource customGraphQlSource() {
+			return mock(GraphQlSource.class);
 		}
 
 	}
