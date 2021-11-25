@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -38,6 +39,7 @@ import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
  * Tests for {@link GraphQlHttpHandler}.
@@ -79,7 +81,7 @@ public class GraphQlHttpHandlerTests {
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
 		DocumentContext document = JsonPath.parse(servletResponse.getContentAsString());
 		String id = document.read("data.showId", String.class);
-		assertThat(id).hasSize(8);
+		assertThatNoException().isThrownBy(() -> UUID.fromString(id));
 	}
 
 	private MockHttpServletRequest createServletRequest(String query) {

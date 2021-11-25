@@ -71,7 +71,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"}";
 
 		Mono<ExecutionResult> resultMono = createGraphQlService(controller)
-				.execute(new RequestInput(query, null, null, null, null));
+				.execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
@@ -104,7 +104,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"}";
 
 		Mono<ExecutionResult> resultMono = createGraphQlService(controller)
-				.execute(new RequestInput(query, null, null, null, null));
+				.execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();

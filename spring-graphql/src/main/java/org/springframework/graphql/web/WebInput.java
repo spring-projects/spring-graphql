@@ -24,7 +24,6 @@ import org.springframework.graphql.RequestInput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriComponents;
@@ -57,7 +56,7 @@ public class WebInput extends RequestInput {
 	 */
 	public WebInput(
 			URI uri, HttpHeaders headers, Map<String, Object> body,
-			@Nullable Locale locale, @Nullable String id) {
+			@Nullable Locale locale, String id) {
 
 		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), locale, id);
 		Assert.notNull(uri, "URI is required'");
@@ -87,16 +86,6 @@ public class WebInput extends RequestInput {
 	 */
 	public HttpHeaders getHeaders() {
 		return this.headers;
-	}
-
-	/**
-	 * Return an identifier for the request. This is useful to correlate
-	 * request and response messages on a multiplexed connection.
-	 * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket Protocol</a>
-	 */
-	@Override
-	public String getId() {
-		return (super.getId() != null) ? super.getId() : ObjectUtils.getIdentityHexString(this);
 	}
 
 }

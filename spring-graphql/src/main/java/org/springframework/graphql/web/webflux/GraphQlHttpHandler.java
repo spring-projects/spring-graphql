@@ -25,7 +25,9 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
+import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
+import org.springframework.util.IdGenerator;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
@@ -33,6 +35,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * WebFlux.fn Handler for GraphQL over HTTP requests.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.0.0
  */
 public class GraphQlHttpHandler {
@@ -40,17 +43,31 @@ public class GraphQlHttpHandler {
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<Map<String, Object>>() {
+			};
 
 	private final WebGraphQlHandler graphQlHandler;
+
+	private final IdGenerator idGenerator;
 
 	/**
 	 * Create a new instance.
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler) {
+		this(graphQlHandler, new AlternativeJdkIdGenerator());
+	}
+
+	/**
+	 * Create a new instance.
+	 * @param graphQlHandler common handler for GraphQL over HTTP requests
+	 * @param idGenerator Id generator for requests
+	 */
+	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, IdGenerator idGenerator) {
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
+		Assert.notNull(idGenerator, "IdGenerator is required");
 		this.graphQlHandler = graphQlHandler;
+		this.idGenerator = idGenerator;
 	}
 
 	/**
@@ -64,7 +81,7 @@ public class GraphQlHttpHandler {
 					WebInput input = new WebInput(
 							request.uri(), request.headers().asHttpHeaders(), body,
 							request.exchange().getLocaleContext().getLocale(),
-							request.exchange().getRequest().getId());
+							this.idGenerator.generateId().toString());
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}

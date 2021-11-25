@@ -21,7 +21,9 @@ import java.util.Map;
 
 import org.springframework.graphql.RequestInput;
 import org.springframework.lang.Nullable;
+import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
+import org.springframework.util.IdGenerator;
 
 /**
  * Base class support for implementations of
@@ -31,6 +33,8 @@ import org.springframework.util.Assert;
  * @since 1.0.0
  */
 class GraphQlTesterRequestSpecSupport {
+
+	private static final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
 	private final String query;
 
@@ -66,7 +70,7 @@ class GraphQlTesterRequestSpecSupport {
 	}
 
 	protected RequestInput createRequestInput() {
-		return new RequestInput(this.query, this.operationName, this.variables, this.locale, null);
+		return new RequestInput(this.query, this.operationName, this.variables, this.locale, idGenerator.generateId().toString());
 	}
 
 }

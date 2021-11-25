@@ -38,6 +38,7 @@ import org.springframework.util.CollectionUtils;
  * {@link #configureExecutionInput(BiFunction)}.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.0.0
  */
 public class RequestInput {
@@ -47,13 +48,12 @@ public class RequestInput {
 	@Nullable
 	private final String operationName;
 
-	@Nullable
-	private final String id;
-
 	private final Map<String, Object> variables;
 
 	@Nullable
 	private final Locale locale;
+
+	private final String id;
 
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
@@ -64,13 +64,14 @@ public class RequestInput {
 	 * @param operationName an optional, explicit name assigned to the query
 	 * @param  variables variables by which the query is parameterized
 	 * @param locale the locale associated with the request, if any
-	 * @param id an optional request id, to be used as the execution id
+	 * @param id the request id, to be used as the {@link ExecutionId}
 	 */
 	public RequestInput(
 			String query, @Nullable String operationName, @Nullable Map<String, Object> variables,
-			@Nullable Locale locale, @Nullable String id) {
+			@Nullable Locale locale, String id) {
 
 		Assert.notNull(query, "'query' is required");
+		Assert.notNull(id, "'id' is required");
 		this.query = query;
 		this.operationName = operationName;
 		this.variables = ((variables != null) ? variables : Collections.emptyMap());
@@ -86,9 +87,8 @@ public class RequestInput {
 
 	/**
 	 * Return the explicitly assigned request id.
-	 * @return the request id or {@code null}.
+	 * @return the request id.
 	 */
-	@Nullable
 	public String getId() {
 		return this.id;
 	}
@@ -152,7 +152,7 @@ public class RequestInput {
 				.operationName(this.operationName)
 				.variables(this.variables)
 				.locale(this.locale)
-				.executionId((this.id != null) ? ExecutionId.from(this.id) : null)
+				.executionId(ExecutionId.from(this.id))
 				.build();
 
 		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
