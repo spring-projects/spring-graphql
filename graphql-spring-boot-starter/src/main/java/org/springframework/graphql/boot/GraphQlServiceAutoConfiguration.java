@@ -31,11 +31,10 @@ import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.graphql.web.WebGraphQlHandler;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for creating a
- * {@link WebGraphQlHandler}.
+ * {@link GraphQlService}.
  *
  * @author Brian Clozel
  * @since 1.0.0
