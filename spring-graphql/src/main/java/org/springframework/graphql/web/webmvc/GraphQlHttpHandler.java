@@ -52,28 +52,17 @@ public class GraphQlHttpHandler {
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
-	private final WebGraphQlHandler graphQlHandler;
+	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
-	private final IdGenerator idGenerator;
+	private final WebGraphQlHandler graphQlHandler;
 
 	/**
 	 * Create a new instance.
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler) {
-		this(graphQlHandler, new AlternativeJdkIdGenerator());
-	}
-
-	/**
-	 * Create a new instance.
-	 * @param graphQlHandler common handler for GraphQL over HTTP requests
-	 * @param idGenerator Id generator for requests
-	 */
-	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, IdGenerator idGenerator) {
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-		Assert.notNull(idGenerator, "IdGenerator is required");
 		this.graphQlHandler = graphQlHandler;
-		this.idGenerator = idGenerator;
 	}
 
 	/**

@@ -86,8 +86,12 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the explicitly assigned request id.
+	 * Return an identifier for the request. This id is later propagated
+	 * as the {@link ExecutionId} of the execution input.
+	 * <p>For web transports, this identifier can be used to correlate
+	 * request and response messages on a multiplexed connection.
 	 * @return the request id.
+	 * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket Protocol</a>
 	 */
 	public String getId() {
 		return this.id;

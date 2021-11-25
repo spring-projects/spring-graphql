@@ -25,9 +25,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
-import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
-import org.springframework.util.IdGenerator;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
@@ -48,26 +46,13 @@ public class GraphQlHttpHandler {
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	private final IdGenerator idGenerator;
-
 	/**
 	 * Create a new instance.
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler) {
-		this(graphQlHandler, new AlternativeJdkIdGenerator());
-	}
-
-	/**
-	 * Create a new instance.
-	 * @param graphQlHandler common handler for GraphQL over HTTP requests
-	 * @param idGenerator Id generator for requests
-	 */
-	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, IdGenerator idGenerator) {
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-		Assert.notNull(idGenerator, "IdGenerator is required");
 		this.graphQlHandler = graphQlHandler;
-		this.idGenerator = idGenerator;
 	}
 
 	/**
@@ -81,7 +66,7 @@ public class GraphQlHttpHandler {
 					WebInput input = new WebInput(
 							request.uri(), request.headers().asHttpHeaders(), body,
 							request.exchange().getLocaleContext().getLocale(),
-							this.idGenerator.generateId().toString());
+							request.exchange().getRequest().getId());
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}

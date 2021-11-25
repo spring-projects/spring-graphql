@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
@@ -39,7 +38,6 @@ import org.springframework.web.reactive.result.view.ViewResolver;
 import org.springframework.web.server.ServerWebExchange;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
  * Tests for {@link GraphQlHttpHandler}.
@@ -76,7 +74,7 @@ public class GraphQlHttpHandlerTests {
 
 		DocumentContext document = JsonPath.parse(httpResponse.getBodyAsString().block());
 		String id = document.read("data.showId", String.class);
-		assertThatNoException().isThrownBy(() -> UUID.fromString(id));
+		assertThat(id).isEqualTo(httpRequest.getId());
 	}
 
 	private MockServerHttpResponse handleRequest(
