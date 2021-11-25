@@ -26,7 +26,6 @@ import org.springframework.boot.jackson.JsonComponent;
 import org.springframework.boot.test.autoconfigure.filter.StandardAnnotationCustomizableTypeExcludeFilter;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.converter.GenericConverter;
-import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
@@ -50,7 +49,6 @@ public class GraphQlTypeExcludeFilter extends StandardAnnotationCustomizableType
 		Set<Class<?>> includes = new LinkedHashSet<>();
 		includes.add(JsonComponent.class);
 		includes.add(RuntimeWiringConfigurer.class);
-		includes.add(DataLoaderRegistrar.class);
 		includes.add(Converter.class);
 		includes.add(GenericConverter.class);
 		for (String optionalInclude : OPTIONAL_INCLUDES) {

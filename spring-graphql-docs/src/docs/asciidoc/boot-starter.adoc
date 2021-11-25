@@ -258,10 +258,6 @@ public class BookController {
 }
 ----
 
-`BatchLoaderRegistry` is itself a `DataLoaderRegistrar`, as it will register `DataLoader` instances for each request.
-Applications can also contribute other `DataLoaderRegistrar` instances as components - they will be configured with
-the `ExecutionGraphQlService` automatically.
-
 
 
 
@@ -455,7 +451,6 @@ By default, `@GraphQlTest` limits scanning to the following beans:
 
 - `@Controller`
 - `RuntimeWiringConfigurer`
-- `DataLoaderRegistrar`
 - `JsonComponent`
 - `Converter`
 - `GenericConverter`

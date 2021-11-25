@@ -25,7 +25,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
-import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.execution.GraphQlSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,31 +50,12 @@ class GraphQlServiceAutoConfigurationTests {
 		});
 	}
 
-	@Test
-	void shouldConfigureDataLoaderRegistrars() {
-		this.contextRunner.withUserConfiguration(CustomDataLoaderRegistrar.class)
-				.run((context) -> {
-			assertThat(context).hasSingleBean(GraphQlService.class);
-			assertThat(context).getBeanNames(DataLoaderRegistrar.class).contains("batchLoaderRegistry", "customDataLoaderRegistrar");
-			assertThat(context).getBean(GraphQlService.class).extracting("dataLoaderRegistrars").asList().hasSize(2);
-		});
-	}
-
 	@Configuration(proxyBeanMethods = false)
 	static class GraphQlSourceConfiguration {
 
 		@Bean
 		GraphQlSource graphQlSource() {
 			return mock(GraphQlSource.class);
-		}
-	}
-
-	@Configuration(proxyBeanMethods = false)
-	static class CustomDataLoaderRegistrar {
-
-		@Bean
-		DataLoaderRegistrar customDataLoaderRegistrar() {
-			return mock(DataLoaderRegistrar.class);
 		}
 	}
 

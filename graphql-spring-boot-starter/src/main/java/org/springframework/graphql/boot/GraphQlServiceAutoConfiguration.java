@@ -18,7 +18,6 @@ package org.springframework.graphql.boot;
 
 import graphql.GraphQL;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -29,14 +28,14 @@ import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
-import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.graphql.web.WebGraphQlHandler;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for creating a
- * {@link GraphQlService}.
+ * {@link WebGraphQlHandler}.
  *
  * @author Brian Clozel
  * @since 1.0.0
@@ -46,17 +45,19 @@ import org.springframework.graphql.execution.GraphQlSource;
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
 public class GraphQlServiceAutoConfiguration {
 
+	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+
 	@Bean
 	@ConditionalOnMissingBean
 	public BatchLoaderRegistry batchLoaderRegistry() {
-		return new DefaultBatchLoaderRegistry();
+		return this.batchLoaderRegistry;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public GraphQlService graphQlService(GraphQlSource graphQlSource, ObjectProvider<DataLoaderRegistrar> dataLoaderRegistrars) {
+	public GraphQlService graphQlService(GraphQlSource graphQlSource) {
 		ExecutionGraphQlService service = new ExecutionGraphQlService(graphQlSource);
-		dataLoaderRegistrars.forEach(service::addDataLoaderRegistrar);
+		service.addDataLoaderRegistrar(this.batchLoaderRegistry);
 		return service;
 	}
 
