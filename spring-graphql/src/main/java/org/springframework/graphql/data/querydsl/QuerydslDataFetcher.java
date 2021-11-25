@@ -26,7 +26,19 @@ import java.util.function.Function;
 
 import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Predicate;
-import graphql.schema.*;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingFieldSelectionSet;
+import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLFieldsContainer;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLNamedOutputType;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.GraphQLTypeVisitorStub;
+import graphql.schema.PropertyDataFetcher;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import reactor.core.publisher.Flux;
@@ -49,7 +61,6 @@ import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
-import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
@@ -101,6 +112,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
+
+	@SuppressWarnings("rawtypes")
+	private static final QuerydslBinderCustomizer NO_OP_BINDER_CUSTOMIZER = (bindings, root) -> {};
 
 
 	private final TypeInformation<T> domainType;
@@ -242,7 +256,7 @@ public abstract class QuerydslDataFetcher<T> {
 					ClassTypeInformation.from((Class<T>) domainType),
 					domainType,
 					Sort.unsorted(),
-					(bindings, root) -> {});
+					NO_OP_BINDER_CUSTOMIZER);
 		}
 
 		Builder(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
@@ -256,7 +270,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Project results returned from the {@link QueryByExampleExecutor}
+		 * Project results returned from the {@link QuerydslPredicateExecutor}
 		 * into the target {@code projectionType}. Projection types can be
 		 * either interfaces with property getters to expose or regular classes
 		 * outside the entity type hierarchy for DTO projections.
@@ -335,7 +349,7 @@ public abstract class QuerydslDataFetcher<T> {
 					ClassTypeInformation.from((Class<T>) domainType),
 					domainType,
 					Sort.unsorted(),
-					(bindings, root) -> {});
+					NO_OP_BINDER_CUSTOMIZER);
 		}
 
 		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor,
@@ -352,7 +366,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Project results returned from the {@link ReactiveQueryByExampleExecutor}
+		 * Project results returned from the {@link ReactiveQuerydslPredicateExecutor}
 		 * into the target {@code projectionType}. Projection types can be
 		 * either interfaces with property getters to expose or regular classes
 		 * outside the entity type hierarchy for DTO projections.
@@ -610,20 +624,18 @@ public abstract class QuerydslDataFetcher<T> {
 			for (QuerydslPredicateExecutor<?> executor : executors) {
 				String typeName = getTypeName(executor);
 				if (typeName != null) {
-					QuerydslBinderCustomizer<? extends EntityPath<?>> customizer = detectCustomizer(executor);
 					map.put(typeName, (single) -> single ?
-							builder(executor, customizer).single() :
-							builder(executor, customizer).many());
+							builder(executor).single() :
+							builder(executor).many());
 				}
 			}
 
 			for (ReactiveQuerydslPredicateExecutor<?> reactiveExecutor : reactiveExecutors) {
 				String typeName = getTypeName(reactiveExecutor);
 				if (typeName != null) {
-					QuerydslBinderCustomizer<? extends EntityPath<?>> customizer = detectCustomizer(reactiveExecutor);
 					map.put(typeName, (single) -> single ?
-							reactiveBuilder(reactiveExecutor, customizer).single() :
-							reactiveBuilder(reactiveExecutor, customizer).many());
+							reactiveBuilder(reactiveExecutor).single() :
+							reactiveBuilder(reactiveExecutor).many());
 				}
 			}
 
@@ -647,15 +659,22 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		private Builder<?,?> builder(QuerydslPredicateExecutor<?> executor,
-				QuerydslBinderCustomizer<? extends EntityPath<?>> customizer) {
-			return QuerydslDataFetcher.builder(executor).customizer((QuerydslBinderCustomizer)customizer);
+		private Builder<?,?> builder(QuerydslPredicateExecutor<?> executor) {
+			return QuerydslDataFetcher.builder(executor)
+					.customizer((QuerydslBinderCustomizer) detectCustomizer(executor));
 		}
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		private ReactiveBuilder<?, ?> reactiveBuilder(ReactiveQuerydslPredicateExecutor<?> reactiveExecutor,
-				QuerydslBinderCustomizer<? extends EntityPath<?>> customizer) {
-			return QuerydslDataFetcher.builder(reactiveExecutor).customizer((QuerydslBinderCustomizer)customizer);
+		private ReactiveBuilder<?, ?> reactiveBuilder(ReactiveQuerydslPredicateExecutor<?> reactiveExecutor) {
+			return QuerydslDataFetcher.builder(reactiveExecutor)
+					.customizer((QuerydslBinderCustomizer) detectCustomizer(reactiveExecutor));
+		}
+
+		@SuppressWarnings("unchecked")
+		private QuerydslBinderCustomizer<? extends EntityPath<?>> detectCustomizer(Object executor) {
+			return (executor instanceof QuerydslBinderCustomizer<?> ?
+					(QuerydslBinderCustomizer<? extends EntityPath<?>>) executor :
+					NO_OP_BINDER_CUSTOMIZER);
 		}
 
 		@Override
@@ -706,12 +725,6 @@ public abstract class QuerydslDataFetcher<T> {
 			return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
 		}
 
-		private QuerydslBinderCustomizer<? extends EntityPath<?>> detectCustomizer(Object executor) {
-			if(executor instanceof QuerydslBinderCustomizer<?>) {
-				return (QuerydslBinderCustomizer<? extends EntityPath<?>>) executor;
-			}
-			return ((bindings, root) -> {});
-		}
 	}
 
 }

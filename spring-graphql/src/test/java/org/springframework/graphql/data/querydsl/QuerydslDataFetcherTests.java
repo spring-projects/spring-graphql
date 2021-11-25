@@ -135,6 +135,26 @@ class QuerydslDataFetcherTests {
 	}
 
 	@Test
+	void shouldApplyCustomizerViaBuilder() {
+		MockRepository mockRepository = mock(MockRepository.class);
+
+		DataFetcher<Iterable<Book>> fetcher = QuerydslDataFetcher.builder(mockRepository)
+				.customizer((QuerydslBinderCustomizer<QBook>) (bindings, book) ->
+						bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith)))
+				.many();
+
+		graphQlSetup("books", fetcher).toWebGraphQlHandler()
+				.handleRequest(input("{ books(name: \"H\", author: \"Doug\") {name}}"))
+				.block();
+
+		ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
+		verify(mockRepository).findBy(predicateCaptor.capture(), any());
+
+		Predicate predicate = predicateCaptor.getValue();
+		assertThat(predicate).isEqualTo(QBook.book.name.startsWith("H").and(QBook.book.author.eq("Doug")));
+	}
+
+	@Test
 	void shouldFavorExplicitWiring() {
 		MockRepository mockRepository = mock(MockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
@@ -184,26 +204,6 @@ class QuerydslDataFetcherTests {
 
 		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
-	}
-
-	@Test
-	void shouldConstructPredicateProperly() {
-		MockRepository mockRepository = mock(MockRepository.class);
-
-		DataFetcher<Iterable<Book>> fetcher = QuerydslDataFetcher.builder(mockRepository)
-				.customizer((QuerydslBinderCustomizer<QBook>) (bindings, book) ->
-						bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith)))
-				.many();
-
-		WebGraphQlHandler handler = graphQlSetup("books", fetcher).toWebGraphQlHandler();
-
-		handler.handleRequest(input("{ books(name: \"H\", author: \"Doug\") {name}}")).block();
-
-		ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
-		verify(mockRepository).findBy(predicateCaptor.capture(), any());
-
-		Predicate predicate = predicateCaptor.getValue();
-		assertThat(predicate).isEqualTo(QBook.book.name.startsWith("H").and(QBook.book.author.eq("Doug")));
 	}
 
 	@Test
@@ -279,8 +279,8 @@ class QuerydslDataFetcherTests {
 
 	@GraphQlRepository
 	interface MockRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book> {
-
 	}
+
 
 	@GraphQlRepository
 	interface MockWithCustomizerRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book>,
@@ -290,12 +290,12 @@ class QuerydslDataFetcherTests {
 		default void customize(QuerydslBindings bindings, QBook book){
 			bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith));
 		}
+
 	}
 
 
 	@GraphQlRepository
 	interface ReactiveMockRepository extends Repository<Book, Long>, ReactiveQuerydslPredicateExecutor<Book> {
-
 	}
 
 
