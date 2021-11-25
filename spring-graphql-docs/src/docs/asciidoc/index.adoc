@@ -423,6 +423,69 @@ If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
 variant for MongoDB.
 
+You will also need to configure Querydsl in your build
+(see https://querydsl.com/static/querydsl/latest/reference/html/ch02.html[the official reference documentation]):
+
+[source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
+.Gradle
+----
+dependencies {
+	//...
+
+	annotationProcessor "com.querydsl:querydsl-apt:$querydslVersion:jpa",
+            'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final',
+            'javax.annotation:javax.annotation-api:1.3.2'
+}
+
+compileJava {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+----
+[source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
+.Maven
+----
+<dependencies>
+	<!-- ... -->
+	<dependency>
+		<groupId>com.querydsl</groupId>
+		<artifactId>querydsl-apt</artifactId>
+		<version>${querydsl.version}</version>
+		<classifier>jpa</classifier>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.hibernate.javax.persistence</groupId>
+		<artifactId>hibernate-jpa-2.1-api</artifactId>
+		<version>1.0.2.Final</version>
+	</dependency>
+	<dependency>
+		<groupId>javax.annotation</groupId>
+		<artifactId>javax.annotation-api</artifactId>
+		<version>1.3.2</version>
+	</dependency>
+</dependencies>
+<plugins>
+	<!-- Annotation processor configuration -->
+	<plugin>
+		<groupId>com.mysema.maven</groupId>
+		<artifactId>apt-maven-plugin</artifactId>
+		<version>${apt-maven-plugin.version}</version>
+		<executions>
+			<execution>
+				<goals>
+					<goal>process</goal>
+				</goals>
+				<configuration>
+					<outputDirectory>target/generated-sources/java</outputDirectory>
+					<processor>com.querydsl.apt.jpa.JPAAnnotationProcessor</processor>
+				</configuration>
+			</execution>
+		</executions>
+	</plugin>
+</plugins>
+----
+
+
 The {github-main-branch}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
 uses Querydsl to fetch `artifactRepositories`.
 
