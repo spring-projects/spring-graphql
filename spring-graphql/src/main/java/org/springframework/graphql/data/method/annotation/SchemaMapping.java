@@ -26,9 +26,12 @@ import graphql.schema.DataFetchingEnvironment;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Annotation to express a mapping to a GraphQL type and field pair. Typically
- * used on methods, but also possible to use at the class level to specify a
- * default type name for all handler methods.
+ * Annotation to express the mapping of a handler method to a GraphQL type and
+ * field pair.
+ *
+ * <p>You can use this annotation both at the method and at the class level, in
+ * which case all handlers methods inherit the class-level typeName by default
+ * unless overridden at the method level.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

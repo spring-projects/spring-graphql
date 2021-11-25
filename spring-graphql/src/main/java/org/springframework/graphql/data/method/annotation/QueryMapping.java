@@ -24,15 +24,18 @@ import java.lang.annotation.Target;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Annotation to express a mapping to a GraphQL Query operation.
+ * {@code @QueryMapping} is a <em>composed annotation</em> that acts as a
+ * shortcut for {@link SchemaMapping @SchemaMapping} with
+ * {@code typeName="Query"}.
  *
- * <p>Specifically, {@code @QueryMapping} is a <em>composed annotation</em> that
- * acts as a shortcut for {@code @SchemaMapping(typeName = "Query")}.
+ * <p>You can use this annotation both at the method and at the class level, in
+ * which case all handlers methods in the controller are queries, unless the
+ * typeName is overridden.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @SchemaMapping(typeName = "Query")
