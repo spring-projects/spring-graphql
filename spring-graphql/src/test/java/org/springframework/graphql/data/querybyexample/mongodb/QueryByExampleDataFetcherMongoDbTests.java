@@ -64,32 +64,15 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class QueryByExampleDataFetcherMongoDbTests {
 
 	@Container
 	static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.0.10"));
 
 	@Autowired
-	private BookRepository repository;
+	private BookMongoRepository repository;
 
-	static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
-		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
-	}
-
-	static GraphQlSetup graphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
-		return initGraphQlSetup(executor);
-	}
-
-	private static GraphQlSetup initGraphQlSetup(
-			@Nullable QueryByExampleExecutor<?> executor) {
-
-		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
-				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
-				Collections.emptyList());
-
-		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
-	}
 
 	@Test
 	void shouldFetchSingleItems() {
@@ -134,7 +117,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 	@Test
 	void shouldFavorExplicitWiring() {
-		BookRepository mockRepository = mock(BookRepository.class);
+		BookMongoRepository mockRepository = mock(BookMongoRepository.class);
 		Book book = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
 		when(mockRepository.findBy(any(), any())).thenReturn(Optional.of(book));
 
@@ -184,15 +167,34 @@ class QueryByExampleDataFetcherMongoDbTests {
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
+	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
+		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
+	}
+
+	private static GraphQlSetup graphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+		return initGraphQlSetup(executor);
+	}
+
+	private static GraphQlSetup initGraphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+
+		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
+				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
+				Collections.emptyList());
+
+		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
+	}
+
 	private WebInput input(String query) {
 		return new WebInput(URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), null, "1");
 	}
+
 
 	interface BookProjection {
 
 		@Value("#{target.name + ' by ' + target.author.firstName + ' ' + target.author.lastName}")
 		String getName();
 	}
+
 
 	static class BookDto {
 
@@ -207,6 +209,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 		}
 	}
 
+
 	@Configuration
 	@EnableMongoRepositories(considerNestedRepositories = true)
 	static class TestConfig {
@@ -215,8 +218,8 @@ class QueryByExampleDataFetcherMongoDbTests {
 		MongoTemplate mongoTemplate() {
 			return new MongoTemplate(MongoClients.create(String.format("mongodb://%s:%d",
 					mongoDBContainer.getContainerIpAddress(),
-					mongoDBContainer.getFirstMappedPort())),
-					"test");
+					mongoDBContainer.getFirstMappedPort())), "test");
 		}
 	}
+
 }

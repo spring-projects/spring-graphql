@@ -45,7 +45,6 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.NoRepositoryBean;
@@ -87,35 +86,65 @@ import org.springframework.util.StringUtils;
  *         wiring.dataFetcher("book", QueryByExampleDataFetcher.builder(repository).single());
  * </pre>
  *
- * <p>See methods on {@link QueryByExampleDataFetcher.Builder} and {@link QueryByExampleDataFetcher.ReactiveBuilder} for further
- * options on GraphQL Query argument to Query by Example bindings, result projections, and sorting.
+ * <p>See methods on {@link QueryByExampleDataFetcher.Builder} and
+ * {@link QueryByExampleDataFetcher.ReactiveBuilder} for further options on
+ * GraphQL Query argument to Query by Example bindings, result projections, and
+ * sorting.
  *
  * @param <T> returned result type
  * @author Greg Turnquist
+ * @since 1.0.0
+ *
  * @see QueryByExampleExecutor
  * @see ReactiveQueryByExampleExecutor
  * @see Example
  * @see <a href="https://docs.spring.io/spring-data/commons/docs/current/reference/html/#query-by-example">
  * Spring Data Query By Example extension</a>
- * @since 1.0.0
  */
 public abstract class QueryByExampleDataFetcher<T> {
 
 	private final TypeInformation<T> domainType;
 
-	private GraphQlArgumentInstantiator instantiator;
+	private final GraphQlArgumentInstantiator instantiator;
 
-	QueryByExampleDataFetcher(TypeInformation<T> domainType, @Nullable ConversionService conversionService) {
+
+	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
 		this.domainType = domainType;
-		this.instantiator = new GraphQlArgumentInstantiator(conversionService);
+		this.instantiator = new GraphQlArgumentInstantiator(null);
 	}
+
+
+	/**
+	 * Prepare an {@link Example} from GraphQL query arguments.
+	 * @param env contextual info for the GraphQL query
+	 * @return the resulting example
+	 */
+	protected Example<T> buildExample(DataFetchingEnvironment env) {
+		return Example.of(this.instantiator.instantiate(env.getArguments(), this.domainType.getType()));
+	}
+
+	protected boolean requiresProjection(Class<?> resultType) {
+		return !resultType.equals(this.domainType.getType());
+	}
+
+	protected Collection<String> buildPropertyPaths(DataFetchingFieldSelectionSet selection, Class<?> resultType) {
+
+		// Compute selection only for non-projections
+		if (this.domainType.getType().equals(resultType) ||
+				this.domainType.getType().isAssignableFrom(resultType) ||
+				this.domainType.isSubTypeOf(resultType)) {
+			return PropertySelection.create(this.domainType, selection).toList();
+		}
+		return Collections.emptyList();
+	}
+
 
 	/**
 	 * Create a new {@link Builder} accepting {@link QueryByExampleExecutor}
 	 * to build a {@link DataFetcher}.
 	 *
-	 * @param executor the repository object to use
-	 * @param <T>      result type
+	 * @param executor the QBE repository object to use
+	 * @param <T> the domain type of the repository
 	 * @return a new builder
 	 */
 	public static <T> Builder<T, T> builder(QueryByExampleExecutor<T> executor) {
@@ -124,10 +153,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	/**
 	 * Create a new {@link ReactiveBuilder} accepting
-	 * {@link ReactiveQueryByExampleExecutor} to build a reactive {@link DataFetcher}.
+	 * {@link ReactiveQueryByExampleExecutor} to build a {@link DataFetcher}.
 	 *
-	 * @param executor the repository object to use
-	 * @param <T>      result type
+	 * @param executor the QBE repository object to use
+	 * @param <T> the domain type of the repository
 	 * @return a new builder
 	 */
 	public static <T> ReactiveBuilder<T, T> builder(ReactiveQueryByExampleExecutor<T> executor) {
@@ -177,31 +206,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 				String.format("Cannot resolve repository interface from %s", executor));
 	}
 
-	/**
-	 * Prepare an {@link Example} from GraphQL query arguments.
-	 *
-	 * @param environment contextual info for the GraphQL query
-	 * @return the resulting example
-	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	protected Example<T> buildExample(DataFetchingEnvironment environment) {
-		return Example.of(instantiator.instantiate(environment.getArguments(), domainType.getType()));
-	}
-
-	protected boolean requiresProjection(Class<?> resultType) {
-		return !resultType.equals(this.domainType.getType());
-	}
-
-	protected Collection<String> buildPropertyPaths(DataFetchingFieldSelectionSet selection, Class<?> resultType) {
-
-		// Compute selection only for non-projections
-		if (this.domainType.getType().equals(resultType) ||
-				this.domainType.getType().isAssignableFrom(resultType) ||
-				this.domainType.isSubTypeOf(resultType)) {
-			return PropertySelection.create(this.domainType, selection).toList();
-		}
-		return Collections.emptyList();
-	}
 
 	/**
 	 * Builder for a Query by Example-based {@link DataFetcher}. Note that builder
@@ -221,78 +225,64 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Sort sort;
 
-		private final ConversionService conversionService;
-
 		@SuppressWarnings("unchecked")
 		Builder(QueryByExampleExecutor<T> executor, Class<R> domainType) {
-			this(executor,
-					ClassTypeInformation.from((Class<T>) domainType),
-					domainType,
-					Sort.unsorted(),
-					null);
+			this(executor, ClassTypeInformation.from((Class<T>) domainType), domainType, Sort.unsorted());
 		}
 
-		Builder(QueryByExampleExecutor<T> executor, ClassTypeInformation<T> domainType, Class<R> resultType, Sort sort, ConversionService conversionService) {
+		Builder(QueryByExampleExecutor<T> executor, ClassTypeInformation<T> domainType, Class<R> resultType, Sort sort) {
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
 			this.sort = sort;
-			this.conversionService = conversionService;
 		}
 
 		/**
 		 * Project results returned from the {@link QueryByExampleExecutor}
 		 * into the target {@code projectionType}. Projection types can be
-		 * either interfaces declaring getters for properties to expose or
-		 * regular classes outside the entity type hierarchy for
-		 * DTO projection.
-		 *
+		 * either interfaces with property getters to expose or regular classes
+		 * outside the entity type hierarchy for DTO projections.
 		 * @param projectionType projection type
 		 * @return a new {@link Builder} instance with all previously
 		 * configured options and {@code projectionType} applied
 		 */
 		public <P> Builder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new Builder<>(this.executor, this.domainType, projectionType, this.sort, this.conversionService);
+			return new Builder<>(this.executor, this.domainType, projectionType, this.sort);
 		}
 
 		/**
 		 * Apply a {@link Sort} order.
-		 *
 		 * @param sort the default sort order
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
 		 */
 		public Builder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
-			return new Builder<>(this.executor, this.domainType, this.resultType, sort, this.conversionService);
+			return new Builder<>(this.executor, this.domainType, this.resultType, sort);
 		}
 
 		/**
 		 * Build a {@link DataFetcher} to fetch single object instances.
-		 *
-		 * @return a {@link DataFetcher} based on Query by Example to fetch one object
 		 */
 		public DataFetcher<R> single() {
-			return new SingleEntityFetcher<>(
-					this.executor, this.domainType, this.resultType, this.sort, this.conversionService);
+			return new SingleEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
 
 		/**
 		 * Build a {@link DataFetcher} to fetch many object instances.
-		 *
-		 * @return a {@link DataFetcher} based on Query Example to fetch many objects
 		 */
 		public DataFetcher<Iterable<R>> many() {
-			return new ManyEntityFetcher<>(
-					this.executor, this.domainType, this.resultType, this.sort, this.conversionService);
+			return new ManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
+
 	}
 
+
 	/**
-	 * Builder for a reactive Query by Example-based {@link DataFetcher}. Note that builder
-	 * instances are immutable and return a new instance of the builder when
-	 * calling configuration methods.
+	 * Builder for a reactive Query by Example-based {@link DataFetcher}.
+	 * Note that builder instances are immutable and return a new instance of
+	 * the builder when calling configuration methods.
 	 *
 	 * @param <T> domain type
 	 * @param <R> result type
@@ -307,77 +297,62 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Sort sort;
 
-		private final ConversionService conversionService;
-
 		@SuppressWarnings("unchecked")
 		ReactiveBuilder(ReactiveQueryByExampleExecutor<T> executor, Class<R> domainType) {
-			this(executor,
-					ClassTypeInformation.from((Class<T>) domainType),
-					domainType,
-					Sort.unsorted(),
-					null);
+			this(executor, ClassTypeInformation.from((Class<T>) domainType), domainType, Sort.unsorted());
 		}
 
-		ReactiveBuilder(ReactiveQueryByExampleExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				ConversionService conversionService) {
+		ReactiveBuilder(
+				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
+				Class<R> resultType, Sort sort) {
+
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
 			this.sort = sort;
-			this.conversionService = conversionService;
 		}
 
 		/**
-		 * Project results returned from the {@link QueryByExampleExecutor}
+		 * Project results returned from the {@link ReactiveQueryByExampleExecutor}
 		 * into the target {@code projectionType}. Projection types can be
-		 * either interfaces declaring getters for properties to expose or
-		 * regular classes outside the entity type hierarchy for
-		 * DTO projection.
-		 *
+		 * either interfaces with property getters to expose or regular classes
+		 * outside the entity type hierarchy for DTO projections.
 		 * @param projectionType projection type
 		 * @return a new {@link ReactiveBuilder} instance with all previously
 		 * configured options and {@code projectionType} applied
 		 */
 		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new ReactiveBuilder<>(this.executor, this.domainType, projectionType, this.sort, this.conversionService);
+			return new ReactiveBuilder<>(this.executor, this.domainType, projectionType, this.sort);
 		}
 
 		/**
 		 * Apply a {@link Sort} order.
-		 *
 		 * @param sort the default sort order
 		 * @return a new {@link ReactiveBuilder} instance with all previously configured
 		 * options and {@code Sort} applied
 		 */
 		public ReactiveBuilder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
-			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType, sort, this.conversionService);
+			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType, sort);
 		}
 
 		/**
-		 * Build a {@link DataFetcher} to fetch single object instances through {@link Mono}.
-		 *
-		 * @return a {@link DataFetcher} based on Query by Example to fetch one object
+		 * Build a {@link DataFetcher} to fetch single object instances.
 		 */
 		public DataFetcher<Mono<R>> single() {
-			return new ReactiveSingleEntityFetcher<>(
-					this.executor, this.domainType, this.resultType, this.sort, this.conversionService);
+			return new ReactiveSingleEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
 
 		/**
-		 * Build a {@link DataFetcher} to fetch many object instances through {@link Flux}.
-		 *
-		 * @return a {@link DataFetcher} based on Query by Example to fetch many objects
+		 * Build a {@link DataFetcher} to fetch many object instances.
 		 */
 		public DataFetcher<Flux<R>> many() {
-			return new ReactiveManyEntityFetcher<>(
-					this.executor, this.domainType, this.resultType, this.sort, this.conversionService);
+			return new ReactiveManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
+
 	}
+
 
 	private static class SingleEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements DataFetcher<R> {
 
@@ -388,13 +363,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		SingleEntityFetcher(QueryByExampleExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				ConversionService conversionService) {
+		SingleEntityFetcher(
+				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType, Sort sort) {
 
-			super(domainType, conversionService);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -424,6 +396,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	}
 
+
 	private static class ManyEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements DataFetcher<Iterable<R>> {
 
 		private final QueryByExampleExecutor<T> executor;
@@ -433,12 +406,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ManyEntityFetcher(QueryByExampleExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				ConversionService conversionService) {
-			super(domainType, conversionService);
+		ManyEntityFetcher(
+				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
+				Class<R> resultType, Sort sort) {
+
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -467,6 +439,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	}
 
+
 	private static class ReactiveSingleEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements DataFetcher<Mono<R>> {
 
 		private final ReactiveQueryByExampleExecutor<T> executor;
@@ -476,13 +449,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ReactiveSingleEntityFetcher(ReactiveQueryByExampleExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				ConversionService conversionService) {
+		ReactiveSingleEntityFetcher(
+				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
+				Class<R> resultType, Sort sort) {
 
-			super(domainType, conversionService);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -511,6 +482,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	}
 
+
 	private static class ReactiveManyEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements DataFetcher<Flux<R>> {
 
 		private final ReactiveQueryByExampleExecutor<T> executor;
@@ -520,13 +492,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ReactiveManyEntityFetcher(ReactiveQueryByExampleExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				ConversionService conversionService) {
+		ReactiveManyEntityFetcher(
+				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
+				Class<R> resultType, Sort sort) {
 
-			super(domainType, conversionService);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -552,7 +522,9 @@ public abstract class QueryByExampleDataFetcher<T> {
 				return queryToUse.all();
 			});
 		}
+
 	}
+
 
 	/**
 	 * GraphQLTypeVisitor that auto-registers Query By Example Spring Data repositories.
@@ -659,4 +631,5 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
 		}
 	}
+
 }

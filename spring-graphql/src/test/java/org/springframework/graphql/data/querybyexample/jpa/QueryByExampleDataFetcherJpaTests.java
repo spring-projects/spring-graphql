@@ -70,27 +70,8 @@ import static org.mockito.Mockito.when;
 class QueryByExampleDataFetcherJpaTests {
 
 	@Autowired
-	private BookRepository repository;
+	private BookJpaRepository repository;
 
-	static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
-		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
-	}
-
-	static GraphQlSetup graphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
-		return initGraphQlSetup(executor);
-	}
-
-	private static GraphQlSetup initGraphQlSetup(
-			@Nullable QueryByExampleExecutor<?> executor) {
-
-		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
-				executor != null
-						? Collections.singletonList(executor)
-						: Collections.emptyList(),
-				Collections.emptyList());
-
-		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
-	}
 
 	@Test
 	void shouldFetchSingleItems() {
@@ -137,7 +118,7 @@ class QueryByExampleDataFetcherJpaTests {
 
 	@Test
 	void shouldFavorExplicitWiring() {
-		BookRepository mockRepository = mock(BookRepository.class);
+		BookJpaRepository mockRepository = mock(BookJpaRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		when(mockRepository.findBy(any(), any())).thenReturn(Optional.of(book));
 
@@ -188,6 +169,23 @@ class QueryByExampleDataFetcherJpaTests {
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
+	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
+		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
+	}
+
+	private static GraphQlSetup graphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+		return initGraphQlSetup(executor);
+	}
+
+	private static GraphQlSetup initGraphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+
+		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
+				executor != null ? Collections.singletonList(executor) : Collections.emptyList(),
+				Collections.emptyList());
+
+		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
+	}
+
 	private WebInput input(String query) {
 		return new WebInput(URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), null, "1");
 	}
@@ -199,6 +197,7 @@ class QueryByExampleDataFetcherJpaTests {
 		String getName();
 
 	}
+
 
 	static class BookDto {
 
@@ -213,6 +212,7 @@ class QueryByExampleDataFetcherJpaTests {
 		}
 
 	}
+
 
 	@Configuration
 	@EnableJpaRepositories(considerNestedRepositories = true)
@@ -246,4 +246,5 @@ class QueryByExampleDataFetcherJpaTests {
 			return transactionManager;
 		}
 	}
+
 }

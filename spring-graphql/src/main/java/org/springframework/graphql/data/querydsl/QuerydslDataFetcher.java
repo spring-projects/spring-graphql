@@ -49,6 +49,7 @@ import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
+import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
@@ -255,11 +256,10 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Project results returned from the {@link QuerydslPredicateExecutor}
+		 * Project results returned from the {@link QueryByExampleExecutor}
 		 * into the target {@code projectionType}. Projection types can be
-		 * either interfaces declaring getters for properties to expose or
-		 * regular classes outside the entity type hierarchy for
-		 * DTO projection.
+		 * either interfaces with property getters to expose or regular classes
+		 * outside the entity type hierarchy for DTO projections.
 		 * @param projectionType projection type
 		 * @return a new {@link Builder} instance with all previously
 		 * configured options and {@code projectionType} applied
@@ -293,7 +293,6 @@ public abstract class QuerydslDataFetcher<T> {
 
 		/**
 		 * Build a {@link DataFetcher} to fetch single object instances.
-		 * @return a {@link DataFetcher} based on Querydsl to fetch one object
 		 */
 		public DataFetcher<R> single() {
 			return new SingleEntityFetcher<>(
@@ -302,7 +301,6 @@ public abstract class QuerydslDataFetcher<T> {
 
 		/**
 		 * Build a {@link DataFetcher} to fetch many object instances.
-		 * @return a {@link DataFetcher} based on Querydsl to fetch many objects
 		 */
 		public DataFetcher<Iterable<R>> many() {
 			return new ManyEntityFetcher<>(
@@ -354,11 +352,10 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Project results returned from the {@link QuerydslPredicateExecutor}
+		 * Project results returned from the {@link ReactiveQueryByExampleExecutor}
 		 * into the target {@code projectionType}. Projection types can be
-		 * either interfaces declaring getters for properties to expose or
-		 * regular classes outside the entity type hierarchy for
-		 * DTO projection.
+		 * either interfaces with property getters to expose or regular classes
+		 * outside the entity type hierarchy for DTO projections.
 		 * @param projectionType projection type
 		 * @return a new {@link Builder} instance with all previously
 		 * configured options and {@code projectionType} applied
@@ -391,8 +388,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Build a {@link DataFetcher} to fetch single object instances through {@link Mono}.
-		 * @return a {@link DataFetcher} based on Querydsl to fetch one object
+		 * Build a {@link DataFetcher} to fetch single object instances}.
 		 */
 		public DataFetcher<Mono<R>> single() {
 			return new ReactiveSingleEntityFetcher<>(
@@ -400,8 +396,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		/**
-		 * Build a {@link DataFetcher} to fetch many object instances through {@link Flux}.
-		 * @return a {@link DataFetcher} based on Querydsl to fetch many objects
+		 * Build a {@link DataFetcher} to fetch many object instances.
 		 */
 		public DataFetcher<Flux<R>> many() {
 			return new ReactiveManyEntityFetcher<>(

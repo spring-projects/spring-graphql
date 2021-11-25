@@ -60,32 +60,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 	@Container
 	static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.0.10"));
 
 	@Autowired
-	private ReactiveBookRepository repository;
+	private BookReactiveMongoRepository repository;
 
-	static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
-		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
-	}
-
-	static GraphQlSetup graphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
-		return initGraphQlSetup(executor);
-	}
-
-	private static GraphQlSetup initGraphQlSetup(
-			@Nullable ReactiveQueryByExampleExecutor<?> reactiveExecutor) {
-
-		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
-				Collections.emptyList(),
-				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor) : Collections.emptyList()));
-
-		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
-	}
 
 	@Test
 	void shouldReactivelyFetchSingleItems() {
@@ -156,15 +139,35 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		tester.accept(graphQlSetup(repository));
 	}
 
+	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
+		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
+	}
+
+	private static GraphQlSetup graphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
+		return initGraphQlSetup(executor);
+	}
+
+	private static GraphQlSetup initGraphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
+
+		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
+				Collections.emptyList(),
+				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()));
+
+		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
+	}
+
 	private WebInput input(String query) {
 		return new WebInput(URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), null, "1");
 	}
+
 
 	interface BookProjection {
 
 		@Value("#{target.name + ' by ' + target.author.firstName + ' ' + target.author.lastName}")
 		String getName();
+
 	}
+
 
 	static class BookDto {
 
@@ -177,7 +180,9 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		public String getName() {
 			return "The book is: " + name;
 		}
+
 	}
+
 
 	@Configuration
 	@EnableReactiveMongoRepositories(considerNestedRepositories = true)
@@ -190,5 +195,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 					mongoDBContainer.getFirstMappedPort())),
 					"test");
 		}
+
 	}
+
 }

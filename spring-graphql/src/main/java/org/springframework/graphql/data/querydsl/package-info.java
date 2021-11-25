@@ -15,8 +15,11 @@
  */
 
 /**
- * Support for {@link graphql.schema.DataFetcher}s backed by Querydsl based
- * Spring Data repositories.
+ * {@link graphql.schema.DataFetcher} implementations built on Querydsl, Spring
+ * Data repositories.
+ *
+ * @see <a href="https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions.querydsl">
+ * Spring Data Querydsl extension</a>
  */
 @NonNullApi
 @NonNullFields
