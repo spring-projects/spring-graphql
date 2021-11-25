@@ -605,6 +605,7 @@ public abstract class QuerydslDataFetcher<T> {
 			this.executorMap = initExecutorMap(executors, reactiveExecutors);
 		}
 
+
 		private Map<String, Function<Boolean, DataFetcher<?>>> initExecutorMap(
 				List<QuerydslPredicateExecutor<?>> executors,
 				List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
@@ -614,18 +615,20 @@ public abstract class QuerydslDataFetcher<T> {
 			for (QuerydslPredicateExecutor<?> executor : executors) {
 				String typeName = getTypeName(executor);
 				if (typeName != null) {
+					QuerydslBinderCustomizer<? extends EntityPath<?>> customizer = detectCustomizer(executor);
 					map.put(typeName, (single) -> single ?
-							QuerydslDataFetcher.builder(executor).single() :
-							QuerydslDataFetcher.builder(executor).many());
+							builder(executor, customizer).single() :
+							builder(executor, customizer).many());
 				}
 			}
 
 			for (ReactiveQuerydslPredicateExecutor<?> reactiveExecutor : reactiveExecutors) {
 				String typeName = getTypeName(reactiveExecutor);
 				if (typeName != null) {
+					QuerydslBinderCustomizer<? extends EntityPath<?>> customizer = detectCustomizer(reactiveExecutor);
 					map.put(typeName, (single) -> single ?
-							QuerydslDataFetcher.builder(reactiveExecutor).single() :
-							QuerydslDataFetcher.builder(reactiveExecutor).many());
+							reactiveBuilder(reactiveExecutor, customizer).single() :
+							reactiveBuilder(reactiveExecutor, customizer).many());
 				}
 			}
 
@@ -646,6 +649,18 @@ public abstract class QuerydslDataFetcher<T> {
 			Class<?> repositoryInterface = getRepositoryInterface(repository);
 			RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
 			return metadata.getDomainType().getSimpleName();
+		}
+
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		private Builder<?,?> builder(QuerydslPredicateExecutor<?> executor,
+				QuerydslBinderCustomizer<? extends EntityPath<?>> customizer) {
+			return QuerydslDataFetcher.builder(executor).customizer((QuerydslBinderCustomizer)customizer);
+		}
+
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		private ReactiveBuilder<?, ?> reactiveBuilder(ReactiveQuerydslPredicateExecutor<?> reactiveExecutor,
+				QuerydslBinderCustomizer<? extends EntityPath<?>> customizer) {
+			return QuerydslDataFetcher.builder(reactiveExecutor).customizer((QuerydslBinderCustomizer)customizer);
 		}
 
 		@Override
@@ -694,6 +709,13 @@ public abstract class QuerydslDataFetcher<T> {
 
 			DataFetcher<?> fetcher = registry.getDataFetcher(parent, fieldDefinition);
 			return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
+		}
+
+		private QuerydslBinderCustomizer<? extends EntityPath<?>> detectCustomizer(Object executor) {
+			if(executor instanceof QuerydslBinderCustomizer<?>) {
+				return (QuerydslBinderCustomizer<? extends EntityPath<?>>) executor;
+			}
+			return ((bindings, root) -> {});
 		}
 	}
 

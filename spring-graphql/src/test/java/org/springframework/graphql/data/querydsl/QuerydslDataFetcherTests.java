@@ -39,6 +39,7 @@ import org.springframework.data.map.MapKeyValueAdapter;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
 import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
+import org.springframework.data.querydsl.binding.QuerydslBindings;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.Repository;
 import org.springframework.graphql.Author;
@@ -93,6 +94,29 @@ class QuerydslDataFetcherTests {
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
 		mockRepository.saveAll(Arrays.asList(book1, book2));
+
+		Consumer<GraphQlSetup> tester = graphQlSetup -> {
+			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
+
+			List<String> names = GraphQlResponse.from(output).toList("books", Book.class)
+					.stream().map(Book::getName).collect(Collectors.toList());
+
+			assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
+		};
+
+		// explicit wiring
+		tester.accept(graphQlSetup("books", QuerydslDataFetcher.builder(mockRepository).many()));
+
+		// auto registration
+		tester.accept(graphQlSetup(mockRepository));
+	}
+
+	@Test
+	void shouldApplyCustomizerInRepository() {
+		MockWithCustomizerRepository repository = repositoryFactory.getRepository(MockWithCustomizerRepository.class);
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		repository.saveAll(Arrays.asList(book1, book2));
 
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
 			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
@@ -256,6 +280,16 @@ class QuerydslDataFetcherTests {
 	@GraphQlRepository
 	interface MockRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book> {
 
+	}
+
+	@GraphQlRepository
+	interface MockWithCustomizerRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book>,
+			QuerydslBinderCustomizer<QBook> {
+
+		@Override
+		default void customize(QuerydslBindings bindings, QBook book){
+			bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith));
+		}
 	}
 
 
