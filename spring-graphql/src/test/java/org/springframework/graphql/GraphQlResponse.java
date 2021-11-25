@@ -16,6 +16,7 @@
 package org.springframework.graphql;
 
 import java.lang.reflect.Type;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -136,7 +137,7 @@ public class GraphQlResponse {
 	}
 
 	public static GraphQlResponse from(Mono<? extends ExecutionResult> resultMono) {
-		ExecutionResult result = resultMono.block();
+		ExecutionResult result = resultMono.block(Duration.ofSeconds(5));
 		assertThat(result).isNotNull();
 		return from(result);
 	}
@@ -149,7 +150,7 @@ public class GraphQlResponse {
 
 	@SuppressWarnings("BlockingMethodInNonBlockingContext")
 	public static Flux<GraphQlResponse> forSubscription(Mono<ExecutionResult> resultMono) {
-		ExecutionResult result = resultMono.block();
+		ExecutionResult result = resultMono.block(Duration.ofSeconds(5));
 		assertThat(result).isNotNull();
 		return forSubscription(result);
 	}

@@ -84,13 +84,12 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 * @param environment the GraphQL {@link DataFetchingEnvironment} to use to
 	 * resolve arguments.
 	 *
-	 * @return the raw value returned by the invoked method, which may also be
-	 * wrapped as a {@code Mono} in case of method arguments that require
-	 * asynchronous resolution, e.g. {@code Principal} in WebFlux; this method
-	 * may also return a {@code Mono<Throwable>} if the invocation fails.
+	 * @return the raw value returned by the invoked method, possibly a
+	 * {@code Mono} in case a method argument requires asynchronous resolution;
+	 * {@code Mono<Throwable} is returned if invocation fails.
 	 */
 	@Nullable
-	public Object invoke(DataFetchingEnvironment environment) throws Exception {
+	public Object invoke(DataFetchingEnvironment environment) {
 		Object[] args;
 		try {
 			args = getMethodArgumentValues(environment);
