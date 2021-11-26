@@ -88,13 +88,18 @@ import org.springframework.util.StringUtils;
  *
  * <p>See methods on {@link QueryByExampleDataFetcher.Builder} and
  * {@link QueryByExampleDataFetcher.ReactiveBuilder} for further options on
- * GraphQL Query argument to Query by Example bindings, result projections, and
- * sorting.
+ * result projections and sorting.
+ *
+ * <p>{@code QueryByExampleDataFetcher} {@link #registrationTypeVisitor(List, List) exposes}
+ * a {@link GraphQLTypeVisitor} that can auto-register repositories annotated with
+ * {@link GraphQlRepository @GraphQlRepository}.
  *
  * @param <T> returned result type
  * @author Greg Turnquist
+ * @author Rossen Stoyanchev
  * @since 1.0.0
  *
+ * @see GraphQlRepository
  * @see QueryByExampleExecutor
  * @see ReactiveQueryByExampleExecutor
  * @see Example

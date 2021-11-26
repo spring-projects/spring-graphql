@@ -104,7 +104,9 @@ import org.springframework.util.StringUtils;
  *
  * @param <T> returned result type
  * @author Mark Paluch
+ * @author Rossen Stoyanchev
  * @since 1.0.0
+ *
  * @see GraphQlRepository
  * @see QuerydslPredicateExecutor
  * @see ReactiveQuerydslPredicateExecutor
