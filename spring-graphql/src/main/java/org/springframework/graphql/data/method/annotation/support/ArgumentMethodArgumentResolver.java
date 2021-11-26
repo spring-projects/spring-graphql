@@ -99,7 +99,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	}
 
 	@SuppressWarnings("unchecked")
-	private Object convert(Object rawValue, Class<?> targetType) {
+	Object convert(Object rawValue, Class<?> targetType) {
 		Object target;
 		if (rawValue instanceof Map) {
 			target = this.instantiator.instantiate((Map<String, Object>) rawValue, targetType);
