@@ -770,6 +770,53 @@ given a list of source/parent books objects.
 ====
 
 
+[[controllers-schema-mapping-argument-projections]]
+==== Argument Projections
+
+When accessing individual arguments from a GraphQL request, interface projections can
+be useful to access arguments through a well-defined interface.
+
+Spring Data's `@ProjectedPayload` can be used to annotate projection interfaces that
+can be declared as handler method arguments. Payload projection can work on top-level
+arguments (`DataFetchingEnvironment.getArguments()`). Alternatively, projections can
+be applied on individual arguments by using `@Argument` with a projected payload interface.
+
+Argument projections are provided by https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces[Spring Data's Interface projections]
+when Spring Data is on the class path.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(BookIdProjection bookId) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInputProjection bookInput) {
+			// ...
+		}
+	}
+
+	@ProjectedPayload
+	interface BookIdProjection {
+
+		Long getId();
+	}
+
+	@ProjectedPayload
+	interface BookInputProjection {
+
+		String getName();
+
+		@Value("#{target.author + ' ' + target.name})
+		String getAuthorAndName();
+	}
+----
+
+
 
 [[controllers-schema-mapping-data-loader]]
 ==== `DataLoader`

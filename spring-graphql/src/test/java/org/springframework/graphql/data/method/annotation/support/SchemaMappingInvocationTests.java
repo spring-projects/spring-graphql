@@ -29,6 +29,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
@@ -52,6 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Test GraphQL requests handled through {@code @SchemaMapping} methods.
  *
  * @author Rossen Stoyanchev
+ * @author Mark Paluch
  */
 public class SchemaMappingInvocationTests {
 
@@ -91,6 +93,40 @@ public class SchemaMappingInvocationTests {
 		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
+		assertThat(bookList).hasSize(2);
+		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
+		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
+	}
+
+	@Test
+	void queryWithProjectedArgument() {
+		String query = "{ " +
+				"  booksByProjectedArguments(author:\"Orwell\") { " +
+				"    id" +
+				"    name" +
+				"  }" +
+				"}";
+
+		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+
+		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedArguments", Book.class);
+		assertThat(bookList).hasSize(2);
+		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
+		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
+	}
+
+	@Test
+	void booksByProjectedCriteria() {
+		String query = "{ " +
+				"  booksByProjectedCriteria(criteria: {author:\"Orwell\"}) { " +
+				"    id" +
+				"    name" +
+				"  }" +
+				"}";
+
+		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+
+		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -204,6 +240,16 @@ public class SchemaMappingInvocationTests {
 			return BookSource.findBooksByAuthor(criteria.getAuthor());
 		}
 
+		@QueryMapping
+		public List<Book> booksByProjectedArguments(BookProjection projection) {
+			return BookSource.findBooksByAuthor(projection.getAuthor());
+		}
+
+		@QueryMapping
+		public List<Book> booksByProjectedCriteria(@Argument BookProjection criteria) {
+			return BookSource.findBooksByAuthor(criteria.getAuthor());
+		}
+
 		@SchemaMapping
 		public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> dataLoader) {
 			return dataLoader.load(book.getAuthorId());
@@ -225,6 +271,13 @@ public class SchemaMappingInvocationTests {
 		public Flux<Book> bookSearch(@Argument String author) {
 			return Flux.fromIterable(BookSource.findBooksByAuthor(author));
 		}
+	}
+
+	@ProjectedPayload
+	interface BookProjection {
+
+		String getAuthor();
+
 	}
 
 }

@@ -84,6 +84,9 @@ public class AnnotatedControllerConfigurer
 	 */
 	private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
 
+	private final static boolean springDataPresent = ClassUtils.isPresent(
+			"org.springframework.data.projection.SpelAwareProxyProjectionFactory",
+			AnnotatedControllerConfigurer.class.getClassLoader());
 	private final static boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerConfigurer.class.getClassLoader());
@@ -117,6 +120,9 @@ public class AnnotatedControllerConfigurer
 	@Override
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
+		if (springDataPresent) {
+			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(this.conversionService));
+		}
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(this.conversionService));
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
