@@ -265,7 +265,7 @@ class QuerydslDataFetcherTests {
 			@Nullable QuerydslPredicateExecutor<?> executor,
 			@Nullable ReactiveQuerydslPredicateExecutor<?> reactiveExecutor) {
 
-		GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(
+		GraphQLTypeVisitor visitor = QuerydslDataFetcher.autoRegistrationTypeVisitor(
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor) : Collections.emptyList()));
 

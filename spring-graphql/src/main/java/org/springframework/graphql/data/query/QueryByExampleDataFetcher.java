@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.data.query;
 
-import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,40 +26,20 @@ import java.util.function.Function;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
-import graphql.schema.GraphQLCodeRegistry;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLFieldsContainer;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNamedOutputType;
-import graphql.schema.GraphQLSchemaElement;
-import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.GraphQLTypeVisitorStub;
-import graphql.schema.PropertyDataFetcher;
-import graphql.util.TraversalControl;
-import graphql.util.TraverserContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.core.ResolvableType;
-import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.repository.NoRepositoryBean;
-import org.springframework.data.repository.Repository;
-import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
-import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.data.GraphQlArgumentInitializer;
-import org.springframework.lang.Nullable;
+import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * Main class to create a {@link DataFetcher} from a Query By Example repository.
@@ -153,7 +132,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @return a new builder
 	 */
 	public static <T> Builder<T, T> builder(QueryByExampleExecutor<T> executor) {
-		return new Builder<>(executor, getDomainType(executor));
+		return new Builder<>(executor, RepositoryUtils.getDomainType(executor));
 	}
 
 	/**
@@ -165,7 +144,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @return a new builder
 	 */
 	public static <T> ReactiveBuilder<T, T> builder(ReactiveQueryByExampleExecutor<T> executor) {
-		return new ReactiveBuilder<>(executor, getDomainType(executor));
+		return new ReactiveBuilder<>(executor, RepositoryUtils.getDomainType(executor));
 	}
 
 	/**
@@ -183,32 +162,23 @@ public abstract class QueryByExampleDataFetcher<T> {
 			List<QueryByExampleExecutor<?>> executors,
 			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
 
-		return new RegistrationTypeVisitor(executors, reactiveExecutors);
-	}
+		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
 
-	@SuppressWarnings("unchecked")
-	private static <T> Class<T> getDomainType(Object executor) {
-		Class<?> repositoryInterface = getRepositoryInterface(executor);
-		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
-		return (Class<T>) metadata.getDomainType();
-	}
-
-	private static Class<?> getRepositoryInterface(Object executor) {
-		Assert.isInstanceOf(Repository.class, executor);
-
-		Type[] genericInterfaces = executor.getClass().getGenericInterfaces();
-		for (Type genericInterface : genericInterfaces) {
-			Class<?> rawClass = ResolvableType.forType(genericInterface).getRawClass();
-			if (rawClass == null || MergedAnnotations.from(rawClass).isPresent(NoRepositoryBean.class)) {
-				continue;
-			}
-			if (Repository.class.isAssignableFrom(rawClass)) {
-				return rawClass;
+		for (QueryByExampleExecutor<?> executor : executors) {
+			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
+			if (typeName != null) {
+				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
 			}
 		}
 
-		throw new IllegalArgumentException(
-				String.format("Cannot resolve repository interface from %s", executor));
+		for (ReactiveQueryByExampleExecutor<?> executor : reactiveExecutors) {
+			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
+			if (typeName != null) {
+				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+			}
+		}
+
+		return new AutoRegistrationTypeVisitor(factories);
 	}
 
 
@@ -528,113 +498,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 			});
 		}
 
-	}
-
-
-	/**
-	 * GraphQLTypeVisitor that auto-registers Query By Example Spring Data repositories.
-	 */
-	private static class RegistrationTypeVisitor extends GraphQLTypeVisitorStub {
-
-		private final Map<String, Function<Boolean, DataFetcher<?>>> executorMap;
-
-		RegistrationTypeVisitor(
-				List<QueryByExampleExecutor<?>> executors,
-				List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
-
-			this.executorMap = initExecutorMap(executors, reactiveExecutors);
-		}
-
-		private Map<String, Function<Boolean, DataFetcher<?>>> initExecutorMap(
-				List<QueryByExampleExecutor<?>> executors,
-				List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
-
-			Map<String, Function<Boolean, DataFetcher<?>>> map = new HashMap<>();
-
-			for (QueryByExampleExecutor<?> executor : executors) {
-				String typeName = getTypeName(executor);
-				if (typeName != null) {
-					map.put(typeName, (single) -> single ?
-							builder(executor).single() :
-							builder(executor).many());
-				}
-			}
-
-			for (ReactiveQueryByExampleExecutor<?> reactiveExecutor : reactiveExecutors) {
-				String typeName = getTypeName(reactiveExecutor);
-				if (typeName != null) {
-					map.put(typeName, (single) -> single ?
-							builder(reactiveExecutor).single() :
-							builder(reactiveExecutor).many());
-				}
-			}
-
-			return map;
-		}
-
-		@Nullable
-		private String getTypeName(Object repository) {
-			GraphQlRepository annotation =
-					AnnotatedElementUtils.findMergedAnnotation(repository.getClass(), GraphQlRepository.class);
-
-			if (annotation == null) {
-				return null;
-			}
-			if (StringUtils.hasText(annotation.typeName())) {
-				return annotation.typeName();
-			}
-			Class<?> repositoryInterface = getRepositoryInterface(repository);
-			RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
-			return metadata.getDomainType().getSimpleName();
-		}
-
-		@Override
-		public TraversalControl visitGraphQLFieldDefinition(
-				GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
-
-			if (this.executorMap.isEmpty()) {
-				return TraversalControl.QUIT;
-			}
-
-			GraphQLType fieldType = fieldDefinition.getType();
-			GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
-			if (!parent.getName().equals("Query")) {
-				return TraversalControl.ABORT;
-			}
-
-			DataFetcher<?> dataFetcher = (fieldType instanceof GraphQLList ?
-					getDataFetcher(((GraphQLList) fieldType).getWrappedType(), false) :
-					getDataFetcher(fieldType, true));
-
-			if (dataFetcher != null) {
-				GraphQLCodeRegistry.Builder registry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
-				if (!hasDataFetcher(registry, parent, fieldDefinition)) {
-					registry.dataFetcher(parent, fieldDefinition, dataFetcher);
-				}
-			}
-
-			return TraversalControl.CONTINUE;
-		}
-
-		@Nullable
-		private DataFetcher<?> getDataFetcher(GraphQLType type, boolean single) {
-			if (type instanceof GraphQLNamedOutputType) {
-				String typeName = ((GraphQLNamedOutputType) type).getName();
-				Function<Boolean, DataFetcher<?>> factory = this.executorMap.get(typeName);
-				if (factory != null) {
-					return factory.apply(single);
-				}
-			}
-			return null;
-		}
-
-		private boolean hasDataFetcher(
-				GraphQLCodeRegistry.Builder registry, GraphQLFieldsContainer parent,
-				GraphQLFieldDefinition fieldDefinition) {
-
-			DataFetcher<?> fetcher = registry.getDataFetcher(parent, fieldDefinition);
-			return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
-		}
 	}
 
 }

@@ -45,7 +45,7 @@ import org.springframework.graphql.execution.GraphQlSource;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see QuerydslDataFetcher#registrationTypeVisitor(List, List)
+ * @see QuerydslDataFetcher#autoRegistrationTypeVisitor(List, List)
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -67,8 +67,8 @@ public class GraphQlWebMvcQuerydslAutoConfiguration {
 					reactiveExecutorsProvider.stream().collect(Collectors.toList());
 
 			if (!executors.isEmpty()) {
-				GraphQLTypeVisitor visitor = QuerydslDataFetcher.registrationTypeVisitor(executors, reactiveExecutors);
-				builder.typeVisitors(Collections.singletonList(visitor));
+				builder.typeVisitors(Collections.singletonList(
+						QuerydslDataFetcher.autoRegistrationTypeVisitor(executors, reactiveExecutors)));
 			}
 		};
 	}
