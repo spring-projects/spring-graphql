@@ -94,13 +94,18 @@ import org.springframework.util.StringUtils;
  *         wiring.dataFetcher("book", QuerydslDataFetcher.builder(repository).single());
  * </pre>
  *
- * <p>See methods on {@link Builder} and {@link ReactiveBuilder} for further
- * options on GraphQL Query argument to Querydsl Predicate bindings, result
- * projections, and sorting.
+ * <p>See {@link Builder} and {@link ReactiveBuilder} methods for further
+ * options on GraphQL Query argument to Querydsl Predicate binding customizations,
+ * result projections, and sorting.
+ *
+ * <p>{@code QuerydslDataFetcher} {@link #registrationTypeVisitor(List, List) exposes}
+ * a {@link GraphQLTypeVisitor} that can auto-register repositories annotated with
+ * {@link GraphQlRepository @GraphQlRepository}.
  *
  * @param <T> returned result type
  * @author Mark Paluch
  * @since 1.0.0
+ * @see GraphQlRepository
  * @see QuerydslPredicateExecutor
  * @see ReactiveQuerydslPredicateExecutor
  * @see Predicate
@@ -188,11 +193,17 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 	/**
-	 * Create a {@link GraphQLTypeVisitor} that finds queries with a return type
-	 * whose name matches to the domain type name of the given repositories and
-	 * registers {@link DataFetcher}s for those queries.
-	 * <p><strong>Note:</strong> currently, this method will match only to
-	 * queries under the top-level "Query" type in the GraphQL schema.
+	 * Return a {@link GraphQLTypeVisitor} that auto-registers the given
+	 * Querydsl repositories for queries that do not already have a registered
+	 * {@code DataFetcher} and whose return type matches the simple name of the
+	 * repository domain type.
+	 *
+	 * <p><strong>Note:</strong> Auto-registration applies only to
+	 * {@link GraphQlRepository @GraphQlRepository}-annotated repositories.
+	 * If a repository is also an instance of {@link QuerydslBinderCustomizer},
+	 * this is transparently detected and applied through the
+	 * {@code QuerydslDataFetcher} builder  methods.
+	 *
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
@@ -296,7 +307,14 @@ public abstract class QuerydslDataFetcher<T> {
 
 		/**
 		 * Apply a {@link QuerydslBinderCustomizer}.
-		 * @param customizer to customize the GraphQL query to Querydsl Predicate binding
+		 *
+		 * <p>If a Querydsl repository implements {@link QuerydslBinderCustomizer}
+		 * itself, this is automatically detected and applied during
+		 * {@link #registrationTypeVisitor(List, List) auto-registration}.
+		 * For manual registration, you will need to use this method to apply it.
+		 *
+		 * @param customizer to customize the GraphQL query to Querydsl
+		 * Predicate binding with
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied
 		 */
@@ -392,7 +410,14 @@ public abstract class QuerydslDataFetcher<T> {
 
 		/**
 		 * Apply a {@link QuerydslBinderCustomizer}.
-		 * @param customizer to customize the GraphQL query to Querydsl Predicate binding
+		 *
+		 * <p>If a Querydsl repository implements {@link QuerydslBinderCustomizer}
+		 * itself, this is automatically detected and applied during
+		 * {@link #registrationTypeVisitor(List, List) auto-registration}.
+		 * For manual registration, you will need to use this method to apply it.
+		 *
+		 * @param customizer to customize the GraphQL query to Querydsl
+		 * Predicate binding with
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied
 		 */

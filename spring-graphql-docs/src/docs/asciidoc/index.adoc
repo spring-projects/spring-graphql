@@ -423,8 +423,14 @@ If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
 variant for MongoDB.
 
-You will also need to configure Querydsl in your build
-(see https://querydsl.com/static/querydsl/latest/reference/html/ch02.html[the official reference documentation]):
+
+[[data-querydsl-build]]
+==== Build Setup
+
+To configure Querydsl in your build, follow the
+https://querydsl.com/static/querydsl/latest/reference/html/ch02.html[official reference documentation]:
+
+For example:
 
 [source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
 .Gradle
@@ -485,17 +491,21 @@ compileJava {
 </plugins>
 ----
 
-
-The {github-main-branch}/samples/webmvc-http[webmvc-http] sample in the Spring GraphQL repository
-uses Querydsl to fetch `artifactRepositories`.
+The {github-main-branch}/samples/webmvc-http[webmvc-http] sample uses Querydsl for
+`artifactRepositories`.
 
 
 [[data-querydsl-customizations]]
 ==== Customizations
 
-The Querydsl integration allows customizing the request parameters binding onto a
-`Predicate` by accepting a `QuerydslBinderCustomizer`. Request parameters are bound
-by default as "is equal to" for each available property in the request.
+`QuerydslDataFetcher` supports customizing how GraphQL arguments are bound onto properties
+to create a Querydsl `Predicate`. By default, arguments are bound as "is equal to" for
+each available property. To customize that, you can use `QuerydslDataFetcher` builder
+methods to provide a `QuerydslBinderCustomizer`.
+
+A repository may itself be an instance of `QuerydslBinderCustomizer`. This is auto-detected
+and transparently applied during <<data-querydsl-registration>>. However, when manually
+building a `QuerydslDataFetcher` you will need to use builder methods to apply it.
 
 `QuerydslDataFetcher` supports
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
@@ -505,17 +515,21 @@ to transform query results before returning these for further GraphQL processing
 [[data-querydsl-registration]]
 ==== Auto Registration
 
-`QuerydslDataFetcher` exposes a `GraphQLTypeVisitor` that finds top-level queries whose
-return type matches the domain type of one or more Querydsl repositories, and registers
-a `DataFetcher` for each matching query. This includes both queries that return a single
-value and queries that return a list of values.
+If a repository is annotated with `@GraphQlRepository`, it is automatically registered
+for queries that do not already have a registered `DataFetcher` and whose return type
+matches that of the repository domain type. This includes both single value and multi-value
+queries.
 
-The repository must be annotated with `@GraphQlRepository`. By default, the name of the
-GraphQL type returned by the query must match the simple name of the repository domain
-type. Of if they don't match, you can use the `typeName` attribute of
-`@GraphQlRepository` to set the GraphQL type name.
+By default, the name of the GraphQL type returned by the query must match the simple name
+of the repository domain type. If needed, you can use the `typeName` attribute of
+`@GraphQlRepository` to specify the target GraphQL type name.
 
-Such repositories are auto-detected in the <<boot-repositories-querydsl,Boot starter>>.
+Auto-registration detects if a given repository implements `QuerydslBinderCustomizer` and
+transparently applies that through `QuerydslDataFetcher` builder methods.
+
+Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
+`QuerydslDataFetcher`. The <<boot-repositories-querydsl,Boot starter>> automatically
+detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
 
 
 
