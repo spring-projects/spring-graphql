@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querydsl;
+package org.springframework.graphql.data.query;
 
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.PathMetadata;

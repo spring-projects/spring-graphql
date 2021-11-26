@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querydsl;
+package org.springframework.graphql.data.query;
 
 import java.net.URI;
 import java.util.Arrays;

@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querydsl;
+package org.springframework.graphql.data.query.jpa;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.graphql.Author;
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.OneToOne;
 
+@Entity
 public class Book {
 
-	@Id Long id;
+	@Id
+	Long id;
 
 	String name;
 
-	Author author;
+	@OneToOne(cascade = CascadeType.ALL)
+	Author author = new Author();
 
 	public Book() {
 	}

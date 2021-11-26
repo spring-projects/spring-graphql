@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querybyexample.mongodb;
+package org.springframework.graphql.data.query.mongo;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.mongodb.client.MongoClients;
+import com.mongodb.reactivestreams.client.MongoClients;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
 import org.junit.jupiter.api.Test;
@@ -33,19 +31,20 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.data.repository.query.QueryByExampleExecutor;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
+import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.data.querybyexample.QueryByExampleDataFetcher;
+import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -55,9 +54,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link QueryByExampleDataFetcher}.
@@ -65,23 +61,23 @@ import static org.mockito.Mockito.when;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration
 @Testcontainers(disabledWithoutDocker = true)
-class QueryByExampleDataFetcherMongoDbTests {
+class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 	@Container
 	static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.0.10"));
 
 	@Autowired
-	private BookMongoRepository repository;
+	private BookReactiveMongoRepository repository;
 
 
 	@Test
-	void shouldFetchSingleItems() {
+	void shouldReactivelyFetchSingleItems() {
 		Book book = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
-		repository.save(book);
+		repository.save(book).block();
 
 		Consumer<GraphQlSetup> tester = setup -> {
-			Mono<WebOutput> output = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
-			Book actualBook = GraphQlResponse.from(output).toEntity("bookById", Book.class);
+			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
+			Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -94,55 +90,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 	}
 
 	@Test
-	void shouldFetchMultipleItems() {
-		Book book1 = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
-		Book book2 = new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg"));
-		repository.saveAll(Arrays.asList(book1, book2));
-
-		Consumer<GraphQlSetup> tester = graphQlSetup -> {
-			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
-
-			List<String> names = GraphQlResponse.from(output).toList("books", Book.class)
-					.stream().map(Book::getName).collect(Collectors.toList());
-
-			assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
-		};
-
-		// explicit wiring
-		tester.accept(graphQlSetup("books", QueryByExampleDataFetcher.builder(repository).many()));
-
-		// auto registration
-		tester.accept(graphQlSetup(repository));
-	}
-
-	@Test
-	void shouldFavorExplicitWiring() {
-		BookMongoRepository mockRepository = mock(BookMongoRepository.class);
+	void shouldFetchSingleItemsReactivelyWithInterfaceProjection() {
 		Book book = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
-		when(mockRepository.findBy(any(), any())).thenReturn(Optional.of(book));
-
-		// 1) Automatic registration only
-		WebGraphQlHandler handler = graphQlSetup(mockRepository).toWebGraphQlHandler();
-		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
-
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
-		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy");
-
-		// 2) Automatic registration and explicit wiring
-		handler = graphQlSetup(mockRepository)
-				.queryFetcher("bookById", env -> new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg")))
-				.toWebGraphQlHandler();
-
-		outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
-
-		actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
-		assertThat(actualBook.getName()).isEqualTo("Breaking Bad");
-	}
-
-	@Test
-	void shouldFetchSingleItemsWithInterfaceProjection() {
-		Book book = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
-		repository.save(book);
+		repository.save(book).block();
 
 		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookProjection.class).single();
 		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
@@ -154,9 +104,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 	}
 
 	@Test
-	void shouldFetchSingleItemsWithDtoProjection() {
+	void shouldFetchSingleItemsReactivelyWithDtoProjection() {
 		Book book = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
-		repository.save(book);
+		repository.save(book).block();
 
 		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookDto.class).single();
 		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
@@ -167,19 +117,41 @@ class QueryByExampleDataFetcherMongoDbTests {
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
+	@Test
+	void shouldReactivelyFetchMultipleItems() {
+		Book book1 = new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams"));
+		Book book2 = new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg"));
+		repository.saveAll(Flux.just(book1, book2)).blockLast();
+
+		Consumer<GraphQlSetup> tester = setup -> {
+			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
+
+			List<String> names = GraphQlResponse.from(outputMono).toList("books", Book.class)
+					.stream().map(Book::getName).collect(Collectors.toList());
+
+			assertThat(names).containsExactlyInAnyOrder("Breaking Bad", "Hitchhiker's Guide to the Galaxy");
+		};
+
+		// explicit wiring
+		tester.accept(graphQlSetup("books", QueryByExampleDataFetcher.builder(repository).many()));
+
+		// auto registration
+		tester.accept(graphQlSetup(repository));
+	}
+
 	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
 		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
 	}
 
-	private static GraphQlSetup graphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+	private static GraphQlSetup graphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
 		return initGraphQlSetup(executor);
 	}
 
-	private static GraphQlSetup initGraphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+	private static GraphQlSetup initGraphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
 
 		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
-				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
-				Collections.emptyList());
+				Collections.emptyList(),
+				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()));
 
 		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
 	}
@@ -193,6 +165,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 		@Value("#{target.name + ' by ' + target.author.firstName + ' ' + target.author.lastName}")
 		String getName();
+
 	}
 
 
@@ -207,19 +180,22 @@ class QueryByExampleDataFetcherMongoDbTests {
 		public String getName() {
 			return "The book is: " + name;
 		}
+
 	}
 
 
 	@Configuration
-	@EnableMongoRepositories(considerNestedRepositories = true)
+	@EnableReactiveMongoRepositories(considerNestedRepositories = true)
 	static class TestConfig {
 
 		@Bean
-		MongoTemplate mongoTemplate() {
-			return new MongoTemplate(MongoClients.create(String.format("mongodb://%s:%d",
+		ReactiveMongoTemplate reactiveMongoTemplate() {
+			return new ReactiveMongoTemplate(MongoClients.create(String.format("mongodb://%s:%d",
 					mongoDBContainer.getContainerIpAddress(),
-					mongoDBContainer.getFirstMappedPort())), "test");
+					mongoDBContainer.getFirstMappedPort())),
+					"test");
 		}
+
 	}
 
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querybyexample;
+package org.springframework.graphql.data.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -111,6 +111,7 @@ class PropertySelection {
 				.collect(Collectors.toList());
 	}
 
+
 	enum EmptyFieldSelection implements FieldSelection {
 
 		INSTANCE;
@@ -132,6 +133,7 @@ class PropertySelection {
 
 	}
 
+
 	/**
 	 * Hierarchical representation of selected fields. Allows traversing the
 	 * object graph with nested fields.
@@ -152,6 +154,7 @@ class PropertySelection {
 		FieldSelection select(SelectedField field);
 
 	}
+
 
 	static class DataFetchingFieldSelection implements FieldSelection {
 
@@ -195,4 +198,5 @@ class PropertySelection {
 		}
 
 	}
+
 }

@@ -15,15 +15,17 @@
  */
 
 /**
- * {@link graphql.schema.DataFetcher} implementations built on Querydsl, Spring
- * Data repositories.
+ * {@link graphql.schema.DataFetcher} implementations built on Spring Data
+ * extensions such as Query by Example and Querydsl.
  *
+ * @see <a href="https://docs.spring.io/spring-data/commons/docs/current/reference/html/#query-by-example">
+ * Spring Data Query By Example</a>
  * @see <a href="https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions.querydsl">
- * Spring Data Querydsl extension</a>
+ * Spring Data Querydsl</a>
  */
 @NonNullApi
 @NonNullFields
-package org.springframework.graphql.data.querydsl;
+package org.springframework.graphql.data.query;
 
 import org.springframework.lang.NonNullApi;
 import org.springframework.lang.NonNullFields;

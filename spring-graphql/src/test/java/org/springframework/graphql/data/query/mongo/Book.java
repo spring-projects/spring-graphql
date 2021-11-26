@@ -14,38 +14,33 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querybyexample.jpa;
+package org.springframework.graphql.data.query.mongo;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import org.springframework.data.annotation.Id;
 
-@Entity
 public class Book {
 
 	@Id
-	Long id;
+	String id;
 
 	String name;
 
-	@OneToOne(cascade = CascadeType.ALL)
 	Author author = new Author();
 
 	public Book() {
 	}
 
-	public Book(Long id, String name, Author author) {
+	public Book(String id, String name, Author author) {
 		this.id = id;
 		this.name = name;
 		this.author = author;
 	}
 
-	public Long getId() {
+	public String getId() {
 		return this.id;
 	}
 
-	public void setId(Long id) {
+	public void setId(String id) {
 		this.id = id;
 	}
 

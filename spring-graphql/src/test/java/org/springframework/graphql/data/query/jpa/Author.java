@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.data.querybyexample.jpa;
+package org.springframework.graphql.data.query.jpa;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;

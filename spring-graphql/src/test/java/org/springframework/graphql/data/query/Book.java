@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querybyexample.mongodb;
+package org.springframework.graphql.data.query;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.graphql.Author;
 
 public class Book {
 
-	@Id
-	String id;
+	@Id Long id;
 
 	String name;
 
-	Author author = new Author();
+	Author author;
 
 	public Book() {
 	}
 
-	public Book(String id, String name, Author author) {
+	public Book(Long id, String name, Author author) {
 		this.id = id;
 		this.name = name;
 		this.author = author;
 	}
 
-	public String getId() {
+	public Long getId() {
 		return this.id;
 	}
 
-	public void setId(String id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

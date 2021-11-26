@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.querybyexample.jpa;
+package org.springframework.graphql.data.query.jpa;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -43,7 +43,7 @@ import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.data.querybyexample.QueryByExampleDataFetcher;
+import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;

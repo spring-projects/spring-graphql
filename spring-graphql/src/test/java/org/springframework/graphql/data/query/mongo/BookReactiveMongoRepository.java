@@ -1,4 +1,4 @@
-package org.springframework.graphql.data.querybyexample.mongodb;
+package org.springframework.graphql.data.query.mongo;
 
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.graphql.data.GraphQlRepository;
