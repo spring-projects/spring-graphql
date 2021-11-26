@@ -57,7 +57,7 @@ import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
-import org.springframework.graphql.data.method.annotation.support.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentInitializer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;

@@ -27,6 +27,7 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.GraphQlArgumentInitializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

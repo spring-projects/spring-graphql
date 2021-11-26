@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.method.annotation.support;
+package org.springframework.graphql.data;
 
 import java.lang.reflect.Constructor;
 import java.util.Collection;
