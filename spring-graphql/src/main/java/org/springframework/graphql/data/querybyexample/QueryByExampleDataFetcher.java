@@ -57,7 +57,7 @@ import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
-import org.springframework.graphql.data.method.annotation.support.GraphQlArgumentInstantiator;
+import org.springframework.graphql.data.method.annotation.support.GraphQlArgumentInitializer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -110,12 +110,12 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private final TypeInformation<T> domainType;
 
-	private final GraphQlArgumentInstantiator instantiator;
+	private final GraphQlArgumentInitializer argumentInitializer;
 
 
 	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
 		this.domainType = domainType;
-		this.instantiator = new GraphQlArgumentInstantiator(null);
+		this.argumentInitializer = new GraphQlArgumentInitializer(null);
 	}
 
 
@@ -125,7 +125,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @return the resulting example
 	 */
 	protected Example<T> buildExample(DataFetchingEnvironment env) {
-		return Example.of(this.instantiator.instantiate(env.getArguments(), this.domainType.getType()));
+		return Example.of(this.argumentInitializer.initializeFromMap(env.getArguments(), this.domainType.getType()));
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {

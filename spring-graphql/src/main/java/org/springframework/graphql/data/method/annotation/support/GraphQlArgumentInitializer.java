@@ -26,6 +26,8 @@ import java.util.Stack;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.SimpleTypeConverter;
+import org.springframework.beans.TypeConverter;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.ConversionService;
@@ -39,21 +41,32 @@ import org.springframework.validation.DataBinder;
  * {@link graphql.schema.DataFetchingEnvironment} arguments.
  *
  * @author Brian Clozel
- * @author Greg Turnquist
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
-public class GraphQlArgumentInstantiator {
+public class GraphQlArgumentInitializer {
 
-	private final DataBinder converter;
+	private final SimpleTypeConverter typeConverter;
 
-	public GraphQlArgumentInstantiator(@Nullable ConversionService conversionService) {
-		this.converter = new DataBinder(null);
-		this.converter.setConversionService(conversionService);
+
+	public GraphQlArgumentInitializer(@Nullable ConversionService conversionService) {
+		this.typeConverter = new SimpleTypeConverter();
+		this.typeConverter.setConversionService(conversionService);
 	}
 
+
 	/**
-	 * Instantiate the given target type and bind data from
-	 * {@link graphql.schema.DataFetchingEnvironment} arguments.
-	 * <p>This is considering the default constructor or a primary constructor
+	 * Return the underlying {@link DataBinder}.
+	 */
+	public TypeConverter getTypeConverter() {
+		return this.typeConverter;
+	}
+
+
+	/**
+	 * Instantiate an Object of the given target type and bind
+	 * {@link graphql.schema.DataFetchingEnvironment} argument values to it.
+	 * This considers using the default constructor or a primary constructor,
 	 * if available.
 	 *
 	 * @param arguments the data fetching environment arguments
@@ -63,7 +76,7 @@ public class GraphQlArgumentInstantiator {
 	 * @throws IllegalStateException if there is no suitable constructor.
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> T instantiate(Map<String, Object> arguments, Class<T> targetType) {
+	public <T> T initializeFromMap(Map<String, Object> arguments, Class<T> targetType) {
 		Object target;
 		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
 
@@ -72,33 +85,35 @@ public class GraphQlArgumentInstantiator {
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
 			dataBinder.bind(propertyValues);
+			return (T) target;
 		}
-		else {
-			// Data class constructor
-			String[] paramNames = BeanUtils.getParameterNames(ctor);
-			Class<?>[] paramTypes = ctor.getParameterTypes();
-			Object[] args = new Object[paramTypes.length];
-			for (int i = 0; i < paramNames.length; i++) {
-				String paramName = paramNames[i];
-				Object value = arguments.get(paramName);
-				MethodParameter methodParam = new MethodParameter(ctor, i);
-				if (value == null && methodParam.isOptional()) {
-					args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
-				}
-				else if (value != null && CollectionFactory.isApproximableCollectionType(value.getClass())) {
-					TypeDescriptor typeDescriptor = new TypeDescriptor(methodParam);
-					Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
-					args[i] = instantiateCollection(elementType, (Collection<Object>) value);
-				}
-				else if (value instanceof Map) {
-					args[i] = this.instantiate((Map<String, Object>) value, methodParam.getParameterType());
-				} else {
-					args[i] = this.converter.convertIfNecessary(value, paramTypes[i], methodParam);
-				}
+
+		// Data class constructor
+
+		String[] paramNames = BeanUtils.getParameterNames(ctor);
+		Class<?>[] paramTypes = ctor.getParameterTypes();
+		Object[] args = new Object[paramTypes.length];
+		for (int i = 0; i < paramNames.length; i++) {
+			String paramName = paramNames[i];
+			Object value = arguments.get(paramName);
+			MethodParameter methodParam = new MethodParameter(ctor, i);
+			if (value == null && methodParam.isOptional()) {
+				args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
 			}
-			target = BeanUtils.instantiateClass(ctor, args);
+			else if (value != null && CollectionFactory.isApproximableCollectionType(value.getClass())) {
+				TypeDescriptor typeDescriptor = new TypeDescriptor(methodParam);
+				Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
+				args[i] = initializeFromCollection((Collection<Object>) value, elementType);
+			}
+			else if (value instanceof Map) {
+				args[i] = this.initializeFromMap((Map<String, Object>) value, methodParam.getParameterType());
+			}
+			else {
+				args[i] = this.typeConverter.convertIfNecessary(value, paramTypes[i], methodParam);
+			}
 		}
-		return (T) target;
+
+		return (T) BeanUtils.instantiateClass(ctor, args);
 	}
 
 	/**
@@ -106,14 +121,14 @@ public class GraphQlArgumentInstantiator {
 	 * <p>This will instantiate a new Collection of the closest type possible
 	 * from the one provided as an argument.
 	 *
-	 * @param elementType the type of elements in the given Collection
-	 * @param values the collection of values to bind and instantiate
 	 * @param <T> the type of Collection elements
+	 * @param values the collection of values to bind and instantiate
+	 * @param elementType the type of elements in the given Collection
 	 * @return the instantiated and populated Collection.
 	 * @throws IllegalStateException if there is no suitable constructor.
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> Collection<T> instantiateCollection(Class<T> elementType, Collection<Object> values) {
+	public <T> Collection<T> initializeFromCollection(Collection<Object> values, Class<T> elementType) {
 		Assert.state(CollectionFactory.isApproximableCollectionType(values.getClass()),
 				() -> "Cannot instantiate Collection for type " + values.getClass());
 		Collection<T> instances = CollectionFactory.createApproximateCollection(values, values.size());
@@ -123,10 +138,10 @@ public class GraphQlArgumentInstantiator {
 	 			value = (T) item;
 			}
 			else if (item instanceof Map) {
-				value = this.instantiate((Map<String, Object>)item, elementType);
+				value = this.initializeFromMap((Map<String, Object>)item, elementType);
 			}
 			else {
-				value = this.converter.convertIfNecessary(item, elementType);
+				value = this.typeConverter.convertIfNecessary(item, elementType);
 			}
 			instances.add(value);
 		});
@@ -179,4 +194,5 @@ public class GraphQlArgumentInstantiator {
 		}
 		return sb.toString();
 	}
+
 }

@@ -32,21 +32,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Tests for {@link GraphQlArgumentInstantiator}
+ * Tests for {@link GraphQlArgumentInitializer}
  *
  * @author Brian Clozel
  */
-class GraphQlArgumentInstantiatorTests {
+class GraphQlArgumentInitializerTests {
 
 	private ObjectMapper mapper = new ObjectMapper();
 
-	private GraphQlArgumentInstantiator instantiator = new GraphQlArgumentInstantiator(null);
+	private GraphQlArgumentInitializer instantiator = new GraphQlArgumentInitializer(null);
 
 	@Test
 	void shouldInstantiateDefaultConstructor() throws Exception {
 		String payload = "{\"simpleBean\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		SimpleBean result = instantiator.instantiate(environment.getArgument("simpleBean"), SimpleBean.class);
+		SimpleBean result = instantiator.initializeFromMap(environment.getArgument("simpleBean"), SimpleBean.class);
 
 		assertThat(result).isNotNull().isInstanceOf(SimpleBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
@@ -56,7 +56,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiatePrimaryConstructor() throws Exception {
 		String payload = "{\"constructorBean\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		ContructorBean result = instantiator.instantiate(environment.getArgument("constructorBean"), ContructorBean.class);
+		ContructorBean result = instantiator.initializeFromMap(environment.getArgument("constructorBean"), ContructorBean.class);
 
 		assertThat(result).isNotNull().isInstanceOf(ContructorBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
@@ -66,7 +66,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldFailIfNoPrimaryConstructor() throws Exception {
 		String payload = "{\"noPrimary\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		assertThatThrownBy(() -> instantiator.instantiate(environment.getArgument("noPrimary"), NoPrimaryConstructor.class))
+		assertThatThrownBy(() -> instantiator.initializeFromMap(environment.getArgument("noPrimary"), NoPrimaryConstructor.class))
 				.isInstanceOf(IllegalStateException.class).hasMessageContaining("No primary or single unique constructor found");
 	}
 
@@ -74,7 +74,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiateNestedBean() throws Exception {
 		String payload = "{\"book\": { \"name\": \"test name\", \"author\": { \"firstName\": \"Jane\", \"lastName\": \"Spring\"} } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		Book result = instantiator.instantiate(environment.getArgument("book"), Book.class);
+		Book result = instantiator.initializeFromMap(environment.getArgument("book"), Book.class);
 
 		assertThat(result).isNotNull().isInstanceOf(Book.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test name");
@@ -87,7 +87,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiateNestedBeanLists() throws Exception {
 		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		NestedList result = instantiator.instantiate(environment.getArgument("nestedList"), NestedList.class);
+		NestedList result = instantiator.initializeFromMap(environment.getArgument("nestedList"), NestedList.class);
 
 		assertThat(result).isNotNull().isInstanceOf(NestedList.class);
 		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
@@ -97,7 +97,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiatePrimaryConstructorNestedBeanLists() throws Exception {
 		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		PrimaryConstructorNestedList result = instantiator.instantiate(environment.getArgument("nestedList"), PrimaryConstructorNestedList.class);
+		PrimaryConstructorNestedList result = instantiator.initializeFromMap(environment.getArgument("nestedList"), PrimaryConstructorNestedList.class);
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorNestedList.class);
 		assertThat(result.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
@@ -107,7 +107,7 @@ class GraphQlArgumentInstantiatorTests {
 	void shouldInstantiateComplexNestedBean() throws Exception {
 		String payload = "{\"complex\": { \"item\": {\"name\": \"Item name\"}, \"name\": \"Hello\" } }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		PrimaryConstructorComplexInput result = instantiator.instantiate(environment.getArgument("complex"), PrimaryConstructorComplexInput.class);
+		PrimaryConstructorComplexInput result = instantiator.initializeFromMap(environment.getArgument("complex"), PrimaryConstructorComplexInput.class);
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorComplexInput.class);
 		assertThat(result.item.name).isEqualTo("Item name");

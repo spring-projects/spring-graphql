@@ -30,7 +30,6 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.validation.DataBinder;
 
 /**
  * Resolver for {@link Argument @Argument} annotated method parameters, obtained
@@ -43,14 +42,13 @@ import org.springframework.validation.DataBinder;
  */
 public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private final GraphQlArgumentInstantiator instantiator;
+	private final GraphQlArgumentInitializer argumentInitializer;
 
-	private final ConversionService conversionService;
 
 	public ArgumentMethodArgumentResolver(@Nullable ConversionService conversionService) {
-		this.conversionService = conversionService;
-		this.instantiator = new GraphQlArgumentInstantiator(conversionService);
+		this.argumentInitializer = new GraphQlArgumentInitializer(conversionService);
 	}
+
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
@@ -73,49 +71,48 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 		}
 
 		Object rawValue = environment.getArgument(name);
-		TypeDescriptor parameterType = new TypeDescriptor(parameter);
+		TypeDescriptor typeDescriptor = new TypeDescriptor(parameter);
 
 		if (rawValue == null) {
-			return returnValue(rawValue, parameterType.getType());
+			return wrapAsOptionalIfNecessary(null, typeDescriptor.getType());
 		}
+
+		// From Collection
 
 		if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
-			Assert.isAssignable(Collection.class, parameterType.getType(),
-					"Argument '" + name + "' is a Collection while the @Argument method parameter is " + parameterType.getType());
-			Class<?> elementType = parameterType.getElementTypeDescriptor().getType();
-			return this.instantiator.instantiateCollection(elementType, (Collection<Object>) rawValue);
+			Assert.isAssignable(Collection.class, typeDescriptor.getType(),
+					"Argument '" + name + "' is a Collection " +
+							"while the @Argument method parameter is " + typeDescriptor.getType());
+			Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
+			return this.argumentInitializer.initializeFromCollection((Collection<Object>) rawValue, elementType);
 		}
 
-		MethodParameter nestedParameter = parameter.nestedIfOptional();
-		Object value = convert(rawValue, nestedParameter.getNestedParameterType());
-		return returnValue(value, parameterType.getType());
-	}
-
-	private Object returnValue(Object value, Class<?> parameterType) {
-		if (parameterType.equals(Optional.class)) {
-			return Optional.ofNullable(value);
-		}
-		return value;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Object convert(Object rawValue, Class<?> targetType) {
+		Class<?> targetType = parameter.nestedIfOptional().getNestedParameterType();
 		Object target;
+
+		// From Map
+
 		if (rawValue instanceof Map) {
-			target = this.instantiator.instantiate((Map<String, Object>) rawValue, targetType);
+			target = this.argumentInitializer.initializeFromMap((Map<String, Object>) rawValue, targetType);
+			return wrapAsOptionalIfNecessary(target, typeDescriptor.getType());
 		}
-		else if (targetType.isAssignableFrom(rawValue.getClass())) {
-			return returnValue(rawValue, targetType);
+
+		// From Scalar
+
+		if (targetType.isAssignableFrom(rawValue.getClass())) {
+			return wrapAsOptionalIfNecessary(rawValue, targetType);
 		}
-		else {
-			DataBinder converter = new DataBinder(null);
-			converter.setConversionService(this.conversionService);
-			target = converter.convertIfNecessary(rawValue, targetType);
-			Assert.isTrue(target != null,
-					() -> "Value of type [" + rawValue.getClass() + "] cannot be converted to argument of type [" +
-							targetType.getName() + "].");
-		}
-		return target;
+
+		target = this.argumentInitializer.getTypeConverter().convertIfNecessary(rawValue, targetType);
+		Assert.state(target != null, () ->
+				"Cannot convert value type [" + rawValue.getClass() + "] " +
+						"to argument type [" + targetType.getName() + "].");
+		return wrapAsOptionalIfNecessary(target, typeDescriptor.getType());
+	}
+
+	@Nullable
+	private Object wrapAsOptionalIfNecessary(@Nullable Object value, Class<?> type) {
+		return (type.equals(Optional.class) ? Optional.ofNullable(value) : value);
 	}
 
 }
