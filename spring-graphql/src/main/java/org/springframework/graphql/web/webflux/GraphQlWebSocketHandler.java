@@ -245,7 +245,10 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 								.message(ex.getMessage())
 								.build()
 								.toSpecification();
-						return Mono.just(encode(session, id, MessageType.ERROR, errorMap));
+
+						// Payload needs to be an array
+						//  see: https://github.com/enisdenjo/graphql-ws/blob/master/docs/interfaces/common.ErrorMessage.md#payload
+						return Mono.just(encode(session, id, MessageType.ERROR, Collections.singletonList(errorMap)));
 				});
 	}
 
