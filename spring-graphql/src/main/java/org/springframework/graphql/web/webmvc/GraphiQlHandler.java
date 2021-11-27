@@ -17,6 +17,7 @@
 package org.springframework.graphql.web.webmvc;
 
 import java.net.URI;
+import java.util.Map;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -28,35 +29,54 @@ import org.springframework.web.servlet.function.ServerResponse;
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
+ * @author Janne Valkealahti
  */
 public class GraphiQlHandler {
 
-	private final String graphQlPath;
+	private final Resource graphiQlHtmlResource;
 
-	private final Resource graphiQlResource;
+	private final Resource graphiQlJsResource;
 
+	private final Map<String, String> graphiQlConfig;
 
 	/**
 	 * Create an instance.
-	 * @param graphQlPath the path to the GraphQL endpoint
-	 * @param graphiQlResource the GraphiQL page
+	 * @param graphiQlHtmlResource the GraphiQL page
+	 * @param graphiQlJsResource the GraphiQL JS
+	 * @param graphiQlConfig the config map translating to JS
 	 */
-	public GraphiQlHandler(String graphQlPath, Resource graphiQlResource) {
-		this.graphQlPath = graphQlPath;
-		this.graphiQlResource = graphiQlResource;
+	public GraphiQlHandler(Resource graphiQlHtmlResource, Resource graphiQlJsResource,
+			Map<String, String> graphiQlConfig) {
+		this.graphiQlHtmlResource = graphiQlHtmlResource;
+		this.graphiQlJsResource = graphiQlJsResource;
+		this.graphiQlConfig = graphiQlConfig;
 	}
-
 
 	/**
 	 * Handle the request, serving the GraphiQL page as HTML or adding a "path"
 	 * param and redirecting back to the same URL if needed.
 	 */
 	public ServerResponse handleRequest(ServerRequest request) {
-		if (!request.param("path").isPresent()) {
-			URI url = request.uriBuilder().queryParam("path", this.graphQlPath).build();
+		if (request.path().endsWith("main.js")) {
+			return ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).body(graphiQlJsResource);
+		}
+		else if (request.path().endsWith("config.js")) {
+			return ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).body(buildConfigJs());
+		}
+		else if (request.path().endsWith("explorer")) {
+			return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.graphiQlHtmlResource);
+		}
+		else {
+			URI url = request.uriBuilder().pathSegment("explorer").build();
 			return ServerResponse.temporaryRedirect(url).build();
 		}
-		return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.graphiQlResource);
 	}
 
+	private String buildConfigJs() {
+		StringBuilder sb = new StringBuilder();
+		this.graphiQlConfig.entrySet().forEach(entry -> {
+			sb.append(String.format("window.GRAPHIGL_%s=\"%s\";", entry.getKey(), entry.getValue()));
+		});
+		return sb.toString();
+	}
 }

@@ -16,6 +16,7 @@ dependencies {
 	implementation 'com.querydsl:querydsl-core'
 	implementation 'com.querydsl:querydsl-jpa'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly project(':spring-graphql-graphiql')
 	runtimeOnly 'com.h2database:h2'
 	testImplementation project(':spring-graphql-test')
 	testImplementation 'org.springframework:spring-webflux'

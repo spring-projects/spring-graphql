@@ -17,6 +17,7 @@
 package org.springframework.graphql.boot;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -72,6 +73,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.content
  * Spring MVC.
  *
  * @author Brian Clozel
+ * @author Janne Valkealahti
  * @since 1.0.0
  */
 @Configuration(proxyBeanMethods = false)
@@ -117,9 +119,15 @@ public class GraphQlWebMvcAutoConfiguration {
 						handler::handleRequest);
 
 		if (properties.getGraphiql().isEnabled()) {
-			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-			GraphiQlHandler graphiQLHandler = new GraphiQlHandler(graphQLPath, resource);
-			builder = builder.GET(properties.getGraphiql().getPath(), graphiQLHandler::handleRequest);
+			// TODO: should we disable graphiql automatically if optional graphiql module
+			//       is not added to a classpath?
+			Resource htmlResource = resourceLoader.getResource("classpath:graphiql/index.html");
+			Resource jsResource = resourceLoader.getResource("classpath:graphiql/main.js");
+			Map<String, String> config = new HashMap<>();
+			config.put("LOGO", properties.getGraphiql().getLogo());
+			config.put("PATH", properties.getPath());
+			GraphiQlHandler graphiQLHandler = new GraphiQlHandler(htmlResource, jsResource, config);
+			builder = builder.GET(properties.getGraphiql().getPath() + "/**", graphiQLHandler::handleRequest);
 		}
 
 		if (properties.getSchema().getPrinter().isEnabled()) {
