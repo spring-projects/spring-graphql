@@ -262,8 +262,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 								.toSpecification();
 
 						// Payload needs to be an array
-					    //  see: https://github.com/enisdenjo/graphql-ws/blob/master/docs/interfaces/common.ErrorMessage.md#payload
-					    return Mono.just(encode(id, MessageType.ERROR, Collections.singletonList(errorMap)));
+						//  see: https://github.com/enisdenjo/graphql-ws/blob/master/docs/interfaces/common.ErrorMessage.md#payload
+						return Mono.just(encode(id, MessageType.ERROR, Collections.singletonList(errorMap)));
 				});
 	}
 
