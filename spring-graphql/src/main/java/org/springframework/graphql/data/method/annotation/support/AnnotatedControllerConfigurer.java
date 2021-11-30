@@ -121,7 +121,7 @@ public class AnnotatedControllerConfigurer
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
 		if (springDataPresent) {
-			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(this.conversionService));
+			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver());
 		}
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(this.conversionService));

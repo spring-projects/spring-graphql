@@ -59,18 +59,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	@Override
 	@SuppressWarnings("unchecked")
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
-		Argument annotation = parameter.getParameterAnnotation(Argument.class);
-		Assert.notNull(annotation, "No @Argument annotation");
-		String name = annotation.name();
-		if (!StringUtils.hasText(name)) {
-			name = parameter.getParameterName();
-			if (name == null) {
-				throw new IllegalArgumentException(
-						"Name for argument of type [" + parameter.getNestedParameterType().getName() +
-								"] not specified, and parameter name information not found in class file either.");
-			}
-		}
-
+		String name = getArgumentName(parameter);
 		Object rawValue = environment.getArgument(name);
 		TypeDescriptor typeDescriptor = new TypeDescriptor(parameter);
 
@@ -109,6 +98,21 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 				"Cannot convert value type [" + rawValue.getClass() + "] " +
 						"to argument type [" + targetType.getName() + "].");
 		return wrapAsOptionalIfNecessary(target, typeDescriptor.getType());
+	}
+
+	static String getArgumentName(MethodParameter parameter) {
+		Argument annotation = parameter.getParameterAnnotation(Argument.class);
+		Assert.state(annotation != null, "Expected @Argument annotation");
+		if (StringUtils.hasText(annotation.name())) {
+			return annotation.name();
+		}
+		String parameterName = parameter.getParameterName();
+		if (parameterName != null) {
+			return parameterName;
+		}
+		throw new IllegalArgumentException(
+				"Name for argument of type [" + parameter.getNestedParameterType().getName() +
+						"] not specified, and parameter name information not found in class file either.");
 	}
 
 	@Nullable

@@ -24,12 +24,10 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.lang.Nullable;
 
 /**
  * Resolver to obtain a {@link ProjectedPayload @ProjectedPayload}
@@ -63,16 +61,6 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 
 	private final SpelAwareProxyProjectionFactory projectionFactory = new SpelAwareProxyProjectionFactory();
 
-	private final ArgumentMethodArgumentResolver argumentResolver;
-
-	public ProjectedPayloadMethodArgumentResolver(@Nullable ConversionService conversionService) {
-		this.argumentResolver = new ArgumentMethodArgumentResolver(conversionService){
-			@Override
-			protected Object convert(Object rawValue, Class<?> targetType) {
-				return project(targetType, rawValue);
-			}
-		};
-	}
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
@@ -87,15 +75,17 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
-		if(parameter.getParameterAnnotation(Argument.class) != null){
-			return argumentResolver.resolveArgument(parameter, environment);
-		}
+		String name = (parameter.hasParameterAnnotation(Argument.class) ?
+				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null);
 
-		return project(parameter.getParameterType(), environment.getArguments());
+		Object projectionSource = (name != null ?
+				environment.getArgument(name) : environment.getArguments());
+
+		return project(parameter.getParameterType(), projectionSource);
 	}
 
-	protected Object project(Class<?> projectionType, Object source){
-		return this.projectionFactory.createProjection(projectionType, source);
+	protected Object project(Class<?> projectionType, Object projectionSource){
+		return this.projectionFactory.createProjection(projectionType, projectionSource);
 	}
 
 	@Override
