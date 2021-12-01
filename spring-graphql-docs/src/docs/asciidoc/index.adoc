@@ -671,6 +671,10 @@ Schema mapping handler methods can have any of the following method arguments:
 | For access to field arguments with conversion.
 See <<controllers-schema-mapping-argument>>.
 
+| `@ProjectedPayload` Interface
+| For access to field arguments through a project interface.
+See <<controllers-schema-mapping-projectedpayload-argument>>.
+
 | Source
 | For access to the source (i.e. parent/container) instance of the field.
 See <<controllers-schema-mapping-source>>.
@@ -740,49 +744,22 @@ You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argum
 values. The name attribute on `@Argument` must not be set.
 
 
-[[controllers-schema-mapping-source]]
-==== Source
+[[controllers-schema-mapping-projectedpayload-argument]]
+==== `@ProjectPayload` Interface
 
-In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
-parent/container) instance of the field. To access this, simply declare a method parameter
-of the expected target type.
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@SchemaMapping
-		public Author author(Book book) {
-			// ...
-		}
-	}
-----
-
-The source method argument also helps to determine the type name for the mapping.
-If the simple name of the Java class matches the GraphQL type, then there is no need to
-explicitly specify the type name in the `@SchemaMapping` annotation.
-
-[TIP]
-====
-A <<controllers-batch-mapping>> handler method can batch load all authors for a query,
-given a list of source/parent books objects.
-====
-
-
-[[controllers-schema-mapping-argument-projections]]
-==== Argument Projections
-
-When accessing individual arguments from a GraphQL request, interface projections can
-be useful to access arguments through a well-defined interface.
-
-Spring Data's `@ProjectedPayload` can be used to annotate projection interfaces that
-can be declared as handler method arguments. Payload projection can work on top-level
-arguments (`DataFetchingEnvironment.getArguments()`). Alternatively, projections can
-be applied on individual arguments by using `@Argument` with a projected payload interface.
-
-Argument projections are provided by https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces[Spring Data's Interface projections]
+As an alternative to using complete Objects with <<controllers-schema-mapping-argument>>,
+you can also use a projection interface to access GraphQL request arguments through a
+well-defined, minimal interface. Argument projections are provided by
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces[Spring Data's Interface projections]
 when Spring Data is on the class path.
+
+To make use of this, create an interface annotated with `@ProjectedPayload` and declare
+it as a controller method parameter. If the parameter is annotated with `@Argument`,
+it applies to an individual argument within the `DataFetchingEnvironment.getArguments()`
+map. When declared without `@Argument`, the projection works on top-level arguments in
+the complete arguments map.
+
+For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -816,6 +793,35 @@ when Spring Data is on the class path.
 	}
 ----
 
+
+[[controllers-schema-mapping-source]]
+==== Source
+
+In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
+parent/container) instance of the field. To access this, simply declare a method parameter
+of the expected target type.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+	}
+----
+
+The source method argument also helps to determine the type name for the mapping.
+If the simple name of the Java class matches the GraphQL type, then there is no need to
+explicitly specify the type name in the `@SchemaMapping` annotation.
+
+[TIP]
+====
+A <<controllers-batch-mapping>> handler method can batch load all authors for a query,
+given a list of source/parent books objects.
+====
 
 
 [[controllers-schema-mapping-data-loader]]

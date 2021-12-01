@@ -87,6 +87,7 @@ public class AnnotatedControllerConfigurer
 	private final static boolean springDataPresent = ClassUtils.isPresent(
 			"org.springframework.data.projection.SpelAwareProxyProjectionFactory",
 			AnnotatedControllerConfigurer.class.getClassLoader());
+
 	private final static boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerConfigurer.class.getClassLoader());
@@ -121,6 +122,7 @@ public class AnnotatedControllerConfigurer
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
 		if (springDataPresent) {
+			// This must be ahead of ArgumentMethodArgumentResolver
 			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver());
 		}
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());

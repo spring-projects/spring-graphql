@@ -99,7 +99,7 @@ public class SchemaMappingInvocationTests {
 	}
 
 	@Test
-	void queryWithProjectedArgument() {
+	void queryWithProjectionOnArgumentsMap() {
 		String query = "{ " +
 				"  booksByProjectedArguments(author:\"Orwell\") { " +
 				"    id" +
@@ -116,7 +116,7 @@ public class SchemaMappingInvocationTests {
 	}
 
 	@Test
-	void booksByProjectedCriteria() {
+	void queryWithProjectionOnNamedArgument() {
 		String query = "{ " +
 				"  booksByProjectedCriteria(criteria: {author:\"Orwell\"}) { " +
 				"    id" +

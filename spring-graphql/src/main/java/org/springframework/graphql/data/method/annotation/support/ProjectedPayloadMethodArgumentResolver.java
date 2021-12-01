@@ -30,14 +30,16 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 
 /**
- * Resolver to obtain a {@link ProjectedPayload @ProjectedPayload}
- * for {@link  DataFetchingEnvironment#getArguments()}.
+ * Resolver to obtain an {@link ProjectedPayload @ProjectedPayload},
+ * either based on the complete {@link  DataFetchingEnvironment#getArguments()}
+ * map, or based on a specific argument within the map when the method
+ * parameter is annotated with {@code @Argument}.
  *
- * <p>Projected payloads consist of the projection interface and accessor methods.
- * Projections can be closed or open projections. Closed projections use interface
- * getter methods to access underlying properties directly. Open projection methods
- * make use of the {@code @Value} annotation to evaluate SpEL expressions against the
- * underlying {@code target} object.
+ * <p>Projected payloads consist of the projection interface and accessor
+ * methods. Projections can be closed or open projections. Closed projections
+ * use interface getter methods to access underlying properties directly.
+ * Open projection methods make use of the {@code @Value} annotation to
+ * evaluate SpEL expressions against the underlying {@code target} object.
  *
  * <p>For example:
  * <pre class="code">
@@ -60,6 +62,17 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		BeanFactoryAware, BeanClassLoaderAware {
 
 	private final SpelAwareProxyProjectionFactory projectionFactory = new SpelAwareProxyProjectionFactory();
+
+
+	@Override
+	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+		this.projectionFactory.setBeanFactory(beanFactory);
+	}
+
+	@Override
+	public void setBeanClassLoader(ClassLoader classLoader) {
+		this.projectionFactory.setBeanClassLoader(classLoader);
+	}
 
 
 	@Override
@@ -88,13 +101,4 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		return this.projectionFactory.createProjection(projectionType, projectionSource);
 	}
 
-	@Override
-	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-		this.projectionFactory.setBeanFactory(beanFactory);
-	}
-
-	@Override
-	public void setBeanClassLoader(ClassLoader classLoader) {
-		this.projectionFactory.setBeanClassLoader(classLoader);
-	}
 }
