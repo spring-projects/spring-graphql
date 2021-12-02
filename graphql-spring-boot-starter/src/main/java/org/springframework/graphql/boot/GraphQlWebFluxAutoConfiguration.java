@@ -108,8 +108,7 @@ public class GraphQlWebFluxAutoConfiguration {
 						handler::handleRequest);
 
 		if (properties.getGraphiql().isEnabled()) {
-			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-			GraphiQlHandler graphiQlHandler = new GraphiQlHandler(graphQLPath, resource);
+			GraphiQlHandler graphiQlHandler = new GraphiQlHandler(graphQLPath);
 			builder = builder.GET(properties.getGraphiql().getPath(), graphiQlHandler::handleRequest);
 		}
 

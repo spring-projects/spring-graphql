@@ -18,45 +18,58 @@ package org.springframework.graphql.web.webmvc;
 
 import java.net.URI;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 /**
- * Spring MVC functional handler that renders a GraphiQl UI page.
+ * Spring MVC handler to serve a GraphiQl UI page.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class GraphiQlHandler {
 
 	private final String graphQlPath;
 
-	private final Resource graphiQlResource;
+	private final Resource htmlResource;
 
 
 	/**
-	 * Create an instance.
+	 * Constructor that serves the default {@code graphiql/index.html} included
+	 * in the {@code spring-graphql} module.
 	 * @param graphQlPath the path to the GraphQL endpoint
-	 * @param graphiQlResource the GraphiQL page
 	 */
-	public GraphiQlHandler(String graphQlPath, Resource graphiQlResource) {
+	public GraphiQlHandler(String graphQlPath) {
+		this(graphQlPath, new ClassPathResource("graphiql/index.html"));
+	}
+
+	/**
+	 * Constructor with the HTML page to serve.
+	 * @param graphQlPath the path to the GraphQL endpoint
+	 * @param htmlResource the GraphiQL page to serve
+	 */
+	public GraphiQlHandler(String graphQlPath, Resource htmlResource) {
 		this.graphQlPath = graphQlPath;
-		this.graphiQlResource = graphiQlResource;
+		this.htmlResource = htmlResource;
 	}
 
 
 	/**
-	 * Handle the request, serving the GraphiQL page as HTML or adding a "path"
-	 * param and redirecting back to the same URL if needed.
+	 * Render the GraphiQL page as "text/html", or if the "path" query parameter
+	 * is missing, add it and redirect back to the same URL.
 	 */
 	public ServerResponse handleRequest(ServerRequest request) {
-		if (!request.param("path").isPresent()) {
-			URI url = request.uriBuilder().queryParam("path", this.graphQlPath).build();
-			return ServerResponse.temporaryRedirect(url).build();
-		}
-		return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.graphiQlResource);
+		return (request.param("path").isPresent() ?
+				ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.htmlResource) :
+				ServerResponse.temporaryRedirect(getRedirectUrl(request)).build());
+	}
+
+	private URI getRedirectUrl(ServerRequest request) {
+		return request.uriBuilder().queryParam("path", this.graphQlPath).build();
 	}
 
 }

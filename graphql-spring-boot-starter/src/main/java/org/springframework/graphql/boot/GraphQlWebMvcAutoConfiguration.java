@@ -117,8 +117,7 @@ public class GraphQlWebMvcAutoConfiguration {
 						handler::handleRequest);
 
 		if (properties.getGraphiql().isEnabled()) {
-			Resource resource = resourceLoader.getResource("classpath:graphiql/index.html");
-			GraphiQlHandler graphiQLHandler = new GraphiQlHandler(graphQLPath, resource);
+			GraphiQlHandler graphiQLHandler = new GraphiQlHandler(graphQLPath);
 			builder = builder.GET(properties.getGraphiql().getPath(), graphiQLHandler::handleRequest);
 		}
 
