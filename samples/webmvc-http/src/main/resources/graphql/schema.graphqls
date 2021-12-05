@@ -3,6 +3,7 @@ type Query {
     artifactRepositories : [ArtifactRepository]
     artifactRepository(id : ID!) : ArtifactRepository
     project(slug: ID!): Project
+    search(text: String!, type: SearchType): [SearchResult]
 }
 
 type ArtifactRepository {
@@ -24,6 +25,13 @@ type Release {
     version: String!
     status: ReleaseStatus!
     current: Boolean
+}
+
+union SearchResult = ArtifactRepository | Project
+
+enum SearchType {
+    ARTIFACTREPOSITORY
+    PROJECT
 }
 
 enum ProjectStatus {

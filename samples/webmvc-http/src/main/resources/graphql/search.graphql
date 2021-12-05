@@ -1,0 +1,10 @@
+query search($text: String!, $type: SearchType) {
+  search(text: $text, type: $type) {
+    ... on ArtifactRepository {
+      name
+    }
+    ... on Project {
+      name
+    }
+  }
+}

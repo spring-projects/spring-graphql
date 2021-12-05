@@ -20,6 +20,9 @@ public class SpringProjectsClient {
 	private static final TypeReferences.CollectionModelType<Release> releaseCollection =
 			new TypeReferences.CollectionModelType<Release>() {};
 
+	private static final TypeReferences.CollectionModelType<Project> projectCollection =
+			new TypeReferences.CollectionModelType<Project>() {};
+
 	private final Traverson traverson;
 
 	public SpringProjectsClient(RestTemplateBuilder builder) {
@@ -39,7 +42,11 @@ public class SpringProjectsClient {
 		CollectionModel<Release> releases = this.traverson.follow("projects")
 				.follow(Hop.rel("project").withParameter("id", projectSlug)).follow(Hop.rel("releases"))
 				.toObject(releaseCollection);
-		return new ArrayList(releases.getContent());
+		return new ArrayList<>(releases.getContent());
 	}
 
+	public List<Project> fetchAllProjects() {
+		CollectionModel<Project> projects = this.traverson.follow("projects").toObject(projectCollection);
+		return new ArrayList<>(projects.getContent());
+	}
 }
