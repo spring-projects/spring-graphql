@@ -1,0 +1,5 @@
+type Book {
+    id: ID
+    name: String
+    pageCount: Int
+}

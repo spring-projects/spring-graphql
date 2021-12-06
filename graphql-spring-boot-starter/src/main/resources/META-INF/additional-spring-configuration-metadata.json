@@ -2,7 +2,7 @@
   "properties": [
     {
       "name": "spring.graphql.schema.locations",
-      "defaultValue": "classpath:graphql/"
+      "defaultValue": "classpath:graphql/**/"
     },
     {
       "name": "spring.graphql.schema.file-extensions",

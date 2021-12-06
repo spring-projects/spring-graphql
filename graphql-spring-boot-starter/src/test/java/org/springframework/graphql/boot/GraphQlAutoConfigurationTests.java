@@ -40,16 +40,22 @@ class GraphQlAutoConfigurationTests {
 
 	@Test
 	void shouldFailWhenSchemaFileIsMissing() {
-		this.contextRunner.run((context) -> {
-			assertThat(context).hasFailed();
-			assertThat(context).getFailure().getRootCause().isInstanceOf(MissingSchemaException.class);
-		});
+		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:missing/")
+				.run((context) -> {
+					assertThat(context).hasFailed();
+					assertThat(context).getFailure().getRootCause().isInstanceOf(MissingSchemaException.class);
+				});
 	}
 
 	@Test
 	void shouldCreateBuilderWithSdl() {
 		this.contextRunner.withPropertyValues("spring.graphql.schema.locations:classpath:books/")
 				.run((context) -> assertThat(context).hasSingleBean(GraphQlSource.class));
+	}
+
+	@Test
+	void shouldScanNestedLocations() {
+		this.contextRunner.run((context) -> assertThat(context).hasSingleBean(GraphQlSource.class));
 	}
 
 	@Test
