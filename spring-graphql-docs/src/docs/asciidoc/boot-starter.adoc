@@ -156,6 +156,18 @@ detected and considered as candidates for `DataFetcher`
 
 
 
+
+[[boot-repositories-querybyexample]]
+== Query by Example Repositories
+
+Spring Data repositories that extend `QueryByExampleExecutor` or
+`ReactiveQueryByExampleExecutor` and are annotated with `@GraphQlRepository` are
+detected and considered as candidates for `DataFetcher`
+<<index.adoc#data-querybyexample-registration,auto registration>> for matching top-level queries.
+
+
+
+
 [[boot-graphql-web]]
 == Web Endpoints
 
