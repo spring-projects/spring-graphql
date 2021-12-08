@@ -30,7 +30,7 @@ Spring GraphQL requires the following as a baseline:
 * JDK8
 * Spring Framework 5.3
 * GraphQL Java 17
-* Spring Data 2021.1.0 or later for QueryDSL features
+* Spring Data 2021.1.0 or later for QueryDSL or Query by Example
 
 
 
@@ -529,6 +529,80 @@ transparently applies that through `QuerydslDataFetcher` builder methods.
 
 Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
 `QuerydslDataFetcher`. The <<boot-repositories-querydsl,Boot starter>> automatically
+detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
+
+
+
+
+[[data-querybyexample]]
+=== Query by Example
+
+Spring Data supports the use of
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#query-by-example[Query by Example] as a means to
+fetch data.
+Query by Example provides a flexible approach to express queries by allowing the user to define what fields are vital
+and what are not.
+
+For example, declare a repository as `QueryByExampleExecutor`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public interface AccountRepository extends Repository<Account, Long>,
+			QueryByExampleExecutor<Account> {
+}
+----
+
+Then use it to create a `DataFetcher`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	// For single result queries
+	DataFetcher<Account> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).many();
+----
+
+The `DataFetcher` builds a Query by Example `Example` from GraphQL request parameters, and
+uses it to fetch data. Spring Data supports `QueryByExampleDataFetcher` for JPA,
+MongoDB, Neo4j, and Redis.
+
+If the repository is `ReactiveQueryByExampleExecutor`, the builder returns
+`DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
+variant for MongoDB, Neo4j, Redis, and R2dbc.
+
+
+[[data-querybyexample-build]]
+==== Build Setup
+
+Query by Example is already included in the Spring Data modules that support it.
+No extra setup is required to enable it.
+
+
+[[data-querybyexample-customizations]]
+==== Customizations
+
+`QueryByExampleDataFetcher` supports
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
+to transform query results before returning these for further GraphQL processing.
+
+
+[[data-querybyexample-registration]]
+==== Auto Registration
+
+If a repository is annotated with `@GraphQlRepository`, it is automatically registered
+for queries that do not already have a registered `DataFetcher` and whose return type
+matches that of the repository domain type. This includes both single value and multi-value
+queries.
+
+By default, the name of the GraphQL type returned by the query must match the simple name
+of the repository domain type. If needed, you can use the `typeName` attribute of
+`@GraphQlRepository` to specify the target GraphQL type name.
+
+Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
+`QueryByExampleDataFetcher`. The <<boot-repositories-querybyexample,Boot starter>> automatically
 detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
 
 
