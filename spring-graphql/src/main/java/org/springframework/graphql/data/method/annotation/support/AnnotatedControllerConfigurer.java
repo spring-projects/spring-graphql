@@ -121,23 +121,27 @@ public class AnnotatedControllerConfigurer
 	@Override
 	public void afterPropertiesSet() {
 		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
+
+		// Annotation based
 		if (springDataPresent) {
-			// This must be ahead of ArgumentMethodArgumentResolver
+			// Must be ahead of ArgumentMethodArgumentResolver
 			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver());
 		}
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(this.conversionService));
+		this.argumentResolvers.addResolver(new ContextValueMethodArgumentResolver());
+
+		// Type based
 		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
 		if (springSecurityPresent) {
 			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
 		}
-
 		if (KotlinDetector.isKotlinPresent()) {
 			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
 		}
 
-		// This works as a fallback, after all other resolvers
+		// This works as a fallback, after other resolvers
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
 	}
 

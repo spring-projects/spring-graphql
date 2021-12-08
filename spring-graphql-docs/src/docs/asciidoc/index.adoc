@@ -683,6 +683,10 @@ See <<controllers-schema-mapping-source>>.
 | For access to a `DataLoader` in the `DataLoaderRegistry`.
 See <<controllers-schema-mapping-data-loader>>.
 
+| `@ContextValue`
+| For access to a value from the localContext, if it is an instance of `GraphQLContext`,
+  or from the `GraphQLContext` of `DataFetchingEnvironment`.
+
 | `GraphQLContext`
 | For access to the context from the `DataFetchingEnvironment`.
 

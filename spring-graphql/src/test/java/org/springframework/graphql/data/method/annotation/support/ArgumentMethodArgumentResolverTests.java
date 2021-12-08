@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -111,7 +112,7 @@ class ArgumentMethodArgumentResolverTests {
 	}
 
 	private MethodParameter methodParam(Method method, int index) {
-		MethodParameter methodParameter = new MethodParameter(method, index);
+		MethodParameter methodParameter = new SynthesizingMethodParameter(method, index);
 		methodParameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 		return methodParameter;
 	}
