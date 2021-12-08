@@ -52,7 +52,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 	}
 
 	@Nullable
-	private Object resolveContextValue(
+	static Object resolveContextValue(
 			MethodParameter parameter, @Nullable Object localContext, GraphQLContext graphQlContext) {
 
 		ContextValue annotation = parameter.getParameterAnnotation(ContextValue.class);
@@ -78,7 +78,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 		return wrapAsOptionalIfNecessary(value, parameterType);
 	}
 
-	private String getValueName(MethodParameter parameter, ContextValue annotation) {
+	private static String getValueName(MethodParameter parameter, ContextValue annotation) {
 		if (StringUtils.hasText(annotation.name())) {
 			return annotation.name();
 		}
@@ -92,7 +92,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 	}
 
 	@Nullable
-	private Object wrapAsOptionalIfNecessary(@Nullable Object value, Class<?> type) {
+	private static Object wrapAsOptionalIfNecessary(@Nullable Object value, Class<?> type) {
 		return (type.equals(Optional.class) ? Optional.ofNullable(value) : value);
 	}
 

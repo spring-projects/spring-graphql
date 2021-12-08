@@ -927,10 +927,11 @@ the simple class name of the input `List` element type. Both can be customized t
 annotation attributes. The type name can also be inherited from a class level
 `@SchemaMapping`.
 
+
 [[controllers-batch-mapping-signature]]
 ==== Method Signature
 
-Batch mapping methods support two types of arguments:
+Batch mapping methods support the following arguments:
 
 [cols="1,2"]
 |===
@@ -942,9 +943,18 @@ Batch mapping methods support two types of arguments:
 | `java.security.Principal`
 | Obtained from Spring Security context, if available.
 
+| `@ContextValue`
+| For access to a value from the `GraphQLContext` of `BatchLoaderEnvironment`,
+  which is the same context as the one from the `DataFetchingEnvironment`.
+
+| `GraphQLContext`
+| For access to the context from the `BatchLoaderEnvironment`,
+  which is the same context as the one from the `DataFetchingEnvironment`.
+
 | `BatchLoaderEnvironment`
 | The environment that is available in GraphQL Java to a
 `org.dataloader.BatchLoaderWithContext`.
+
 
 |===
 

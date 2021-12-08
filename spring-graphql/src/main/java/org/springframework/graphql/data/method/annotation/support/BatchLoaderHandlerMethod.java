@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
+import graphql.GraphQLContext;
 import org.dataloader.BatchLoaderEnvironment;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,6 +29,7 @@ import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
+import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
@@ -118,6 +120,12 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			Collection<K> collection = CollectionFactory.createCollection(parameterType, elementType, keys.size());
 			collection.addAll(keys);
 			return collection;
+		}
+		else if (parameter.hasParameterAnnotation(ContextValue.class)) {
+			return ContextValueMethodArgumentResolver.resolveContextValue(parameter, null, environment.getContext());
+		}
+		else if (parameterType.equals(GraphQLContext.class)) {
+			return environment.getContext();
 		}
 		else if (parameterType.isInstance(environment)) {
 			return environment;
