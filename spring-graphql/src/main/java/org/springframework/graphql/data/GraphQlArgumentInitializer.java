@@ -24,14 +24,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 
+import graphql.schema.DataFetchingEnvironment;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.SimpleTypeConverter;
-import org.springframework.beans.TypeConverter;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.validation.DataBinder;
@@ -56,27 +57,108 @@ public class GraphQlArgumentInitializer {
 
 
 	/**
-	 * Return the underlying {@link DataBinder}.
+	 * Initialize an Object of the given {@code targetType}, either from a named
+	 * {@link DataFetchingEnvironment#getArgument(String) argument value}, or from all
+	 * {@link DataFetchingEnvironment#getArguments() values} as the source.
+	 * @param environment the environment with the argument values
+	 * @param name optionally, the name of an argument to initialize from,
+	 * or if {@code null}, the full map of arguments is used.
+	 * @param targetType the type of Object to initialize
+	 * @return the initialized Object, or {@code null}
 	 */
-	public TypeConverter getTypeConverter() {
-		return this.typeConverter;
+	@Nullable
+	@SuppressWarnings("unchecked")
+	public Object initializeArgument(
+			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType) {
+
+		Object sourceValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+
+		if (sourceValue == null) {
+			return wrapAsOptionalIfNecessary(null, targetType);
+		}
+
+		Class<?> targetClass = targetType.resolve();
+		Assert.notNull(targetClass, "Could not determine target type from " + targetType);
+
+		// From Collection
+
+		if (CollectionFactory.isApproximableCollectionType(sourceValue.getClass())) {
+			Assert.isAssignable(Collection.class, targetClass,
+					"Argument '" + name + "' is a Collection while method parameter is " + targetClass.getName());
+			Class<?> elementType = targetType.asCollection().getGeneric(0).resolve();
+			Assert.notNull(elementType, "Could not determine element type for " + targetType);
+			return initializeFromCollection((Collection<Object>) sourceValue, elementType);
+		}
+
+		if (targetClass == Optional.class) {
+			targetClass = targetType.getNested(2).resolve();
+			Assert.notNull(targetClass, "Could not determine Optional<T> type from " + targetType);
+		}
+
+		// From Map
+
+		if (sourceValue instanceof Map) {
+			Object target = initializeFromMap((Map<String, Object>) sourceValue, targetClass);
+			return wrapAsOptionalIfNecessary(target, targetType);
+		}
+
+		// From Scalar
+
+		if (targetClass.isInstance(sourceValue)) {
+			return wrapAsOptionalIfNecessary(sourceValue, targetType);
+		}
+
+		Object target = this.typeConverter.convertIfNecessary(sourceValue, targetClass);
+		if (target == null) {
+			throw new IllegalStateException("Cannot convert argument value " +
+					"type [" + sourceValue.getClass().getName() + "] to method parameter " +
+					"type [" + targetClass.getName() + "].");
+		}
+
+		return wrapAsOptionalIfNecessary(target, targetType);
 	}
 
+	@Nullable
+	private Object wrapAsOptionalIfNecessary(@Nullable Object value, ResolvableType type) {
+		return (type.resolve(Object.class).equals(Optional.class) ? Optional.ofNullable(value) : value);
+	}
+
+	/**
+	 * Instantiate a collection of {@code elementType} using the given {@code values}.
+	 * <p>This will instantiate a new Collection of the closest type possible
+	 * from the one provided as an argument.
+	 *
+	 * @param <T> the type of Collection elements
+	 * @param values the collection of values to bind and instantiate
+	 * @param elementClass the type of elements in the given Collection
+	 * @return the instantiated and populated Collection.
+	 * @throws IllegalStateException if there is no suitable constructor.
+	 */
+	@SuppressWarnings("unchecked")
+	private <T> Collection<T> initializeFromCollection(Collection<Object> values, Class<T> elementClass) {
+		Collection<T> collection = CollectionFactory.createApproximateCollection(values, values.size());
+		for (Object item : values) {
+			if (elementClass.isAssignableFrom(item.getClass())) {
+				collection.add((T) item);
+			}
+			else if (item instanceof Map) {
+				collection.add((T) this.initializeFromMap((Map<String, Object>) item, elementClass));
+			}
+			else {
+				collection.add(this.typeConverter.convertIfNecessary(item, elementClass));
+			}
+		}
+		return collection;
+	}
 
 	/**
 	 * Instantiate an Object of the given target type and bind
 	 * {@link graphql.schema.DataFetchingEnvironment} argument values to it.
-	 * This considers using the default constructor or a primary constructor,
-	 * if available.
-	 *
-	 * @param arguments the data fetching environment arguments
-	 * @param targetType the type of the argument to instantiate
-	 * @param <T> the type of the input argument
-	 * @return the instantiated and populated input argument.
+	 * This considers the default constructor or a primary constructor, if available.
 	 * @throws IllegalStateException if there is no suitable constructor.
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> T initializeFromMap(Map<String, Object> arguments, Class<T> targetType) {
+	private Object initializeFromMap(Map<String, Object> arguments, Class<?> targetType) {
 		Object target;
 		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
 
@@ -85,7 +167,7 @@ public class GraphQlArgumentInitializer {
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
 			dataBinder.bind(propertyValues);
-			return (T) target;
+			return target;
 		}
 
 		// Data class constructor
@@ -96,56 +178,25 @@ public class GraphQlArgumentInitializer {
 		for (int i = 0; i < paramNames.length; i++) {
 			String paramName = paramNames[i];
 			Object value = arguments.get(paramName);
-			MethodParameter methodParam = new MethodParameter(ctor, i);
-			if (value == null && methodParam.isOptional()) {
-				args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+			MethodParameter methodParameter = new MethodParameter(ctor, i);
+			if (value == null && methodParameter.isOptional()) {
+				args[i] = (methodParameter.getParameterType() == Optional.class ? Optional.empty() : null);
 			}
 			else if (value != null && CollectionFactory.isApproximableCollectionType(value.getClass())) {
-				TypeDescriptor typeDescriptor = new TypeDescriptor(methodParam);
-				Class<?> elementType = typeDescriptor.getElementTypeDescriptor().getType();
+				ResolvableType resolvableType = ResolvableType.forMethodParameter(methodParameter);
+				Class<?> elementType = resolvableType.asCollection().getGeneric(0).resolve();
+				Assert.notNull(elementType, "Cannot determine element type for " + resolvableType);
 				args[i] = initializeFromCollection((Collection<Object>) value, elementType);
 			}
 			else if (value instanceof Map) {
-				args[i] = this.initializeFromMap((Map<String, Object>) value, methodParam.getParameterType());
+				args[i] = this.initializeFromMap((Map<String, Object>) value, methodParameter.getParameterType());
 			}
 			else {
-				args[i] = this.typeConverter.convertIfNecessary(value, paramTypes[i], methodParam);
+				args[i] = this.typeConverter.convertIfNecessary(value, paramTypes[i], methodParameter);
 			}
 		}
 
-		return (T) BeanUtils.instantiateClass(ctor, args);
-	}
-
-	/**
-	 * Instantiate a collection of {@code elementType} using the given {@code values}.
-	 * <p>This will instantiate a new Collection of the closest type possible
-	 * from the one provided as an argument.
-	 *
-	 * @param <T> the type of Collection elements
-	 * @param values the collection of values to bind and instantiate
-	 * @param elementType the type of elements in the given Collection
-	 * @return the instantiated and populated Collection.
-	 * @throws IllegalStateException if there is no suitable constructor.
-	 */
-	@SuppressWarnings("unchecked")
-	public <T> Collection<T> initializeFromCollection(Collection<Object> values, Class<T> elementType) {
-		Assert.state(CollectionFactory.isApproximableCollectionType(values.getClass()),
-				() -> "Cannot instantiate Collection for type " + values.getClass());
-		Collection<T> instances = CollectionFactory.createApproximateCollection(values, values.size());
-		values.forEach(item -> {
-			T value;
-			if (elementType.isAssignableFrom(item.getClass())) {
-	 			value = (T) item;
-			}
-			else if (item instanceof Map) {
-				value = this.initializeFromMap((Map<String, Object>)item, elementType);
-			}
-			else {
-				value = this.typeConverter.convertIfNecessary(item, elementType);
-			}
-			instances.add(value);
-		});
-		return instances;
+		return BeanUtils.instantiateClass(ctor, args);
 	}
 
 	/**

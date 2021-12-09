@@ -30,6 +30,7 @@ import graphql.schema.GraphQLTypeVisitor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.FluentQuery;
@@ -103,8 +104,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @param env contextual info for the GraphQL query
 	 * @return the resulting example
 	 */
+	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	protected Example<T> buildExample(DataFetchingEnvironment env) {
-		return Example.of(this.argumentInitializer.initializeFromMap(env.getArguments(), this.domainType.getType()));
+		ResolvableType targetType = ResolvableType.forClass(this.domainType.getType());
+		return (Example<T>) Example.of(this.argumentInitializer.initializeArgument(env, null, targetType));
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {

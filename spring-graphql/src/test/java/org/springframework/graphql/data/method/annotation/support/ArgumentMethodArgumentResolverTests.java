@@ -33,6 +33,8 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -49,7 +51,8 @@ class ArgumentMethodArgumentResolverTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	ArgumentMethodArgumentResolver resolver = new ArgumentMethodArgumentResolver(new DefaultFormattingConversionService());
+	private final HandlerMethodArgumentResolver resolver =
+			new ArgumentMethodArgumentResolver(new GraphQlArgumentInitializer(new DefaultFormattingConversionService()));
 
 	@Test
 	void shouldSupportAnnotatedParameters() {
