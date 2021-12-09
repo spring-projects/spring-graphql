@@ -538,12 +538,11 @@ detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
 === Query by Example
 
 Spring Data supports the use of
-https://docs.spring.io/spring-data/commons/docs/current/reference/html/#query-by-example[Query by Example] as a means to
-fetch data.
-Query by Example provides a flexible approach to express queries by allowing the user to define what fields are vital
-and what are not.
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#query-by-example[Query by Example]
+to fetch data. Query by Example (QBE) is a simple querying technique that does not require
+you to write queries through store-specific query languages.
 
-For example, declare a repository as `QueryByExampleExecutor`:
+Start by declaring a repository that is `QueryByExampleExecutor`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -552,7 +551,7 @@ public interface AccountRepository extends Repository<Account, Long>,
 }
 ----
 
-Then use it to create a `DataFetcher`:
+Use `QueryByExampleDataFetcher` to turn the repository into a `DataFecher`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -565,9 +564,9 @@ Then use it to create a `DataFetcher`:
 			QueryByExampleDataFetcher.builder(repository).many();
 ----
 
-The `DataFetcher` builds a Query by Example `Example` from GraphQL request parameters, and
-uses it to fetch data. Spring Data supports `QueryByExampleDataFetcher` for JPA,
-MongoDB, Neo4j, and Redis.
+The `DataFetcher` uses the GraphQL arguments map to create the domain type of the
+repository and use that as the example object to fetch data with. Spring Data supports
+`QueryByExampleDataFetcher` for JPA, MongoDB, Neo4j, and Redis.
 
 If the repository is `ReactiveQueryByExampleExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
@@ -577,8 +576,8 @@ variant for MongoDB, Neo4j, Redis, and R2dbc.
 [[data-querybyexample-build]]
 ==== Build Setup
 
-Query by Example is already included in the Spring Data modules that support it.
-No extra setup is required to enable it.
+Query by Example is already included in the Spring Data modules for the data stores where
+it is supported, so no extra setup is required to enable it.
 
 
 [[data-querybyexample-customizations]]

@@ -70,7 +70,7 @@ import org.springframework.util.Assert;
  * {@link QueryByExampleDataFetcher.ReactiveBuilder} for further options on
  * result projections and sorting.
  *
- * <p>{@code QueryByExampleDataFetcher} {@link #registrationTypeVisitor(List, List) exposes}
+ * <p>{@code QueryByExampleDataFetcher} {@link #autoRegistrationTypeVisitor(List, List) exposes}
  * a {@link GraphQLTypeVisitor} that can auto-register repositories annotated with
  * {@link GraphQlRepository @GraphQlRepository}.
  *
@@ -161,7 +161,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
 	 */
-	public static GraphQLTypeVisitor registrationTypeVisitor(
+	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
 			List<QueryByExampleExecutor<?>> executors,
 			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
 

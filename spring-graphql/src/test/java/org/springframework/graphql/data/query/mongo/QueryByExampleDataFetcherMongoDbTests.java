@@ -177,7 +177,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 	private static GraphQlSetup initGraphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
 
-		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.registrationTypeVisitor(
+		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.autoRegistrationTypeVisitor(
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				Collections.emptyList());
 
