@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
-import graphql.schema.GraphQLTypeVisitor;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -30,41 +29,45 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.querydsl.QuerydslPredicateExecutor;
-import org.springframework.data.querydsl.ReactiveQuerydslPredicateExecutor;
+import org.springframework.data.repository.query.QueryByExampleExecutor;
+import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.graphql.boot.GraphQlAutoConfiguration;
 import org.springframework.graphql.boot.GraphQlSourceBuilderCustomizer;
-import org.springframework.graphql.data.query.QuerydslDataFetcher;
+import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.execution.GraphQlSource;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} that creates a
  * {@link GraphQlSourceBuilderCustomizer}s to detect Spring Data repositories
- * with Querydsl support and register them as {@code DataFetcher}s for any
- * queries with a matching return type.
+ * with Query By Example support and register them as {@code DataFetcher}s for
+ * any queries with a matching return type.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see QuerydslDataFetcher#autoRegistrationTypeVisitor(List, List)
+ * @see QueryByExampleDataFetcher#autoRegistrationTypeVisitor(List, List)
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-@ConditionalOnClass({GraphQL.class, ReactiveQuerydslPredicateExecutor.class })
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ConditionalOnClass({GraphQL.class, QueryByExampleExecutor.class })
 @ConditionalOnBean(GraphQlSource.class)
 @AutoConfigureAfter(GraphQlAutoConfiguration.class)
-public class GraphQlWebFluxQuerydslAutoConfiguration {
+public class GraphQlWebMvcQueryByExampleAutoConfiguration {
 
 	@Bean
-	public GraphQlSourceBuilderCustomizer reactiveQuerydslRegistrar(
-			ObjectProvider<ReactiveQuerydslPredicateExecutor<?>> executorsProvider) {
+	public GraphQlSourceBuilderCustomizer queryByExampleRegistrar(
+			ObjectProvider<QueryByExampleExecutor<?>> executorsProvider,
+			ObjectProvider<ReactiveQueryByExampleExecutor<?>> reactiveExecutorsProvider) {
 
 		return builder -> {
-			List<ReactiveQuerydslPredicateExecutor<?>> executors =
+			List<QueryByExampleExecutor<?>> executors =
 					executorsProvider.stream().collect(Collectors.toList());
+
+			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors =
+					reactiveExecutorsProvider.stream().collect(Collectors.toList());
 
 			if (!executors.isEmpty()) {
 				builder.typeVisitors(Collections.singletonList(
-						QuerydslDataFetcher.autoRegistrationTypeVisitor(Collections.emptyList(), executors)));
+						QueryByExampleDataFetcher.autoRegistrationTypeVisitor(executors, reactiveExecutors)));
 			}
 		};
 	}
