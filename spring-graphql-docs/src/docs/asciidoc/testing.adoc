@@ -5,6 +5,30 @@ It's possible to test GraphQL requests with Spring's `WebTestClient`, just sendi
 receiving JSON, but a number of GraphQL specific details make this approach more
 cumbersome than is necessary.
 
+To get the full testing support, you'll need to add the `spring-graphql-test` dependdency
+in your build:
+
+[source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
+.Gradle
+----
+dependencies {
+	// ...
+	testImplementation 'org.springframework.graphql:spring-graphql-test:{spring-graphql-version}'
+}
+----
+[source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
+.Maven
+----
+<dependencies>
+	<!-- ... -->
+	<dependency>
+		<groupId>org.springframework.graphql</groupId>
+		<artifactId>spring-graphql-test</artifactId>
+		<version>{spring-graphql-version}</version>
+		<scope>test</scope>
+	</dependency>
+</dependencies>
+----
 
 
 [[testing-graphqltester]]

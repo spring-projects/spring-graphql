@@ -53,7 +53,7 @@ repositories {
 ----
 <dependencies>
 
-	// Spring GraphQL Boot starter
+	<!-- Spring GraphQL Boot starter -->
 	<dependency>
 		<groupId>org.springframework.experimental</groupId>
 		<artifactId>graphql-spring-boot-starter</artifactId>
