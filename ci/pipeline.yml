@@ -1,7 +1,7 @@
 anchors:
   docker-hub-task-params: &docker-hub-task-params
-    username: ((docker-hub-username))
-    password: ((docker-hub-password))
+    DOCKER_HUB_USERNAME: ((docker-hub-username))
+    DOCKER_HUB_PASSWORD: ((docker-hub-password))
   gradle-enterprise-task-params: &gradle-enterprise-task-params
     GRADLE_ENTERPRISE_ACCESS_KEY: ((gradle_enterprise_secret_access_key))
     GRADLE_ENTERPRISE_CACHE_USERNAME: ((gradle_enterprise_cache_user.username))
@@ -42,7 +42,8 @@ resources:
   type: registry-image
   icon: docker
   source:
-    <<: *docker-hub-task-params
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
     tag: ((milestone))
     repository: ((docker-hub-organization))/spring-graphql-ci-image
 - name: artifactory-repo
