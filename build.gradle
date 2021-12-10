@@ -29,6 +29,7 @@ subprojects {
 
 configure(moduleProjects) {
 	apply plugin: 'java-library'
+	apply plugin: 'java-test-fixtures'
 	apply plugin: 'org.springframework.graphql.compiler'
 
 	java {
