@@ -76,7 +76,9 @@ configure(moduleProjects) {
 			dependency "com.jayway.jsonpath:json-path:2.5.0"
 			dependency "org.skyscreamer:jsonassert:1.5.0"
 			dependency "com.h2database:h2:1.4.200"
+			dependency "javax.validation:validation-api:2.0.1.Final"
 			dependency "org.hibernate:hibernate-core:5.6.1.Final"
+			dependency "org.hibernate.validator:hibernate-validator:6.2.0.Final"
 			dependencySet(group: 'org.mongodb', version: '4.3.2') {
 				entry 'mongodb-driver-sync'
 				entry 'mongodb-driver-reactivestreams'

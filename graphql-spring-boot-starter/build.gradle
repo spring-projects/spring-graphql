@@ -34,6 +34,7 @@ dependencies {
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'javax.servlet:javax.servlet-api'
+	compileOnly 'javax.validation:validation-api'
 	compileOnly 'javax.websocket:javax.websocket-api'
 
 	compileOnly 'io.micrometer:micrometer-core'
@@ -62,7 +63,10 @@ dependencies {
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'io.projectreactor.netty:reactor-netty'
 	testImplementation 'javax.servlet:javax.servlet-api'
+	testImplementation 'javax.validation:validation-api'
+	testImplementation 'org.hibernate.validator:hibernate-validator'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-core'
+	testImplementation 'org.apache.tomcat.embed:tomcat-embed-el'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-websocket'
 	testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
 	testImplementation 'io.micrometer:micrometer-core'

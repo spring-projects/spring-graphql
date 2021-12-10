@@ -48,17 +48,29 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private final HandlerMethodArgumentResolverComposite resolvers;
 
+	@Nullable
+	private final HandlerMethodInputValidator validator;
+	
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 	private final boolean subscription;
 
 
-	public DataFetcherHandlerMethod(
-			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers, boolean subscription) {
+	/**
+	 * Constructor with a parent handler method.
+	 * @param handlerMethod the handler method
+	 * @param resolvers the argument resolvers
+	 * @param validator the input validator
+	 * @param subscription whether the field being fetched is of subscription type
+	 */
+	public DataFetcherHandlerMethod(HandlerMethod handlerMethod,
+			HandlerMethodArgumentResolverComposite resolvers, @Nullable HandlerMethodInputValidator validator,
+			boolean subscription) {
 
 		super(handlerMethod);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
+		this.validator = validator;
 		this.subscription = subscription;
 	}
 
@@ -70,6 +82,13 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 		return this.resolvers;
 	}
 
+	/**
+	 * Return the configured input validator.
+	 */
+	@Nullable
+	public HandlerMethodInputValidator getValidator() {
+		return this.validator;
+	}
 
 	/**
 	 * Invoke the method after resolving its argument values in the context of
@@ -93,6 +112,9 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 		Object[] args;
 		try {
 			args = getMethodArgumentValues(environment);
+			if (this.validator != null) {
+				this.validator.validate(this, args);
+			}
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);

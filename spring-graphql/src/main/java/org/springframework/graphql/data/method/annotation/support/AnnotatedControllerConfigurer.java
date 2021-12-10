@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.validation.Validator;
+
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -66,6 +68,7 @@ import org.springframework.util.StringUtils;
  * registers them as {@link DataFetcher}s.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.0.0
  */
 public class AnnotatedControllerConfigurer
@@ -93,12 +96,18 @@ public class AnnotatedControllerConfigurer
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
+	private final static boolean beanValidationPresent = ClassUtils.isPresent(
+			"javax.validation.executable.ExecutableValidator",
+			AnnotatedControllerConfigurer.class.getClassLoader());
 
 	@Nullable
 	private ApplicationContext applicationContext;
 
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
+
+	@Nullable
+	private HandlerMethodInputValidator validator;
 
 	@Nullable
 	private ConversionService conversionService;
@@ -109,6 +118,9 @@ public class AnnotatedControllerConfigurer
 		this.applicationContext = applicationContext;
 	}
 
+	/**
+	 * Configure the {@link ConversionService} used for binding handler arguments.
+	 */
 	public void setConversionService(ConversionService conversionService) {
 		this.conversionService = conversionService;
 	}
@@ -145,6 +157,10 @@ public class AnnotatedControllerConfigurer
 
 		// This works as a fallback, after other resolvers
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
+
+		if (beanValidationPresent) {
+			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
+		}
 	}
 
 	@Override
@@ -154,7 +170,7 @@ public class AnnotatedControllerConfigurer
 		findHandlerMethods().forEach((info) -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
-				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers);
+				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers, this.validator);
 			}
 			else {
 				String dataLoaderKey = registerBatchLoader(info);
@@ -281,7 +297,7 @@ public class AnnotatedControllerConfigurer
 		}
 
 		Assert.hasText(typeName,
-				"No parentType specified, and a source/parent method argument was also not found: "  +
+				"No parentType specified, and a source/parent method argument was also not found: " +
 						handlerMethod.getShortLogMessage());
 
 		return new MappingInfo(typeName, field, batchMapping, handlerMethod);
@@ -304,7 +320,7 @@ public class AnnotatedControllerConfigurer
 					String methodParameters = Arrays.stream(method.getGenericParameterTypes())
 							.map(Type::getTypeName)
 							.collect(Collectors.joining(",", "(", ")"));
-					return mappingInfo.getCoordinates() + " => "  + method.getName() + methodParameters;
+					return mappingInfo.getCoordinates() + " => " + method.getName() + methodParameters;
 				})
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
 	}
@@ -378,11 +394,16 @@ public class AnnotatedControllerConfigurer
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
+		@Nullable
+		private final HandlerMethodInputValidator validator;
+
 		private final boolean subscription;
 
-		public SchemaMappingDataFetcher(MappingInfo info, HandlerMethodArgumentResolverComposite resolvers) {
+		public SchemaMappingDataFetcher(MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
+				@Nullable HandlerMethodInputValidator validator) {
 			this.info = info;
 			this.argumentResolvers = resolvers;
+			this.validator = validator;
 			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
 
@@ -404,7 +425,7 @@ public class AnnotatedControllerConfigurer
 		@Override
 		@SuppressWarnings("ConstantConditions")
 		public Object get(DataFetchingEnvironment environment) throws Exception {
-			return new DataFetcherHandlerMethod(getHandlerMethod(), this.argumentResolvers, this.subscription).invoke(environment);
+			return new DataFetcherHandlerMethod(getHandlerMethod(), this.argumentResolvers, this.validator, this.subscription).invoke(environment);
 		}
 	}
 
@@ -420,10 +441,22 @@ public class AnnotatedControllerConfigurer
 		@Override
 		public Object get(DataFetchingEnvironment env) {
 			DataLoader<?, ?> dataLoader = env.getDataLoaderRegistry().getDataLoader(this.dataLoaderKey);
-			if  (dataLoader == null) {
+			if (dataLoader == null) {
 				throw new IllegalStateException("No DataLoader for key '" + this.dataLoaderKey + "'");
 			}
 			return dataLoader.load(env.getSource());
+		}
+	}
+
+	/**
+	 * Look for a Validator bean in the context and configure validation support
+	 */
+	static class HandlerMethodInputValidatorFactory {
+
+		@Nullable
+		static HandlerMethodInputValidator create(ApplicationContext context) {
+			Validator validator = context.getBeanProvider(Validator.class).getIfAvailable();
+			return validator != null ? new HandlerMethodInputValidator(validator) : null;
 		}
 	}
 

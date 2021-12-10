@@ -821,6 +821,52 @@ You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argum
 values. The name attribute on `@Argument` must not be set.
 
 
+[[controllers-schema-mapping-validation]]
+==== `@Argument` validation
+
+If a {spring-framework-ref-docs}/core.html#validation-beanvalidation-overview[Bean Validation]
+`Validator` (or typically, a `LocalValidatorFactoryBean`) bean is present in the application context,
+the `AnnotatedControllerConfigurer` will auto-detect it and configure support for validation.
+Controller arguments annotated with `@Valid` and `@Validated` are then validated before method invocation.
+
+Bean Validation lets you declare constraints on types, as the following example shows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public class BookInput {
+
+    @NotNull
+    private String title;
+
+	@NotNull
+    @Size(max=13)
+    private String isbn;
+}
+----
+
+We can then mark our argument for validation with `@Valid`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@MutationMapping
+		public Book addBook(@Argument @Valid BookInput bookInput) {
+			// ...
+		}
+	}
+----
+
+If an error occurs during validation, a `ConstraintViolationException` is thrown and can be
+later <<execution-exceptions,resolved with a custom `DataFetcherExceptionResolver`>>.
+
+[TIP]
+====
+Unlike Spring MVC, handler method signatures do not support the injection of `BindingResult`
+for reacting to validation errors: those are globally dealt with as exceptions.
+====
+
 [[controllers-schema-mapping-projectedpayload-argument]]
 ==== `@ProjectPayload` Interface
 

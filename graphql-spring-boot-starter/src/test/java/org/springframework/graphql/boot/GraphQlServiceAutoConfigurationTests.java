@@ -26,6 +26,7 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.GraphQlSource;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -50,12 +51,31 @@ class GraphQlServiceAutoConfigurationTests {
 		});
 	}
 
+	@Test
+	void shouldConfigureValidation() {
+		this.contextRunner.withUserConfiguration(ValidationConfiguration.class)
+				.run((context) -> {
+					assertThat(context).hasSingleBean(AnnotatedControllerConfigurer.class);
+					assertThat(context.getBean(AnnotatedControllerConfigurer.class))
+							.extracting("validator").isNotNull();
+				});
+	}
+
 	@Configuration(proxyBeanMethods = false)
 	static class GraphQlSourceConfiguration {
 
 		@Bean
 		GraphQlSource graphQlSource() {
 			return mock(GraphQlSource.class);
+		}
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class ValidationConfiguration {
+
+		@Bean
+		public LocalValidatorFactoryBean defaultValidator() {
+			return new LocalValidatorFactoryBean();
 		}
 	}
 
