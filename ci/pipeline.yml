@@ -1,8 +1,7 @@
 anchors:
-  docker-resource-source: &docker-resource-source
+  docker-hub-task-params: &docker-hub-task-params
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    tag: ((milestone))
   gradle-enterprise-task-params: &gradle-enterprise-task-params
     GRADLE_ENTERPRISE_ACCESS_KEY: ((gradle_enterprise_secret_access_key))
     GRADLE_ENTERPRISE_CACHE_USERNAME: ((gradle_enterprise_cache_user.username))
@@ -43,7 +42,8 @@ resources:
   type: registry-image
   icon: docker
   source:
-    <<: *docker-resource-source
+    <<: *docker-hub-task-params
+    tag: ((milestone))
     repository: ((docker-hub-organization))/spring-graphql-ci-image
 - name: artifactory-repo
   type: artifactory-resource
@@ -86,6 +86,7 @@ jobs:
       file: git-repo/ci/tasks/build-project.yml
       params:
         BRANCH: ((branch))
+        <<: *docker-hub-task-params
         <<: *gradle-enterprise-task-params
   - put: artifactory-repo
     params: &artifactory-params

@@ -29,6 +29,21 @@ test -f /opt/openjdk/bin/java
 test -f /opt/openjdk/bin/javac
 
 ###########################################################
+# DOCKER
+###########################################################
+cd /
+DOCKER_URL=$( ./get-docker-url.sh )
+curl -L ${DOCKER_URL} | tar zx
+mv /docker/* /bin/
+chmod +x /bin/docker*
+
+export ENTRYKIT_VERSION=0.4.0
+curl -L https://github.com/progrium/entrykit/releases/download/v${ENTRYKIT_VERSION}/entrykit_${ENTRYKIT_VERSION}_Linux_x86_64.tgz | tar zx
+chmod +x entrykit && \
+mv entrykit /bin/entrykit && \
+entrykit --symlink
+
+###########################################################
 # GRADLE ENTERPRISE
 ###########################################################
 cd /
