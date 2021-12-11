@@ -19,6 +19,7 @@ package org.springframework.graphql.boot;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,6 +47,7 @@ import org.springframework.graphql.execution.RuntimeWiringConfigurer;
  * {@link GraphQlSource}.
  *
  * @author Brian Clozel
+ * @author Josh Long
  * @since 1.0.0
  */
 @Configuration(proxyBeanMethods = false)
@@ -53,46 +55,35 @@ import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 @EnableConfigurationProperties(GraphQlProperties.class)
 public class GraphQlAutoConfiguration {
 
-	private static final Log logger = LogFactory.getLog(GraphQlAutoConfiguration.class);
+    @Bean
+    @ConditionalOnMissingBean
+    SchemaResourceResolver schemaResourceResolver(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties) {
+        return new DefaultSchemaResourceResolver(resourcePatternResolver, properties.getSchema().getLocations(), properties.getSchema().getFileExtensions());
+    }
 
-	@Bean
-	@ConditionalOnMissingBean
-	public GraphQlSource graphQlSource(ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
-			ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
-			ObjectProvider<Instrumentation> instrumentationsProvider,
-			ObjectProvider<GraphQlSourceBuilderCustomizer> sourceCustomizers,
-			ObjectProvider<RuntimeWiringConfigurer> wiringConfigurers) {
+    @Bean
+    @ConditionalOnMissingBean
+    public GraphQlSource graphQlSource(SchemaResourceResolver resolver,
+                                       ResourcePatternResolver resourcePatternResolver, GraphQlProperties properties,
+                                       ObjectProvider<DataFetcherExceptionResolver> exceptionResolversProvider,
+                                       ObjectProvider<Instrumentation> instrumentationsProvider,
+                                       ObjectProvider<GraphQlSourceBuilderCustomizer> sourceCustomizers,
+                                       ObjectProvider<RuntimeWiringConfigurer> wiringConfigurers) {
 
-		List<Resource> schemaResources = resolveSchemaResources(resourcePatternResolver, properties.getSchema().getLocations(),
-				properties.getSchema().getFileExtensions());
-		GraphQlSource.Builder builder = GraphQlSource.builder()
-				.schemaResources(schemaResources.toArray(new Resource[0]))
-				.exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
-				.instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
-		wiringConfigurers.orderedStream().forEach(builder::configureRuntimeWiring);
-		sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
-		try {
-			return builder.build();
-		}
-		catch (MissingSchemaException exc) {
-			throw new InvalidSchemaLocationsException(properties.getSchema().getLocations(), resourcePatternResolver, exc);
-		}
-	}
+        List<Resource> schemaResources = resolver.resolveSchemaResources();
+        GraphQlSource.Builder builder = GraphQlSource.builder()
+                .schemaResources(schemaResources.toArray(new Resource[0]))
+                .exceptionResolvers(exceptionResolversProvider.orderedStream().collect(Collectors.toList()))
+                .instrumentation(instrumentationsProvider.orderedStream().collect(Collectors.toList()));
+        wiringConfigurers.orderedStream().forEach(builder::configureRuntimeWiring);
+        sourceCustomizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
+        try {
+            return builder.build();
+        } catch (MissingSchemaException exc) {
+            throw new InvalidSchemaLocationsException(properties.getSchema().getLocations(), resourcePatternResolver, exc);
+        }
+    }
 
-	private List<Resource> resolveSchemaResources(ResourcePatternResolver resolver, String[] schemaLocations, String[] fileExtensions) {
-		List<Resource> schemaResources = new ArrayList<>();
-		for (String location : schemaLocations) {
-			for (String extension : fileExtensions) {
-				String resourcePattern = location + "*" + extension;
-				try {
-					schemaResources.addAll(Arrays.asList(resolver.getResources(resourcePattern)));
-				}
-				catch (IOException ex) {
-					logger.debug("Could not resolve schema location: '" + resourcePattern + "'", ex);
-				}
-			}
-		}
-		return schemaResources;
-	}
 
 }
+
