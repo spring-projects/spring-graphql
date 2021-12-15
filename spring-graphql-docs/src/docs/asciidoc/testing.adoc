@@ -205,8 +205,9 @@ The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code comp
 [[testing-errors]]
 == Errors
 
-Tests cannot use verify data, if there are errors under the "errors" key in the response
-has errors. If necessary to ignore an error, use an error filter `Predicate`:
+Verify won't succeed when there are errors under the "errors" key in the response.
+
+If necessary to ignore an error, use an error filter `Predicate`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -227,6 +228,22 @@ An error filter can be registered globally and apply to all tests:
 	WebGraphQlTester graphQlTester = WebGraphQlTester.builder(client)
 			.errorFilter(error -> ...)
 			.build();
+----
+
+
+Or to expect an error, and in contrast to `filter`, throw an assertion error 
+when it doesn't exist in the response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.query(query)
+			.execute()
+			.errors()
+			.expect(error -> ...)
+			.verify()
+			.path("project.releases[*].version")
+			.entityList(String.class)
+			.hasSizeGreaterThan(1);
 ----
 
 Or inspect all errors directly and that also marks them as filtered:
