@@ -911,7 +911,7 @@ For example:
 
 		String getName();
 
-		@Value("#{target.author + ' ' + target.name})
+		@Value("#{target.author + ' ' + target.name}")
 		String getAuthorAndName();
 	}
 ----
