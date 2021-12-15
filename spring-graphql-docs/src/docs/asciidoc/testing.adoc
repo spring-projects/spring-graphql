@@ -231,8 +231,8 @@ An error filter can be registered globally and apply to all tests:
 ----
 
 
-Or to expect an error, and in contrast to `filter`, throw an error when it doesn't 
-exist in the response:
+Or to expect an error, and in contrast to `filter`, throw an assertion error 
+when it doesn't exist in the response:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
