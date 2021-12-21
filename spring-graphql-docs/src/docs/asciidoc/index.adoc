@@ -1123,9 +1123,6 @@ include::testing.adoc[leveloffset=+1]
 
 
 
-include::boot-starter.adoc[leveloffset=+1]
-
-
 
 
 [[samples]]

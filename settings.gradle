@@ -17,9 +17,8 @@ pluginManagement {
 rootProject.name = 'spring-graphql'
 include 'spring-graphql',
 	'spring-graphql-test',
-	'graphql-spring-boot-starter',
+	'spring-graphql-docs',
 	'samples:webmvc-http',
 	'samples:webmvc-http-security',
 	'samples:webflux-security',
-	'samples:webflux-websocket',
-	'spring-graphql-docs'
+	'samples:webflux-websocket'

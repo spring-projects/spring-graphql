@@ -20,9 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.boot.test.GraphQlTest;
 import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
