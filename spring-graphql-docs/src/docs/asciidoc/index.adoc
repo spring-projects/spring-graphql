@@ -285,6 +285,46 @@ name mappings that should help to cover more corner cases.
 
 
 
+[[execution-graphqlsource-preparsed-document-provider]]
+==== PreparsedDocumentProvider
+
+Before operations can be executed by GraphQL Java, their request string must be _parsed_ and _validated_. These
+two steps may impact the performance of applications significantly.
+
+You may configure a `PreparsedDocumentProvider` using `GraphQlSource.Builder#configureGraphQl`. The
+`PreparsedDocumentProvider` can intercept these two steps and gives library consumers the tools to
+cache, or modify the resulting operation.
+
+The following snippet uses https://github.com/ben-manes/caffeine[Caffeine] to build a `PreparsedDocumentProvider`
+which caches the 2500 most recent operations for a maximum of 1 hour:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public class CachingPreparsedDocumentProvider implements PreparsedDocumentProvider {
+
+    private final Cache<String, PreparsedDocumentEntry> cache = Caffeine
+            .newBuilder()
+            .maximumSize(2500)
+            .build();
+
+    @Override
+    public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
+			Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
+		return cache.get(executionInput.getQuery(), operationKey -> parseAndValidateFunction.apply(executionInput));
+	}
+
+}
+----
+
+Please note that caching in the preceding snippet only works when you parameterize your operation using variables:
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+query HelloTo($to: String!) {
+   sayHello(to: $to) {
+      greeting
+   }
+}
+----
 
 [[execution-reactive-datafetcher]]
 === Reactive `DataFetcher`

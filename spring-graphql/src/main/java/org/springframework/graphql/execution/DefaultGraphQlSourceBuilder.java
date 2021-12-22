@@ -77,7 +77,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
 	};
-	
+
 
 	@Override
 	public GraphQlSource.Builder schemaResources(Resource... resources) {
