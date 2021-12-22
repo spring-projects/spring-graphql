@@ -231,6 +231,42 @@ name mappings that should help to cover more corner cases.
 
 
 
+[[execution-graphqlsource-preparsed-document-provider]]
+==== PreparsedDocumentProvider
+
+You can configure a `PreparsedDocumentProvider` in `GraphQlSource.Builder` to implement `Document` caching and checks.
+Doing so makes it possible to skip the parsing and validation steps of execution entirely. It may also assist you
+in implementing query whitelisting.
+
+A simple caching implementation using Caffeine would look something like the following:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public class CachingPreparsedDocumentProvider implements PreparsedDocumentProvider {
+
+    private final Cache<String, PreparsedDocumentEntry> cache = Caffeine
+            .newBuilder()
+            .maximumSize(2500)
+            .build();
+
+    @Override
+    public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
+			Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
+		return cache.get(executionInput.getQuery(), queryKey -> parseAndValidateFunction.apply(executionInput));
+	}
+
+}
+----
+
+Please note that caching in the preceding snippet only works when you parameterize your operation using variables:
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+query HelloTo($to: String!) {
+   sayHello(to: $to) {
+      greeting
+   }
+}
+----
 
 [[execution-reactive-datafetcher]]
 === Reactive `DataFetcher`
