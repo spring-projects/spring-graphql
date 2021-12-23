@@ -15,13 +15,9 @@
  */
 package org.springframework.graphql.data.method.annotation;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import org.springframework.core.annotation.AliasFor;
+
+import java.lang.annotation.*;
 
 /**
  * Annotation for a handler method that batch loads field values, given a list
@@ -93,6 +89,6 @@ public @interface BatchMapping {
 	 * {@link SchemaMapping @SchemaMapping}. When used on both levels, the one
 	 * here overrides the one at the class level.
 	 */
-	String typeName() default "";
+	String[] typeNames() default {};
 
 }

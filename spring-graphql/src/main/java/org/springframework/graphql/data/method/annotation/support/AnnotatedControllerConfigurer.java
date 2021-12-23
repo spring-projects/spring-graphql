@@ -15,20 +15,6 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.validation.Validator;
-
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -36,9 +22,6 @@ import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -61,6 +44,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import javax.validation.Validator;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
@@ -225,10 +217,10 @@ public class AnnotatedControllerConfigurer
 		}
 
 		Class<?> userClass = ClassUtils.getUserClass(handlerClass);
-		Map<Method, MappingInfo> map =
+		Map<Method, Collection<MappingInfo>> map =
 				MethodIntrospector.selectMethods(userClass, (Method method) -> getMappingInfo(method, handler, userClass));
 
-		Collection<MappingInfo> mappingInfos = map.values();
+		Collection<MappingInfo> mappingInfos = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
 
 		if (logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
 			logger.trace(formatMappings(userClass, mappingInfos));
@@ -238,7 +230,7 @@ public class AnnotatedControllerConfigurer
 	}
 
 	@Nullable
-	private MappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
+	private Collection<MappingInfo> getMappingInfo(Method method, Object handler, Class<?> handlerType) {
 
 		Set<Annotation> annotations = AnnotatedElementUtils.findAllMergedAnnotations(
 				method, new LinkedHashSet<>(Arrays.asList(BatchMapping.class, SchemaMapping.class)));
@@ -252,7 +244,7 @@ public class AnnotatedControllerConfigurer
 					"Expected either @BatchMapping or @SchemaMapping, not both: " + method.toGenericString());
 		}
 
-		String typeName;
+		String[] typeNames;
 		String field;
 		boolean batchMapping = false;
 		HandlerMethod handlerMethod = createHandlerMethod(method, handler, handlerType);
@@ -260,47 +252,48 @@ public class AnnotatedControllerConfigurer
 		Annotation annotation = annotations.iterator().next();
 		if (annotation instanceof SchemaMapping) {
 			SchemaMapping mapping = (SchemaMapping) annotation;
-			typeName = mapping.typeName();
+			typeNames = mapping.typeNames();
 			field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
 		}
 		else {
 			BatchMapping mapping = (BatchMapping) annotation;
-			typeName = mapping.typeName();
+			typeNames = mapping.typeNames();
 			field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
 			batchMapping = true;
 		}
 
-		if (!StringUtils.hasText(typeName)) {
+		if (typeNames.length == 0) {
 			SchemaMapping mapping = AnnotatedElementUtils.findMergedAnnotation(handlerType, SchemaMapping.class);
 			if (mapping != null) {
-				typeName = mapping.typeName();
+				typeNames = mapping.typeNames();
 			}
 		}
 
-		if (!StringUtils.hasText(typeName)) {
+		if (typeNames.length == 0) {
 			for (MethodParameter parameter : handlerMethod.getMethodParameters()) {
 				if (!batchMapping) {
 					Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
 					HandlerMethodArgumentResolver resolver = this.argumentResolvers.getArgumentResolver(parameter);
 					if (resolver instanceof SourceMethodArgumentResolver) {
-						typeName = parameter.getParameterType().getSimpleName();
+						typeNames = new String[]{ parameter.getParameterType().getSimpleName() };
 						break;
 					}
 				}
 				else {
 					if (Collection.class.isAssignableFrom(parameter.getParameterType())) {
-						typeName = parameter.nested().getNestedParameterType().getSimpleName();
+						typeNames = new String[]{ parameter.nested().getNestedParameterType().getSimpleName() };
 						break;
 					}
 				}
 			}
 		}
 
-		Assert.hasText(typeName,
+		Assert.notEmpty(typeNames,
 				"No parentType specified, and a source/parent method argument was also not found: " +
 						handlerMethod.getShortLogMessage());
 
-		return new MappingInfo(typeName, field, batchMapping, handlerMethod);
+		final boolean finalBatchMapping = batchMapping;
+		return Arrays.stream(typeNames).map(type -> new MappingInfo(type, field, finalBatchMapping, handlerMethod)).collect(Collectors.toList());
 	}
 
 	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {

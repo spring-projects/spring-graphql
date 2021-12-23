@@ -38,7 +38,7 @@ import org.springframework.core.annotation.AliasFor;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@SchemaMapping(typeName = "Subscription")
+@SchemaMapping(typeNames = "Subscription")
 public @interface SubscriptionMapping {
 
 	/**

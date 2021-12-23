@@ -15,15 +15,10 @@
  */
 package org.springframework.graphql.data.method.annotation;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import graphql.schema.DataFetchingEnvironment;
-
 import org.springframework.core.annotation.AliasFor;
+
+import java.lang.annotation.*;
 
 /**
  * Annotation to express the mapping of a handler method to a GraphQL type and
@@ -63,6 +58,6 @@ public @interface SchemaMapping {
 	 * When used on both levels, the one on the method level overrides the one
 	 * at the class level.
 	 */
-	String typeName() default "";
+	String[] typeNames() default {};
 
 }

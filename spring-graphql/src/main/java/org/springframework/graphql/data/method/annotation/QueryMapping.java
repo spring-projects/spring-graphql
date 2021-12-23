@@ -38,7 +38,7 @@ import org.springframework.core.annotation.AliasFor;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@SchemaMapping(typeName = "Query")
+@SchemaMapping(typeNames = "Query")
 public @interface QueryMapping {
 
 	/**
