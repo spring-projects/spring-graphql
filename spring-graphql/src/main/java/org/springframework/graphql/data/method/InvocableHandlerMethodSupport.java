@@ -96,7 +96,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 		List<Mono<Object>> monoList = Arrays.stream(args)
 				.map(arg -> {
-					Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.just(arg));
+					Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.justOrEmpty(arg));
 					return argMono.defaultIfEmpty(NO_VALUE);
 				})
 				.collect(Collectors.toList());
