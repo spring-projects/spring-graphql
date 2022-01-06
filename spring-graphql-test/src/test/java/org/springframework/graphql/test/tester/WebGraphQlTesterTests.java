@@ -211,7 +211,7 @@ public class WebGraphQlTesterTests {
 			sb.append("}");
 
 			MockResponse response = new MockResponse();
-			response.setHeader("Content-Type", "application/json");
+			response.setHeader("Content-Type", "application/json;charset=UTF-8"); // charset should be ignored if present
 			response.setBody(sb.toString());
 
 			this.server.enqueue(response);
