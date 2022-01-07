@@ -69,7 +69,9 @@ public class GraphiQlHandler {
 	}
 
 	private URI getRedirectUrl(ServerRequest request) {
-		return request.uriBuilder().queryParam("path", this.graphQlPath).build();
+		String contextPath = request.requestPath().contextPath().toString();
+		String path = request.requestPath().pathWithinApplication().toString();
+		return request.uriBuilder().replacePath(contextPath).path(path).queryParam("path", this.graphQlPath).build();
 	}
 
 }
