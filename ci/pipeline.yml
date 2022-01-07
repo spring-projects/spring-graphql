@@ -144,11 +144,48 @@ jobs:
       params:
         RELEASE_TYPE: M
         <<: *artifactory-task-params
+- name: stage-rc
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+      trigger: false
+    - task: stage
+      image: ci-image
+      file: git-repo/ci/tasks/stage-version.yml
+      params:
+        RELEASE_TYPE: RC
+        <<: *gradle-enterprise-task-params
+    - put: artifactory-repo
+      params:
+        <<: *artifactory-params
+        repo: libs-staging-local
+    - put: git-repo
+      params:
+        repository: stage-git-repo
+- name: promote-rc
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+      trigger: false
+    - get: artifactory-repo
+      trigger: false
+      passed: [stage-rc]
+      params:
+        download_artifacts: false
+        save_build_info: true
+    - task: promote
+      image: ci-image
+      file: git-repo/ci/tasks/promote-version.yml
+      params:
+        RELEASE_TYPE: rc
+        <<: *artifactory-task-params
 
 groups:
 - name: "builds"
   jobs: ["build"]
 - name: "releases"
-  jobs: [ "stage-milestone", "promote-milestone" ]
+  jobs: [ "stage-milestone", "promote-milestone", "stage-rc", "promote-rc" ]
 - name: "ci-images"
   jobs: ["build-ci-images"]
