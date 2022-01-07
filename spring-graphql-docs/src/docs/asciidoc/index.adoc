@@ -203,7 +203,7 @@ via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement 
 [[execution-graphqlsource-runtimewiring-configurer]]
 ==== `RuntimeWiringConfigurer`
 
-You can add a `RuntimeWiringConfigurer` to `GraphQlSource.Builder` to register:
+You can use `RuntimeWiringConfigurer` to register:
 
  - Custom scalar types.
  - Directives handling code.
@@ -212,6 +212,8 @@ You can add a `RuntimeWiringConfigurer` to `GraphQlSource.Builder` to register:
  - `DataFetcher` for a field, although most applications will simply configure
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
+
+The Spring GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer`.
 
 
 [[execution-graphqlsource-default-type-resolver]]
