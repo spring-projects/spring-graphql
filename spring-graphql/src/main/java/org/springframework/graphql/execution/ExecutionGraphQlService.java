@@ -63,9 +63,9 @@ public class ExecutionGraphQlService implements GraphQlService {
 		return Mono.deferContextual((contextView) -> {
 			ExecutionInput executionInput = requestInput.toExecutionInput();
 			ReactorContextManager.setReactorContext(contextView, executionInput);
-			executionInput = registerDataLoaders(executionInput);
-			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInput))
-					.map(result -> new RequestOutput(requestInput, result));
+			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
+			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
+					.map(result -> new RequestOutput(updatedExecutionInput, result));
 		});
 	}
 

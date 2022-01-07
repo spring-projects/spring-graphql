@@ -119,12 +119,11 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	private WebInterceptorChain initWebInterceptorChain(List<WebInterceptor> interceptors) {
 
-		WebInterceptorChain endOfChain =
-				webInput -> service.execute(webInput).map((result) -> new WebOutput(webInput, result));
+		WebInterceptorChain endOfChain = webInput -> this.service.execute(webInput).map(WebOutput::new);
 
 		return interceptors.stream()
 				.reduce(WebInterceptor::andThen)
-				.map((interceptor) -> (WebInterceptorChain) (input) -> interceptor.intercept(input, endOfChain))
+				.map(interceptor -> (WebInterceptorChain) (input) -> interceptor.intercept(input, endOfChain))
 				.orElse(endOfChain);
 	}
 

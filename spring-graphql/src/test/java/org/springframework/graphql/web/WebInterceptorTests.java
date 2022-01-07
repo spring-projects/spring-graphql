@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -92,7 +93,9 @@ public class WebInterceptorTests {
 	}
 
 	private Mono<RequestOutput> emptyExecutionResult(RequestInput input) {
-		return Mono.just(new RequestOutput(input, ExecutionResultImpl.newExecutionResult().build()));
+		return Mono.just(new RequestOutput(
+				ExecutionInput.newExecutionInput("{}").build(),
+				ExecutionResultImpl.newExecutionResult().build()));
 	}
 
 	private static class OrderInterceptor implements WebInterceptor {

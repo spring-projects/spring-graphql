@@ -18,6 +18,7 @@ package org.springframework.graphql;
 import java.util.List;
 import java.util.Map;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
@@ -25,36 +26,38 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * An {@link ExecutionResult} that also holds the {@link RequestInput}.
+ * Wraps an {@link ExecutionResult} and also exposes the {@link ExecutionInput}
+ * prepared for the request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 public class RequestOutput implements ExecutionResult {
 
-	private final RequestInput requestInput;
+	private final ExecutionInput executionInput;
 
 	private final ExecutionResult executionResult;
 
 
 	/**
-	 * Create an instance that wraps the given {@link ExecutionResult}.
-	 * @param requestInput the container for the GraphQL input
-	 * @param executionResult the result of performing a graphql query
+	 * Create an instance.
+	 * @param executionInput the input prepared for the request
+	 * @param executionResult the result from performing the request
 	 */
-	public RequestOutput(RequestInput requestInput, ExecutionResult executionResult) {
-		Assert.notNull(requestInput, "RequestInput is required.");
+	public RequestOutput(ExecutionInput executionInput, ExecutionResult executionResult) {
+		Assert.notNull(executionInput, "ExecutionInput is required.");
 		Assert.notNull(executionResult, "ExecutionResult is required.");
-		this.requestInput = requestInput;
+		this.executionInput = executionInput;
 		this.executionResult = executionResult;
 	}
 
+
 	/**
-	 * Return the associated {@link RequestInput} used for the execution.
-	 * @return the associated WebInput
+	 * Return the {@link ExecutionInput} that was prepared from the
+	 * {@link RequestInput} and passed to {@link graphql.GraphQL}.
 	 */
-	public RequestInput getRequestInput() {
-		return this.requestInput;
+	public ExecutionInput getExecutionInput() {
+		return this.executionInput;
 	}
 
 	@Nullable

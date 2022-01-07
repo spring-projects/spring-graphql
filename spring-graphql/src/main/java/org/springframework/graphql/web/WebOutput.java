@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
@@ -45,23 +46,20 @@ public class WebOutput extends RequestOutput {
 
 	/**
 	 * Create an instance that wraps the given {@link ExecutionResult}.
-	 * @param input the container for the GraphQL input
-	 * @param executionResult the result of performing a graphql query
+	 * @param requestOutput the output from an executed request
 	 */
-	public WebOutput(WebInput input, ExecutionResult executionResult) {
-		this(input, executionResult, null);
+	public WebOutput(RequestOutput requestOutput) {
+		this(requestOutput.getExecutionInput(), requestOutput, null);
 	}
 
-	private WebOutput(WebInput input, ExecutionResult executionResult, @Nullable HttpHeaders responseHeaders) {
-		super(input, executionResult);
+	private WebOutput(
+			ExecutionInput executionInput, ExecutionResult executionResult,
+			@Nullable HttpHeaders responseHeaders) {
+
+		super(executionInput, executionResult);
 		this.responseHeaders = responseHeaders;
 	}
 
-
-	@Override
-	public WebInput getRequestInput() {
-		return (WebInput) super.getRequestInput();
-	}
 
 	/**
 	 * Return a read-only view of any custom headers to be added to the HTTP response, or
@@ -93,7 +91,7 @@ public class WebOutput extends RequestOutput {
 	 */
 	public static final class Builder {
 
-		private final WebInput input;
+		private final ExecutionInput executionInput;
 
 		@Nullable
 		private Object data;
@@ -107,7 +105,7 @@ public class WebOutput extends RequestOutput {
 		private HttpHeaders headers;
 
 		private Builder(WebOutput output) {
-			this.input = output.getRequestInput();
+			this.executionInput = output.getExecutionInput();
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();
@@ -187,7 +185,7 @@ public class WebOutput extends RequestOutput {
 
 		public WebOutput build() {
 			ExecutionResult result = new ExecutionResultImpl(this.data, this.errors, this.extensions);
-			return new WebOutput(this.input, result, this.headers);
+			return new WebOutput(this.executionInput, result, this.headers);
 		}
 
 	}

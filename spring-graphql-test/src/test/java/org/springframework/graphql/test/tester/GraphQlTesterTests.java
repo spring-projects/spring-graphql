@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
@@ -352,9 +353,10 @@ public class GraphQlTesterTests {
 		if (!CollectionUtils.isEmpty(errors)) {
 			builder.addErrors(errors);
 		}
-		RequestInput input = new RequestInput("{}", null, null, null, "1");
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput("{}").build();
 		ExecutionResult result = builder.build();
-		given(this.service.execute(this.inputCaptor.capture())).willReturn(Mono.just(new RequestOutput(input, result)));
+		given(this.service.execute(this.inputCaptor.capture()))
+				.willReturn(Mono.just(new RequestOutput(executionInput, result)));
 	}
 
 }

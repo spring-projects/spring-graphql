@@ -19,8 +19,7 @@ package org.springframework.graphql;
 import reactor.core.publisher.Mono;
 
 /**
- * Strategy to perform GraphQL request execution with input for and output from the
- * invocation of {@link graphql.GraphQL}.
+ * Strategy to perform a GraphQL request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -29,8 +28,8 @@ public interface GraphQlService {
 
 	/**
 	 * Perform the operation and return the result.
-	 * @param input container for the GraphQL request input
-	 * @return the execution result
+	 * @param input container for GraphQL request input
+	 * @return the result from execution
 	 */
 	Mono<RequestOutput> execute(RequestInput input);
 
