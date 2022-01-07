@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
+import org.springframework.graphql.RequestOutput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 /**
  * Decorate an {@link ExecutionResult}, provide a way to {@link #transform(Consumer)
@@ -37,14 +37,11 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebOutput implements ExecutionResult {
-
-	private final WebInput input;
-
-	private final ExecutionResult executionResult;
+public class WebOutput extends RequestOutput {
 
 	@Nullable
 	private final HttpHeaders responseHeaders;
+
 
 	/**
 	 * Create an instance that wraps the given {@link ExecutionResult}.
@@ -56,44 +53,14 @@ public class WebOutput implements ExecutionResult {
 	}
 
 	private WebOutput(WebInput input, ExecutionResult executionResult, @Nullable HttpHeaders responseHeaders) {
-		Assert.notNull(input, "WebInput is required.");
-		Assert.notNull(executionResult, "ExecutionResult is required.");
-		this.input = input;
-		this.executionResult = executionResult;
+		super(input, executionResult);
 		this.responseHeaders = responseHeaders;
 	}
 
-	/**
-	 * Return the associated {@link WebInput} used for the execution.
-	 * @return the associated WebInput
-	 */
-	public WebInput getWebInput() {
-		return this.input;
-	}
-
-	@Nullable
-	@Override
-	public <T> T getData() {
-		return this.executionResult.getData();
-	}
 
 	@Override
-	public boolean isDataPresent() {
-		return this.executionResult.isDataPresent();
-	}
-
-	public List<GraphQLError> getErrors() {
-		return this.executionResult.getErrors();
-	}
-
-	@Nullable
-	public Map<Object, Object> getExtensions() {
-		return this.executionResult.getExtensions();
-	}
-
-	@Override
-	public Map<String, Object> toSpecification() {
-		return this.executionResult.toSpecification();
+	public WebInput getRequestInput() {
+		return (WebInput) super.getRequestInput();
 	}
 
 	/**
@@ -120,6 +87,7 @@ public class WebOutput implements ExecutionResult {
 		return builder.build();
 	}
 
+
 	/**
 	 * Builder to transform a {@link WebOutput}.
 	 */
@@ -139,7 +107,7 @@ public class WebOutput implements ExecutionResult {
 		private HttpHeaders headers;
 
 		private Builder(WebOutput output) {
-			this.input = output.getWebInput();
+			this.input = output.getRequestInput();
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();

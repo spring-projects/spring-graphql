@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
-import graphql.ExecutionResult;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
@@ -38,6 +37,7 @@ import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -70,7 +70,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
 
 		Book book = GraphQlResponse.from(resultMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
@@ -90,7 +90,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -107,7 +107,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedArguments", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -124,7 +124,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -149,7 +149,7 @@ public class SchemaMappingInvocationTests {
 			return executionInput;
 		});
 
-		Mono<ExecutionResult> resultMono = graphQlService().execute(requestInput);
+		Mono<RequestOutput> resultMono = graphQlService().execute(requestInput);
 
 		Author author = GraphQlResponse.from(resultMono).toEntity("authorById", Author.class);
 		assertThat(author.getId()).isEqualTo(101);
@@ -169,7 +169,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService()
+		Mono<RequestOutput> resultMono = graphQlService()
 				.execute(new RequestInput(operation, null, null, null, "1"));
 
 		Author author = GraphQlResponse.from(resultMono).toEntity("addAuthor", Author.class);
@@ -187,7 +187,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlService()
+		Mono<RequestOutput> resultMono = graphQlService()
 				.execute(new RequestInput(operation, null, null, null, "1"));
 
 		Flux<Book> bookFlux = GraphQlResponse.forSubscription(resultMono)

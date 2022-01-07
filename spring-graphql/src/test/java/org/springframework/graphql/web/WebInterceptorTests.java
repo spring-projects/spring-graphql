@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,13 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,7 +46,7 @@ public class WebInterceptorTests {
 	void interceptorOrder() {
 		StringBuilder output = new StringBuilder();
 
-		WebGraphQlHandler handler = WebGraphQlHandler.builder((input) -> emptyExecutionResult())
+		WebGraphQlHandler handler = WebGraphQlHandler.builder(this::emptyExecutionResult)
 				.interceptors(Arrays.asList(
 						new OrderInterceptor(1, output),
 						new OrderInterceptor(2, output),
@@ -61,7 +62,7 @@ public class WebInterceptorTests {
 		Function<WebOutput, WebOutput> headerFunction = (output) ->
 				output.transform((builder) -> builder.responseHeader("testHeader", "testValue"));
 
-		WebGraphQlHandler handler = WebGraphQlHandler.builder((input) -> emptyExecutionResult())
+		WebGraphQlHandler handler = WebGraphQlHandler.builder(this::emptyExecutionResult)
 				.interceptor((input, next) -> next.next(input).map(headerFunction))
 				.build();
 
@@ -77,7 +78,7 @@ public class WebInterceptorTests {
 		WebGraphQlHandler handler = WebGraphQlHandler
 				.builder((input) -> {
 					actualName.set(input.toExecutionInput().getOperationName());
-					return emptyExecutionResult();
+					return emptyExecutionResult(input);
 				})
 				.interceptor((webInput, next) -> {
 					webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
@@ -90,8 +91,8 @@ public class WebInterceptorTests {
 		assertThat(actualName.get()).isEqualTo("testOp");
 	}
 
-	private Mono<ExecutionResult> emptyExecutionResult() {
-		return Mono.just(ExecutionResultImpl.newExecutionResult().build());
+	private Mono<RequestOutput> emptyExecutionResult(RequestInput input) {
+		return Mono.just(new RequestOutput(input, ExecutionResultImpl.newExecutionResult().build()));
 	}
 
 	private static class OrderInterceptor implements WebInterceptor {

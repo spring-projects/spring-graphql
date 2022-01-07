@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import graphql.ExecutionInput;
-import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
 import org.dataloader.DataLoaderRegistry;
@@ -28,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 
 /**
  * {@link GraphQlService} that uses a {@link GraphQlSource} to obtain a
@@ -59,12 +59,13 @@ public class ExecutionGraphQlService implements GraphQlService {
 
 
 	@Override
-	public final Mono<ExecutionResult> execute(RequestInput requestInput) {
+	public final Mono<RequestOutput> execute(RequestInput requestInput) {
 		return Mono.deferContextual((contextView) -> {
 			ExecutionInput executionInput = requestInput.toExecutionInput();
 			ReactorContextManager.setReactorContext(contextView, executionInput);
 			executionInput = registerDataLoaders(executionInput);
-			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInput));
+			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInput))
+					.map(result -> new RequestOutput(requestInput, result));
 		});
 	}
 
