@@ -29,6 +29,7 @@ import graphql.GraphQLError;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Decorate an {@link ExecutionResult}, provide a way to {@link #transform(Consumer)
@@ -40,37 +41,35 @@ import org.springframework.lang.Nullable;
  */
 public class WebOutput extends RequestOutput {
 
-	@Nullable
 	private final HttpHeaders responseHeaders;
 
 
 	/**
-	 * Create an instance that wraps the given {@link ExecutionResult}.
+	 * Create an instance from the given {@link RequestOutput}.
 	 * @param requestOutput the output from an executed request
 	 */
 	public WebOutput(RequestOutput requestOutput) {
-		this(requestOutput.getExecutionInput(), requestOutput, null);
+		this(requestOutput.getExecutionInput(), requestOutput, new HttpHeaders());
 	}
 
-	private WebOutput(
-			ExecutionInput executionInput, ExecutionResult executionResult,
-			@Nullable HttpHeaders responseHeaders) {
+	private WebOutput(ExecutionInput executionInput, ExecutionResult executionResult,
+			HttpHeaders responseHeaders) {
 
 		super(executionInput, executionResult);
+		Assert.notNull(responseHeaders, "HttpHeaders is required");
 		this.responseHeaders = responseHeaders;
 	}
 
 
 	/**
-	 * Return a read-only view of any custom headers to be added to the HTTP response, or
-	 * {@code null} until {@link #transform(Consumer)} is used to add such headers.
-	 * @return the read-only HTTP response headers
-	 * @see #transform(Consumer)
-	 * @see Builder#responseHeader(String, String...)
+	 * Return the headers to be added to the HTTP response.
+	 * <p>By default, this is empty.
+	 * <p><strong>Note:</strong> This is for use with GraphQL over HTTP requests
+	 * but not for GraphQL over WebSocket where the initial handshake HTTP
+	 * request completes before queries begin.
 	 */
-	@Nullable
 	public HttpHeaders getResponseHeaders() {
-		return (this.responseHeaders != null) ? HttpHeaders.readOnlyHttpHeaders(this.responseHeaders) : null;
+		return this.responseHeaders;
 	}
 
 	/**
@@ -91,7 +90,7 @@ public class WebOutput extends RequestOutput {
 	 */
 	public static final class Builder {
 
-		private final ExecutionInput executionInput;
+		private final WebOutput webOutput;
 
 		@Nullable
 		private Object data;
@@ -101,15 +100,11 @@ public class WebOutput extends RequestOutput {
 		@Nullable
 		private Map<Object, Object> extensions;
 
-		@Nullable
-		private HttpHeaders headers;
-
 		private Builder(WebOutput output) {
-			this.executionInput = output.getExecutionInput();
+			this.webOutput = output;
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();
-			this.headers = output.responseHeaders;
 		}
 
 		/**
@@ -144,48 +139,9 @@ public class WebOutput extends RequestOutput {
 			return this;
 		}
 
-		/**
-		 * Add a custom header to be set on the HTTP response.
-		 *
-		 * <p>
-		 * <strong>Note:</strong> This can be used for GraphQL over HTTP requests but has
-		 * no impact for queries over a WebSocket session where the initial handshake
-		 * request completes before queries begin.
-		 * @param name the HTTP header name
-		 * @param values the HTTP header values
-		 * @return the current builder
-		 */
-		public Builder responseHeader(String name, String... values) {
-			initHeaders();
-			for (String value : values) {
-				this.headers.add(name, value);
-			}
-			return this;
-		}
-
-		/**
-		 * Consume and update the headers to be set on the HTTP response.
-		 *
-		 * <p>
-		 * <strong>Note:</strong> This can be used for GraphQL over HTTP requests but has
-		 * no impact for queries over a WebSocket session where the initial handshake
-		 * request completes before queries begin.
-		 * @param consumer callback that updates the HTTP headers
-		 * @return the current builder
-		 */
-		public Builder responseHeaders(Consumer<HttpHeaders> consumer) {
-			initHeaders();
-			consumer.accept(this.headers);
-			return this;
-		}
-
-		private void initHeaders() {
-			this.headers = (this.headers != null) ? this.headers : new HttpHeaders();
-		}
-
 		public WebOutput build() {
 			ExecutionResult result = new ExecutionResultImpl(this.data, this.errors, this.extensions);
-			return new WebOutput(this.executionInput, result, this.headers);
+			return new WebOutput(this.webOutput.getExecutionInput(), result, this.webOutput.getResponseHeaders());
 		}
 
 	}

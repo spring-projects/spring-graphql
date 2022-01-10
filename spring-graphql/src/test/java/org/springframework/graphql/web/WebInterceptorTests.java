@@ -60,11 +60,12 @@ public class WebInterceptorTests {
 
 	@Test
 	void responseHeader() {
-		Function<WebOutput, WebOutput> headerFunction = (output) ->
-				output.transform((builder) -> builder.responseHeader("testHeader", "testValue"));
-
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(this::emptyExecutionResult)
-				.interceptor((input, next) -> next.next(input).map(headerFunction))
+				.interceptor((input, next) -> next.next(input)
+						.doOnNext(output -> {
+							HttpHeaders httpHeaders = output.getResponseHeaders();
+							httpHeaders.add("testHeader", "testValue");
+						}))
 				.build();
 
 		HttpHeaders headers = handler.handleRequest(webInput).block().getResponseHeaders();
