@@ -45,7 +45,7 @@ class GraphiQlHandlerTests {
 
 	private static final List<HttpMessageReader<?>> MESSAGE_READERS = Collections.emptyList();
 
-	private final GraphiQlHandler handler = new GraphiQlHandler("/graphql",
+	private final GraphiQlHandler handler = new GraphiQlHandler("/graphql", null,
 			new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
 
 
@@ -58,6 +58,19 @@ class GraphiQlHandlerTests {
 		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
 		assertThat(response.headers().getLocation()).isNotNull();
 		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("/graphiql?path=/graphql");
+	}
+
+	@Test
+	void shouldRedirectWithPathAndWsPathQueryParameter() {
+		GraphiQlHandler wsHandler = new GraphiQlHandler("/graphql", "/graphql",
+				new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.get("/graphiql").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		ServerRequest request = ServerRequest.create(exchange, MESSAGE_READERS);
+		ServerResponse response = wsHandler.handleRequest(request).block();
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
+		assertThat(response.headers().getLocation()).isNotNull();
+		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("/graphiql?path=/graphql&wsPath=/graphql");
 	}
 
 	@Test
@@ -82,7 +95,7 @@ class GraphiQlHandlerTests {
 		ServerResponse response = this.handler.handleRequest(request).block();
 		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
 		assertThat(response.headers().getLocation()).isNotNull();
-		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("/context/graphiql?path=/graphql");
+		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("/context/graphiql?path=/context/graphql");
 	}
 
 	private String getResponseContent(MockServerWebExchange exchange, ServerResponse response) {

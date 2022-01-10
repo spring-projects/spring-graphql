@@ -23,8 +23,10 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.util.UriBuilder;
 
 /**
  * Spring WebFlux handler to serve a GraphiQl UI page.
@@ -37,6 +39,8 @@ public class GraphiQlHandler {
 
 	private final String graphQlPath;
 
+	private final String graphQlWsPath;
+
 	private final Resource htmlResource;
 
 
@@ -44,18 +48,21 @@ public class GraphiQlHandler {
 	 * Constructor that serves the default {@code graphiql/index.html} included
 	 * in the {@code spring-graphql} module.
 	 * @param graphQlPath the path to the GraphQL endpoint
+	 * @param graphQlWsPath optional path to the GraphQL WebSocket endpoint
 	 */
-	public GraphiQlHandler(String graphQlPath) {
-		this(graphQlPath, new ClassPathResource("graphiql/index.html"));
+	public GraphiQlHandler(String graphQlPath, String graphQlWsPath) {
+		this(graphQlPath, graphQlWsPath, new ClassPathResource("graphiql/index.html"));
 	}
 
 	/**
 	 * Constructor with the HTML page to serve.
 	 * @param graphQlPath the path to the GraphQL endpoint
+	 * @param graphQlWsPath optional path to the GraphQL WebSocket endpoint
 	 * @param htmlResource the GraphiQL page to serve
 	 */
-	public GraphiQlHandler(String graphQlPath, Resource htmlResource) {
+	public GraphiQlHandler(String graphQlPath, String graphQlWsPath, Resource htmlResource) {
 		this.graphQlPath = graphQlPath;
+		this.graphQlWsPath = graphQlWsPath;
 		this.htmlResource = htmlResource;
 	}
 
@@ -71,7 +78,20 @@ public class GraphiQlHandler {
 	}
 
 	private URI getRedirectUrl(ServerRequest request) {
-		return request.uriBuilder().queryParam("path", this.graphQlPath).build();
+		UriBuilder builder = request.uriBuilder();
+		String pathQueryParam = applyContextPath(request, this.graphQlPath);
+		builder.queryParam("path", pathQueryParam);
+
+		if (StringUtils.hasText(this.graphQlWsPath)) {
+			String wsPathQueryParam = applyContextPath(request, this.graphQlWsPath);
+			builder.queryParam("wsPath", wsPathQueryParam);
+		}
+		return builder.build();
+	}
+
+	private String applyContextPath(ServerRequest request, String path) {
+		String contextPath = request.requestPath().contextPath().toString();
+		return StringUtils.hasText(contextPath) ? contextPath + path : path;
 	}
 
 }
