@@ -29,7 +29,7 @@ class ArtifactRepositoriesTests {
 
 	@Autowired
 	private WebGraphQlTester graphQlTester;
-	
+	// fail
 	@Test
 	void querydslRepositorySingle() {
 		this.graphQlTester.queryName("artifactRepository")
@@ -38,7 +38,7 @@ class ArtifactRepositoriesTests {
 				.path("artifactRepository.name")
 				.entity(String.class).isEqualTo("Spring Releases");
 	}
-
+	// fail
 	@Test
 	void querydslRepositoryMany() {
 		this.graphQlTester.queryName("artifactRepositories")
