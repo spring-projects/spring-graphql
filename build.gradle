@@ -9,7 +9,7 @@ ext {
 	bootVersion = "2.7.0-SNAPSHOT"
 }
 
-description = "Spring GraphQL"
+description = "Spring for GraphQL"
 
 subprojects {
 	apply plugin: 'io.spring.dependency-management'

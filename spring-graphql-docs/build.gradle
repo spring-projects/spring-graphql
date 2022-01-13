@@ -3,7 +3,7 @@ plugins {
 	id 'org.asciidoctor.jvm.convert' version '3.3.2'
 }
 
-description = "Spring GraphQL reference documentation"
+description = "Spring for GraphQL reference documentation"
 
 configurations {
 	asciidoctorExtensions
@@ -38,7 +38,7 @@ ext.javadocLinks = [
 ] as String[]
 
 /**
- * Produce Javadoc for all Spring GraphQL modules in "build/docs/javadoc"
+ * Produce Javadoc for all Spring for GraphQL modules in "build/docs/javadoc"
  */
 task api(type: Javadoc) {
 	group = "Documentation"
@@ -78,7 +78,7 @@ task api(type: Javadoc) {
 
 
 /**
- * Generate the Spring GraphQL Reference documentation from "src/docs/asciidoc"
+ * Generate the Spring for GraphQL Reference documentation from "src/docs/asciidoc"
  * in "build/docs/reference/html".
  */
 asciidoctor {

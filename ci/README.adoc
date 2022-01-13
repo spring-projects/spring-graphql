@@ -1,11 +1,11 @@
-== Spring GraphQL Concourse pipeline
+== Spring for GraphQL Concourse pipeline
 
-The Spring GraphQL project is using https://concourse-ci.org/[Concourse] for its CI build and other automated tasks.
+The Spring for GraphQL project is using https://concourse-ci.org/[Concourse] for its CI build and other automated tasks.
 The Spring team has a dedicated Concourse instance available at https://ci.spring.io.
 
 === Setting up your development environment
 
-If you're part of the Spring GraphQL team on GitHub, you can get access to CI management features.
+If you're part of the Spring for GraphQL team on GitHub, you can get access to CI management features.
 First, you need to go to https://ci.spring.io and install the client CLI for your platform (see bottom right of the screen).
 
 You can then login with the instance using:

@@ -317,5 +317,5 @@ To test with the <<index#web-interception>> chain, you can create `WebGraphQlTes
 	WebGraphQlTester graphQlTester = WebGraphQlTester.builder(handler).build();
 ----
 
-Currently, Spring GraphQL does not support testing with a WebSocket client, and it
+Currently, Spring for GraphQL does not support testing with a WebSocket client, and it
 cannot be used for integration test of GraphQL over WebSocket requests.

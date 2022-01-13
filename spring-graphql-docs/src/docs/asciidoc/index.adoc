@@ -1,4 +1,4 @@
-= Spring GraphQL Documentation
+= Spring for GraphQL Documentation
 Brian Clozel; Andreas Marek; Rossen Stoyanchev
 include::attributes.adoc[]
 
@@ -6,12 +6,12 @@ include::attributes.adoc[]
 [[overview]]
 == Overview
 
-Spring GraphQL provides support for Spring applications built on
+Spring for GraphQL provides support for Spring applications built on
 https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between both
 teams. Our shared philosophy is to be less opinionated and more focused on
 comprehensive and wide-ranging support.
 
-Spring GraphQL is the successor of the
+Spring for GraphQL is the successor of the
 https://github.com/graphql-java/graphql-java-spring[GraphQL Java Spring] project from
 the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL applications.
 
@@ -25,7 +25,7 @@ To get started, please see the <<boot-graphql>> and the <<samples>> sections.
 [[requirements]]
 == Requirements
 
-Spring GraphQL requires the following as a baseline:
+Spring for GraphQL requires the following as a baseline:
 
 * JDK8
 * Spring Framework 5.3
@@ -37,7 +37,7 @@ Spring GraphQL requires the following as a baseline:
 [[web-transports]]
 == Web Transports
 
-Spring GraphQL supports GraphQL requests over HTTP and over WebSocket.
+Spring for GraphQL supports GraphQL requests over HTTP and over WebSocket.
 
 
 
@@ -62,7 +62,7 @@ bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the ro
 Boot starter does this, see <<boot-graphql-web>> for details or check
 `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
 
-The Spring GraphQL repository contains a Spring MVC
+The Spring for GraphQL repository contains a Spring MVC
 {github-main-branch}/samples/webmvc-http[HTTP sample] application.
 
 
@@ -103,7 +103,7 @@ https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 starter has options to enable this, see <<boot-graphql-web>> for details or check
 `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
 
-The Spring GraphQL repository contains a WebFlux
+The Spring for GraphQL repository contains a WebFlux
 {github-main-branch}/samples/webflux-websocket[WebSocket sample] application.
 
 
@@ -166,7 +166,7 @@ see <<boot-graphql-web>> for details, or check `GraphQlWebMvcAutoConfiguration` 
 [[execution]]
 == Request Execution
 
-`GraphQlService` is the main Spring GraphQL abstraction to call GraphQL Java to execute
+`GraphQlService` is the main Spring abstraction to call GraphQL Java to execute
 requests. Underlying transports, such as the <<web-transports>>, delegate to `GraphQlService` to
 handle requests.
 
@@ -179,7 +179,7 @@ the `graphql.GraphQL` instance.
 [[execution-graphqlsource]]
 === `GraphQLSource`
 
-`GraphQlSource` is a core Spring GraphQL abstraction for access to the
+`GraphQlSource` is a core Spring abstraction for access to the
 `graphql.GraphQL` instance to use for request execution. It provides a builder API to
 initialize GraphQL Java and build a `GraphQlSource`.
 
@@ -213,7 +213,7 @@ You can use `RuntimeWiringConfigurer` to register:
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 
-The Spring GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer`.
+The Spring for GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer`.
 
 
 [[execution-graphqlsource-default-type-resolver]]
@@ -252,7 +252,7 @@ transport layer, such as from a WebFlux request handling, see
 [[execution-context]]
 === Context Propagation
 
-Spring GraphQL provides support to transparently propagate context from the <<web-transports>>,
+Spring for GraphQL provides support to transparently propagate context from the <<web-transports>>,
 through the GraphQL engine, and to `DataFetcher` and other components it invokes.
 This includes both `ThreadLocal` context from the Spring MVC request handling thread and
 Reactor `Context` from the WebFlux processing pipeline.
@@ -265,7 +265,7 @@ A `DataFetcher` and other components invoked by GraphQL Java may not always exec
 the same thread as the Spring MVC handler, for example if an asynchronous
 <<web-interception, `WebInterceptor`>> or `DataFetcher` switches to a different thread.
 
-Spring GraphQL supports propagating `ThreadLocal` values from the Servlet container
+Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
 thread to the thread a `DataFetcher` and other components invoked by the GraphQL engine
 execute on. To do this, an application needs to create a `ThreadLocalAccessor` to extract
 `ThreadLocal` values of interest:
@@ -316,7 +316,7 @@ added by <<web-interception, WebInterceptor>> components.
 GraphQL Java applications can register a `DataFetcherExceptionHandler` to decide how to
 represent exceptions from the data layer in the "errors" section of the GraphQL response.
 
-Spring GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
+Spring for GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
 by the <<execution-graphqlsource>> builder. It enables applications to register one or
 more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
 until one resolves the `Exception` to a list of `graphql.GraphQLError` objects.
@@ -326,7 +326,7 @@ would be sufficient to extend `DataFetcherExceptionResolverAdapter` and override
 one of its `resolveToSingleError` or `resolveToMultipleErrors` methods that
 resolve exceptions synchronously.
 
-A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring GraphQL
+A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring for GraphQL
 defines an `ErrorType` enum with common, error classification categories:
 
 - `BAD_REQUEST`
@@ -365,7 +365,7 @@ defers until it is ready to batch load all related entities as one.
  - `DataLoader` additionally maintains a cache of previously loaded entities that can
 further improve efficiency when the same entity is in multiple places of the response.
 
-Spring GraphQL provides:
+Spring for GraphQL provides:
 
  - `BatchLoaderRegistry` that accepts and stores registrations of batch loading functions;
 This is used in `ExecutionGraphQlService` to make `DataLoader` registrations per request.
@@ -389,7 +389,7 @@ functions for entities.
 [[data-querydsl]]
 === Querydsl
 
-Spring GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
+Spring for GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
 the Spring Data
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions[Querydsl extension].
 Querydsl provides a flexible yet typesafe approach to express query predicates by
@@ -612,7 +612,7 @@ detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
 [[controllers]]
 == Annotated Controllers
 
-Spring GraphQL provides an annotation-based programming model where `@Controller`
+Spring for GraphQL provides an annotation-based programming model where `@Controller`
 components use annotations to declare handler methods with flexible method signatures to
 fetch the data for specific GraphQL fields. For example:
 
@@ -631,7 +631,7 @@ fetch the data for specific GraphQL fields. For example:
 <1> Bind this method to a query, i.e. a field under the Query type.
 <2> Determine the query from the method name if not declared on the annotation.
 
-Spring GraphQL uses `RuntimeWiring.Builder` to register the above handler method as a
+Spring for GraphQL uses `RuntimeWiring.Builder` to register the above handler method as a
 `graphql.schema.DataFetcher` for the query named "hello".
 
 
@@ -1113,7 +1113,7 @@ To apply more fine-grained security, add Spring Security annotations such as
 the GraphQL response. This should work due to <<execution-context>> that aims to make
 Security, and other context, available at the data fetching level.
 
-The Spring GraphQL repository contains samples for
+The Spring for GraphQL repository contains samples for
 {github-main-branch}/samples/webmvc-http-security[Spring MVC] and for
 {github-main-branch}/samples/webflux-security[WebFlux].
 
@@ -1130,7 +1130,7 @@ include::testing.adoc[leveloffset=+1]
 [[samples]]
 == Samples
 
-This Spring GraphQL repository contains {github-main-branch}/samples[sample applications] for
+This Spring for GraphQL repository contains {github-main-branch}/samples[sample applications] for
 various scenarios.
 
 You can run those by cloning this repository and running main application classes from

@@ -24,7 +24,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 /**
  * {@link ThreadLocalAccessor} to expose a thread-bound RequestAttributes object to data
- * fetchers in Spring GraphQL.
+ * fetchers in Spring for GraphQL.
  */
 @Component
 public class RequestAttributesAccessor implements ThreadLocalAccessor {

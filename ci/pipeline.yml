@@ -102,7 +102,7 @@ jobs:
             - "/**/spring-graphql-docs-*.zip"
           properties:
             "zip.name": "spring-graphql"
-            "zip.displayname": "Spring GraphQL"
+            "zip.displayname": "Spring for GraphQL"
             "zip.deployed": "false"
             "zip.type": "docs"
     get_params:
