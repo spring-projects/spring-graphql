@@ -22,6 +22,7 @@ import java.util.List;
 import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
+import graphql.execution.ExecutionIdProvider;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
 
@@ -42,9 +43,12 @@ public class ExecutionGraphQlService implements GraphQlService {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
+	private final boolean hasDefaultExecutionIdProvider;
+
 
 	public ExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
+		this.hasDefaultExecutionIdProvider = ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER == graphQlSource.graphQl().getIdProvider();
 	}
 
 
@@ -61,7 +65,7 @@ public class ExecutionGraphQlService implements GraphQlService {
 	@Override
 	public final Mono<RequestOutput> execute(RequestInput requestInput) {
 		return Mono.deferContextual((contextView) -> {
-			ExecutionInput executionInput = requestInput.toExecutionInput();
+			ExecutionInput executionInput = requestInput.toExecutionInput(this.hasDefaultExecutionIdProvider);
 			ReactorContextManager.setReactorContext(contextView, executionInput);
 			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * Common representation for GraphQL request input. This can be converted to
- * {@link ExecutionInput} via {@link #toExecutionInput()} and the
+ * {@link ExecutionInput} via {@link #toExecutionInput(boolean)} and the
  * {@code ExecutionInput} further customized via
  * {@link #configureExecutionInput(BiFunction)}.
  *
@@ -57,6 +57,8 @@ public class RequestInput {
 
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
+	@Nullable
+	private ExecutionId executionId;
 
 	/**
 	 * Create an instance.
@@ -80,14 +82,9 @@ public class RequestInput {
 	}
 
 
-	@SuppressWarnings("unchecked")
-	private static <T> T getKey(String key, Map<String, Object> body) {
-		return (T) body.get(key);
-	}
-
 	/**
-	 * Return an identifier for the request. This id is later propagated
-	 * as the {@link ExecutionId} of the execution input.
+	 * Return an identifier for the request. This id can be later propagated
+	 * as the {@link ExecutionId} if {@link #executionId(ExecutionId) none has been set}.
 	 * <p>For web transports, this identifier can be used to correlate
 	 * request and response messages on a multiplexed connection.
 	 * @return the request id.
@@ -132,6 +129,15 @@ public class RequestInput {
 	}
 
 	/**
+	 * Set an {@link ExecutionId} to be used for the {@link ExecutionInput}
+	 * @param executionId the execution id to use with the {@link ExecutionInput}.
+	 */
+	public void executionId(ExecutionId executionId) {
+		Assert.notNull(executionId, "executionId should not be null");
+		this.executionId = executionId;
+	}
+
+	/**
 	 * Provide a consumer to configure the {@link ExecutionInput} used for input to
 	 * {@link graphql.GraphQL#executeAsync(ExecutionInput)}. The builder is initially
 	 * populated with the values from {@link #getQuery()}, {@link #getOperationName()},
@@ -148,16 +154,22 @@ public class RequestInput {
 	 * populated from {@link #getQuery()}, {@link #getOperationName()}, and
 	 * {@link #getVariables()}, and is then further customized through
 	 * {@link #configureExecutionInput(BiFunction)}.
+	 * @param useRequestId whether the {@link #getId()} should be used as a fallback for {@link ExecutionId}.
 	 * @return the execution input
 	 */
-	public ExecutionInput toExecutionInput() {
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput()
+	public ExecutionInput toExecutionInput(boolean useRequestId) {
+		ExecutionInput.Builder inputBuilder = ExecutionInput.newExecutionInput()
 				.query(this.query)
 				.operationName(this.operationName)
 				.variables(this.variables)
-				.locale(this.locale)
-				.executionId(ExecutionId.from(this.id))
-				.build();
+				.locale(this.locale);
+		if (this.executionId != null) {
+			inputBuilder.executionId(this.executionId);
+		}
+		else if (useRequestId) {
+			inputBuilder.executionId(ExecutionId.from(this.id));
+		}
+		ExecutionInput executionInput = inputBuilder.build();
 
 		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
 			ExecutionInput current = executionInput;
