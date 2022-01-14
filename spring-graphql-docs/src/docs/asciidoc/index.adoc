@@ -213,6 +213,11 @@ You can use `RuntimeWiringConfigurer` to register:
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 
+If you need to add a `WiringFactory`, e.g. to make registrations that take into account
+schema definitions, implement the alternative `configure` method that accepts both the
+`RuntimeWiring.Builder` and an output `List<WiringFactory>`. This allows you to add any
+number of factories that are then invoked in sequence.
+
 The Spring for GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer`.
 
 

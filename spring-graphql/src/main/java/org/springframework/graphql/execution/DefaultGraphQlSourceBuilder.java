@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,13 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTraverser;
 import graphql.schema.TypeResolver;
+import graphql.schema.idl.CombinedWiringFactory;
+import graphql.schema.idl.NoopWiringFactory;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.WiringFactory;
 
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
@@ -130,9 +133,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
 				.orElseThrow(MissingSchemaException::new);
 
-		RuntimeWiring.Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
-		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));
-		RuntimeWiring runtimeWiring = runtimeWiringBuilder.build();
+		RuntimeWiring runtimeWiring = initRuntimeWiring();
 
 		registerDefaultTypeResolver(registry, runtimeWiring);
 
@@ -154,6 +155,23 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		return new CachedGraphQlSource(graphQl, schema);
 	}
 
+	private RuntimeWiring initRuntimeWiring() {
+		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
+		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder));
+
+		List<WiringFactory> factories = new ArrayList<>();
+		WiringFactory factory = builder.build().getWiringFactory();
+		if (!factory.getClass().equals(NoopWiringFactory.class)) {
+			factories.add(factory);
+		}
+		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder, factories));
+		if (!factories.isEmpty()) {
+			builder.wiringFactory(new CombinedWiringFactory(factories));
+		}
+
+		return builder.build();
+	}
+
 	private void registerDefaultTypeResolver(TypeDefinitionRegistry registry, RuntimeWiring runtimeWiring) {
 		TypeResolver typeResolver =
 				(this.defaultTypeResolver != null ? this.defaultTypeResolver : new ClassNameTypeResolver());
@@ -171,7 +189,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 			}
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource.toString());
+			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource);
 		}
 	}
 
