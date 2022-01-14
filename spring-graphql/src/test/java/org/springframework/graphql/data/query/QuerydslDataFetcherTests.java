@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 
 import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
-import graphql.schema.GraphQLTypeVisitor;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
@@ -47,6 +46,7 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -265,11 +265,11 @@ class QuerydslDataFetcherTests {
 			@Nullable QuerydslPredicateExecutor<?> executor,
 			@Nullable ReactiveQuerydslPredicateExecutor<?> reactiveExecutor) {
 
-		GraphQLTypeVisitor visitor = QuerydslDataFetcher.autoRegistrationTypeVisitor(
+		RuntimeWiringConfigurer configurer = QuerydslDataFetcher.autoRegistrationConfigurer(
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor) : Collections.emptyList()));
 
-		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
+		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
 	}
 
 	private WebInput input(String query) {

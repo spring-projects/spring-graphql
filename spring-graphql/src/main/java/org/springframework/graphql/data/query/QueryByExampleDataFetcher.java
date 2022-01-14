@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlArgumentInitializer;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.util.Assert;
 
 /**
@@ -70,9 +71,9 @@ import org.springframework.util.Assert;
  * {@link QueryByExampleDataFetcher.ReactiveBuilder} for further options on
  * result projections and sorting.
  *
- * <p>{@code QueryByExampleDataFetcher} {@link #autoRegistrationTypeVisitor(List, List) exposes}
- * a {@link GraphQLTypeVisitor} that can auto-register repositories annotated with
- * {@link GraphQlRepository @GraphQlRepository}.
+ * <p>{@code QueryByExampleDataFetcher} {@link #autoRegistrationConfigurer(List, List) exposes}
+ * a {@link RuntimeWiringConfigurer} that can auto-register repositories
+ * annotated with {@link GraphQlRepository @GraphQlRepository}.
  *
  * @param <T> returned result type
  * @author Greg Turnquist
@@ -151,16 +152,53 @@ public abstract class QueryByExampleDataFetcher<T> {
 	}
 
 	/**
+	 * Return a {@link RuntimeWiringConfigurer} that installs a
+	 * {@link graphql.schema.idl.WiringFactory} to find queries with a return
+	 * type whose name matches to the domain type name of the given repositories
+	 * and registers {@link DataFetcher}s for them.
+	 *
+	 * <p><strong>Note:</strong> This applies only to top-level queries and
+	 * repositories annotated with {@link GraphQlRepository @GraphQlRepository}.
+	 *
+	 * @param executors repositories to consider for registration
+	 * @param reactiveExecutors reactive repositories to consider for registration
+	 * @return the created configurer
+	 */
+	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
+			List<QueryByExampleExecutor<?>> executors,
+			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
+
+		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
+
+		for (QueryByExampleExecutor<?> executor : executors) {
+			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
+			if (typeName != null) {
+				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+			}
+		}
+
+		for (ReactiveQueryByExampleExecutor<?> executor : reactiveExecutors) {
+			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
+			if (typeName != null) {
+				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+			}
+		}
+
+		return new AutoRegistrationRuntimeWiringConfigurer(factories);
+	}
+
+	/**
 	 * Create a {@link GraphQLTypeVisitor} that finds queries with a return type
 	 * whose name matches to the domain type name of the given repositories and
 	 * registers {@link DataFetcher}s for those queries.
 	 * <p><strong>Note:</strong> currently, this method will match only to
 	 * queries under the top-level "Query" type in the GraphQL schema.
 	 *
-	 * @param executors         repositories to consider for registration
+	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
 	 */
+	@SuppressWarnings("deprecation")
 	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
 			List<QueryByExampleExecutor<?>> executors,
 			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {

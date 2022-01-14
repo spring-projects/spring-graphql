@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuer
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -77,9 +78,9 @@ import org.springframework.util.MultiValueMap;
  * options on GraphQL Query argument to Querydsl Predicate binding customizations,
  * result projections, and sorting.
  *
- * <p>{@code QuerydslDataFetcher} {@link #autoRegistrationTypeVisitor(List, List) exposes}
- * a {@link GraphQLTypeVisitor} that can auto-register repositories annotated with
- * {@link GraphQlRepository @GraphQlRepository}.
+ * <p>{@code QuerydslDataFetcher} {@link #autoRegistrationConfigurer(List, List) exposes}
+ * a {@link RuntimeWiringConfigurer} that can auto-register repositories
+ * annotated with {@link GraphQlRepository @GraphQlRepository}.
  *
  * @param <T> returned result type
  * @author Mark Paluch
@@ -174,6 +175,48 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 	/**
+	 * Return a {@link RuntimeWiringConfigurer} that installs a
+	 * {@link graphql.schema.idl.WiringFactory} to find queries with a return
+	 * type whose name matches to the domain type name of the given repositories
+	 * and registers {@link DataFetcher}s for them.
+	 *
+	 * <p><strong>Note:</strong> This applies only to top-level queries and
+	 * repositories annotated with {@link GraphQlRepository @GraphQlRepository}.
+	 * If a repository is also an instance of {@link QuerydslBinderCustomizer},
+	 * this is transparently detected and applied through the
+	 * {@code QuerydslDataFetcher} builder  methods.
+	 *
+	 * @param executors repositories to consider for registration
+	 * @param reactiveExecutors reactive repositories to consider for registration
+	 * @return the created configurer
+	 */
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
+			List<QuerydslPredicateExecutor<?>> executors,
+			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
+
+		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
+
+		for (QuerydslPredicateExecutor<?> executor : executors) {
+			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
+			if (typeName != null) {
+				Builder<?, ?> builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
+				factories.put(typeName, single -> single ? builder.single() : builder.many());
+			}
+		}
+
+		for (ReactiveQuerydslPredicateExecutor<?> executor : reactiveExecutors) {
+			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
+			if (typeName != null) {
+				ReactiveBuilder builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
+				factories.put(typeName, single -> single ? builder.single() : builder.many());
+			}
+		}
+
+		return new AutoRegistrationRuntimeWiringConfigurer(factories);
+	}
+
+	/**
 	 * Return a {@link GraphQLTypeVisitor} that auto-registers the given
 	 * Querydsl repositories for queries that do not already have a registered
 	 * {@code DataFetcher} and whose return type matches the simple name of the
@@ -188,8 +231,10 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
+	 * @deprecated in favor of {@link #autoRegistrationConfigurer(List, List)}
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
+	@Deprecated
 	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
 			List<QuerydslPredicateExecutor<?>> executors,
 			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
@@ -291,7 +336,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 *
 		 * <p>If a Querydsl repository implements {@link QuerydslBinderCustomizer}
 		 * itself, this is automatically detected and applied during
-		 * {@link #autoRegistrationTypeVisitor(List, List) auto-registration}.
+		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
 		 *
 		 * @param customizer to customize the GraphQL query to Querydsl
@@ -394,7 +439,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 *
 		 * <p>If a Querydsl repository implements {@link QuerydslBinderCustomizer}
 		 * itself, this is automatically detected and applied during
-		 * {@link #autoRegistrationTypeVisitor(List, List) auto-registration}.
+		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
 		 *
 		 * @param customizer to customize the GraphQL query to Querydsl

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 import com.mongodb.reactivestreams.client.MongoClients;
 import graphql.schema.DataFetcher;
-import graphql.schema.GraphQLTypeVisitor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.MongoDBContainer;
@@ -45,6 +44,7 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -149,11 +149,11 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 	private static GraphQlSetup initGraphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
 
-		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.autoRegistrationTypeVisitor(
+		RuntimeWiringConfigurer configurer = QueryByExampleDataFetcher.autoRegistrationConfigurer(
 				Collections.emptyList(),
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()));
 
-		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
+		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
 	}
 
 	private WebInput input(String query) {

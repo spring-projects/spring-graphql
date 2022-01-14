@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
 import graphql.schema.DataFetcher;
-import graphql.schema.GraphQLTypeVisitor;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +43,7 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
+import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -179,11 +179,11 @@ class QueryByExampleDataFetcherJpaTests {
 
 	private static GraphQlSetup initGraphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
 
-		GraphQLTypeVisitor visitor = QueryByExampleDataFetcher.autoRegistrationTypeVisitor(
+		RuntimeWiringConfigurer configurer = QueryByExampleDataFetcher.autoRegistrationConfigurer(
 				executor != null ? Collections.singletonList(executor) : Collections.emptyList(),
 				Collections.emptyList());
 
-		return GraphQlSetup.schemaResource(BookSource.schema).typeVisitor(visitor);
+		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
 	}
 
 	private WebInput input(String query) {
