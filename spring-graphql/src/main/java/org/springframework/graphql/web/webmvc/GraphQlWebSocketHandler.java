@@ -74,7 +74,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
 	private static final List<String> SUB_PROTOCOL_LIST =
-			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
+			Arrays.asList("graphql-transport-ws", "graphql-ws");
 
 
 	private final WebGraphQlHandler graphQlHandler;
@@ -110,7 +110,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) {
-		if ("subscriptions-transport-ws".equalsIgnoreCase(session.getAcceptedProtocol())) {
+		if ("graphql-ws".equalsIgnoreCase(session.getAcceptedProtocol())) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. "
 						+ "Please, use https://github.com/enisdenjo/graphql-ws.");
