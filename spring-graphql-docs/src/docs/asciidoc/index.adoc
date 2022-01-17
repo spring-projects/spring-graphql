@@ -534,9 +534,9 @@ of the repository domain type. If needed, you can use the `typeName` attribute o
 Auto-registration detects if a given repository implements `QuerydslBinderCustomizer` and
 transparently applies that through `QuerydslDataFetcher` builder methods.
 
-Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
-`QuerydslDataFetcher`. The <<boot-repositories-querydsl,Boot starter>> automatically
-detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
+Auto-registration is performed through a `RuntimeWiringConfigurer` which can be obtained
+from `QuerydslDataFetcher`. The <<boot-repositories-querydsl,Boot starter>> automatically
+detects `@GraphQlRepository` beans and uses them to configure the `RuntimeWiringConfigurer`.
 
 
 
@@ -607,9 +607,9 @@ By default, the name of the GraphQL type returned by the query must match the si
 of the repository domain type. If needed, you can use the `typeName` attribute of
 `@GraphQlRepository` to specify the target GraphQL type name.
 
-Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
+Auto-registration is performed through a `RuntimeWiringConfigurer` which can be obtained from
 `QueryByExampleDataFetcher`. The <<boot-repositories-querybyexample,Boot starter>> automatically
-detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
+detects `@GraphQlRepository` beans and uses them to configure the `RuntimeWiringConfigurer`.
 
 
 

@@ -197,8 +197,9 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
+	 * @deprecated in favor of {@link #autoRegistrationConfigurer(List, List)}
 	 */
-	@SuppressWarnings("deprecation")
+	@Deprecated
 	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
 			List<QueryByExampleExecutor<?>> executors,
 			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
