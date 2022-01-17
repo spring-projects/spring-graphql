@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -248,7 +248,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	}
 
 	@Test
-	void errorMessagePayloadIsCorrectArray() {
+	void errorMessagePayloadIsArray() {
 		final String GREETING_QUERY = "{" +
 				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
 				"\"type\":\"subscribe\"," +
@@ -258,9 +258,9 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				"  }\"}" +
 				"}";
 
-		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent("" +
-						"type Subscription { greeting: String! }" +
-						"type Query { greetingUnused: String! }")
+		String schema = "type Subscription { greeting: String! } type Query { greetingUnused: String! }";
+
+		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
 				.subscriptionFetcher("greeting", env -> Flux.just("a", null, "b"))
 				.webInterceptor()
 				.toWebGraphQlHandler();

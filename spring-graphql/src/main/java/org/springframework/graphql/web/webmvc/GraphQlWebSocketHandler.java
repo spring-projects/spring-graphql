@@ -257,12 +257,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						}
 						ErrorType errorType = ErrorType.DataFetchingException;
 						String message = ex.getMessage();
-						Map<String, Object> errorMap = GraphqlErrorBuilder.newError().errorType(errorType).message(message).build()
+						Map<String, Object> errorMap = GraphqlErrorBuilder.newError()
+								.errorType(errorType)
+								.message(message)
+								.build()
 								.toSpecification();
-
-						// Payload needs to be an array
-						//  see: https://github.com/enisdenjo/graphql-ws/blob/master/docs/interfaces/common.ErrorMessage.md#payload
-						return Mono.just(encode(id, MessageType.ERROR, Collections.singletonList(errorMap)));
+						return Mono.just(encode(
+								id, MessageType.ERROR, Collections.singletonList(errorMap)));
 				});
 	}
 
