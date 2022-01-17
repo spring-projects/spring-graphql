@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,8 +70,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
-	private static final List<String> SUB_PROTOCOL_LIST =
-			Arrays.asList("graphql-transport-ws", "graphql-ws");
+	private static final List<String> SUB_PROTOCOL_LIST = Arrays.asList("graphql-transport-ws", "graphql-ws");
 
 	static final ResolvableType MAP_RESOLVABLE_TYPE =
 			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
