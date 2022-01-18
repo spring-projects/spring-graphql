@@ -20,7 +20,8 @@ feedback. Please, use our
 https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report a
 problem, discuss a design issue, or request a feature.
 
-To get started, please see the <<boot-graphql>> and the <<samples>> sections.
+To get started, check the Spring GraphQL starter on https://start.spring.io and the
+<<samples>> sections.
 
 [[requirements]]
 == Requirements
@@ -59,8 +60,10 @@ status is always 200 (OK), and any errors from GraphQL request execution appear 
 
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
-Boot starter does this, see <<boot-graphql-web>> for details or check
-`GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
+Boot starter does this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
 
 The Spring for GraphQL repository contains a Spring MVC
 {github-main-branch}/samples/webmvc-http[HTTP sample] application.
@@ -100,8 +103,10 @@ https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 
 `GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
 `SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. The Boot
-starter has options to enable this, see <<boot-graphql-web>> for details or check
-`GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
+starter has options to enable this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
 
 The Spring for GraphQL repository contains a WebFlux
 {github-main-branch}/samples/webflux-websocket[WebSocket sample] application.
@@ -156,11 +161,10 @@ class MyInterceptor implements WebInterceptor {
 
 `WebGraphQlHandler` provides a builder to initialize the Web interception chain. After
 you build the chain, you can use the resulting `WebGraphQlHandler` to initialize the HTTP
-or WebSocket transport handlers. The Boot starter configures all this,
-see <<boot-graphql-web>> for details, or check `GraphQlWebMvcAutoConfiguration` or
-`GraphQlWebFluxAutoConfiguration` for example config.
-
-
+or WebSocket transport handlers. The Boot starter configures all this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
 
 
 [[execution]]
@@ -193,10 +197,11 @@ support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
 
 `GraphQlSource.Builder` can be configured with one or more `Resource` instances to be
 parsed and merged together. That means schema files can be loaded from just about any
-location. By default, the Spring Boot starter <<boot-graphql-schema,loads schema files>>
-from a well-known classpath location, but you can change that to a location on the file system
-via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a custom
-`Resource` that loads schema files from a remote location or storage.
+location. By default, the Spring Boot starter
+{spring-boot-ref-docs}/web.html#web.graphql.schema[loads schema files]
+from a well-known classpath location, but you can change that to a location on the file
+system via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a
+custom `Resource` that loads schema files from a remote location or storage.
 
 
 [[execution-graphqlsource-schema-creation]]
@@ -323,7 +328,8 @@ public class RequestAttributesAccessor implements ThreadLocalAccessor {
 
 A `ThreadLocalAccessor` can be registered in the <<web-interception,WebGraphHandler>>
 builder. The Boot starter detects beans of this type and automatically registers them for
-Spring MVC application, see <<boot-graphql-web>>.
+Spring MVC application, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section.
 
 
 [[execution-context-webflux]]
@@ -418,8 +424,7 @@ public class MyConfig {
 }
 ----
 
-The Spring Boot starter declares a
-<<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>> so you can inject it into
+The Spring Boot starter declares a `BatchLoaderRegistry` bean that you can inject into
 your configuration, as shown above, or into any component such as a controller in order
 register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
 `ExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
@@ -619,8 +624,10 @@ Auto-registration detects if a given repository implements `QuerydslBinderCustom
 transparently applies that through `QuerydslDataFetcher` builder methods.
 
 Auto-registration is performed through a `RuntimeWiringConfigurer` which can be obtained
-from `QuerydslDataFetcher`. The <<boot-repositories-querydsl,Boot starter>> automatically
-detects `@GraphQlRepository` beans and uses them to configure the `RuntimeWiringConfigurer`.
+from `QuerydslDataFetcher`. The
+{spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
+detects `@GraphQlRepository` beans and uses them to initialize the
+`RuntimeWiringConfigurer` with.
 
 
 
@@ -692,8 +699,10 @@ of the repository domain type. If needed, you can use the `typeName` attribute o
 `@GraphQlRepository` to specify the target GraphQL type name.
 
 Auto-registration is performed through a `RuntimeWiringConfigurer` which can be obtained from
-`QueryByExampleDataFetcher`. The <<boot-repositories-querybyexample,Boot starter>> automatically
-detects `@GraphQlRepository` beans and uses them to configure the `RuntimeWiringConfigurer`.
+`QueryByExampleDataFetcher`. The
+{spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
+detects `@GraphQlRepository` beans and uses them to initialize the
+`RuntimeWiringConfigurer` with.
 
 
 
@@ -738,7 +747,9 @@ annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is
 implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
 The Spring Boot starter automatically declares `AnnotatedControllerConfigurer` as a bean
 and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
-support for annotated ``DataFetcher``s, see <<boot-graphql-runtimewiring>>.
+support for annotated ``DataFetcher``s, see the
+{spring-boot-ref-docs}/web.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
+in the Boot starter documentation.
 
 
 [[controllers-schema-mapping]]
