@@ -346,44 +346,108 @@ default it is marked as `INTERNAL_ERROR`.
 
 
 [[execution-batching]]
-=== Batching
+=== Batch Loading
 
-Given a `Book` and its `Author`, we can create one `DataFetcher` for books and another
-for the author of a book. This means books and authors aren't automatically loaded
-together, which enables queries to select the subset of data they need. However, loading
-multiple books, results in loading each author individually, and this is a performance
-issue known as the N+1 select problem.
+Given a `Book` and its `Author`, we can create one `DataFetcher` for a book and another
+for its author. This allows selecting books with or without authors, but it means books
+and authors aren't loaded together, which is especially inefficient when querying multiple
+books as the author for each book is loaded individually. This is known as the N+1 select
+problem.
 
-GraphQL Java provides a
-https://www.graphql-java.com/documentation/v16/batching/[batching feature] that allows
-related entities, such as the authors for all books, to be loaded together. This is how
-the underlying mechanism works in GraphQL Java:
 
- - For each request, an application can register a batch loading function as a
-`DataLoader` in the `DataLoaderRegistry` to assist with loading instances of a given
-entity, such as `Author` from a set of unique keys.
- - A `DataFetcher` can access the `DataLoader` for the entity and use it to load entity
-instances; for example the author `DataFetcher` obtains the authorId from the `Book`
-parent object, and uses it to load the `Author`.
- - `DataLoader` does not load the entity immediately but rather returns a future, and
-defers until it is ready to batch load all related entities as one.
- - `DataLoader` additionally maintains a cache of previously loaded entities that can
-further improve efficiency when the same entity is in multiple places of the response.
+[[execution-batching-dataloader]]
+==== `DataLoader`
 
-Spring for GraphQL provides:
+GraphQL Java provides a `DataLoader` mechanism for batch loading of related entities.
+You can find the full details in the
+https://www.graphql-java.com/documentation/v16/batching/[GraphQL Java docs]. Below is a
+summary of how it works:
 
- - `BatchLoaderRegistry` that accepts and stores registrations of batch loading functions;
-This is used in `ExecutionGraphQlService` to make `DataLoader` registrations per request.
- - <<controllers-schema-mapping-data-loader,DataLoader argument>> for `@SchemaMapping`
-methods to access the `DataLoader` for the field type.
- - <<controllers-batch-mapping,@BatchMapping>> data controller methods that provide a
-shortcut and avoid the need to use `DataLoader` directly.
+ 1. Register ``DataLoader``'s in the `DataLoaderRegistry` that can load entities, given unique keys.
+ 2. ``DataFetcher``'s can access ``DataLoader``'s and use them to load entities by id.
+ 3. A `DataLoader` defers loading by returning a future so it can be done in a batch.
+ 4. ``DataLoader``'s maintain a per request cache of loaded entities that can further
+ improve efficiency.
+
+
+[[execution-batching-batch-loader-registry]]
+==== `BatchLoaderRegistry`
+
+The complete batching loading mechanism in GraphQL Java requires implementing one of
+several `BatchLoader` interface, then wrapping and registering those as ``DataLoader``s
+with a name in the `DataLoaderRegistry`.
+
+The API in Spring GraphQL is slightly different. For registration, there is only one,
+central `BatchLoaderRegistry` exposing factory methods and a builder to create and
+register any number of batch loading functions:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration
+public class MyConfig {
+
+	public MyConfig(BatchLoaderRegistry registry) {
+
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+            // return Mono<Map<Long, Author>
+        });
+
+        // more registrations ...
+    }
+
+}
+----
 
 The Spring Boot starter declares a
-<<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>>, so that applications can
-simply autowire the registry into their controllers in order to register batch loading
-functions for entities.
+<<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>> so you can inject it into
+your configuration, as shown above, or into any component such as a controller in order
+register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
+`ExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
 
+By default, the `DataLoader` name is based on the class name of the target entity.
+This allows an `@SchemaMapping` method to declare a
+<<controllers-schema-mapping-data-loader,DataLoader argument>> with a generic type, and
+without the need for specifying a name. The name, however, can be customized through the
+`BatchLoaderRegistry` builder, if necessary, along with other `DataLoader` options.
+
+For many cases, when loading related entities, you can use
+<<controllers-batch-mapping,@BatchMapping>> controller methods, which are a shortcut
+for and replace the need to use `BatchLoaderRegistry` and `DataLoader` directly.
+s
+`BatchLoaderRegistry` provides other important benefits too. It supports access to
+the same `GraphQLContext` from batch loading functions and from `@BatchMapping` methods,
+as well as ensures <<execution-context>> to them. This is why applications are expected
+to use it. It is possible to perform your own `DataLoader` registrations directly but
+such registrations would forgo the above benefits.
+
+
+[[execution-batching-testing]]
+==== Testing Batch Loading
+
+Start by having `BatchLoaderRegistry` perform registrations on a `DataLoaderRegistry`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+// perform registrations...
+
+DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
+batchLoaderRegistry.registerDataLoaders(dataLoaderRegistry, graphQLContext);
+----
+
+Now you can access and test individual ``DataLoader``'s as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+DataLoader<Long, Book> loader = dataLoaderRegistry.getDataLoader(Book.class.getName());
+loader.load(1L);
+loader.loadMany(Arrays.asList(2L, 3L));
+List<Book> books = loader.dispatchAndJoin(); // actual loading
+
+assertThat(books).hasSize(3);
+assertThat(books.get(0).getName()).isEqualTo("...");
+// ...
+----
 
 
 
@@ -987,12 +1051,9 @@ to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method
 resolver will also try the method argument name as the key but typically that should not
 be necessary.
 
-[TIP]
-====
-For straight-forward cases where the `@SchemaMapping` simply delegates to a `DataLoader`,
-you can reduce boilerplate by using a <<controllers-batch-mapping,@BatchMapping>> method
-instead.
-====
+Note that for many cases with loading related entities, where the `@SchemaMapping` simply
+delegates to a `DataLoader`, you can reduce boilerplate by using a
+<<controllers-batch-mapping,@BatchMapping>> method as described in the next section.
 
 
 
