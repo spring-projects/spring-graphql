@@ -188,7 +188,6 @@ support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
 <<execution-exceptions>>.
 
 
-
 [[execution-graphqlsource-schema-resources]]
 ==== Schema Resources
 
@@ -198,6 +197,27 @@ location. By default, the Spring Boot starter <<boot-graphql-schema,loads schema
 from a well-known classpath location, but you can change that to a location on the file system
 via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a custom
 `Resource` that loads schema files from a remote location or storage.
+
+
+[[execution-graphqlsource-schema-creation]]
+==== Schema Creation
+
+By default, `GraphQlSource.Builder` uses the GraphQL Java `GraphQLSchemaGenerator` to
+create the `graphql.schema.GraphQLSchema`. This works for most applications, but if
+necessary, you can hook into the schema creation through the builder:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlSource graphQlSource = GraphQlSource.builder()
+		.schemaResources(..)
+		.configureRuntimeWiring(..)
+		.schemaFactory((typeDefinitionRegistry, runtimeWiring) -> {
+			// create `GraphQLSchema`
+		})
+		.build();
+----
+
+The primary reason for this is to create the schema through a federation library.
 
 
 [[execution-graphqlsource-runtimewiring-configurer]]
