@@ -103,5 +103,11 @@ configure(moduleProjects) {
 		}
 	}
 
+	ext.javadocLinks = [
+			"https://docs.oracle.com/javase/8/docs/api/",
+			"https://docs.spring.io/spring-framework/docs/5.3.x/javadoc-api/",
+			"https://javadoc.io/doc/com.graphql-java/graphql-java/17.3/"
+	] as String[]
+
 	apply from: "${rootDir}/gradle/publishing.gradle"
 }
