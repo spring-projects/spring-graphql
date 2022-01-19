@@ -18,6 +18,7 @@ package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 
 import graphql.ExecutionInput;
 import graphql.GraphQL;
@@ -39,16 +40,21 @@ import org.springframework.graphql.RequestOutput;
  */
 public class ExecutionGraphQlService implements GraphQlService {
 
+	private static final BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> RESET_EXECUTION_ID_CONFIGURER =
+			(executionInput, builder) -> builder.executionId(null).build();
+
+
 	private final GraphQlSource graphQlSource;
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
-	private final boolean hasDefaultExecutionIdProvider;
+	private final boolean isDefaultExecutionIdProvider;
 
 
 	public ExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
-		this.hasDefaultExecutionIdProvider = ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER == graphQlSource.graphQl().getIdProvider();
+		this.isDefaultExecutionIdProvider =
+				(graphQlSource.graphQl().getIdProvider() == ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER);
 	}
 
 
@@ -65,7 +71,10 @@ public class ExecutionGraphQlService implements GraphQlService {
 	@Override
 	public final Mono<RequestOutput> execute(RequestInput requestInput) {
 		return Mono.deferContextual((contextView) -> {
-			ExecutionInput executionInput = requestInput.toExecutionInput(this.hasDefaultExecutionIdProvider);
+			if (!this.isDefaultExecutionIdProvider && requestInput.getExecutionId() == null) {
+				requestInput.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
+			}
+			ExecutionInput executionInput = requestInput.toExecutionInput();
 			ReactorContextManager.setReactorContext(contextView, executionInput);
 			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))

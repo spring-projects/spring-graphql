@@ -28,23 +28,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class RequestInputTests {
 
-	private RequestInput requestInput = new RequestInput("greeting", "Greeting", null, null, "id");
+	private final RequestInput requestInput = new RequestInput("greeting", "Greeting", null, null, "id");
+
 
 	@Test
-	void shouldUseCustomExecutionIdIfPresent() {
+	void shouldUseRequestId() {
+		assertThat(this.requestInput.toExecutionInput().getExecutionId()).isEqualTo(ExecutionId.from("id"));
+	}
+
+	@Test
+	void shouldUseExecutionId() {
 		ExecutionId customId = ExecutionId.from("customId");
 		this.requestInput.executionId(customId);
-		assertThat(this.requestInput.toExecutionInput(true).getExecutionId()).isEqualTo(customId);
-		assertThat(this.requestInput.toExecutionInput(false).getExecutionId()).isEqualTo(customId);
+		assertThat(this.requestInput.toExecutionInput().getExecutionId()).isEqualTo(customId);
 	}
 
-	@Test
-	void executionIdShouldFallBackToRequestId() {
-		assertThat(this.requestInput.toExecutionInput(true).getExecutionId()).isEqualTo(ExecutionId.from("id"));
-	}
-
-	@Test
-	void executionIdShouldFallBackToProvider() {
-		assertThat(this.requestInput.toExecutionInput(false).getExecutionId()).isNull();
-	}
 }

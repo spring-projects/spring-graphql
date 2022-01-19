@@ -32,10 +32,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Common representation for GraphQL request input. This can be converted to
- * {@link ExecutionInput} via {@link #toExecutionInput(boolean)} and the
- * {@code ExecutionInput} further customized via
- * {@link #configureExecutionInput(BiFunction)}.
+ * Common, server-side representation of GraphQL request input independent of
+ * the underlying transport. This can be converted to {@link ExecutionInput}
+ * via {@link #toExecutionInput()} while the resulting {@code ExecutionInput}
+ * can be customized via {@link #configureExecutionInput(BiFunction)} callbacks.
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
@@ -60,6 +60,7 @@ public class RequestInput {
 	@Nullable
 	private ExecutionId executionId;
 
+
 	/**
 	 * Create an instance.
 	 * @param query the query, mutation, or subscription for the request
@@ -83,15 +84,35 @@ public class RequestInput {
 
 
 	/**
-	 * Return an identifier for the request. This id can be later propagated
-	 * as the {@link ExecutionId} if {@link #executionId(ExecutionId) none has been set}.
-	 * <p>For web transports, this identifier can be used to correlate
-	 * request and response messages on a multiplexed connection.
-	 * @return the request id.
+	 * Return the id for the request selected by the transport handler.
+	 * <ul>
+	 * <li>For Spring MVC, the id is generated via
+	 * {@link org.springframework.util.AlternativeJdkIdGenerator}, which is more
+	 * efficient than {@code UUID.randomUUID()}.
+	 * <li>For WebFlux the id is from the {@code ServerHttpRequest}, which is
+	 * useful to correlate to WebFlux log messages.
+	 * <li>For WebSocket, the id is from the {@code Subscribe} message of the
+	 * GraphQL over WebSocket protocol, which is useful to correlate to
+	 * WebSocket messages.
+	 * </ul>
+	 * <p> By default, the transport id becomes the
+	 * {@link ExecutionInput.Builder#executionId(ExecutionId) executionId} for
+	 * the GraphQL request. You can override this via
+	 * {@link #executionId(ExecutionId)} or by configuring an
+	 * {@link graphql.execution.ExecutionIdProvider} on {@link graphql.GraphQL}.
+	 * @return the request id
 	 * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket Protocol</a>
 	 */
 	public String getId() {
 		return this.id;
+	}
+
+	/**
+	 * Return the {@code executionId} configured via {@link #executionId(ExecutionId)}.
+	 */
+	@Nullable
+	public ExecutionId getExecutionId() {
+		return this.executionId;
 	}
 
 	/**
@@ -129,8 +150,10 @@ public class RequestInput {
 	}
 
 	/**
-	 * Set an {@link ExecutionId} to be used for the {@link ExecutionInput}
-	 * @param executionId the execution id to use with the {@link ExecutionInput}.
+	 * Configure the {@link ExecutionId} to use for the GraphQL request, which
+	 * is set on the {@link ExecutionInput}. This option overrides the
+	 * {@link #getId() id} selected by the transport handler.
+	 * @param executionId the execution id to set on the {@link ExecutionInput}.
 	 */
 	public void executionId(ExecutionId executionId) {
 		Assert.notNull(executionId, "executionId should not be null");
@@ -154,26 +177,21 @@ public class RequestInput {
 	 * populated from {@link #getQuery()}, {@link #getOperationName()}, and
 	 * {@link #getVariables()}, and is then further customized through
 	 * {@link #configureExecutionInput(BiFunction)}.
-	 * @param useRequestId whether the {@link #getId()} should be used as a fallback for {@link ExecutionId}.
 	 * @return the execution input
 	 */
-	public ExecutionInput toExecutionInput(boolean useRequestId) {
+	public ExecutionInput toExecutionInput() {
 		ExecutionInput.Builder inputBuilder = ExecutionInput.newExecutionInput()
 				.query(this.query)
 				.operationName(this.operationName)
 				.variables(this.variables)
-				.locale(this.locale);
-		if (this.executionId != null) {
-			inputBuilder.executionId(this.executionId);
-		}
-		else if (useRequestId) {
-			inputBuilder.executionId(ExecutionId.from(this.id));
-		}
+				.locale(this.locale)
+				.executionId(this.executionId != null ? this.executionId : ExecutionId.from(this.id));
+
 		ExecutionInput executionInput = inputBuilder.build();
 
 		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
 			ExecutionInput current = executionInput;
-			executionInput = executionInput.transform((builder) -> configurer.apply(current, builder));
+			executionInput = executionInput.transform(builder -> configurer.apply(current, builder));
 		}
 
 		return executionInput;

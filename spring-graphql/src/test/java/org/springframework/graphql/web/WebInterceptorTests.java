@@ -79,7 +79,7 @@ public class WebInterceptorTests {
 
 		WebGraphQlHandler handler = WebGraphQlHandler
 				.builder((input) -> {
-					actualName.set(input.toExecutionInput(true).getOperationName());
+					actualName.set(input.toExecutionInput().getOperationName());
 					return emptyExecutionResult(input);
 				})
 				.interceptor((webInput, next) -> {
