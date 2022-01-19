@@ -1,5 +1,5 @@
 = Spring for GraphQL Documentation
-Brian Clozel; Andreas Marek; Rossen Stoyanchev
+Brian Clozel; Andreas Marek; Rossen Stoyanchev; Mark Paluch
 include::attributes.adoc[]
 
 
@@ -480,6 +480,58 @@ assertThat(books.get(0).getName()).isEqualTo("...");
 [[data]]
 == Data Integration
 
+Spring for GraphQL is, in contrast to other GraphQL technologies that surface persistent
+data, not a data gateway that translates GraphQL queries into SQL or JSON queries.
+Instead, Spring for GraphQL is an API gateway that leverages existing Spring technology
+following common programming models to expose underlying data sources through GraphQL.
+
+Domain-driven design is the suggested approach to manage complexity  when using Spring Data.
+So by design, a GraphQL API built on top of Spring Data can leverage only what's already
+provided by an application.
+It, therefore, must adhere to the constraints of an aggregate.
+By definition, an aggregate is only valid if it is loaded in its entirety.
+Partially loaded aggregates may impose a limitation on aggregate functionality.
+
+With Spring Data you can choose whether you want to let your aggregate participate as
+an underlying data model to be directly exposed as a GraphQL result, or whether you want to
+apply projections to your data model before returning it as a GraphQL operation result.
+
+The advantage of using aggregates is that you do not require additional code to expose
+data through repositories. When processing a GraphQL operation, the integration layer
+transforms the field selection set into property paths. It provides these hints of which
+properties to materialize to the underlying Spring Data module that limits the field
+(or column) selection.
+
+Sometimes, an already reduced set of fields can be useful when exposing data. Also, some
+arrangements might require transformations to be applied before data is returned for a
+GraphQL operation. Spring Data supports for these scenarios projections: Interface and DTO
+Projections.
+
+Interface projections define a fixed set of properties to expose. Properties may or may
+not be `null`, depending on the query result. A plain, https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.closed[closed interface projection]
+can be useful if you cannot partially materialize the aggregate object but you still
+want to expose a subset of properties.
+
+You can use interface projections to apply a lightweight set of data transformations,
+such as concatenations, computations or applying a static function to a property.
+
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.open[Open projections]
+leverage Spring's `@Value` annotation and
+{spring-framework-ref-docs}/core.html#expressions[SpEL expressions]for transformations.
+
+In both cases, interface projections define which properties to load from the underlying
+data source.
+
+DTO projections offer the highest possible level of customization as you can place your
+transformation code either in the constructor or the getter method.
+
+DTO projections materialize from a query where the individual properties are
+determined by the projection itself. DTO projections are commonly used with full-args
+constructors (e.g. Java records) and therefore they can only be constructed if all
+required fields (or columns) are part of the database query result.
+
+
+
 [[data-querydsl]]
 === Querydsl
 
@@ -607,6 +659,36 @@ building a `QuerydslDataFetcher` you will need to use builder methods to apply i
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
 to transform query results before returning these for further GraphQL processing.
 
+To use Spring Data projections with Querydsl repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
+
 
 [[data-querydsl-registration]]
 ==== Auto Registration
@@ -684,6 +766,36 @@ it is supported, so no extra setup is required to enable it.
 `QueryByExampleDataFetcher` supports
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
 to transform query results before returning these for further GraphQL processing.
+
+To use Spring Data projections with Query by Example repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
 
 
 [[data-querybyexample-registration]]
