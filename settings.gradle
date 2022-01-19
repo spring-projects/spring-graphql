@@ -1,10 +1,14 @@
 pluginManagement {
-    repositories {
-        maven { url 'https://repo.spring.io/release' }
-        maven { url 'https://repo.spring.io/milestone' }
-        maven { url 'https://repo.spring.io/snapshot' }
-        gradlePluginPortal()
-    }
+	repositories {
+		mavenCentral()
+		gradlePluginPortal()
+		maven {
+			url 'https://repo.spring.io/release'
+		}
+		if (version.endsWith('-SNAPSHOT')) {
+			maven { url "https://repo.spring.io/snapshot" }
+		}
+	}
     resolutionStrategy {
         eachPlugin {
             if (requested.id.id == 'org.springframework.boot') {
