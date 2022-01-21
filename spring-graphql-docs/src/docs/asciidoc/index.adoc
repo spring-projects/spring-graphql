@@ -238,12 +238,34 @@ You can use `RuntimeWiringConfigurer` to register:
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 
+The Spring for GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer` and
+registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
+something like the following in your configuration:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration
+public class GraphQlConfig {
+
+	@Bean
+	public RuntimeWiringConfigurer runtimeWiringConfigurer(BookRepository repository) {
+
+		GraphQLScalarType scalarType = ... ;
+		SchemaDirectiveWiring directiveWiring = ... ;
+		DataFetcher dataFetcher = QuerydslDataFetcher.builder(repository).single();
+
+		return wiringBuilder -> wiringBuilder
+				.scalar(scalarType)
+				.directiveWiring(directiveWiring)
+				.type("Query", builder -> builder.dataFetcher("book", dataFetcher));
+	}
+}
+----
+
 If you need to add a `WiringFactory`, e.g. to make registrations that take into account
 schema definitions, implement the alternative `configure` method that accepts both the
 `RuntimeWiring.Builder` and an output `List<WiringFactory>`. This allows you to add any
 number of factories that are then invoked in sequence.
-
-The Spring for GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer`.
 
 
 [[execution-graphqlsource-default-type-resolver]]
@@ -521,6 +543,9 @@ Then use it to create a `DataFetcher`:
 			QuerydslDataFetcher.builder(repository).many();
 ----
 
+You can now register the above `DataFetcher` through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
+
 The `DataFetcher` builds a Querydsl `Predicate` from GraphQL request parameters, and
 uses it to fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA,
 MongoDB, and LDAP.
@@ -666,11 +691,16 @@ of the repository domain type. If needed, you can use the `typeName` attribute o
 Auto-registration detects if a given repository implements `QuerydslBinderCustomizer` and
 transparently applies that through `QuerydslDataFetcher` builder methods.
 
-Auto-registration is performed through a `RuntimeWiringConfigurer` which can be obtained
-from `QuerydslDataFetcher`. The
+Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
+obtained from `QuerydslDataFetcher`. The
 {spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
+
+Auto-registration does not support <<data-querybyexample-customizations, customizations>>.
+If you need that, you'll need to use `QueryByExampleDataFetcher` to build and
+register the `DataFetcher` manually through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
 
 
 
@@ -704,6 +734,9 @@ Use `QueryByExampleDataFetcher` to turn the repository into a `DataFecher`:
 			QueryByExampleDataFetcher.builder(repository).many();
 ----
 
+You can now register the above `DataFetcher` through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
+
 The `DataFetcher` uses the GraphQL arguments map to create the domain type of the
 repository and use that as the example object to fetch data with. Spring Data supports
 `QueryByExampleDataFetcher` for JPA, MongoDB, Neo4j, and Redis.
@@ -727,8 +760,8 @@ it is supported, so no extra setup is required to enable it.
 results before returning these for further GraphQL processing.
 
 TIP: To learn what projections are, please refer to the
-https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data docs].
-To understand how to use projections in GraphQL, please see <<data-projections>>.
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data documentation].
+To understand the role of projections in GraphQL, please see <<data-projections>>.
 
 To use Spring Data projections with Query by Example repositories, create either a projection interface
 or a target DTO class and configure it through the `projectAs` method to obtain a
@@ -772,11 +805,16 @@ By default, the name of the GraphQL type returned by the query must match the si
 of the repository domain type. If needed, you can use the `typeName` attribute of
 `@GraphQlRepository` to specify the target GraphQL type name.
 
-Auto-registration is performed through a `RuntimeWiringConfigurer` which can be obtained from
-`QueryByExampleDataFetcher`. The
+Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
+obtained from `QueryByExampleDataFetcher`. The
 {spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
+
+Auto-registration does not support <<data-querybyexample-customizations, customizations>>.
+If you need that, you'll need to use `QueryByExampleDataFetcher` to build and
+register the `DataFetcher` manually through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
 
 
 
