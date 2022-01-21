@@ -823,33 +823,35 @@ register the `DataFetcher` manually through a
 
 A common question that arises is, how GraphQL selection sets compare to
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data projections]
-and what roles do each play?
+and what role does each play?
 
 The short answer is that Spring for GraphQL is not a data gateway that translates GraphQL
 queries directly into SQL or JSON queries. Instead, it lets you leverage existing Spring
 technology and does not assume a one for one mapping between the GraphQL schema and the
-underlying data. That is why is there is room for both client-driven selection and for
-server-side transformation of the data model.
+underlying data model. That is why client-driven selection and server-side transformation
+of the data model can play complementary roles.
 
-To understand better, consider that Spring Data promotes domain-driven (DDD) design as
+To better understand, consider that Spring Data promotes domain-driven (DDD) design as
 the recommended approach to manage complexity in the data layer. In DDD, it is important
 to adhere to the constraints of an aggregate. By definition an aggregate is valid only if
-loaded in its entirety, since a partially loaded aggregate may impose a limitation on
+loaded in its entirety, since a partially loaded aggregate may impose limitations on
 aggregate functionality.
 
 In Spring Data you can choose whether you want your aggregate be exposed as is, or
-whether to apply projections to the data model before returning it. Sometimes it's enough
-to do the former and by default, the <<data-querydsl>> and <<data-querybyexample>>
-integrations rely on the GraphQL field selection set to provide property path hints to
-the underlying Spring Data module to limit the field (or column) selection.
+whether to apply transformations to the data model before returning it as a GraphQL
+result. Sometimes it's enough to do the former, and by default the
+<<data-querydsl>> and the <<data-querybyexample>> integrations turn the GraphQL
+selection set into property path hints that the underlying Spring Data module uses to
+limit the selection.
 
 In other cases, it's useful to reduce or even transform the underlying data model in
-order to adapt to the GraphQL schema, and Spring Data supports these through Interface
+order to adapt to the GraphQL schema. Spring Data supports this through Interface
 and DTO Projections.
 
-Interface projections define a fixed set of properties to expose. Properties may or may
-not be `null`, depending on the data store query result. There are two kinds of interface
-projections both of which define which properties to load from the underlying data source:
+Interface projections define a fixed set of properties to expose where properties may or
+may not be `null`, depending on the data store query result. There are two kinds of
+interface projections both of which determine what properties to load from the underlying
+data source:
 
 - https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.closed[Closed interface projections]
 are helpful if you cannot partially materialize the aggregate object, but you still
@@ -857,11 +859,11 @@ want to expose a subset of properties.
 - https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.open[Open interface projections]
 leverage Spring's `@Value` annotation and
 {spring-framework-ref-docs}/core.html#expressions[SpEL]  expressions to apply lightweight
-data transformations, such as concatenations, computations, or to apply a static function
+data transformations, such as concatenations, computations, or applying static functions
 to a property.
 
-DTO projections offer the highest possible level of customization as you can place your
-transformation code either in the constructor or the getter method.
+DTO projections offer a higher level of customization as you can place transformation
+code either in the constructor or in getter methods.
 
 DTO projections materialize from a query where the individual properties are
 determined by the projection itself. DTO projections are commonly used with full-args
