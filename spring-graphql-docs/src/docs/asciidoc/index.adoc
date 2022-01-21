@@ -659,6 +659,36 @@ building a `QuerydslDataFetcher` you will need to use builder methods to apply i
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
 to transform query results before returning these for further GraphQL processing.
 
+To use Spring Data projections with Querydsl repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
+
 
 [[data-querydsl-registration]]
 ==== Auto Registration
@@ -736,6 +766,36 @@ it is supported, so no extra setup is required to enable it.
 `QueryByExampleDataFetcher` supports
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
 to transform query results before returning these for further GraphQL processing.
+
+To use Spring Data projections with Query by Example repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
 
 
 [[data-querybyexample-registration]]
