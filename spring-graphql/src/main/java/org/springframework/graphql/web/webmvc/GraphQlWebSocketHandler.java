@@ -173,6 +173,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			}
 			this.graphQlHandler.handleWebSocketCompletion().block(Duration.ofSeconds(10));
 			return;
+		case PING:
+			this.graphQlHandler.handleWebSocketPing().block(Duration.ofSeconds(10));
+			return;
 		case CONNECTION_INIT:
 			if (sessionState.setConnectionInitProcessed()) {
 				GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
@@ -313,6 +316,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		CONNECTION_INIT("connection_init"),
 		CONNECTION_ACK("connection_ack"),
 		SUBSCRIBE("subscribe"),
+		PING("ping"),
+		PONG("pong"),
 		NEXT("next"),
 		ERROR("error"),
 		COMPLETE("complete");
