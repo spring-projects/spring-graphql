@@ -178,6 +178,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				return this.graphQlHandler.handleWebSocketCompletion().thenMany(Flux.empty());
 			case PING:
 				return this.graphQlHandler.handleWebSocketPing().thenMany(Flux.just(encode(session, null, MessageType.PONG, null)));
+			case PONG:
+				return this.graphQlHandler.handleWebSocketPong().thenMany(Flux.empty());
 			case CONNECTION_INIT:
 				if (!connectionInitProcessed.compareAndSet(false, true)) {
 					return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);

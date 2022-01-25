@@ -176,6 +176,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		case PING:
 			this.graphQlHandler.handleWebSocketPing().block(Duration.ofSeconds(10));
 			return;
+		case PONG:
+			this.graphQlHandler.handleWebSocketPong().block(Duration.ofSeconds(10));
+			return;
 		case CONNECTION_INIT:
 			if (sessionState.setConnectionInitProcessed()) {
 				GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
