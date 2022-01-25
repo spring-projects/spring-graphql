@@ -36,6 +36,7 @@ import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
+import org.springframework.context.expression.BeanFactoryResolver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -150,6 +151,9 @@ public class AnnotatedControllerConfigurer
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
 		if (springSecurityPresent) {
 			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
+			AuthenticationPrincipalArgumentResolver authenticationPrincipalResolver = new AuthenticationPrincipalArgumentResolver();
+			authenticationPrincipalResolver.setBeanResolver(new BeanFactoryResolver(obtainApplicationContext()));
+			this.argumentResolvers.addResolver(authenticationPrincipalResolver);
 		}
 		if (KotlinDetector.isKotlinPresent()) {
 			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
