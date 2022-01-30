@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import graphql.GraphQL;
-import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
@@ -99,11 +98,6 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public GraphQlSetup typeResolver(TypeResolver typeResolver) {
 		this.graphQlSourceBuilder.defaultTypeResolver(typeResolver);
-		return this;
-	}
-
-	public GraphQlSetup preparsedDocumentProvider(PreparsedDocumentProvider preparsedDocumentProvider) {
-		this.graphQlSourceBuilder.preparsedDocumentProvider(preparsedDocumentProvider);
 		return this;
 	}
 

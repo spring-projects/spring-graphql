@@ -29,7 +29,6 @@ import java.util.function.Consumer;
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
-import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.GraphQLCodeRegistry;
@@ -46,7 +45,6 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.WiringFactory;
 
 import org.springframework.core.io.Resource;
-import org.springframework.graphql.execution.preparsed.SpringNoOpPreparsedDocumentProvider;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -73,9 +71,6 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
 	@Nullable
-	private PreparsedDocumentProvider preparsedDocumentProvider;
-
-	@Nullable
 	private BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory;
 
 	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
@@ -96,12 +91,6 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	@Override
 	public GraphQlSource.Builder defaultTypeResolver(TypeResolver typeResolver) {
 		this.defaultTypeResolver = typeResolver;
-		return this;
-	}
-
-	@Override
-	public GraphQlSource.Builder preparsedDocumentProvider(PreparsedDocumentProvider preparsedDocumentProvider) {
-		this.preparsedDocumentProvider = preparsedDocumentProvider;
 		return this;
 	}
 
@@ -158,12 +147,6 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		if (!this.instrumentations.isEmpty()) {
 			builder = builder.instrumentation(new ChainedInstrumentation(this.instrumentations));
 		}
-
-		PreparsedDocumentProvider preparsedDocumentProvider = (this.preparsedDocumentProvider != null ?
-				this.preparsedDocumentProvider :
-				SpringNoOpPreparsedDocumentProvider.INSTANCE);
-
-		builder = builder.preparsedDocumentProvider(preparsedDocumentProvider);
 
 		this.graphQlConfigurers.accept(builder);
 		GraphQL graphQl = builder.build();

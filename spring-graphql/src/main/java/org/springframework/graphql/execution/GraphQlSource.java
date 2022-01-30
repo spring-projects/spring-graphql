@@ -23,8 +23,6 @@ import java.util.function.Consumer;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
-import graphql.execution.preparsed.PreparsedDocumentProvider;
-import graphql.language.Document;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
@@ -32,7 +30,6 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
-import org.springframework.graphql.execution.preparsed.SpringNoOpPreparsedDocumentProvider;
 
 /**
  * Strategy to resolve the {@link GraphQL} instance to use.
@@ -111,22 +108,6 @@ public interface GraphQlSource {
 		 * @see ClassNameTypeResolver
 		 */
 		Builder defaultTypeResolver(TypeResolver typeResolver);
-
-		/**
-		 * Configure the {@link PreparsedDocumentProvider} to use for GraphQL requests.
-		 * <p>
-		 * A {@code PreparsedDocumentProvider} can be used to cache and/or whitelist
-		 * {@link Document} instances for queries. Configuring a
-		 * {@code PreparsedDocumentProvider} gives you the ability to skip query parsing
-		 * and validation.
-		 * <p>
-		 * By default, this is set to {@link SpringNoOpPreparsedDocumentProvider}, which
-		 * calls the {@code parseAndValidateFunction}, and does nothing else.
-		 * @param preparsedDocumentProvider the {@code PreparsedDocumentProvider} to use
-		 * @return the current builder
-		 * @see GraphQL#getPreparsedDocumentProvider()
-		 */
-		Builder preparsedDocumentProvider(PreparsedDocumentProvider preparsedDocumentProvider);
 
 		/**
 		 * Add {@link DataFetcherExceptionResolver}'s to use for resolving exceptions from
