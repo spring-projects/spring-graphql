@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
+import org.springframework.graphql.RequestOutput;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -37,75 +39,37 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebOutput implements ExecutionResult {
+public class WebOutput extends RequestOutput {
 
-	private final WebInput input;
-
-	private final ExecutionResult executionResult;
-
-	@Nullable
 	private final HttpHeaders responseHeaders;
 
+
 	/**
-	 * Create an instance that wraps the given {@link ExecutionResult}.
-	 * @param input the container for the GraphQL input
-	 * @param executionResult the result of performing a graphql query
+	 * Create an instance from the given {@link RequestOutput}.
+	 * @param requestOutput the output from an executed request
 	 */
-	public WebOutput(WebInput input, ExecutionResult executionResult) {
-		this(input, executionResult, null);
+	public WebOutput(RequestOutput requestOutput) {
+		this(requestOutput.getExecutionInput(), requestOutput, new HttpHeaders());
 	}
 
-	private WebOutput(WebInput input, ExecutionResult executionResult, @Nullable HttpHeaders responseHeaders) {
-		Assert.notNull(input, "WebInput is required.");
-		Assert.notNull(executionResult, "ExecutionResult is required.");
-		this.input = input;
-		this.executionResult = executionResult;
+	private WebOutput(ExecutionInput executionInput, ExecutionResult executionResult,
+			HttpHeaders responseHeaders) {
+
+		super(executionInput, executionResult);
+		Assert.notNull(responseHeaders, "HttpHeaders is required");
 		this.responseHeaders = responseHeaders;
 	}
 
-	/**
-	 * Return the associated {@link WebInput} used for the execution.
-	 * @return the associated WebInput
-	 */
-	public WebInput getWebInput() {
-		return this.input;
-	}
-
-	@Nullable
-	@Override
-	public <T> T getData() {
-		return this.executionResult.getData();
-	}
-
-	@Override
-	public boolean isDataPresent() {
-		return this.executionResult.isDataPresent();
-	}
-
-	public List<GraphQLError> getErrors() {
-		return this.executionResult.getErrors();
-	}
-
-	@Nullable
-	public Map<Object, Object> getExtensions() {
-		return this.executionResult.getExtensions();
-	}
-
-	@Override
-	public Map<String, Object> toSpecification() {
-		return this.executionResult.toSpecification();
-	}
 
 	/**
-	 * Return a read-only view of any custom headers to be added to the HTTP response, or
-	 * {@code null} until {@link #transform(Consumer)} is used to add such headers.
-	 * @return the read-only HTTP response headers
-	 * @see #transform(Consumer)
-	 * @see Builder#responseHeader(String, String...)
+	 * Return the headers to be added to the HTTP response.
+	 * <p>By default, this is empty.
+	 * <p><strong>Note:</strong> This is for use with GraphQL over HTTP requests
+	 * but not for GraphQL over WebSocket where the initial handshake HTTP
+	 * request completes before queries begin.
 	 */
-	@Nullable
 	public HttpHeaders getResponseHeaders() {
-		return (this.responseHeaders != null) ? HttpHeaders.readOnlyHttpHeaders(this.responseHeaders) : null;
+		return this.responseHeaders;
 	}
 
 	/**
@@ -120,12 +84,13 @@ public class WebOutput implements ExecutionResult {
 		return builder.build();
 	}
 
+
 	/**
 	 * Builder to transform a {@link WebOutput}.
 	 */
 	public static final class Builder {
 
-		private final WebInput input;
+		private final WebOutput webOutput;
 
 		@Nullable
 		private Object data;
@@ -135,15 +100,11 @@ public class WebOutput implements ExecutionResult {
 		@Nullable
 		private Map<Object, Object> extensions;
 
-		@Nullable
-		private HttpHeaders headers;
-
 		private Builder(WebOutput output) {
-			this.input = output.getWebInput();
+			this.webOutput = output;
 			this.data = output.getData();
 			this.errors = output.getErrors();
 			this.extensions = output.getExtensions();
-			this.headers = output.responseHeaders;
 		}
 
 		/**
@@ -178,48 +139,9 @@ public class WebOutput implements ExecutionResult {
 			return this;
 		}
 
-		/**
-		 * Add a custom header to be set on the HTTP response.
-		 *
-		 * <p>
-		 * <strong>Note:</strong> This can be used for GraphQL over HTTP requests but has
-		 * no impact for queries over a WebSocket session where the initial handshake
-		 * request completes before queries begin.
-		 * @param name the HTTP header name
-		 * @param values the HTTP header values
-		 * @return the current builder
-		 */
-		public Builder responseHeader(String name, String... values) {
-			initHeaders();
-			for (String value : values) {
-				this.headers.add(name, value);
-			}
-			return this;
-		}
-
-		/**
-		 * Consume and update the headers to be set on the HTTP response.
-		 *
-		 * <p>
-		 * <strong>Note:</strong> This can be used for GraphQL over HTTP requests but has
-		 * no impact for queries over a WebSocket session where the initial handshake
-		 * request completes before queries begin.
-		 * @param consumer callback that updates the HTTP headers
-		 * @return the current builder
-		 */
-		public Builder responseHeaders(Consumer<HttpHeaders> consumer) {
-			initHeaders();
-			consumer.accept(this.headers);
-			return this;
-		}
-
-		private void initHeaders() {
-			this.headers = (this.headers != null) ? this.headers : new HttpHeaders();
-		}
-
 		public WebOutput build() {
 			ExecutionResult result = new ExecutionResultImpl(this.data, this.errors, this.extensions);
-			return new WebOutput(this.input, result, this.headers);
+			return new WebOutput(this.webOutput.getExecutionInput(), result, this.webOutput.getResponseHeaders());
 		}
 
 	}

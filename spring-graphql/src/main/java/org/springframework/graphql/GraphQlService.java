@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,10 @@
 
 package org.springframework.graphql;
 
-import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 /**
- * Strategy to perform GraphQL request execution with input for and output from the
- * invocation of {@link graphql.GraphQL}.
+ * Strategy to perform a GraphQL request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -30,9 +28,9 @@ public interface GraphQlService {
 
 	/**
 	 * Perform the operation and return the result.
-	 * @param input container for the GraphQL request input
-	 * @return the execution result
+	 * @param input container for GraphQL request input
+	 * @return the result from execution
 	 */
-	Mono<ExecutionResult> execute(RequestInput input);
+	Mono<RequestOutput> execute(RequestInput input);
 
 }

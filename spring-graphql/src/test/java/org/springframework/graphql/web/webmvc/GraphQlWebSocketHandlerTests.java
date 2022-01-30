@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,9 @@ import java.util.function.Consumer;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.web.WebGraphQlHandler;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -247,6 +250,57 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.consumeNextWith((message) -> assertMessageType(message, "next"))
 				.then(() -> messageSender.accept(completeMessage))
 				.verifyTimeout(Duration.ofMillis(500));
+	}
+
+	@Test
+	void errorMessagePayloadIsCorrectArray() throws Exception {
+		final String GREETING_QUERY = "{" +
+				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
+				"\"type\":\"subscribe\"," +
+				"\"payload\":{\"query\": \"" +
+				"  subscription TestTypenameSubscription {" +
+				"    greeting" +
+				"  }\"}" +
+				"}";
+
+		String schema = "type Subscription { greeting: String! }type Query { greetingUnused: String! }";
+
+		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
+				.subscriptionFetcher("greeting", env -> Flux.just("a", null, "b"))
+				.webInterceptor()
+				.toWebGraphQlHandler();
+
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(initHandler, converter, Duration.ofSeconds(60));
+
+		handle(handler,
+				new TextMessage("{\"type\":\"connection_init\"}"),
+				new TextMessage(GREETING_QUERY));
+
+		StepVerifier.create(this.session.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, "connection_ack"))
+				.consumeNextWith((message) -> assertThat(decode(message))
+						.hasSize(3)
+						.containsEntry("id", SUBSCRIPTION_ID)
+						.containsEntry("type", "next")
+						.extractingByKey("payload", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+						.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+						.containsEntry("greeting", "a"))
+				.consumeNextWith((message) -> assertThat(decode(message))
+						.hasSize(3)
+						.containsEntry("id", SUBSCRIPTION_ID)
+						.containsEntry("type", "error")
+						.hasEntrySatisfying("payload", payload -> assertThat(payload)
+								.asList()
+								.hasSize(1)
+								.allSatisfy(theError -> assertThat(theError)
+										.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+										.hasSize(3)
+										.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
+										.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("null"))
+										.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+										.containsEntry("classification", "DataFetchingException"))))
+				.then(this.session::close)
+				.verifyComplete();
 	}
 
 	private void handle(GraphQlWebSocketHandler handler, TextMessage... textMessages) throws Exception {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
@@ -36,6 +37,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 
@@ -351,8 +353,10 @@ public class GraphQlTesterTests {
 		if (!CollectionUtils.isEmpty(errors)) {
 			builder.addErrors(errors);
 		}
+		ExecutionInput executionInput = ExecutionInput.newExecutionInput("{}").build();
 		ExecutionResult result = builder.build();
-		given(this.service.execute(this.inputCaptor.capture())).willReturn(Mono.just(result));
+		given(this.service.execute(this.inputCaptor.capture()))
+				.willReturn(Mono.just(new RequestOutput(executionInput, result)));
 	}
 
 }

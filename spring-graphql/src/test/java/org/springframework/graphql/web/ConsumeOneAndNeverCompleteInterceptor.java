@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,10 @@ public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
 	@Override
 	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
 		return chain.next(webInput).map((output) -> output.transform(builder -> {
-			if (output.getData() instanceof Publisher) {
-				Flux<?> flux = Flux.from((Publisher<?>) output.getData()).take(1).concatWith(Flux.never());
-				builder.data(flux);
+			Object originalData = output.getData();
+			if (originalData instanceof Publisher) {
+				Flux<?> updatedData = Flux.from((Publisher<?>) originalData).take(1).concatWith(Flux.never());
+				builder.data(updatedData);
 			}
 		}));
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,14 @@
  */
 package org.springframework.graphql.execution;
 
+import java.util.List;
+
 import graphql.schema.idl.RuntimeWiring;
+import graphql.schema.idl.WiringFactory;
 
 /**
- * Component used to apply changes to the {@link RuntimeWiring.Builder} instance
- * used in {@link GraphQlSource.Builder}.
+ * Callbacks that allow applying changes to the {@link RuntimeWiring.Builder}
+ * in {@link GraphQlSource.Builder}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -32,5 +35,16 @@ public interface RuntimeWiringConfigurer {
 	 * @param builder the builder to configure
 	 */
 	void configure(RuntimeWiring.Builder builder);
+
+	/**
+	 * Variant of {@link #configure(RuntimeWiring.Builder)} that also collects
+	 * {@link WiringFactory} instances that are then combined as one via
+	 * {@link graphql.schema.idl.CombinedWiringFactory}.
+	 * @param builder the builder to configure
+	 * @param container the list of configured factories to add or insert into
+	 */
+	default void configure(RuntimeWiring.Builder builder, List<WiringFactory> container) {
+		// no-op
+	}
 
 }

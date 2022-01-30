@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import graphql.ExecutionResult;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -32,6 +31,7 @@ import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -76,7 +76,7 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<ExecutionResult> resultMono = service.execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = service.execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);

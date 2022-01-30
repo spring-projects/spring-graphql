@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,8 +70,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
-	private static final List<String> SUB_PROTOCOL_LIST =
-			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
+	private static final List<String> SUB_PROTOCOL_LIST = Arrays.asList("graphql-transport-ws", "graphql-ws");
 
 	static final ResolvableType MAP_RESOLVABLE_TYPE =
 			ResolvableType.forType(new ParameterizedTypeReference<Map<String, Object>>() {});
@@ -127,7 +126,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
 		HandshakeInfo handshakeInfo = session.getHandshakeInfo();
-		if ("subscriptions-transport-ws".equalsIgnoreCase(handshakeInfo.getSubProtocol())) {
+		if ("graphql-ws".equalsIgnoreCase(handshakeInfo.getSubProtocol())) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. "
 						+ "Please, use https://github.com/enisdenjo/graphql-ws.");
@@ -246,7 +245,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 								.message(ex.getMessage())
 								.build()
 								.toSpecification();
-						return Mono.just(encode(session, id, MessageType.ERROR, errorMap));
+						return Mono.just(encode(
+								session, id, MessageType.ERROR, Collections.singletonList(errorMap)));
 				});
 	}
 

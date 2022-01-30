@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,8 +73,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
-	private static final List<String> SUB_PROTOCOL_LIST =
-			Arrays.asList("graphql-transport-ws", "subscriptions-transport-ws");
+	private static final List<String> SUB_PROTOCOL_LIST = Arrays.asList("graphql-transport-ws", "graphql-ws");
 
 
 	private final WebGraphQlHandler graphQlHandler;
@@ -110,7 +109,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) {
-		if ("subscriptions-transport-ws".equalsIgnoreCase(session.getAcceptedProtocol())) {
+		if ("graphql-ws".equalsIgnoreCase(session.getAcceptedProtocol())) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. "
 						+ "Please, use https://github.com/enisdenjo/graphql-ws.");
@@ -258,9 +257,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						}
 						ErrorType errorType = ErrorType.DataFetchingException;
 						String message = ex.getMessage();
-						Map<String, Object> errorMap = GraphqlErrorBuilder.newError().errorType(errorType).message(message).build()
+						Map<String, Object> errorMap = GraphqlErrorBuilder.newError()
+								.errorType(errorType)
+								.message(message)
+								.build()
 								.toSpecification();
-						return Mono.just(encode(id, MessageType.ERROR, errorMap));
+						return Mono.just(encode(
+								id, MessageType.ERROR, Collections.singletonList(errorMap)));
 				});
 	}
 

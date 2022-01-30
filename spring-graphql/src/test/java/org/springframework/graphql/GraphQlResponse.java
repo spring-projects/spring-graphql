@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ public class GraphQlResponse {
 	}
 
 	@SuppressWarnings("BlockingMethodInNonBlockingContext")
-	public static Flux<GraphQlResponse> forSubscription(Mono<ExecutionResult> resultMono) {
+	public static Flux<GraphQlResponse> forSubscription(Mono<? extends ExecutionResult> resultMono) {
 		ExecutionResult result = resultMono.block(Duration.ofSeconds(5));
 		assertThat(result).isNotNull();
 		return forSubscription(result);

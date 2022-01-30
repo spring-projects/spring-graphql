@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,16 @@
 
 package org.springframework.graphql.execution;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
@@ -27,24 +37,18 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTraverser;
 import graphql.schema.TypeResolver;
+import graphql.schema.idl.CombinedWiringFactory;
+import graphql.schema.idl.NoopWiringFactory;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.WiringFactory;
+
 import org.springframework.core.io.Resource;
 import org.springframework.graphql.execution.preparsed.SpringNoOpPreparsedDocumentProvider;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 /**
  * Default implementation of {@link GraphQlSource.Builder} that initializes a
@@ -76,7 +80,6 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
 	};
-
 
 	@Override
 	public GraphQlSource.Builder schemaResources(Resource... resources) {
@@ -140,9 +143,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
 				.orElseThrow(MissingSchemaException::new);
 
-		RuntimeWiring.Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
-		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(runtimeWiringBuilder));
-		RuntimeWiring runtimeWiring = runtimeWiringBuilder.build();
+		RuntimeWiring runtimeWiring = initRuntimeWiring();
 
 		registerDefaultTypeResolver(registry, runtimeWiring);
 
@@ -170,6 +171,23 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		return new CachedGraphQlSource(graphQl, schema);
 	}
 
+	private RuntimeWiring initRuntimeWiring() {
+		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
+		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder));
+
+		List<WiringFactory> factories = new ArrayList<>();
+		WiringFactory factory = builder.build().getWiringFactory();
+		if (!factory.getClass().equals(NoopWiringFactory.class)) {
+			factories.add(factory);
+		}
+		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder, factories));
+		if (!factories.isEmpty()) {
+			builder.wiringFactory(new CombinedWiringFactory(factories));
+		}
+
+		return builder.build();
+	}
+
 	private void registerDefaultTypeResolver(TypeDefinitionRegistry registry, RuntimeWiring runtimeWiring) {
 		TypeResolver typeResolver =
 				(this.defaultTypeResolver != null ? this.defaultTypeResolver : new ClassNameTypeResolver());
@@ -187,7 +205,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 			}
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource.toString());
+			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource);
 		}
 	}
 

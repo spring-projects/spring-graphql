@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
@@ -38,6 +39,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
@@ -211,7 +213,7 @@ public class WebGraphQlTesterTests {
 			sb.append("}");
 
 			MockResponse response = new MockResponse();
-			response.setHeader("Content-Type", "application/json");
+			response.setHeader("Content-Type", "application/json;charset=UTF-8"); // charset should be ignored if present
 			response.setBody(sb.toString());
 
 			this.server.enqueue(response);
@@ -271,8 +273,9 @@ public class WebGraphQlTesterTests {
 			if (!CollectionUtils.isEmpty(errors)) {
 				builder.addErrors(errors);
 			}
+			ExecutionInput executionInput = ExecutionInput.newExecutionInput("{}").build();
 			ExecutionResult result = builder.build();
-			WebOutput output = new WebOutput(mock(WebInput.class), result);
+			WebOutput output = new WebOutput(new RequestOutput(executionInput, result));
 			given(this.handler.handleRequest(this.bodyCaptor.capture())).willReturn(Mono.just(output));
 		}
 

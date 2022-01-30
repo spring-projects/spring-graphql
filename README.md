@@ -1,4 +1,4 @@
-# Spring GraphQL [![Build status](https://ci.spring.io/api/v1/teams/spring-graphql/pipelines/spring-graphql/jobs/build/badge)](https://ci.spring.io/teams/spring-graphql/pipelines/spring-graphql)
+# Spring for GraphQL [![Build status](https://ci.spring.io/api/v1/teams/spring-graphql/pipelines/spring-graphql/jobs/build/badge)](https://ci.spring.io/teams/spring-graphql/pipelines/spring-graphql)
 
 [GraphQL](https://graphql.org/) support for Spring applications with [GraphQL Java](https://github.com/graphql-java/graphql-java).
 
@@ -13,7 +13,7 @@ This project has reference documentation ([published](https://docs.spring.io/spr
 
 ## Continuous Integration Builds
 
-Information regarding CI builds can be found in the [Spring GraphQL Concourse pipeline](ci/README.adoc) documentation.
+Information regarding CI builds can be found in the project's [Concourse pipeline](ci/README.adoc) documentation.
 
 ## Stay in Touch
 

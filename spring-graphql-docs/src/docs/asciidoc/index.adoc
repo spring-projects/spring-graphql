@@ -1,17 +1,17 @@
-= Spring GraphQL Documentation
-Brian Clozel; Andreas Marek; Rossen Stoyanchev
+= Spring for GraphQL Documentation
+Brian Clozel; Andreas Marek; Rossen Stoyanchev; Mark Paluch
 include::attributes.adoc[]
 
 
 [[overview]]
 == Overview
 
-Spring GraphQL provides support for Spring applications built on
+Spring for GraphQL provides support for Spring applications built on
 https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between both
 teams. Our shared philosophy is to be less opinionated and more focused on
 comprehensive and wide-ranging support.
 
-Spring GraphQL is the successor of the
+Spring for GraphQL is the successor of the
 https://github.com/graphql-java/graphql-java-spring[GraphQL Java Spring] project from
 the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL applications.
 
@@ -20,12 +20,13 @@ feedback. Please, use our
 https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report a
 problem, discuss a design issue, or request a feature.
 
-To get started, please see the <<boot-graphql>> and the <<samples>> sections.
+To get started, check the Spring GraphQL starter on https://start.spring.io and the
+<<samples>> sections.
 
 [[requirements]]
 == Requirements
 
-Spring GraphQL requires the following as a baseline:
+Spring for GraphQL requires the following as a baseline:
 
 * JDK8
 * Spring Framework 5.3
@@ -37,7 +38,7 @@ Spring GraphQL requires the following as a baseline:
 [[web-transports]]
 == Web Transports
 
-Spring GraphQL supports GraphQL requests over HTTP and over WebSocket.
+Spring for GraphQL supports GraphQL requests over HTTP and over WebSocket.
 
 
 
@@ -59,10 +60,12 @@ status is always 200 (OK), and any errors from GraphQL request execution appear 
 
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
-Boot starter does this, see <<boot-graphql-web>> for details or check
-`GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
+Boot starter does this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
 
-The Spring GraphQL repository contains a Spring MVC
+The Spring for GraphQL repository contains a Spring MVC
 {github-main-branch}/samples/webmvc-http[HTTP sample] application.
 
 
@@ -100,10 +103,12 @@ https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 
 `GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
 `SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. The Boot
-starter has options to enable this, see <<boot-graphql-web>> for details or check
-`GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration` for example config.
+starter has options to enable this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
 
-The Spring GraphQL repository contains a WebFlux
+The Spring for GraphQL repository contains a WebFlux
 {github-main-branch}/samples/webflux-websocket[WebSocket sample] application.
 
 
@@ -156,17 +161,16 @@ class MyInterceptor implements WebInterceptor {
 
 `WebGraphQlHandler` provides a builder to initialize the Web interception chain. After
 you build the chain, you can use the resulting `WebGraphQlHandler` to initialize the HTTP
-or WebSocket transport handlers. The Boot starter configures all this,
-see <<boot-graphql-web>> for details, or check `GraphQlWebMvcAutoConfiguration` or
-`GraphQlWebFluxAutoConfiguration` for example config.
-
-
+or WebSocket transport handlers. The Boot starter configures all this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
 
 
 [[execution]]
 == Request Execution
 
-`GraphQlService` is the main Spring GraphQL abstraction to call GraphQL Java to execute
+`GraphQlService` is the main Spring abstraction to call GraphQL Java to execute
 requests. Underlying transports, such as the <<web-transports>>, delegate to `GraphQlService` to
 handle requests.
 
@@ -179,7 +183,7 @@ the `graphql.GraphQL` instance.
 [[execution-graphqlsource]]
 === `GraphQLSource`
 
-`GraphQlSource` is a core Spring GraphQL abstraction for access to the
+`GraphQlSource` is a core Spring abstraction for access to the
 `graphql.GraphQL` instance to use for request execution. It provides a builder API to
 initialize GraphQL Java and build a `GraphQlSource`.
 
@@ -188,22 +192,43 @@ support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
 <<execution-exceptions>>.
 
 
-
 [[execution-graphqlsource-schema-resources]]
 ==== Schema Resources
 
 `GraphQlSource.Builder` can be configured with one or more `Resource` instances to be
 parsed and merged together. That means schema files can be loaded from just about any
-location. By default, the Spring Boot starter <<boot-graphql-schema,loads schema files>>
-from a well-known classpath location, but you can change that to a location on the file system
-via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a custom
-`Resource` that loads schema files from a remote location or storage.
+location. By default, the Spring Boot starter
+{spring-boot-ref-docs}/web.html#web.graphql.schema[loads schema files]
+from a well-known classpath location, but you can change that to a location on the file
+system via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a
+custom `Resource` that loads schema files from a remote location or storage.
+
+
+[[execution-graphqlsource-schema-creation]]
+==== Schema Creation
+
+By default, `GraphQlSource.Builder` uses the GraphQL Java `GraphQLSchemaGenerator` to
+create the `graphql.schema.GraphQLSchema`. This works for most applications, but if
+necessary, you can hook into the schema creation through the builder:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlSource graphQlSource = GraphQlSource.builder()
+		.schemaResources(..)
+		.configureRuntimeWiring(..)
+		.schemaFactory((typeDefinitionRegistry, runtimeWiring) -> {
+			// create `GraphQLSchema`
+		})
+		.build();
+----
+
+The primary reason for this is to create the schema through a federation library.
 
 
 [[execution-graphqlsource-runtimewiring-configurer]]
 ==== `RuntimeWiringConfigurer`
 
-You can add a `RuntimeWiringConfigurer` to `GraphQlSource.Builder` to register:
+You can use `RuntimeWiringConfigurer` to register:
 
  - Custom scalar types.
  - Directives handling code.
@@ -212,6 +237,35 @@ You can add a `RuntimeWiringConfigurer` to `GraphQlSource.Builder` to register:
  - `DataFetcher` for a field, although most applications will simply configure
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
+
+The Spring for GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer` and
+registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
+something like the following in your configuration:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration
+public class GraphQlConfig {
+
+	@Bean
+	public RuntimeWiringConfigurer runtimeWiringConfigurer(BookRepository repository) {
+
+		GraphQLScalarType scalarType = ... ;
+		SchemaDirectiveWiring directiveWiring = ... ;
+		DataFetcher dataFetcher = QuerydslDataFetcher.builder(repository).single();
+
+		return wiringBuilder -> wiringBuilder
+				.scalar(scalarType)
+				.directiveWiring(directiveWiring)
+				.type("Query", builder -> builder.dataFetcher("book", dataFetcher));
+	}
+}
+----
+
+If you need to add a `WiringFactory`, e.g. to make registrations that take into account
+schema definitions, implement the alternative `configure` method that accepts both the
+`RuntimeWiring.Builder` and an output `List<WiringFactory>`. This allows you to add any
+number of factories that are then invoked in sequence.
 
 
 [[execution-graphqlsource-default-type-resolver]]
@@ -286,7 +340,7 @@ transport layer, such as from a WebFlux request handling, see
 [[execution-context]]
 === Context Propagation
 
-Spring GraphQL provides support to transparently propagate context from the <<web-transports>>,
+Spring for GraphQL provides support to transparently propagate context from the <<web-transports>>,
 through the GraphQL engine, and to `DataFetcher` and other components it invokes.
 This includes both `ThreadLocal` context from the Spring MVC request handling thread and
 Reactor `Context` from the WebFlux processing pipeline.
@@ -299,7 +353,7 @@ A `DataFetcher` and other components invoked by GraphQL Java may not always exec
 the same thread as the Spring MVC handler, for example if an asynchronous
 <<web-interception, `WebInterceptor`>> or `DataFetcher` switches to a different thread.
 
-Spring GraphQL supports propagating `ThreadLocal` values from the Servlet container
+Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
 thread to the thread a `DataFetcher` and other components invoked by the GraphQL engine
 execute on. To do this, an application needs to create a `ThreadLocalAccessor` to extract
 `ThreadLocal` values of interest:
@@ -332,7 +386,8 @@ public class RequestAttributesAccessor implements ThreadLocalAccessor {
 
 A `ThreadLocalAccessor` can be registered in the <<web-interception,WebGraphHandler>>
 builder. The Boot starter detects beans of this type and automatically registers them for
-Spring MVC application, see <<boot-graphql-web>>.
+Spring MVC application, see the
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section.
 
 
 [[execution-context-webflux]]
@@ -350,7 +405,7 @@ added by <<web-interception, WebInterceptor>> components.
 GraphQL Java applications can register a `DataFetcherExceptionHandler` to decide how to
 represent exceptions from the data layer in the "errors" section of the GraphQL response.
 
-Spring GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
+Spring for GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
 by the <<execution-graphqlsource>> builder. It enables applications to register one or
 more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
 until one resolves the `Exception` to a list of `graphql.GraphQLError` objects.
@@ -360,7 +415,7 @@ would be sufficient to extend `DataFetcherExceptionResolverAdapter` and override
 one of its `resolveToSingleError` or `resolveToMultipleErrors` methods that
 resolve exceptions synchronously.
 
-A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring GraphQL
+A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring for GraphQL
 defines an `ErrorType` enum with common, error classification categories:
 
 - `BAD_REQUEST`
@@ -375,44 +430,107 @@ default it is marked as `INTERNAL_ERROR`.
 
 
 [[execution-batching]]
-=== Batching
+=== Batch Loading
 
-Given a `Book` and its `Author`, we can create one `DataFetcher` for books and another
-for the author of a book. This means books and authors aren't automatically loaded
-together, which enables queries to select the subset of data they need. However, loading
-multiple books, results in loading each author individually, and this is a performance
-issue known as the N+1 select problem.
+Given a `Book` and its `Author`, we can create one `DataFetcher` for a book and another
+for its author. This allows selecting books with or without authors, but it means books
+and authors aren't loaded together, which is especially inefficient when querying multiple
+books as the author for each book is loaded individually. This is known as the N+1 select
+problem.
 
-GraphQL Java provides a
-https://www.graphql-java.com/documentation/v16/batching/[batching feature] that allows
-related entities, such as the authors for all books, to be loaded together. This is how
-the underlying mechanism works in GraphQL Java:
 
- - For each request, an application can register a batch loading function as a
-`DataLoader` in the `DataLoaderRegistry` to assist with loading instances of a given
-entity, such as `Author` from a set of unique keys.
- - A `DataFetcher` can access the `DataLoader` for the entity and use it to load entity
-instances; for example the author `DataFetcher` obtains the authorId from the `Book`
-parent object, and uses it to load the `Author`.
- - `DataLoader` does not load the entity immediately but rather returns a future, and
-defers until it is ready to batch load all related entities as one.
- - `DataLoader` additionally maintains a cache of previously loaded entities that can
-further improve efficiency when the same entity is in multiple places of the response.
+[[execution-batching-dataloader]]
+==== `DataLoader`
 
-Spring GraphQL provides:
+GraphQL Java provides a `DataLoader` mechanism for batch loading of related entities.
+You can find the full details in the
+https://www.graphql-java.com/documentation/v16/batching/[GraphQL Java docs]. Below is a
+summary of how it works:
 
- - `BatchLoaderRegistry` that accepts and stores registrations of batch loading functions;
-This is used in `ExecutionGraphQlService` to make `DataLoader` registrations per request.
- - <<controllers-schema-mapping-data-loader,DataLoader argument>> for `@SchemaMapping`
-methods to access the `DataLoader` for the field type.
- - <<controllers-batch-mapping,@BatchMapping>> data controller methods that provide a
-shortcut and avoid the need to use `DataLoader` directly.
+ 1. Register ``DataLoader``'s in the `DataLoaderRegistry` that can load entities, given unique keys.
+ 2. ``DataFetcher``'s can access ``DataLoader``'s and use them to load entities by id.
+ 3. A `DataLoader` defers loading by returning a future so it can be done in a batch.
+ 4. ``DataLoader``'s maintain a per request cache of loaded entities that can further
+ improve efficiency.
 
-The Spring Boot starter declares a
-<<boot-graphql-batch-loader-registry,BatchLoaderRegistry bean>>, so that applications can
-simply autowire the registry into their controllers in order to register batch loading
-functions for entities.
 
+[[execution-batching-batch-loader-registry]]
+==== `BatchLoaderRegistry`
+
+The complete batching loading mechanism in GraphQL Java requires implementing one of
+several `BatchLoader` interface, then wrapping and registering those as ``DataLoader``s
+with a name in the `DataLoaderRegistry`.
+
+The API in Spring GraphQL is slightly different. For registration, there is only one,
+central `BatchLoaderRegistry` exposing factory methods and a builder to create and
+register any number of batch loading functions:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration
+public class MyConfig {
+
+	public MyConfig(BatchLoaderRegistry registry) {
+
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+            // return Mono<Map<Long, Author>
+        });
+
+        // more registrations ...
+    }
+
+}
+----
+
+The Spring Boot starter declares a `BatchLoaderRegistry` bean that you can inject into
+your configuration, as shown above, or into any component such as a controller in order
+register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
+`ExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
+
+By default, the `DataLoader` name is based on the class name of the target entity.
+This allows an `@SchemaMapping` method to declare a
+<<controllers-schema-mapping-data-loader,DataLoader argument>> with a generic type, and
+without the need for specifying a name. The name, however, can be customized through the
+`BatchLoaderRegistry` builder, if necessary, along with other `DataLoader` options.
+
+For many cases, when loading related entities, you can use
+<<controllers-batch-mapping,@BatchMapping>> controller methods, which are a shortcut
+for and replace the need to use `BatchLoaderRegistry` and `DataLoader` directly.
+s
+`BatchLoaderRegistry` provides other important benefits too. It supports access to
+the same `GraphQLContext` from batch loading functions and from `@BatchMapping` methods,
+as well as ensures <<execution-context>> to them. This is why applications are expected
+to use it. It is possible to perform your own `DataLoader` registrations directly but
+such registrations would forgo the above benefits.
+
+
+[[execution-batching-testing]]
+==== Testing Batch Loading
+
+Start by having `BatchLoaderRegistry` perform registrations on a `DataLoaderRegistry`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+// perform registrations...
+
+DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
+batchLoaderRegistry.registerDataLoaders(dataLoaderRegistry, graphQLContext);
+----
+
+Now you can access and test individual ``DataLoader``'s as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+DataLoader<Long, Book> loader = dataLoaderRegistry.getDataLoader(Book.class.getName());
+loader.load(1L);
+loader.loadMany(Arrays.asList(2L, 3L));
+List<Book> books = loader.dispatchAndJoin(); // actual loading
+
+assertThat(books).hasSize(3);
+assertThat(books.get(0).getName()).isEqualTo("...");
+// ...
+----
 
 
 
@@ -420,10 +538,20 @@ functions for entities.
 [[data]]
 == Data Integration
 
+Spring for GraphQL lets you leverage existing Spring technology, following common
+programming models to expose underlying data sources through GraphQL.
+
+This section discusses an integration layer for Spring Data that provides an easy way to
+adapt a Querydsl or a Query by Example repository to a `DataFetcher`, including the
+option for automated detection and GraphQL Query registration for repositories marked
+with `@GraphQlRepository`.
+
+
+
 [[data-querydsl]]
 === Querydsl
 
-Spring GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
+Spring for GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
 the Spring Data
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions[Querydsl extension].
 Querydsl provides a flexible yet typesafe approach to express query predicates by
@@ -450,6 +578,9 @@ Then use it to create a `DataFetcher`:
 	DataFetcher<Iterable<Account>> dataFetcher =
 			QuerydslDataFetcher.builder(repository).many();
 ----
+
+You can now register the above `DataFetcher` through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
 
 The `DataFetcher` builds a Querydsl `Predicate` from GraphQL request parameters, and
 uses it to fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA,
@@ -543,13 +674,46 @@ A repository may itself be an instance of `QuerydslBinderCustomizer`. This is au
 and transparently applied during <<data-querydsl-registration>>. However, when manually
 building a `QuerydslDataFetcher` you will need to use builder methods to apply it.
 
-`QuerydslDataFetcher` supports
-https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
-to transform query results before returning these for further GraphQL processing.
+`QuerydslDataFetcher` supports interface and DTO projections to transform query results
+before returning these for further GraphQL processing.
+
+TIP: To learn what projections are, please refer to the
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data docs].
+To understand how to use projections in GraphQL, please see <<data-projections>>.
+
+To use Spring Data projections with Querydsl repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
 
 
 [[data-querydsl-registration]]
-==== Auto Registration
+==== Auto-Registration
 
 If a repository is annotated with `@GraphQlRepository`, it is automatically registered
 for queries that do not already have a registered `DataFetcher` and whose return type
@@ -563,10 +727,16 @@ of the repository domain type. If needed, you can use the `typeName` attribute o
 Auto-registration detects if a given repository implements `QuerydslBinderCustomizer` and
 transparently applies that through `QuerydslDataFetcher` builder methods.
 
-Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
-`QuerydslDataFetcher`. The <<boot-repositories-querydsl,Boot starter>> automatically
-detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
+Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
+obtained from `QuerydslDataFetcher`. The
+{spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
+detects `@GraphQlRepository` beans and uses them to initialize the
+`RuntimeWiringConfigurer` with.
 
+Auto-registration does not support <<data-querybyexample-customizations, customizations>>.
+If you need that, you'll need to use `QueryByExampleDataFetcher` to build and
+register the `DataFetcher` manually through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
 
 
 
@@ -600,6 +770,9 @@ Use `QueryByExampleDataFetcher` to turn the repository into a `DataFecher`:
 			QueryByExampleDataFetcher.builder(repository).many();
 ----
 
+You can now register the above `DataFetcher` through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
+
 The `DataFetcher` uses the GraphQL arguments map to create the domain type of the
 repository and use that as the example object to fetch data with. Spring Data supports
 `QueryByExampleDataFetcher` for JPA, MongoDB, Neo4j, and Redis.
@@ -619,13 +792,45 @@ it is supported, so no extra setup is required to enable it.
 [[data-querybyexample-customizations]]
 ==== Customizations
 
-`QueryByExampleDataFetcher` supports
-https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[interface and DTO projections]
-to transform query results before returning these for further GraphQL processing.
+`QueryByExampleDataFetcher` supports interface and DTO projections to transform query
+results before returning these for further GraphQL processing.
+
+TIP: To learn what projections are, please refer to the
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data documentation].
+To understand the role of projections in GraphQL, please see <<data-projections>>.
+
+To use Spring Data projections with Query by Example repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
 
 
 [[data-querybyexample-registration]]
-==== Auto Registration
+==== Auto-Registration
 
 If a repository is annotated with `@GraphQlRepository`, it is automatically registered
 for queries that do not already have a registered `DataFetcher` and whose return type
@@ -636,9 +841,68 @@ By default, the name of the GraphQL type returned by the query must match the si
 of the repository domain type. If needed, you can use the `typeName` attribute of
 `@GraphQlRepository` to specify the target GraphQL type name.
 
-Auto-registration is performed through a `GraphQLTypeVisitor` which can be obtained from
-`QueryByExampleDataFetcher`. The <<boot-repositories-querybyexample,Boot starter>> automatically
-detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
+Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
+obtained from `QueryByExampleDataFetcher`. The
+{spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
+detects `@GraphQlRepository` beans and uses them to initialize the
+`RuntimeWiringConfigurer` with.
+
+Auto-registration does not support <<data-querybyexample-customizations, customizations>>.
+If you need that, you'll need to use `QueryByExampleDataFetcher` to build and
+register the `DataFetcher` manually through a
+<<execution-graphqlsource-runtimewiring-configurer>>.
+
+
+
+[[data-projections]]
+=== Selection Set vs Projections
+
+A common question that arises is, how GraphQL selection sets compare to
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data projections]
+and what roles do each play?
+
+The short answer is that Spring for GraphQL is not a data gateway that translates GraphQL
+queries directly into SQL or JSON queries. Instead, it lets you leverage existing Spring
+technology and does not assume a one for one mapping between the GraphQL schema and the
+underlying data. That is why is there is room for both client-driven selection and for
+server-side transformation of the data model.
+
+To understand better, consider that Spring Data promotes domain-driven (DDD) design as
+the recommended approach to manage complexity in the data layer. In DDD, it is important
+to adhere to the constraints of an aggregate. By definition an aggregate is valid only if
+loaded in its entirety, since a partially loaded aggregate may impose a limitation on
+aggregate functionality.
+
+In Spring Data you can choose whether you want your aggregate be exposed as is, or
+whether to apply projections to the data model before returning it. Sometimes it's enough
+to do the former and by default, the <<data-querydsl>> and <<data-querybyexample>>
+integrations rely on the GraphQL field selection set to provide property path hints to
+the underlying Spring Data module to limit the field (or column) selection.
+
+In other cases, it's useful to reduce or even transform the underlying data model in
+order to adapt to the GraphQL schema, and Spring Data supports these through Interface
+and DTO Projections.
+
+Interface projections define a fixed set of properties to expose. Properties may or may
+not be `null`, depending on the data store query result. There are two kinds of interface
+projections both of which define which properties to load from the underlying data source:
+
+- https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.closed[Closed interface projections]
+are helpful if you cannot partially materialize the aggregate object, but you still
+want to expose a subset of properties.
+- https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.open[Open interface projections]
+leverage Spring's `@Value` annotation and
+{spring-framework-ref-docs}/core.html#expressions[SpEL]  expressions to apply lightweight
+data transformations, such as concatenations, computations, or to apply a static function
+to a property.
+
+DTO projections offer the highest possible level of customization as you can place your
+transformation code either in the constructor or the getter method.
+
+DTO projections materialize from a query where the individual properties are
+determined by the projection itself. DTO projections are commonly used with full-args
+constructors (e.g. Java records), and therefore they can only be constructed if all
+required fields (or columns) are part of the database query result.
 
 
 
@@ -646,7 +910,7 @@ detects `@GraphQlRepository` beans and applies the `GraphQLTypeVisitor`.
 [[controllers]]
 == Annotated Controllers
 
-Spring GraphQL provides an annotation-based programming model where `@Controller`
+Spring for GraphQL provides an annotation-based programming model where `@Controller`
 components use annotations to declare handler methods with flexible method signatures to
 fetch the data for specific GraphQL fields. For example:
 
@@ -665,7 +929,7 @@ fetch the data for specific GraphQL fields. For example:
 <1> Bind this method to a query, i.e. a field under the Query type.
 <2> Determine the query from the method name if not declared on the annotation.
 
-Spring GraphQL uses `RuntimeWiring.Builder` to register the above handler method as a
+Spring for GraphQL uses `RuntimeWiring.Builder` to register the above handler method as a
 `graphql.schema.DataFetcher` for the query named "hello".
 
 
@@ -683,7 +947,9 @@ annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is
 implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
 The Spring Boot starter automatically declares `AnnotatedControllerConfigurer` as a bean
 and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
-support for annotated ``DataFetcher``s, see <<boot-graphql-runtimewiring>>.
+support for annotated ``DataFetcher``s, see the
+{spring-boot-ref-docs}/web.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
+in the Boot starter documentation.
 
 
 [[controllers-schema-mapping]]
@@ -947,7 +1213,7 @@ For example:
 
 		String getName();
 
-		@Value("#{target.author + ' ' + target.name})
+		@Value("#{target.author + ' ' + target.name}")
 		String getAuthorAndName();
 	}
 ----
@@ -1016,12 +1282,9 @@ to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method
 resolver will also try the method argument name as the key but typically that should not
 be necessary.
 
-[TIP]
-====
-For straight-forward cases where the `@SchemaMapping` simply delegates to a `DataLoader`,
-you can reduce boilerplate by using a <<controllers-batch-mapping,@BatchMapping>> method
-instead.
-====
+Note that for many cases with loading related entities, where the `@SchemaMapping` simply
+delegates to a `DataLoader`, you can reduce boilerplate by using a
+<<controllers-batch-mapping,@BatchMapping>> method as described in the next section.
 
 
 
@@ -1147,7 +1410,7 @@ To apply more fine-grained security, add Spring Security annotations such as
 the GraphQL response. This should work due to <<execution-context>> that aims to make
 Security, and other context, available at the data fetching level.
 
-The Spring GraphQL repository contains samples for
+The Spring for GraphQL repository contains samples for
 {github-main-branch}/samples/webmvc-http-security[Spring MVC] and for
 {github-main-branch}/samples/webflux-security[WebFlux].
 
@@ -1164,7 +1427,7 @@ include::testing.adoc[leveloffset=+1]
 [[samples]]
 == Samples
 
-This Spring GraphQL repository contains {github-main-branch}/samples[sample applications] for
+This Spring for GraphQL repository contains {github-main-branch}/samples[sample applications] for
 various scenarios.
 
 You can run those by cloning this repository and running main application classes from

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import graphql.ExecutionResult;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,6 +32,7 @@ import reactor.util.context.Context;
 
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.security.SecurityContextThreadLocalAccessor;
@@ -92,7 +92,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 	}
 
 	private void testBatchLoading(PrincipalCourseController controller, Function<Context, Context> contextWriter) {
-		Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
+		Mono<RequestOutput> resultMono = Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> {
 					String query = "{ courses { id instructor { id } } }";
 					return createGraphQlService(controller).execute(new RequestInput(query, null, null, null, "1"));

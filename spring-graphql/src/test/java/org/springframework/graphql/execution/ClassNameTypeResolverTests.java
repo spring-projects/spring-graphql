@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import graphql.ExecutionResult;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -83,7 +83,7 @@ public class ClassNameTypeResolverTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = graphQlSetup.queryFetcher("animals", env -> animalList)
+		Mono<RequestOutput> resultMono = graphQlSetup.queryFetcher("animals", env -> animalList)
 				.toGraphQlService()
 				.execute(new RequestInput(query, null, null, null, "1"));
 
@@ -125,7 +125,7 @@ public class ClassNameTypeResolverTests {
 		ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
 		typeResolver.addMapping(Tree.class, "Plant");
 
-		Mono<ExecutionResult> result = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
+		Mono<RequestOutput> result = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
 				.typeResolver(typeResolver)
 				.toGraphQlService()
 				.execute(new RequestInput(query, null, null, null, "1"));

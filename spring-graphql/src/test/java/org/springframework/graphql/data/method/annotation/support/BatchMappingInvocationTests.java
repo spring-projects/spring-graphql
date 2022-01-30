@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import graphql.ExecutionResult;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -31,6 +30,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.stereotype.Controller;
 
@@ -70,7 +70,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = createGraphQlService(controller)
+		Mono<RequestOutput> resultMono = createGraphQlService(controller)
 				.execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
@@ -103,7 +103,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionResult> resultMono = createGraphQlService(controller)
+		Mono<RequestOutput> resultMono = createGraphQlService(controller)
 				.execute(new RequestInput(query, null, null, null, "1"));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);

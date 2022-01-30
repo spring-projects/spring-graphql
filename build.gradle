@@ -1,6 +1,6 @@
 plugins {
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-	id 'org.jetbrains.kotlin.jvm' version '1.6.0' apply false
+	id 'org.jetbrains.kotlin.jvm' version '1.5.32' apply false
 }
 
 ext {
@@ -9,7 +9,7 @@ ext {
 	bootVersion = "2.7.0-SNAPSHOT"
 }
 
-description = "Spring GraphQL"
+description = "Spring for GraphQL"
 
 subprojects {
 	apply plugin: 'io.spring.dependency-management'
@@ -63,7 +63,7 @@ configure(moduleProjects) {
 			mavenBom "org.springframework.data:spring-data-bom:2021.1.0"
 			mavenBom "org.springframework.security:spring-security-bom:5.6.0"
 			mavenBom "com.querydsl:querydsl-bom:5.0.0"
-			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.6.0"
+			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.5.32"
 			mavenBom "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.5.2"
 			mavenBom "org.junit:junit-bom:5.8.1"
 			mavenBom "org.testcontainers:testcontainers-bom:1.16.2"
@@ -102,6 +102,12 @@ configure(moduleProjects) {
 			enabled = false
 		}
 	}
+
+	ext.javadocLinks = [
+			"https://docs.oracle.com/javase/8/docs/api/",
+			"https://docs.spring.io/spring-framework/docs/5.3.x/javadoc-api/",
+			"https://javadoc.io/doc/com.graphql-java/graphql-java/17.3/"
+	] as String[]
 
 	apply from: "${rootDir}/gradle/publishing.gradle"
 }

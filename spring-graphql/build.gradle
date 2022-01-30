@@ -19,8 +19,8 @@ dependencies {
 	compileOnly 'org.springframework.data:spring-data-commons'
 
 	compileOnly 'com.google.code.findbugs:jsr305'
-	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 	compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
+	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 
 	compileOnly 'javax.validation:validation-api'
 
@@ -54,7 +54,6 @@ dependencies {
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
-	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 test {

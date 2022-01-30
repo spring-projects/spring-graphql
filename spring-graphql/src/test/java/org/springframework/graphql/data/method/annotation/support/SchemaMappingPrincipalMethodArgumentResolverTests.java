@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.time.Duration;
 import java.util.function.Function;
 
-import graphql.ExecutionResult;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,11 +30,11 @@ import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
@@ -104,7 +103,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		}
 
 		private void testQuery(String field, Function<Context, Context> contextWriter) {
-			Mono<ExecutionResult> resultMono = executeAsync(
+			Mono<RequestOutput> resultMono = executeAsync(
 					"type Query { " + field + ": String }", "{ " + field + " }", contextWriter);
 
 			String greeting = GraphQlResponse.from(resultMono).toEntity(field, String.class);
@@ -137,7 +136,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		private void testSubscription(Function<Context, Context> contextModifier) {
 			String field = "greetingSubscription";
 
-			Mono<ExecutionResult> resultMono = executeAsync(
+			Mono<RequestOutput> resultMono = executeAsync(
 					"type Query { greeting: String } type Subscription { " + field + ": String }",
 					"subscription Greeting { " + field + " }",
 					contextModifier);
@@ -151,7 +150,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 	}
 
-	private Mono<ExecutionResult> executeAsync(
+	private Mono<RequestOutput> executeAsync(
 			String schema, String op, Function<Context, Context> contextWriter) {
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();

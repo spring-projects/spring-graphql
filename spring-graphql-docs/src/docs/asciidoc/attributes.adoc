@@ -15,5 +15,6 @@
 :github-wiki: https://github.com/{github-repo}/wiki
 :javadoc: https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api
 :spring-framework-ref-docs: https://docs.spring.io/spring-framework/docs/current/reference/html
-:spring-boot-version: current
+
+// {spring-boot-version} attribute from build.gradle
 :spring-boot-ref-docs: https://docs.spring.io/spring-boot/docs/{spring-boot-version}/reference/html

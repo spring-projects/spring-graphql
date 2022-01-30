@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,14 +22,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 /**
  * Extension of {@link HandlerMethod} that adds support for invoking the
@@ -96,7 +93,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 		List<Mono<Object>> monoList = Arrays.stream(args)
 				.map(arg -> {
-					Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.just(arg));
+					Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.justOrEmpty(arg));
 					return argMono.defaultIfEmpty(NO_VALUE);
 				})
 				.collect(Collectors.toList());
