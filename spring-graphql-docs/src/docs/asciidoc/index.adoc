@@ -310,7 +310,7 @@ public class CachingPreparsedDocumentProvider implements PreparsedDocumentProvid
     @Override
     public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
 			Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
-		return cache.get(executionInput.getQuery(), queryKey -> parseAndValidateFunction.apply(executionInput));
+		return cache.get(executionInput.getQuery(), operationKey -> parseAndValidateFunction.apply(executionInput));
 	}
 
 }
