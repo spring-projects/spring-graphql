@@ -54,14 +54,15 @@ public interface GraphQlTester {
 	RequestSpec<?> query(String query);
 
 	/**
-	 * Refer to a query by name where the given name is to look for a file with
-	 * the same name and extension {@code ".graphql"} or {@code ".gql"} under
+	 * Refer to an operation by name, where the given name is used to find a file
+	 * with the same name and extension {@code ".graphql"} or {@code ".gql"} under
 	 * classpath location {@code "graphql/"}.
+	 * @param operationName The name of the file wherein the operation resides
 	 * @return spec for response assertions
 	 * @throws IllegalArgumentException if the queryName cannot be resolved
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	RequestSpec<?> queryName(String queryName);
+	RequestSpec<?> operationName(String operationName);
 
 
 	/**

@@ -96,7 +96,7 @@ final class DefaultWebGraphQlTesterBuilder
 
 	@Override
 	public WebGraphQlTester build() {
-		return new DefaultWebGraphQlTester(initRequestStrategy(), this.headers, getQueryNameResolver());
+		return new DefaultWebGraphQlTester(initRequestStrategy(), this.headers, getOperationNameResolver());
 	}
 
 	private WebRequestStrategy initRequestStrategy() {

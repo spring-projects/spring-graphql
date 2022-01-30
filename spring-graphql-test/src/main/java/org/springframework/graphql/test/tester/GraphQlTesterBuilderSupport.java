@@ -64,7 +64,7 @@ class GraphQlTesterBuilderSupport {
 	@Nullable
 	private Duration responseTimeout;
 
-	private final Function<String, String> queryNameResolver = new QueryNameResolver();
+	private final Function<String, String> operationNameResolver = new OperationNameResolver();
 
 
 	protected void addErrorFilter(Predicate<GraphQLError> predicate) {
@@ -90,8 +90,8 @@ class GraphQlTesterBuilderSupport {
 		return this.responseTimeout;
 	}
 
-	protected Function<String, String> getQueryNameResolver() {
-		return this.queryNameResolver;
+	protected Function<String, String> getOperationNameResolver() {
+		return this.operationNameResolver;
 	}
 
 	protected Configuration initJsonPathConfig() {
@@ -111,34 +111,34 @@ class GraphQlTesterBuilderSupport {
 	}
 
 
-	private static class QueryNameResolver implements Function<String, String> {
+	private static class OperationNameResolver implements Function<String, String> {
 
 		private static final ClassPathResource LOCATION = new ClassPathResource("graphql/");
 
 		private static final String[] EXTENSIONS = new String[] {".graphql", ".gql"};
 
 		@Override
-		public String apply(String queryName) {
-			Resource queryResource = getQueryResource(queryName);
+		public String apply(String operationName) {
+			Resource operationResource = getOperationResource(operationName);
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			try {
-				FileCopyUtils.copy(queryResource.getInputStream(), outputStream);
+				FileCopyUtils.copy(operationResource.getInputStream(), outputStream);
 			}
 			catch (IOException ex) {
-				throw new IllegalArgumentException("Failed to read query from: " + LOCATION.getPath());
+				throw new IllegalArgumentException("Failed to read operation from: " + LOCATION.getPath());
 			}
 			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
 		}
 
-		private Resource getQueryResource(String queryName) {
+		private Resource getOperationResource(String operationName) {
 			for (String extension : EXTENSIONS) {
-				Resource resource = LOCATION.createRelative(queryName + extension);
+				Resource resource = LOCATION.createRelative(operationName + extension);
 				if (resource.exists()) {
 					return resource;
 				}
 			}
 			throw new IllegalArgumentException(
-					"Could not find file '" + queryName + "' with extensions " + Arrays.toString(EXTENSIONS) +
+					"Could not find file '" + operationName + "' with extensions " + Arrays.toString(EXTENSIONS) +
 							" under " + LOCATION.getDescription());
 		}
 	}

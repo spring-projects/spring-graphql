@@ -119,7 +119,7 @@ headers. This may be useful to inspect or set security related headers.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	this.graphQlTester.queryName("{ myQuery }")
+	this.graphQlTester.query("{ myQuery }")
 			.httpHeaders(headers -> headers.setBasicAuth("rob", "..."))
 			.execute()
 			.httpHeadersSatisfy(headers -> {
@@ -166,13 +166,13 @@ GraphQL response.
 
 The JsonPath is relative to the "data" section of the response.
 
-You can also create query files with extensions `.graphql` or `.gql` under `"graphql/"` on
-the classpath and refer to them by file name. For example, given a file called
+You can also create files containing single operations with extensions `.graphql`, or `.gql` under `"graphql/"` on
+the classpath, and refer to them by their file name. For example, given a file called
 `projectReleases.graphql` in `src/main/resources/graphql`, with content:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
-	query projectReleases($slug: ID!) {
+	query projectReleasesQuery($slug: ID!) {
 		project(slug: $slug) {
 			releases {
 				version
@@ -185,14 +185,14 @@ You can write the same test as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	graphQlTester.queryName("projectReleases") <1>
+	graphQlTester.opertionName("projectReleases") <1>
 			.variable("slug", "spring-framework") <2>
 			.execute()
 			.path("project.releases[*].version")
 			.entityList(String.class)
 			.hasSizeGreaterThan(1);
 ----
-<1> Refer to the query in the file named "projectReleases".
+<1> Refer to the operation in the file named "projectReleases".
 <2> Set the `slug` variable.
 
 [TIP]

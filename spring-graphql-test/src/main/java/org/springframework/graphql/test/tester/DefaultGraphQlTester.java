@@ -50,14 +50,14 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 	private final RequestStrategy requestStrategy;
 
-	private final Function<String, String> queryNameResolver;
+	private final Function<String, String> operationNameResolver;
 
 
-	DefaultGraphQlTester(RequestStrategy requestStrategy, Function<String, String> queryNameResolver) {
+	DefaultGraphQlTester(RequestStrategy requestStrategy, Function<String, String> operationNameResolver) {
 		Assert.notNull(requestStrategy, "RequestStrategy is required.");
-		Assert.notNull(queryNameResolver, "'queryNameResolver' is required.");
+		Assert.notNull(operationNameResolver, "'operationNameResolver' is required.");
 		this.requestStrategy = requestStrategy;
-		this.queryNameResolver = queryNameResolver;
+		this.operationNameResolver = operationNameResolver;
 	}
 
 
@@ -67,8 +67,8 @@ class DefaultGraphQlTester implements GraphQlTester {
 	}
 
 	@Override
-	public RequestSpec<?> queryName(String queryName) {
-		return query(this.queryNameResolver.apply(queryName));
+	public RequestSpec<?> operationName(String operationName) {
+		return query(this.operationNameResolver.apply(operationName));
 	}
 
 

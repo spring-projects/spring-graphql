@@ -35,7 +35,7 @@ class SampleApplicationTests {
 
 	@Test
 	void printError() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.operationName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(System.out::println);
@@ -43,7 +43,7 @@ class SampleApplicationTests {
 
 	@Test
 	void anonymousThenUnauthorized() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.operationName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -54,7 +54,7 @@ class SampleApplicationTests {
 
 	@Test
 	void userRoleThenForbidden() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.operationName("employeesNamesAndSalaries")
 				.httpHeaders(headers -> headers.setBasicAuth("rob", "rob"))
 				.execute()
 				.errors()
@@ -66,14 +66,14 @@ class SampleApplicationTests {
 
 	@Test
 	void canQueryName() {
-		this.graphQlTester.queryName("employeesNames")
+		this.graphQlTester.operationName("employeesNames")
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi");
 	}
 
 	@Test
 	void canNotQuerySalary() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.operationName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -84,7 +84,7 @@ class SampleApplicationTests {
 
 	@Test
 	void canQuerySalaryAsAdmin() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.operationName("employeesNamesAndSalaries")
 				.httpHeaders(headers -> headers.setBasicAuth("admin", "admin"))
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi")
@@ -94,7 +94,7 @@ class SampleApplicationTests {
 	@Test
 	void invalidCredentials() {
 		assertThatThrownBy(() ->
-				this.graphQlTester.queryName("employeesNamesAndSalaries")
+				this.graphQlTester.operationName("employeesNamesAndSalaries")
 						.httpHeaders(headers -> headers.setBasicAuth("admin", "INVALID"))
 						.executeAndVerify())
 				.hasMessage("Status expected:<200 OK> but was:<401 UNAUTHORIZED>");

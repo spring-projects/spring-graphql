@@ -56,7 +56,7 @@ public class ProjectControllerTests {
 	void jsonPath() {
 		given(this.projectsClient.fetchProject(eq("spring-framework"))).willReturn(this.springFramework);
 		given(this.projectsClient.fetchProjectReleases(eq("spring-framework"))).willReturn(Collections.singletonList(this.latestRelease));
-		this.graphQlTester.queryName("projectReleases")
+		this.graphQlTester.operationName("projectReleases")
 				.variable("slug", "spring-framework")
 				.execute()
 				.path("project.releases[*].version")
@@ -68,7 +68,7 @@ public class ProjectControllerTests {
 	@Test
 	void jsonContent() {
 		given(this.projectsClient.fetchProject(eq("spring-framework"))).willReturn(this.springFramework);
-		this.graphQlTester.queryName("projectRepositoryUrl")
+		this.graphQlTester.operationName("projectRepositoryUrl")
 				.variable("slug", "spring-framework")
 				.execute()
 				.path("project")
@@ -79,7 +79,7 @@ public class ProjectControllerTests {
 	void decodedResponse() {
 		given(this.projectsClient.fetchProject(eq("spring-framework"))).willReturn(this.springFramework);
 		given(this.projectsClient.fetchProjectReleases(eq("spring-framework"))).willReturn(Collections.singletonList(this.latestRelease));
-		this.graphQlTester.queryName("projectReleases")
+		this.graphQlTester.operationName("projectReleases")
 				.variable("slug", "spring-framework")
 				.execute()
 				.path("project")

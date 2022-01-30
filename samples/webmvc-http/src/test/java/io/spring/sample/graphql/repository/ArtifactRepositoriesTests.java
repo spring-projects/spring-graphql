@@ -32,7 +32,7 @@ class ArtifactRepositoriesTests {
 	
 	@Test
 	void querydslRepositorySingle() {
-		this.graphQlTester.queryName("artifactRepository")
+		this.graphQlTester.operationName("artifactRepository")
 				.variable("id", "spring-releases")
 				.execute()
 				.path("artifactRepository.name")
@@ -41,7 +41,7 @@ class ArtifactRepositoriesTests {
 
 	@Test
 	void querydslRepositoryMany() {
-		this.graphQlTester.queryName("artifactRepositories")
+		this.graphQlTester.operationName("artifactRepositories")
 				.execute()
 				.path("artifactRepositories[*].id")
 				.entityList(String.class).containsExactly("spring-releases", "spring-milestones");

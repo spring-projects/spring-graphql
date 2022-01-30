@@ -41,7 +41,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 	 * {@inheritDoc}
 	 * <p>The returned spec for Web request input also allows adding HTTP headers.
 	 */
-	WebRequestSpec queryName(String queryName);
+	WebRequestSpec operationName(String operationName);
 
 
 

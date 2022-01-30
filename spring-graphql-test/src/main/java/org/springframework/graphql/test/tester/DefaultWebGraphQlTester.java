@@ -43,17 +43,17 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 	@Nullable
 	private final HttpHeaders defaultHeaders;
 
-	private final Function<String, String> queryNameResolver;
+	private final Function<String, String> operationNameResolver;
 
 
 	DefaultWebGraphQlTester(
 			WebRequestStrategy requestStrategy, @Nullable HttpHeaders defaultHeaders,
-			Function<String, String> queryNameResolver) {
+			Function<String, String> operationNameResolver) {
 
 		Assert.notNull(requestStrategy, "WebRequestStrategy is required.");
 		this.requestStrategy = requestStrategy;
 		this.defaultHeaders = defaultHeaders;
-		this.queryNameResolver = queryNameResolver;
+		this.operationNameResolver = operationNameResolver;
 	}
 
 
@@ -63,8 +63,8 @@ class DefaultWebGraphQlTester implements WebGraphQlTester {
 	}
 
 	@Override
-	public WebRequestSpec queryName(String queryName) {
-		return query(this.queryNameResolver.apply(queryName));
+	public WebRequestSpec operationName(String operationName) {
+		return query(this.operationNameResolver.apply(operationName));
 	}
 
 
