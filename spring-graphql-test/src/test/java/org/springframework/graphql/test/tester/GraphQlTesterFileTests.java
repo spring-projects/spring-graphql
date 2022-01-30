@@ -45,7 +45,7 @@ public class GraphQlTesterFileTests {
 	@Test
 	public void testQuery1Gql() {
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.operationName("testQuery1").execute();
-		spec.errors().satisfy(errors -> assertThat(errors).isEmpty());
+		spec.errors().verify();
 		spec.path("x").valueDoesNotExist();
 		spec.path("y").valueExists().entity(String.class).isEqualTo("y");
 	}
@@ -53,7 +53,7 @@ public class GraphQlTesterFileTests {
 	@Test
 	public void testQuery2Graphql() {
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.operationName("testQuery2").execute();
-		spec.errors().satisfy(errors -> assertThat(errors).isEmpty());
+		spec.errors().verify();
 		spec.path("x").valueIsEmpty(); // TODO Should check for explicit null
 		spec.path("y").valueDoesNotExist();
 	}
@@ -61,7 +61,7 @@ public class GraphQlTesterFileTests {
 	@Test
 	public void testMutation1Gql() {
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.operationName("testMutation1").execute();
-		spec.errors().satisfy(errors -> assertThat(errors).isEmpty());
+		spec.errors().verify();
 		spec.path("x").valueExists().entity(String.class).isEqualTo("x");
 		spec.path("y").valueIsEmpty(); // TODO Should check for explicit null
 	}
@@ -69,7 +69,7 @@ public class GraphQlTesterFileTests {
 	@Test
 	public void testMutation2Graphql() {
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.operationName("testMutation2").execute();
-		spec.errors().satisfy(errors -> assertThat(errors).isEmpty());
+		spec.errors().verify();
 		spec.path("x").valueExists().entity(String.class).isEqualTo("x");
 		spec.path("y").valueDoesNotExist();
 	}
