@@ -288,11 +288,15 @@ name mappings that should help to cover more corner cases.
 [[execution-graphqlsource-preparsed-document-provider]]
 ==== PreparsedDocumentProvider
 
-You can configure a `PreparsedDocumentProvider` in `GraphQlSource.Builder` to implement `Document` caching and checks.
-Doing so makes it possible to skip the parsing and validation steps of execution entirely. It may also assist you
-in implementing query whitelisting.
+Before operations can be executed by GraphQL Java, their request string must be _parsed_ and _validated_. These
+two steps may impact the performance of applications significantly.
 
-A simple caching implementation using Caffeine would look something like the following:
+You may configure a `PreparsedDocumentProvider` using `GraphQlSource.Builder#configureGraphQl`. The
+`PreparsedDocumentProvider` can intercept these two steps and gives library consumers the tools to
+cache, or modify the resulting operation.
+
+The following snippet uses https://github.com/ben-manes/caffeine[Caffeine] to build a `PreparsedDocumentProvider`
+which caches the 2500 most recent operations for a maximum of 1 hour:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
