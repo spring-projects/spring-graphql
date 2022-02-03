@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,9 @@ import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.format.FormatterRegistrar;
+import org.springframework.format.support.DefaultFormattingConversionService;
+import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.GraphQlArgumentInitializer;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -109,20 +112,33 @@ public class AnnotatedControllerConfigurer
 	@Nullable
 	private HandlerMethodInputValidator validator;
 
-	@Nullable
-	private ConversionService conversionService;
+	private FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
 
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) {
-		this.applicationContext = applicationContext;
+	/**
+	 * Add a {@code FormatterRegistrar} to customize the {@link ConversionService}
+	 * that assists in binding GraphQL arguments onto
+	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
+	 * annotated method parameters.
+	 */
+	public void addFormatterRegistrar(FormatterRegistrar registrar) {
+		registrar.registerFormatters(this.conversionService);
 	}
 
 	/**
 	 * Configure the {@link ConversionService} used for binding handler arguments.
+	 * @deprecated in favor of using {@link #addFormatterRegistrar(FormatterRegistrar)}
+	 * to customize the built-in ConversionService instance.
 	 */
+	@Deprecated
 	public void setConversionService(ConversionService conversionService) {
-		this.conversionService = conversionService;
+		Assert.isInstanceOf(FormattingConversionService.class, "FormattingConversionService is required");
+		this.conversionService = (FormattingConversionService) conversionService;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) {
+		this.applicationContext = applicationContext;
 	}
 
 	protected final ApplicationContext obtainApplicationContext() {
