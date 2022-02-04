@@ -26,6 +26,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -106,7 +107,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return principal;
 	}
 
-	private boolean isInvalidType(MethodParameter parameter, Object principal) {
+	private boolean isInvalidType(MethodParameter parameter, @Nullable Object principal) {
 		if (principal == null) {
 			return false;
 		}
