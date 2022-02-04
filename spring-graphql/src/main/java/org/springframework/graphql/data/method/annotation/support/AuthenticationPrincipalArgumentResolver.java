@@ -31,6 +31,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -52,13 +53,14 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 
 	private ExpressionParser parser = new SpelExpressionParser();
 
-	private BeanResolver beanResolver;
+	private final BeanResolver beanResolver;
 
 	/**
-	 * Sets the {@link BeanResolver} to be used on the expressions
-	 * @param beanResolver the {@link BeanResolver} to use
+	 * Creates a new instance.
+	 * @param beanResolver the {@link BeanResolver} used for resolving beans in SpEL expressions. Cannot be null.
 	 */
-	public void setBeanResolver(BeanResolver beanResolver) {
+	public AuthenticationPrincipalArgumentResolver(BeanResolver beanResolver) {
+		Assert.notNull(beanResolver, "BeanResolver is required");
 		this.beanResolver = beanResolver;
 	}
 

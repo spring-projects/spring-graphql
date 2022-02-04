@@ -37,6 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
 import org.springframework.context.expression.BeanFactoryResolver;
+import org.springframework.expression.BeanResolver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -151,9 +152,8 @@ public class AnnotatedControllerConfigurer
 		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
 		if (springSecurityPresent) {
 			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
-			AuthenticationPrincipalArgumentResolver authenticationPrincipalResolver = new AuthenticationPrincipalArgumentResolver();
-			authenticationPrincipalResolver.setBeanResolver(new BeanFactoryResolver(obtainApplicationContext()));
-			this.argumentResolvers.addResolver(authenticationPrincipalResolver);
+			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
+			this.argumentResolvers.addResolver(new AuthenticationPrincipalArgumentResolver(beanResolver));
 		}
 		if (KotlinDetector.isKotlinPresent()) {
 			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());

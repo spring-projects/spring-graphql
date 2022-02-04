@@ -65,7 +65,7 @@ class AuthenticationPrincipalArgumentResolverTests {
 
 	@BeforeEach
 	void setup() {
-		this.resolver = new AuthenticationPrincipalArgumentResolver();
+		this.resolver = new AuthenticationPrincipalArgumentResolver((beanName, context) -> new PrincipalConverter());
 	}
 
 	@AfterEach
@@ -137,7 +137,6 @@ class AuthenticationPrincipalArgumentResolverTests {
 
 	@Test
 	void resolveArgumentWhenBeanName() throws Exception {
-		this.resolver.setBeanResolver((context, beanName) -> new PrincipalConverter());
 		MethodParameter methodParameter = firstMethodParameter(UserController.class, "beanName", USER_DETAILS_CLASS);
 		Mono<UserDetails> userDetails = (Mono<UserDetails>) this.resolver.resolveArgument(methodParameter, null);
 		assertThat(userDetails.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
@@ -207,7 +206,6 @@ class AuthenticationPrincipalArgumentResolverTests {
 
 	@Test
 	void resolveArgumentWhenMonoBeanName() throws Exception {
-		this.resolver.setBeanResolver((context, beanName) -> new PrincipalConverter());
 		MethodParameter methodParameter = firstMethodParameter(UserController.class, "beanName", MONO_USER_DETAILS_CLASS);
 		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
 		assertThat(userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
