@@ -73,7 +73,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		return getCurrentAuthentication().map(Authentication::getPrincipal)
-				.map((principal) -> resolvePrincipal(parameter, principal))
+				.flatMap((principal) -> Mono.justOrEmpty(resolvePrincipal(parameter, principal)))
 				.transform((argument) -> {
 					Class<?> parameterType = parameter.getParameterType();
 					boolean isParameterPublisher = Publisher.class.isAssignableFrom(parameterType);
@@ -87,6 +87,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 				.switchIfEmpty(ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication));
 	}
 
+	@Nullable
 	private Object resolvePrincipal(MethodParameter parameter, Object principal) {
 		AuthenticationPrincipal annotation = findMethodAnnotation(AuthenticationPrincipal.class, parameter);
 		String expressionToParse = annotation.expression();
