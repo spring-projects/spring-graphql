@@ -174,10 +174,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			this.graphQlHandler.handleWebSocketCompletion().block(Duration.ofSeconds(10));
 			return;
 		case PING:
-			this.graphQlHandler.handleWebSocketPing().block(Duration.ofSeconds(10));
-			return;
 		case PONG:
-			this.graphQlHandler.handleWebSocketPong().block(Duration.ofSeconds(10));
+			Mono.empty().block(Duration.ofSeconds(10));
 			return;
 		case CONNECTION_INIT:
 			if (sessionState.setConnectionInitProcessed()) {

@@ -60,23 +60,6 @@ public interface WebGraphQlHandler {
 		return Mono.empty();
 	}
 
-	/**
-	 * Handle the <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md#ping">ping message</a>
-	 * for "heartbeat/keepalive" that many GraphQL clients send to keep the session alive.
-	 * @return returns a simple "pong" message
-	 */
-	default Mono<Void> handleWebSocketPing() {
-		return Mono.empty();
-	}
-
-	/**
-	 * Handle the <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md#pong">ping message</a>
-	 * for "heartbeat/keepalive" that many GraphQL clients send to keep the session alive.
-	 * @return returns a simple "pong" message
-	 */
-	default Mono<Void> handleWebSocketPong() {
-		return Mono.empty();
-	}
 
 	/**
 	 * Provides access to a builder to create a {@link WebGraphQlHandler} instance.
