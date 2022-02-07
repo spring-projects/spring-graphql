@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -249,15 +249,15 @@ public interface GraphQlTester {
 		PathSpec valueDoesNotExist();
 
 		/**
-		 * Assert the value at the given path does not exist or is empty as defined in
-		 * {@link org.springframework.util.ObjectUtils#isEmpty(Object)}.
+		 * Assert the value at the given path does exist but is empty as defined
+		 * in {@link org.springframework.util.ObjectUtils#isEmpty(Object)}.
 		 * @return spec to assert the converted entity with
 		 * @see org.springframework.util.ObjectUtils#isEmpty(Object)
 		 */
 		PathSpec valueIsEmpty();
 
 		/**
-		 * Assert the value at the given path is not {@link #valueIsEmpty()}.
+		 * Assert the value at the given path is not {@link #valueIsEmpty() empty}.
 		 * @return spec to assert the converted entity with
 		 */
 		PathSpec valueIsNotEmpty();

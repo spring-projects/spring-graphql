@@ -66,16 +66,34 @@ public class GraphQlTesterTests {
 
 
 	@Test
-	void pathAndValueExistsAndEmptyChecks() throws Exception {
+	void pathAndValueExist() throws Exception {
 
 		String query = "{me {name, friends}}";
 		setResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
 		GraphQlTester.ResponseSpec spec = this.graphQlTester.query(query).execute();
 
-		spec.path("me.name").pathExists().valueExists().valueIsNotEmpty();
+		spec.path("me.name").pathExists().valueExists();
+		spec.path("me.friends").pathExists().valueExists();
+		spec.path("hero").pathDoesNotExist().valueDoesNotExist();
+
+		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
+	}
+
+	@Test
+	void valueIsEmpty() throws Exception {
+
+		String query = "{me {name, friends}}";
+		setResponse("{\"me\": {\"name\":null, \"friends\":[]}}");
+
+		GraphQlTester.ResponseSpec spec = this.graphQlTester.query(query).execute();
+
+		spec.path("me.name").valueIsEmpty();
 		spec.path("me.friends").valueIsEmpty();
-		spec.path("hero").pathDoesNotExist().valueDoesNotExist().valueIsEmpty();
+
+		assertThatThrownBy(() -> spec.path("hero").valueIsEmpty())
+				.as("Path does not even exist")
+				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
 
 		assertThat(this.inputCaptor.getValue().getQuery()).contains(query);
 	}

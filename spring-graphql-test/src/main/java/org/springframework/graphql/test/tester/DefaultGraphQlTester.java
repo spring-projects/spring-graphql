@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -336,8 +336,7 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public PathSpec pathDoesNotExist() {
-			this.responseContainer
-					.doAssert(() -> this.pathHelper.doesNotHaveJsonPath(this.responseContainer.jsonContent()));
+			this.responseContainer.doAssert(() -> this.pathHelper.doesNotHaveJsonPath(this.responseContainer.jsonContent()));
 			return this;
 		}
 
@@ -355,21 +354,13 @@ class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public PathSpec valueIsEmpty() {
-			this.responseContainer.doAssert(() -> {
-				try {
-					this.pathHelper.assertValueIsEmpty(this.responseContainer.jsonContent());
-				}
-				catch (AssertionError ex) {
-					// ignore
-				}
-			});
+			this.responseContainer.doAssert(() -> this.pathHelper.assertValueIsEmpty(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
 		public PathSpec valueIsNotEmpty() {
-			this.responseContainer
-					.doAssert(() -> this.pathHelper.assertValueIsNotEmpty(this.responseContainer.jsonContent()));
+			this.responseContainer.doAssert(() -> this.pathHelper.assertValueIsNotEmpty(this.responseContainer.jsonContent()));
 			return this;
 		}
 
