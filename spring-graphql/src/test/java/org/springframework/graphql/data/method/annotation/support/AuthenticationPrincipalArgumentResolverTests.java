@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
@@ -36,6 +37,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
 import reactor.core.publisher.Mono;
+import reactor.test.publisher.TestPublisher;
 import reactor.util.context.Context;
 
 import java.lang.annotation.Retention;
@@ -60,6 +62,10 @@ class AuthenticationPrincipalArgumentResolverTests {
 	private final static Class<String> STRING_CLASS = String.class;
 
 	private final static Class<?> MONO_STRING_CLASS = ResolvableType.forClassWithGenerics(Mono.class, String.class).getRawClass();
+
+	private final static Class<?> PUBLISHER_USER_DETAILS_CLASS = ResolvableType.forClassWithGenerics(Publisher.class, UserDetails.class).getRawClass();
+
+	private final static Class<?> TESTPUBLISHER_USER_DETAILS_CLASS = ResolvableType.forClassWithGenerics(TestPublisher.class, UserDetails.class).getRawClass();
 
 	private AuthenticationPrincipalArgumentResolver resolver;
 
@@ -241,6 +247,28 @@ class AuthenticationPrincipalArgumentResolverTests {
 		assertThat(userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block()).isNull();
 	}
 
+	@Test
+	void resolveArgumentWhenPublisher() throws Exception {
+		MethodParameter methodParameter = firstMethodParameter(UserController.class, "publisher", PUBLISHER_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
+		assertThat(userDetails.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+	}
+
+	@Test
+	void resolveArgumentWhenTestPublisherThenEmptyMono() throws Exception {
+		MethodParameter methodParameter = firstMethodParameter(UserController.class, "publisher", TESTPUBLISHER_USER_DETAILS_CLASS);
+		Mono<TestPublisher<UserDetails>> userDetails = (Mono<TestPublisher<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
+		assertThat(userDetails.contextWrite(authenticationContext()).block()).isNull();
+	}
+
+	@Test
+	void resolveArgumentWhenTestPublisherAndErrorOnInvalidType() throws Exception {
+		MethodParameter methodParameter = firstMethodParameter(UserController.class, "errorOnInvalidType", TESTPUBLISHER_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
+		assertThatExceptionOfType(ClassCastException.class)
+				.isThrownBy(() -> userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block());
+	}
+
 	private MethodParameter firstMethodParameter(Class<?> clazz, String methodName, Class<?>... paramTypes) {
 		Method method = ClassUtils.getMethod(clazz, methodName, paramTypes);
 		return methodParam(method, 0);
@@ -350,7 +378,22 @@ class AuthenticationPrincipalArgumentResolverTests {
 		}
 
 		@QueryMapping
+		public Publisher<UserDetails> errorOnInvalidType(@AuthenticationPrincipal(errorOnInvalidType = true) TestPublisher<UserDetails> userDetails) {
+			return userDetails;
+		}
+
+		@QueryMapping
 		public Mono<String> invalidType(@AuthenticationPrincipal Mono<String> userDetails) {
+			return userDetails;
+		}
+
+		@QueryMapping
+		public Publisher<UserDetails> publisher(@AuthenticationPrincipal Publisher<UserDetails> userDetails) {
+			return userDetails;
+		}
+
+		@QueryMapping
+		public Publisher<UserDetails> publisher(@AuthenticationPrincipal TestPublisher<UserDetails> userDetails) {
 			return userDetails;
 		}
 	}

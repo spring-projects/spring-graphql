@@ -75,9 +75,8 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return getCurrentAuthentication().map(Authentication::getPrincipal)
 				.flatMap((principal) -> Mono.justOrEmpty(resolvePrincipal(parameter, principal)))
 				.transform((argument) -> {
-					Class<?> parameterType = parameter.getParameterType();
-					boolean isParameterPublisher = Publisher.class.isAssignableFrom(parameterType);
-					return isParameterPublisher ? Mono.just(argument) : argument;
+					boolean isParameterPublisher = isParameterMonoAssignable(parameter);
+					return  isParameterPublisher ? Mono.just(argument) : argument;
 				});
 	}
 
@@ -113,8 +112,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 			return false;
 		}
 		Class<?> typeToCheck = parameter.getParameterType();
-		boolean isParameterPublisher = Publisher.class.isAssignableFrom(parameter.getParameterType());
-		if (isParameterPublisher) {
+		if (isParameterMonoAssignable(parameter)) {
 			ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
 			Class<?> genericType = resolvableType.resolveGeneric(0);
 			if (genericType == null) {
@@ -123,6 +121,11 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 			typeToCheck = genericType;
 		}
 		return !ClassUtils.isAssignable(typeToCheck, principal.getClass());
+	}
+
+	private boolean isParameterMonoAssignable(MethodParameter parameter) {
+		return Publisher.class.equals(parameter.getParameterType()) ||
+				Mono.class.equals(parameter.getParameterType());
 	}
 
 	/**
