@@ -132,7 +132,7 @@ public class AnnotatedControllerConfigurer
 	 */
 	@Deprecated
 	public void setConversionService(ConversionService conversionService) {
-		Assert.isInstanceOf(FormattingConversionService.class, "FormattingConversionService is required");
+		Assert.isInstanceOf(FormattingConversionService.class, conversionService);
 		this.conversionService = (FormattingConversionService) conversionService;
 	}
 
