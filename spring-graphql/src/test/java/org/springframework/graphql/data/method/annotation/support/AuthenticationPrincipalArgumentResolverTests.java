@@ -15,10 +15,18 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.Method;
+import java.util.function.Function;
+
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
+import reactor.test.publisher.TestPublisher;
+import reactor.util.context.Context;
+
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
@@ -36,14 +44,6 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
-import reactor.core.publisher.Mono;
-import reactor.test.publisher.TestPublisher;
-import reactor.util.context.Context;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.Method;
-import java.util.function.Function;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
@@ -55,73 +55,76 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
  */
 class AuthenticationPrincipalArgumentResolverTests {
 
-	private final static Class<?> MONO_USER_DETAILS_CLASS = ResolvableType.forClassWithGenerics(Mono.class, UserDetails.class).getRawClass();
+	private final static Class<String> STRING_CLASS = String.class;
 
 	private final static Class<UserDetails> USER_DETAILS_CLASS = UserDetails.class;
 
-	private final static Class<String> STRING_CLASS = String.class;
+	private final static Class<?> MONO_USER_DETAILS_CLASS =
+			ResolvableType.forClassWithGenerics(Mono.class, UserDetails.class).getRawClass();
 
-	private final static Class<?> MONO_STRING_CLASS = ResolvableType.forClassWithGenerics(Mono.class, String.class).getRawClass();
+	private final static Class<?> MONO_STRING_CLASS =
+			ResolvableType.forClassWithGenerics(Mono.class, String.class).getRawClass();
 
-	private final static Class<?> PUBLISHER_USER_DETAILS_CLASS = ResolvableType.forClassWithGenerics(Publisher.class, UserDetails.class).getRawClass();
+	private final static Class<?> PUBLISHER_USER_DETAILS_CLASS =
+			ResolvableType.forClassWithGenerics(Publisher.class, UserDetails.class).getRawClass();
 
-	private final static Class<?> TESTPUBLISHER_USER_DETAILS_CLASS = ResolvableType.forClassWithGenerics(TestPublisher.class, UserDetails.class).getRawClass();
+	private final static Class<?> TESTPUBLISHER_USER_DETAILS_CLASS =
+			ResolvableType.forClassWithGenerics(TestPublisher.class, UserDetails.class).getRawClass();
 
-	private AuthenticationPrincipalArgumentResolver resolver;
 
-	@BeforeEach
-	void setup() {
-		this.resolver = new AuthenticationPrincipalArgumentResolver((beanName, context) -> new PrincipalConverter());
-	}
+	private final AuthenticationPrincipalArgumentResolver resolver =
+			new AuthenticationPrincipalArgumentResolver((beanName, context) -> new PrincipalConverter());
+
 
 	@AfterEach
 	void cleanup() {
 		SecurityContextHolder.clearContext();
 	}
 
+	
 	@Test
-	void supportsParameterWhenNoAnnotation() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "noParameter", USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isFalse();
+	void supportsParameterWhenNoAnnotation() {
+		MethodParameter parameter = firstParameter(UserController.class, "noParameter", USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test
-	void supportsParameterWhenWrongAnnotation() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "argument", USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isFalse();
+	void supportsParameterWhenWrongAnnotation() {
+		MethodParameter parameter = firstParameter(UserController.class, "argument", USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test
-	void supportsParameterWhenCurrentUser() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isTrue();
+	void supportsParameterWhenCurrentUser() {
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isTrue();
 	}
 
 	@Test
-	void supportsParameterWhenAuthenticationPrincipal() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "userDetails", USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isTrue();
+	void supportsParameterWhenAuthenticationPrincipal() {
+		MethodParameter parameter = firstParameter(UserController.class, "userDetails", USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isTrue();
 	}
 
 	@Test
 	void resolveArgumentWhenAuthenticationPrincipal() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "userDetails", USER_DETAILS_CLASS);
-		Mono<UserDetails> userDetails = (Mono<UserDetails>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "userDetails", USER_DETAILS_CLASS);
+		Mono<UserDetails> details = (Mono<UserDetails>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenCurrentUser() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
-		Mono<UserDetails> userDetails = (Mono<UserDetails>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
+		Mono<UserDetails> details = (Mono<UserDetails>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenNoSecurityContext() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
-		Mono<UserDetails> userDetails = (Mono<UserDetails>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block()).isNull();
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
+		Mono<UserDetails> details = (Mono<UserDetails>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block()).isNull();
 	}
 
 	@Test
@@ -129,83 +132,83 @@ class AuthenticationPrincipalArgumentResolverTests {
 		SecurityContext context = SecurityContextHolder.createEmptyContext();
 		context.setAuthentication(usernamePasswordAuthentication());
 		SecurityContextHolder.setContext(context);
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
-		Mono<UserDetails> userDetails = (Mono<UserDetails>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", USER_DETAILS_CLASS);
+		Mono<UserDetails> details = (Mono<UserDetails>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenAuthenticationPrincipalUsername() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "username", STRING_CLASS);
-		Mono<String> userDetails = (Mono<String>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.contextWrite(authenticationContext()).block()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "username", STRING_CLASS);
+		Mono<String> details = (Mono<String>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.contextWrite(authenticationContext()).block()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenBeanName() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "beanName", USER_DETAILS_CLASS);
-		Mono<UserDetails> userDetails = (Mono<UserDetails>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "beanName", USER_DETAILS_CLASS);
+		Mono<UserDetails> details = (Mono<UserDetails>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenErrorOnInvalidType() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "errorOnInvalidType", String.class);
-		Mono<Object> userDetails = (Mono<Object>) this.resolver.resolveArgument(methodParameter, null);
+		MethodParameter parameter = firstParameter(UserController.class, "errorOnInvalidType", String.class);
+		Mono<Object> details = (Mono<Object>) this.resolver.resolveArgument(parameter, null);
 		assertThatExceptionOfType(ClassCastException.class)
-				.isThrownBy(() -> userDetails.contextWrite(authenticationContext()).block());
+				.isThrownBy(() -> details.contextWrite(authenticationContext()).block());
 	}
 
 	@Test
 	void resolveArgumentWhenInvalidType() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "invalidType", STRING_CLASS);
-		Mono<Mono<Object>> userDetails = (Mono<Mono<Object>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block()).isNull();
+		MethodParameter parameter = firstParameter(UserController.class, "invalidType", STRING_CLASS);
+		Mono<Mono<Object>> details = (Mono<Mono<Object>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.flatMap(u -> u).contextWrite(authenticationContext()).block()).isNull();
 	}
 
 	@Test
-	void supportsParameterWhenMonoNoAnnotation() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "noParameter", MONO_USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isFalse();
+	void supportsParameterWhenMonoNoAnnotation() {
+		MethodParameter parameter = firstParameter(UserController.class, "noParameter", MONO_USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test
-	void supportsParameterWhenMonoWrongAnnotation() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "argument", MONO_USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isFalse();
+	void supportsParameterWhenMonoWrongAnnotation() {
+		MethodParameter parameter = firstParameter(UserController.class, "argument", MONO_USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test
-	void supportsParameterWhenMonoCurrentUser() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isTrue();
+	void supportsParameterWhenMonoCurrentUser() {
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isTrue();
 	}
 
 	@Test
-	void supportsParameterWhenMonoAuthenticationPrincipal() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "userDetails", MONO_USER_DETAILS_CLASS);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isTrue();
+	void supportsParameterWhenMonoAuthenticationPrincipal() {
+		MethodParameter parameter = firstParameter(UserController.class, "userDetails", MONO_USER_DETAILS_CLASS);
+		assertThat(this.resolver.supportsParameter(parameter)).isTrue();
 	}
 
 	@Test
 	void resolveArgumentWhenMonoAuthenticationPrincipal() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "userDetails", MONO_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "userDetails", MONO_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenMonoCurrentUser() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenMonoNoSecurityContext() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block().block()).isNull();
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block().block()).isNull();
 	}
 
 	@Test
@@ -213,71 +216,71 @@ class AuthenticationPrincipalArgumentResolverTests {
 		SecurityContext context = SecurityContextHolder.createEmptyContext();
 		context.setAuthentication(usernamePasswordAuthentication());
 		SecurityContextHolder.setContext(context);
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "currentUser", MONO_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenMonoAuthenticationPrincipalUsername() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "username", MONO_STRING_CLASS);
-		Mono<Mono<String>> userDetails = (Mono<Mono<String>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block().contextWrite(authenticationContext()).block()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "username", MONO_STRING_CLASS);
+		Mono<Mono<String>> details = (Mono<Mono<String>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block().contextWrite(authenticationContext()).block()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenMonoBeanName() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "beanName", MONO_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "beanName", MONO_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.flatMap(u -> u).contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenMonoErrorOnInvalidType() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "errorOnInvalidType", MONO_STRING_CLASS);
-		Mono<Mono<Object>> userDetails = (Mono<Mono<Object>>) this.resolver.resolveArgument(methodParameter, null);
+		MethodParameter parameter = firstParameter(UserController.class, "errorOnInvalidType", MONO_STRING_CLASS);
+		Mono<Mono<Object>> details = (Mono<Mono<Object>>) this.resolver.resolveArgument(parameter, null);
 		assertThatExceptionOfType(ClassCastException.class)
-				.isThrownBy(() -> userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block());
+				.isThrownBy(() -> details.flatMap(u -> u).contextWrite(authenticationContext()).block());
 	}
 
 	@Test
 	void resolveArgumentWhenMonoInvalidType() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "invalidType", MONO_STRING_CLASS);
-		Mono<Mono<Object>> userDetails = (Mono<Mono<Object>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block()).isNull();
+		MethodParameter parameter = firstParameter(UserController.class, "invalidType", MONO_STRING_CLASS);
+		Mono<Mono<Object>> details = (Mono<Mono<Object>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.flatMap(u -> u).contextWrite(authenticationContext()).block()).isNull();
 	}
 
 	@Test
 	void resolveArgumentWhenPublisher() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "publisher", PUBLISHER_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
+		MethodParameter parameter = firstParameter(UserController.class, "publisher", PUBLISHER_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.block().contextWrite(authenticationContext()).block().getUsername()).isEqualTo("user");
 	}
 
 	@Test
 	void resolveArgumentWhenTestPublisherThenEmptyMono() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "publisher", TESTPUBLISHER_USER_DETAILS_CLASS);
-		Mono<TestPublisher<UserDetails>> userDetails = (Mono<TestPublisher<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
-		assertThat(userDetails.contextWrite(authenticationContext()).block()).isNull();
+		MethodParameter parameter = firstParameter(UserController.class, "publisher", TESTPUBLISHER_USER_DETAILS_CLASS);
+		Mono<TestPublisher<UserDetails>> details = (Mono<TestPublisher<UserDetails>>) this.resolver.resolveArgument(parameter, null);
+		assertThat(details.contextWrite(authenticationContext()).block()).isNull();
 	}
 
 	@Test
 	void resolveArgumentWhenTestPublisherAndErrorOnInvalidType() throws Exception {
-		MethodParameter methodParameter = firstMethodParameter(UserController.class, "errorOnInvalidType", TESTPUBLISHER_USER_DETAILS_CLASS);
-		Mono<Mono<UserDetails>> userDetails = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(methodParameter, null);
+		MethodParameter parameter = firstParameter(UserController.class, "errorOnInvalidType", TESTPUBLISHER_USER_DETAILS_CLASS);
+		Mono<Mono<UserDetails>> details = (Mono<Mono<UserDetails>>) this.resolver.resolveArgument(parameter, null);
 		assertThatExceptionOfType(ClassCastException.class)
-				.isThrownBy(() -> userDetails.flatMap(u -> u).contextWrite(authenticationContext()).block());
+				.isThrownBy(() -> details.flatMap(u -> u).contextWrite(authenticationContext()).block());
 	}
 
-	private MethodParameter firstMethodParameter(Class<?> clazz, String methodName, Class<?>... paramTypes) {
+	private MethodParameter firstParameter(Class<?> clazz, String methodName, Class<?>... paramTypes) {
 		Method method = ClassUtils.getMethod(clazz, methodName, paramTypes);
 		return methodParam(method, 0);
 	}
 
 	private MethodParameter methodParam(Method method, int index) {
-		MethodParameter methodParameter = new SynthesizingMethodParameter(method, index);
-		methodParameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
-		return methodParameter;
+		MethodParameter parameter = new SynthesizingMethodParameter(method, index);
+		parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
+		return parameter;
 	}
 
 	private static Function<Context, Context> authenticationContext() {
@@ -285,8 +288,8 @@ class AuthenticationPrincipalArgumentResolverTests {
 	}
 
 	private static Authentication usernamePasswordAuthentication() {
-		UserDetails userDetails = userDetails();
-		return new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities());
+		UserDetails details = userDetails();
+		return new UsernamePasswordAuthenticationToken(details, details.getPassword(), details.getAuthorities());
 	}
 
 	private static UserDetails userDetails() {
@@ -298,6 +301,7 @@ class AuthenticationPrincipalArgumentResolverTests {
 			return userDetails;
 		}
 	}
+
 
 	@Controller
 	static class UserController {
@@ -328,7 +332,9 @@ class AuthenticationPrincipalArgumentResolverTests {
 		}
 
 		@QueryMapping
-		public UserDetails beanName(@AuthenticationPrincipal(expression = "@bean.convert(#this)") UserDetails userDetails) {
+		public UserDetails beanName(
+				@AuthenticationPrincipal(expression = "@bean.convert(#this)") UserDetails userDetails) {
+
 			return userDetails;
 		}
 
@@ -368,17 +374,23 @@ class AuthenticationPrincipalArgumentResolverTests {
 		}
 
 		@QueryMapping
-		public Mono<UserDetails> beanName(@AuthenticationPrincipal(expression = "@bean.convert(#this)") Mono<UserDetails> userDetails) {
+		public Mono<UserDetails> beanName(
+				@AuthenticationPrincipal(expression = "@bean.convert(#this)") Mono<UserDetails> userDetails) {
+
 			return userDetails;
 		}
 
 		@QueryMapping
-		public Mono<String> errorOnInvalidType(@AuthenticationPrincipal(errorOnInvalidType = true) Mono<String> userDetails) {
+		public Mono<String> errorOnInvalidType(
+				@AuthenticationPrincipal(errorOnInvalidType = true) Mono<String> userDetails) {
+
 			return userDetails;
 		}
 
 		@QueryMapping
-		public Publisher<UserDetails> errorOnInvalidType(@AuthenticationPrincipal(errorOnInvalidType = true) TestPublisher<UserDetails> userDetails) {
+		public Publisher<UserDetails> errorOnInvalidType(
+				@AuthenticationPrincipal(errorOnInvalidType = true) TestPublisher<UserDetails> userDetails) {
+
 			return userDetails;
 		}
 
@@ -398,8 +410,10 @@ class AuthenticationPrincipalArgumentResolverTests {
 		}
 	}
 
+
 	@AuthenticationPrincipal
 	@Retention(RetentionPolicy.RUNTIME)
 	public @interface CurrentUser {
 	}
+
 }

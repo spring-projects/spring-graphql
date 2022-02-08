@@ -15,10 +15,13 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.lang.annotation.Annotation;
+
 import graphql.schema.DataFetchingEnvironment;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
+
 import org.springframework.core.MethodParameter;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.expression.BeanResolver;
 import org.springframework.expression.Expression;
@@ -35,13 +38,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
-import reactor.core.publisher.Mono;
-
-import java.lang.annotation.Annotation;
 
 /**
- * Resolver to obtain {@link Authentication#getPrincipal()} from Spring Security context via
- * {@link SecurityContext#getAuthentication()} for parameters annotated with {@link AuthenticationPrincipal}.
+ * Resolver to obtain {@link Authentication#getPrincipal()} from Spring Security
+ * context via {@link SecurityContext#getAuthentication()} for parameters
+ * annotated with {@link AuthenticationPrincipal}.
  *
  * <p>The resolver checks both ThreadLocal context via {@link SecurityContextHolder}
  * for Spring MVC applications, and {@link ReactiveSecurityContextHolder} for
@@ -52,9 +53,10 @@ import java.lang.annotation.Annotation;
  */
 public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private ExpressionParser parser = new SpelExpressionParser();
+	private final ExpressionParser parser = new SpelExpressionParser();
 
 	private final BeanResolver beanResolver;
+
 
 	/**
 	 * Creates a new instance.
@@ -65,37 +67,60 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		this.beanResolver = beanResolver;
 	}
 
+
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return findMethodAnnotation(AuthenticationPrincipal.class, parameter) != null;
+		return findMethodAnnotation(parameter) != null;
+	}
+
+	/**
+	 * Obtains the {@link AuthenticationPrincipal} annotation which can be
+	 * directly on the {@link MethodParameter} or on a custom annotation that
+	 * is meta-annotated with it.
+	 */
+	@Nullable
+	private static AuthenticationPrincipal findMethodAnnotation(MethodParameter parameter) {
+		AuthenticationPrincipal annotation = parameter.getParameterAnnotation(AuthenticationPrincipal.class);
+		if (annotation != null) {
+			return annotation;
+		}
+		Annotation[] annotationsToSearch = parameter.getParameterAnnotations();
+		for (Annotation toSearch : annotationsToSearch) {
+			annotation = AnnotationUtils.findAnnotation(toSearch.annotationType(), AuthenticationPrincipal.class);
+			if (annotation != null) {
+				return annotation;
+			}
+		}
+		return null;
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
-		return getCurrentAuthentication().map(Authentication::getPrincipal)
-				.flatMap((principal) -> Mono.justOrEmpty(resolvePrincipal(parameter, principal)))
-				.transform((argument) -> {
-					boolean isParameterPublisher = isParameterMonoAssignable(parameter);
-					return  isParameterPublisher ? Mono.just(argument) : argument;
-				});
+		return getCurrentAuthentication()
+				.flatMap(auth -> Mono.justOrEmpty(resolvePrincipal(parameter, auth.getPrincipal())))
+				.transform((argument) -> isParameterMonoAssignable(parameter) ? Mono.just(argument) : argument);
+	}
+
+	private static boolean isParameterMonoAssignable(MethodParameter parameter) {
+		Class<?> type = parameter.getParameterType();
+		return (Publisher.class.equals(type) || Mono.class.equals(type));
 	}
 
 	private Mono<Authentication> getCurrentAuthentication() {
-		SecurityContext securityContext = SecurityContextHolder.getContext();
-		return Mono.justOrEmpty(securityContext.getAuthentication())
+		return Mono.justOrEmpty(SecurityContextHolder.getContext().getAuthentication())
 				.switchIfEmpty(ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication));
 	}
 
 	@Nullable
 	private Object resolvePrincipal(MethodParameter parameter, Object principal) {
-		AuthenticationPrincipal annotation = findMethodAnnotation(AuthenticationPrincipal.class, parameter);
-		String expressionToParse = annotation.expression();
-		if (StringUtils.hasLength(expressionToParse)) {
+		AuthenticationPrincipal annotation = findMethodAnnotation(parameter);
+		String expressionValue = annotation.expression();
+		if (StringUtils.hasLength(expressionValue)) {
 			StandardEvaluationContext context = new StandardEvaluationContext();
 			context.setRootObject(principal);
 			context.setVariable("this", principal);
 			context.setBeanResolver(this.beanResolver);
-			Expression expression = this.parser.parseExpression(expressionToParse);
+			Expression expression = this.parser.parseExpression(expressionValue);
 			principal = expression.getValue(context);
 		}
 		if (isInvalidType(parameter, principal)) {
@@ -113,9 +138,8 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		}
 		Class<?> typeToCheck = parameter.getParameterType();
 		if (isParameterMonoAssignable(parameter)) {
-			ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
-			Class<?> genericType = resolvableType.resolveGeneric(0);
-			if (genericType == null) {
+			Class<?> genericType = parameter.nested().getNestedParameterType();
+			if (genericType.equals(Object.class)) {
 				return false;
 			}
 			typeToCheck = genericType;
@@ -123,31 +147,4 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return !ClassUtils.isAssignable(typeToCheck, principal.getClass());
 	}
 
-	private boolean isParameterMonoAssignable(MethodParameter parameter) {
-		return Publisher.class.equals(parameter.getParameterType()) ||
-				Mono.class.equals(parameter.getParameterType());
-	}
-
-	/**
-	 * Obtains the specified {@link Annotation} on the specified {@link MethodParameter}.
-	 * @param annotationClass the class of the {@link Annotation} to find on the
-	 * {@link MethodParameter}
-	 * @param parameter the {@link MethodParameter} to search for an {@link Annotation}
-	 * @return the {@link Annotation} that was found or null.
-	 */
-	@Nullable
-	private <T extends Annotation> T findMethodAnnotation(Class<T> annotationClass, MethodParameter parameter) {
-		T annotation = parameter.getParameterAnnotation(annotationClass);
-		if (annotation != null) {
-			return annotation;
-		}
-		Annotation[] annotationsToSearch = parameter.getParameterAnnotations();
-		for (Annotation toSearch : annotationsToSearch) {
-			annotation = AnnotationUtils.findAnnotation(toSearch.annotationType(), annotationClass);
-			if (annotation != null) {
-				return annotation;
-			}
-		}
-		return null;
-	}
 }
