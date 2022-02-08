@@ -1032,7 +1032,10 @@ See <<controllers-schema-mapping-data-loader>>.
 | For access to the context from the `DataFetchingEnvironment`.
 
 | `java.security.Principal`
-| Obtained from Spring Security context, if available.
+| Obtained from the Spring Security context, if available.
+
+| `@AuthenticationPrincipal`
+| For access to `Authentication#getPrincipal()` from the Spring Security context.
 
 | `DataFetchingFieldSelectionSet`
 | For access to the selection set for the query through the `DataFetchingEnvironment`.
