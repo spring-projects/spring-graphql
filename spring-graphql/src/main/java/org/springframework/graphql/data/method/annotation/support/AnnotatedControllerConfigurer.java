@@ -161,6 +161,7 @@ public class AnnotatedControllerConfigurer
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
 		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(initializer));
+		this.argumentResolvers.addResolver(new ArgumentsMethodArgumentResolver(initializer));
 		this.argumentResolvers.addResolver(new ContextValueMethodArgumentResolver());
 
 		// Type based

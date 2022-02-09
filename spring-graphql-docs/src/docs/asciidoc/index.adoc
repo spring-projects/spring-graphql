@@ -1009,8 +1009,12 @@ Schema mapping handler methods can have any of the following method arguments:
 | Method Argument | Description
 
 | `@Argument`
-| For access to field arguments with conversion.
+| For access to a named field argument converted to a higher-level, typed Object.
 See <<controllers-schema-mapping-argument>>.
+
+| `@Arguments`
+| For access to all field arguments converted to a higher-level, typed Object.
+See <<controllers-schema-mapping-arguments>>.
 
 | `@ProjectedPayload` Interface
 | For access to field arguments through a project interface.
@@ -1056,12 +1060,15 @@ Schema mapping handler methods can return any value, including Reactor `Mono` an
 [[controllers-schema-mapping-argument]]
 ==== `@Argument`
 
-In GraphQL Java, the `DataFetchingEnvironment` provides access to field-specific argument
-values. The arguments are available as simple scalar values such as String, or as a `Map`
-of values  for more complex input, or a `List` of values.
+In GraphQL Java, `DataFetchingEnvironment` provides access to a map of field-specific
+argument values. The values can be simple scalar values (e.g. String, Long), a `Map` of
+values for more complex input, or a `List` of values.
 
-Use `@Argument` to access an argument for the field that maps to the handler method. You
-can declare such a method parameter to be of any type.
+Use the `@Argument` annotation to inject a named field argument into a handler method.
+The method parameter can be a higher-level, typed Object of any type. It is created and
+initialized from the named field argument value(s), either matching them to single data
+constructor parameters, or using the default constructor and then matching keys onto
+Object properties through a `org.springframework.validation.DataBinder`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -1080,20 +1087,32 @@ can declare such a method parameter to be of any type.
 	}
 ----
 
-You can explicitly specify the argument name, for example `@Argument("bookInput")`, or if
-it not specified, it defaults to the method parameter name, but this requires the
-`-parameters` compiler flag with Java 8+ or debugging information from the compiler.
+By default, if the method parameter name is available (requires the `-parameters` compiler
+flag with Java 8+ or debugging info from the compiler), it is used to look up the argument.
+If needed, you can customize the name through the annotation, e.g. `@Argument("bookInput")`.
 
-The `@Argument` annotation does not have a "required" flag, nor the option to specify a
-default value. Both of these can be specified at the GraphQL schema level and are enforced
-by the GraphQL Engine.
+TIP: The `@Argument` annotation does not have a "required" flag, nor the option to
+specify a default value. Both of these can be specified at the GraphQL schema level and
+are enforced by the GraphQL Engine.
 
 You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
 values. The name attribute on `@Argument` must not be set.
 
 
+[[controllers-schema-mapping-arguments]]
+==== `@Arguments`
+
+Use the `@Arguments` annotation, if you want to bind the full arguments map onto a single
+target Object, in contrast to `@Argument`, which binds a specific, named argument.
+
+For example, `@Argument BookInput bookInput` uses the value of the argument "bookInput"
+to initialize `BookInput`, while `@Arguments` uses the full arguments map and in that
+case, top-level arguments are bound to `BookInput` properties.
+
+
+
 [[controllers-schema-mapping-validation]]
-==== `@Argument` validation
+==== `@Argument(s)` Validation
 
 If a {spring-framework-ref-docs}/core.html#validation-beanvalidation-overview[Bean Validation]
 `Validator` (or typically, a `LocalValidatorFactoryBean`) bean is present in the application context,
@@ -1137,6 +1156,7 @@ later <<execution-exceptions,resolved with a custom `DataFetcherExceptionResolve
 Unlike Spring MVC, handler method signatures do not support the injection of `BindingResult`
 for reacting to validation errors: those are globally dealt with as exceptions.
 ====
+
 
 [[controllers-schema-mapping-projectedpayload-argument]]
 ==== `@ProjectPayload` Interface

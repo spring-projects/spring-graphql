@@ -31,12 +31,19 @@ import org.springframework.core.annotation.AliasFor;
  * and a parameter name is not specified, then the map parameter is populated
  * via {@link graphql.schema.DataFetchingEnvironment#getArguments()}.
  *
+ * <p>The target method parameter can be a higher-level, typed Object of any
+ * type. It is created and initialized from the named field argument value(s),
+ * either matching them to single data constructor parameters, or using the
+ * default constructor and then matching keys onto Object properties through
+ * a {@link org.springframework.validation.DataBinder}.
+ *
  * <p>Note that this annotation has neither a "required" flag nor the option to
  * specify a default value, both of which can be specified at the GraphQL schema
  * level and are enforced by the GraphQL Java engine.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see Arguments
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
