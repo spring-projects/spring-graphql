@@ -26,6 +26,7 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.WiringFactory;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +38,12 @@ import static org.mockito.Mockito.mock;
  * @author Rossen Stoyanchev
  */
 public class DefaultGraphQlSourceBuilderTests {
+
+	@Test // gh-230
+	void duplicateResourcesAreIgnored() {
+		// This should not fail with schema errors
+		GraphQlSetup.schemaResource(BookSource.schema, BookSource.schema).toGraphQlSource();
+	}
 
 	@Test
 	void wiringFactoryList() {

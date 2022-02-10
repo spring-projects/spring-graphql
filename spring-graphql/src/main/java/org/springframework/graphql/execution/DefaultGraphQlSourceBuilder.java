@@ -21,8 +21,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -57,7 +59,7 @@ import org.springframework.util.Assert;
  */
 class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
-	private final List<Resource> schemaResources = new ArrayList<>();
+	private final Set<Resource> schemaResources = new LinkedHashSet<>();
 
 	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
 
