@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.security;
+package org.springframework.graphql.execution;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
+import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,7 +36,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 public class SecurityDataFetcherExceptionResolver extends DataFetcherExceptionResolverAdapter {
 
-	private final ExceptionResolverDelegate resolverDelegate = new ExceptionResolverDelegate();
+	private AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
 
 
 	public SecurityDataFetcherExceptionResolver() {
@@ -48,21 +48,21 @@ public class SecurityDataFetcherExceptionResolver extends DataFetcherExceptionRe
 	 * Set the resolver to use to check if an authentication is anonymous that
 	 * in turn determines whether {@code AccessDeniedException} is classified
 	 * as "unauthorized" or "forbidden".
-	 * @param resolver the resolver to use
+	 * @param trustResolver the resolver to use
 	 */
-	public void setAuthenticationTrustResolver(AuthenticationTrustResolver resolver) {
-		this.resolverDelegate.setAuthenticationTrustResolver(resolver);
+	public void setAuthenticationTrustResolver(AuthenticationTrustResolver trustResolver) {
+		this.trustResolver = trustResolver;
 	}
 
 
 	@Override
-	protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
+	protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment environment) {
 		if (ex instanceof AuthenticationException) {
-			return this.resolverDelegate.resolveUnauthorized(env);
+			return SecurityExceptionResolverUtils.resolveUnauthorized(environment);
 		}
 		if (ex instanceof AccessDeniedException) {
 			SecurityContext securityContext = SecurityContextHolder.getContext();
-			return this.resolverDelegate.resolveAccessDenied(env, securityContext);
+			return SecurityExceptionResolverUtils.resolveAccessDenied(environment, this.trustResolver, securityContext);
 		}
 		return null;
 	}

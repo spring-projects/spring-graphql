@@ -35,7 +35,7 @@ import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.execution.ReactorContextManager;
-import org.springframework.graphql.security.SecurityContextThreadLocalAccessor;
+import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;

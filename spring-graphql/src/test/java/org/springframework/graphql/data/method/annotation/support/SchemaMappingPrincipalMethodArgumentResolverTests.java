@@ -39,7 +39,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
-import org.springframework.graphql.security.SecurityContextThreadLocalAccessor;
+import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
