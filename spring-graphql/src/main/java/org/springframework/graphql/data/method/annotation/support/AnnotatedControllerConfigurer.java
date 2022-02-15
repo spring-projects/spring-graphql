@@ -18,11 +18,13 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +40,14 @@ import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.BeanResolver;
+import org.springframework.graphql.data.method.BatchHandlerMethodArgumentResolver;
+import org.springframework.graphql.data.method.BatchHandlerMethodArgumentResolverComposite;
+import org.springframework.graphql.data.method.annotation.support.batch.BatchLoaderEnvironmentBatchMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.batch.ContextValueBatchMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.batch.ContinuationBatchMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.batch.GraphQLContextBatchMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.batch.PrincipalBatchMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.batch.SourceBatchMethodArgumentResolver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -74,6 +84,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
+ * @author Genkui Du
  * @since 1.0.0
  */
 public class AnnotatedControllerConfigurer
@@ -110,6 +121,9 @@ public class AnnotatedControllerConfigurer
 
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
+
+	@Nullable
+	private BatchHandlerMethodArgumentResolverComposite batchMethodArgumentResolvers;
 
 	@Nullable
 	private HandlerMethodInputValidator validator;
@@ -151,37 +165,64 @@ public class AnnotatedControllerConfigurer
 
 	@Override
 	public void afterPropertiesSet() {
-		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
 
-		// Annotation based
-		if (springDataPresent) {
-			// Must be ahead of ArgumentMethodArgumentResolver
-			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver());
-		}
-		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
-		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
-		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(initializer));
-		this.argumentResolvers.addResolver(new ArgumentsMethodArgumentResolver(initializer));
-		this.argumentResolvers.addResolver(new ContextValueMethodArgumentResolver());
+		List<HandlerMethodArgumentResolver> resolvers = getDefaultArgumentResolvers();
+		this.argumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
 
-		// Type based
-		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
-		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
-		if (springSecurityPresent) {
-			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
-			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
-			this.argumentResolvers.addResolver(new AuthenticationPrincipalArgumentResolver(beanResolver));
-		}
-		if (KotlinDetector.isKotlinPresent()) {
-			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
-		}
-
-		// This works as a fallback, after other resolvers
-		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
+		List<BatchHandlerMethodArgumentResolver> batchMethodResolvers = getBatchMethodDefaultArgumentResolvers();
+		batchMethodArgumentResolvers = new BatchHandlerMethodArgumentResolverComposite().addResolvers(batchMethodResolvers);
 
 		if (beanValidationPresent) {
 			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
 		}
+	}
+
+	private List<HandlerMethodArgumentResolver> getDefaultArgumentResolvers() {
+		List<HandlerMethodArgumentResolver> resolvers = new ArrayList<>();
+
+		// Annotation based
+		if (springDataPresent) {
+			// Must be ahead of ArgumentMethodArgumentResolver
+			resolvers.add(new ProjectedPayloadMethodArgumentResolver());
+		}
+		resolvers.add(new ArgumentMapMethodArgumentResolver());
+		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
+		resolvers.add(new ArgumentMethodArgumentResolver(initializer));
+		resolvers.add(new ArgumentsMethodArgumentResolver(initializer));
+		resolvers.add(new ContextValueMethodArgumentResolver());
+
+		// Type based
+		resolvers.add(new DataFetchingEnvironmentMethodArgumentResolver());
+		resolvers.add(new DataLoaderMethodArgumentResolver());
+		if (springSecurityPresent) {
+			resolvers.add(new PrincipalMethodArgumentResolver());
+			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
+			resolvers.add(new AuthenticationPrincipalArgumentResolver(beanResolver));
+		}
+		if (KotlinDetector.isKotlinPresent()) {
+			resolvers.add(new ContinuationHandlerMethodArgumentResolver());
+		}
+
+		// This works as a fallback, after other resolvers
+		resolvers.add(new SourceMethodArgumentResolver());
+
+		return resolvers;
+	}
+
+	private List<BatchHandlerMethodArgumentResolver> getBatchMethodDefaultArgumentResolvers() {
+		List<BatchHandlerMethodArgumentResolver> resolvers = new ArrayList<>();
+
+		resolvers.add(new SourceBatchMethodArgumentResolver());
+		resolvers.add(new ContextValueBatchMethodArgumentResolver());
+		resolvers.add(new GraphQLContextBatchMethodArgumentResolver());
+		resolvers.add(new BatchLoaderEnvironmentBatchMethodArgumentResolver());
+		if (KotlinDetector.isKotlinPresent()) {
+			resolvers.add(new ContinuationBatchMethodArgumentResolver());
+		}
+		if (springSecurityPresent) {
+			resolvers.add(new PrincipalBatchMethodArgumentResolver());
+		}
+		return resolvers;
 	}
 
 	@Override
@@ -355,7 +396,7 @@ public class AnnotatedControllerConfigurer
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
-		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod);
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, this.batchMethodArgumentResolvers);
 
 		Class<?> clazz = handlerMethod.getReturnType().getParameterType();
 		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz)) {
@@ -465,7 +506,7 @@ public class AnnotatedControllerConfigurer
 			if (dataLoader == null) {
 				throw new IllegalStateException("No DataLoader for key '" + this.dataLoaderKey + "'");
 			}
-			return dataLoader.load(env.getSource());
+			return dataLoader.load(env.getSource(), env);
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,23 +15,21 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
-import graphql.GraphQLContext;
 import org.dataloader.BatchLoaderEnvironment;
+import org.springframework.graphql.data.method.BatchHandlerMethodArgumentResolverComposite;
+import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
-import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.lang.Nullable;
-import org.springframework.util.ClassUtils;
 
 /**
  * An extension of {@link HandlerMethod} for annotated handler methods adapted to
@@ -40,17 +38,19 @@ import org.springframework.util.ClassUtils;
  * {@link BatchLoaderEnvironment} as their input.
  *
  * @author Rossen Stoyanchev
+ * @author Genkui Du
  * @since 1.0.0
  */
 public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
-			"org.springframework.security.core.context.SecurityContext",
-			AnnotatedControllerConfigurer.class.getClassLoader());
+	private static final Object[] EMPTY_ARGS = new Object[0];
 
+	private final BatchHandlerMethodArgumentResolverComposite resolvers;
 
-	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod) {
+	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, BatchHandlerMethodArgumentResolverComposite resolvers) {
 		super(handlerMethod);
+		Assert.isTrue(!resolvers.getArgumentResolvers().isEmpty(), "No argument resolvers");
+		this.resolvers = resolvers;
 	}
 
 
@@ -66,7 +66,13 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	 */
 	@Nullable
 	public <K, V> Mono<Map<K, V>> invokeForMap(Collection<K> keys, BatchLoaderEnvironment environment) {
-		Object[] args = getMethodArgumentValues(keys, environment);
+		Object[] args;
+		try {
+			args = getMethodArgumentValues(keys, environment);
+		}
+		catch (Throwable ex) {
+			return Mono.error(ex);
+		}
 		if (doesNotHaveAsyncArgs(args)) {
 			Object result = doInvoke(args);
 			return toMonoMap(result);
@@ -87,7 +93,13 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	 * @return a {@code Flux} of values.
 	 */
 	public <V> Flux<V> invokeForIterable(Collection<?> keys, BatchLoaderEnvironment environment) {
-		Object[] args = getMethodArgumentValues(keys, environment);
+		Object[] args;
+		try {
+			args = getMethodArgumentValues(keys, environment);
+		}
+		catch (Throwable ex) {
+			return Flux.error(ex);
+		}
 		if (doesNotHaveAsyncArgs(args)) {
 			Object result = doInvoke(args);
 			return toFlux(result);
@@ -98,47 +110,36 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		});
 	}
 
-	private <K> Object[] getMethodArgumentValues(Collection<K> keys, BatchLoaderEnvironment environment) {
-		Object[] args = new Object[getMethodParameters().length];
-		for (int i = 0; i < getMethodParameters().length; i++) {
-			args[i] = resolveArgument(getMethodParameters()[i], keys, environment);
+	@SuppressWarnings("unchecked")
+	private <K> Object[] getMethodArgumentValues(Collection<K> keys, BatchLoaderEnvironment environment) throws Exception {
+
+		MethodParameter[] parameters = getMethodParameters();
+		if (ObjectUtils.isEmpty(parameters)) {
+			return EMPTY_ARGS;
+		}
+
+		Object[] args = new Object[parameters.length];
+		for (int i = 0; i < parameters.length; i++) {
+			MethodParameter parameter = parameters[i];
+			if(!this.resolvers.supportsParameter(parameter)){
+				throw new IllegalStateException(formatArgumentError(parameter, "Unexpected argument type."));
+			}
+			try {
+				args[i] = this.resolvers.resolveArgument(parameter, keys, (Map) environment.getKeyContexts(), environment);
+			}
+			catch (Exception ex) {
+				// Leave stack trace for later, exception may actually be resolved and handled...
+				if (logger.isDebugEnabled()) {
+					String exMsg = ex.getMessage();
+					if (exMsg != null && !exMsg.contains(parameter.getExecutable().toGenericString())) {
+						logger.debug(formatArgumentError(parameter, exMsg));
+					}
+				}
+				throw ex;
+			}
+
 		}
 		return args;
-	}
-
-	@Nullable
-	private  <K> Object resolveArgument(
-			MethodParameter parameter, Collection<K> keys, BatchLoaderEnvironment environment) {
-
-		Class<?> parameterType = parameter.getParameterType();
-
-		if (Collection.class.isAssignableFrom(parameterType)) {
-			if (parameterType.isInstance(keys)) {
-				return keys;
-			}
-			Class<?> elementType = parameter.nested().getNestedParameterType();
-			Collection<K> collection = CollectionFactory.createCollection(parameterType, elementType, keys.size());
-			collection.addAll(keys);
-			return collection;
-		}
-		else if (parameter.hasParameterAnnotation(ContextValue.class)) {
-			return ContextValueMethodArgumentResolver.resolveContextValue(parameter, null, environment.getContext());
-		}
-		else if (parameterType.equals(GraphQLContext.class)) {
-			return environment.getContext();
-		}
-		else if (parameterType.isInstance(environment)) {
-			return environment;
-		}
-		else if ("kotlin.coroutines.Continuation".equals(parameterType.getName())) {
-			return null;
-		}
-		else if (springSecurityPresent && Principal.class.isAssignableFrom(parameter.getParameterType())) {
-			return PrincipalMethodArgumentResolver.doResolve();
-		}
-		else {
-			throw new IllegalStateException(formatArgumentError(parameter, "Unexpected argument type."));
-		}
 	}
 
 	private boolean doesNotHaveAsyncArgs(Object[] args) {

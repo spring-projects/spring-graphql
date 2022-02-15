@@ -53,7 +53,7 @@ public class PrincipalMethodArgumentResolver implements HandlerMethodArgumentRes
 		return doResolve();
 	}
 
-	static Object doResolve() {
+	public static Object doResolve() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		return (authentication != null ? authentication :
 				ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication));
