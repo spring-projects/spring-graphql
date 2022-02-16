@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,26 +112,23 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 		Object[] args;
 		try {
 			args = getMethodArgumentValues(environment);
-			if (this.validator != null) {
-				this.validator.validate(this, args);
-			}
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);
 		}
 
 		if (Arrays.stream(args).noneMatch(arg -> arg instanceof Mono)) {
-			return doInvoke(args);
+			return validateAndInvoke(args);
 		}
 
 		return this.subscription ?
 				toArgsMono(args).flatMapMany(argValues -> {
-					Object result = doInvoke(argValues);
+					Object result = validateAndInvoke(argValues);
 					Assert.state(result instanceof Publisher, "Expected a Publisher from a Subscription response");
 					return Flux.from((Publisher<?>) result);
 				}) :
 				toArgsMono(args).flatMap(argValues -> {
-					Object result = doInvoke(argValues);
+					Object result = validateAndInvoke(argValues);
 					if (result instanceof Mono) {
 						return (Mono<?>) result;
 					}
@@ -183,6 +180,14 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 			}
 		}
 		return args;
+	}
+
+	@Nullable
+	private Object validateAndInvoke(Object[] args) {
+		if (this.validator != null) {
+			this.validator.validate(this, args);
+		}
+		return doInvoke(args);
 	}
 
 }
