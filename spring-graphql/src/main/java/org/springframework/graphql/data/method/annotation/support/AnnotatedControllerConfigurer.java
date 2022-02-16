@@ -17,6 +17,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +38,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
 import org.springframework.context.expression.BeanFactoryResolver;
+import org.springframework.core.ResolvableType;
 import org.springframework.expression.BeanResolver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -304,7 +306,8 @@ public class AnnotatedControllerConfigurer
 					Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
 					HandlerMethodArgumentResolver resolver = this.argumentResolvers.getArgumentResolver(parameter);
 					if (resolver instanceof SourceMethodArgumentResolver) {
-						typeName = parameter.getParameterType().getSimpleName();
+						Class<?> valueType = getValueType(parameter);
+						typeName = valueType.getSimpleName();
 						break;
 					}
 				}
@@ -322,6 +325,21 @@ public class AnnotatedControllerConfigurer
 						handlerMethod.getShortLogMessage());
 
 		return new MappingInfo(typeName, field, batchMapping, handlerMethod);
+	}
+
+	@Nullable
+	private Class<?> getValueType(MethodParameter param) {
+		Assert.isAssignable(FetchSource.class, param.getParameterType());
+		Type genericType = param.getGenericParameterType();
+		if (genericType instanceof ParameterizedType) {
+			ParameterizedType parameterizedType = (ParameterizedType) genericType;
+			if (parameterizedType.getActualTypeArguments().length == 1) {
+				Type valueType = parameterizedType.getActualTypeArguments()[0];
+				return (valueType instanceof Class ?
+						(Class<?>) valueType : ResolvableType.forType(valueType).resolve());
+			}
+		}
+		return null;
 	}
 
 	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {

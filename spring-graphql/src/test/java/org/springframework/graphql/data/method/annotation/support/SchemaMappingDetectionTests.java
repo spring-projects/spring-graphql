@@ -127,7 +127,7 @@ public class SchemaMappingDetectionTests {
 		}
 
 		@SchemaMapping
-		public Author author(DataFetchingEnvironment environment, Book book) {
+		public Author author(DataFetchingEnvironment environment, FetchSource<Book> book) {
 			return null;
 		}
 
@@ -148,7 +148,7 @@ public class SchemaMappingDetectionTests {
 		}
 
 		@SchemaMapping("authorCustomized")
-		public Author authorWithNonMatchingMethodName(Book book) {
+		public Author authorWithNonMatchingMethodName(FetchSource<Book> book) {
 			return null;
 		}
 	}

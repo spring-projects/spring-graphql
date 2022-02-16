@@ -15,14 +15,17 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.util.Collection;
 
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ResolvableType;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 /**
  * Resolver for the source/parent of a field, obtained via
@@ -40,16 +43,33 @@ public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolv
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (!BeanUtils.isSimpleValueType(type) && !type.isArray() && !Collection.class.isAssignableFrom(type));
+		return FetchSource.class.isAssignableFrom(type);
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
 		Object source = environment.getSource();
-		Assert.isInstanceOf(parameter.getParameterType(), source,
-				"The declared parameter of type '" + parameter.getParameterType() + "' " +
+		Class<?> valueType = getValueType(parameter);
+		Assert.notNull(valueType, "the generic type of declared parameter could not be null.");
+		Assert.isInstanceOf(valueType, source,
+				"The generic type '" + getValueType(parameter) + "' of declared parameter " +
 						"does not match the type of the source Object '" + source.getClass() + "'.");
-		return source;
+		return new FetchSource<>(source);
+	}
+
+	@Nullable
+	private Class<?> getValueType(MethodParameter param) {
+		Assert.isAssignable(FetchSource.class, param.getParameterType());
+		Type genericType = param.getGenericParameterType();
+		if (genericType instanceof ParameterizedType) {
+			ParameterizedType parameterizedType = (ParameterizedType) genericType;
+			if (parameterizedType.getActualTypeArguments().length == 1) {
+				Type valueType = parameterizedType.getActualTypeArguments()[0];
+				return (valueType instanceof Class ?
+						(Class<?>) valueType : ResolvableType.forType(valueType).resolve());
+			}
+		}
+		return null;
 	}
 
 }

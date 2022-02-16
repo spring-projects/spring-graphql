@@ -251,8 +251,8 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@SchemaMapping
-		public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> dataLoader) {
-			return dataLoader.load(book.getAuthorId());
+		public CompletableFuture<Author> author(FetchSource<Book> bookFetchSource, DataLoader<Long, Author> dataLoader) {
+			return dataLoader.load(bookFetchSource.getValue().getAuthorId());
 		}
 
 		@QueryMapping
