@@ -199,8 +199,8 @@ the following:
 - Expose {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[properties]
   that apply to `GraphQlSource.Builder`.
 - Detect <<execution-graphqlsource-runtimewiring-configurer>> beans.
-- Detect `Instrumentation` beans for GraphQL
-  {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[metrics].
+- Detect https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
+  {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics].
 - Detect `DataFetcherExceptionResolver` beans for
   <<execution-exceptions, exception resolution>>.
 - Detect `GraphQlSourceBuilderCustomizer` beans for any other customizations.
@@ -327,6 +327,40 @@ builder.schemaResources(..)
 		.configureRuntimeWiring(..)
 		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
 ----
+
+
+[[execution-graphqlsource-directives]]
+==== Directives
+
+The GraphQL language supports directives that "describe alternate runtime execution and
+type validation behavior in a GraphQL document". Directives are similar to annotations in
+Java but declared on types, fields, fragments and operations in a GraphQL document.
+
+GraphQL Java provides the `SchemaDirectiveWiring` contract to help applications detect
+and handle directives. For more details, see
+{graphql-java-docs}/sdl-directives/[Schema Directives] in the
+GraphQL Java documentation.
+
+In Spring GraphQL you can register a `SchemaDirectiveWiring` through a
+<<execution-graphqlsource-runtimewiring-configurer>>. The Spring Boot starter detects
+such beans, so you might have something like:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration
+public class GraphQlConfig {
+
+    @Bean
+    public RuntimeWiringConfigurer runtimeWiringConfigurer() {
+        return builder -> builder.directiveWiring(new MySchemaDirectiveWiring());
+    }
+
+}
+----
+
+TIP: For an example of directives support check out the
+https://github.com/graphql-java/graphql-java-extended-validation[Extended Validation for Graphql Java]
+library.
 
 
 
