@@ -191,17 +191,34 @@ The default `GraphQlSource` builder, accessible via `GraphQlSource.builder()`, e
 support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
 <<execution-exceptions>>.
 
+The Spring Boot {spring-boot-ref-docs}/web.html#web.graphql[starter] initializes a
+`GraphQlSource` instance through the default `GraphQlSource.Builder` and also enables
+the following:
+
+- Load <<execution-graphqlsource-schema-resources, schema files>> from a configurable location.
+- Expose {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[properties]
+  that apply to `GraphQlSource.Builder`.
+- Detect <<execution-graphqlsource-runtimewiring-configurer>> beans.
+- Detect `Instrumentation` beans for GraphQL
+  {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[metrics].
+- Detect `DataFetcherExceptionResolver` beans for
+  <<execution-exceptions, exception resolution>>.
+- Detect `GraphQlSourceBuilderCustomizer` beans for any other customizations.
+
+
 
 [[execution-graphqlsource-schema-resources]]
 ==== Schema Resources
 
 `GraphQlSource.Builder` can be configured with one or more `Resource` instances to be
 parsed and merged together. That means schema files can be loaded from just about any
-location. By default, the Spring Boot starter
-{spring-boot-ref-docs}/web.html#web.graphql.schema[loads schema files]
-from a well-known classpath location, but you can change that to a location on the file
-system via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a
-custom `Resource` that loads schema files from a remote location or storage.
+location.
+
+By default, the Spring Boot starter
+{spring-boot-ref-docs}/web.html#web.graphql.schema[finds schema files] from a
+well-known classpath location, but you can change that to a location on the file system
+via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a custom
+`Resource` that loads schema files from a remote location or storage.
 
 
 [[execution-graphqlsource-schema-creation]]
@@ -213,13 +230,14 @@ necessary, you can hook into the schema creation through the builder:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-GraphQlSource graphQlSource = GraphQlSource.builder()
-		.schemaResources(..)
+// Typically, accessed through Spring Boot's GraphQlSourceBuilderCustomizer
+GraphQlSource.Builder builder = ...
+
+builder.schemaResources(..)
 		.configureRuntimeWiring(..)
 		.schemaFactory((typeDefinitionRegistry, runtimeWiring) -> {
 			// create `GraphQLSchema`
 		})
-		.build();
 ----
 
 The primary reason for this is to create the schema through a federation library.
@@ -238,7 +256,7 @@ You can use `RuntimeWiringConfigurer` to register:
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 
-The Spring for GraphQL Boot starter detects beans of type `RuntimeWiringConfigurer` and
+The Spring Boot starter detects beans of type `RuntimeWiringConfigurer` and
 registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
 something like the following in your configuration:
 
