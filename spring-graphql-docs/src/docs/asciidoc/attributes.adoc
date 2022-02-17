@@ -13,6 +13,7 @@
 :github-issues: https://github.com/{github-repo}/issues/
 :github-main-branch: https://github.com/{github-repo}/tree/main
 :github-wiki: https://github.com/{github-repo}/wiki
+:graphql-java-docs: https://www.graphql-java.com/documentation/v16
 :javadoc: https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api
 :spring-framework-ref-docs: https://docs.spring.io/spring-framework/docs/current/reference/html
 

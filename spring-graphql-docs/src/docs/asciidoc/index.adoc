@@ -302,47 +302,33 @@ option to configure a name extracting function along with `Class` to GraphQL Obj
 name mappings that should help to cover more corner cases.
 
 
+[[execution-graphqlsource-operation-caching]]
+==== Operation Caching
 
-[[execution-graphqlsource-preparsed-document-provider]]
-==== PreparsedDocumentProvider
+GraphQL Java must _parse_ and _validate_ an operation before executing it. This may impact
+performance significantly. To avoid the need to re-parse and validate, an application may
+configure a `PreparsedDocumentProvider` that caches and reuses Document instances. The
+{graphql-java-docs}/execution/#query-caching[GraphQL Java docs] provide more details on
+query caching through a `PreparsedDocumentProvider`.
 
-Before operations can be executed by GraphQL Java, their request string must be _parsed_ and _validated_. These
-two steps may impact the performance of applications significantly.
-
-You may configure a `PreparsedDocumentProvider` using `GraphQlSource.Builder#configureGraphQl`. The
-`PreparsedDocumentProvider` can intercept these two steps and gives library consumers the tools to
-cache, or modify the resulting operation.
-
-The following snippet uses https://github.com/ben-manes/caffeine[Caffeine] to build a `PreparsedDocumentProvider`
-which caches the 2500 most recent operations for a maximum of 1 hour:
+In Spring GraphQL you can register a `PreparsedDocumentProvider` through
+`GraphQlSource.Builder#configureGraphQl`:
+.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-public class CachingPreparsedDocumentProvider implements PreparsedDocumentProvider {
+// Typically, accessed through Spring Boot's GraphQlSourceBuilderCustomizer
+GraphQlSource.Builder builder = ...
 
-    private final Cache<String, PreparsedDocumentEntry> cache = Caffeine
-            .newBuilder()
-            .maximumSize(2500)
-            .build();
+// Create provider
+PreparsedDocumentProvider provider = ...
 
-    @Override
-    public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
-			Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
-		return cache.get(executionInput.getQuery(), operationKey -> parseAndValidateFunction.apply(executionInput));
-	}
-
-}
+builder.schemaResources(..)
+		.configureRuntimeWiring(..)
+		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
 ----
 
-Please note that caching in the preceding snippet only works when you parameterize your operation using variables:
-[source,graphql,indent=0,subs="verbatim,quotes"]
-----
-query HelloTo($to: String!) {
-   sayHello(to: $to) {
-      greeting
-   }
-}
-----
+
 
 [[execution-reactive-datafetcher]]
 === Reactive `DataFetcher`
@@ -466,7 +452,7 @@ problem.
 
 GraphQL Java provides a `DataLoader` mechanism for batch loading of related entities.
 You can find the full details in the
-https://www.graphql-java.com/documentation/v16/batching/[GraphQL Java docs]. Below is a
+{graphql-java-docs}/batching/[GraphQL Java docs]. Below is a
 summary of how it works:
 
  1. Register ``DataLoader``'s in the `DataLoaderRegistry` that can load entities, given unique keys.
