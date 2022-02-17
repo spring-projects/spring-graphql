@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,14 +28,10 @@ import org.springframework.core.annotation.AliasFor;
  * shortcut for {@link SchemaMapping @SchemaMapping} with
  * {@code typeName="Query"}.
  *
- * <p>You can use this annotation both at the method and at the class level, in
- * which case all handlers methods in the controller are queries, unless the
- * typeName is overridden.
- *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @SchemaMapping(typeName = "Query")
