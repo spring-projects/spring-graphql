@@ -112,6 +112,21 @@ class QuerydslDataFetcherTests {
 	}
 
 	@Test
+	void shouldFetchMultipleItemsWithListInput() {
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		mockRepository.saveAll(Arrays.asList(book1, book2));
+
+		Mono<WebOutput> output = graphQlSetup(mockRepository).toWebGraphQlHandler()
+				.handleRequest(input("{ booksById(id: [42,53]) {name}}"));
+
+		List<String> names = GraphQlResponse.from(output).toList("booksById", Book.class)
+				.stream().map(Book::getName).collect(Collectors.toList());
+
+		assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
+	}
+
+	@Test
 	void shouldApplyCustomizerInRepository() {
 		MockWithCustomizerRepository repository = repositoryFactory.getRepository(MockWithCustomizerRepository.class);
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));

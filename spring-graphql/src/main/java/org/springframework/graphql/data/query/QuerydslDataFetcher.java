@@ -130,7 +130,9 @@ public abstract class QuerydslDataFetcher<T> {
 		this.customizer.customize(bindings, path);
 
 		for (Map.Entry<String, Object> entry : environment.getArguments().entrySet()) {
-			parameters.put(entry.getKey(), Collections.singletonList(entry.getValue()));
+			Object value = entry.getValue();
+			List<Object> values = (value instanceof List ? (List<Object>) value : Collections.singletonList(value));
+			parameters.put(entry.getKey(), values);
 		}
 
 		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
