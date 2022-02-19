@@ -28,6 +28,7 @@ import graphql.schema.TypeResolver;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataLoaderRegistrar;
@@ -85,8 +86,13 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	}
 
 	public GraphQlSetup runtimeWiringForAnnotatedControllers(ApplicationContext context) {
+		return this.runtimeWiringForAnnotatedControllers(context, new ArrayList<>());
+	}
+
+	public GraphQlSetup runtimeWiringForAnnotatedControllers(ApplicationContext context, List<HandlerMethodArgumentResolver> argumentResolverList) {
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(context);
+		configurer.setCustomArgumentResolvers(argumentResolverList);
 		configurer.afterPropertiesSet();
 		return runtimeWiring(configurer);
 	}

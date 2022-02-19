@@ -15,6 +15,12 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,6 +29,9 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -54,13 +63,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  * @author Mark Paluch
+ * @author Genkui Du
  */
 public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithScalarArgument() {
 		String query = "{ " +
-				"  bookById(id:\"1\") { " +
+				"  bookById { " +
 				"    id" +
 				"    name" +
 				"    author {" +
@@ -215,7 +225,7 @@ public class SchemaMappingInvocationTests {
 		context.refresh();
 
 		return GraphQlSetup.schemaResource(BookSource.schema)
-				.runtimeWiringForAnnotatedControllers(context)
+				.runtimeWiringForAnnotatedControllers(context, Collections.singletonList(new DefaultValueArgumentResolver()))
 				.dataLoaders(registry)
 				.toGraphQlService();
 	}
@@ -231,7 +241,7 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@QueryMapping
-		public Book bookById(@Argument Long id) {
+		public Book bookById(@DefaultLongValue(value = 1) long id) {
 			return BookSource.getBookWithoutAuthor(id);
 		}
 
@@ -277,6 +287,29 @@ public class SchemaMappingInvocationTests {
 	interface BookProjection {
 
 		String getAuthor();
+
+	}
+
+	private static class DefaultValueArgumentResolver implements HandlerMethodArgumentResolver {
+		@Override
+		public boolean supportsParameter(MethodParameter parameter) {
+			return parameter.hasParameterAnnotation(DefaultLongValue.class);
+		}
+
+		@Override
+		public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
+			DefaultLongValue annotation = parameter.getParameterAnnotation(DefaultLongValue.class);
+			Assert.state(annotation != null, "Expected @DefaultLongValue annotation");
+			return annotation.value();
+		}
+	}
+
+	@Target(ElementType.PARAMETER)
+	@Retention(RetentionPolicy.RUNTIME)
+	@Documented
+	private @interface DefaultLongValue {
+
+		long value() default 0;
 
 	}
 

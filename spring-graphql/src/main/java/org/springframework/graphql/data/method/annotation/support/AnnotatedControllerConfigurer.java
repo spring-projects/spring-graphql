@@ -18,11 +18,13 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,6 +76,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
+ * @author Genkui Du
  * @since 1.0.0
  */
 public class AnnotatedControllerConfigurer
@@ -107,6 +110,9 @@ public class AnnotatedControllerConfigurer
 
 	@Nullable
 	private ApplicationContext applicationContext;
+
+	@Nullable
+	private List<HandlerMethodArgumentResolver> customArgumentResolvers;
 
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
@@ -143,6 +149,22 @@ public class AnnotatedControllerConfigurer
 		this.applicationContext = applicationContext;
 	}
 
+	/**
+	 * Provide resolvers for custom argument types. Custom resolvers are ordered
+	 * after built-in ones.
+	 */
+	public void setCustomArgumentResolvers(@Nullable List<HandlerMethodArgumentResolver> argumentResolvers) {
+		this.customArgumentResolvers = argumentResolvers;
+	}
+
+	/**
+	 * Return the custom argument resolvers, or {@code null}.
+	 */
+	@Nullable
+	public List<HandlerMethodArgumentResolver> getCustomArgumentResolvers() {
+		return this.customArgumentResolvers;
+	}
+
 	protected final ApplicationContext obtainApplicationContext() {
 		Assert.state(this.applicationContext != null, "No ApplicationContext");
 		return this.applicationContext;
@@ -151,37 +173,58 @@ public class AnnotatedControllerConfigurer
 
 	@Override
 	public void afterPropertiesSet() {
-		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
-
-		// Annotation based
-		if (springDataPresent) {
-			// Must be ahead of ArgumentMethodArgumentResolver
-			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver());
-		}
-		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
-		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
-		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(initializer));
-		this.argumentResolvers.addResolver(new ArgumentsMethodArgumentResolver(initializer));
-		this.argumentResolvers.addResolver(new ContextValueMethodArgumentResolver());
-
-		// Type based
-		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
-		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
-		if (springSecurityPresent) {
-			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
-			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
-			this.argumentResolvers.addResolver(new AuthenticationPrincipalArgumentResolver(beanResolver));
-		}
-		if (KotlinDetector.isKotlinPresent()) {
-			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
-		}
-
-		// This works as a fallback, after other resolvers
-		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
+		List<HandlerMethodArgumentResolver> resolvers = getDefaultArgumentResolvers();
+		this.argumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
 
 		if (beanValidationPresent) {
 			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
 		}
+
+		if (beanValidationPresent) {
+			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
+		}
+	}
+
+	/**
+	 * Return the list of argument resolvers to use including built-in resolvers
+	 * and custom resolvers provided via {@link #setCustomArgumentResolvers}.
+	 */
+	private List<HandlerMethodArgumentResolver> getDefaultArgumentResolvers() {
+		List<HandlerMethodArgumentResolver> resolvers = new ArrayList<>();
+
+
+		// Annotation based
+		if (springDataPresent) {
+			// Must be ahead of ArgumentMethodArgumentResolver
+			resolvers.add(new ProjectedPayloadMethodArgumentResolver());
+		}
+		resolvers.add(new ArgumentMapMethodArgumentResolver());
+		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
+		resolvers.add(new ArgumentMethodArgumentResolver(initializer));
+		resolvers.add(new ArgumentsMethodArgumentResolver(initializer));
+		resolvers.add(new ContextValueMethodArgumentResolver());
+
+		// Type based
+		resolvers.add(new DataFetchingEnvironmentMethodArgumentResolver());
+		resolvers.add(new DataLoaderMethodArgumentResolver());
+		if (springSecurityPresent) {
+			resolvers.add(new PrincipalMethodArgumentResolver());
+			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
+			resolvers.add(new AuthenticationPrincipalArgumentResolver(beanResolver));
+		}
+		if (KotlinDetector.isKotlinPresent()) {
+			resolvers.add(new ContinuationHandlerMethodArgumentResolver());
+		}
+
+		// This works as a fallback, after other resolvers, but before custom resolvers
+		resolvers.add(new SourceMethodArgumentResolver());
+
+		// Custom argument resolvers
+		if (getCustomArgumentResolvers() != null) {
+			resolvers.addAll(getCustomArgumentResolvers());
+		}
+
+		return resolvers;
 	}
 
 	@Override

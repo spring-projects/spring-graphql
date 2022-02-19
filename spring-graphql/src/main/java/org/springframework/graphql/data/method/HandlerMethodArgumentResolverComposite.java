@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import org.springframework.lang.Nullable;
  * Previously resolved method parameters are cached for faster lookups.
  *
  * @author Rossen Stoyanchev
+ * @author Genkui Du
  * @since 1.0.0
  */
 public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgumentResolver {
@@ -47,6 +48,18 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	 */
 	public void addResolver(HandlerMethodArgumentResolver resolver) {
 		this.argumentResolvers.add(resolver);
+	}
+
+	/**
+	 * Add the given {@link HandlerMethodArgumentResolver HandlerMethodArgumentResolvers}.
+	 */
+	public HandlerMethodArgumentResolverComposite addResolvers(
+			@Nullable List<? extends HandlerMethodArgumentResolver> resolvers) {
+
+		if (resolvers != null) {
+			this.argumentResolvers.addAll(resolvers);
+		}
+		return this;
 	}
 
 	/**
