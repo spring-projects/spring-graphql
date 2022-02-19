@@ -1009,7 +1009,7 @@ parent type name, and the field name:
 	public class BookController {
 
 		@SchemaMapping(typeName="Book", field="author")
-		public Author getAuthor(Book book) {
+		public Author getAuthor(@Source Book book) {
 			// ...
 		}
 	}
@@ -1026,7 +1026,7 @@ defaults to type "Book" and field "author":
 	public class BookController {
 
 		@SchemaMapping
-		public Author author(Book book) {
+		public Author author(@Source Book book) {
 			// ...
 		}
 	}
@@ -1098,7 +1098,7 @@ See <<controllers-schema-mapping-arguments>>.
 | For access to field arguments through a project interface.
 See <<controllers-schema-mapping-projectedpayload-argument>>.
 
-| Source
+| @Source
 | For access to the source (i.e. parent/container) instance of the field.
 See <<controllers-schema-mapping-source>>.
 
@@ -1287,11 +1287,11 @@ For example:
 
 
 [[controllers-schema-mapping-source]]
-==== Source
+==== @Source
 
 In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
 parent/container) instance of the field. To access this, simply declare a method parameter
-of the expected target type.
+annotated with `@Source`.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -1299,7 +1299,7 @@ of the expected target type.
 	public class BookController {
 
 		@SchemaMapping
-		public Author author(Book book) {
+		public Author author(@Source Book book) {
 			// ...
 		}
 	}

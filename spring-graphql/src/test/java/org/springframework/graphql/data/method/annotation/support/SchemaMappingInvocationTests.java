@@ -23,6 +23,7 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.data.method.annotation.Source;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -251,7 +252,7 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@SchemaMapping
-		public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> dataLoader) {
+		public CompletableFuture<Author> author(@Source Book book, DataLoader<Long, Author> dataLoader) {
 			return dataLoader.load(book.getAuthorId());
 		}
 

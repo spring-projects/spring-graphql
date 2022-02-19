@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,32 +15,26 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.util.Collection;
-
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.Source;
 import org.springframework.util.Assert;
 
 /**
  * Resolver for the source/parent of a field, obtained via
  * {@link DataFetchingEnvironment#getSource()}.
  *
- * <p>This resolver supports any non-simple value type, also excluding arrays
- * and collections, and therefore must be ordered last, in a fallback mode,
- * allowing other resolvers to resolve the argument first.
- *
  * @author Rossen Stoyanchev
+ * @author Genkui Du
  * @since 1.0.0
  */
 public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		Class<?> type = parameter.getParameterType();
-		return (!BeanUtils.isSimpleValueType(type) && !type.isArray() && !Collection.class.isAssignableFrom(type));
+		return parameter.getParameterAnnotation(Source.class) != null;
 	}
 
 	@Override

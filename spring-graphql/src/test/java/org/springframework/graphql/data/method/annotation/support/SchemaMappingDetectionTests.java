@@ -21,6 +21,7 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.idl.RuntimeWiring;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.data.method.annotation.Source;
 import reactor.core.publisher.Flux;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -118,7 +119,7 @@ public class SchemaMappingDetectionTests {
 		}
 
 		@MutationMapping
-		public void saveBook(Book book) {
+		public void saveBook(@Source Book book) {
 		}
 
 		@SubscriptionMapping
@@ -127,7 +128,7 @@ public class SchemaMappingDetectionTests {
 		}
 
 		@SchemaMapping
-		public Author author(DataFetchingEnvironment environment, Book book) {
+		public Author author(DataFetchingEnvironment environment, @Source Book book) {
 			return null;
 		}
 
@@ -139,7 +140,7 @@ public class SchemaMappingDetectionTests {
 		}
 
 		@MutationMapping("saveBookCustomized")
-		public void saveBookWithNonMatchingMethodName(Book book) {
+		public void saveBookWithNonMatchingMethodName(@Source Book book) {
 		}
 
 		@SubscriptionMapping("bookSearchCustomized")
@@ -148,7 +149,7 @@ public class SchemaMappingDetectionTests {
 		}
 
 		@SchemaMapping("authorCustomized")
-		public Author authorWithNonMatchingMethodName(Book book) {
+		public Author authorWithNonMatchingMethodName(@Source Book book) {
 			return null;
 		}
 	}

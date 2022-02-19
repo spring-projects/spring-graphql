@@ -176,7 +176,6 @@ public class AnnotatedControllerConfigurer
 			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
 		}
 
-		// This works as a fallback, after other resolvers
 		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
 
 		if (beanValidationPresent) {
