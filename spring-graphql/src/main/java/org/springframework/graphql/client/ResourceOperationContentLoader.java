@@ -1,0 +1,115 @@
+/*
+ * Copyright 2002-2022 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.springframework.graphql.client;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.util.FileCopyUtils;
+
+/**
+ * {@link OperationContentLoader} that looks for resources relative to a list of
+ * {@link Resource} locations with a list of extensions.
+ *
+ * @author Rossen Stoyanchev
+ * @since 1.0.0
+ */
+public class ResourceOperationContentLoader implements OperationContentLoader {
+
+	private static final List<String> FILE_EXTENSIONS = Arrays.asList(".graphql", ".gql");
+
+
+	private final List<Resource> locations;
+
+	private final List<String> extensions;
+
+
+	/**
+	 * Default constructor to look under {@code graphql/} on the classpath for
+	 * resources with extensions ".graphql" and ".gql".
+	 */
+	public ResourceOperationContentLoader() {
+		this(Collections.singletonList(new ClassPathResource("graphql/")));
+	}
+
+	/**
+	 * Constructor with custom locations with extensions ".graphql" and ".gql".
+	 */
+	public ResourceOperationContentLoader(List<Resource> locations) {
+		this(locations, FILE_EXTENSIONS);
+	}
+
+	/**
+	 * Constructor with given locations and extensions.
+	 */
+	public ResourceOperationContentLoader(List<Resource> locations, List<String> extensions) {
+		this.locations = new ArrayList<>(locations);
+		this.extensions = new ArrayList<>(extensions);
+	}
+
+
+	/**
+	 * Return the configured locations.
+	 */
+	public List<Resource> getLocations() {
+		return this.locations;
+	}
+
+	/**
+	 * Return the configured extensions.
+	 */
+	public List<String> getExtensions() {
+		return this.extensions;
+	}
+
+
+	@Override
+	public String loadOperation(String key) {
+		return this.locations.stream()
+				.flatMap(location -> this.extensions.stream().map(ext -> getRelativeResource(location, key, ext)))
+				.filter(Resource::exists)
+				.findFirst()
+				.map(resource -> {
+					try {
+						ByteArrayOutputStream out = new ByteArrayOutputStream();
+						FileCopyUtils.copy(resource.getInputStream(), out);
+						return new String(out.toByteArray(), StandardCharsets.UTF_8);
+					}
+					catch (IOException ex) {
+						throw new IllegalArgumentException(
+								"Found resource: " + resource.getDescription() + " but failed to read it", ex);
+					}
+				})
+				.orElse(null);
+	}
+
+	private Resource getRelativeResource(Resource location, String name, String ext) {
+		try {
+			return location.createRelative(name + ext);
+		}
+		catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+}
