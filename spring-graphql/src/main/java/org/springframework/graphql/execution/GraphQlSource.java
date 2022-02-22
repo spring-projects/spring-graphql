@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
+import graphql.schema.DataFetcherFactory;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
@@ -156,6 +157,13 @@ public interface GraphQlSource {
 		 * @return the current builder
 		 */
 		Builder configureGraphQl(Consumer<GraphQL.Builder> configurer);
+
+		/**
+		 * Configure custom DataFetcherFactory.
+		 * @param defaultDataFetcherFactory the default DataFetcherFactory
+		 * @return the current builder
+		 */
+		Builder configureDefaultDataFetcherFactory(DataFetcherFactory<?> defaultDataFetcherFactory);
 
 		/**
 		 * Build the {@link GraphQlSource}.

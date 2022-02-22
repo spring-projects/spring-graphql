@@ -33,6 +33,7 @@ import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.UnionTypeDefinition;
+import graphql.schema.DataFetcherFactory;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
@@ -65,6 +66,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	@Nullable
 	private TypeResolver defaultTypeResolver;
+
+	@Nullable
+	private DataFetcherFactory<?> defaultDataFetcherFactory;
 
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
@@ -130,6 +134,12 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 	}
 
 	@Override
+	public GraphQlSource.Builder configureDefaultDataFetcherFactory(DataFetcherFactory<?> defaultDataFetcherFactory) {
+		this.defaultDataFetcherFactory = defaultDataFetcherFactory;
+		return this;
+	}
+
+	@Override
 	public GraphQlSource build() {
 		TypeDefinitionRegistry registry = this.schemaResources.stream()
 				.map(this::parseSchemaResource).reduce(TypeDefinitionRegistry::merge)
@@ -161,8 +171,13 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
 		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder));
 
+		GraphQLCodeRegistry.Builder codeRegistryBuilder = GraphQLCodeRegistry.newCodeRegistry();
+		if(this.defaultDataFetcherFactory!=null){
+			codeRegistryBuilder.defaultDataFetcher(this.defaultDataFetcherFactory);
+		}
+
 		List<WiringFactory> factories = new ArrayList<>();
-		WiringFactory factory = builder.build().getWiringFactory();
+		WiringFactory factory = builder.codeRegistry(codeRegistryBuilder).build().getWiringFactory();
 		if (!factory.getClass().equals(NoopWiringFactory.class)) {
 			factories.add(factory);
 		}
