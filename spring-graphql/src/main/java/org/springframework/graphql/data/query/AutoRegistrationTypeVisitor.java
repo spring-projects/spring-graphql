@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import graphql.schema.DataFetcher;
+import graphql.schema.DataFetcherFactoryEnvironment;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
@@ -27,7 +28,6 @@ import graphql.schema.GraphQLNamedOutputType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeVisitorStub;
-import graphql.schema.PropertyDataFetcher;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 
@@ -101,8 +101,14 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 			GraphQLCodeRegistry.Builder registry, GraphQLFieldsContainer parent,
 			GraphQLFieldDefinition fieldDefinition) {
 
+		DataFetcherFactoryEnvironment dataFetcherFactoryEnvironment = DataFetcherFactoryEnvironment
+				.newDataFetchingFactoryEnvironment()
+				.fieldDefinition(fieldDefinition).build();
+		DataFetcher<?> defaultDataFetcher = registry.getDefaultDataFetcherFactory().get(dataFetcherFactoryEnvironment);
 		DataFetcher<?> fetcher = registry.getDataFetcher(parent, fieldDefinition);
-		return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
+		return (fetcher != null &&
+				(defaultDataFetcher != null && !(defaultDataFetcher.getClass().isInstance(fetcher)))
+		);
 	}
 
 }
