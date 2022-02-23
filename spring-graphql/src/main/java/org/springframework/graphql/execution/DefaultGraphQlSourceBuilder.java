@@ -184,7 +184,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 
 	private TypeDefinitionRegistry parseSchemaResource(Resource schemaResource) {
 		Assert.notNull(schemaResource, "'schemaResource' not provided");
-		Assert.isTrue(schemaResource.exists(), "'schemaResource' does not exist");
+		Assert.isTrue(schemaResource.exists(), "'schemaResource' must exist: " + schemaResource);
 		try {
 			try (InputStream inputStream = schemaResource.getInputStream()) {
 				return new SchemaParser().parse(inputStream);
@@ -192,6 +192,9 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 		}
 		catch (IOException ex) {
 			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource);
+		}
+		catch (Exception ex) {
+			throw new IllegalStateException("Failed to parse schema resource: " + schemaResource, ex);
 		}
 	}
 
