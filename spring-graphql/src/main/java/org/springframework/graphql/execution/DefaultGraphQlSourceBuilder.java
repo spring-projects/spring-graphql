@@ -46,6 +46,7 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.WiringFactory;
 
+import graphql.schema.idl.errors.SchemaProblem;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -190,7 +191,7 @@ class DefaultGraphQlSourceBuilder implements GraphQlSource.Builder {
 				return new SchemaParser().parse(inputStream);
 			}
 		}
-		catch (IOException ex) {
+		catch (IOException | SchemaProblem ex) {
 			throw new IllegalArgumentException("Failed to load schema resource: " + schemaResource);
 		}
 	}

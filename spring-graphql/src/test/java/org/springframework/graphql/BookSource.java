@@ -30,6 +30,7 @@ import org.springframework.core.io.Resource;
 public class BookSource {
 
 	public static final Resource schema = new ClassPathResource("books/schema.graphqls");
+	public static final Resource emptySchema = new ClassPathResource("books/emptySchema.graphqls");
 
 
 	private static final Map<Long, Book> booksMap = new HashMap<>();

@@ -214,7 +214,7 @@ public class SchemaMappingInvocationTests {
 		context.registerBean(BatchLoaderRegistry.class, () -> registry);
 		context.refresh();
 
-		return GraphQlSetup.schemaResource(BookSource.schema)
+		return GraphQlSetup.schemaResource(BookSource.schema,BookSource.emptySchema)
 				.runtimeWiringForAnnotatedControllers(context)
 				.dataLoaders(registry)
 				.toGraphQlService();
