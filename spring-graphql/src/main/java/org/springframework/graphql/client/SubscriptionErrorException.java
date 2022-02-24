@@ -21,6 +21,9 @@ import java.util.List;
 import graphql.GraphQLError;
 
 /**
+ * Exception that is sent as an error signal to a {@code Flux} returned from
+ * {@link GraphQlClient} or from its underlying {@link GraphQlTransport} for a
+ * GraphQL over WebSocket subscription that ends with an "error" message.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -37,6 +40,9 @@ public class SubscriptionErrorException extends RuntimeException {
 	}
 
 
+	/**
+	 * Return the errors contained in the GraphQL over WebSocket "errors" message.
+	 */
 	public List<GraphQLError> getErrors() {
 		return this.errors;
 	}
