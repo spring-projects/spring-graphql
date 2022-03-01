@@ -101,8 +101,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 
 	/**
-	 * Prepare an {@link Example} from GraphQL query arguments.
-	 * @param env contextual info for the GraphQL query
+	 * Prepare an {@link Example} from GraphQL request arguments.
+	 * @param env contextual info for the GraphQL request
 	 * @return the resulting example
 	 */
 	@SuppressWarnings({"ConstantConditions", "unchecked"})

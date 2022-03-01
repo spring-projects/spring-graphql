@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -156,13 +156,13 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 	}
 
 	@Override
-	public Mono<ExecutionResult> execute(RequestInput input) {
-		return this.graphQlSessionMono.flatMap(session -> session.execute(input));
+	public Mono<ExecutionResult> execute(GraphQlRequest request) {
+		return this.graphQlSessionMono.flatMap(session -> session.execute(request));
 	}
 
 	@Override
-	public Flux<ExecutionResult> executeSubscription(RequestInput input) {
-		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(input));
+	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
 	}
 
 	/**
@@ -540,10 +540,10 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 			return this.requestSink.asFlux();
 		}
 
-		public Mono<ExecutionResult> execute(RequestInput requestInput) {
+		public Mono<ExecutionResult> execute(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
-				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, requestInput);
+				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, request);
 				Sinks.One<ExecutionResult> sink = Sinks.one();
 				this.resultSinks.put(id, sink);
 				trySend(message);
@@ -555,10 +555,10 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 		}
 
-		public Flux<ExecutionResult> executeSubscription(RequestInput requestInput) {
+		public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
-				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, requestInput);
+				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, request);
 				Sinks.Many<ExecutionResult> sink = Sinks.many().unicast().onBackpressureBuffer();
 				this.streamingSinks.put(id, sink);
 				trySend(message);

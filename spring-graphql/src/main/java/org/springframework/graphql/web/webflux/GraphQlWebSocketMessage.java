@@ -21,7 +21,7 @@ import java.util.Collections;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 
@@ -137,8 +137,8 @@ public class GraphQlWebSocketMessage {
 	/**
 	 * Create a "subscribe" message.
 	 */
-	public static GraphQlWebSocketMessage subscribe(String id, RequestInput input) {
-		return new GraphQlWebSocketMessage(id, "subscribe", input.toMap());
+	public static GraphQlWebSocketMessage subscribe(String id, GraphQlRequest request) {
+		return new GraphQlWebSocketMessage(id, "subscribe", request.toMap());
 	}
 
 	/**

@@ -46,7 +46,7 @@ class DefaultGraphQlClientBuilder implements GraphQlClient.Builder {
 	private Configuration jsonPathConfig;
 
 	@Nullable
-	private OperationContentLoader operationContentLoader;
+	private DocumentSource documentSource;
 
 
 	DefaultGraphQlClientBuilder(GraphQlTransport transport) {
@@ -62,8 +62,8 @@ class DefaultGraphQlClientBuilder implements GraphQlClient.Builder {
 	}
 
 	@Override
-	public GraphQlClient.Builder operationContentLoader(@Nullable OperationContentLoader contentLoader) {
-		this.operationContentLoader = contentLoader;
+	public GraphQlClient.Builder documentSource(@Nullable DocumentSource contentLoader) {
+		this.documentSource = contentLoader;
 		return this;
 	}
 
@@ -84,9 +84,9 @@ class DefaultGraphQlClientBuilder implements GraphQlClient.Builder {
 		}
 	}
 
-	private OperationContentLoader initRequestNameResolver() {
-		return (this.operationContentLoader == null ?
-				new ResourceOperationContentLoader() : this.operationContentLoader);
+	private DocumentSource initRequestNameResolver() {
+		return (this.documentSource == null ?
+				new ResourceDocumentSource() : this.documentSource);
 	}
 
 

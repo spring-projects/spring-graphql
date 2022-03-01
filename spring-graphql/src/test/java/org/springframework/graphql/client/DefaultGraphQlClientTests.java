@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -58,7 +58,7 @@ public class DefaultGraphQlClientTests {
 		TestTransport transport = new TestTransport(result);
 
 		Project project = GraphQlClient.builder(transport).build()
-				.operation(query)
+				.document(query)
 				.execute()
 				.map(spec -> spec.toEntity("project", Project.class))
 				.block();
@@ -75,7 +75,7 @@ public class DefaultGraphQlClientTests {
 		private final Mono<ExecutionResult> response;
 
 		@Nullable
-		private RequestInput savedRequestInput;
+		private GraphQlRequest savedRequest;
 
 		public TestTransport(ExecutionResult response) {
 			this(Mono.just(response));
@@ -85,19 +85,19 @@ public class DefaultGraphQlClientTests {
 			this.response = response;
 		}
 
-		public RequestInput getSavedRequestInput() {
-			Assert.notNull(this.savedRequestInput, "No saved RequestInput");
-			return this.savedRequestInput;
+		public GraphQlRequest getSavedRequest() {
+			Assert.notNull(this.savedRequest, "No saved request");
+			return this.savedRequest;
 		}
 
 		@Override
-		public Mono<ExecutionResult> execute(RequestInput input) {
-			this.savedRequestInput = input;
+		public Mono<ExecutionResult> execute(GraphQlRequest request) {
+			this.savedRequest = request;
 			return this.response;
 		}
 
 		@Override
-		public Flux<ExecutionResult> executeSubscription(RequestInput input) {
+		public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
 			throw new UnsupportedOperationException();
 		}
 	}

@@ -19,7 +19,7 @@ package org.springframework.graphql;
 import reactor.core.publisher.Mono;
 
 /**
- * Strategy to perform a GraphQL request.
+ * Strategy to execute a GraphQL request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 public interface GraphQlService {
 
 	/**
-	 * Perform the operation and return the result.
+	 * Execute the GraphQL request and return the result.
 	 * @param input container for GraphQL request input
 	 * @return the result from execution
 	 */

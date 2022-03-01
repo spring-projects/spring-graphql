@@ -22,17 +22,17 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Transport to execute GraphQL requests over HTTP via {@link WebClient}.
- * Single-response requests are performed over HTTP POST while subscriptions
- * over HTTP are not supported.
+ * Supports only single-response requests over HTTP POST. For subscription
+ * requests, see {@link WebSocketGraphQlTransport}.
  *
- * <p>Use the builder to initialize the transport and the {@link GraphQlClient}
+ * <p>Use the builder to initialize the transport and the {@code GraphQlClient}
  * in a single chain:
  *
  * <pre style="class">
@@ -73,18 +73,18 @@ public class HttpGraphQlTransport implements GraphQlTransport {
 
 
 	@Override
-	public Mono<ExecutionResult> execute(RequestInput requestInput) {
+	public Mono<ExecutionResult> execute(GraphQlRequest request) {
 		return this.webClient.post()
 				.contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.APPLICATION_JSON)
-				.bodyValue(requestInput.toMap())
+				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)
 				.map(MapExecutionResult::new);
 	}
 
 	@Override
-	public Flux<ExecutionResult> executeSubscription(RequestInput requestInput) {
+	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
 		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
 	}
 

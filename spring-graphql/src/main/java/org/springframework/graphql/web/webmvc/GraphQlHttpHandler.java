@@ -87,9 +87,7 @@ public class GraphQlHttpHandler {
 				logger.debug("Execution complete");
 			}
 			ServerResponse.BodyBuilder builder = ServerResponse.ok();
-			if (output.getResponseHeaders() != null) {
-				builder.headers((headers) -> headers.putAll(output.getResponseHeaders()));
-			}
+			builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
 			return builder.body(output.toSpecification());
 		});
 

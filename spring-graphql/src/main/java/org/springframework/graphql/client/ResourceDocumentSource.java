@@ -28,13 +28,13 @@ import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
 
 /**
- * {@link OperationContentLoader} that looks for resources relative to a list of
- * {@link Resource} locations with a list of extensions.
+ * {@link DocumentSource} that looks under a set of locations for a
+ * {@link Resource} with the document name and a list of configured extensions.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class ResourceOperationContentLoader implements OperationContentLoader {
+public class ResourceDocumentSource implements DocumentSource {
 
 	private static final List<String> FILE_EXTENSIONS = Arrays.asList(".graphql", ".gql");
 
@@ -48,21 +48,21 @@ public class ResourceOperationContentLoader implements OperationContentLoader {
 	 * Default constructor to look under {@code graphql/} on the classpath for
 	 * resources with extensions ".graphql" and ".gql".
 	 */
-	public ResourceOperationContentLoader() {
+	public ResourceDocumentSource() {
 		this(Collections.singletonList(new ClassPathResource("graphql/")));
 	}
 
 	/**
 	 * Constructor with custom locations with extensions ".graphql" and ".gql".
 	 */
-	public ResourceOperationContentLoader(List<Resource> locations) {
+	public ResourceDocumentSource(List<Resource> locations) {
 		this(locations, FILE_EXTENSIONS);
 	}
 
 	/**
 	 * Constructor with given locations and extensions.
 	 */
-	public ResourceOperationContentLoader(List<Resource> locations, List<String> extensions) {
+	public ResourceDocumentSource(List<Resource> locations, List<String> extensions) {
 		this.locations = new ArrayList<>(locations);
 		this.extensions = new ArrayList<>(extensions);
 	}
@@ -84,9 +84,9 @@ public class ResourceOperationContentLoader implements OperationContentLoader {
 
 
 	@Override
-	public String loadOperation(String key) {
+	public String getDocument(String name) {
 		return this.locations.stream()
-				.flatMap(location -> this.extensions.stream().map(ext -> getRelativeResource(location, key, ext)))
+				.flatMap(location -> this.extensions.stream().map(ext -> getRelativeResource(location, name, ext)))
 				.filter(Resource::exists)
 				.findFirst()
 				.map(resource -> {

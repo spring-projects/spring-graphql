@@ -40,6 +40,7 @@ import org.springframework.lang.Nullable;
  */
 public interface GraphQlClient {
 
+
 	/**
 	 * Return the underlying transport or {@code null} if the required type
 	 * does not match the transport type. See {@link GraphQlTransport}
@@ -47,21 +48,23 @@ public interface GraphQlClient {
 	@Nullable
 	<T extends GraphQlTransport> T getTransport(Class<T> requiredType);
 
-	/**
-	 * Start a new request with the given GraphQL operation, which can be a
-	 * query, a mutation, or subscription.
-	 * @param operation the operation to perform
-	 * @return spec to further define and execute the request
-	 */
-	RequestSpec operation(String operation);
 
 	/**
-	 * Variant of {@link #operation(String)} that loads the content of the
-	 * operation from the given key through the configured
-	 * {@link OperationContentLoader}.
+	 * Start defining a GraphQL request with the given document, which is the
+	 * textual representation of an operation (or operations) to perform,
+	 * including selection sets and fragments.
+	 * @param document the document for the request
+	 * @return spec to further define or execute the request
+	 */
+	RequestSpec document(String document);
+
+	/**
+	 * Variant of {@link #document(String)} that uses the given key to resolve
+	 * the GraphQL document from a file, or in another way with the help of the
+	 * {@link DocumentSource} that the client is configured with.
 	 * @throws IllegalArgumentException if the content could not be loaded
 	 */
-	RequestSpec loadOperationContent(String key);
+	RequestSpec documentName(String name);
 
 
 	/**
@@ -87,11 +90,11 @@ public interface GraphQlClient {
 		Builder jsonPathConfig(@Nullable Configuration config);
 
 		/**
-		 * Configure an {@link OperationContentLoader} to use with
-		 * {@link #loadOperationContent(String) GraphQlClient#loadOperationContent}.
-		 * <p>By default, {@link ResourceOperationContentLoader} is used.
+		 * Configure a {@link DocumentSource} for use with
+		 * {@link #documentName(String)} for resolving a document by name.
+		 * <p>By default, {@link ResourceDocumentSource} is used.
 		 */
-		Builder operationContentLoader(@Nullable OperationContentLoader contentLoader);
+		Builder documentSource(@Nullable DocumentSource contentLoader);
 
 		/**
 		 * Build the {@code GraphQlClient} instance.
@@ -102,12 +105,13 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Declare options to execute a request.
+	 * Declare options for GraphQL request execution.
 	 */
 	interface ExecuteSpec {
 
 		/**
-		 * Execute as a single-response operation such as "query" or "mutation".
+		 * Execute as a request with a single response such as a "query" or
+		 * "mutation" operation.
 		 * @return a {@code Mono} with a {@code ResponseSpec} for further
 		 * decoding of the response. The {@code Mono} may end wth an error due
 		 * to transport level issues.
@@ -115,7 +119,7 @@ public interface GraphQlClient {
 		Mono<ResponseSpec> execute();
 
 		/**
-		 * Execute a "subscription" request and stream a stream of responses.
+		 * Execute a "subscription" request with a stream of responses.
 		 * @return a {@code Flux} with a {@code ResponseSpec} for further
 		 * decoding of the response. The {@code Flux} may terminate as follows:
 		 * <ul>
@@ -139,14 +143,15 @@ public interface GraphQlClient {
 	interface RequestSpec extends ExecuteSpec {
 
 		/**
-		 * Set the operation name.
-		 * @param name the operation name
+		 * Set the name of the operation in the {@link #document(String) document}
+		 * to execute, if the document contains multiple operations.
+		 * @param operationName the operation name
 		 * @return this request spec
 		 */
-		RequestSpec operationName(@Nullable String name);
+		RequestSpec operationName(@Nullable String operationName);
 
 		/**
-		 * Add a variable.
+		 * Add a value for a variable defined by the operation.
 		 * @param name the variable name
 		 * @param value the variable value
 		 * @return this request spec

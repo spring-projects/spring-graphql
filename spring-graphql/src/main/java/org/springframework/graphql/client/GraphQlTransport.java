@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 
 /**
  * Contract for a transport, over which to execute GraphQL requests.
@@ -30,18 +30,19 @@ import org.springframework.graphql.RequestInput;
 public interface GraphQlTransport {
 
 	/**
-	 * Execute a single-response operation such as "query" or "mutation".
-	 * @param input the request to execute
+	 * Execute a request that returns a single response such as a "query" or a
+	 * "mutation" operation.
+	 * @param request the request to execute
 	 * @return a {@code Mono} with the {@code ExecutionResult} for the response.
 	 * The {@code Mono} may end wth an error due to transport or other issues
 	 * such as failures to encode the request or decode the response.
 	 * </ul>
 	 */
-	Mono<ExecutionResult> execute(RequestInput input);
+	Mono<ExecutionResult> execute(GraphQlRequest request);
 
 	/**
-	 * Execute a "subscription" request and stream the responses.
-	 * @param input the request to execute
+	 * Execute a "subscription" request that returns a stream of responses.
+	 * @param request the request to execute
 	 * @return a {@code Flux} with an {@code ExecutionResult} for each response.
 	 * The {@code Flux} may terminate as follows:
 	 * <ul>
@@ -54,6 +55,6 @@ public interface GraphQlTransport {
 	 * <p>The {@code Flux} may be cancelled to notify the server to end the
 	 * subscription stream.
 	 */
-	Flux<ExecutionResult> executeSubscription(RequestInput input);
+	Flux<ExecutionResult> executeSubscription(GraphQlRequest request);
 
 }

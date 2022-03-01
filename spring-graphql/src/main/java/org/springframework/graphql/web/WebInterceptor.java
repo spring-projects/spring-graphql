@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,15 +24,15 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.Assert;
 
 /**
- * Interceptor for intercepting GraphQL over HTTP or GraphQL over WebSocket
- * requests. Provides information about the HTTP request or WebSocket handshake,
- * and allows customization of the {@link ExecutionInput} as well as of the
- * {@link ExecutionResult}.
+ * Interceptor for the handling of GraphQL over HTTP or GraphQL over WebSocket
+ * requests. Exposes the details of the underlying HTTP request or WebSocket
+ * handshake, the decoded GraphQL request, and allows customization of the
+ * {@link ExecutionInput} and the resulting {@link ExecutionResult}.
  *
- * <p> Interceptors are typically declared as beans in Spring configuration and
+ * <p>Interceptors are typically declared as beans in Spring configuration and
  * ordered as defined in {@link ObjectProvider#orderedStream()}.
  *
- * <p> Supported for Spring MVC and WebFlux.
+ * <p>Supported for Spring MVC and WebFlux.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -41,26 +41,27 @@ import org.springframework.util.Assert;
 public interface WebInterceptor {
 
 	/**
-	 * Intercept a request and possibly delegate to the rest of the chain
-	 * consisting of more interceptors as well as a
-	 * {@link org.springframework.graphql.GraphQlService} at the end to actually
-	 * handle the request through the GraphQL engine.
-	 * @param webInput container for HTTP request information and options to
-	 * customize the {@link ExecutionInput}.
-	 * @param chain the rest of the chain to delegate to for request execution
+	 * Intercept a request and delegate to the rest of the chain that consists
+	 * of other interceptors followed by a
+	 * {@link org.springframework.graphql.GraphQlService} that executes the
+	 * request through the GraphQL Java.
+	 * @param webInput provides access to GraphQL request input and allows
+	 * customizing the {@link ExecutionInput} that will be used.
+	 * @param chain the rest of the chain to handle the request
 	 * @return a {@link Mono} with the result
 	 */
 	Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain);
 
 	/**
-	 * Return a composed {@link WebInterceptor} that invokes the current
-	 * interceptor first and then the one that is passed in.
-	 * @param interceptor the interceptor to delegate to after "this" interceptor
-	 * @return the composed WebInterceptor
+	 * Return a new {@link WebInterceptor} that invokes the current interceptor
+	 * first and then the one that is passed in.
+	 * @param interceptor the interceptor to delegate to after "this"
+	 * @return the new {@code WebInterceptor}
 	 */
 	default WebInterceptor andThen(WebInterceptor interceptor) {
-		Assert.notNull(interceptor, "WebInterceptor must not be null");
-		return (currentInput, next) -> intercept(currentInput, (nextInput) -> interceptor.intercept(nextInput, next));
+		Assert.notNull(interceptor, "WebInterceptor is required");
+		return (currentInput, next) -> intercept(currentInput,
+				(nextInput) -> interceptor.intercept(nextInput, next));
 	}
 
 }

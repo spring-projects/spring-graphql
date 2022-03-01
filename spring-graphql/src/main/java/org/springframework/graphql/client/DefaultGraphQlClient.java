@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -45,18 +45,19 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final Configuration jsonPathConfig;
 
-	private final OperationContentLoader operationContentLoader;
+	private final DocumentSource documentSource;
 
 
-	public DefaultGraphQlClient(GraphQlTransport transport, Configuration jsonPathConfig,
-			OperationContentLoader operationContentLoader) {
+	DefaultGraphQlClient(
+			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource) {
 
 		Assert.notNull(transport, "GraphQlTransport is required");
-		Assert.notNull(jsonPathConfig, "'jsonPathConfig' is required");
-		Assert.notNull(operationContentLoader, "RequestNameResolver is required");
+		Assert.notNull(jsonPathConfig, "Configuration is required");
+		Assert.notNull(documentSource, "DocumentSource is required");
+
 		this.transport = transport;
 		this.jsonPathConfig = jsonPathConfig;
-		this.operationContentLoader = operationContentLoader;
+		this.documentSource = documentSource;
 	}
 
 
@@ -67,21 +68,21 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	}
 
 	@Override
-	public RequestSpec operation(String operation) {
-		return new DefaultRequestSpec(operation, this.transport, this.jsonPathConfig);
+	public RequestSpec document(String document) {
+		return new DefaultRequestSpec(document, this.transport, this.jsonPathConfig);
 	}
 
 	@Override
-	public RequestSpec loadOperationContent(String key) {
-		String requestContent = this.operationContentLoader.loadOperation(key);
-		Assert.notNull(requestContent, "Failed to load operation content for key: " + key);
-		return new DefaultRequestSpec(requestContent, this.transport, this.jsonPathConfig);
+	public RequestSpec documentName(String name) {
+		String document = this.documentSource.getDocument(name);
+		Assert.notNull(document, "Failed to find document for name: '" + name + "'");
+		return new DefaultRequestSpec(document, this.transport, this.jsonPathConfig);
 	}
 
 
 	private static final class DefaultRequestSpec implements RequestSpec {
 
-		private final String operation;
+		private final String document;
 
 		@Nullable
 		private String operationName;
@@ -92,16 +93,16 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Configuration jsonPathConfig;
 
-		DefaultRequestSpec(String operation, GraphQlTransport transport, Configuration jsonPathConfig) {
-			Assert.hasText(operation, "'operation' is required");
-			this.operation = operation;
+		DefaultRequestSpec(String document, GraphQlTransport transport, Configuration jsonPathConfig) {
+			Assert.hasText(document, "'document' is required");
+			this.document = document;
 			this.transport = transport;
 			this.jsonPathConfig = jsonPathConfig;
 		}
 
 		@Override
-		public DefaultRequestSpec operationName(@Nullable String name) {
-			this.operationName = name;
+		public DefaultRequestSpec operationName(@Nullable String operationName) {
+			this.operationName = operationName;
 			return this;
 		}
 
@@ -113,18 +114,18 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public Mono<ResponseSpec> execute() {
-			return this.transport.execute(initRequestInput())
+			return this.transport.execute(createRequest())
 					.map(payload -> new DefaultResponseSpec(payload, this.jsonPathConfig));
 		}
 
 		@Override
 		public Flux<ResponseSpec> executeSubscription() {
-			return this.transport.executeSubscription(initRequestInput())
+			return this.transport.executeSubscription(createRequest())
 					.map(payload -> new DefaultResponseSpec(payload, this.jsonPathConfig));
 		}
 
-		private RequestInput initRequestInput() {
-			return new RequestInput(this.operation, this.operationName, this.variables, null, "1");
+		private GraphQlRequest createRequest() {
+			return new GraphQlRequest(this.document, this.operationName, this.variables);
 		}
 
 	}
@@ -132,33 +133,33 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private static class DefaultResponseSpec implements ResponseSpec {
 
-		private final DocumentContext documentContext;
+		private final DocumentContext jsonPathDocument;
 
 		private final List<GraphQLError> errors;
 
 		private DefaultResponseSpec(ExecutionResult result, Configuration jsonPathConfig) {
-			this.documentContext = JsonPath.parse(result.toSpecification(), jsonPathConfig);
+			this.jsonPathDocument = JsonPath.parse(result.toSpecification(), jsonPathConfig);
 			this.errors = result.getErrors();
 		}
 
 		@Override
 		public <D> D toEntity(String path, Class<D> entityType) {
-			return this.documentContext.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
+			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> D toEntity(String path, ParameterizedTypeReference<D> entityType) {
-			return this.documentContext.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
+			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(String path, Class<D> elementType) {
-			return this.documentContext.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
+			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(String path, ParameterizedTypeReference<D> elementType) {
-			return this.documentContext.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
+			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		private static JsonPath initJsonPath(String path) {

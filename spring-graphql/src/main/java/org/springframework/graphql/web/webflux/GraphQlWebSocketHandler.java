@@ -178,7 +178,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					});
 		}
 		else {
-			// Single response operation (query or mutation)
+			// Single response (query or mutation)
 			outputFlux = (CollectionUtils.isEmpty(output.getErrors()) ? Flux.just(output) :
 					Flux.error(new IllegalStateException("Execution failed: " + output.getErrors())));
 		}

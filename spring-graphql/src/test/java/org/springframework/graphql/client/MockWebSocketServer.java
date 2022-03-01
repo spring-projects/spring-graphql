@@ -26,7 +26,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -63,7 +63,7 @@ public class MockWebSocketServer implements WebSocketHandler {
 	 */
 	public ResponseSpec expectOperation(String operation) {
 		Exchange exchange = new Exchange(operation);
-		this.expectedExchanges.put(exchange.getInput().toMap(), exchange);
+		this.expectedExchanges.put(exchange.getRequest().toMap(), exchange);
 		return exchange;
 	}
 
@@ -112,34 +112,34 @@ public class MockWebSocketServer implements WebSocketHandler {
 		/**
 		 * Respond with the given a single result.
 		 */
-		RequestInput andRespond(ExecutionResult result);
+		GraphQlRequest andRespond(ExecutionResult result);
 
 		/**
 		 * Respond with the given a single result {@code Mono}.
 		 */
-		RequestInput andRespond(Mono<ExecutionResult> resultMono);
+		GraphQlRequest andRespond(Mono<ExecutionResult> resultMono);
 
 		/**
 		 * Respond with a GraphQL over WebSocket "error" message.
 		 */
-		RequestInput andRespondWithError(GraphQLError error);
+		GraphQlRequest andRespondWithError(GraphQLError error);
 
 		/**
 		 * Respond with the given stream of responses.
 		 */
-		RequestInput andStream(Flux<ExecutionResult> resultFlux);
+		GraphQlRequest andStream(Flux<ExecutionResult> resultFlux);
 
 		/**
 		 * Respond with the given stream of responses and terminate with an error.
 		 */
-		RequestInput andStreamWithError(Flux<ExecutionResult> resultFlux, GraphQLError error);
+		GraphQlRequest andStreamWithError(Flux<ExecutionResult> resultFlux, GraphQLError error);
 
 	}
 
 
 	private static class Exchange implements ResponseSpec {
 
-		private final RequestInput requestInput;
+		private final GraphQlRequest request;
 
 		private Flux<ExecutionResult> responseFlux = Flux.empty();
 
@@ -148,42 +148,42 @@ public class MockWebSocketServer implements WebSocketHandler {
 
 
 		private Exchange(String operation) {
-			this.requestInput = new RequestInput(operation, null, null, null, "");
+			this.request = new GraphQlRequest(operation);
 		}
 
 		@Override
-		public RequestInput andRespond(ExecutionResult result) {
+		public GraphQlRequest andRespond(ExecutionResult result) {
 			return addResponse(Flux.just(result), null);
 		}
 
 		@Override
-		public RequestInput andRespond(Mono<ExecutionResult> resultMono) {
+		public GraphQlRequest andRespond(Mono<ExecutionResult> resultMono) {
 			return addResponse(Flux.from(resultMono), null);
 		}
 
 		@Override
-		public RequestInput andRespondWithError(GraphQLError error) {
+		public GraphQlRequest andRespondWithError(GraphQLError error) {
 			return addResponse(Flux.empty(), error);
 		}
 
 		@Override
-		public RequestInput andStream(Flux<ExecutionResult> resultFlux) {
+		public GraphQlRequest andStream(Flux<ExecutionResult> resultFlux) {
 			return addResponse(resultFlux, null);
 		}
 
 		@Override
-		public RequestInput andStreamWithError(Flux<ExecutionResult> resultFlux, GraphQLError error) {
+		public GraphQlRequest andStreamWithError(Flux<ExecutionResult> resultFlux, GraphQLError error) {
 			return addResponse(resultFlux, error);
 		}
 
-		private RequestInput addResponse(Flux<ExecutionResult> resultFlux, @Nullable GraphQLError error) {
+		private GraphQlRequest addResponse(Flux<ExecutionResult> resultFlux, @Nullable GraphQLError error) {
 			this.responseFlux = resultFlux;
 			this.error = error;
-			return this.requestInput;
+			return this.request;
 		}
 
-		public RequestInput getInput() {
-			return this.requestInput;
+		public GraphQlRequest getRequest() {
+			return this.request;
 		}
 
 		public Flux<ExecutionResult> getResponseFlux() {

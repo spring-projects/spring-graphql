@@ -18,19 +18,19 @@ package org.springframework.graphql.client;
 import org.springframework.lang.Nullable;
 
 /**
- * Strategy to load the content of a GraphQL operation from a key.
+ * Strategy to locate a GraphQL document identified by name.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface OperationContentLoader {
+public interface DocumentSource {
 
 	/**
-	 * Return the operation for the given key.
-	 * @param key the key to look up the operation content
-	 * @return the content of the operation, if found
+	 * Return the document that matches the given name.
+	 * @param name the name to use for the lookup
+	 * @return the document, or {@code null}
 	 */
 	@Nullable
-	String loadOperation(String key);
+	String getDocument(String name);
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ public class WebGraphQlTesterTests {
 		spec.path("me.name").entity(String.class).isEqualTo("Luke Skywalker");
 
 		setup.verifyRequest((input) -> {
-			assertThat(input.getQuery()).contains(query);
+			assertThat(input.getDocument()).contains(query);
 			assertThat(input.getHeaders().get("myHeader1")).containsExactly("myValue1a", "myValue1b");
 			assertThat(input.getHeaders().getFirst("myHeader2")).isEqualTo("myValue2");
 		});
@@ -116,7 +116,7 @@ public class WebGraphQlTesterTests {
 		spec.path("me.name").entity(String.class).isEqualTo("Luke Skywalker");
 
 		setup.verifyRequest((input) -> {
-			assertThat(input.getQuery()).contains(query);
+			assertThat(input.getDocument()).contains(query);
 			assertThat(input.getHeaders().get("myHeader1")).containsExactly("myValue1a", "myValue1b");
 			assertThat(input.getHeaders().getFirst("myHeader2")).isEqualTo("myValue2");
 		});
@@ -143,7 +143,7 @@ public class WebGraphQlTesterTests {
 				.path("me")
 				.pathDoesNotExist();
 
-		setup.verifyRequest((input) -> assertThat(input.getQuery()).contains(query));
+		setup.verifyRequest((input) -> assertThat(input.getDocument()).contains(query));
 	}
 
 

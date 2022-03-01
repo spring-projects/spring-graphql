@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,11 @@
  */
 package org.springframework.graphql.web;
 
+import graphql.ExecutionInput;
 import reactor.core.publisher.Mono;
 
 /**
- * Contract that allows a {@link WebInterceptor} to delegate to the remainder
- * of the chain.
+ * Allows a {@link WebInterceptor} to invoke the rest of the chain.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -27,10 +27,11 @@ import reactor.core.publisher.Mono;
 public interface WebInterceptorChain {
 
 	/**
-	 * Delegate to the next rest of the chain consisting of more interceptors
-	 * as well as a {@link org.springframework.graphql.GraphQlService} at the
-	 * end to actually handle the request through the GraphQL engine.
-	 * @param webInput the input for the request
+	 * Delegate to the rest of the chain that consists of other interceptors
+	 * followed by a {@link org.springframework.graphql.GraphQlService} that
+	 * executes the request through the GraphQL Java.
+	 * @param webInput provides access to GraphQL request input and allows
+	 * customizing the {@link ExecutionInput} that will be used.
 	 * @return the output with the result from request execution
 	 */
 	Mono<WebOutput> next(WebInput webInput);

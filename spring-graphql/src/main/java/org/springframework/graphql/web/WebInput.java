@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,16 +48,13 @@ public class WebInput extends RequestInput {
 	 * Create an instance.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
-	 * @param body the content of the request deserialized from JSON
+	 * @param body the deserialized content of the GraphQL request
 	 * @param locale the locale from the HTTP request, if any
 	 * @param id an identifier for the GraphQL request, e.g. a subscription id for
 	 * correlating request and response messages, or it could be an id associated with the
 	 * underlying request/connection id, if available
 	 */
-	public WebInput(
-			URI uri, HttpHeaders headers, Map<String, Object> body,
-			@Nullable Locale locale, String id) {
-
+	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, @Nullable Locale locale, String id) {
 		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), locale, id);
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
@@ -68,7 +65,7 @@ public class WebInput extends RequestInput {
 	@SuppressWarnings("unchecked")
 	private static <T> T getKey(String key, Map<String, Object> body) {
 		if (key.equals("query") && !StringUtils.hasText((String) body.get(key))) {
-			throw new ServerWebInputException("Query is required");
+			throw new ServerWebInputException("No \"query\" in the request input");
 		}
 		return (T) body.get(key);
 	}
