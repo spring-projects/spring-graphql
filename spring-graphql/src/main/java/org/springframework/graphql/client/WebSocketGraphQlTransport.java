@@ -36,6 +36,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.support.MapExecutionResult;
+import org.springframework.graphql.support.MapGraphQlError;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -614,7 +616,9 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return;
 			}
 
-			ExecutionResult result = new MapExecutionResult(message.getPayload());
+			Map<String, Object> resultMap = message.getPayloadOrDefault(Collections.emptyMap());
+			ExecutionResult result = MapExecutionResult.from(resultMap);
+
 			Sinks.EmitResult emitResult = (sink != null ? sink.tryEmitValue(result) : streamingSink.tryEmitNext(result));
 			if (emitResult.isFailure()) {
 				// Just log: cannot overflow, is serialized, and cancel is handled in doOnCancel
@@ -640,15 +644,15 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return;
 			}
 
-			List<Map<String, Object>> payload = message.getPayload();
+			List<Map<String, Object>> payload = message.getPayloadOrDefault(Collections.emptyList());
 
 			Sinks.EmitResult emitResult;
 			if (sink != null) {
-				ExecutionResult result = new MapExecutionResult(Collections.singletonMap("errors", payload));
+				ExecutionResult result = MapExecutionResult.forErrorsOnly(payload);
 				emitResult = sink.tryEmitValue(result);
 			}
 			else {
-				List<GraphQLError> graphQLErrors = MapGraphQlError.fromMapList(payload);
+				List<GraphQLError> graphQLErrors = MapGraphQlError.from(payload);
 				Exception ex = new SubscriptionErrorException(graphQLErrors);
 				emitResult = streamingSink.tryEmitError(ex);
 			}

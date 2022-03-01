@@ -23,6 +23,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.support.DocumentSource;
+import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 
 /**

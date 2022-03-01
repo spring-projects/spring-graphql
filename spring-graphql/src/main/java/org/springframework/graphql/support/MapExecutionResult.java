@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.client;
+package org.springframework.graphql.support;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +24,7 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
-import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Implementation of {@link ExecutionResult} backed by a {@link Map}.
@@ -32,16 +32,18 @@ import org.springframework.lang.Nullable;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class MapExecutionResult implements ExecutionResult {
+public final class MapExecutionResult implements ExecutionResult {
 
-	private final Map<String, Object> map;
+	private final Map<String, Object> resultMap;
 
 	private final List<GraphQLError> errors;
 
 
-	MapExecutionResult(@Nullable Map<String, Object> map) {
-		this.map = (map != null ? map : Collections.emptyMap());
-		this.errors = MapGraphQlError.fromResultMap(map);
+	@SuppressWarnings("unchecked")
+	private MapExecutionResult(Map<String, Object> resultMap) {
+		Assert.notNull(resultMap, "'resultMap' is required");
+		this.resultMap = resultMap;
+		this.errors = MapGraphQlError.from((List<Map<String, Object>>) resultMap.get("errors"));
 	}
 
 
@@ -53,18 +55,18 @@ final class MapExecutionResult implements ExecutionResult {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T getData() {
-		return (T) this.map.get("data");
+		return (T) this.resultMap.get("data");
 	}
 
 	@Override
 	public boolean isDataPresent() {
-		return (this.map.get("data") != null);
+		return (this.resultMap.get("data") != null);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<Object, Object> getExtensions() {
-		return (Map<Object, Object>) this.map.get("extensions");
+		return (Map<Object, Object>) this.resultMap.get("extensions");
 	}
 
 	@Override
@@ -74,25 +76,43 @@ final class MapExecutionResult implements ExecutionResult {
 
 	@Override
 	public boolean equals(Object other) {
-		return (other instanceof MapExecutionResult && this.map.equals(((MapExecutionResult) other).map));
+		return (other instanceof MapExecutionResult &&
+				this.resultMap.equals(((MapExecutionResult) other).resultMap));
 	}
 
 	@Override
 	public int hashCode() {
-		return this.map.hashCode();
+		return this.resultMap.hashCode();
 	}
 
 	@Override
 	public String toString() {
-		return this.map.toString();
+		return this.resultMap.toString();
 	}
 
 
 	/**
-	 * Static factory method to create an instance of this class.
+	 * Create an instance from an {@code ExecutionResult} serialized to map via
+	 * {@link ExecutionResult#toSpecification()}.
 	 */
-	public static ExecutionResult forData(@Nullable Map<String, Object> map) {
+	public static ExecutionResult from(Map<String, Object> map) {
+		return new MapExecutionResult(map);
+	}
+
+	/**
+	 * Create an {@code ExecutionResult} with a "data" key that returns the
+	 * given map.
+	 */
+	public static ExecutionResult forDataOnly(Map<String, Object> map) {
 		return new MapExecutionResult(Collections.singletonMap("data", map));
+	}
+
+	/**
+	 * Create an {@code ExecutionResult} with an "errors" key that returns the
+	 * given serialized errors.
+	 */
+	public static ExecutionResult forErrorsOnly(List<Map<String, Object>> errors) {
+		return new MapExecutionResult(Collections.singletonMap("errors", errors));
 	}
 
 }

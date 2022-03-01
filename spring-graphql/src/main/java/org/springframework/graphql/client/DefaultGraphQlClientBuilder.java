@@ -19,6 +19,8 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 
+import org.springframework.graphql.support.DocumentSource;
+import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;

@@ -34,6 +34,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.support.MapExecutionResult;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -64,9 +65,9 @@ public class MockWebSocketGraphQlTransportTests {
 	private final WebSocketGraphQlTransport transport = 
 			WebSocketGraphQlTransport.builder(URI.create("/"), this.testClient).build();
 
-	private final ExecutionResult result1 = MapExecutionResult.forData(Collections.singletonMap("key1", "value1"));
+	private final ExecutionResult result1 = MapExecutionResult.forDataOnly(Collections.singletonMap("key1", "value1"));
 
-	private final ExecutionResult result2 = MapExecutionResult.forData(Collections.singletonMap("key2", "value2"));
+	private final ExecutionResult result2 = MapExecutionResult.forDataOnly(Collections.singletonMap("key2", "value2"));
 
 
 	@Test

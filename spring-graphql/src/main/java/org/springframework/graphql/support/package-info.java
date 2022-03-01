@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.client;
-
-import org.springframework.lang.Nullable;
 
 /**
- * Strategy to locate a GraphQL document identified by name.
- *
- * @author Rossen Stoyanchev
- * @since 1.0.0
+ * Support classes for Spring GraphQL.
  */
-public interface DocumentSource {
+@NonNullApi
+@NonNullFields
+package org.springframework.graphql.support;
 
-	/**
-	 * Return the document that matches the given name.
-	 * @param name the name to use for the lookup
-	 * @return the document, or {@code null}
-	 */
-	@Nullable
-	String getDocument(String name);
-
-}
+import org.springframework.lang.NonNullApi;
+import org.springframework.lang.NonNullFields;

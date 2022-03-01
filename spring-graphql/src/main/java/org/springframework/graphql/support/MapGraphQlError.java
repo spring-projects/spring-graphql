@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.client;
+package org.springframework.graphql.support;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +28,7 @@ import graphql.language.SourceLocation;
 
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -37,7 +38,7 @@ import org.springframework.util.CollectionUtils;
  * @since 1.0.0
  */
 @SuppressWarnings("serial")
-final class MapGraphQlError implements GraphQLError {
+public final class MapGraphQlError implements GraphQLError {
 
 	private final Map<String, Object> errorMap;
 
@@ -45,6 +46,7 @@ final class MapGraphQlError implements GraphQLError {
 
 
 	private MapGraphQlError(Map<String, Object> errorMap) {
+		Assert.notNull(errorMap, "'errorMap' is required");
 		this.errorMap = errorMap;
 		this.locations = initLocations(errorMap);
 	}
@@ -63,8 +65,6 @@ final class MapGraphQlError implements GraphQLError {
 				.collect(Collectors.toList());
 
 	}
-
-
 
 	@Override
 	@Nullable
@@ -119,6 +119,7 @@ final class MapGraphQlError implements GraphQLError {
 		return GraphqlErrorHelper.toSpecification(this);
 	}
 
+	@SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
 	@Override
 	public boolean equals(Object other) {
 		return GraphqlErrorHelper.equals(this, other);
@@ -136,26 +137,12 @@ final class MapGraphQlError implements GraphQLError {
 
 
 	/**
-	 * Static factory method to create an instance from a list of maps, each
-	 * containing an error.
+	 * Create a list of {@code GraphQlError} instances from the given
+	 * deserialized content.
 	 */
-	public static List<GraphQLError> fromMapList(@Nullable List<Map<String, Object>> errorMaps) {
-		if (CollectionUtils.isEmpty(errorMaps)) {
-			return Collections.emptyList();
-		}
-		return errorMaps.stream().map(MapGraphQlError::new).collect(Collectors.toList());
-	}
-
-	/**
-	 * Static factory method to create an instance from an
-	 * {@link graphql.ExecutionResult} map.
-	 */
-	@SuppressWarnings("unchecked")
-	public static List<GraphQLError> fromResultMap(@Nullable Map<String, Object> map) {
-		if (map == null) {
-			return Collections.emptyList();
-		}
-		return MapGraphQlError.fromMapList((List<Map<String, Object>>) map.get("errors"));
+	public static List<GraphQLError> from(@Nullable List<Map<String, Object>> errors) {
+		errors = (errors != null ? errors : Collections.emptyList());
+		return errors.stream().map(MapGraphQlError::new).collect(Collectors.toList());
 	}
 
 }

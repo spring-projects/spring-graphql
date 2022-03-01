@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.support.MapExecutionResult;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -80,7 +81,7 @@ public class HttpGraphQlTransport implements GraphQlTransport {
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)
-				.map(MapExecutionResult::new);
+				.map(MapExecutionResult::from);
 	}
 
 	@Override

@@ -29,6 +29,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -69,20 +70,19 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	@Override
 	public RequestSpec document(String document) {
-		return new DefaultRequestSpec(document, this.transport, this.jsonPathConfig);
+		return new DefaultRequestSpec(Mono.just(document), this.transport, this.jsonPathConfig);
 	}
 
 	@Override
 	public RequestSpec documentName(String name) {
-		String document = this.documentSource.getDocument(name);
-		Assert.notNull(document, "Failed to find document for name: '" + name + "'");
+		Mono<String> document = this.documentSource.getDocument(name);
 		return new DefaultRequestSpec(document, this.transport, this.jsonPathConfig);
 	}
 
 
 	private static final class DefaultRequestSpec implements RequestSpec {
 
-		private final String document;
+		private final Mono<String> documentMono;
 
 		@Nullable
 		private String operationName;
@@ -93,9 +93,9 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Configuration jsonPathConfig;
 
-		DefaultRequestSpec(String document, GraphQlTransport transport, Configuration jsonPathConfig) {
-			Assert.hasText(document, "'document' is required");
-			this.document = document;
+		DefaultRequestSpec(Mono<String> documentMono, GraphQlTransport transport, Configuration jsonPathConfig) {
+			Assert.notNull(documentMono, "'documentMono' is required");
+			this.documentMono = documentMono;
 			this.transport = transport;
 			this.jsonPathConfig = jsonPathConfig;
 		}
@@ -114,18 +114,21 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public Mono<ResponseSpec> execute() {
-			return this.transport.execute(createRequest())
+			return getRequestMono()
+					.flatMap(this.transport::execute)
 					.map(payload -> new DefaultResponseSpec(payload, this.jsonPathConfig));
 		}
 
 		@Override
 		public Flux<ResponseSpec> executeSubscription() {
-			return this.transport.executeSubscription(createRequest())
+			return getRequestMono()
+					.flatMapMany(this.transport::executeSubscription)
 					.map(payload -> new DefaultResponseSpec(payload, this.jsonPathConfig));
 		}
 
-		private GraphQlRequest createRequest() {
-			return new GraphQlRequest(this.document, this.operationName, this.variables);
+		private Mono<GraphQlRequest> getRequestMono() {
+			return this.documentMono.map(document ->
+					new GraphQlRequest(document, this.operationName, this.variables));
 		}
 
 	}
