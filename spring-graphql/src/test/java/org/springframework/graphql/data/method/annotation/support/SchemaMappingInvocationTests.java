@@ -38,6 +38,7 @@ import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.TestRequestInput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -59,7 +60,7 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithScalarArgument() {
-		String query = "{ " +
+		String document = "{ " +
 				"  bookById(id:\"1\") { " +
 				"    id" +
 				"    name" +
@@ -70,7 +71,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
 
 		Book book = GraphQlResponse.from(resultMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
@@ -83,14 +84,14 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithObjectArgument() {
-		String query = "{ " +
+		String document = "{ " +
 				"  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
 				"    id" +
 				"    name" +
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -100,14 +101,14 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithProjectionOnArgumentsMap() {
-		String query = "{ " +
+		String document = "{ " +
 				"  booksByProjectedArguments(author:\"Orwell\") { " +
 				"    id" +
 				"    name" +
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedArguments", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -117,14 +118,14 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithProjectionOnNamedArgument() {
-		String query = "{ " +
+		String document = "{ " +
 				"  booksByProjectedCriteria(criteria: {author:\"Orwell\"}) { " +
 				"    id" +
 				"    name" +
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -134,7 +135,7 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithArgumentViaDataFetchingEnvironment() {
-		String query = "{ " +
+		String document = "{ " +
 				"  authorById(id:\"101\") { " +
 				"    id" +
 				"    firstName" +
@@ -143,7 +144,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
-		RequestInput requestInput = new RequestInput(query, null, null, null, "1");
+		RequestInput requestInput = new TestRequestInput(document);
 		requestInput.configureExecutionInput((executionInput, builder) -> {
 			contextRef.set(executionInput.getGraphQLContext());
 			return executionInput;
@@ -161,7 +162,7 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void mutation() {
-		String operation = "mutation { " +
+		String document = "mutation { " +
 				"  addAuthor(firstName:\"James\", lastName:\"Joyce\") { " +
 				"    id" +
 				"    firstName" +
@@ -169,8 +170,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService()
-				.execute(new RequestInput(operation, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
 
 		Author author = GraphQlResponse.from(resultMono).toEntity("addAuthor", Author.class);
 		assertThat(author.getId()).isEqualTo(99);
@@ -180,15 +180,14 @@ public class SchemaMappingInvocationTests {
 
 	@Test
 	void subscription() {
-		String operation = "subscription { " +
+		String document = "subscription { " +
 				"  bookSearch(author:\"Orwell\") { " +
 				"    id" +
 				"    name" +
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService()
-				.execute(new RequestInput(operation, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
 
 		Flux<Book> bookFlux = GraphQlResponse.forSubscription(resultMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));

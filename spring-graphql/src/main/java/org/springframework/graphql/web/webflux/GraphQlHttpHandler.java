@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,8 +65,8 @@ public class GraphQlHttpHandler {
 				.flatMap((body) -> {
 					WebInput input = new WebInput(
 							request.uri(), request.headers().asHttpHeaders(), body,
-							request.exchange().getLocaleContext().getLocale(),
-							request.exchange().getRequest().getId());
+							request.exchange().getRequest().getId(),
+							request.exchange().getLocaleContext().getLocale());
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}

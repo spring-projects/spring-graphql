@@ -49,13 +49,12 @@ public class WebInput extends RequestInput {
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param body the deserialized content of the GraphQL request
-	 * @param locale the locale from the HTTP request, if any
 	 * @param id an identifier for the GraphQL request, e.g. a subscription id for
-	 * correlating request and response messages, or it could be an id associated with the
-	 * underlying request/connection id, if available
+* correlating request and response messages, or it could be an id associated with the
+	 * @param locale the locale from the HTTP request, if any
 	 */
-	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, @Nullable Locale locale, String id) {
-		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), locale, id);
+	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
+		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), id, locale);
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);

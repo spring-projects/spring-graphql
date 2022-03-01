@@ -44,15 +44,15 @@ import org.springframework.util.Assert;
  */
 public class RequestInput extends GraphQlRequest {
 
-	@Nullable
-	private final Locale locale;
-
 	private final String id;
-
-	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
 	@Nullable
 	private ExecutionId executionId;
+
+	@Nullable
+	private final Locale locale;
+
+	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
 
 	/**
@@ -60,17 +60,17 @@ public class RequestInput extends GraphQlRequest {
 	 * @param document textual representation of the operation(s)
 	 * @param operationName optionally, the name of the operation to execute
 	 * @param variables variables by which the query is parameterized
-	 * @param locale the locale associated with the request
 	 * @param id the request id, to be used as the {@link ExecutionId}
+	 * @param locale the locale associated with the request
 	 */
 	public RequestInput(
 			String document, @Nullable String operationName, @Nullable Map<String, Object> variables,
-			@Nullable Locale locale, String id) {
+			String id, @Nullable Locale locale) {
 
 		super(document, operationName, variables);
 		Assert.notNull(id, "'id' is required");
-		this.locale = locale;
 		this.id = id;
+		this.locale = locale;
 	}
 
 

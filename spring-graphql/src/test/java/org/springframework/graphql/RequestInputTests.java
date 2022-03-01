@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class RequestInputTests {
 
-	private final RequestInput requestInput = new RequestInput("greeting", "Greeting", null, null, "id");
+	private final RequestInput requestInput = new RequestInput("greeting", "Greeting", null, "id", null);
 
 
 	@Test

@@ -25,8 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.ExecutionResult;
-import graphql.GraphQLError;
-import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
@@ -125,7 +123,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 						return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 					}
 					WebInput input = new WebInput(
-							handshakeInfo.getUri(), handshakeInfo.getHeaders(), payload, null, id);
+							handshakeInfo.getUri(), handshakeInfo.getHeaders(), payload, id, null);
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + input);
 					}

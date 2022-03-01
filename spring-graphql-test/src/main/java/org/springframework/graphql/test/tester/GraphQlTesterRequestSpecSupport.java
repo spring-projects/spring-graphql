@@ -70,7 +70,7 @@ class GraphQlTesterRequestSpecSupport {
 	}
 
 	protected RequestInput createRequestInput() {
-		return new RequestInput(this.query, this.operationName, this.variables, this.locale, idGenerator.generateId().toString());
+		return new RequestInput(this.query, this.operationName, this.variables, idGenerator.generateId().toString(), this.locale);
 	}
 
 }

@@ -31,8 +31,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.TestRequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
@@ -95,7 +95,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 		Mono<RequestOutput> resultMono = Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> {
 					String query = "{ courses { id instructor { id } } }";
-					return createGraphQlService(controller).execute(new RequestInput(query, null, null, null, "1"));
+					return createGraphQlService(controller).execute(new TestRequestInput(query));
 				})
 				.contextWrite(contextWriter);
 

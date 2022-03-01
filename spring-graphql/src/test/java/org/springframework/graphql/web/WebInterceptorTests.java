@@ -20,7 +20,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResultImpl;
@@ -40,8 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebInterceptorTests {
 
 	private static final WebInput webInput = new WebInput(
-			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ notUsed }"),
-			null, "1");
+			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ notUsed }"), "1", null);
 
 	@Test
 	void interceptorOrder() {
