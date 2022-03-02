@@ -16,8 +16,9 @@
 package org.springframework.graphql.client;
 
 import java.util.List;
+import java.util.Map;
 
-import com.jayway.jsonpath.Configuration;
+import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,28 +29,21 @@ import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 
 /**
- * Defines a workflow to prepare and execute GraphQL requests and to decode and
- * handle responses.
+ * Defines workflow to execute GraphQL requests, independent of the transport.
  *
- * <p>To create a {@link GraphQlClient}, use the builder in this class, and see
- * examples in {@link HttpGraphQlTransport} and {@link WebSocketGraphQlTransport}
- * for initializing both the client and the transport it runs over.
+ * <p>In most cases, you'll want to use a transport specific extension:
+ * <ul>
+ * <li>{@link HttpGraphQlClient}
+ * <li>{@link WebSocketGraphQlClient}
+ * </ul>
+ *
+ * <p>Alternatively, use {@link #builder(GraphQlTransport)} to create an instance
+ * with any other transport. Or create a transport specific extension.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see HttpGraphQlTransport
- * @see WebSocketGraphQlTransport
  */
 public interface GraphQlClient {
-
-
-	/**
-	 * Return the underlying transport or {@code null} if the required type
-	 * does not match the transport type. See {@link GraphQlTransport}
-	 */
-	@Nullable
-	<T extends GraphQlTransport> T getTransport(Class<T> requiredType);
-
 
 	/**
 	 * Start defining a GraphQL request with the given document, which is the
@@ -68,35 +62,37 @@ public interface GraphQlClient {
 	 */
 	RequestSpec documentName(String name);
 
+	/**
+	 * Return a builder initialized from the configuration of "this" client
+	 * to use to build a new, independently configured client instance.
+	 */
+	GraphQlClient.Builder<?> mutate();
+
 
 	/**
-	 * Return a builder to initialize a {@link GraphQlClient} instance.
-	 * @param transport the transport for executing requests over
-	 * @see HttpGraphQlTransport
-	 * @see WebSocketGraphQlTransport
+	 * Create a builder with the given {@code GraphQlTransport}.
+	 * <p>For GraphQL over HTTP and WebSocket, consider using the extensions
+	 * {@link HttpGraphQlClient} and {@link WebSocketGraphQlClient}.
+	 * This allows plugging in any other transport implementation.
+	 * @param transport the transport to execute requests with
+	 * @return the builder for further initialization
 	 */
-	static Builder builder(GraphQlTransport transport) {
-		return new DefaultGraphQlClientBuilder(transport);
+	static Builder<?> builder(GraphQlTransport transport) {
+		return new DefaultGraphQlClientBuilder<>(transport);
 	}
 
 
 	/**
 	 * Defines a builder for creating {@link GraphQlClient} instances.
 	 */
-	interface Builder {
-
-		/**
-		 * Provide JSONPath configuration settings.
-		 * <p>By default, the Jackson JSON library is used if present.
-		 */
-		Builder jsonPathConfig(@Nullable Configuration config);
+	interface Builder<B extends Builder<B>> {
 
 		/**
 		 * Configure a {@link DocumentSource} for use with
 		 * {@link #documentName(String)} for resolving a document by name.
 		 * <p>By default, {@link ResourceDocumentSource} is used.
 		 */
-		Builder documentSource(@Nullable DocumentSource contentLoader);
+		B documentSource(@Nullable DocumentSource contentLoader);
 
 		/**
 		 * Build the {@code GraphQlClient} instance.
@@ -160,6 +156,13 @@ public interface GraphQlClient {
 		 */
 		RequestSpec variable(String name, Object value);
 
+		/**
+		 * Add all given values for variables defined by the operation.
+		 * @param variables the variable values
+		 * @return this request spec
+		 */
+		RequestSpec variables(Map<String, Object> variables);
+
 	}
 
 
@@ -219,6 +222,11 @@ public interface GraphQlClient {
 		 * Return the errors from the response or an empty list.
 		 */
 		List<GraphQLError> errors();
+
+		/**
+		 * Return the underlying {@link ExecutionResult} for the response.
+		 */
+		ExecutionResult andReturn();
 
 	}
 

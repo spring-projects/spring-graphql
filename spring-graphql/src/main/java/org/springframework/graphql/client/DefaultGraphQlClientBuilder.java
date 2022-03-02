@@ -13,25 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
+
+import java.util.function.Consumer;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 
+import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
+
 /**
- * Default implementation of {@link GraphQlClient.Builder}.
+ * Default {@link GraphQlClient.Builder} implementation that builds a
+ * {@link GraphQlClient} for use with any transport.
+ *
+ * <p>Intended for use as a base class for builders that do assist with building
+ * the underlying transport. Such extension
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-class DefaultGraphQlClientBuilder implements GraphQlClient.Builder {
+public class DefaultGraphQlClientBuilder<B extends DefaultGraphQlClientBuilder<B>> implements GraphQlClient.Builder<B> {
 
 	private static final boolean jackson2Present;
 
@@ -42,53 +51,70 @@ class DefaultGraphQlClientBuilder implements GraphQlClient.Builder {
 	}
 
 
-	private final GraphQlTransport transport;
-
 	@Nullable
-	private Configuration jsonPathConfig;
+	private GraphQlTransport transport;
 
 	@Nullable
 	private DocumentSource documentSource;
 
-
+	/**
+	 * Constructor with a given transport instance.
+	 */
 	DefaultGraphQlClientBuilder(GraphQlTransport transport) {
 		Assert.notNull(transport, "GraphQlTransport is required");
 		this.transport = transport;
 	}
 
+	/**
+	 * Constructor for subclass builders that will call
+	 * {@link #transport(GraphQlTransport)} to set the transport instance
+	 * before {@link #build()}.
+	 */
+	DefaultGraphQlClientBuilder() {
+	}
 
-	@Override
-	public GraphQlClient.Builder jsonPathConfig(@Nullable Configuration config) {
-		this.jsonPathConfig = config;
-		return this;
+	protected void transport(GraphQlTransport transport) {
+		this.transport = transport;
 	}
 
 	@Override
-	public GraphQlClient.Builder documentSource(@Nullable DocumentSource contentLoader) {
+	public B documentSource(@Nullable DocumentSource contentLoader) {
 		this.documentSource = contentLoader;
-		return this;
+		return self();
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T extends B> T self() {
+		return (T) this;
 	}
 
 	@Override
 	public GraphQlClient build() {
-		return new DefaultGraphQlClient(this.transport, initJsonPathConfig(), initRequestNameResolver());
+		Assert.notNull(this.transport, "No GraphQlTransport. Has a subclass not initialized it?");
+		return new DefaultGraphQlClient(this.transport, initJsonPathConfig(), initDocumentSource(), getBuilderInitializer());
 	}
 
 	private Configuration initJsonPathConfig() {
-		if (this.jsonPathConfig != null) {
-			return this.jsonPathConfig;
-		}
-		else if (jackson2Present) {
-			return Jackson2Configuration.create();
-		}
-		else {
-			return Configuration.builder().build();
-		}
+		// Allow configuring JSONPath with codecs from transport subclasses
+		return (jackson2Present ? Jackson2Configuration.create() : Configuration.builder().build());
 	}
 
-	private DocumentSource initRequestNameResolver() {
+	private DocumentSource initDocumentSource() {
 		return (this.documentSource == null ?
-				new ResourceDocumentSource() : this.documentSource);
+				new CachingDocumentSource(new ResourceDocumentSource()) : this.documentSource);
+	}
+
+	/**
+	 * Exposes a {@code Consumer} to subclasses to initialize new builder instances
+	 * from the configuration of "this" builder.
+	 */
+	protected Consumer<GraphQlClient.Builder<?>> getBuilderInitializer() {
+		return builder -> {
+			if (this.documentSource != null) {
+				builder.documentSource(documentSource);
+			}
+		};
+
 	}
 
 

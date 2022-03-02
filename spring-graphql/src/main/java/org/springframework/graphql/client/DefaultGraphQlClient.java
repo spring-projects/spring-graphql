@@ -18,6 +18,7 @@ package org.springframework.graphql.client;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
@@ -35,7 +36,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
- * Default implementation of {@link GraphQlClient}.
+ * Default {@link GraphQlClient} implementation with the logic to initialize
+ * requests and handle responses, and delegates to a {@link GraphQlTransport}
+ * for actual request execution.
+ *
+ * <p>This class is final but works with any transport.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -48,9 +53,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final DocumentSource documentSource;
 
+	private final Consumer<Builder<?>> builderInitializer;
+
 
 	DefaultGraphQlClient(
-			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource) {
+			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource,
+			Consumer<Builder<?>> builderInitializer) {
 
 		Assert.notNull(transport, "GraphQlTransport is required");
 		Assert.notNull(jsonPathConfig, "Configuration is required");
@@ -59,14 +67,9 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		this.transport = transport;
 		this.jsonPathConfig = jsonPathConfig;
 		this.documentSource = documentSource;
+		this.builderInitializer = builderInitializer;
 	}
 
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T extends GraphQlTransport> T getTransport(Class<T> requiredType) {
-		return (requiredType.isInstance(this.transport) ? (T) this.transport : null);
-	}
 
 	@Override
 	public RequestSpec document(String document) {
@@ -77,6 +80,13 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	public RequestSpec documentName(String name) {
 		Mono<String> document = this.documentSource.getDocument(name);
 		return new DefaultRequestSpec(document, this.transport, this.jsonPathConfig);
+	}
+
+	@Override
+	public Builder<?> mutate() {
+		DefaultGraphQlClientBuilder<?> builder = new DefaultGraphQlClientBuilder<>(this.transport);
+		this.builderInitializer.accept(builder);
+		return builder;
 	}
 
 
@@ -113,6 +123,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
+		public RequestSpec variables(Map<String, Object> variables) {
+			this.variables.putAll(variables);
+			return this;
+		}
+
+		@Override
 		public Mono<ResponseSpec> execute() {
 			return getRequestMono()
 					.flatMap(this.transport::execute)
@@ -136,11 +152,14 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private static class DefaultResponseSpec implements ResponseSpec {
 
+		private final ExecutionResult result;
+
 		private final DocumentContext jsonPathDocument;
 
 		private final List<GraphQLError> errors;
 
 		private DefaultResponseSpec(ExecutionResult result, Configuration jsonPathConfig) {
+			this.result = result;
 			this.jsonPathDocument = JsonPath.parse(result.toSpecification(), jsonPathConfig);
 			this.errors = result.getErrors();
 		}
@@ -178,6 +197,11 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public List<GraphQLError> errors() {
 			return this.errors;
+		}
+
+		@Override
+		public ExecutionResult andReturn() {
+			return this.result;
 		}
 
 	}
