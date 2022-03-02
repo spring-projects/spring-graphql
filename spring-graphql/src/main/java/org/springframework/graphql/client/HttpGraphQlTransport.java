@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
 import java.util.Map;
@@ -33,24 +34,10 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Supports only single-response requests over HTTP POST. For subscription
  * requests, see {@link WebSocketGraphQlTransport}.
  *
- * <p>Use the builder to initialize the transport and the {@code GraphQlClient}
- * in a single chain:
- *
- * <pre style="class">
- * GraphQlClient client = HttpGraphQlTransport.builder(webClient).buildClient();
- * </pre>
- *
- * <p>Or build the transport and the client separately:
- *
- * <pre style="class">
- * HttpGraphQlTransport transport = HttpGraphQlTransport.create(webClient);
- * GraphQlClient client = GraphQlClient.create(transport);
- * </pre>
- *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class HttpGraphQlTransport implements GraphQlTransport {
+final class HttpGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
@@ -59,17 +46,9 @@ public class HttpGraphQlTransport implements GraphQlTransport {
 	private final WebClient webClient;
 
 
-	private HttpGraphQlTransport(WebClient webClient) {
+	HttpGraphQlTransport(WebClient webClient) {
 		Assert.notNull(webClient, "WebClient is required");
 		this.webClient = webClient;
-	}
-
-
-	/**
-	 * Return the underlying {@code WebClient}.
-	 */
-	public WebClient getWebClient() {
-		return this.webClient;
 	}
 
 
@@ -88,67 +67,5 @@ public class HttpGraphQlTransport implements GraphQlTransport {
 	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
 		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
 	}
-
-
-	/**
-	 * Static factory method with a {@code WebClient} to use.
-	 */
-	public static HttpGraphQlTransport create(WebClient webClient) {
-		return new HttpGraphQlTransport(webClient);
-	}
-
-	/**
-	 * Static method to obtain a {@code Builder}.
-	 */
-	public static Builder builder(WebClient webClient) {
-		return new Builder(webClient);
-	}
-
-
-	/**
-	 * Builder for {@link HttpGraphQlTransport} or a {@link GraphQlClient}
-	 * configured with the transport.
-	 */
-	public static class Builder {
-
-		private WebClient webClient;
-
-		private Builder(WebClient webClient) {
-			this.webClient = webClient;
-		}
-
-		/**
-		 * Set the {@code WebClient} to use.
-		 */
-		public Builder webClient(WebClient webClient) {
-			this.webClient = webClient;
-			return this;
-		}
-
-		/**
-		 * Build the {@code HttpGraphQlTransport} instance.
-		 */
-		public HttpGraphQlTransport build() {
-			return new HttpGraphQlTransport(this.webClient);
-		}
-
-		/**
-		 * Continue on to build a {@link GraphQlClient} configured with the
-		 * transport configured here so far.
-		 */
-		public GraphQlClient.Builder configureClient() {
-			return GraphQlClient.builder(build());
-		}
-
-		/**
-		 * Shortcut to build a {@link GraphQlClient} configured with the
-		 * transport configured here.
-		 */
-		public GraphQlClient buildClient() {
-			return GraphQlClient.builder(build()).build();
-		}
-
-	}
-
 
 }

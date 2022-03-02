@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
 import graphql.ExecutionResult;
@@ -21,8 +22,9 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
 
+
 /**
- * Contract for a transport, over which to execute GraphQL requests.
+ * Contract for GraphQL request execution over some transport.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

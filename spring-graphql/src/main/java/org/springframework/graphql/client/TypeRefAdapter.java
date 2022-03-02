@@ -34,6 +34,7 @@ final class TypeRefAdapter<T> extends TypeRef<T> {
 
 	private final Type type;
 
+
 	TypeRefAdapter(Class<T> clazz) {
 		this.type = clazz;
 	}

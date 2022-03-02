@@ -28,7 +28,8 @@ public interface DocumentSource {
 	/**
 	 * Return the document that matches the given name.
 	 * @param name the name to use for the lookup
-	 * @return {@code Mono} that provides the document or returns an error
+	 * @return {@code Mono} that completes either with the document content or
+	 * with an error, but never empty.
 	 */
 	Mono<String> getDocument(String name);
 

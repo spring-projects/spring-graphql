@@ -16,7 +16,6 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
@@ -40,7 +38,6 @@ import org.springframework.graphql.support.MapExecutionResult;
 import org.springframework.graphql.support.MapGraphQlError;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -52,46 +49,11 @@ import org.springframework.web.reactive.socket.client.WebSocketClient;
 /**
  * {@link GraphQlTransport} for GraphQL over WebSocket via {@link WebSocketClient}.
  *
- * <p>Use the builder to initialize the transport and the {@link GraphQlClient}
- * in a single chain:
- *
- * <pre style="class">
- * GraphQlClient client =
- * 		WebSocketGraphQlTransport.builder(url, webSocketClient)
- * 				.headers(headers -> ... )
- * 				.buildClient();
- * </pre>
- *
- * <p>Or build the transport and the client separately:
- *
- * <pre style="class">
- * WebSocketGraphQlTransport transport =
- * 		WebSocketGraphQlTransport.builder(url, webSocketClient)
- * 				.headers(headers -> ... )
- * 				.build();
- *
- * GraphQlClient client = GraphQlClient.create(transport);
- * </pre>
- *
- * <p>Once the client is built, you can obtain the underlying transport, mutate
- * it, and rebuild transport and client as follows:
- *
- * <pre style="class">
- * WebSocketGraphQlTransport transport = client.getTransport(WebSocketGraphQlTransport.class);
- *
- * if (transport != null) {
- * 	GraphQlClient newClient = transport.mutate()
- *			.headers(headers -> ... )
- * 			.buildClient();
- * }
- * </pre>
- *
- *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket protocol</a>
  */
-public final class WebSocketGraphQlTransport implements GraphQlTransport {
+final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	private static final Log logger = LogFactory.getLog(WebSocketGraphQlTransport.class);
 
@@ -100,21 +62,16 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	private final Mono<GraphQlSession> graphQlSessionMono;
 
-	private final Supplier<Builder> mutateBuilder;
 
-
-	private WebSocketGraphQlTransport(
+	WebSocketGraphQlTransport(
 			URI uri, HttpHeaders headers, WebSocketClient client, CodecConfigurer codecConfigurer,
-			@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler,
-			Supplier<Builder> mutateBuilder) {
+			@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler) {
 
 		this.graphQlSessionHandler = new GraphQlSessionHandler(
 				codecConfigurer, connectionInitPayload, connectionAckHandler);
 
 		this.graphQlSessionMono = initGraphQlSession(uri, headers, client, this.graphQlSessionHandler)
 				.cacheInvalidateWhen(GraphQlSession::notifyWhenClosed);
-
-		this.mutateBuilder = mutateBuilder;
 	}
 
 	private static Mono<GraphQlSession> initGraphQlSession(
@@ -165,154 +122,6 @@ public final class WebSocketGraphQlTransport implements GraphQlTransport {
 	@Override
 	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
 		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
-	}
-
-	/**
-	 * Create a builder initialized from the configuration of "this" transport.
-	 * Use this to build a new instance configured differently.
-	 */
-	public Builder mutate() {
-		return this.mutateBuilder.get();
-	}
-
-
-	/**
-	 * Static factory method with the client and the endpoint to connect to.
-	 * @param uri the WebSocket handshake URL
-	 * @param client the WebSocket client
-	 * @return the created instance
-	 */
-	public static WebSocketGraphQlTransport create(URI uri, WebSocketClient client) {
-		return new Builder(uri, client).build();
-	}
-
-	/**
-	 * Return a builder with further options for the transport.
-	 * @param uri the WebSocket handshake URL
-	 * @param client the WebSocket client
-	 * @return the builder instance
-	 */
-	public static Builder builder(URI uri, WebSocketClient client) {
-		return new Builder(uri, client);
-	}
-
-
-	/**
-	 * Builder for {@link WebSocketGraphQlTransport} with an option to build a
-	 * {@link GraphQlClient} instead, configured with the transport.
-	 */
-	public static final class Builder {
-
-		private URI url;
-
-		private final HttpHeaders headers = new HttpHeaders();
-
-		private WebSocketClient client;
-
-		private CodecConfigurer codecsConfigurer = ClientCodecConfigurer.create();
-
-		@Nullable
-		private Object initPayload;
-
-		private Consumer<Map<String, Object>> connectionAckHandler = ackPayload -> {};
-
-
-		Builder(URI url, WebSocketClient client) {
-			this.url = url;
-			this.client = client;
-		}
-
-
-		/**
-		 * Set the URL for the WebSocket handshake request.
-		 */
-		public Builder url(URI uri) {
-			Assert.notNull(uri, "URI is required");
-			this.url = uri;
-			return this;
-		}
-
-		/**
-		 * Add an HTTP header for the WebSocket handshake request.
-		 */
-		public Builder header(String name, String... values) {
-			Arrays.stream(values).forEach(value -> this.headers.add(name, value));
-			return this;
-		}
-
-		/**
-		 * Provides access to every header declared so far with the possibility
-		 * to add, replace, or remove.
-		 */
-		public Builder headers(Consumer<HttpHeaders> headersConsumer) {
-			headersConsumer.accept(this.headers);
-			return this;
-		}
-
-		/**
-		 * Set the {@code WebSocketClient} to connect over.
-		 */
-		public Builder webSocketClient(WebSocketClient client) {
-			Assert.notNull(client, "WebSocketClient is required");
-			this.client = client;
-			return this;
-		}
-
-		/**
-		 * Provide a {@code CodecConfigurer} that should contain encoders and
-		 * decoders for JSON to be able to encode and decode GraphQL messages.
-		 */
-		public Builder codecConfigurer(CodecConfigurer codecConfigurer) {
-			this.codecsConfigurer = codecConfigurer;
-			return this;
-		}
-
-		/**
-		 * The payload to send with the "connection_init" message.
-		 */
-		public Builder connectionInitPayload(@Nullable Object connectionInitPayload) {
-			this.initPayload = connectionInitPayload;
-			return this;
-		}
-
-		/**
-		 * Handler for the payload received with the "connection_ack" message.
-		 */
-		public Builder connectionAckHandler(Consumer<Map<String, Object>> ackHandler) {
-			this.connectionAckHandler = ackHandler;
-			return this;
-		}
-
-		/**
-		 * Build the transport instance.
-		 */
-		public WebSocketGraphQlTransport build() {
-
-			Supplier<Builder> mutateBuilder = () -> new Builder(this.url, this.client)
-					.headers(theHeaders -> theHeaders.putAll(this.headers))
-					.codecConfigurer(codecsConfigurer.clone())
-					.connectionInitPayload(this.initPayload)
-					.connectionAckHandler(this.connectionAckHandler);
-
-			return new WebSocketGraphQlTransport(this.url, this.headers, this.client,
-					this.codecsConfigurer, this.initPayload, this.connectionAckHandler, mutateBuilder);
-		}
-
-		/**
-		 * Proceed to build a client that is configured with the transport from
-		 * this builder.
-		 */
-		public GraphQlClient.Builder configureClient() {
-			return GraphQlClient.builder(build());
-		}
-
-		/**
-		 * Build a client configured with the transport from this builder.
-		 */
-		public GraphQlClient buildClient() {
-			return GraphQlClient.builder(build()).build();
-		}
-
 	}
 
 
