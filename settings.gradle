@@ -18,6 +18,11 @@ pluginManagement {
     }
 }
 
+plugins {
+	id "com.gradle.enterprise" version "3.8.1"
+	id "io.spring.ge.conventions" version "0.0.9"
+}
+
 rootProject.name = 'spring-graphql'
 include 'spring-graphql',
 	'spring-graphql-test',
@@ -26,3 +31,18 @@ include 'spring-graphql',
 	'samples:webmvc-http-security',
 	'samples:webflux-security',
 	'samples:webflux-websocket'
+
+settings.gradle.projectsLoaded {
+	gradleEnterprise {
+		buildScan {
+			File buildDir = settings.gradle.rootProject.getBuildDir()
+			buildDir.mkdirs()
+			new File(buildDir, "build-scan-uri.txt").text = "(build scan not generated)"
+			buildScanPublished { scan ->
+				if (buildDir.exists()) {
+					new File(buildDir, "build-scan-uri.txt").text = "${scan.buildScanUri}\n"
+				}
+			}
+		}
+	}
+}
