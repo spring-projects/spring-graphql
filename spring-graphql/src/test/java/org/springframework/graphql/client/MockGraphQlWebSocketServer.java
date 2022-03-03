@@ -22,6 +22,8 @@ import java.util.function.Function;
 
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,13 +35,16 @@ import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
- * GraphQL over WebSocket handler to use as a server-side
+ * GraphQL over WebSocket {@link WebSocketHandler} to use as a server-side
  * {@link WebSocketHandler} that is configured with expected requests and
  * the responses to send.
  *
  * @author Rossen Stoyanchev
  */
-public class MockWebSocketServer implements WebSocketHandler {
+public final class MockGraphQlWebSocketServer implements WebSocketHandler {
+
+	private final static Log logger = LogFactory.getLog(MockGraphQlWebSocketServer.class);
+
 
 	@Nullable
 	private Function<Map<String, Object>, Mono<Object>> connectionInitHandler;
@@ -73,7 +78,8 @@ public class MockWebSocketServer implements WebSocketHandler {
 		return session.send(session.receive()
 				.map(codecDelegate::decode)
 				.flatMap(this::handleMessage)
-				.map(message -> codecDelegate.encode(session, message)));
+				.map(message -> codecDelegate.encode(session, message)))
+				.doOnError(ex -> logger.error("Session handling error: " + ex.getMessage(), ex));
 	}
 
 	@SuppressWarnings("SuspiciousMethodCalls")

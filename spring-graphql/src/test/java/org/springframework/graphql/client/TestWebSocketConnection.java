@@ -49,10 +49,14 @@ import org.springframework.web.reactive.socket.adapter.AbstractWebSocketSession;
  *
  * @author Rossen Stoyanchev
  */
-public class TestWebSocketConnection {
+final class TestWebSocketConnection {
 
 	private static final AtomicLong connectionIndex = new AtomicLong();
 
+
+	private final URI url;
+
+	private final HttpHeaders headers;
 
 	private final TestWebSocketSession clientSession;
 
@@ -60,6 +64,9 @@ public class TestWebSocketConnection {
 
 
 	public TestWebSocketConnection(URI url, HttpHeaders headers) {
+
+		this.url = url;
+		this.headers = headers;
 
 		long id = connectionIndex.incrementAndGet();
 
@@ -76,6 +83,14 @@ public class TestWebSocketConnection {
 				serverSink, clientSink.asFlux(), serverStatusSink, clientStatusSink.asMono());
 	}
 
+
+	public URI getUrl() {
+		return this.url;
+	}
+
+	public HttpHeaders getHeaders() {
+		return this.headers;
+	}
 
 	/**
 	 * Return {@code true} if both client and server sessions are open.

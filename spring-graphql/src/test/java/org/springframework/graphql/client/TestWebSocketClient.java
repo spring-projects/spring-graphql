@@ -37,7 +37,7 @@ import org.springframework.web.reactive.socket.client.WebSocketClient;
  *
  * @author Rossen Stoyanchev
  */
-public class TestWebSocketClient implements WebSocketClient {
+final class TestWebSocketClient implements WebSocketClient {
 
 	private final WebSocketHandler serverHandler;
 
