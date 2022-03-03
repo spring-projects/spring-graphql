@@ -43,6 +43,8 @@ final class WebSocketCodecDelegate {
 	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlWebSocketMessage.class);
 
 
+	private final CodecConfigurer configurer;
+
 	private final Decoder<?> decoder;
 
 	private final Encoder<?> encoder;
@@ -52,10 +54,11 @@ final class WebSocketCodecDelegate {
 		this(ClientCodecConfigurer.create());
 	}
 
-	WebSocketCodecDelegate(CodecConfigurer codecConfigurer) {
-		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
-		this.decoder = initDecoder(codecConfigurer);
-		this.encoder = initEncoder(codecConfigurer);
+	WebSocketCodecDelegate(CodecConfigurer configurer) {
+		Assert.notNull(configurer, "CodecConfigurer is required");
+		this.configurer = configurer;
+		this.decoder = initDecoder(configurer);
+		this.encoder = initEncoder(configurer);
 	}
 
 	private static Decoder<?> initDecoder(CodecConfigurer configurer) {
@@ -72,6 +75,11 @@ final class WebSocketCodecDelegate {
 				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
+	}
+
+
+	public CodecConfigurer getCodecConfigurer() {
+		return this.configurer;
 	}
 
 

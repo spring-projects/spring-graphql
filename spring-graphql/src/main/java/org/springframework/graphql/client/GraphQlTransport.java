@@ -24,7 +24,7 @@ import org.springframework.graphql.GraphQlRequest;
 
 
 /**
- * Contract for GraphQL request execution over some transport.
+ * Contract for executing GraphQL requests over some transport.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -32,20 +32,18 @@ import org.springframework.graphql.GraphQlRequest;
 public interface GraphQlTransport {
 
 	/**
-	 * Execute a request that returns a single response such as a "query" or a
-	 * "mutation" operation.
+	 * Execute a request with a single response such as a "query" or "mutation".
 	 * @param request the request to execute
 	 * @return a {@code Mono} with the {@code ExecutionResult} for the response.
 	 * The {@code Mono} may end wth an error due to transport or other issues
 	 * such as failures to encode the request or decode the response.
-	 * </ul>
 	 */
 	Mono<ExecutionResult> execute(GraphQlRequest request);
 
 	/**
-	 * Execute a "subscription" request that returns a stream of responses.
+	 * Execute a "subscription" request with a stream of responses.
 	 * @param request the request to execute
-	 * @return a {@code Flux} with an {@code ExecutionResult} for each response.
+	 * @return a {@code Flux} of {@code ExecutionResult} responses.
 	 * The {@code Flux} may terminate as follows:
 	 * <ul>
 	 * <li>Completes if the subscription completes before the connection is closed.

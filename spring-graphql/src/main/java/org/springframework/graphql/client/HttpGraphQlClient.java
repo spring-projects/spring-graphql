@@ -16,22 +16,18 @@
 
 package org.springframework.graphql.client;
 
-import java.net.URI;
 import java.util.function.Consumer;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.function.client.WebClient;
 
 
 /**
- * {@code GraphQlClient} for GraphQL over HTTP via {@link WebClient}.
+ * GraphQL over HTTP client that uses {@link WebClient}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface HttpGraphQlClient extends GraphQlClient {
+public interface HttpGraphQlClient extends WebGraphQlClient {
 
 
 	@Override
@@ -42,7 +38,7 @@ public interface HttpGraphQlClient extends GraphQlClient {
 	 * Create an {@link HttpGraphQlClient} that uses the given {@link WebClient}.
 	 */
 	static HttpGraphQlClient create(WebClient webClient) {
-		return builder(webClient).build();
+		return builder(webClient.mutate()).build();
 	}
 
 	/**
@@ -54,65 +50,30 @@ public interface HttpGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Variant of {@link #builder()} with a pre-configured {@code WebClient}
-	 * which may be mutated and further customized through the returned builder.
+	 * to mutate and customize further through the returned builder.
 	 */
-	static Builder<?> builder(WebClient webClient) {
-		return new DefaultHttpGraphQlClient.Builder(webClient);
+	static Builder<?> builder(WebClient.Builder webClientBuilder) {
+		return new DefaultHttpGraphQlClient.Builder(webClientBuilder);
 	}
 
 
 	/**
-	 * Base builder for GraphQL clients over a Web transport.
+	 * Builder for the GraphQL over HTTP client.
 	 */
-	interface BaseBuilder<B extends BaseBuilder<B>> extends GraphQlClient.Builder<B> {
-
-		/**
-		 * Set the GraphQL endpoint URL.
-		 * @param url the url to make requests to
-		 */
-		B url(@Nullable String url);
-
-		/**
-		 * Set the GraphQL endpoint URL.
-		 * @param url the url to make requests to
-		 */
-		B url(@Nullable URI url);
-
-		/**
-		 * Add the given header to HTTP requests to the endpoint URL.
-		 * @param name the header name
-		 * @param values the header values
-		 */
-		B header(String name, String... values);
-
-		/**
-		 * Variant of {@link #header(String, String...)} that provides access
-		 * to the underlying headers to inspect or modify directly.
-		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
-		 */
-		B headers(Consumer<HttpHeaders> headersConsumer);
-
-		/**
-		 * Provide a {@code Consumer} to customize the {@code ClientCodecConfigurer}
-		 * for JSON encoding and decoding of GraphQL payloads.
-		 */
-		B codecConfigurer(Consumer<ClientCodecConfigurer> codecsConsumer);
-
-	}
-
-
-	/**
-	 * Builder for a GraphQL over HTTP client.
-	 */
-	interface Builder<B extends Builder<B>> extends BaseBuilder<B> {
+	interface Builder<B extends Builder<B>> extends WebGraphQlClient.Builder<B> {
 
 		/**
 		 * Customize the {@code WebClient} to use.
+		 * <p>Note that some properties of {@code WebClient.Builder} like the
+		 * base URL, headers, and codecs can be customized through this builder.
+		 * @see #url(String)
+		 * @see #header(String, String...)
+		 * @see #codecConfigurer(Consumer)
 		 */
 		B webClient(Consumer<WebClient.Builder> webClient);
 
 		/**
-		 * Build the {@code HttpGraphQlClient}.
+		 * Build the {@code HttpGraphQlClient} instance.
 		 */
 		@Override
 		HttpGraphQlClient build();

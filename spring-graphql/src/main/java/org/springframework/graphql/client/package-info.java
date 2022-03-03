@@ -15,7 +15,8 @@
  */
 
 /**
- * GraphQL client.
+ * This package contains a {@link org.springframework.graphql.client.GraphQlClient}
+ * along with HTTP and WebSocket extensions.
  */
 @NonNullApi
 @NonNullFields

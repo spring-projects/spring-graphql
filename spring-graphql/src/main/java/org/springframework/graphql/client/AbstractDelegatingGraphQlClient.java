@@ -20,15 +20,16 @@ package org.springframework.graphql.client;
 import org.springframework.util.Assert;
 
 /**
- * Base class for extensions of {@link GraphQlClient} that mainly assist with
- * building the underlying transport, but otherwise delegate to the default
- * {@link GraphQlClient} implementation for actual request execution.
+ * Base class for {@link GraphQlClient} extensions that assist with building an
+ * underlying transport, but otherwise delegate to the default
+ * {@link GraphQlClient} implementation to execute requests.
  *
- * <p>Subclasses must implement {@link GraphQlClient#mutate()} to allow mutation
- * of both {@code GraphQlClient} and {@code GraphQlTransport} configuration.
+ * <p>Subclasses must implement {@link GraphQlClient#mutate()} to return a
+ * builder for the specific {@code GraphQlClient} extension.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see AbstractGraphQlClientBuilder
  */
 public abstract class AbstractDelegatingGraphQlClient implements GraphQlClient {
 

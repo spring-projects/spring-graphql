@@ -16,20 +16,23 @@
 
 package org.springframework.graphql.client;
 
-import java.util.Map;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.lang.Nullable;
+import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
 
 /**
- * Default {@link WebSocketGraphQlClient} implementation.
+ * Default {@link WebSocketGraphQlClient} implementation that builds the underlying
+ * {@code WebSocketGraphQlTransport} to use.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -38,15 +41,19 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 
 	private final WebSocketGraphQlTransport transport;
 
-	private final Supplier<Builder> mutateBuilderFactory;
+	private final Consumer<GraphQlClient.Builder<?>> builderInitializer;
 
 
-	DefaultWebSocketGraphQlClient(
-			GraphQlClient delegate, WebSocketGraphQlTransport transport, Supplier<Builder> mutateBuilderFactory) {
+	DefaultWebSocketGraphQlClient(GraphQlClient delegate, WebSocketGraphQlTransport transport,
+			Consumer<GraphQlClient.Builder<?>> builderInitializer) {
 
 		super(delegate);
+
+		Assert.notNull(transport, "WebSocketGraphQlTransport is required");
+		Assert.notNull(builderInitializer, "`builderInitializer` is required");
+
 		this.transport = transport;
-		this.mutateBuilderFactory = mutateBuilderFactory;
+		this.builderInitializer = builderInitializer;
 	}
 
 
@@ -62,72 +69,84 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 
 	@Override
 	public Builder mutate() {
-		return this.mutateBuilderFactory.get();
+		Builder builder = new Builder(this.transport);
+		this.builderInitializer.accept(builder);
+		return builder;
 	}
 
 
 	/**
 	 * Default {@link WebSocketGraphQlClient.Builder} implementation.
 	 */
-	static final class Builder extends DefaultHttpGraphQlClient.BaseBuilder<Builder>
+	static final class Builder extends AbstractGraphQlClientBuilder<Builder>
 			implements WebSocketGraphQlClient.Builder<Builder> {
+
+		private URI url;
+
+		private final HttpHeaders headers = new HttpHeaders();
 
 		private final WebSocketClient webSocketClient;
 
-		@Nullable
-		private Object initPayload;
+		private final CodecConfigurer codecConfigurer;
 
-		private Consumer<Map<String, Object>> connectionAckHandler = ackPayload -> {};
-
-
-		Builder(WebSocketClient client) {
+		/**
+		 * Constructor to start via {@link WebSocketGraphQlClient#builder(URI, WebSocketClient)}.
+		 */
+		Builder(URI url, WebSocketClient client) {
+			this.url = url;
 			this.webSocketClient = client;
+			this.codecConfigurer = ClientCodecConfigurer.create();
 		}
 
+		/**
+		 * Constructor to mutate.
+		 * @param transport the underlying transport with the current state
+		 */
+		Builder(WebSocketGraphQlTransport transport) {
+			this.url = transport.getUrl();
+			this.headers.putAll(transport.getHeaders());
+			this.webSocketClient = transport.getWebSocketClient();
+			this.codecConfigurer = transport.getCodecConfigurer();
+		}
 
 		@Override
-		public Builder connectionInitPayload(@Nullable Object connectionInitPayload) {
-			this.initPayload = connectionInitPayload;
+		public Builder url(String url) {
+			url(new DefaultUriBuilderFactory().uriString(url).build());
 			return this;
 		}
 
 		@Override
-		public Builder connectionAckHandler(Consumer<Map<String, Object>> ackHandler) {
-			this.connectionAckHandler = ackHandler;
+		public Builder url(URI url) {
+			this.url = url;
+			return this;
+		}
+
+		@Override
+		public Builder header(String name, String... values) {
+			this.headers.put(name, Arrays.asList(values));
+			return this;
+		}
+
+		@Override
+		public Builder headers(Consumer<HttpHeaders> headersConsumer) {
+			headersConsumer.accept(this.headers);
+			return this;
+		}
+
+		@Override
+		public Builder codecConfigurer(Consumer<CodecConfigurer> codecConsumer) {
+			codecConsumer.accept(this.codecConfigurer);
 			return this;
 		}
 
 		@Override
 		public WebSocketGraphQlClient build() {
-			Assert.notNull(getUrl(), "GraphQL endpoint URI is required");
 
 			WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-					getUrl(), getHeaders(), this.webSocketClient, initClientCodecConfigurer(),
-					this.initPayload, this.connectionAckHandler);
+					this.url, this.headers, this.webSocketClient, this.codecConfigurer, null, payload -> {});
 
-			transport(transport);
-			GraphQlClient graphQlClient = super.build();
-
-			return new DefaultWebSocketGraphQlClient(graphQlClient, transport, mutateBuilderFactory());
-		}
-
-		private ClientCodecConfigurer initClientCodecConfigurer() {
-			ClientCodecConfigurer configurer = ClientCodecConfigurer.create();
-			if (getCodecConfigurerConsumer() != null) {
-				getCodecConfigurerConsumer().accept(configurer);
-			}
-			return configurer;
-		}
-
-		private Supplier<Builder> mutateBuilderFactory() {
-			Consumer<HttpGraphQlClient.BaseBuilder<?>> parentBuilderInitializer = getWebBuilderInitializer();
-			return () -> {
-				Builder builder = new Builder(this.webSocketClient);
-				builder.connectionInitPayload(this.initPayload);
-				builder.connectionAckHandler(this.connectionAckHandler);
-				parentBuilderInitializer.accept(builder);
-				return builder;
-			};
+			GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
+			return new DefaultWebSocketGraphQlClient(graphQlClient, transport, getBuilderInitializer());
 		}
 
 	}

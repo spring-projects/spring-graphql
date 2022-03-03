@@ -36,11 +36,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
- * Default {@link GraphQlClient} implementation with the logic to initialize
- * requests and handle responses, and delegates to a {@link GraphQlTransport}
- * for actual request execution.
- *
- * <p>This class is final but works with any transport.
+ * Default, final {@link GraphQlClient} implementation for use with any transport.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -53,16 +49,17 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final DocumentSource documentSource;
 
-	private final Consumer<Builder<?>> builderInitializer;
+	private final Consumer<GraphQlClient.Builder<?>> builderInitializer;
 
 
 	DefaultGraphQlClient(
 			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource,
-			Consumer<Builder<?>> builderInitializer) {
+			Consumer<GraphQlClient.Builder<?>> builderInitializer) {
 
 		Assert.notNull(transport, "GraphQlTransport is required");
-		Assert.notNull(jsonPathConfig, "Configuration is required");
+		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
 		Assert.notNull(documentSource, "DocumentSource is required");
+		Assert.notNull(documentSource, "`builderInitializer` is required");
 
 		this.transport = transport;
 		this.jsonPathConfig = jsonPathConfig;
@@ -83,10 +80,30 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	}
 
 	@Override
-	public Builder<?> mutate() {
-		DefaultGraphQlClientBuilder<?> builder = new DefaultGraphQlClientBuilder<>(this.transport);
+	public Builder mutate() {
+		Builder builder = new Builder(this.transport);
 		this.builderInitializer.accept(builder);
 		return builder;
+	}
+
+
+	/**
+	 * Default {@link GraphQlClient.Builder} with a given transport.
+	 */
+	static final class Builder extends AbstractGraphQlClientBuilder<Builder> {
+
+		private final GraphQlTransport transport;
+
+		Builder(GraphQlTransport transport) {
+			Assert.notNull(transport, "GraphQlTransport is required");
+			this.transport = transport;
+		}
+
+		@Override
+		public GraphQlClient build() {
+			return super.buildGraphQlClient(this.transport);
+		}
+
 	}
 
 

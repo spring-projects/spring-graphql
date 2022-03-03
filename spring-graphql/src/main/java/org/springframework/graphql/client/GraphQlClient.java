@@ -29,16 +29,18 @@ import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 
 /**
- * Defines workflow to execute GraphQL requests, independent of the transport.
+ * Define a workflow to execute GraphQL requests that is independent of the
+ * underlying transport.
  *
- * <p>In most cases, you'll want to use a transport specific extension:
+ * <p>For most cases, use a transport specific extension:
  * <ul>
  * <li>{@link HttpGraphQlClient}
  * <li>{@link WebSocketGraphQlClient}
  * </ul>
  *
- * <p>Alternatively, use {@link #builder(GraphQlTransport)} to create an instance
- * with any other transport. Or create a transport specific extension.
+ * <p>Alternatively, create an instance with any other transport via
+ * {@link #builder(GraphQlTransport)}. Or create a transport specific extension
+ * similar to HTTP and WebSocket.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -70,15 +72,15 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Create a builder with the given {@code GraphQlTransport}.
-	 * <p>For GraphQL over HTTP and WebSocket, consider using the extensions
-	 * {@link HttpGraphQlClient} and {@link WebSocketGraphQlClient}.
-	 * This allows plugging in any other transport implementation.
+	 * Create a builder with the given custom {@code GraphQlTransport}.
+	 * <p>For most cases, use a transport specific extension such as
+	 * {@link HttpGraphQlClient} or {@link WebSocketGraphQlClient}. This method
+	 * is for use with a custom {@code GraphQlTransport}.
 	 * @param transport the transport to execute requests with
 	 * @return the builder for further initialization
 	 */
 	static Builder<?> builder(GraphQlTransport transport) {
-		return new DefaultGraphQlClientBuilder<>(transport);
+		return new DefaultGraphQlClient.Builder(transport);
 	}
 
 
@@ -92,7 +94,7 @@ public interface GraphQlClient {
 		 * {@link #documentName(String)} for resolving a document by name.
 		 * <p>By default, {@link ResourceDocumentSource} is used.
 		 */
-		B documentSource(@Nullable DocumentSource contentLoader);
+		B documentSource(DocumentSource contentLoader);
 
 		/**
 		 * Build the {@code GraphQlClient} instance.

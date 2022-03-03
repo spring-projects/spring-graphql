@@ -17,188 +17,122 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.lang.Nullable;
+import org.springframework.http.codec.CodecConfigurer;
+import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilderFactory;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Default {@link HttpGraphQlClient} implementation.
+ * Default {@link HttpGraphQlClient} implementation that builds the underlying
+ * {@code HttpGraphQlTransport} to use.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient implements HttpGraphQlClient {
 
-	private final Supplier<Builder> mutateBuilder;
+	private final WebClient webClient;
+
+	private final Consumer<GraphQlClient.Builder<?>> builderInitializer;
 
 
-	DefaultHttpGraphQlClient(GraphQlClient graphQlClient, Supplier<Builder> mutateBuilder) {
+	DefaultHttpGraphQlClient(GraphQlClient graphQlClient, WebClient webClient,
+			Consumer<GraphQlClient.Builder<?>> builderInitializer) {
+
 		super(graphQlClient);
-		this.mutateBuilder = mutateBuilder;
+
+		Assert.notNull(webClient, "WebClient is required");
+		Assert.notNull(builderInitializer, "`builderInitializer` is required");
+
+		this.webClient = webClient;
+		this.builderInitializer = builderInitializer;
 	}
 
 
 	public Builder mutate() {
-		return this.mutateBuilder.get();
-	}
-
-
-	static class BaseBuilder<B extends BaseBuilder<B>> extends DefaultGraphQlClientBuilder<B>
-			implements HttpGraphQlClient.BaseBuilder<B> {
-
-		@Nullable
-		private URI url;
-
-		private final HttpHeaders headers = new HttpHeaders();
-
-		@Nullable
-		private Consumer<ClientCodecConfigurer> codecConfigurerConsumer;
-
-
-		@Override
-		public B url(@Nullable String url) {
-			this.url = (url != null ? URI.create(url) : null);
-			return self();
-		}
-
-		@Override
-		public B url(@Nullable URI url) {
-			this.url = url;
-			return self();
-		}
-
-		@Override
-		public B header(String name, String... values) {
-			Arrays.stream(values).forEach(value -> this.headers.add(name, value));
-			return self();
-		}
-
-		@Override
-		public B headers(Consumer<HttpHeaders> headersConsumer) {
-			headersConsumer.accept(this.headers);
-			return self();
-		}
-
-		@Override
-		public B codecConfigurer(Consumer<ClientCodecConfigurer> codecConsumer) {
-			this.codecConfigurerConsumer = codecConsumer;
-			return self();
-		}
-
-		@Nullable
-		protected URI getUrl() {
-			return this.url;
-		}
-
-		protected HttpHeaders getHeaders() {
-			return this.headers;
-		}
-
-		@Nullable
-		protected Consumer<ClientCodecConfigurer> getCodecConfigurerConsumer() {
-			return this.codecConfigurerConsumer;
-		}
-
-		@SuppressWarnings("unchecked")
-		private <T extends B> T self() {
-			return (T) this;
-		}
-
-		/**
-		 * Exposes a {@code Consumer} to subclasses to initialize new builder instances
-		 * from the configuration of "this" builder.
-		 */
-		protected Consumer<HttpGraphQlClient.BaseBuilder<?>> getWebBuilderInitializer() {
-			Consumer<GraphQlClient.Builder<?>> parentInitializer = getBuilderInitializer();
-			HttpHeaders headersCopy = new HttpHeaders();
-			headersCopy.putAll(getHeaders());
-			return builder -> {
-				builder.url(getUrl()).headers(headers -> headers.putAll(headersCopy));
-				if (getCodecConfigurerConsumer() != null) {
-					builder.codecConfigurer(getCodecConfigurerConsumer());
-				}
-				parentInitializer.accept(builder);
-			};
-		}
-
+		Builder builder = new Builder(this.webClient);
+		this.builderInitializer.accept(builder);
+		return builder;
 	}
 
 
 	/**
-	 * Default {@link HttpGraphQlClient.Builder} implementation.
+	 * Default {@link HttpGraphQlClient.Builder} implementation, simply wrapping
+	 * and delegating to {@link WebClient.Builder}.
 	 */
-	static final class Builder extends BaseBuilder<Builder> implements HttpGraphQlClient.Builder<Builder> {
+	static final class Builder extends AbstractGraphQlClientBuilder<Builder> implements HttpGraphQlClient.Builder<Builder> {
 
-		@Nullable
-		private WebClient webClient;
-
-		@Nullable
-		private Consumer<WebClient.Builder> webClientConfigurers;
-
+		private final WebClient.Builder webClientBuilder;
 
 		/**
 		 * Constructor to start without a WebClient instance.
 		 */
 		Builder() {
+			this(WebClient.builder());
 		}
 
 		/**
 		 * Constructor to start with a pre-configured {@code WebClient}.
 		 */
-		Builder(WebClient webClient) {
-			this.webClient = webClient;
+		Builder(WebClient client) {
+			this(client.mutate());
+		}
+
+		/**
+		 * Constructor to start with a pre-configured {@code WebClient}.
+		 */
+		Builder(WebClient.Builder clientBuilder) {
+			this.webClientBuilder = clientBuilder;
 		}
 
 
 		@Override
+		public Builder url(String url) {
+			this.webClientBuilder.baseUrl(url);
+			return this;
+		}
+
+		@Override
+		public Builder url(URI url) {
+			UriBuilderFactory factory = new DefaultUriBuilderFactory(UriComponentsBuilder.fromUri(url));
+			this.webClientBuilder.uriBuilderFactory(factory);
+			return this;
+		}
+
+		@Override
+		public Builder header(String name, String... values) {
+			this.webClientBuilder.defaultHeader(name, values);
+			return this;
+		}
+
+		@Override
+		public Builder headers(Consumer<HttpHeaders> headersConsumer) {
+			this.webClientBuilder.defaultHeaders(headersConsumer);
+			return this;
+		}
+
+		@Override
+		public Builder codecConfigurer(Consumer<CodecConfigurer> codecsConsumer) {
+			this.webClientBuilder.codecs(codecsConsumer::accept);
+			return this;
+		}
+
+		@Override
 		public Builder webClient(Consumer<WebClient.Builder> configurer) {
-			this.webClientConfigurers = (this.webClientConfigurers != null ? this.webClientConfigurers.andThen(configurer) : configurer);
+			configurer.accept(this.webClientBuilder);
 			return this;
 		}
 
 		@Override
 		public HttpGraphQlClient build() {
-
-			WebClient webClient = initWebClient();
-			HttpGraphQlTransport transport = new HttpGraphQlTransport(webClient);
-			transport(transport);
-
-			GraphQlClient graphQlClient = super.build();
-			return new DefaultHttpGraphQlClient(graphQlClient, initMutateBuilderFactory(webClient));
-		}
-
-		private WebClient initWebClient() {
-			WebClient.Builder builder = (this.webClient != null ? this.webClient.mutate() : WebClient.builder());
-
-			if (getUrl() != null) {
-				builder.baseUrl(getUrl().toASCIIString());
-			}
-
-			builder.defaultHeaders(headers -> headers.putAll(getHeaders()));
-
-			if (getCodecConfigurerConsumer() != null) {
-				builder.codecs(getCodecConfigurerConsumer());
-			}
-
-			if (this.webClientConfigurers != null) {
-				this.webClientConfigurers.accept(builder);
-			}
-
-			return builder.build();
-		}
-
-		private Supplier<Builder> initMutateBuilderFactory(WebClient webClient) {
-			Consumer<HttpGraphQlClient.BaseBuilder<?>> parentInitializer = getWebBuilderInitializer();
-			return () -> {
-				Builder builder = new Builder(webClient);
-				parentInitializer.accept(builder);
-				return builder;
-			};
+			WebClient webClient = this.webClientBuilder.build();
+			GraphQlClient graphQlClient = super.buildGraphQlClient(new HttpGraphQlTransport(webClient));
+			return new DefaultHttpGraphQlClient(graphQlClient, webClient, getBuilderInitializer());
 		}
 
 	}

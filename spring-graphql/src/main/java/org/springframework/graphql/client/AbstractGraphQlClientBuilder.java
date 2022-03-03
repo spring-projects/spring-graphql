@@ -31,54 +31,44 @@ import org.springframework.util.ClassUtils;
 
 
 /**
- * Default {@link GraphQlClient.Builder} implementation that builds a
- * {@link GraphQlClient} for use with any transport.
+ * Abstract, base class for transport specific {@link GraphQlClient.Builder}
+ * implementations.
  *
- * <p>Intended for use as a base class for builders that do assist with building
- * the underlying transport. Such extension
+ * <p>Subclasses must implement {@link #build()} and call
+ * {@link #buildGraphQlClient(GraphQlTransport)} to obtain a default, transport
+ * agnostic {@code GraphQlClient}. A transport specific extension can then wrap
+ * this default tester by extending {@link AbstractDelegatingGraphQlClient}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see AbstractDelegatingGraphQlClient
  */
-public class DefaultGraphQlClientBuilder<B extends DefaultGraphQlClientBuilder<B>> implements GraphQlClient.Builder<B> {
+public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClientBuilder<B>> implements GraphQlClient.Builder<B> {
 
 	private static final boolean jackson2Present;
 
 	static {
-		ClassLoader classLoader = DefaultGraphQlClientBuilder.class.getClassLoader();
+		ClassLoader classLoader = AbstractGraphQlClientBuilder.class.getClassLoader();
 		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader)
 				&& ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
 	}
 
 
 	@Nullable
-	private GraphQlTransport transport;
-
-	@Nullable
 	private DocumentSource documentSource;
 
-	/**
-	 * Constructor with a given transport instance.
-	 */
-	DefaultGraphQlClientBuilder(GraphQlTransport transport) {
-		Assert.notNull(transport, "GraphQlTransport is required");
-		this.transport = transport;
-	}
 
 	/**
-	 * Constructor for subclass builders that will call
-	 * {@link #transport(GraphQlTransport)} to set the transport instance
-	 * before {@link #build()}.
+	 * Default constructor for use from subclasses.
+	 * <p>Subclasses must set the transport to use before {@link #build()} or
+	 * during, by overriding {@link #build()}.
 	 */
-	DefaultGraphQlClientBuilder() {
+	protected AbstractGraphQlClientBuilder() {
 	}
 
-	protected void transport(GraphQlTransport transport) {
-		this.transport = transport;
-	}
 
 	@Override
-	public B documentSource(@Nullable DocumentSource contentLoader) {
+	public B documentSource(DocumentSource contentLoader) {
 		this.documentSource = contentLoader;
 		return self();
 	}
@@ -88,10 +78,13 @@ public class DefaultGraphQlClientBuilder<B extends DefaultGraphQlClientBuilder<B
 		return (T) this;
 	}
 
-	@Override
-	public GraphQlClient build() {
-		Assert.notNull(this.transport, "No GraphQlTransport. Has a subclass not initialized it?");
-		return new DefaultGraphQlClient(this.transport, initJsonPathConfig(), initDocumentSource(), getBuilderInitializer());
+	/**
+	 * Subclasses call this from {@link #build()} to provide the transport and get
+	 * the default {@code GraphQlClient to delegate to for request execution.
+	 */
+	protected GraphQlClient buildGraphQlClient(GraphQlTransport transport) {
+		Assert.notNull(transport, "GraphQlTransport is required");
+		return new DefaultGraphQlClient(transport, initJsonPathConfig(), initDocumentSource(), getBuilderInitializer());
 	}
 
 	private Configuration initJsonPathConfig() {
@@ -105,8 +98,8 @@ public class DefaultGraphQlClientBuilder<B extends DefaultGraphQlClientBuilder<B
 	}
 
 	/**
-	 * Exposes a {@code Consumer} to subclasses to initialize new builder instances
-	 * from the configuration of "this" builder.
+	 * Subclasses call this from {@link #build()} to obtain a {@code Consumer} to
+	 * initialize new builder instances with, based on "this" builder.
 	 */
 	protected Consumer<GraphQlClient.Builder<?>> getBuilderInitializer() {
 		return builder -> {
@@ -114,7 +107,6 @@ public class DefaultGraphQlClientBuilder<B extends DefaultGraphQlClientBuilder<B
 				builder.documentSource(documentSource);
 			}
 		};
-
 	}
 
 

@@ -17,33 +17,32 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 
 
 /**
- * {@code GraphQlClient} for GraphQL over Web via {@link WebSocketClient}.
+ * GraphQL over WebSocket client that uses {@link WebSocketClient}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface WebSocketGraphQlClient extends GraphQlClient {
+public interface WebSocketGraphQlClient extends WebGraphQlClient {
 
 	/**
-	 * Start the transport by connecting the WebSocket, sending the
-	 * "connection_init" and waiting for the "connection_ack" message.
+	 * Start the GraphQL session by connecting the WebSocket, sending the
+	 * "connection_init" and receiving the "connection_ack" message.
+	 * <p><strong>Note:</Strong> Only one session is started at a time.
+	 * Additional attempts to start have no impact while a session is active.
 	 * @return {@code Mono} that completes when the WebSocket is connected and
-	 * ready to begin sending GraphQL requests
+	 * the GraphQL session is ready to send requests
 	 */
 	Mono<Void> start();
 
 	/**
-	 * Stop the transport by closing the WebSocket with
+	 * Stop the GraphQL session by closing the WebSocket with
 	 * {@link org.springframework.web.reactive.socket.CloseStatus#NORMAL} and
 	 * terminating in-progress requests with an error signal.
 	 * <p>New requests are rejected from the time of this call. If necessary,
@@ -57,38 +56,28 @@ public interface WebSocketGraphQlClient extends GraphQlClient {
 
 
 	/**
-	 * Create a {@link WebSocketGraphQlClient} that uses the given
-	 * {@code WebSocketClient} to connect to the given URL.
+	 * Create a {@link WebSocketGraphQlClient}.
 	 * @param url the GraphQL endpoint URL
-	 * @param webSocketClient the transport client to use
+	 * @param webSocketClient the underlying transport client to use
 	 */
 	static WebSocketGraphQlClient create(URI url, WebSocketClient webSocketClient) {
-		return builder(webSocketClient).url(url).build();
+		return builder(url, webSocketClient).build();
 	}
 
 	/**
-	 * Return a builder to initialize a {@link WebSocketGraphQlClient} with.
-	 * @param webSocketClient the transport client to use
+	 * Return a builder for a {@link WebSocketGraphQlClient}.
+	 * @param url the GraphQL endpoint URL
+	 * @param webSocketClient the underlying transport client to use
 	 */
-	static Builder<?> builder(WebSocketClient webSocketClient) {
-		return new DefaultWebSocketGraphQlClient.Builder(webSocketClient);
+	static Builder<?> builder(URI url, WebSocketClient webSocketClient) {
+		return new DefaultWebSocketGraphQlClient.Builder(url, webSocketClient);
 	}
 
 
 	/**
 	 * Builder for a GraphQL over WebSocket client.
 	 */
-	interface Builder<B extends Builder<B>> extends HttpGraphQlClient.BaseBuilder<B> {
-
-		/**
-		 * The payload to send with the "connection_init" message.
-		 */
-		B connectionInitPayload(@Nullable Object connectionInitPayload);
-
-		/**
-		 * Handler for the payload received with the "connection_ack" message.
-		 */
-		B connectionAckHandler(Consumer<Map<String, Object>> ackHandler);
+	interface Builder<B extends Builder<B>> extends WebGraphQlClient.Builder<B> {
 
 		/**
 		 * Build the {@code WebSocketGraphQlClient}.

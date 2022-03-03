@@ -29,6 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
 
+
 /**
  * Transport to execute GraphQL requests over HTTP via {@link WebClient}.
  * Supports only single-response requests over HTTP POST. For subscription

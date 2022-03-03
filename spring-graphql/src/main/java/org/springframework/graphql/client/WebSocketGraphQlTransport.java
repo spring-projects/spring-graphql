@@ -57,6 +57,11 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	private static final Log logger = LogFactory.getLog(WebSocketGraphQlTransport.class);
 
+	private final URI url;
+
+	private final HttpHeaders headers = new HttpHeaders();
+
+	private final WebSocketClient webSocketClient;
 
 	private final GraphQlSessionHandler graphQlSessionHandler;
 
@@ -64,13 +69,20 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 
 	WebSocketGraphQlTransport(
-			URI uri, HttpHeaders headers, WebSocketClient client, CodecConfigurer codecConfigurer,
+			URI url, @Nullable HttpHeaders headers, WebSocketClient client, CodecConfigurer codecConfigurer,
 			@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler) {
+
+		Assert.notNull(url, "URI is required");
+		Assert.notNull(url, "URI is required");
+
+		this.url = url;
+		this.headers.putAll(headers != null ? headers : HttpHeaders.EMPTY);
+		this.webSocketClient = client;
 
 		this.graphQlSessionHandler = new GraphQlSessionHandler(
 				codecConfigurer, connectionInitPayload, connectionAckHandler);
 
-		this.graphQlSessionMono = initGraphQlSession(uri, headers, client, this.graphQlSessionHandler)
+		this.graphQlSessionMono = initGraphQlSession(this.url, this.headers, client, this.graphQlSessionHandler)
 				.cacheInvalidateWhen(GraphQlSession::notifyWhenClosed);
 	}
 
@@ -87,6 +99,23 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 			return handler.getGraphQlSession();
 		});
+	}
+
+
+	public URI getUrl() {
+		return this.url;
+	}
+
+	public HttpHeaders getHeaders() {
+		return this.headers;
+	}
+
+	public WebSocketClient getWebSocketClient() {
+		return this.webSocketClient;
+	}
+
+	public CodecConfigurer getCodecConfigurer() {
+		return this.graphQlSessionHandler.getCodecConfigurer();
 	}
 
 
@@ -155,6 +184,11 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			this.connectionInitMessage = GraphQlWebSocketMessage.connectionInit(connectionInitPayload);
 			this.connectionAckHandler = connectionAckHandler;
 			this.graphQlSessionSink = Sinks.unsafe().one();
+		}
+
+
+		public CodecConfigurer getCodecConfigurer() {
+			return this.codecDelegate.getCodecConfigurer();
 		}
 
 
