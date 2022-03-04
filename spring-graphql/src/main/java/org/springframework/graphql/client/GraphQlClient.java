@@ -54,7 +54,7 @@ public interface GraphQlClient {
 	 * @param document the document for the request
 	 * @return spec to further define or execute the request
 	 */
-	RequestSpec document(String document);
+	Request document(String document);
 
 	/**
 	 * Variant of {@link #document(String)} that uses the given key to resolve
@@ -62,7 +62,7 @@ public interface GraphQlClient {
 	 * {@link DocumentSource} that the client is configured with.
 	 * @throws IllegalArgumentException if the content could not be loaded
 	 */
-	RequestSpec documentName(String name);
+	Request documentName(String name);
 
 	/**
 	 * Return a builder initialized from the configuration of "this" client
@@ -105,9 +105,32 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Declare options for GraphQL request execution.
+	 * Declare options to gather input for a GraphQL request and execute it.
 	 */
-	interface ExecuteSpec {
+	interface Request {
+
+		/**
+		 * Set the name of the operation in the {@link #document(String) document}
+		 * to execute, if the document contains multiple operations.
+		 * @param operationName the operation name
+		 * @return this request spec
+		 */
+		Request operationName(@Nullable String operationName);
+
+		/**
+		 * Add a value for a variable defined by the operation.
+		 * @param name the variable name
+		 * @param value the variable value
+		 * @return this request spec
+		 */
+		Request variable(String name, Object value);
+
+		/**
+		 * Add all given values for variables defined by the operation.
+		 * @param variables the variable values
+		 * @return this request spec
+		 */
+		Request variables(Map<String, Object> variables);
 
 		/**
 		 * Execute as a request with a single response such as a "query" or
@@ -116,7 +139,7 @@ public interface GraphQlClient {
 		 * decoding of the response. The {@code Mono} may end wth an error due
 		 * to transport level issues.
 		 */
-		Mono<ResponseSpec> execute();
+		Mono<Response> execute();
 
 		/**
 		 * Execute a "subscription" request with a stream of responses.
@@ -132,38 +155,7 @@ public interface GraphQlClient {
 		 * <p>The {@code Flux} may be cancelled to notify the server to end the
 		 * subscription stream.
 		 */
-		Flux<ResponseSpec> executeSubscription();
-
-	}
-
-
-	/**
-	 * Declare options to gather input for a GraphQL request and execute it.
-	 */
-	interface RequestSpec extends ExecuteSpec {
-
-		/**
-		 * Set the name of the operation in the {@link #document(String) document}
-		 * to execute, if the document contains multiple operations.
-		 * @param operationName the operation name
-		 * @return this request spec
-		 */
-		RequestSpec operationName(@Nullable String operationName);
-
-		/**
-		 * Add a value for a variable defined by the operation.
-		 * @param name the variable name
-		 * @param value the variable value
-		 * @return this request spec
-		 */
-		RequestSpec variable(String name, Object value);
-
-		/**
-		 * Add all given values for variables defined by the operation.
-		 * @param variables the variable values
-		 * @return this request spec
-		 */
-		RequestSpec variables(Map<String, Object> variables);
+		Flux<Response> executeSubscription();
 
 	}
 
@@ -171,7 +163,7 @@ public interface GraphQlClient {
 	/**
 	 * Declare options to decode a response.
 	 */
-	interface ResponseSpec {
+	interface Response {
 
 		/**
 		 * Switch to the given the "data" path of the GraphQL response and

@@ -69,14 +69,14 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 
 	@Override
-	public RequestSpec document(String document) {
-		return new DefaultRequestSpec(Mono.just(document), this.transport, this.jsonPathConfig);
+	public Request document(String document) {
+		return new DefaultRequest(Mono.just(document), this.transport, this.jsonPathConfig);
 	}
 
 	@Override
-	public RequestSpec documentName(String name) {
+	public Request documentName(String name) {
 		Mono<String> document = this.documentSource.getDocument(name);
-		return new DefaultRequestSpec(document, this.transport, this.jsonPathConfig);
+		return new DefaultRequest(document, this.transport, this.jsonPathConfig);
 	}
 
 	@Override
@@ -107,7 +107,10 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	}
 
 
-	private static final class DefaultRequestSpec implements RequestSpec {
+	/**
+	 * Default {@link GraphQlClient.Request} implementation.
+	 */
+	private static final class DefaultRequest implements Request {
 
 		private final Mono<String> documentMono;
 
@@ -120,7 +123,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Configuration jsonPathConfig;
 
-		DefaultRequestSpec(Mono<String> documentMono, GraphQlTransport transport, Configuration jsonPathConfig) {
+		DefaultRequest(Mono<String> documentMono, GraphQlTransport transport, Configuration jsonPathConfig) {
 			Assert.notNull(documentMono, "'documentMono' is required");
 			this.documentMono = documentMono;
 			this.transport = transport;
@@ -128,35 +131,35 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
-		public DefaultRequestSpec operationName(@Nullable String operationName) {
+		public DefaultRequest operationName(@Nullable String operationName) {
 			this.operationName = operationName;
 			return this;
 		}
 
 		@Override
-		public DefaultRequestSpec variable(String name, Object value) {
+		public DefaultRequest variable(String name, Object value) {
 			this.variables.put(name, value);
 			return this;
 		}
 
 		@Override
-		public RequestSpec variables(Map<String, Object> variables) {
+		public Request variables(Map<String, Object> variables) {
 			this.variables.putAll(variables);
 			return this;
 		}
 
 		@Override
-		public Mono<ResponseSpec> execute() {
+		public Mono<Response> execute() {
 			return getRequestMono()
 					.flatMap(this.transport::execute)
-					.map(payload -> new DefaultResponseSpec(payload, this.jsonPathConfig));
+					.map(payload -> new DefaultResponse(payload, this.jsonPathConfig));
 		}
 
 		@Override
-		public Flux<ResponseSpec> executeSubscription() {
+		public Flux<Response> executeSubscription() {
 			return getRequestMono()
 					.flatMapMany(this.transport::executeSubscription)
-					.map(payload -> new DefaultResponseSpec(payload, this.jsonPathConfig));
+					.map(payload -> new DefaultResponse(payload, this.jsonPathConfig));
 		}
 
 		private Mono<GraphQlRequest> getRequestMono() {
@@ -167,7 +170,10 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	}
 
 
-	private static class DefaultResponseSpec implements ResponseSpec {
+	/**
+	 * Default {@link GraphQlClient.Response} implementation.
+	 */
+	private static class DefaultResponse implements Response {
 
 		private final ExecutionResult result;
 
@@ -175,7 +181,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final List<GraphQLError> errors;
 
-		private DefaultResponseSpec(ExecutionResult result, Configuration jsonPathConfig) {
+		private DefaultResponse(ExecutionResult result, Configuration jsonPathConfig) {
 			this.result = result;
 			this.jsonPathDocument = JsonPath.parse(result.toSpecification(), jsonPathConfig);
 			this.errors = result.getErrors();

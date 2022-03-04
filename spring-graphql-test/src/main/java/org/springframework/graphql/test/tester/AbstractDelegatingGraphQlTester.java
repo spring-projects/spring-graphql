@@ -40,12 +40,12 @@ public abstract class AbstractDelegatingGraphQlTester implements GraphQlTester {
 
 
 	@Override
-	public RequestSpec<?> document(String document) {
+	public Request<?> document(String document) {
 		return this.delegate.document(document);
 	}
 
 	@Override
-	public RequestSpec<?> documentName(String documentName) {
+	public Request<?> documentName(String documentName) {
 		return this.delegate.documentName(documentName);
 	}
 

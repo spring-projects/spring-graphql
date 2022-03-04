@@ -90,12 +90,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 
 	@Override
-	public RequestSpec<?> document(String document) {
-		return new DefaultRequestSpec(document);
+	public Request<?> document(String document) {
+		return new DefaultRequest(document);
 	}
 
 	@Override
-	public RequestSpec<?> documentName(String documentName) {
+	public Request<?> documentName(String documentName) {
 		String document = this.documentSource.getDocument(documentName).block(this.responseTimeout);
 		Assert.notNull(document, "Expected document content or an error");
 		return document(document);
@@ -129,9 +129,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 
 	/**
-	 * {@link RequestSpec} that gathers the document, operationName, and variables.
+	 * {@link Request} that gathers the document, operationName, and variables.
 	 */
-	private final class DefaultRequestSpec implements RequestSpec<DefaultRequestSpec> {
+	private final class DefaultRequest implements Request<DefaultRequest> {
 
 		private final String document;
 
@@ -140,26 +140,26 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		private DefaultRequestSpec(String document) {
+		private DefaultRequest(String document) {
 			Assert.notNull(document, "`document` is required");
 			this.document = document;
 		}
 
 		@Override
-		public DefaultRequestSpec operationName(@Nullable String name) {
+		public DefaultRequest operationName(@Nullable String name) {
 			this.operationName = name;
 			return this;
 		}
 
 		@Override
-		public DefaultRequestSpec variable(String name, @Nullable Object value) {
+		public DefaultRequest variable(String name, @Nullable Object value) {
 			this.variables.put(name, value);
 			return this;
 		}
 
 		@SuppressWarnings("ConstantConditions")
 		@Override
-		public ResponseSpec execute() {
+		public Response execute() {
 			GraphQlRequest request = createRequest();
 			return transport.execute(request)
 					.map(result -> createResponseSpec(result, assertDecorator(request)))
@@ -172,7 +172,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public SubscriptionSpec executeSubscription() {
+		public Subscription executeSubscription() {
 			GraphQlRequest request = createRequest();
 			return () -> transport.executeSubscription(request)
 					.map(result -> createResponseSpec(result, assertDecorator(request)));
@@ -182,11 +182,11 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			return new GraphQlRequest(this.document, this.operationName, this.variables);
 		}
 
-		private GraphQlTester.ResponseSpec createResponseSpec(
+		private Response createResponseSpec(
 				ExecutionResult result, Consumer<Runnable> assertDecorator) {
 
 			DocumentContext jsonDocument = JsonPath.parse(result.toSpecification(), jsonPathConfig);
-			return new DefaultResponseSpec(jsonDocument, errorFilter, assertDecorator);
+			return new DefaultResponse(jsonDocument, errorFilter, assertDecorator);
 		}
 
 		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {
@@ -307,13 +307,13 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 
 	/**
-	 * {@link ResponseSpec} that operates on the response from a GraphQL HTTP request.
+	 * Default {@link GraphQlTester.Response} implementation.
 	 */
-	private static final class DefaultResponseSpec implements ResponseSpec, ErrorSpec {
+	private static final class DefaultResponse implements Response, Errors {
 
 		private final ResponseContainer responseContainer;
 
-		private DefaultResponseSpec(
+		private DefaultResponse(
 				DocumentContext documentContext, @Nullable Predicate<GraphQLError> errorFilter,
 				Consumer<Runnable> assertDecorator) {
 
@@ -321,36 +321,36 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public PathSpec path(String path) {
+		public Path path(String path) {
 			this.responseContainer.verifyErrors();
-			return new DefaultPathSpec(path, this.responseContainer);
+			return new DefaultPath(path, this.responseContainer);
 		}
 
 		@Override
-		public ErrorSpec errors() {
+		public Errors errors() {
 			return this;
 		}
 
 		@Override
-		public ErrorSpec filter(Predicate<GraphQLError> predicate) {
+		public Errors filter(Predicate<GraphQLError> predicate) {
 			this.responseContainer.filterErrors(predicate);
 			return this;
 		}
 
 		@Override
-		public ErrorSpec expect(Predicate<GraphQLError> predicate) {
+		public Errors expect(Predicate<GraphQLError> predicate) {
 			this.responseContainer.expectErrors(predicate);
 			return this;
 		}
 
 		@Override
-		public TraverseSpec verify() {
+		public Traversable verify() {
 			this.responseContainer.verifyErrors();
 			return this;
 		}
 
 		@Override
-		public TraverseSpec satisfy(Consumer<List<GraphQLError>> consumer) {
+		public Traversable satisfy(Consumer<List<GraphQLError>> consumer) {
 			this.responseContainer.consumeErrors(consumer);
 			return this;
 		}
@@ -358,9 +358,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	}
 
 	/**
-	 * {@link PathSpec} implementation.
+	 * Default {@link GraphQlTester.Path} implementation.
 	 */
-	private static final class DefaultPathSpec implements PathSpec {
+	private static final class DefaultPath implements Path {
 
 		private final String inputPath;
 
@@ -370,7 +370,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final JsonPathExpectationsHelper pathHelper;
 
-		private DefaultPathSpec(String path, ResponseContainer responseContainer) {
+		private DefaultPath(String path, ResponseContainer responseContainer) {
 			Assert.notNull(path, "`path` is required");
 			Assert.notNull(responseContainer, "ResponseContainer is required");
 			this.inputPath = path;
@@ -390,78 +390,78 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public PathSpec path(String path) {
-			return new DefaultPathSpec(path, this.responseContainer);
+		public Path path(String path) {
+			return new DefaultPath(path, this.responseContainer);
 		}
 
 		@Override
-		public PathSpec pathExists() {
+		public Path pathExists() {
 			this.responseContainer.doAssert(() -> this.pathHelper.hasJsonPath(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
-		public PathSpec pathDoesNotExist() {
+		public Path pathDoesNotExist() {
 			this.responseContainer.doAssert(() -> this.pathHelper.doesNotHaveJsonPath(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
-		public PathSpec valueExists() {
+		public Path valueExists() {
 			this.responseContainer.doAssert(() -> this.pathHelper.exists(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
-		public PathSpec valueDoesNotExist() {
+		public Path valueDoesNotExist() {
 			this.responseContainer.doAssert(() -> this.pathHelper.doesNotExist(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
-		public PathSpec valueIsEmpty() {
+		public Path valueIsEmpty() {
 			this.responseContainer.doAssert(() -> this.pathHelper.assertValueIsEmpty(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
-		public PathSpec valueIsNotEmpty() {
+		public Path valueIsNotEmpty() {
 			this.responseContainer.doAssert(() -> this.pathHelper.assertValueIsNotEmpty(this.responseContainer.jsonContent()));
 			return this;
 		}
 
 		@Override
-		public <D> EntitySpec<D, ?> entity(Class<D> entityType) {
+		public <D> Entity<D, ?> entity(Class<D> entityType) {
 			D entity = this.responseContainer.read(this.jsonPath, new TypeRefAdapter<>(entityType));
-			return new DefaultEntitySpec<>(entity, this.responseContainer, this.inputPath);
+			return new DefaultEntity<>(entity, this.responseContainer, this.inputPath);
 		}
 
 		@Override
-		public <D> EntitySpec<D, ?> entity(ParameterizedTypeReference<D> entityType) {
+		public <D> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType) {
 			D entity = this.responseContainer.read(this.jsonPath, new TypeRefAdapter<>(entityType));
-			return new DefaultEntitySpec<>(entity, this.responseContainer, this.inputPath);
+			return new DefaultEntity<>(entity, this.responseContainer, this.inputPath);
 		}
 
 		@Override
-		public <D> ListEntitySpec<D> entityList(Class<D> elementType) {
+		public <D> EntityList<D> entityList(Class<D> elementType) {
 			List<D> entity = this.responseContainer.read(this.jsonPath, new TypeRefAdapter<>(List.class, elementType));
-			return new DefaultListEntitySpec<>(entity, this.responseContainer, this.inputPath);
+			return new DefaultEntityList<>(entity, this.responseContainer, this.inputPath);
 		}
 
 		@Override
-		public <D> ListEntitySpec<D> entityList(ParameterizedTypeReference<D> elementType) {
+		public <D> EntityList<D> entityList(ParameterizedTypeReference<D> elementType) {
 			List<D> entity = this.responseContainer.read(this.jsonPath, new TypeRefAdapter<>(List.class, elementType));
-			return new DefaultListEntitySpec<>(entity, this.responseContainer, this.inputPath);
+			return new DefaultEntityList<>(entity, this.responseContainer, this.inputPath);
 		}
 
 		@Override
-		public PathSpec matchesJson(String expectedJson) {
+		public Path matchesJson(String expectedJson) {
 			matchesJson(expectedJson, false);
 			return this;
 		}
 
 		@Override
-		public PathSpec matchesJsonStrictly(String expectedJson) {
+		public Path matchesJsonStrictly(String expectedJson) {
 			matchesJson(expectedJson, true);
 			return this;
 		}
@@ -486,9 +486,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 
 	/**
-	 * {@link EntitySpec} implementation.
+	 * Default {@link GraphQlTester.Entity} implementation.
 	 */
-	private static class DefaultEntitySpec<D, S extends EntitySpec<D, S>> implements EntitySpec<D, S> {
+	private static class DefaultEntity<D, S extends Entity<D, S>> implements Entity<D, S> {
 
 		private final D entity;
 
@@ -496,7 +496,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final String inputPath;
 
-		protected DefaultEntitySpec(D entity, ResponseContainer responseContainer, String path) {
+		protected DefaultEntity(D entity, ResponseContainer responseContainer, String path) {
 			this.entity = entity;
 			this.responseContainer = responseContainer;
 			this.inputPath = path;
@@ -515,8 +515,8 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public PathSpec path(String path) {
-			return new DefaultPathSpec(path, this.responseContainer);
+		public Path path(String path) {
+			return new DefaultPath(path, this.responseContainer);
 		}
 
 		@Override
@@ -569,18 +569,18 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 
 	/**
-	 * {@link ListEntitySpec} implementation.
+	 * Default {@link EntityList} implementation.
 	 */
-	private static final class DefaultListEntitySpec<E> extends DefaultEntitySpec<List<E>, ListEntitySpec<E>>
-			implements ListEntitySpec<E> {
+	private static final class DefaultEntityList<E> extends DefaultEntity<List<E>, EntityList<E>>
+			implements EntityList<E> {
 
-		private DefaultListEntitySpec(List<E> entity, ResponseContainer responseContainer, String path) {
+		private DefaultEntityList(List<E> entity, ResponseContainer responseContainer, String path) {
 			super(entity, responseContainer, path);
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public ListEntitySpec<E> contains(E... elements) {
+		public EntityList<E> contains(E... elements) {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(elements);
 				AssertionErrors.assertTrue("List at path '" + getInputPath() + "' does not contain " + expected,
@@ -591,7 +591,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public ListEntitySpec<E> doesNotContain(E... elements) {
+		public EntityList<E> doesNotContain(E... elements) {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(elements);
 				AssertionErrors.assertTrue(
@@ -603,7 +603,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public ListEntitySpec<E> containsExactly(E... elements) {
+		public EntityList<E> containsExactly(E... elements) {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(elements);
 				AssertionErrors.assertTrue(
@@ -614,14 +614,14 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public ListEntitySpec<E> hasSize(int size) {
+		public EntityList<E> hasSize(int size) {
 			doAssert(() -> AssertionErrors.assertTrue("List at path '" + getInputPath() + "' should have size " + size,
 					getEntity().size() == size));
 			return this;
 		}
 
 		@Override
-		public ListEntitySpec<E> hasSizeLessThan(int boundary) {
+		public EntityList<E> hasSizeLessThan(int boundary) {
 			doAssert(() -> AssertionErrors.assertTrue(
 					"List at path '" + getInputPath() + "' should have size less than " + boundary,
 					getEntity().size() < boundary));
@@ -629,7 +629,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public ListEntitySpec<E> hasSizeGreaterThan(int boundary) {
+		public EntityList<E> hasSizeGreaterThan(int boundary) {
 			doAssert(() -> AssertionErrors.assertTrue(
 					"List at path '" + getInputPath() + "' should have size greater than " + boundary,
 					getEntity().size() > boundary));

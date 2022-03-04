@@ -45,11 +45,11 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		String document = "{me {name, friends}}";
 		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
-		GraphQlTester.ResponseSpec spec = graphQlTester().document(document).execute();
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
-		spec.path("me.name").pathExists().valueExists();
-		spec.path("me.friends").pathExists().valueExists();
-		spec.path("hero").pathDoesNotExist().valueDoesNotExist();
+		response.path("me.name").pathExists().valueExists();
+		response.path("me.friends").pathExists().valueExists();
+		response.path("hero").pathDoesNotExist().valueDoesNotExist();
 
 		assertThat(requestInput().getDocument()).contains(document);
 	}
@@ -60,12 +60,12 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		String document = "{me {name, friends}}";
 		setMockResponse("{\"me\": {\"name\":null, \"friends\":[]}}");
 
-		GraphQlTester.ResponseSpec spec = graphQlTester().document(document).execute();
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
-		spec.path("me.name").valueIsEmpty();
-		spec.path("me.friends").valueIsEmpty();
+		response.path("me.name").valueIsEmpty();
+		response.path("me.friends").valueIsEmpty();
 
-		assertThatThrownBy(() -> spec.path("hero").valueIsEmpty())
+		assertThatThrownBy(() -> response.path("hero").valueIsEmpty())
 				.as("Path does not even exist")
 				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
 
@@ -78,14 +78,14 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		String document = "{me {name}}";
 		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
-		GraphQlTester.ResponseSpec spec = graphQlTester().document(document).execute();
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
-		spec.path("").matchesJson("{\"me\": {\"name\":\"Luke Skywalker\",\"friends\":[]}}");
-		spec.path("me").matchesJson("{\"name\":\"Luke Skywalker\"}");
-		spec.path("me").matchesJson("{\"friends\":[]}"); // lenient match with subset of
+		response.path("").matchesJson("{\"me\": {\"name\":\"Luke Skywalker\",\"friends\":[]}}");
+		response.path("me").matchesJson("{\"name\":\"Luke Skywalker\"}");
+		response.path("me").matchesJson("{\"friends\":[]}"); // lenient match with subset of
 															// fields
 
-		assertThatThrownBy(() -> spec.path("me").matchesJsonStrictly("{\"friends\":[]}"))
+		assertThatThrownBy(() -> response.path("me").matchesJsonStrictly("{\"friends\":[]}"))
 				.as("Extended fields should fail in strict mode")
 				.hasMessageContaining("Unexpected: name");
 
@@ -98,13 +98,13 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		String document = "{me {name}}";
 		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
-		GraphQlTester.ResponseSpec spec = graphQlTester().document(document).execute();
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
 		MovieCharacter luke = MovieCharacter.create("Luke Skywalker");
 		MovieCharacter han = MovieCharacter.create("Han Solo");
 		AtomicReference<MovieCharacter> personRef = new AtomicReference<>();
 
-		MovieCharacter actual = spec.path("me").entity(MovieCharacter.class)
+		MovieCharacter actual = response.path("me").entity(MovieCharacter.class)
 				.isEqualTo(luke)
 				.isNotEqualTo(han)
 				.satisfies(personRef::set)
@@ -115,7 +115,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		assertThat(actual.getName()).isEqualTo("Luke Skywalker");
 
-		spec.path("")
+		response.path("")
 				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
 				.isEqualTo(Collections.singletonMap("me", luke));
 
@@ -133,13 +133,13 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				"  }" +
 				"}");
 
-		GraphQlTester.ResponseSpec spec = graphQlTester().document(document).execute();
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
 		MovieCharacter han = MovieCharacter.create("Han Solo");
 		MovieCharacter leia = MovieCharacter.create("Leia Organa");
 		MovieCharacter jabba = MovieCharacter.create("Jabba the Hutt");
 
-		List<MovieCharacter> actual = spec.path("me.friends").entityList(MovieCharacter.class)
+		List<MovieCharacter> actual = response.path("me.friends").entityList(MovieCharacter.class)
 				.contains(han)
 				.containsExactly(han, leia)
 				.doesNotContain(jabba)
@@ -150,7 +150,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		assertThat(actual).containsExactly(han, leia);
 
-		spec.path("me.friends")
+		response.path("me.friends")
 				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
 				.containsExactly(han, leia);
 
@@ -168,14 +168,14 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		setMockResponse("{\"hero\": {\"name\":\"R2-D2\"}}");
 
-		GraphQlTester.ResponseSpec spec = graphQlTester().document(document)
+		GraphQlTester.Response response = graphQlTester().document(document)
 				.operationName("HeroNameAndFriends")
 				.variable("episode", "JEDI")
 				.variable("foo", "bar")
 				.variable("keyOnly", null)
 				.execute();
 
-		spec.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
+		response.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
 
 		RequestInput input = requestInput();
 		assertThat(input.getDocument()).contains(document);
