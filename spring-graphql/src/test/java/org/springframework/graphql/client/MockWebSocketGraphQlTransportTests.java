@@ -34,6 +34,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.web.TestWebSocketClient;
+import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.support.MapExecutionResult;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;

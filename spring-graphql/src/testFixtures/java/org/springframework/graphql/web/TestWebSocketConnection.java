@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.test.tester;
+package org.springframework.graphql.web;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -23,6 +23,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import reactor.core.Scannable;
 import reactor.core.publisher.Flux;
@@ -41,9 +43,17 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.adapter.AbstractWebSocketSession;
 
 /**
- * Copy of same class in spring-graphql tests.
+ * Emulates a WebSocket connection by connecting a client and a server handlers
+ * via two message {@link Sinks.Many sinks}, one for each end of the connection.
+ *
+ * <p>Use {@link TestWebSocketClient} to establish connections that can then be
+ * accessed through it.
+ *
+ * @author Rossen Stoyanchev
  */
-final class TestWebSocketConnection {
+public final class TestWebSocketConnection {
+
+	private static Log logger = LogFactory.getLog(TestWebSocketConnection.class);
 
 	private static final AtomicLong connectionIndex = new AtomicLong();
 
@@ -119,8 +129,8 @@ final class TestWebSocketConnection {
 	 */
 	Mono<Void> connect(WebSocketHandler clientHandler, WebSocketHandler serverHandler) {
 
-		Mono<Void> serverMono = invokeHandler(serverHandler, this.serverSession);
-		Mono<Void> clientMono = invokeHandler(clientHandler, this.clientSession);
+		Mono<Void> serverMono = invokeHandler(serverHandler, this.serverSession, false);
+		Mono<Void> clientMono = invokeHandler(clientHandler, this.clientSession, true);
 
 		Mono<Void> serverStatusMono = this.serverSession.closeStatus().then();
 		Mono<Void> clientStatusMono = this.clientSession.closeStatus().then();
@@ -131,10 +141,13 @@ final class TestWebSocketConnection {
 	/**
 	 * Handle the session and complete it when handling completes.
 	 */
-	private Mono<Void> invokeHandler(WebSocketHandler serverHandler, TestWebSocketSession session) {
-		return serverHandler.handle(session)
+	private Mono<Void> invokeHandler(WebSocketHandler handler, TestWebSocketSession session, boolean isClient) {
+		return handler.handle(session)
 				.then(Mono.defer(() -> session.close(CloseStatus.NORMAL)))
-				.onErrorResume(ex -> session.close(CloseStatus.PROTOCOL_ERROR).then(Mono.error(ex)));
+				.onErrorResume(ex -> {
+					logger.error("Unhandled " + (isClient ? "client" : "server") + " error: " + ex.getMessage());
+					return session.close(CloseStatus.PROTOCOL_ERROR).then(Mono.error(ex));
+				});
 	}
 
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.client;
+package org.springframework.graphql.web;
 
 import java.net.URI;
 import java.util.List;
@@ -37,7 +37,7 @@ import org.springframework.web.reactive.socket.client.WebSocketClient;
  *
  * @author Rossen Stoyanchev
  */
-final class TestWebSocketClient implements WebSocketClient {
+public final class TestWebSocketClient implements WebSocketClient {
 
 	private final WebSocketHandler serverHandler;
 

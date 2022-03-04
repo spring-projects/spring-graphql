@@ -28,6 +28,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.web.TestWebSocketClient;
+import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
