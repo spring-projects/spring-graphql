@@ -124,7 +124,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		private final Configuration jsonPathConfig;
 
 		DefaultRequest(Mono<String> documentMono, GraphQlTransport transport, Configuration jsonPathConfig) {
-			Assert.notNull(documentMono, "'documentMono' is required");
+			Assert.notNull(documentMono, "'document' is required");
 			this.documentMono = documentMono;
 			this.transport = transport;
 			this.jsonPathConfig = jsonPathConfig;
@@ -177,34 +177,34 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final ExecutionResult result;
 
-		private final DocumentContext jsonPathDocument;
+		private final DocumentContext jsonPathDoc;
 
 		private final List<GraphQLError> errors;
 
 		private DefaultResponse(ExecutionResult result, Configuration jsonPathConfig) {
 			this.result = result;
-			this.jsonPathDocument = JsonPath.parse(result.toSpecification(), jsonPathConfig);
+			this.jsonPathDoc = JsonPath.parse(result.toSpecification(), jsonPathConfig);
 			this.errors = result.getErrors();
 		}
 
 		@Override
 		public <D> D toEntity(String path, Class<D> entityType) {
-			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
+			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> D toEntity(String path, ParameterizedTypeReference<D> entityType) {
-			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
+			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(String path, Class<D> elementType) {
-			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
+			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(String path, ParameterizedTypeReference<D> elementType) {
-			return this.jsonPathDocument.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
+			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		private static JsonPath initJsonPath(String path) {
