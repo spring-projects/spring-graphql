@@ -18,26 +18,34 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.jayway.jsonpath.Configuration;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.support.DocumentSource;
+import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 
 /**
- * Contract for testing GraphQL requests.
+ * Define a workflow to test GraphQL requests that is independent of the
+ * underlying transport.
  *
- * <p>The workflow declared to prepare, execute, and verify requests is not tied
- * to any specific underlying transport. Use {@link WebGraphQlTester} to test
- * GraphQL requests over a Web transport. This class can also be used to perform
- * calls directly on {@link graphql.GraphQL}, without a transport, via
- * {@link GraphQlService}.
+ * <p>To test using a client that connects to a server, with or without a live
+ * server, see {@code GraphQlTester} extensions:
+ * <ul>
+ * <li>{@link HttpGraphQlTester}
+ * <li>{@link WebSocketGraphQlTester}
+ * </ul>
+ *
+ * <p>To test on the server side, without a client, see the following:
+ * <ul>
+ * <li>{@link GraphQlServiceTester}
+ * <li>{@link WebGraphQlTester}
+ * </ul>
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -45,49 +53,49 @@ import org.springframework.lang.Nullable;
 public interface GraphQlTester {
 
 	/**
-	 * Prepare to perform a GraphQL request with the given operation which may
-	 * be a query, mutation, or a subscription.
-	 * @param query the operation to be performed
+	 * Start defining a GraphQL request with the given document, which is the
+	 * textual representation of an operation (or operations) to perform,
+	 * including selection sets and fragments.
+	 * @param document the document for the request
 	 * @return spec for response assertions
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	RequestSpec<?> query(String query);
+	RequestSpec<?> document(String document);
 
 	/**
-	 * Refer to a query by name where the given name is to look for a file with
-	 * the same name and extension {@code ".graphql"} or {@code ".gql"} under
-	 * classpath location {@code "graphql/"}.
+	 * Variant of {@link #document(String)} that uses the given key to resolve
+	 * the GraphQL document from a file, or in another way with the help of the
+	 * {@link DocumentSource} that the client is configured with.
 	 * @return spec for response assertions
-	 * @throws IllegalArgumentException if the queryName cannot be resolved
+	 * @throws IllegalArgumentException if the documentName cannot be resolved
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	RequestSpec<?> queryName(String queryName);
+	RequestSpec<?> documentName(String documentName);
+
+	/**
+	 * Create a builder initialized from the configuration of "this" tester.
+	 * Use it to build a new, independently configured instance.
+	 */
+	Builder<?> mutate();
 
 
 	/**
-	 * Create a {@code GraphQlTester} that performs GraphQL requests through the
-	 * given {@link GraphQlService}.
-	 * @param service the service to execute requests with
-	 * @return the created {@code GraphQlTester}
+	 * Create a builder with a custom {@code GraphQlTransport}.
+	 * <p>For most cases, use a transport specific extension such as
+	 * {@link HttpGraphQlTester} or {@link WebSocketGraphQlTester}. This method
+	 * is for use with a custom {@code GraphQlTransport}.
+	 * @param transport the transport to execute requests with
+	 * @return the builder for further initialization
 	 */
-	static GraphQlTester create(GraphQlService service) {
-		return builder(service).build();
-	}
-
-	/**
-	 * Return a builder with options to initialize a {@code GraphQlTester}.
-	 * @param service the service to execute requests with
-	 * @return the builder to use
-	 */
-	static Builder<?> builder(GraphQlService service) {
-		return new DefaultGraphQlTesterBuilder(service);
+	static GraphQlTester.Builder<?> builder(GraphQlTransport transport) {
+		return new DefaultGraphQlTester.Builder(transport);
 	}
 
 
 	/**
 	 * A builder to create a {@link GraphQlTester} instance.
 	 */
-	interface Builder<T extends Builder<T>> {
+	interface Builder<B extends Builder<B>> {
 
 		/**
 		 * Configure a global {@link ErrorSpec#filter(Predicate) filter} that
@@ -95,26 +103,21 @@ public interface GraphQlTester {
 		 * @param predicate the error filter to add
 		 * @return the same builder instance
 		 */
-		T errorFilter(Predicate<GraphQLError> predicate);
+		B errorFilter(Predicate<GraphQLError> predicate);
 
 		/**
-		 * Provide JSONPath configuration settings, including a
-		 * {@link com.jayway.jsonpath.spi.json.JsonProvider} as well as a
-		 * {@link com.jayway.jsonpath.spi.mapper.MappingProvider} that are used
-		 * to serialize and deserialize GraphQL JSON content.
-		 * <p>By default the configuration is to use Jackson JSON if it is
-		 * present on the classpath.
-		 * @param config the JSONPath configuration to use
-		 * @return the same builder instance
+		 * Configure a {@link DocumentSource} for use with
+		 * {@link #documentName(String)} for resolving a document by name.
+		 * <p>By default, {@link ResourceDocumentSource} is used.
 		 */
-		T jsonPathConfig(Configuration config);
+		B documentSource(DocumentSource contentLoader);
 
 		/**
 		 * Max amount of time to wait for a GraphQL response.
 		 * <p>By default this is set to 5 seconds.
 		 * @param timeout the response timeout value
 		 */
-		T responseTimeout(Duration timeout);
+		B responseTimeout(Duration timeout);
 
 		/**
 		 * Build the {@code GraphQlTester}.
@@ -173,13 +176,6 @@ public interface GraphQlTester {
 		 * @return this request spec
 		 */
 		T variable(String name, @Nullable Object value);
-
-		/**
-		 * Set the locale to associate with the request.
-		 * @param locale the locale to use
-		 * @return this request spec
-		 */
-		T locale(Locale locale);
 
 	}
 

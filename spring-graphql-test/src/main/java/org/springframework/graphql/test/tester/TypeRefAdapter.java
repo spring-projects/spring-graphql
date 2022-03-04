@@ -24,16 +24,16 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 
 /**
- * Adapter for a JSONPath {@link TypeRef} with a {@link #getType() type} that
- * returns fixed type information rather than obtained from the generic type
- * declaration.
+ * Adapt a JSONPath {@link TypeRef} to {@link ParameterizedTypeReference} and
+ * {@link ResolvableType} for classes with generics.
  *
- * @param <T> the referenced type
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 final class TypeRefAdapter<T> extends TypeRef<T> {
 
 	private final Type type;
+
 
 	TypeRefAdapter(Class<T> clazz) {
 		this.type = clazz;
@@ -50,6 +50,7 @@ final class TypeRefAdapter<T> extends TypeRef<T> {
 	TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
 		this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
 	}
+
 
 	@Override
 	public Type getType() {

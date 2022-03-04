@@ -16,23 +16,29 @@
 
 package org.springframework.graphql.test.tester;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.TypeRef;
+import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.test.util.AssertionErrors;
 import org.springframework.test.util.JsonExpectationsHelper;
@@ -42,98 +48,158 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * Default implementation of {@link GraphQlTester}.
+ * Default {@link GraphQlTester} implementation with the logic to initialize
+ * requests and handle responses. It is transport agnostic and depends on a
+ * {@link GraphQlTransport} to execute requests with.
+ *
+ * <p>This class is final but works with any transport.
  *
  * @author Rossen Stoyanchev
  */
-class DefaultGraphQlTester implements GraphQlTester {
+final class DefaultGraphQlTester implements GraphQlTester {
 
-	private final RequestStrategy requestStrategy;
+	private final GraphQlTransport transport;
 
-	private final Function<String, String> queryNameResolver;
+	@Nullable
+	private final Predicate<GraphQLError> errorFilter;
+
+	private final Configuration jsonPathConfig;
+
+	private final DocumentSource documentSource;
+
+	private final Duration responseTimeout;
+
+	private final Consumer<GraphQlTester.Builder<?>> builderInitializer;
 
 
-	DefaultGraphQlTester(RequestStrategy requestStrategy, Function<String, String> queryNameResolver) {
-		Assert.notNull(requestStrategy, "RequestStrategy is required.");
-		Assert.notNull(queryNameResolver, "'queryNameResolver' is required.");
-		this.requestStrategy = requestStrategy;
-		this.queryNameResolver = queryNameResolver;
+	/**
+	 * Package private constructor for use from {@link AbstractGraphQlTesterBuilder}.
+	 */
+	DefaultGraphQlTester(
+			GraphQlTransport transport, @Nullable Predicate<GraphQLError> errorFilter,
+			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout,
+			Consumer<GraphQlTester.Builder<?>> builderInitializer) {
+
+		this.transport = transport;
+		this.errorFilter = errorFilter;
+		this.jsonPathConfig = jsonPathConfig;
+		this.documentSource = documentSource;
+		this.responseTimeout = timeout;
+		this.builderInitializer = builderInitializer;
 	}
 
 
 	@Override
-	public RequestSpec<?> query(String query) {
-		return new DefaultRequestSpec(this.requestStrategy, query);
+	public RequestSpec<?> document(String document) {
+		return new DefaultRequestSpec(document);
 	}
 
 	@Override
-	public RequestSpec<?> queryName(String queryName) {
-		return query(this.queryNameResolver.apply(queryName));
+	public RequestSpec<?> documentName(String documentName) {
+		String document = this.documentSource.getDocument(documentName).block(this.responseTimeout);
+		Assert.notNull(document, "Expected document content or an error");
+		return document(document);
+	}
+
+	@Override
+	public Builder mutate() {
+		Builder builder = new Builder(this.transport);
+		this.builderInitializer.accept(builder);
+		return builder;
 	}
 
 
 	/**
-	 * Factory for {@link GraphQlTester.ResponseSpec}, for use from
-	 * {@link RequestStrategy} implementations.
-	 *
-	 * @param documentContext the parsed response content
-	 * @param errorFilter a globally defined filter for expected errors (to be ignored)
-	 * @param assertDecorator decorator to apply around assertions, e.g. to add extra
+	 * Default {@link GraphQlTester.Builder} with a given transport.
 	 */
-	static GraphQlTester.ResponseSpec createResponseSpec(
-			DocumentContext documentContext, @Nullable Predicate<GraphQLError> errorFilter,
-			Consumer<Runnable> assertDecorator) {
+	static final class Builder extends AbstractGraphQlTesterBuilder<Builder> {
 
-		return new DefaultResponseSpec(documentContext, errorFilter, assertDecorator);
+		private final GraphQlTransport transport;
+
+		Builder(GraphQlTransport transport) {
+			this.transport = transport;
+		}
+
+		@Override
+		public GraphQlTester build() {
+			return super.buildGraphQlTester(this.transport);
+		}
+
 	}
 
 
 	/**
-	 * {@link RequestSpec} that collects the query, operationName, and variables.
+	 * {@link RequestSpec} that gathers the document, operationName, and variables.
 	 */
-	private static final class DefaultRequestSpec
-			extends GraphQlTesterRequestSpecSupport implements RequestSpec<DefaultRequestSpec> {
+	private final class DefaultRequestSpec implements RequestSpec<DefaultRequestSpec> {
 
-		private final RequestStrategy requestStrategy;
+		private final String document;
 
-		private DefaultRequestSpec(RequestStrategy requestStrategy, String query) {
-			super(query);
-			Assert.notNull(requestStrategy, "RequestStrategy is required");
-			this.requestStrategy = requestStrategy;
+		@Nullable
+		private String operationName;
+
+		private final Map<String, Object> variables = new LinkedHashMap<>();
+
+		private DefaultRequestSpec(String document) {
+			Assert.notNull(document, "`document` is required");
+			this.document = document;
 		}
 
 		@Override
 		public DefaultRequestSpec operationName(@Nullable String name) {
-			setOperationName(name);
+			this.operationName = name;
 			return this;
 		}
 
 		@Override
 		public DefaultRequestSpec variable(String name, @Nullable Object value) {
-			addVariable(name, value);
+			this.variables.put(name, value);
 			return this;
 		}
 
-		@Override
-		public DefaultRequestSpec locale(Locale locale) {
-			setLocale(locale);
-			return this;
-		}
-
+		@SuppressWarnings("ConstantConditions")
 		@Override
 		public ResponseSpec execute() {
-			return this.requestStrategy.execute(createRequestInput());
+			GraphQlRequest request = createRequest();
+			return transport.execute(request)
+					.map(result -> createResponseSpec(result, assertDecorator(request)))
+					.block(responseTimeout);
 		}
 
 		@Override
 		public void executeAndVerify() {
-			verify(execute());
+			execute().path("$.errors").valueIsEmpty();
 		}
 
 		@Override
 		public SubscriptionSpec executeSubscription() {
-			return this.requestStrategy.executeSubscription(createRequestInput());
+			GraphQlRequest request = createRequest();
+			return () -> transport.executeSubscription(request)
+					.map(result -> createResponseSpec(result, assertDecorator(request)));
 		}
+
+		private GraphQlRequest createRequest() {
+			return new GraphQlRequest(this.document, this.operationName, this.variables);
+		}
+
+		private GraphQlTester.ResponseSpec createResponseSpec(
+				ExecutionResult result, Consumer<Runnable> assertDecorator) {
+
+			DocumentContext jsonDocument = JsonPath.parse(result.toSpecification(), jsonPathConfig);
+			return new DefaultResponseSpec(jsonDocument, errorFilter, assertDecorator);
+		}
+
+		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {
+			return (assertion) -> {
+				try {
+					assertion.run();
+				}
+				catch (AssertionError ex) {
+					throw new AssertionError(ex.getMessage() + "\nRequest: " + request, ex);
+				}
+			};
+		}
+
 	}
 
 
