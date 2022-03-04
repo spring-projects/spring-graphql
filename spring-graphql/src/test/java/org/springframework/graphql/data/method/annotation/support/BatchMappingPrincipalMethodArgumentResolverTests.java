@@ -94,8 +94,8 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 	private void testBatchLoading(PrincipalCourseController controller, Function<Context, Context> contextWriter) {
 		Mono<RequestOutput> resultMono = Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> {
-					String query = "{ courses { id instructor { id } } }";
-					return createGraphQlService(controller).execute(new TestRequestInput(query));
+					String document = "{ courses { id instructor { id } } }";
+					return createGraphQlService(controller).execute(TestRequestInput.forDocument(document));
 				})
 				.contextWrite(contextWriter);
 

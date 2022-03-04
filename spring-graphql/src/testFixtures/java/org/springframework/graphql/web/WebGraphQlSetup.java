@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.web;
 
 import org.springframework.graphql.execution.ThreadLocalAccessor;
-import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInterceptor;
 
 /**
  * Workflow that results in the creation of a {@link WebGraphQlHandler} or

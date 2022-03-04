@@ -69,7 +69,7 @@ public class ClassNameTypeResolverTests {
 
 	@Test
 	void typeResolutionViaSuperHierarchy() {
-		String query = "" +
+		String document = "" +
 				"query Animals {" +
 				"  animals {" +
 				"    __typename" +
@@ -85,7 +85,7 @@ public class ClassNameTypeResolverTests {
 
 		Mono<RequestOutput> resultMono = graphQlSetup.queryFetcher("animals", env -> animalList)
 				.toGraphQlService()
-				.execute(new TestRequestInput(query));
+				.execute(TestRequestInput.forDocument(document));
 
 		GraphQlResponse response = GraphQlResponse.from(resultMono);
 		for (int i = 0; i < animalList.size(); i++) {
@@ -106,7 +106,7 @@ public class ClassNameTypeResolverTests {
 
 	@Test
 	void typeResolutionViaMapping() {
-		String query = "" +
+		String document = "" +
 				"query Sightings {" +
 				"  sightings {" +
 				"    __typename" +
@@ -128,7 +128,7 @@ public class ClassNameTypeResolverTests {
 		Mono<RequestOutput> result = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
 				.typeResolver(typeResolver)
 				.toGraphQlService()
-				.execute(new TestRequestInput(query));
+				.execute(TestRequestInput.forDocument(document));
 
 		GraphQlResponse response = GraphQlResponse.from(result);
 		for (int i = 0; i < animalAndPlantList.size(); i++) {

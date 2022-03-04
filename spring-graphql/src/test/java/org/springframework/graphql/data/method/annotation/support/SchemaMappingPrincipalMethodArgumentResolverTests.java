@@ -151,7 +151,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 	}
 
 	private Mono<RequestOutput> executeAsync(
-			String schema, String op, Function<Context, Context> contextWriter) {
+			String schema, String document, Function<Context, Context> contextWriter) {
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.registerBean(GreetingController.class, () -> greetingController);
@@ -162,7 +162,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 				.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
-				.flatMap(aLong -> graphQlService.execute(new TestRequestInput(op)))
+				.flatMap(aLong -> graphQlService.execute(TestRequestInput.forDocument(document)))
 				.contextWrite(contextWriter);
 	}
 

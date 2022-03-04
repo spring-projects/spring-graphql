@@ -16,8 +16,6 @@
 
 package org.springframework.graphql;
 
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -31,12 +29,13 @@ public class TestRequestInput extends RequestInput {
 	private static final AtomicLong idIndex = new AtomicLong();
 
 
-	public TestRequestInput(String document) {
+	private TestRequestInput(String document) {
 		super(document, null, null, String.valueOf(idIndex.incrementAndGet()), null);
 	}
 
-	public TestRequestInput(String doc, String operationName, Map<String, Object> vars, Locale locale, String id) {
-		super(doc, operationName, vars, id, locale);
+
+	public static RequestInput forDocument(String document) {
+		return new TestRequestInput(document);
 	}
 
 }

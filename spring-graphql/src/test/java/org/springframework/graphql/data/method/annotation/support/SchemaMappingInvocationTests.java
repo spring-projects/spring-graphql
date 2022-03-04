@@ -71,7 +71,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
+		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
 		Book book = GraphQlResponse.from(resultMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
@@ -91,7 +91,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
+		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -108,7 +108,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
+		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedArguments", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -125,7 +125,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
+		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
 		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -144,7 +144,7 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
-		RequestInput requestInput = new TestRequestInput(document);
+		RequestInput requestInput = TestRequestInput.forDocument(document);
 		requestInput.configureExecutionInput((executionInput, builder) -> {
 			contextRef.set(executionInput.getGraphQLContext());
 			return executionInput;
@@ -170,7 +170,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
+		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
 		Author author = GraphQlResponse.from(resultMono).toEntity("addAuthor", Author.class);
 		assertThat(author.getId()).isEqualTo(99);
@@ -187,7 +187,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(new TestRequestInput(document));
+		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
 		Flux<Book> bookFlux = GraphQlResponse.forSubscription(resultMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));

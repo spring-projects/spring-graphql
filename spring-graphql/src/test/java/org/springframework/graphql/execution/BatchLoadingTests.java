@@ -48,7 +48,7 @@ public class BatchLoadingTests {
 
 	@Test
 	void batchLoader() {
-		String query = "{ " +
+		String document = "{ " +
 				"  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
 				"    author {" +
 				"      firstName, " +
@@ -76,7 +76,7 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<RequestOutput> resultMono = service.execute(new TestRequestInput(query));
+		Mono<RequestOutput> resultMono = service.execute(TestRequestInput.forDocument(document));
 
 		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);
