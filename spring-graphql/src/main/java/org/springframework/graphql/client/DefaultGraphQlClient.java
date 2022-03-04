@@ -15,6 +15,7 @@
  */
 package org.springframework.graphql.client;
 
+import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +24,14 @@ import java.util.function.Consumer;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.TypeRef;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
@@ -229,4 +232,34 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	}
 
+
+	/**
+	 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
+	 */
+	private static final class TypeRefAdapter<T> extends TypeRef<T> {
+
+		private final Type type;
+
+		TypeRefAdapter(Class<T> clazz) {
+			this.type = clazz;
+		}
+
+		TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
+			this.type = typeReference.getType();
+		}
+
+		TypeRefAdapter(Class<?> clazz, Class<?> generic) {
+			this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
+		}
+
+		TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
+			this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
+		}
+
+		@Override
+		public Type getType() {
+			return this.type;
+		}
+
+	}
 }

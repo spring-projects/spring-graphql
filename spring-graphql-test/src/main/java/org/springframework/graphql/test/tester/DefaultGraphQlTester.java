@@ -16,27 +16,26 @@
 
 package org.springframework.graphql.test.tester;
 
+import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.TypeRef;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
@@ -201,18 +200,13 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	 */
 	private final static class ResponseDelegate {
 
-		private static final TypeRef<List<TestGraphQlError>> ERROR_LIST_TYPE = new TypeRef<List<TestGraphQlError>>() {};
-
-		private static final JsonPath ERRORS_PATH = JsonPath.compile("$.errors");
-
-		private static final Predicate<GraphQLError> MATCH_ALL_PREDICATE = (error) -> true;
-
-
 		private final DocumentContext jsonDoc;
 
 		private final Supplier<String> jsonContent;
 
-		private final List<TestGraphQlError> errors;
+		private final List<GraphQLError> errors;
+
+		private final List<GraphQLError> unexpectedErrors;
 
 		private final Consumer<Runnable> assertDecorator;
 
@@ -223,18 +217,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 			this.jsonDoc = JsonPath.parse(result.toSpecification(), jsonPathConfig);
 			this.jsonContent = this.jsonDoc::jsonString;
-			this.errors = readErrors(this.jsonDoc);
+			this.errors = result.getErrors();
+			this.unexpectedErrors = new ArrayList<>(this.errors);
 			this.assertDecorator = assertDecorator;
 
-			filterErrors(errorFilter);
-		}
-
-		private static List<TestGraphQlError> readErrors(DocumentContext documentContext) {
-			try {
-				return documentContext.read(ERRORS_PATH, ERROR_LIST_TYPE);
-			}
-			catch (PathNotFoundException ex) {
-				return Collections.emptyList();
+			if (errorFilter != null) {
+				filterErrors(errorFilter);
 			}
 		}
 
@@ -260,39 +248,34 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			this.assertDecorator.accept(task);
 		}
 
-		boolean filterErrors(@Nullable Predicate<GraphQLError> predicate) {
+		boolean filterErrors(Predicate<GraphQLError> predicate) {
 			boolean filtered = false;
-			if (predicate != null) {
-				for (TestGraphQlError error : this.errors) {
-					filtered |= error.apply(predicate);
+			for (GraphQLError error : this.errors) {
+				if (predicate.test(error)) {
+					this.unexpectedErrors.remove(error);
+					filtered = true;
 				}
 			}
 			return filtered;
 		}
 
-		void expectErrors(@Nullable Predicate<GraphQLError> predicate) {
+		void expectErrors(Predicate<GraphQLError> predicate) {
 			boolean filtered = filterErrors(predicate);
 			this.assertDecorator.accept(() -> AssertionErrors.assertTrue("No matching errors.", filtered));
 		}
 
 		void consumeErrors(Consumer<List<GraphQLError>> consumer) {
-			filterErrors(MATCH_ALL_PREDICATE);
-			consumer.accept(new ArrayList<>(this.errors));
+			filterErrors(error -> true);
+			consumer.accept(this.errors);
 		}
 
 		void verifyErrors() {
-			List<TestGraphQlError> unexpected = this.errors.stream()
-					.filter(error -> !error.isExpected())
-					.collect(Collectors.toList());
-
-			this.assertDecorator
-					.accept(() -> AssertionErrors.assertTrue(
-							"Response has " + unexpected.size() + " unexpected error(s)"
-									+ ((unexpected.size() != this.errors.size())
-									? " of " + this.errors.size() + " total" : "")
-									+ ". " + "If expected, please use ResponseSpec#errors to filter them out: "
-									+ unexpected,
-							CollectionUtils.isEmpty(unexpected)));
+			this.assertDecorator.accept(() ->
+					AssertionErrors.assertTrue(
+							"Response has " + this.unexpectedErrors.size() + " unexpected error(s) " +
+									"of " + this.errors.size() + " total. " +
+									"If expected, please filter them out: " + this.unexpectedErrors,
+							CollectionUtils.isEmpty(this.unexpectedErrors)));
 		}
 	}
 
@@ -628,6 +611,37 @@ final class DefaultGraphQlTester implements GraphQlTester {
 					getEntity().size() > boundary));
 			return this;
 		}
+	}
+
+
+	/**
+	 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
+	 */
+	private static final class TypeRefAdapter<T> extends TypeRef<T> {
+
+		private final Type type;
+
+		TypeRefAdapter(Class<T> clazz) {
+			this.type = clazz;
+		}
+
+		TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
+			this.type = typeReference.getType();
+		}
+
+		TypeRefAdapter(Class<?> clazz, Class<?> generic) {
+			this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
+		}
+
+		TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
+			this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
+		}
+
+		@Override
+		public Type getType() {
+			return this.type;
+		}
+
 	}
 
 }

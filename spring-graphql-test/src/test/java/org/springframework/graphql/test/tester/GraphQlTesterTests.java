@@ -193,7 +193,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		setMockResponse(GraphqlErrorBuilder.newError().message("Invalid query").build());
 
 		assertThatThrownBy(() -> graphQlTester().document(document).executeAndVerify())
-				.hasMessageContaining("Response has 1 unexpected error(s).");
+				.hasMessageContaining("Response has 1 unexpected error(s)");
 
 		assertThat(requestInput().getDocument()).contains(document);
 	}
@@ -205,7 +205,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		setMockResponse(GraphqlErrorBuilder.newError().message("Invalid query").build());
 
 		assertThatThrownBy(() -> graphQlTester().document(document).execute().path("me"))
-				.hasMessageContaining("Response has 1 unexpected error(s).");
+				.hasMessageContaining("Response has 1 unexpected error(s)");
 
 		assertThat(requestInput().getDocument()).contains(document);
 	}

@@ -29,7 +29,6 @@ import graphql.language.SourceLocation;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Implementation of {@link GraphQLError} backed by a {@link Map}.
@@ -63,8 +62,8 @@ public final class MapGraphQlError implements GraphQLError {
 						(int) map.getOrDefault("column", 0),
 						(String) map.get("sourceName")))
 				.collect(Collectors.toList());
-
 	}
+
 
 	@Override
 	@Nullable
