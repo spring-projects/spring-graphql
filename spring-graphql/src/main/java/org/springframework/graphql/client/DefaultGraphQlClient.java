@@ -52,17 +52,17 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final DocumentSource documentSource;
 
-	private final Consumer<GraphQlClient.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 
 	DefaultGraphQlClient(
 			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource,
-			Consumer<GraphQlClient.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
 		Assert.notNull(transport, "GraphQlTransport is required");
 		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
 		Assert.notNull(documentSource, "DocumentSource is required");
-		Assert.notNull(documentSource, "`builderInitializer` is required");
+		Assert.notNull(builderInitializer, "`builderInitializer` is required");
 
 		this.transport = transport;
 		this.jsonPathConfig = jsonPathConfig;

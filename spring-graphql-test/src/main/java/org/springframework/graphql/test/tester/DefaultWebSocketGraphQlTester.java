@@ -25,6 +25,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.client.CodecMappingProvider;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.client.WebSocketGraphQlClient;
@@ -44,12 +45,12 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 
 	private final WebSocketGraphQlClient webSocketGraphQlClient;
 
-	private final Consumer<GraphQlTester.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
 	DefaultWebSocketGraphQlTester(
 			GraphQlTester graphQlTester, WebSocketGraphQlClient webSocketGraphQlClient,
-			Consumer<GraphQlTester.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(graphQlTester);
 		this.webSocketGraphQlClient = webSocketGraphQlClient;
@@ -132,9 +133,19 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 
 		@Override
 		public WebSocketGraphQlTester build() {
+			registerJsonPathMappingProvider();
 			WebSocketGraphQlClient client = this.graphQlClientBuilder.build();
 			GraphQlTester graphQlTester = super.buildGraphQlTester(asTransport(client));
 			return new DefaultWebSocketGraphQlTester(graphQlTester, client, getBuilderInitializer());
+		}
+
+		private void registerJsonPathMappingProvider() {
+			this.graphQlClientBuilder.codecConfigurer(codecConfigurer -> {
+				configureJsonPathConfig(jsonPathConfig -> {
+					CodecMappingProvider provider = new CodecMappingProvider(codecConfigurer);
+					return jsonPathConfig.mappingProvider(provider);
+				});
+			});
 		}
 
 		/**

@@ -38,11 +38,11 @@ final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient imp
 
 	private final WebClient webClient;
 
-	private final Consumer<GraphQlClient.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 
 	DefaultHttpGraphQlClient(GraphQlClient graphQlClient, WebClient webClient,
-			Consumer<GraphQlClient.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
 		super(graphQlClient);
 
@@ -90,7 +90,6 @@ final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient imp
 			this.webClientBuilder = clientBuilder;
 		}
 
-
 		@Override
 		public Builder url(String url) {
 			this.webClientBuilder.baseUrl(url);
@@ -117,8 +116,8 @@ final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient imp
 		}
 
 		@Override
-		public Builder codecConfigurer(Consumer<CodecConfigurer> codecsConsumer) {
-			this.webClientBuilder.codecs(codecsConsumer::accept);
+		public Builder codecConfigurer(Consumer<CodecConfigurer> codecConfigurerConsumer) {
+			this.webClientBuilder.codecs(codecConfigurerConsumer::accept);
 			return this;
 		}
 
@@ -130,9 +129,20 @@ final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient imp
 
 		@Override
 		public HttpGraphQlClient build() {
+
+			registerJsonPathMappingProvider();
 			WebClient webClient = this.webClientBuilder.build();
+
 			GraphQlClient graphQlClient = super.buildGraphQlClient(new HttpGraphQlTransport(webClient));
 			return new DefaultHttpGraphQlClient(graphQlClient, webClient, getBuilderInitializer());
+		}
+
+		private void registerJsonPathMappingProvider() {
+			this.webClientBuilder.codecs(codecConfigurer ->
+					configureJsonPathConfig(config -> {
+						CodecMappingProvider provider = new CodecMappingProvider(codecConfigurer);
+						return config.mappingProvider(provider);
+					}));
 		}
 
 	}

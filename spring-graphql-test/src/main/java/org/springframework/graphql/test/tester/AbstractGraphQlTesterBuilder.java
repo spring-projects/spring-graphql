@@ -17,13 +17,15 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import graphql.GraphQLError;
 
+import org.springframework.graphql.client.AbstractGraphQlClientBuilder;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
@@ -47,13 +49,8 @@ import org.springframework.util.ClassUtils;
  */
 public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTesterBuilder<B>> implements GraphQlTester.Builder<B> {
 
-	private static final boolean jackson2Present;
-
-	static {
-		ClassLoader classLoader = AbstractGraphQlTesterBuilder.class.getClassLoader();
-		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader)
-				&& ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
-	}
+	private static final boolean jackson2Present = ClassUtils.isPresent(
+			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 	private static final Duration DEFAULT_RESPONSE_DURATION = Duration.ofSeconds(5);
 
@@ -62,6 +59,8 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	private Predicate<GraphQLError> errorFilter;
 
 	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
+
+	private Configuration jsonPathConfig = Configuration.builder().build();
 
 	private Duration responseTimeout = DEFAULT_RESPONSE_DURATION;
 
@@ -90,45 +89,57 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 		return (T) this;
 	}
 
+
+	// Protected methods for use from build() in subclasses
+
+
 	/**
-	 * Subclasses call this from {@link #build()} to provide the transport and get
-	 * the default {@code GraphQlTester} to delegate to for request execution.
+	 * Allow transport-specific subclass builders to register a JSON Path
+	 * {@link MappingProvider} that matches the JSON encoding/decoding they use.
 	 */
-	protected GraphQlTester buildGraphQlTester(GraphQlTransport transport) {
-		Assert.notNull(transport, "GraphQlTransport is required");
-		return new DefaultGraphQlTester(
-				transport, this.errorFilter, initJsonPathConfig(), this.documentSource, this.responseTimeout,
-				getBuilderInitializer());
+	protected void configureJsonPathConfig(Function<Configuration, Configuration> configurer) {
+		this.jsonPathConfig = configurer.apply(this.jsonPathConfig);
 	}
 
-	private Configuration initJsonPathConfig() {
-		// Allow configuring JSONPath with codecs from transport subclasses
-		return (jackson2Present ? Jackson2Configuration.create() : Configuration.builder().build());
+	/**
+	 * Build the default transport-agnostic client that subclasses can then wrap
+	 * with {@link AbstractDelegatingGraphQlTester}.
+	 */
+	protected GraphQlTester buildGraphQlTester(GraphQlTransport transport) {
+
+		if (jackson2Present) {
+			configureJsonPathConfig(Jackson2Configurer::configure);
+		}
+
+		return new DefaultGraphQlTester(transport, this.errorFilter,
+				this.jsonPathConfig, this.documentSource, this.responseTimeout, getBuilderInitializer());
 	}
 
 	/**
 	 * Subclasses call this from {@link #build()} to obtain a {@code Consumer} to
 	 * initialize new builder instances with, based on "this" builder.
 	 */
-	protected Consumer<GraphQlTester.Builder<?>> getBuilderInitializer() {
+	protected Consumer<AbstractGraphQlTesterBuilder<?>> getBuilderInitializer() {
 		return builder -> {
 			if (this.errorFilter != null) {
 				builder.errorFilter(this.errorFilter);
 			}
 			builder.documentSource(this.documentSource);
+			builder.configureJsonPathConfig(config -> this.jsonPathConfig);
 			builder.responseTimeout(this.responseTimeout);
 		};
 	}
 
 
-	private static class Jackson2Configuration {
+	private static class Jackson2Configurer {
 
-		static Configuration create() {
-			return Configuration.builder()
-					.jsonProvider(new JacksonJsonProvider())
-					.mappingProvider(new JacksonMappingProvider())
-					.build();
+		private static final MappingProvider defaultProvider = Configuration.defaultConfiguration().mappingProvider();
+
+		static Configuration configure(Configuration config) {
+			return (config.mappingProvider() != null && config.mappingProvider() != defaultProvider ? config :
+					config.mappingProvider(new JacksonMappingProvider()));
 		}
+
 	}
 
 }

@@ -60,7 +60,7 @@ public class MockWebSocketGraphQlTransportTests {
 
 	private final static Duration TIMEOUT = Duration.ofSeconds(5);
 
-	private static final WebSocketCodecDelegate CODEC_DELEGATE = new WebSocketCodecDelegate();
+	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate();
 
 
 	private final MockGraphQlWebSocketServer mockServer = new MockGraphQlWebSocketServer();
@@ -313,7 +313,7 @@ public class MockWebSocketGraphQlTransportTests {
 	 */
 	private static class UnexpectedResponseHandler implements WebSocketHandler {
 
-		private final WebSocketCodecDelegate codecDelegate = new WebSocketCodecDelegate();
+		private final CodecDelegate codecDelegate = new CodecDelegate();
 
 
 		@Override

@@ -34,11 +34,11 @@ final class DefaultGraphQlServiceTester extends AbstractDelegatingGraphQlTester 
 
 	private final GraphQlServiceTransport transport;
 
-	private final Consumer<GraphQlTester.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
 	DefaultGraphQlServiceTester(GraphQlTester tester, GraphQlServiceTransport transport,
-			Consumer<GraphQlTester.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(tester);
 

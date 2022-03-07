@@ -41,11 +41,11 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 
 	private final WebSocketGraphQlTransport transport;
 
-	private final Consumer<GraphQlClient.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 
 	DefaultWebSocketGraphQlClient(GraphQlClient delegate, WebSocketGraphQlTransport transport,
-			Consumer<GraphQlClient.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
 		super(delegate);
 
@@ -134,19 +134,28 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 		}
 
 		@Override
-		public Builder codecConfigurer(Consumer<CodecConfigurer> codecConsumer) {
-			codecConsumer.accept(this.codecConfigurer);
+		public Builder codecConfigurer(Consumer<CodecConfigurer> codecConfigurerConsumer) {
+			codecConfigurerConsumer.accept(this.codecConfigurer);
 			return this;
 		}
 
 		@Override
 		public WebSocketGraphQlClient build() {
 
+			registerJsonPathMappingProvider();
+
 			WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
 					this.url, this.headers, this.webSocketClient, this.codecConfigurer, null, payload -> {});
 
 			GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
 			return new DefaultWebSocketGraphQlClient(graphQlClient, transport, getBuilderInitializer());
+		}
+
+		private void registerJsonPathMappingProvider() {
+			configureJsonPathConfig(jsonPathConfig -> {
+				CodecMappingProvider provider = new CodecMappingProvider(this.codecConfigurer);
+				return jsonPathConfig.mappingProvider(provider);
+			});
 		}
 
 	}

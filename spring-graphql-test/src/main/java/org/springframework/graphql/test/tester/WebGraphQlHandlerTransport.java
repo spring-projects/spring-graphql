@@ -26,6 +26,7 @@ import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
 
 
@@ -43,11 +44,16 @@ final class WebGraphQlHandlerTransport extends AbstractDirectTransport {
 
 	private final WebGraphQlHandler graphQlHandler;
 
+	private final CodecConfigurer codecConfigurer;
 
-	WebGraphQlHandlerTransport(@Nullable URI url, HttpHeaders headers, WebGraphQlHandler graphQlHandler) {
+
+	WebGraphQlHandlerTransport(
+			@Nullable URI url, HttpHeaders headers, WebGraphQlHandler handler, CodecConfigurer configurer) {
+
 		this.url = (url != null ? url : URI.create(""));
 		this.headers.addAll(headers);
-		this.graphQlHandler = graphQlHandler;
+		this.graphQlHandler = handler;
+		this.codecConfigurer = configurer;
 	}
 
 
@@ -61,6 +67,10 @@ final class WebGraphQlHandlerTransport extends AbstractDirectTransport {
 
 	public WebGraphQlHandler getGraphQlHandler() {
 		return this.graphQlHandler;
+	}
+
+	public CodecConfigurer getCodecConfigurer() {
+		return this.codecConfigurer;
 	}
 
 

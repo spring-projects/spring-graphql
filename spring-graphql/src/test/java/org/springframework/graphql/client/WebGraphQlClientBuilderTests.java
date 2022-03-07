@@ -18,28 +18,38 @@ package org.springframework.graphql.client;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import graphql.ExecutionInput;
+import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.DecodingException;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
-import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebInterceptor;
-import org.springframework.graphql.web.WebOutput;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.http.codec.ClientCodecConfigurer;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
+import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
+import org.springframework.util.Assert;
+import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.HandlerStrategies;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -52,8 +62,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 
 /**
  * Tests for the builders of Web {@code GraphQlClient} extensions, using a
- * {@link WebInterceptor} to capture the WebInput on the server side, and return
- * with no handling.
+ * {@link WebInterceptor} to capture the WebInput on the server side, and
+ * optionally returning a mock response, or an empty response.
  *
  * <ul>
  * <li>{@link HttpGraphQlClient} via {@link HttpHandlerConnector} to {@link GraphQlHttpHandler}
@@ -162,7 +172,7 @@ public class WebGraphQlClientBuilderTests {
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void url(ClientBuilderSetup builderSetup) {
+	void urlEncoding(ClientBuilderSetup builderSetup) {
 
 		WebGraphQlClient client = builderSetup.initBuilder().url("/graphql one").build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
@@ -170,11 +180,39 @@ public class WebGraphQlClientBuilderTests {
 		assertThat(builderSetup.getWebInput().getUri().toString()).isEqualTo("/graphql%20one");
 	}
 
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void codecConfigurerRegistersJsonPathMappingProvider(ClientBuilderSetup builderSetup) {
+
+		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+
+		WebGraphQlClient.Builder<?> builder = builderSetup.initBuilder()
+				.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
+
+		String document = "{me {name}}";
+		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
+		builderSetup.setMockResponse(document,
+				ExecutionResultImpl.newExecutionResult()
+						.data(Collections.singletonMap("me", character))
+						.build());
+
+		WebGraphQlClient client = builder.build();
+		GraphQlClient.Response response = client.document(document).execute().block(TIMEOUT);
+
+		testDecoder.resetLastValue();
+		assertThat(testDecoder.getLastValue()).isNull();
+
+		assertThat(response).isNotNull();
+		assertThat(response.toEntity("me", MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
+		assertThat(testDecoder.getLastValue()).isEqualTo(character);
+	}
 
 
 	private interface ClientBuilderSetup {
 
 		WebGraphQlClient.Builder<?> initBuilder();
+
+		void setMockResponse(String document, ExecutionResult result);
 
 		WebInput getWebInput();
 
@@ -185,15 +223,35 @@ public class WebGraphQlClientBuilderTests {
 
 		private WebInput webInput;
 
+		private final Map<String, RequestOutput> responses = new HashMap<>();
+
+		public AbstractBuilderSetup() {
+
+			RequestOutput defaultResponse = new RequestOutput(
+					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
+					ExecutionResultImpl.newExecutionResult().build());
+
+			this.responses.put(DOCUMENT, defaultResponse);
+		}
+
 		protected WebGraphQlHandler webGraphQlHandler() {
-			return WebGraphQlHandler.builder(requestInput -> Mono.error(new UnsupportedOperationException()))
+			return WebGraphQlHandler.builder(requestInput -> {
+						String document = requestInput.getDocument();
+						RequestOutput output = this.responses.get(document);
+						Assert.notNull(output, "Unexpected request: " + document);
+						return Mono.just(output);
+					})
 					.interceptor((input, chain) -> {
 						this.webInput = input;
-						return Mono.just(new WebOutput(new RequestOutput(
-								ExecutionInput.newExecutionInput().query("{ notUsed }").build(),
-								ExecutionResultImpl.newExecutionResult().build())));
+						return chain.next(webInput);
 					})
 					.build();
+		}
+
+		@Override
+		public void setMockResponse(String document, ExecutionResult result) {
+			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
+			this.responses.put(document, new RequestOutput(executionInput, result));
 		}
 
 		@Override
@@ -228,5 +286,31 @@ public class WebGraphQlClientBuilderTests {
 		}
 
 	}
+
+
+	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
+
+		@Nullable
+		private Object lastValue;
+
+		@Nullable
+		Object getLastValue() {
+			return this.lastValue;
+		}
+
+		@Override
+		public Object decode(DataBuffer dataBuffer, ResolvableType targetType,
+				@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) throws DecodingException {
+
+			this.lastValue = super.decode(dataBuffer, targetType, mimeType, hints);
+			return this.lastValue;
+		}
+
+		void resetLastValue() {
+			this.lastValue = null;
+		}
+
+	}
+
 
 }

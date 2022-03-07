@@ -18,27 +18,37 @@ package org.springframework.graphql.test.tester;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import graphql.ExecutionInput;
+import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.DecodingException;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
-import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebInterceptor;
-import org.springframework.graphql.web.WebOutput;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.http.codec.ClientCodecConfigurer;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.util.Assert;
+import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -49,8 +59,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 
 /**
  * Tests for the builders of Web {@code GraphQlTester} extensions, using a
- * {@link WebInterceptor} to capture the WebInput on the server side, and return
- * with no handling.
+ * {@link WebInterceptor} to capture the WebInput on the server side, and
+ * optionally returning a mock response, or an empty response.
  *
  * <ul>
  * <li>{@link HttpGraphQlTester} via {@link WebTestClient} to {@link GraphQlHttpHandler}
@@ -156,10 +166,39 @@ public class WebGraphQlTesterBuilderTests {
 		assertThat(input.getDocument()).isEqualTo(DOCUMENT);
 	}
 
+	@ParameterizedTest
+	@MethodSource("argumentSource")
+	void codecConfigurerRegistersJsonPathMappingProvider(TesterBuilderSetup builderSetup) {
+
+		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+
+		WebGraphQlTester.Builder<?> builder = builderSetup.initBuilder()
+				.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
+
+		String document = "{me {name}}";
+		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
+		builderSetup.setMockResponse(document,
+				ExecutionResultImpl.newExecutionResult()
+						.data(Collections.singletonMap("me", character))
+						.build());
+
+		WebGraphQlTester client = builder.build();
+		GraphQlTester.Response response = client.document(document).execute();
+
+		testDecoder.resetLastValue();
+		assertThat(testDecoder.getLastValue()).isNull();
+
+		assertThat(response).isNotNull();
+		response.path("me").entity(MovieCharacter.class).isEqualTo(character);
+		assertThat(testDecoder.getLastValue()).isEqualTo(character);
+	}
+
 
 	private interface TesterBuilderSetup {
 
 		WebGraphQlTester.Builder<?> initBuilder();
+
+		void setMockResponse(String document, ExecutionResult result);
 
 		WebInput getWebInput();
 
@@ -170,20 +209,40 @@ public class WebGraphQlTesterBuilderTests {
 
 		private WebInput webInput;
 
+		private final Map<String, RequestOutput> responses = new HashMap<>();
+
+		public WebBuilderSetup() {
+
+			RequestOutput defaultResponse = new RequestOutput(
+					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
+					ExecutionResultImpl.newExecutionResult().build());
+
+			this.responses.put(DOCUMENT, defaultResponse);
+		}
+
 		@Override
 		public WebGraphQlTester.Builder<?> initBuilder() {
 			return WebGraphQlTester.builder(webGraphQlHandler());
 		}
 
 		protected WebGraphQlHandler webGraphQlHandler() {
-			return WebGraphQlHandler.builder(requestInput -> Mono.error(new UnsupportedOperationException()))
+			return WebGraphQlHandler.builder(requestInput -> {
+						String document = requestInput.getDocument();
+						RequestOutput output = this.responses.get(document);
+						Assert.notNull(output, "Unexpected request: " + document);
+						return Mono.just(output);
+					})
 					.interceptor((input, chain) -> {
 						this.webInput = input;
-						return Mono.just(new WebOutput(new RequestOutput(
-								ExecutionInput.newExecutionInput().query("{ notUsed }").build(),
-								ExecutionResultImpl.newExecutionResult().build())));
+						return chain.next(webInput);
 					})
 					.build();
+		}
+
+		@Override
+		public void setMockResponse(String document, ExecutionResult result) {
+			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
+			this.responses.put(document, new RequestOutput(executionInput, result));
 		}
 
 		@Override
@@ -213,6 +272,31 @@ public class WebGraphQlTesterBuilderTests {
 			ClientCodecConfigurer configurer = ClientCodecConfigurer.create();
 			WebSocketHandler handler = new GraphQlWebSocketHandler(webGraphQlHandler(), configurer, Duration.ofSeconds(5));
 			return WebSocketGraphQlTester.builder(URI.create(""), new TestWebSocketClient(handler));
+		}
+
+	}
+
+
+	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
+
+		@Nullable
+		private Object lastValue;
+
+		@Nullable
+		Object getLastValue() {
+			return this.lastValue;
+		}
+
+		@Override
+		public Object decode(DataBuffer dataBuffer, ResolvableType targetType,
+				@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) throws DecodingException {
+
+			this.lastValue = super.decode(dataBuffer, targetType, mimeType, hints);
+			return this.lastValue;
+		}
+
+		void resetLastValue() {
+			this.lastValue = null;
 		}
 
 	}

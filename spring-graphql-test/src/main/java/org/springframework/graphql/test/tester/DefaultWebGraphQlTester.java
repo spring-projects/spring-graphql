@@ -21,8 +21,10 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
+import org.springframework.graphql.client.CodecMappingProvider;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -38,11 +40,11 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 
 	private final WebGraphQlHandlerTransport transport;
 
-	private final Consumer<GraphQlTester.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
 	DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerTransport transport,
-			Consumer<GraphQlTester.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(tester);
 		this.transport = transport;
@@ -52,9 +54,7 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 
 	@Override
 	public Builder<?> mutate() {
-		Builder<?> builder = new Builder<>(this.transport.getGraphQlHandler());
-		builder.url(this.transport.getUrl());
-		builder.headers(headers -> headers.putAll(this.transport.getHeaders()));
+		Builder<?> builder = new Builder<>(this.transport);
 		this.builderInitializer.accept(builder);
 		return builder;
 	}
@@ -72,9 +72,18 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 
 		private final WebGraphQlHandler handler;
 
+		private CodecConfigurer codecConfigurer = ClientCodecConfigurer.create();
+
 		Builder(WebGraphQlHandler handler) {
 			Assert.notNull(handler, "WebGraphQlHandler is required");
 			this.handler = handler;
+		}
+
+		Builder(WebGraphQlHandlerTransport transport) {
+			this.url = transport.getUrl();
+			this.headers.putAll(transport.getHeaders());
+			this.handler = transport.getGraphQlHandler();
+			this.codecConfigurer = transport.getCodecConfigurer();
 		}
 
 		@Override
@@ -101,8 +110,8 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 		}
 
 		@Override
-		public B codecConfigurer(Consumer<CodecConfigurer> codecConsumer) {
-			// Ignore, no serialization needs at this level
+		public B codecConfigurer(Consumer<CodecConfigurer> codecConfigurerConsumer) {
+			codecConfigurerConsumer.accept(this.codecConfigurer);
 			return self();
 		}
 
@@ -113,9 +122,21 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 
 		@Override
 		public WebGraphQlTester build() {
-			WebGraphQlHandlerTransport transport = new WebGraphQlHandlerTransport(this.url, this.headers, this.handler);
+
+			registerJsonPathMappingProvider();
+
+			WebGraphQlHandlerTransport transport =
+					new WebGraphQlHandlerTransport(this.url, this.headers, this.handler, this.codecConfigurer);
+
 			GraphQlTester tester = super.buildGraphQlTester(transport);
 			return new DefaultWebGraphQlTester(tester, transport, getBuilderInitializer());
+		}
+
+		private void registerJsonPathMappingProvider() {
+			configureJsonPathConfig(jsonPathConfig -> {
+				CodecMappingProvider provider = new CodecMappingProvider(this.codecConfigurer);
+				return jsonPathConfig.mappingProvider(provider);
+			});
 		}
 
 	}

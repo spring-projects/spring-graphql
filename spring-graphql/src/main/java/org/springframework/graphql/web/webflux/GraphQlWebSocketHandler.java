@@ -61,7 +61,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	private final WebSocketCodecDelegate codecDelegate;
+	private final CodecDelegate codecDelegate;
 
 	private final Duration initTimeoutDuration;
 
@@ -78,7 +78,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 		this.graphQlHandler = graphQlHandler;
-		this.codecDelegate = new WebSocketCodecDelegate(codecConfigurer);
+		this.codecDelegate = new CodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
 	}
 
@@ -144,7 +144,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					}
 					return this.graphQlHandler.handleWebSocketInitialization(payload)
 							.defaultIfEmpty(Collections.emptyMap())
-							.map(ackPayload -> this.codecDelegate.encodeConnectionAckMessage(session, ackPayload))
+							.map(ackPayload -> this.codecDelegate.encodeConnectionAck(session, ackPayload))
 							.flux()
 							.onErrorResume(ex -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
 				default:
@@ -182,14 +182,14 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 
 		return outputFlux
-				.map(result -> this.codecDelegate.encodeNextMessage(session, id, result))
-				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeCompleteMessage(session, id)))
+				.map(result -> this.codecDelegate.encodeNext(session, id, result))
+				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeComplete(session, id)))
 				.onErrorResume(ex -> {
 						if (ex instanceof SubscriptionExistsException) {
 							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
 							return GraphQlStatus.close(session, status);
 						}
-						return Mono.fromCallable(() -> this.codecDelegate.encodeErrorMessage(session, id, ex));
+						return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
 				});
 	}
 

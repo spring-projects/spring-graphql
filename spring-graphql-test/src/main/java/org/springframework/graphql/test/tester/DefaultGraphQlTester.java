@@ -69,7 +69,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 	private final Duration responseTimeout;
 
-	private final Consumer<GraphQlTester.Builder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
 	/**
@@ -78,7 +78,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	DefaultGraphQlTester(
 			GraphQlTransport transport, @Nullable Predicate<GraphQLError> errorFilter,
 			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout,
-			Consumer<GraphQlTester.Builder<?>> builderInitializer) {
+			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
+
+		Assert.notNull(transport, "GraphQlTransport is required");
+		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
+		Assert.notNull(documentSource, "DocumentSource is required");
+		Assert.notNull(builderInitializer, "`builderInitializer` is required");
 
 		this.transport = transport;
 		this.errorFilter = errorFilter;

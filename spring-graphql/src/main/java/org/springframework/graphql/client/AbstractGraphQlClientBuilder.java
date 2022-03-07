@@ -17,16 +17,15 @@
 package org.springframework.graphql.client;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
-import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 
@@ -45,17 +44,13 @@ import org.springframework.util.ClassUtils;
  */
 public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClientBuilder<B>> implements GraphQlClient.Builder<B> {
 
-	private static final boolean jackson2Present;
-
-	static {
-		ClassLoader classLoader = AbstractGraphQlClientBuilder.class.getClassLoader();
-		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader)
-				&& ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
-	}
+	private static final boolean jackson2Present = ClassUtils.isPresent(
+			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 
-	@Nullable
-	private DocumentSource documentSource;
+	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
+
+	private Configuration jsonPathConfig = Configuration.builder().build();
 
 
 	/**
@@ -78,46 +73,52 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 		return (T) this;
 	}
 
+
+	// Protected methods for use from build() in subclasses
+
+
 	/**
-	 * Subclasses call this from {@link #build()} to provide the transport and get
-	 * the default {@code GraphQlClient to delegate to for request execution.
+	 * Allow transport-specific subclass builders to register a JSON Path
+	 * {@link MappingProvider} that matches the JSON encoding/decoding they use.
+	 */
+	protected void configureJsonPathConfig(Function<Configuration, Configuration> configurer) {
+		this.jsonPathConfig = configurer.apply(this.jsonPathConfig);
+	}
+
+	/**
+	 * Build the default transport-agnostic client that subclasses can then wrap
+	 * with {@link AbstractDelegatingGraphQlClient}.
 	 */
 	protected GraphQlClient buildGraphQlClient(GraphQlTransport transport) {
-		Assert.notNull(transport, "GraphQlTransport is required");
-		return new DefaultGraphQlClient(transport, initJsonPathConfig(), initDocumentSource(), getBuilderInitializer());
-	}
 
-	private Configuration initJsonPathConfig() {
-		// Allow configuring JSONPath with codecs from transport subclasses
-		return (jackson2Present ? Jackson2Configuration.create() : Configuration.builder().build());
-	}
+		if (jackson2Present) {
+			configureJsonPathConfig(Jackson2Configurer::configure);
+		}
 
-	private DocumentSource initDocumentSource() {
-		return (this.documentSource == null ?
-				new CachingDocumentSource(new ResourceDocumentSource()) : this.documentSource);
+		return new DefaultGraphQlClient(
+				transport, this.jsonPathConfig, this.documentSource, getBuilderInitializer());
 	}
 
 	/**
-	 * Subclasses call this from {@link #build()} to obtain a {@code Consumer} to
-	 * initialize new builder instances with, based on "this" builder.
+	 * Return a {@code Consumer} to initialize new builders from "this" builder.
 	 */
-	protected Consumer<GraphQlClient.Builder<?>> getBuilderInitializer() {
+	protected Consumer<AbstractGraphQlClientBuilder<?>> getBuilderInitializer() {
 		return builder -> {
-			if (this.documentSource != null) {
-				builder.documentSource(documentSource);
-			}
+			builder.documentSource(documentSource);
+			builder.configureJsonPathConfig(config -> this.jsonPathConfig);
 		};
 	}
 
 
-	private static class Jackson2Configuration {
+	private static class Jackson2Configurer {
 
-		static Configuration create() {
-			return Configuration.builder()
-					.jsonProvider(new JacksonJsonProvider())
-					.mappingProvider(new JacksonMappingProvider())
-					.build();
+		private static final MappingProvider defaultProvider = Configuration.defaultConfiguration().mappingProvider();
+
+		static Configuration configure(Configuration config) {
+			return (config.mappingProvider() != null && config.mappingProvider() != defaultProvider ? config :
+					config.mappingProvider(new JacksonMappingProvider()));
 		}
+
 	}
 
 }

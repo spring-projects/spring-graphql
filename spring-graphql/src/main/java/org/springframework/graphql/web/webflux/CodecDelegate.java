@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.client;
+package org.springframework.graphql.web.webflux;
+
+import graphql.ExecutionResult;
+import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -38,30 +40,23 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class WebSocketCodecDelegate {
+final class CodecDelegate {
 
 	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlWebSocketMessage.class);
 
-
-	private final CodecConfigurer configurer;
 
 	private final Decoder<?> decoder;
 
 	private final Encoder<?> encoder;
 
 
-	WebSocketCodecDelegate() {
-		this(ClientCodecConfigurer.create());
+	CodecDelegate(CodecConfigurer codecConfigurer) {
+		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
+		this.decoder = findJsonDecoder(codecConfigurer);
+		this.encoder = findJsonEncoder(codecConfigurer);
 	}
 
-	WebSocketCodecDelegate(CodecConfigurer configurer) {
-		Assert.notNull(configurer, "CodecConfigurer is required");
-		this.configurer = configurer;
-		this.decoder = initDecoder(configurer);
-		this.encoder = initEncoder(configurer);
-	}
-
-	private static Decoder<?> initDecoder(CodecConfigurer configurer) {
+	private static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
 		return configurer.getReaders().stream()
 				.filter((reader) -> reader.canRead(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
 				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
@@ -69,7 +64,7 @@ final class WebSocketCodecDelegate {
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
 	}
 
-	private static Encoder<?> initEncoder(CodecConfigurer configurer) {
+	private static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
 		return configurer.getWriters().stream()
 				.filter((writer) -> writer.canWrite(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
 				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
@@ -78,10 +73,22 @@ final class WebSocketCodecDelegate {
 	}
 
 
-	public CodecConfigurer getCodecConfigurer() {
-		return this.configurer;
+	public WebSocketMessage encodeConnectionAck(WebSocketSession session, Object ackPayload) {
+		return encode(session, GraphQlWebSocketMessage.connectionAck(ackPayload));
 	}
 
+	public WebSocketMessage encodeNext(WebSocketSession session, String id, ExecutionResult result) {
+		return encode(session, GraphQlWebSocketMessage.next(id, result));
+	}
+
+	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
+		GraphQLError error = GraphqlErrorBuilder.newError().message(ex.getMessage()).build();
+		return encode(session, GraphQlWebSocketMessage.error(id, error));
+	}
+
+	public WebSocketMessage encodeComplete(WebSocketSession session, String id) {
+		return encode(session, GraphQlWebSocketMessage.complete(id));
+	}
 
 	@SuppressWarnings("unchecked")
 	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
@@ -97,6 +104,5 @@ final class WebSocketCodecDelegate {
 		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
 		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}
-
 
 }

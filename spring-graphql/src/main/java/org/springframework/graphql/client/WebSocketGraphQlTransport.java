@@ -166,7 +166,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 */
 	private static class GraphQlSessionHandler implements WebSocketHandler {
 
-		private final WebSocketCodecDelegate codecDelegate;
+		private final CodecDelegate codecDelegate;
 
 		private final GraphQlWebSocketMessage connectionInitMessage;
 
@@ -180,7 +180,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		GraphQlSessionHandler(CodecConfigurer codecConfigurer,
 				@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler) {
 
-			this.codecDelegate = new WebSocketCodecDelegate(codecConfigurer);
+			this.codecDelegate = new CodecDelegate(codecConfigurer);
 			this.connectionInitMessage = GraphQlWebSocketMessage.connectionInit(connectionInitPayload);
 			this.connectionAckHandler = connectionAckHandler;
 			this.graphQlSessionSink = Sinks.unsafe().one();

@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.web.webflux;
-
-import graphql.ExecutionResult;
-import graphql.GraphQLError;
-import graphql.GraphqlErrorBuilder;
+package org.springframework.graphql.client;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -34,28 +32,36 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
- * WebFlux Support class for GraphQL over WebSocket handling.
+ * Delegate that can be embedded in a class to help with encoding and decoding
+ * GraphQL over WebSocket messages.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class WebSocketCodecDelegate {
+final class CodecDelegate {
 
 	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlWebSocketMessage.class);
 
+
+	private final CodecConfigurer codecConfigurer;
 
 	private final Decoder<?> decoder;
 
 	private final Encoder<?> encoder;
 
 
-	WebSocketCodecDelegate(CodecConfigurer codecConfigurer) {
-		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
-		this.decoder = initDecoder(codecConfigurer);
-		this.encoder = initEncoder(codecConfigurer);
+	CodecDelegate() {
+		this(ClientCodecConfigurer.create());
 	}
 
-	private static Decoder<?> initDecoder(CodecConfigurer configurer) {
+	CodecDelegate(CodecConfigurer configurer) {
+		Assert.notNull(configurer, "CodecConfigurer is required");
+		this.codecConfigurer = configurer;
+		this.decoder = findJsonDecoder(configurer);
+		this.encoder = findJsonEncoder(configurer);
+	}
+
+	static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
 		return configurer.getReaders().stream()
 				.filter((reader) -> reader.canRead(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
 				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
@@ -63,7 +69,7 @@ final class WebSocketCodecDelegate {
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
 	}
 
-	private static Encoder<?> initEncoder(CodecConfigurer configurer) {
+	static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
 		return configurer.getWriters().stream()
 				.filter((writer) -> writer.canWrite(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
 				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
@@ -72,36 +78,24 @@ final class WebSocketCodecDelegate {
 	}
 
 
-	@SuppressWarnings("ConstantConditions")
-	public GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
-		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
-		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
+	public CodecConfigurer getCodecConfigurer() {
+		return this.codecConfigurer;
 	}
 
-	public WebSocketMessage encodeConnectionAckMessage(WebSocketSession session, Object ackPayload) {
-		return encode(session, GraphQlWebSocketMessage.connectionAck(ackPayload));
-	}
-
-	public WebSocketMessage encodeNextMessage(WebSocketSession session, String id, ExecutionResult result) {
-		return encode(session, GraphQlWebSocketMessage.next(id, result));
-	}
-
-	public WebSocketMessage encodeErrorMessage(WebSocketSession session, String id, Throwable ex) {
-		GraphQLError error = GraphqlErrorBuilder.newError().message(ex.getMessage()).build();
-		return encode(session, GraphQlWebSocketMessage.error(id, error));
-	}
-
-	public WebSocketMessage encodeCompleteMessage(WebSocketSession session, String id) {
-		return encode(session, GraphQlWebSocketMessage.complete(id));
-	}
 
 	@SuppressWarnings("unchecked")
-	private  <T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
+	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
 
 		DataBuffer buffer = ((Encoder<T>) this.encoder).encodeValue(
 				(T) message, session.bufferFactory(), MESSAGE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
 
 		return new WebSocketMessage(WebSocketMessage.Type.TEXT, buffer);
+	}
+
+	@SuppressWarnings("ConstantConditions")
+	public GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
+		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
+		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}
 
 }

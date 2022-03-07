@@ -51,7 +51,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 
 	private final Map<Map<String, Object>, Exchange> expectedExchanges = new LinkedHashMap<>();
 
-	private final WebSocketCodecDelegate codecDelegate = new WebSocketCodecDelegate();
+	private final CodecDelegate codecDelegate = new CodecDelegate();
 
 
 	/**
