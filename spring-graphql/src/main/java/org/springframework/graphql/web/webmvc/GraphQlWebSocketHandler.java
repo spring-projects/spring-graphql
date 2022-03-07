@@ -169,8 +169,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				if (subscription != null) {
 					subscription.cancel();
 				}
+				this.webSocketInterceptor.handleCancelledSubscription(id).block(Duration.ofSeconds(10));
 			}
-			this.webSocketInterceptor.handleConnectionCompletion().block(Duration.ofSeconds(10));
 			return;
 		case "connection_init":
 			if (sessionState.setConnectionInitProcessed()) {

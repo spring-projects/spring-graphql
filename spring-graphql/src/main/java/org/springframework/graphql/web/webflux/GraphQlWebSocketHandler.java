@@ -141,8 +141,9 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 						if (subscription != null) {
 							subscription.cancel();
 						}
+						return this.webSocketInterceptor.handleCancelledSubscription(id).thenMany(Flux.empty());
 					}
-					return this.webSocketInterceptor.handleConnectionCompletion().thenMany(Flux.empty());
+					return Flux.empty();
 				case "connection_init":
 					if (!connectionInitProcessed.compareAndSet(false, true)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
