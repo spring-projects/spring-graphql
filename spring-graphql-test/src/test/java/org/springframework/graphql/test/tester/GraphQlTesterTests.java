@@ -187,6 +187,17 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 	}
 
 	@Test
+	void errorsEmptyOnExecuteAndVerify() {
+
+		String document = "{me {name, friends}}";
+		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		graphQlTester().document(document).executeAndVerify();
+
+		assertThat(requestInput().getDocument()).contains(document);
+	}
+
+	@Test
 	void errorsCheckedOnExecuteAndVerify() {
 
 		String document = "{me {name, friends}}";

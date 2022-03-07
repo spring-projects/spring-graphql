@@ -170,7 +170,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public void executeAndVerify() {
-			execute().path("$.errors").valueIsEmpty();
+			execute().path("$.errors").pathDoesNotExist();
 		}
 
 		@Override
