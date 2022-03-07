@@ -35,6 +35,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
+import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -61,6 +62,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final WebGraphQlHandler graphQlHandler;
 
+	private final WebSocketInterceptor webSocketInterceptor;
+
 	private final CodecDelegate codecDelegate;
 
 	private final Duration initTimeoutDuration;
@@ -77,7 +80,9 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer, Duration connectionInitTimeout) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
+
 		this.graphQlHandler = graphQlHandler;
+		this.webSocketInterceptor = this.graphQlHandler.webSocketInterceptor();
 		this.codecDelegate = new CodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
 	}
@@ -137,12 +142,12 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							subscription.cancel();
 						}
 					}
-					return this.graphQlHandler.handleWebSocketCompletion().thenMany(Flux.empty());
+					return this.webSocketInterceptor.handleConnectionCompletion().thenMany(Flux.empty());
 				case "connection_init":
 					if (!connectionInitProcessed.compareAndSet(false, true)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					}
-					return this.graphQlHandler.handleWebSocketInitialization(payload)
+					return this.webSocketInterceptor.handleConnectionInitialization(payload)
 							.defaultIfEmpty(Collections.emptyMap())
 							.map(ackPayload -> this.codecDelegate.encodeConnectionAck(session, ackPayload))
 							.flux()

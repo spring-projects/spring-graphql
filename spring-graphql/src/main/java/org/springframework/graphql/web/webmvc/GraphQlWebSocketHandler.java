@@ -45,6 +45,7 @@ import reactor.core.scheduler.Schedulers;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
+import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -78,6 +79,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final WebGraphQlHandler graphQlHandler;
 
+	private final WebSocketInterceptor webSocketInterceptor;
+
 	private final Duration initTimeoutDuration;
 
 	private final HttpMessageConverter<?> converter;
@@ -92,12 +95,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * message must be received.
 	 */
 	public GraphQlWebSocketHandler(
-			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter,
-			Duration connectionInitTimeout) {
+			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter, Duration connectionInitTimeout) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
+
 		this.graphQlHandler = graphQlHandler;
+		this.webSocketInterceptor = this.graphQlHandler.webSocketInterceptor();
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
 	}
@@ -166,14 +170,14 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					subscription.cancel();
 				}
 			}
-			this.graphQlHandler.handleWebSocketCompletion().block(Duration.ofSeconds(10));
+			this.webSocketInterceptor.handleConnectionCompletion().block(Duration.ofSeconds(10));
 			return;
 		case "connection_init":
 			if (sessionState.setConnectionInitProcessed()) {
 				GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 				return;
 			}
-			this.graphQlHandler.handleWebSocketInitialization(payload)
+			this.webSocketInterceptor.handleConnectionInitialization(payload)
 					.defaultIfEmpty(Collections.emptyMap())
 					.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 					.doOnNext(ackPayload -> {

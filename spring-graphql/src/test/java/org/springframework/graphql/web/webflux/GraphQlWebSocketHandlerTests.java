@@ -140,8 +140,8 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new WebSocketInterceptor() {
 
 					@Override
-					public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
-						Object value = payload.get("key");
+					public Mono<Object> handleConnectionInitialization(Map<String, Object> connectionInitPayload) {
+						Object value = connectionInitPayload.get("key");
 						return Mono.just(Collections.singletonMap("key", value + " acknowledged"));
 					}
 				});
@@ -162,7 +162,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new WebSocketInterceptor() {
 
 					@Override
-					public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
+					public Mono<Object> handleConnectionInitialization(Map<String, Object> connectionInitPayload) {
 						return Mono.error(new IllegalStateException());
 					}
 				});
