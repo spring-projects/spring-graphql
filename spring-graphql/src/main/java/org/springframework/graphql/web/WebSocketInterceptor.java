@@ -39,21 +39,26 @@ public interface WebSocketInterceptor extends WebInterceptor {
 	 * Handle the {@code "connection_init"} message at the start of a GraphQL over
 	 * WebSocket session and return an optional payload for the
 	 * {@code "connection_ack"} message to send back.
+	 * @param sessionId the id of the WebSocket session
 	 * @param connectionInitPayload the payload from the {@code "connection_init"} message
 	 * @return the payload for the {@code "connection_ack"}, or empty
 	 */
-	default Mono<Object> handleConnectionInitialization(Map<String, Object> connectionInitPayload) {
+	default Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> connectionInitPayload) {
 		return Mono.empty();
 	}
 
 	/**
-	 * Handle the {@code "complete"} message that clients send to stop listening
-	 * to the subscription with the given id.
-	 * <p>Note that the {@link org.reactivestreams.Publisher} for the subscription
-	 * is automatically cancelled and there is no need to do that from here.
+	 * Handle the {@code "complete"} message that a client sends to stop a
+	 * subscription stream. The underlying {@link org.reactivestreams.Publisher}
+	 * for the subscription is automatically cancelled. This callback is for any
+	 * additional, or more centralized handling across subscriptions.
+	 * @param sessionId the id of the WebSocket session
+	 * @param subscriptionId the unique id for the subscription; correlates to the
+	 * {@link WebInput#getId() requestId} from the original {@code "subscribe"}
+	 * message that started the subscription
 	 * @return {@code Mono} for the completion of handling
 	 */
-	default Mono<Void> handleCancelledSubscription(String subscriptionId) {
+	default Mono<Void> handleCancelledSubscription(String sessionId, String subscriptionId) {
 		return Mono.empty();
 	}
 

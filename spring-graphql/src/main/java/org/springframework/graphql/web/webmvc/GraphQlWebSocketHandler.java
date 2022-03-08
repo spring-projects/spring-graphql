@@ -169,7 +169,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				if (subscription != null) {
 					subscription.cancel();
 				}
-				this.webSocketInterceptor.handleCancelledSubscription(id).block(Duration.ofSeconds(10));
+				this.webSocketInterceptor.handleCancelledSubscription(session.getId(), id)
+						.block(Duration.ofSeconds(10));
 			}
 			return;
 		case "connection_init":
@@ -177,7 +178,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 				return;
 			}
-			this.webSocketInterceptor.handleConnectionInitialization(payload)
+			this.webSocketInterceptor.handleConnectionInitialization(session.getId(), payload)
 					.defaultIfEmpty(Collections.emptyMap())
 					.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 					.doOnNext(ackPayload -> {
