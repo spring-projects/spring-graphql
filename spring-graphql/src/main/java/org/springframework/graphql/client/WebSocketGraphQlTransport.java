@@ -265,6 +265,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 								case NEXT:
 									graphQlSession.handleNext(message);
 									break;
+								case PING:
+									graphQlSession.sendPong(null);
+									break;
 								case ERROR:
 									graphQlSession.handleError(message);
 									break;
@@ -414,6 +417,11 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				this.streamingSinks.remove(id);
 				return Flux.error(ex);
 			}
+		}
+
+		public void sendPong(@Nullable Map<String, Object> payload) {
+			GraphQlMessage message = GraphQlMessage.pong(payload);
+			trySend(message);
 		}
 
 		// TODO: queue to serialize sending?

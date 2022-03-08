@@ -59,6 +59,9 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 	private static final Jackson2JsonDecoder decoder = new Jackson2JsonDecoder();
 
+	private static final Duration TIMEOUT = Duration.ofSeconds(5);
+
+
 	@Test
 	void query() {
 		TestWebSocketSession session = handle(Flux.just(
@@ -77,7 +80,8 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 							.containsEntry("name", "Nineteen Eighty-Four");
 				})
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlMessageType.COMPLETE))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -101,7 +105,8 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.consumeNextWith((message) -> bookPayloadAssertion.accept(message, "1"))
 				.consumeNextWith((message) -> bookPayloadAssertion.accept(message, "5"))
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlMessageType.COMPLETE))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -112,11 +117,13 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlMessageType.CONNECTION_ACK))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4400, "Invalid message"))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -129,11 +136,13 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlMessageType.CONNECTION_ACK))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4400, "Invalid message"))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -155,7 +164,21 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlMessageType.CONNECTION_ACK);
 					assertThat(actual.<Map<String, Object>>getPayload()).containsEntry("key", "A acknowledged");
 				})
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
+	}
+
+	@Test
+	void pingHandling() {
+		TestWebSocketSession session = handle(Flux.just(
+				toWebSocketMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}"),
+				toWebSocketMessage("{\"type\":\"ping\"}")));
+
+		StepVerifier.create(session.getOutput())
+				.consumeNextWith(message -> assertMessageType(message, GraphQlMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlMessageType.PONG))
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -197,14 +220,15 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		StepVerifier.create(session.getOutput()).verifyComplete();
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4401, "Unauthorized"))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
 	void unauthorizedWithoutConnectionInit() {
 		TestWebSocketSession session = handle(Flux.just(toWebSocketMessage(BOOK_SUBSCRIPTION)));
 
-		StepVerifier.create(session.getOutput()).verifyComplete();
+		StepVerifier.create(session.getOutput()).expectComplete().verify(TIMEOUT);
 		StepVerifier.create(session.closeStatus()).expectNext(new CloseStatus(4401, "Unauthorized")).verifyComplete();
 	}
 
@@ -216,11 +240,13 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlMessageType.CONNECTION_ACK))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4429, "Too many initialisation requests"))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -229,11 +255,12 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				initHandler(), ServerCodecConfigurer.create(), Duration.ofMillis(50));
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.empty());
-		handler.handle(session).block();
+		handler.handle(session).block(TIMEOUT);
 
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4408, "Connection initialisation timeout"))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	@Test
@@ -251,7 +278,8 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		StepVerifier.create(session.closeStatus())
 				.expectNext(new CloseStatus(4409, "Subscriber for " + SUBSCRIPTION_ID + " already exists"))
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 
 		assertThat(messages.size()).isEqualTo(2);
 		assertThat(messages.get(0).resolvedType()).isEqualTo(GraphQlMessageType.CONNECTION_ACK);
@@ -305,7 +333,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		TestWebSocketSession session = new TestWebSocketSession(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
 				toWebSocketMessage(GREETING_QUERY)));
-		handler.handle(session).block();
+		handler.handle(session).block(TIMEOUT);
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlMessageType.CONNECTION_ACK))
@@ -331,7 +359,8 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 									.containsEntry("classification", "DataFetchingException"));
 				})
-				.verifyComplete();
+				.expectComplete()
+				.verify(TIMEOUT);
 	}
 
 	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebInterceptor... interceptors) {
@@ -341,7 +370,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				Duration.ofSeconds(60));
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
-		handler.handle(session).block();
+		handler.handle(session).block(TIMEOUT);
 		return session;
 	}
 
@@ -359,7 +388,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	private void assertMessageType(WebSocketMessage webSocketMessage, GraphQlMessageType messageType) {
 		GraphQlMessage message = decode(webSocketMessage);
 		assertThat(message.resolvedType()).isEqualTo(messageType);
-		if (messageType != GraphQlMessageType.CONNECTION_ACK) {
+		if (messageType != GraphQlMessageType.CONNECTION_ACK && messageType != GraphQlMessageType.PONG) {
 			assertThat(message.getId()).isEqualTo(SUBSCRIPTION_ID);
 		}
 	}

@@ -147,6 +147,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					return this.graphQlHandler.handleRequest(input)
 							.flatMapMany((output) -> handleWebOutput(session, id, subscriptions, output))
 							.doOnTerminate(() -> subscriptions.remove(id));
+				case PING:
+					return Flux.just(this.codecDelegate.encode(session, GraphQlMessage.pong(null)));
 				case COMPLETE:
 					if (id != null) {
 						Subscription subscription = subscriptions.remove(id);

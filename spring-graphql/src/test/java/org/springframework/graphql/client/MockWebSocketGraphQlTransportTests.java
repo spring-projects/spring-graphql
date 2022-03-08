@@ -169,6 +169,23 @@ public class MockWebSocketGraphQlTransportTests {
 	}
 
 	@Test
+	void pingHandling() {
+
+		TestWebSocketClient client = new TestWebSocketClient(new PingResponseHandler(this.result1));
+		WebSocketGraphQlTransport transport = createTransport(client);
+
+		StepVerifier.create(transport.execute(new GraphQlRequest("{Query1}")))
+				.expectNext(this.result1)
+				.expectComplete()
+				.verify(TIMEOUT);
+
+		assertActualClientMessages(client.getConnection(0),
+				GraphQlMessage.connectionInit(null),
+				GraphQlMessage.pong(null),
+				GraphQlMessage.subscribe("1", new GraphQlRequest("{Query1}")));
+	}
+
+	@Test
 	void start() {
 		MockGraphQlWebSocketServer handler = new MockGraphQlWebSocketServer();
 		handler.connectionInitHandler(payload -> Mono.just(Collections.singletonMap("key", payload.get("key") + "Ack")));
@@ -307,6 +324,42 @@ public class MockWebSocketGraphQlTransportTests {
 				.collect(Collectors.toList());
 
 		assertThat(actualMessages).containsExactly(expectedMessages);
+	}
+
+
+	/**
+	 * Server handler that inserts a "ping" after the "connection_ack".
+	 */
+	private static class PingResponseHandler implements WebSocketHandler {
+
+		private final ExecutionResult result;
+
+		private final CodecDelegate codecDelegate = new CodecDelegate();
+
+		private PingResponseHandler(ExecutionResult result) {
+			this.result = result;
+		}
+
+		@Override
+		public Mono<Void> handle(WebSocketSession session) {
+			return session.send(session.receive()
+					.flatMap(webSocketMessage -> {
+						GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+						switch (message.resolvedType()) {
+							case CONNECTION_INIT:
+								return Flux.just(GraphQlMessage.connectionAck(null), GraphQlMessage.ping(null));
+							case SUBSCRIBE:
+								return Flux.just(GraphQlMessage.next("1", this.result));
+							case PONG:
+								return Flux.empty();
+							default:
+								return Flux.error(new IllegalStateException("Unexpected message: " + message));
+						}
+					})
+					.map(graphQlMessage -> this.codecDelegate.encode(session, graphQlMessage))
+			);
+		}
+
 	}
 
 
