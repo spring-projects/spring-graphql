@@ -20,7 +20,7 @@ import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
+import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
@@ -40,7 +40,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  */
 final class CodecDelegate {
 
-	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlWebSocketMessage.class);
+	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlMessage.class);
 
 
 	private final CodecConfigurer codecConfigurer;
@@ -84,7 +84,7 @@ final class CodecDelegate {
 
 
 	@SuppressWarnings("unchecked")
-	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
+	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlMessage message) {
 
 		DataBuffer buffer = ((Encoder<T>) this.encoder).encodeValue(
 				(T) message, session.bufferFactory(), MESSAGE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
@@ -93,9 +93,9 @@ final class CodecDelegate {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
+	public GraphQlMessage decode(WebSocketMessage webSocketMessage) {
 		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
-		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
+		return (GraphQlMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}
 
 }

@@ -25,20 +25,28 @@ public abstract class WebSocketHandlerTestSupport {
 
 	protected static final String SUBSCRIPTION_ID = "1";
 
-	protected static final String BOOK_QUERY = "{" +
-			"\"id\":\"" + WebSocketHandlerTestSupport.SUBSCRIPTION_ID + "\"," +
-			"\"type\":\"subscribe\"," +
-			"\"payload\":{\"query\": \"" +
-			"  query TestQuery {" +
-			"    bookById(id: \\\"1\\\"){ " +
-			"      id" +
-			"      name" +
-			"      author {" +
-			"        firstName" +
-			"        lastName" +
-			"      }" +
-			"  }}\"}" +
-			"}";
+	protected static final String BOOK_QUERY;
+
+	protected static final String BOOK_QUERY_PAYLOAD;
+
+	static {
+		BOOK_QUERY_PAYLOAD = "{\"query\": \"" +
+				"  query TestQuery {" +
+				"    bookById(id: \\\"1\\\"){ " +
+				"      id" +
+				"      name" +
+				"      author {" +
+				"        firstName" +
+				"        lastName" +
+				"      }" +
+				"  }}\"}";
+
+		BOOK_QUERY = "{" +
+				"\"id\":\"" + WebSocketHandlerTestSupport.SUBSCRIPTION_ID + "\"," +
+				"\"type\":\"subscribe\"," +
+				"\"payload\":" + BOOK_QUERY_PAYLOAD +
+				"}";
+	}
 
 	protected static final String BOOK_SUBSCRIPTION = "{" +
 			"\"id\":\"" + SUBSCRIPTION_ID + "\"," +

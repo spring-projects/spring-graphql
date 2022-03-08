@@ -29,7 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
+import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -83,33 +83,33 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 	}
 
 	@SuppressWarnings("SuspiciousMethodCalls")
-	private Publisher<GraphQlWebSocketMessage> handleMessage(GraphQlWebSocketMessage message) {
-		if ("connection_init".equals(message.getType())) {
-			if (this.connectionInitHandler == null) {
-				return Flux.just(GraphQlWebSocketMessage.connectionAck(null));
-			}
-			else {
-				Map<String, Object> payload = message.getPayload();
-				return this.connectionInitHandler.apply(payload).map(GraphQlWebSocketMessage::connectionAck);
-			}
+	private Publisher<GraphQlMessage> handleMessage(GraphQlMessage message) {
+		switch (message.resolvedType()) {
+			case CONNECTION_INIT:
+				if (this.connectionInitHandler == null) {
+					return Flux.just(GraphQlMessage.connectionAck(null));
+				}
+				else {
+					Map<String, Object> payload = message.getPayload();
+					return this.connectionInitHandler.apply(payload).map(GraphQlMessage::connectionAck);
+				}
+			case SUBSCRIBE:
+				String id = message.getId();
+				Exchange request = expectedExchanges.get(message.getPayload());
+				if (id == null || request == null) {
+					return Flux.error(new IllegalStateException("Unexpected request: " + message));
+				}
+				return request.getResponseFlux()
+						.map(result -> GraphQlMessage.next(id, result))
+						.concatWithValues(
+								request.getError() != null ?
+										GraphQlMessage.error(id, request.getError()) :
+										GraphQlMessage.complete(id));
+			case COMPLETE:
+				return Flux.empty();
+			default:
+				return Flux.error(new IllegalStateException("Unexpected message: " + message));
 		}
-		if ("subscribe".equals(message.getType())) {
-			String id = message.getId();
-			Exchange request = expectedExchanges.get(message.getPayload());
-			if (id == null || request == null) {
-				return Flux.error(new IllegalStateException("Unexpected request: " + message));
-			}
-			return request.getResponseFlux()
-					.map(result -> GraphQlWebSocketMessage.next(id, result))
-					.concatWithValues(
-							request.getError() != null ?
-									GraphQlWebSocketMessage.error(id, request.getError()) :
-									GraphQlWebSocketMessage.complete(id));
-		}
-		if ("complete".equals(message.getType())) {
-			return Flux.empty();
-		}
-		return Flux.error(new IllegalStateException("Unexpected message: " + message));
 	}
 
 

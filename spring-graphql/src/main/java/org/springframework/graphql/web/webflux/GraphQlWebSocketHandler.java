@@ -36,6 +36,7 @@ import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
 import org.springframework.graphql.web.WebSocketInterceptor;
+import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -73,8 +74,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	 * Create a new instance.
 	 * @param graphQlHandler common handler for GraphQL over WebSocket requests
 	 * @param codecConfigurer codec configurer for JSON encoding and decoding
-	 * @param connectionInitTimeout the time within which the {@code CONNECTION_INIT} type
-	 * message must be received.
+	 * @param connectionInitTimeout how long to wait after the establishment of
+	 * the WebSocket for the {@code "connection_ini"} message from the client.
 	 */
 	public GraphQlWebSocketHandler(
 			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer, Duration connectionInitTimeout) {
@@ -127,11 +128,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				.subscribe();
 
 		return session.send(session.receive().flatMap(webSocketMessage -> {
-			GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
+			GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
 			String id = message.getId();
-			Map<String, Object> payload = message.getPayloadOrDefault(Collections.emptyMap());
-			switch (message.getType()) {
-				case "subscribe":
+			Map<String, Object> payload = message.getPayload();
+			switch (message.resolvedType()) {
+				case SUBSCRIBE:
 					if (connectionInitPayloadRef.get() == null) {
 						return GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 					}
@@ -146,7 +147,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					return this.graphQlHandler.handleRequest(input)
 							.flatMapMany((output) -> handleWebOutput(session, id, subscriptions, output))
 							.doOnTerminate(() -> subscriptions.remove(id));
-				case "complete":
+				case COMPLETE:
 					if (id != null) {
 						Subscription subscription = subscriptions.remove(id);
 						if (subscription != null) {
@@ -156,7 +157,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 								.thenMany(Flux.empty());
 					}
 					return Flux.empty();
-				case "connection_init":
+				case CONNECTION_INIT:
 					if (!connectionInitPayloadRef.compareAndSet(null, payload)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					}

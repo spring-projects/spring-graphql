@@ -36,7 +36,8 @@ import reactor.core.publisher.Sinks;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.MapExecutionResult;
 import org.springframework.graphql.support.MapGraphQlError;
-import org.springframework.graphql.web.webflux.GraphQlWebSocketMessage;
+import org.springframework.graphql.web.support.GraphQlMessage;
+import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
@@ -168,7 +169,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final CodecDelegate codecDelegate;
 
-		private final GraphQlWebSocketMessage connectionInitMessage;
+		private final GraphQlMessage connectionInitMessage;
 
 		private final Consumer<Map<String, Object>> connectionAckHandler;
 
@@ -181,7 +182,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler) {
 
 			this.codecDelegate = new CodecDelegate(codecConfigurer);
-			this.connectionInitMessage = GraphQlWebSocketMessage.connectionInit(connectionInitPayload);
+			this.connectionInitMessage = GraphQlMessage.connectionInit(connectionInitPayload);
 			this.connectionAckHandler = connectionAckHandler;
 			this.graphQlSessionSink = Sinks.unsafe().one();
 		}
@@ -240,8 +241,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 					.flatMap(webSocketMessage -> {
 						if (sessionNotInitialized()) {
 							try {
-								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
-								Assert.state(message.getType().equals("connection_ack"),
+								GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+								Assert.state(message.resolvedType() == GraphQlMessageType.CONNECTION_ACK,
 										() -> "Unexpected message before connection_ack: " + message);
 								this.connectionAckHandler.accept(message.getPayload());
 								if (logger.isDebugEnabled()) {
@@ -259,15 +260,15 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 							}
 						}
 						else {
-							GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
-							switch (message.getType()) {
-								case "next":
+							GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+							switch (message.resolvedType()) {
+								case NEXT:
 									graphQlSession.handleNext(message);
 									break;
-								case "error":
+								case ERROR:
 									graphQlSession.handleError(message);
 									break;
-								case "complete":
+								case COMPLETE:
 									graphQlSession.handleComplete(message);
 									break;
 								default:
@@ -366,7 +367,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final AtomicLong requestIndex = new AtomicLong();
 
-		private final Sinks.Many<GraphQlWebSocketMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
+		private final Sinks.Many<GraphQlMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
 
 		private final Map<String, Sinks.One<ExecutionResult>> resultSinks = new ConcurrentHashMap<>();
 
@@ -381,14 +382,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Return the {@code Flux} of GraphQL requests to send as WebSocket messages.
 		 */
-		public Flux<GraphQlWebSocketMessage> getRequestFlux() {
+		public Flux<GraphQlMessage> getRequestFlux() {
 			return this.requestSink.asFlux();
 		}
 
 		public Mono<ExecutionResult> execute(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
-				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, request);
+				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
 				Sinks.One<ExecutionResult> sink = Sinks.one();
 				this.resultSinks.put(id, sink);
 				trySend(message);
@@ -403,7 +404,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
-				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, request);
+				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
 				Sinks.Many<ExecutionResult> sink = Sinks.many().unicast().onBackpressureBuffer();
 				this.streamingSinks.put(id, sink);
 				trySend(message);
@@ -417,7 +418,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		// TODO: queue to serialize sending?
 
-		private void trySend(GraphQlWebSocketMessage message) {
+		private void trySend(GraphQlMessage message) {
 			Sinks.EmitResult emitResult = null;
 			for (int i = 0; i < 100; i++) {
 				emitResult = this.requestSink.tryEmitNext(message);
@@ -432,7 +433,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			Sinks.Many<ExecutionResult> streamSink = this.streamingSinks.remove(id);
 			if (streamSink != null) {
 				try {
-					trySend(GraphQlWebSocketMessage.complete(id));
+					trySend(GraphQlMessage.complete(id));
 				}
 				catch (Exception ex) {
 					if (logger.isErrorEnabled()) {
@@ -447,7 +448,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Handle a "next" message and route to its recipient.
 		 */
-		public void handleNext(GraphQlWebSocketMessage message) {
+		public void handleNext(GraphQlMessage message) {
 			String id = message.getId();
 			Sinks.One<ExecutionResult> sink = this.resultSinks.remove(id);
 			Sinks.Many<ExecutionResult> streamingSink = this.streamingSinks.get(id);
@@ -459,7 +460,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return;
 			}
 
-			Map<String, Object> resultMap = message.getPayloadOrDefault(Collections.emptyMap());
+			Map<String, Object> resultMap = message.getPayload();
 			ExecutionResult result = MapExecutionResult.from(resultMap);
 
 			Sinks.EmitResult emitResult = (sink != null ? sink.tryEmitValue(result) : streamingSink.tryEmitNext(result));
@@ -475,7 +476,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Handle an "error" message, turning it into an {@link ExecutionResult}
 		 * for a single result response, or signaling an error to streams.
 		 */
-		public void handleError(GraphQlWebSocketMessage message) {
+		public void handleError(GraphQlMessage message) {
 			String id = message.getId();
 			Sinks.One<ExecutionResult> sink = this.resultSinks.remove(id);
 			Sinks.Many<ExecutionResult> streamingSink = this.streamingSinks.remove(id);
@@ -487,7 +488,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return;
 			}
 
-			List<Map<String, Object>> payload = message.getPayloadOrDefault(Collections.emptyList());
+			List<Map<String, Object>> payload = message.getPayload();
 
 			Sinks.EmitResult emitResult;
 			if (sink != null) {
@@ -508,7 +509,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Handle a "complete" message.
 		 */
-		public void handleComplete(GraphQlWebSocketMessage message) {
+		public void handleComplete(GraphQlMessage message) {
 			Sinks.One<ExecutionResult> resultSink = this.resultSinks.remove(message.getId());
 			Sinks.Many<ExecutionResult> streamingResultSink = this.streamingSinks.remove(message.getId());
 
