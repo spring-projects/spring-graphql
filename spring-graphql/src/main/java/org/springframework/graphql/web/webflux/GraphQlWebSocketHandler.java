@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import graphql.ExecutionResult;
 import org.apache.commons.logging.Log;
@@ -105,14 +105,25 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 
 		// Session state
-		AtomicBoolean connectionInitProcessed = new AtomicBoolean();
+		AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 		Mono.delay(this.initTimeoutDuration)
 				.then(Mono.defer(() ->
-						connectionInitProcessed.compareAndSet(false, true) ?
+						connectionInitPayloadRef.compareAndSet(null, Collections.emptyMap()) ?
 								session.close(GraphQlStatus.INIT_TIMEOUT_STATUS) :
 								Mono.empty()))
+				.subscribe();
+
+		session.closeStatus()
+				.doOnSuccess(closeStatus -> {
+					Map<String, Object> connectionInitPayload = connectionInitPayloadRef.get();
+					if (connectionInitPayload == null) {
+						return;
+					}
+					int statusCode = (closeStatus != null ? closeStatus.getCode() : 1005);
+					this.webSocketInterceptor.handleConnectionClosed(session.getId(), statusCode, connectionInitPayload);
+				})
 				.subscribe();
 
 		return session.send(session.receive().flatMap(webSocketMessage -> {
@@ -121,7 +132,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 			Map<String, Object> payload = message.getPayloadOrDefault(Collections.emptyMap());
 			switch (message.getType()) {
 				case "subscribe":
-					if (!connectionInitProcessed.get()) {
+					if (connectionInitPayloadRef.get() == null) {
 						return GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 					}
 					if (id == null) {
@@ -146,7 +157,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					}
 					return Flux.empty();
 				case "connection_init":
-					if (!connectionInitProcessed.compareAndSet(false, true)) {
+					if (!connectionInitPayloadRef.compareAndSet(null, payload)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					}
 					return this.webSocketInterceptor.handleConnectionInitialization(session.getId(), payload)

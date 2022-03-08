@@ -43,7 +43,9 @@ public interface WebSocketInterceptor extends WebInterceptor {
 	 * @param connectionInitPayload the payload from the {@code "connection_init"} message
 	 * @return the payload for the {@code "connection_ack"}, or empty
 	 */
-	default Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> connectionInitPayload) {
+	default Mono<Object> handleConnectionInitialization(
+			String sessionId, Map<String, Object> connectionInitPayload) {
+
 		return Mono.empty();
 	}
 
@@ -60,6 +62,17 @@ public interface WebSocketInterceptor extends WebInterceptor {
 	 */
 	default Mono<Void> handleCancelledSubscription(String sessionId, String subscriptionId) {
 		return Mono.empty();
+	}
+
+	/**
+	 * Invoked when the WebSocket session is closed, from either side.
+	 * @param sessionId the id of the WebSocket session
+	 * @param statusCode the WebSocket "close" status code
+	 * @param connectionInitPayload the payload from the {@code "connect_init"}
+	 * message received at the start of the connection
+	 */
+	default void handleConnectionClosed(
+			String sessionId, int statusCode, Map<String, Object> connectionInitPayload) {
 	}
 
 }

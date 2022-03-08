@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -153,6 +154,30 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 					assertThat(actual.<Map<String, Object>>getPayload()).containsEntry("key", "A acknowledged");
 				})
 				.verifyComplete();
+	}
+
+	@Test
+	void connectionClosedHandling() {
+
+		CloseStatus closeStatus = CloseStatus.PROTOCOL_ERROR;
+		AtomicBoolean called = new AtomicBoolean();
+
+		TestWebSocketSession session = handle(
+				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}")),
+				new WebSocketInterceptor() {
+
+					@Override
+					public void handleConnectionClosed(String sessionId, int status, Map<String, Object> payload) {
+						called.set(true);
+						assertThat(sessionId).isEqualTo("1");
+						assertThat(status).isEqualTo(closeStatus.getCode());
+						assertThat(payload).hasSize(1).containsEntry("key", "A");
+					}
+				});
+
+		StepVerifier.create(session.getOutput()).expectNextCount(1).verifyComplete();
+		StepVerifier.create(session.close(closeStatus)).verifyComplete();
+		assertThat(called).isTrue();
 	}
 
 	@Test

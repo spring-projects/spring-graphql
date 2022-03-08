@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -158,6 +159,35 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				})
 				.then(this.session::close) // Complete output Flux
 				.verifyComplete();
+	}
+
+	@Test
+	void connectionClosedHandling() throws Exception {
+
+		CloseStatus closeStatus = CloseStatus.PROTOCOL_ERROR;
+		AtomicBoolean called = new AtomicBoolean();
+
+		WebSocketInterceptor interceptor = new WebSocketInterceptor() {
+
+			@Override
+			public void handleConnectionClosed(String sessionId, int status, Map<String, Object> payload) {
+				called.set(true);
+				assertThat(sessionId).isEqualTo("1");
+				assertThat(status).isEqualTo(closeStatus.getCode());
+				assertThat(payload).hasSize(1).containsEntry("key", "A");
+			}
+		};
+
+		GraphQlWebSocketHandler handler = initWebSocketHandler(interceptor);
+		handle(handler, new TextMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}"));
+
+		StepVerifier.create(session.getOutput())
+				.expectNextCount(1)
+				.then(this.session::close) // Complete output Flux
+				.verifyComplete();
+
+		handler.afterConnectionClosed(this.session, closeStatus);
+		assertThat(called).isTrue();
 	}
 
 	@Test

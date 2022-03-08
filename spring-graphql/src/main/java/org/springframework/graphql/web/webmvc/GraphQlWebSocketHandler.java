@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
@@ -52,6 +53,7 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.socket.CloseStatus;
@@ -127,7 +129,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		Mono.delay(this.initTimeoutDuration)
 				.then(Mono.fromRunnable(() -> {
-						if (sessionState.isConnectionInitNotProcessed()) {
+						if (sessionState.setConnectionInitPayload(Collections.emptyMap())) {
 							GraphQlStatus.closeSession(session, GraphQlStatus.INIT_TIMEOUT_STATUS);
 						}
 				}))
@@ -143,7 +145,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		SessionState sessionState = getSessionInfo(session);
 		switch (message.getType()) {
 		case "subscribe":
-			if (sessionState.isConnectionInitNotProcessed()) {
+			if (sessionState.getConnectionInitPayload() == null) {
 				GraphQlStatus.closeSession(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 				return;
 			}
@@ -174,7 +176,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			}
 			return;
 		case "connection_init":
-			if (sessionState.setConnectionInitProcessed()) {
+			if (!sessionState.setConnectionInitPayload(payload)) {
 				GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 				return;
 			}
@@ -274,9 +276,14 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
-		SessionState info = this.sessionInfoMap.remove(session.getId());
+		String id = session.getId();
+		SessionState info = this.sessionInfoMap.remove(id);
 		if (info != null) {
 			info.dispose();
+			Map<String, Object> connectionInitPayload = info.getConnectionInitPayload();
+			if (connectionInitPayload != null) {
+				this.webSocketInterceptor.handleConnectionClosed(id, closeStatus.getCode(), connectionInitPayload);
+			}
 		}
 	}
 
@@ -345,7 +352,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static class SessionState {
 
-		private boolean connectionInitProcessed;
+		private final AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 
 		private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
@@ -355,15 +362,15 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + sessionId);
 		}
 
-		boolean isConnectionInitNotProcessed() {
-			return !this.connectionInitProcessed;
+		@Nullable
+		Map<String, Object> getConnectionInitPayload() {
+			return this.connectionInitPayloadRef.get();
 		}
 
-		synchronized boolean setConnectionInitProcessed() {
-			boolean previousValue = this.connectionInitProcessed;
-			this.connectionInitProcessed = true;
-			return previousValue;
+		boolean setConnectionInitPayload(Map<String, Object> payload) {
+			return this.connectionInitPayloadRef.compareAndSet(null, payload);
 		}
+
 
 		Map<String, Subscription> getSubscriptions() {
 			return this.subscriptions;
