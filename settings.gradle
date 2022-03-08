@@ -1,13 +1,13 @@
 pluginManagement {
 	repositories {
 		mavenCentral()
-		gradlePluginPortal()
 		maven {
 			url 'https://repo.spring.io/release'
 		}
 		maven {
 			url "https://repo.spring.io/snapshot"
 		}
+		gradlePluginPortal()
 	}
     resolutionStrategy {
         eachPlugin {
