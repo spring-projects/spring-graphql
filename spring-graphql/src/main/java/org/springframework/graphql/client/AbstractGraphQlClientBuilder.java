@@ -112,11 +112,18 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	private static class Jackson2Configurer {
 
-		private static final MappingProvider defaultProvider = Configuration.defaultConfiguration().mappingProvider();
+		private static final Class<?> defaultMappingProviderType =
+				Configuration.defaultConfiguration().mappingProvider().getClass();
+
+		// We only need a MappingProvider:
+		// GraphQlTransport returns ExecutionResult with JSON parsed to Map/List
 
 		static Configuration configure(Configuration config) {
-			return (config.mappingProvider() != null && config.mappingProvider() != defaultProvider ? config :
-					config.mappingProvider(new JacksonMappingProvider()));
+			MappingProvider provider = config.mappingProvider();
+			if (provider == null || defaultMappingProviderType.isInstance(provider)) {
+				config = config.mappingProvider(new JacksonMappingProvider());
+			}
+			return config;
 		}
 
 	}

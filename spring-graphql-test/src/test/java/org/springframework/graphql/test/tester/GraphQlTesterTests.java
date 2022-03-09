@@ -82,8 +82,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		response.path("").matchesJson("{\"me\": {\"name\":\"Luke Skywalker\",\"friends\":[]}}");
 		response.path("me").matchesJson("{\"name\":\"Luke Skywalker\"}");
-		response.path("me").matchesJson("{\"friends\":[]}"); // lenient match with subset of
-															// fields
+		response.path("me").matchesJson("{\"friends\":[]}"); // lenient match with subset of fields
 
 		assertThatThrownBy(() -> response.path("me").matchesJsonStrictly("{\"friends\":[]}"))
 				.as("Extended fields should fail in strict mode")

@@ -21,6 +21,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import graphql.GraphQLError;
@@ -133,11 +134,31 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 
 	private static class Jackson2Configurer {
 
-		private static final MappingProvider defaultProvider = Configuration.defaultConfiguration().mappingProvider();
+		private static final Class<?> defaultJsonProviderType;
+
+		private static final Class<?> defaultMappingProviderType;
+
+		static {
+			Configuration config = Configuration.defaultConfiguration();
+			defaultJsonProviderType = config.jsonProvider().getClass();
+			defaultMappingProviderType = config.mappingProvider().getClass();
+		}
+
+		// GraphQlTransport returns ExecutionResult with JSON parsed to Map/List,
+		// but we still need JsonProvider for matchesJson(String)
 
 		static Configuration configure(Configuration config) {
-			return (config.mappingProvider() != null && config.mappingProvider() != defaultProvider ? config :
-					config.mappingProvider(new JacksonMappingProvider()));
+			if (isDefault(config.jsonProvider(), defaultJsonProviderType)) {
+				config = config.jsonProvider(new JacksonJsonProvider());
+			}
+			if (isDefault(config.mappingProvider(), defaultMappingProviderType)) {
+				config = config.mappingProvider(new JacksonMappingProvider());
+			}
+			return config;
+		}
+
+		private static <T> boolean isDefault(@Nullable T provider, Class<? extends T> defaultProviderType) {
+			return (provider == null || defaultProviderType.isInstance(provider));
 		}
 
 	}

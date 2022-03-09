@@ -190,6 +190,7 @@ public class WebGraphQlTesterBuilderTests {
 
 		assertThat(response).isNotNull();
 		response.path("me").entity(MovieCharacter.class).isEqualTo(character);
+		response.path("me").matchesJson("{name:\"Luke Skywalker\"}");
 		assertThat(testDecoder.getLastValue()).isEqualTo(character);
 	}
 
