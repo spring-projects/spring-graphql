@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,47 +15,40 @@
  */
 package io.spring.sample.graphql;
 
-import graphql.GraphQL;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
- * GraphQL query tests directly via {@link GraphQL}.
+ * GraphQL over WebSocket single response tests.
  */
 @GraphQlTest(SampleController.class)
-@Import(TestConfig.class)
-public class QueryTests {
+@Import(DataRepository.class)
+public class WebFluxWebSocketSampleTests {
 
+	@Autowired
 	private GraphQlTester graphQlTester;
 
-	@BeforeEach
-	public void setUp(@Autowired GraphQlService service) {
-		this.graphQlTester = GraphQlTester.create(requestInput ->
-				service.execute(requestInput).contextWrite(context -> context.put("name", "James")));
-	}
 
 	@Test
 	void greetingMono() {
-		this.graphQlTester.query("{greetingMono}")
+		this.graphQlTester.document("{greetingMono}")
 				.execute()
 				.path("greetingMono")
 				.entity(String.class)
-				.isEqualTo("Hello James");
+				.isEqualTo("Hello!");
 	}
 
 	@Test
 	void greetingsFlux() {
-		this.graphQlTester.query("{greetingsFlux}")
+		this.graphQlTester.document("{greetingsFlux}")
 				.execute()
 				.path("greetingsFlux")
 				.entityList(String.class)
-				.containsExactly("Hi James", "Bonjour James", "Hola James", "Ciao James", "Zdravo James");
+				.containsExactly("Hi!", "Bonjour!", "Hola!", "Ciao!", "Zdravo!");
 	}
 
 }

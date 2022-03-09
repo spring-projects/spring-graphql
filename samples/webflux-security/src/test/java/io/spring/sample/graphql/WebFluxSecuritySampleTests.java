@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,27 +15,41 @@
  */
 package io.spring.sample.graphql;
 
+import java.net.URI;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureWebGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.graphql.test.tester.WebSocketGraphQlTester;
+import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest
-@AutoConfigureWebGraphQlTester
-class SampleApplicationTests {
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+class WebFluxSecuritySampleTests {
+
+	@LocalServerPort
+	private int port;
 
 	@Autowired
 	private WebGraphQlTester graphQlTester;
 
+	@BeforeEach
+	public void setUp() {
+		URI url = URI.create("http://localhost:" + this.port + "/graphql");
+		this.graphQlTester = WebSocketGraphQlTester.create(url, new ReactorNettyWebSocketClient());
+	}
+
 	@Test
 	void printError() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(System.out::println);
@@ -43,7 +57,7 @@ class SampleApplicationTests {
 
 	@Test
 	void anonymousThenUnauthorized() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -54,8 +68,12 @@ class SampleApplicationTests {
 
 	@Test
 	void userRoleThenForbidden() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
-				.httpHeaders(headers -> headers.setBasicAuth("rob", "rob"))
+
+		WebGraphQlTester authTester = this.graphQlTester.mutate()
+				.headers(headers -> headers.setBasicAuth("rob", "rob"))
+				.build();
+
+		authTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -66,14 +84,14 @@ class SampleApplicationTests {
 
 	@Test
 	void canQueryName() {
-		this.graphQlTester.queryName("employeesNames")
+		this.graphQlTester.documentName("employeesNames")
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi");
 	}
 
 	@Test
 	void canNotQuerySalary() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -84,8 +102,12 @@ class SampleApplicationTests {
 
 	@Test
 	void canQuerySalaryAsAdmin() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
-				.httpHeaders(headers -> headers.setBasicAuth("admin", "admin"))
+
+		WebGraphQlTester authTester = this.graphQlTester.mutate()
+				.headers(headers -> headers.setBasicAuth("admin", "admin"))
+				.build();
+
+		authTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi")
 				.path("employees[0].salary").entity(int.class).isEqualTo(42);
@@ -94,10 +116,12 @@ class SampleApplicationTests {
 	@Test
 	void invalidCredentials() {
 		assertThatThrownBy(() ->
-				this.graphQlTester.queryName("employeesNamesAndSalaries")
-						.httpHeaders(headers -> headers.setBasicAuth("admin", "INVALID"))
+				this.graphQlTester.mutate()
+						.headers(headers -> headers.setBasicAuth("admin", "INVALID"))
+						.build()
+						.documentName("employeesNamesAndSalaries")
 						.executeAndVerify())
-				.hasMessage("Status expected:<200 OK> but was:<401 UNAUTHORIZED>");
+				.hasMessage("Invalid handshake response getStatus: 401 Unauthorized");
 	}
 
 }

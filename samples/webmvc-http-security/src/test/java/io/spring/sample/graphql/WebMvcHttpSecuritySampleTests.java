@@ -3,7 +3,7 @@ package io.spring.sample.graphql;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureWebGraphQlTester;
+import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
@@ -12,8 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@AutoConfigureWebGraphQlTester
-class SampleApplicationTests {
+@AutoConfigureHttpGraphQlTester
+class WebMvcHttpSecuritySampleTests {
 
 	@Autowired
 	private WebGraphQlTester graphQlTester;
@@ -21,7 +21,7 @@ class SampleApplicationTests {
 
 	@Test
 	void printError() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(System.out::println);
@@ -29,7 +29,7 @@ class SampleApplicationTests {
 
 	@Test
 	void anonymousThenUnauthorized() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -40,8 +40,12 @@ class SampleApplicationTests {
 
 	@Test
 	void userRoleThenForbidden() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
-				.httpHeaders(headers -> headers.setBasicAuth("rob", "rob"))
+
+		WebGraphQlTester tester = this.graphQlTester.mutate()
+				.headers(headers -> headers.setBasicAuth("rob", "rob"))
+				.build();
+
+		tester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -51,15 +55,15 @@ class SampleApplicationTests {
 	}
 
 	@Test
-	void canQueryName() {
-		this.graphQlTester.queryName("employeesNames")
+	void candocumentName() {
+		this.graphQlTester.documentName("employeesNames")
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi");
 	}
 
 	@Test
 	void canNotQuerySalary() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
+		this.graphQlTester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.errors()
 				.satisfy(errors -> {
@@ -70,8 +74,12 @@ class SampleApplicationTests {
 
 	@Test
 	void canQuerySalaryAsAdmin() {
-		this.graphQlTester.queryName("employeesNamesAndSalaries")
-				.httpHeaders(headers -> headers.setBasicAuth("admin", "admin"))
+
+		WebGraphQlTester tester = this.graphQlTester.mutate()
+				.headers(headers -> headers.setBasicAuth("admin", "admin"))
+				.build();
+
+		tester.documentName("employeesNamesAndSalaries")
 				.execute()
 				.path("employees[0].name").entity(String.class).isEqualTo("Andi")
 				.path("employees[0].salary").entity(int.class).isEqualTo(42);
@@ -80,9 +88,12 @@ class SampleApplicationTests {
 	@Test
 	void invalidCredentials() {
 		assertThatThrownBy(() ->
-				this.graphQlTester.queryName("employeesNamesAndSalaries")
-						.httpHeaders(headers -> headers.setBasicAuth("admin", "INVALID"))
+				this.graphQlTester.mutate()
+						.headers(headers -> headers.setBasicAuth("admin", "INVALID"))
+						.build()
+						.documentName("employeesNamesAndSalaries")
 						.executeAndVerify())
 				.hasMessage("Status expected:<200 OK> but was:<401 UNAUTHORIZED>");
 	}
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  */
 package io.spring.sample.graphql;
 
-import graphql.GraphQL;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -24,49 +22,44 @@ import reactor.test.StepVerifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.test.tester.GraphQlTester;
 
 /**
- * GraphQL subscription tests directly via {@link GraphQL}.
+ * GraphQL over WebSocket subscription tests.
  */
 @GraphQlTest(SampleController.class)
-@Import(TestConfig.class)
-public class SubscriptionTests {
+@Import(DataRepository.class)
+public class WebFluxWebSocketSampleSubscriptionTests {
 
+	@Autowired
 	private GraphQlTester graphQlTester;
 
-	@BeforeEach
-	public void setUp(@Autowired GraphQlService service) {
-		this.graphQlTester = GraphQlTester.create(requestInput ->
-				service.execute(requestInput).contextWrite(context -> context.put("name", "James")));
-	}
 
 	@Test
 	void subscriptionWithEntityPath() {
-		Flux<String> result = this.graphQlTester.query("subscription { greetings }")
+		Flux<String> result = this.graphQlTester.document("subscription { greetings }")
 				.executeSubscription()
 				.toFlux("greetings", String.class);
 
 		StepVerifier.create(result)
-				.expectNext("Hi James")
-				.expectNext("Bonjour James")
-				.expectNext("Hola James")
-				.expectNext("Ciao James")
-				.expectNext("Zdravo James")
+				.expectNext("Hi!")
+				.expectNext("Bonjour!")
+				.expectNext("Hola!")
+				.expectNext("Ciao!")
+				.expectNext("Zdravo!")
 				.verifyComplete();
 	}
 
 	@Test
-	void subscriptionWithResponseSpec() {
-		Flux<GraphQlTester.ResponseSpec> result = this.graphQlTester.query("subscription { greetings }")
+	void subscriptionWithResponse() {
+		Flux<GraphQlTester.Response> result = this.graphQlTester.document("subscription { greetings }")
 				.executeSubscription()
 				.toFlux();
 
 		StepVerifier.create(result)
-				.consumeNextWith(spec -> spec.path("greetings").valueExists())
-				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Bonjour James\""))
-				.consumeNextWith(spec -> spec.path("greetings").matchesJson("\"Hola James\""))
+				.consumeNextWith(response -> response.path("greetings").valueExists())
+				.consumeNextWith(response -> response.path("greetings").matchesJson("\"Bonjour!\""))
+				.consumeNextWith(response -> response.path("greetings").matchesJson("\"Hola!\""))
 				.expectNextCount(2)
 				.verifyComplete();
 	}
