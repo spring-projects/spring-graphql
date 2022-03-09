@@ -238,9 +238,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					});
 		}
 		else {
-			// Single response (query or mutation)
-			outputFlux = (CollectionUtils.isEmpty(output.getErrors()) ? Flux.just(output)
-					: Flux.error(new IllegalStateException("Execution failed: " + output.getErrors())));
+			// Single response (query or mutation) that may contain errors
+			outputFlux = Flux.just(output);
 		}
 
 		return outputFlux

@@ -197,9 +197,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					});
 		}
 		else {
-			// Single response (query or mutation)
-			outputFlux = (CollectionUtils.isEmpty(output.getErrors()) ? Flux.just(output) :
-					Flux.error(new IllegalStateException("Execution failed: " + output.getErrors())));
+			// Single response (query or mutation) that may contain errors
+			outputFlux = Flux.just(output);
 		}
 
 		return outputFlux
@@ -235,5 +234,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	@SuppressWarnings("serial")
 	private static class SubscriptionExistsException extends RuntimeException {
 	}
+
+
 
 }
