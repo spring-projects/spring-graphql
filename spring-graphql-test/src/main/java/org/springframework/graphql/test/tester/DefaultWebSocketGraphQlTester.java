@@ -84,6 +84,14 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 		private final WebSocketGraphQlClient.Builder<?> graphQlClientBuilder;
 
 		/**
+		 * Constructor to start via {@link WebSocketGraphQlTester#builder(String, WebSocketClient)}.
+		 */
+		Builder(String url, WebSocketClient webSocketClient) {
+			Assert.notNull(webSocketClient, "WebSocketClient is required");
+			this.graphQlClientBuilder = WebSocketGraphQlClient.builder(url, webSocketClient);
+		}
+
+		/**
 		 * Constructor to start via {@link WebSocketGraphQlTester#builder(URI, WebSocketClient)}.
 		 */
 		Builder(URI url, WebSocketClient webSocketClient) {

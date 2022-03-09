@@ -61,6 +61,15 @@ public interface WebSocketGraphQlTester extends WebGraphQlTester {
 	 * @param url the GraphQL endpoint URL
 	 * @param webSocketClient the underlying transport client to use
 	 */
+	static WebSocketGraphQlTester.Builder<?> builder(String url, WebSocketClient webSocketClient) {
+		return new DefaultWebSocketGraphQlTester.Builder(url, webSocketClient);
+	}
+
+	/**
+	 * Return a builder for a {@link WebSocketGraphQlClient}.
+	 * @param url the GraphQL endpoint URL
+	 * @param webSocketClient the underlying transport client to use
+	 */
 	static WebSocketGraphQlTester.Builder<?> builder(URI url, WebSocketClient webSocketClient) {
 		return new DefaultWebSocketGraphQlTester.Builder(url, webSocketClient);
 	}

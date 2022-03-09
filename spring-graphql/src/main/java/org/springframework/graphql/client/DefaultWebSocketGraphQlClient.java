@@ -90,6 +90,13 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 		private final CodecConfigurer codecConfigurer;
 
 		/**
+		 * Constructor to start via {@link WebSocketGraphQlClient#builder(String, WebSocketClient)}.
+		 */
+		Builder(String url, WebSocketClient client) {
+			this(toURI(url), client);
+		}
+
+		/**
 		 * Constructor to start via {@link WebSocketGraphQlClient#builder(URI, WebSocketClient)}.
 		 */
 		Builder(URI url, WebSocketClient client) {
@@ -111,14 +118,17 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 
 		@Override
 		public Builder url(String url) {
-			url(new DefaultUriBuilderFactory().uriString(url).build());
-			return this;
+			return url(toURI(url));
 		}
 
 		@Override
 		public Builder url(URI url) {
 			this.url = url;
 			return this;
+		}
+
+		private static URI toURI(String url) {
+			return new DefaultUriBuilderFactory().uriString(url).build();
 		}
 
 		@Override
