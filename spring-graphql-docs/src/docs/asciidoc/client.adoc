@@ -1,0 +1,215 @@
+include::attributes.adoc[]
+
+
+
+
+[[client]]
+= Client
+
+Spring for GraphQL includes client support for executing GraphQL requests over HTTP or
+over WebSocket.
+
+
+
+[[client-graphqlclient]]
+== `GraphQlClient`
+
+`GraphQlClient` defines a common workflow for executing GraphQL requests and
+subscriptions that is independent of and agnostic to the underlying transport. To create
+an instance, you'll need to start from either the <<client-httpgraphqlclient,
+HttpGraphQlClient>> or the <<client-websocketgraphqlclient,WebSocketGraphQlClient>>
+extensions.
+
+The main purpose of a `GraphQlClient` extension is to provide a transport specific
+`Builder`. There is also a common <<client-graphqlclient-builder>> in `GraphQlClient`
+with configuration options that apply to any extension.
+
+
+
+[[client-httpgraphqlclient]]
+=== HTTP
+
+`HttpGraphQlClient` uses
+{spring-framework-ref-docs}/web-reactive.html#webflux-client[WebClient] to execute
+GraphQL requests over HTTP.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+WebClient webClient = ... ;
+HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
+----
+
+The `HttpGraphQlClient` extension is nothing but a `GraphQlClient` with a specialized
+builder. Once created, it exposes the same workflow for request execution that is
+independent of the underlying transport.
+
+This means you can only configure HTTP request details at build time, and
+those apply to all requests through that client instance. To change HTTP request
+details, use `mutate()` on an existing `HttpGraphQlClient` to create another
+instance with different configuration:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    WebClient webClient = ... ;
+
+	HttpGraphQlClient graphQlClient = HttpGraphQlClient.builder(webClient)
+			.headers(headers -> headers.setBasicAuth("joe", "..."))
+			.build();
+
+	// Perform requests with graphQlClient...
+
+	HttpGraphQlClient anotherGraphQlClient = graphQlClient.mutate()
+			.headers(headers -> headers.setBasicAuth("peter", "..."))
+			.build();
+
+	// Perform requests with anotherGraphQlClient...
+
+----
+
+
+
+[[client-websocketgraphqlclient]]
+=== WebSocket
+
+`WebSocketGraphQlClient` uses
+{spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
+from Spring WebFlux to execute GraphQL requests over WebSocket:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	String url = "http://localhost:8080/graphql";
+	WebSocketClient client = new ReactorNettyWebSocketClient();
+
+	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client).build();
+----
+
+Once created, `WebSocketGraphQlClient` exposes the same transport agnostic workflow for
+request execution as any `GrahQlClient`. To change any transport details, use `mutate()`
+on an existing `WebSocketGraphQlClient` to create another with different configuration:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	URI url = ... ;
+	WebSocketClient client = ... ;
+
+	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
+			.headers(headers -> headers.setBasicAuth("joe", "..."))
+			.build();
+
+	// Use graphQlClient...
+
+	WebSocketGraphQlClient anotherGraphQlClient = graphQlClient.mutate()
+			.headers(headers -> headers.setBasicAuth("peter", "..."))
+			.build();
+
+	// Use anotherGraphQlClient...
+
+----
+
+`WebSocketGraphQlClient` exposes a `start()` method to connect the underlying WebSocket.
+This can be used on startup up to prepare for requests, but it is not required. A
+connection is established automatically when a request is made.
+
+`WebSocketGraphQlClient` maintains only one connection at a time that is used in
+multiplex style and shared for all requests through the client. If the connection is
+lost, it is automatically re-established on the next request.
+
+`WebSocketGraphQlClient` also exposes a `stop()` method that cancels ongoing
+requests and subscriptions, and closes the connection. A stopped client rejects
+new requests. Use `start()` to re-establish the connection and allow requests again.
+
+
+
+[[client-graphqlclient-builder]]
+=== Builder
+
+`GraphQlClient` defines a parent `Builder` with common configuration options for the
+builders of all extensions. Currently, it has lets you configure a `DocumentSource`,
+which is a strategy for loading the document for a request by file name.
+
+
+
+
+[[client-requests]]
+== Requests
+
+Once you have a `GraphQlClient`, you can begin to execute requests. The below executes
+a query for a project and uses https://github.com/json-path/JsonPath[JsonPath] to
+access the project from the response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	String document = "{" +
+			"  project(slug:\"spring-framework\") {" +
+			"	name" +
+			"	releases {" +
+			"	  version" +
+			"	}"+
+			"  }" +
+			"}";
+
+	Mono<Project> projectMono = graphQlClient.document(document)
+			.execute()
+			.map(response -> response.toEntity("project", Project.class));
+----
+
+The JsonPath is relative to the "data" section of the response.
+
+You can also create document files with extensions `.graphql` or `.gql` under
+`"graphql/"` on the classpath and refer to them by file name. For example, given a file
+called `project.graphql` in `src/main/resources/graphql`, with content:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+	query projectReleases($slug: ID!) {
+		project(slug: $slug) {
+			name
+			releases {
+				version
+			}
+		}
+	}
+----
+
+You can then use:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	Mono<Project> projectMono = graphQlClient.documentName("project") <1>
+			.variable("slug", "spring-framework") <2>
+			.execute()
+			.map(response -> response.toEntity("project", Project.class));
+----
+<1> Refer to the document in the file named "projectReleases".
+<2> Set the `slug` variable.
+
+[TIP]
+====
+The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
+====
+
+
+
+[[client-subscriptions]]
+== Subscriptions
+
+To start a subscription, call `executeSubscription` instead of `execute` to obtain a
+stream of responses rather than a single response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	Flux<String> greetingFlux = client.document("subscription { greetings }")
+			.executeSubscription()
+			.toFlux("greetings", String.class);  // decode at JSONPath
+----
+
+Subscriptions are supported only with <<client-websocketgraphqlclient,
+WebSocketGraphQlClient>>.
+
+
+
+
+
+
+
+

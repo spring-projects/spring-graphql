@@ -1484,9 +1484,12 @@ The Spring for GraphQL repository contains samples for
 
 
 
+include::client.adoc[leveloffset=+1]
+
+
+
+
 include::testing.adoc[leveloffset=+1]
-
-
 
 
 
