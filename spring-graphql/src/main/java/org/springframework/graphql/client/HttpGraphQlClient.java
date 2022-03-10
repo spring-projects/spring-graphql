@@ -52,6 +52,14 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 	 * Variant of {@link #builder()} with a pre-configured {@code WebClient}
 	 * to mutate and customize further through the returned builder.
 	 */
+	static Builder<?> builder(WebClient webClient) {
+		return builder(webClient.mutate());
+	}
+
+	/**
+	 * Variant of {@link #builder()} with a pre-configured {@code WebClient}
+	 * to mutate and customize further through the returned builder.
+	 */
 	static Builder<?> builder(WebClient.Builder webClientBuilder) {
 		return new DefaultHttpGraphQlClient.Builder(webClientBuilder);
 	}

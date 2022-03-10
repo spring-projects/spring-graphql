@@ -16,7 +16,9 @@
 package io.spring.sample.graphql;
 
 import java.net.URI;
+import java.time.Duration;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,13 +40,17 @@ class WebFluxSecuritySampleTests {
 	@LocalServerPort
 	private int port;
 
-	@Autowired
-	private WebGraphQlTester graphQlTester;
+	private WebSocketGraphQlTester graphQlTester;
 
 	@BeforeEach
 	public void setUp() {
 		URI url = URI.create("http://localhost:" + this.port + "/graphql");
 		this.graphQlTester = WebSocketGraphQlTester.create(url, new ReactorNettyWebSocketClient());
+	}
+
+	@AfterEach
+	void tearDown() {
+		this.graphQlTester.stop().block(Duration.ofSeconds(5));
 	}
 
 	@Test
