@@ -47,12 +47,39 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private final BatchHandlerMethodArgumentResolverComposite resolvers;
 
-	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, BatchHandlerMethodArgumentResolverComposite resolvers) {
+	@Nullable
+	private final HandlerMethodInputValidator validator;
+
+	/**
+	 * Constructor with a parent handler method.
+	 * @param handlerMethod the handler method
+	 * @param resolvers the argument resolvers
+	 * @param validator the input validator
+	 */
+	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod,
+									BatchHandlerMethodArgumentResolverComposite resolvers,
+									@Nullable HandlerMethodInputValidator validator) {
 		super(handlerMethod);
 		Assert.isTrue(!resolvers.getArgumentResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
+		this.validator = validator;
 	}
 
+
+	/**
+	 * Return the configured argument resolvers.
+	 */
+	public BatchHandlerMethodArgumentResolverComposite getResolvers() {
+		return resolvers;
+	}
+
+	/**
+	 * Return the configured input validator.
+	 */
+	@Nullable
+	public HandlerMethodInputValidator getValidator() {
+		return this.validator;
+	}
 
 	/**
 	 * Invoke the underlying batch loader method with a collection of keys to
@@ -69,6 +96,9 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		Object[] args;
 		try {
 			args = getMethodArgumentValues(keys, environment);
+			if (this.validator != null) {
+				this.validator.validate(this, args);
+			}
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);
@@ -96,6 +126,9 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		Object[] args;
 		try {
 			args = getMethodArgumentValues(keys, environment);
+			if (this.validator != null) {
+				this.validator.validate(this, args);
+			}
 		}
 		catch (Throwable ex) {
 			return Flux.error(ex);

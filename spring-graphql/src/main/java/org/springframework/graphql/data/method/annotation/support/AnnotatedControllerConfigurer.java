@@ -123,6 +123,9 @@ public class AnnotatedControllerConfigurer
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
 	@Nullable
+	private List<BatchHandlerMethodArgumentResolver> customBatchMethodArgumentResolvers;
+
+	@Nullable
 	private BatchHandlerMethodArgumentResolverComposite batchMethodArgumentResolvers;
 
 	@Nullable
@@ -150,6 +153,22 @@ public class AnnotatedControllerConfigurer
 	public void setConversionService(ConversionService conversionService) {
 		Assert.isInstanceOf(FormattingConversionService.class, conversionService);
 		this.conversionService = (FormattingConversionService) conversionService;
+	}
+
+	/**
+	 * Provide resolvers for custom batch method argument types. Custom resolvers
+	 * are ordered after built-in ones.
+	 */
+	public void setCustomBatchMethodArgumentResolvers(@Nullable List<BatchHandlerMethodArgumentResolver> customBatchMethodArgumentResolvers) {
+		this.customBatchMethodArgumentResolvers = customBatchMethodArgumentResolvers;
+	}
+
+	/**
+	 * Return the custom custom batch method argument resolvers, or {@code null}.
+	 */
+	@Nullable
+	public List<BatchHandlerMethodArgumentResolver> getCustomBatchMethodArgumentResolvers() {
+		return this.customBatchMethodArgumentResolvers;
 	}
 
 	@Override
@@ -221,6 +240,11 @@ public class AnnotatedControllerConfigurer
 		}
 		if (springSecurityPresent) {
 			resolvers.add(new PrincipalBatchMethodArgumentResolver());
+		}
+
+		// Custom batch method argument resolvers
+		if (getCustomBatchMethodArgumentResolvers() != null) {
+			resolvers.addAll(getCustomBatchMethodArgumentResolvers());
 		}
 		return resolvers;
 	}
@@ -396,7 +420,7 @@ public class AnnotatedControllerConfigurer
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
-		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, this.batchMethodArgumentResolvers);
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, this.batchMethodArgumentResolvers, this.validator);
 
 		Class<?> clazz = handlerMethod.getReturnType().getParameterType();
 		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz)) {
