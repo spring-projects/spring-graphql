@@ -1428,6 +1428,14 @@ Batch mapping methods support the following arguments:
 | `List<K>`
 | The source/parent objects.
 
+| `@Argument`
+| For access to a named field argument converted to a higher-level, typed Object.
+See <<controllers-schema-mapping-argument>>.
+
+| `@Arguments`
+| For access to all field arguments converted to a higher-level, typed Object.
+See <<controllers-schema-mapping-arguments>>.
+
 | `java.security.Principal`
 | Obtained from Spring Security context, if available.
 

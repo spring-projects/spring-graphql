@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.graphql.data.method.annotation.Argument;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -62,6 +63,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  courses { " +
 				"    id" +
 				"    name" +
+				"    classRoomNo(date:\"Monday\")"+
 				"    instructor {" +
 				"      id" +
 				"      firstName" +
@@ -81,6 +83,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 			Course actualCourse = actualCourses.get(i);
 			Course course = courses.get(i);
 			assertThat(actualCourse).isEqualTo(course);
+			assertThat(actualCourse.classRoomNo()).isEqualTo("001");
 
 			Person actualInstructor = actualCourse.instructor();
 			assertThat(actualInstructor.firstName()).isEqualTo(course.instructor().firstName());
@@ -95,6 +98,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  courses { " +
 				"    id" +
 				"    name" +
+				"    classRoomNo(date:\"Monday\")"+
 				"    students {" +
 				"      id" +
 				"      firstName" +
@@ -114,6 +118,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 			Course actualCourse = actualCourses.get(i);
 			Course course = courses.get(i);
 			assertThat(actualCourse.name()).isEqualTo(course.name());
+			assertThat(actualCourse.classRoomNo()).isEqualTo("001");
 
 			List<Person> actualStudents = actualCourse.students();
 			List<Person> students = course.students();
@@ -131,6 +136,11 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 	private static class BatchMonoMapController extends CourseController {
 
 		@BatchMapping
+		public Mono<Map<Course, String>> classRoomNo(List<Course> courses, @Argument String date) {
+			return Flux.fromIterable(courses).collect(Collectors.toMap(Function.identity(), course -> course.classRoomNo(course.id(), date)));
+		}
+
+		@BatchMapping
 		public Mono<Map<Course, Person>> instructor(List<Course> courses) {
 			return Flux.fromIterable(courses).collect(Collectors.toMap(Function.identity(), Course::instructor));
 		}
@@ -143,6 +153,11 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 
 	@Controller
 	private static class BatchMapController extends CourseController {
+
+		@BatchMapping
+		public Map<Course, String> classRoomNo(List<Course> courses, @Argument String date) {
+			return courses.stream().collect(Collectors.toMap(Function.identity(), course -> course.classRoomNo(course.id(), date)));
+		}
 
 		@BatchMapping
 		public Map<Course, Person> instructor(List<Course> courses) {
@@ -159,6 +174,11 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 	private static class BatchFluxController extends CourseController {
 
 		@BatchMapping
+		public Flux<String> classRoomNo(List<Course> courses, @Argument String date) {
+			return Flux.fromIterable(courses).map(course -> course.classRoomNo(course.id(), date));
+		}
+
+		@BatchMapping
 		public Flux<Person> instructor(List<Course> courses) {
 			return Flux.fromIterable(courses).map(Course::instructor);
 		}
@@ -171,6 +191,11 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 
 	@Controller
 	private static class BatchListController extends CourseController {
+
+		@BatchMapping
+		public List<String> classRoomNo(List<Course> courses, @DefaultStringValue("Monday") String byDefault) {
+			return courses.stream().map(course -> course.classRoomNo(course.id(), byDefault)).collect(Collectors.toList());
+		}
 
 		@BatchMapping
 		public List<Person> instructor(List<Course> courses) {

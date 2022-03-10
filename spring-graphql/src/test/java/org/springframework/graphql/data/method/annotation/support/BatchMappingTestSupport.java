@@ -15,6 +15,11 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,13 +32,18 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import graphql.schema.DataFetchingEnvironment;
+import org.dataloader.BatchLoaderEnvironment;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.MethodParameter;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.data.method.BatchHandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Support class for {@code @BatchMapping}, and other batch loading tests, that
@@ -48,9 +58,11 @@ public class BatchMappingTestSupport {
 
 	static final Map<Long, Person> personMap = new HashMap<>();
 
+	static final Map<Long,Map<String,String>> classRoomNoMap= new HashMap<>();
+
 	static {
-		Course.save(11L, "Ethical Hacking", 15L, Arrays.asList(22L, 26L, 31L));
-		Course.save(19L, "Docker and Kubernetes", 17L, Arrays.asList(31L, 39L, 44L, 45L));
+		Course.save(11L, "Ethical Hacking", 15L, Arrays.asList(22L, 26L, 31L), Collections.singletonMap("Monday", "001"));
+		Course.save(19L, "Docker and Kubernetes", 17L, Arrays.asList(31L, 39L, 44L, 45L), Collections.singletonMap("Monday", "001"));
 
 		Person.save(15L, "Josh", "Kelly");
 		Person.save(17L, "Albert", "Murray");
@@ -69,6 +81,7 @@ public class BatchMappingTestSupport {
 			"type Course {" +
 			"    id: ID" +
 			"    name: String" +
+			"    classRoomNo(date: String): String" +
 			"    instructor: Person" +
 			"    students: [Person]" +
 			"}" +
@@ -88,7 +101,7 @@ public class BatchMappingTestSupport {
 		context.refresh();
 
 		return GraphQlSetup.schemaContent(schema)
-				.runtimeWiringForAnnotatedControllers(context)
+				.runtimeWiringForAnnotatedControllers(context, Collections.singletonList(new DefaultValueResolver()))
 				.dataLoaders(registry)
 				.toGraphQlService();
 	}
@@ -100,6 +113,8 @@ public class BatchMappingTestSupport {
 
 		private final String name;
 
+		private final String classRoomNo;
+
 		private final Long instructorId;
 
 		private final List<Long> studentIds;
@@ -107,26 +122,37 @@ public class BatchMappingTestSupport {
 		@JsonCreator
 		public Course(
 				@JsonProperty("id") Long id, @JsonProperty("name") String name,
+				@JsonProperty("classRoomNo") String classRoomNo,
 				@JsonProperty("instructor") @Nullable Person instructor,
 				@JsonProperty("students") @Nullable List<Person> students) {
 
 			this.id = id;
 			this.name = name;
+			this.classRoomNo = classRoomNo;
 			this.instructorId = (instructor != null ? instructor.id() : -1);
 			this.studentIds = (students != null ?
 					students.stream().map(Person::id).collect(Collectors.toList()) :
 					Collections.emptyList());
 		}
 
-		public Course(Long id, String name, Long instructorId, List<Long> studentIds) {
+		public Course(Long id, String name, String classRoomNo, Long instructorId, List<Long> studentIds) {
 			this.id = id;
 			this.name = name;
+			this.classRoomNo = classRoomNo;
 			this.instructorId = instructorId;
 			this.studentIds = studentIds;
 		}
 
+		public Long id() {
+			return this.id;
+		}
+
 		public String name() {
 			return this.name;
+		}
+
+		public String classRoomNo() {
+			return this.classRoomNo;
 		}
 
 		public Long instructorId() {
@@ -141,13 +167,18 @@ public class BatchMappingTestSupport {
 			return this.studentIds.stream().map(personMap::get).collect(Collectors.toList());
 		}
 
+		public String classRoomNo(Long id, String date) {
+			return classRoomNoMap.getOrDefault(id, Collections.emptyMap()).get(date);
+		}
+
 		public Person instructor() {
 			return personMap.get(this.instructorId);
 		}
 
-		public static void save(Long id, String name, Long instructorId, List<Long> studentIds) {
-			Course course = new Course(id, name, instructorId, studentIds);
+		public static void save(Long id, String name, Long instructorId, List<Long> studentIds, Map<String, String> classRoomNoByDate) {
+			Course course = new Course(id, name, "", instructorId, studentIds);
 			courseMap.put(id, course);
+			classRoomNoMap.put(id, classRoomNoByDate);
 		}
 
 		public static List<Course> allCourses() {
@@ -218,6 +249,31 @@ public class BatchMappingTestSupport {
 		public Collection<Course> courses() {
 			return courseMap.values();
 		}
+	}
+
+	private static class DefaultValueResolver implements BatchHandlerMethodArgumentResolver {
+
+		@Override
+		public boolean supportsParameter(MethodParameter parameter) {
+			return parameter.hasParameterAnnotation(DefaultStringValue.class);
+		}
+
+		@Override
+		public <K> Object resolveArgument(MethodParameter parameter,
+										  Collection<K> keys,
+										  Map<K, ? extends DataFetchingEnvironment> keyContexts,
+										  BatchLoaderEnvironment environment) throws Exception {
+			DefaultStringValue annotation = parameter.getParameterAnnotation(DefaultStringValue.class);
+			Assert.state(annotation != null, "Expected @DefaultStringValue annotation");
+			return annotation.value();
+		}
+	}
+
+	@Target(ElementType.PARAMETER)
+	@Retention(RetentionPolicy.RUNTIME)
+	@Documented
+	@interface DefaultStringValue {
+		String value() default "";
 	}
 
 }

@@ -18,6 +18,7 @@ package org.springframework.graphql;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import graphql.GraphQL;
@@ -28,6 +29,7 @@ import graphql.schema.TypeResolver;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.graphql.data.method.BatchHandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataLoaderRegistrar;
@@ -86,8 +88,13 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	}
 
 	public GraphQlSetup runtimeWiringForAnnotatedControllers(ApplicationContext context) {
+		return this.runtimeWiringForAnnotatedControllers(context, Collections.emptyList());
+	}
+
+	public GraphQlSetup runtimeWiringForAnnotatedControllers(ApplicationContext context, List<BatchHandlerMethodArgumentResolver> customBatchMethodArgumentResolvers) {
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(context);
+		configurer.setCustomBatchMethodArgumentResolvers(customBatchMethodArgumentResolvers);
 		configurer.afterPropertiesSet();
 		return runtimeWiring(configurer);
 	}
