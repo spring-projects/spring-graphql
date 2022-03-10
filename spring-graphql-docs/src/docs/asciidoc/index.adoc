@@ -1240,7 +1240,7 @@ for reacting to validation errors: those are globally dealt with as exceptions.
 
 
 [[controllers-schema-mapping-projectedpayload-argument]]
-==== `@ProjectPayload` Interface
+==== `@ProjectedPayload` Interface
 
 As an alternative to using complete Objects with <<controllers-schema-mapping-argument>>,
 you can also use a projection interface to access GraphQL request arguments through a
