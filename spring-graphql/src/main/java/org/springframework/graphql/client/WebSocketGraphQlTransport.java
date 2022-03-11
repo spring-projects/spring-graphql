@@ -275,7 +275,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 									graphQlSession.handleComplete(message);
 									break;
 								default:
-									return Mono.error(new IllegalStateException("Unexpected message: " + message));
+									return session.close(new CloseStatus(4400, "Invalid message"));
 							}
 						}
 						return Mono.empty();
@@ -448,7 +448,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						logger.error("Closing " + this.connection.getDescription() +
 								" after failure to send 'complete' for subscription id='" + id + "'.");
 					}
-					this.connection.close().subscribe();
+					// No other suitable status (like server error but there is none for client)
+					this.connection.close(CloseStatus.PROTOCOL_ERROR).subscribe();
 				}
 			}
 		}
@@ -541,7 +542,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Close the underlying connection.
 		 */
 		public Mono<Void> close() {
-			return this.connection.close();
+			return this.connection.close(CloseStatus.GOING_AWAY);
 		}
 
 		/**
@@ -568,7 +569,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 */
 	private interface DisposableConnection {
 
-		Mono<Void> close();
+		Mono<Void> close(CloseStatus status);
 
 		Mono<Void> notifyWhenClosed();
 
@@ -580,8 +581,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			return new DisposableConnection() {
 
 				@Override
-				public Mono<Void> close() {
-					return session.close();
+				public Mono<Void> close(CloseStatus status) {
+					return session.close(status);
 				}
 
 				@Override

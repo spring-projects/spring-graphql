@@ -216,7 +216,7 @@ public class MockWebSocketGraphQlTransportTests {
 		// Stop
 		this.transport.stop().block(TIMEOUT);
 		assertThat(this.webSocketClient.getConnection(0).isOpen()).isFalse();
-		assertThat(this.webSocketClient.getConnection(0).closeStatus().block(TIMEOUT)).isEqualTo(CloseStatus.NORMAL);
+		assertThat(this.webSocketClient.getConnection(0).closeStatus().block(TIMEOUT)).isEqualTo(CloseStatus.GOING_AWAY);
 
 		// New requests are rejected
 		GraphQlRequest request = this.mockServer.expectOperation("{Query1}").andRespond(this.response1);
@@ -300,7 +300,7 @@ public class MockWebSocketGraphQlTransportTests {
 		TestWebSocketClient client = new TestWebSocketClient(new UnexpectedResponseHandler());
 		WebSocketGraphQlTransport transport = createTransport(client);
 
-		String expectedMessage = "disconnected with CloseStatus[code=1002, reason=null]";
+		String expectedMessage = "disconnected with CloseStatus[code=4400, reason=Invalid message]";
 
 		StepVerifier.create(transport.execute(new GraphQlRequest("{Query1}")))
 				.expectErrorSatisfies(ex -> assertThat(ex).hasMessageEndingWith(expectedMessage))
