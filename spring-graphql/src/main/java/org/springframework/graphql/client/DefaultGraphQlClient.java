@@ -15,28 +15,18 @@
  */
 package org.springframework.graphql.client;
 
-import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.TypeRef;
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * Default, final {@link GraphQlClient} implementation for use with any transport.
@@ -152,20 +142,20 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
-		public Mono<Response> execute() {
-			return getRequestMono()
-					.flatMap(this.transport::execute)
-					.map(payload -> new DefaultResponse(payload, this.jsonPathConfig));
+		public Mono<ClientGraphQlResponse> execute() {
+			return initRequest().flatMap(request ->
+					this.transport.execute(request)
+							.map(response -> new DefaultClientGraphQlResponse(response, this.jsonPathConfig)));
 		}
 
 		@Override
-		public Flux<Response> executeSubscription() {
-			return getRequestMono()
-					.flatMapMany(this.transport::executeSubscription)
-					.map(payload -> new DefaultResponse(payload, this.jsonPathConfig));
+		public Flux<ClientGraphQlResponse> executeSubscription() {
+			return initRequest().flatMapMany(request ->
+					this.transport.executeSubscription(request)
+							.map(response -> new DefaultClientGraphQlResponse(response, this.jsonPathConfig)));
 		}
 
-		private Mono<GraphQlRequest> getRequestMono() {
+		private Mono<GraphQlRequest> initRequest() {
 			return this.documentMono.map(document ->
 					new GraphQlRequest(document, this.operationName, this.variables));
 		}
@@ -173,93 +163,4 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	}
 
 
-	/**
-	 * Default {@link GraphQlClient.Response} implementation.
-	 */
-	private static class DefaultResponse implements Response {
-
-		private final GraphQlResponse response;
-
-		private final DocumentContext jsonPathDoc;
-
-		private final List<GraphQLError> errors;
-
-		private DefaultResponse(GraphQlResponse response, Configuration jsonPathConfig) {
-			this.response = response;
-			this.jsonPathDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
-			this.errors = response.getErrors();
-		}
-
-		@Override
-		public <D> D toEntity(String path, Class<D> entityType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
-		}
-
-		@Override
-		public <D> D toEntity(String path, ParameterizedTypeReference<D> entityType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(String path, Class<D> elementType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(String path, ParameterizedTypeReference<D> elementType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
-		}
-
-		private static JsonPath initJsonPath(String path) {
-			if (!StringUtils.hasText(path)) {
-				path = "$.data";
-			}
-			else if (!path.startsWith("$") && !path.startsWith("data.")) {
-				path = "$.data." + path;
-			}
-			return JsonPath.compile(path);
-		}
-
-		@Override
-		public List<GraphQLError> errors() {
-			return this.errors;
-		}
-
-		@Override
-		public GraphQlResponse andReturn() {
-			return this.response;
-		}
-
-	}
-
-
-	/**
-	 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
-	 */
-	private static final class TypeRefAdapter<T> extends TypeRef<T> {
-
-		private final Type type;
-
-		TypeRefAdapter(Class<T> clazz) {
-			this.type = clazz;
-		}
-
-		TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
-			this.type = typeReference.getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, Class<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
-		}
-
-		@Override
-		public Type getType() {
-			return this.type;
-		}
-
-	}
 }

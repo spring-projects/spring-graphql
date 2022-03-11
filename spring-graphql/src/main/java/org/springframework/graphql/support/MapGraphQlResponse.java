@@ -32,24 +32,24 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public final class MapGraphQlResponse implements GraphQlResponse {
+public class MapGraphQlResponse implements GraphQlResponse {
 
-	private final Map<String, Object> resultMap;
+	private final Map<String, Object> responseMap;
 
 	private final List<GraphQLError> errors;
 
 
 	@SuppressWarnings("unchecked")
-	private MapGraphQlResponse(Map<String, Object> resultMap) {
-		Assert.notNull(resultMap, "'resultMap' is required");
-		this.resultMap = resultMap;
-		this.errors = MapGraphQlError.from((List<Map<String, Object>>) resultMap.get("errors"));
+	protected MapGraphQlResponse(Map<String, Object> responseMap) {
+		Assert.notNull(responseMap, "'responseMap' is required");
+		this.responseMap = responseMap;
+		this.errors = MapGraphQlError.from((List<Map<String, Object>>) responseMap.get("errors"));
 	}
 
 
 	@Override
 	public boolean isValid() {
-		return (this.resultMap.containsKey("data") && this.resultMap.get("data") != null);
+		return (this.responseMap.containsKey("data") && this.responseMap.get("data") != null);
 	}
 
 	@Override
@@ -60,34 +60,34 @@ public final class MapGraphQlResponse implements GraphQlResponse {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T getData() {
-		return (T) this.resultMap.get("data");
+		return (T) this.responseMap.get("data");
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<Object, Object> getExtensions() {
-		return (Map<Object, Object>) this.resultMap.getOrDefault("extensions", Collections.emptyMap());
+		return (Map<Object, Object>) this.responseMap.getOrDefault("extensions", Collections.emptyMap());
 	}
 
 	@Override
 	public Map<String, Object> toMap() {
-		return this.resultMap;
+		return this.responseMap;
 	}
 
 	@Override
 	public boolean equals(Object other) {
 		return (other instanceof MapGraphQlResponse &&
-				this.resultMap.equals(((MapGraphQlResponse) other).resultMap));
+				this.responseMap.equals(((MapGraphQlResponse) other).responseMap));
 	}
 
 	@Override
 	public int hashCode() {
-		return this.resultMap.hashCode();
+		return this.responseMap.hashCode();
 	}
 
 	@Override
 	public String toString() {
-		return this.resultMap.toString();
+		return this.responseMap.toString();
 	}
 
 

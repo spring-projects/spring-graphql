@@ -170,7 +170,7 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 							.operationName(request.getOperationName())
 							.variables(request.getVariables())
 							.execute()
-							.map(GraphQlClient.Response::andReturn);
+							.cast(GraphQlResponse.class);
 				}
 
 				@Override
@@ -179,7 +179,8 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 							.document(request.getDocument())
 							.operationName(request.getOperationName())
 							.variables(request.getVariables())
-							.executeSubscription().map(GraphQlClient.Response::andReturn);
+							.executeSubscription()
+							.cast(GraphQlResponse.class);
 				}
 			};
 		}

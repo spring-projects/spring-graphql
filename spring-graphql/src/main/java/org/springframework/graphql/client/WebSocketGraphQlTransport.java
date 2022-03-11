@@ -496,15 +496,15 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return;
 			}
 
-			List<Map<String, Object>> payload = message.getPayload();
+			List<Map<String, Object>> errorList = message.getPayload();
 
 			Sinks.EmitResult emitResult;
 			if (sink != null) {
-				GraphQlResponse response = MapGraphQlResponse.forErrorsOnly(payload);
+				GraphQlResponse response = MapGraphQlResponse.forErrorsOnly(errorList);
 				emitResult = sink.tryEmitValue(response);
 			}
 			else {
-				List<GraphQLError> graphQLErrors = MapGraphQlError.from(payload);
+				List<GraphQLError> graphQLErrors = MapGraphQlError.from(errorList);
 				Exception ex = new SubscriptionErrorException(graphQLErrors);
 				emitResult = streamingSink.tryEmitError(ex);
 			}

@@ -15,11 +15,12 @@
  */
 package org.springframework.graphql.client;
 
-import java.util.List;
 import java.util.Map;
 
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import graphql.validation.ValidationError;
+import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -40,14 +41,17 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		String document = "{me {name}}";
 		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
-		GraphQlClient.Response response = execute(document);
+		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
 
-		MovieCharacter luke = MovieCharacter.create("Luke Skywalker");
-		assertThat(response.toEntity("me", MovieCharacter.class)).isEqualTo(luke);
+		ClientGraphQlResponse response = execute(document);
+		assertThat(response.isValid()).isTrue();
 
-		Map<String, MovieCharacter> map = response.toEntity("", new ParameterizedTypeReference<Map<String, MovieCharacter>>() {});
-		assertThat(map).containsEntry("me", luke);
+		ResponseField field = response.field("me");
+		assertThat(field.isValid()).isTrue();
+		assertThat(field.toEntity(MovieCharacter.class)).isEqualTo(character);
 
+		Map<String, MovieCharacter> map = response.toEntity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {});
+		assertThat(map).containsEntry("me", character);
 		assertThat(request().getDocument()).contains(document);
 	}
 
@@ -58,20 +62,19 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		setMockResponse("{" +
 				"  \"me\":{" +
 				"      \"name\":\"Luke Skywalker\","
-				+ "      \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
 				"  }" +
 				"}");
-
-		GraphQlClient.Response response = execute(document);
 
 		MovieCharacter han = MovieCharacter.create("Han Solo");
 		MovieCharacter leia = MovieCharacter.create("Leia Organa");
 
-		List<MovieCharacter> characters = response.toEntityList("me.friends", MovieCharacter.class);
-		assertThat(characters).containsExactly(han, leia);
+		ClientGraphQlResponse response = execute(document);
+		assertThat(response.isValid()).isTrue();
 
-		characters = response.toEntityList("me.friends", new ParameterizedTypeReference<MovieCharacter>() {});
-		assertThat(characters).containsExactly(han, leia);
+		ResponseField field = response.field("me.friends");
+		assertThat(field.toEntityList(MovieCharacter.class)).containsExactly(han, leia);
+		assertThat(field.toEntityList(new ParameterizedTypeReference<MovieCharacter>() {})).containsExactly(han, leia);
 
 		assertThat(request().getDocument()).contains(document);
 	}
@@ -86,7 +89,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				"}";
 		setMockResponse("{\"hero\": {\"name\":\"R2-D2\"}}");
 
-		GraphQlClient.Response response = graphQlClient().document(document)
+		ClientGraphQlResponse response = graphQlClient().document(document)
 				.operationName("HeroNameAndFriends")
 				.variable("episode", "JEDI")
 				.variable("foo", "bar")
@@ -95,9 +98,8 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.block(TIMEOUT);
 
 		assertThat(response).isNotNull();
-
-		MovieCharacter character = response.toEntity("hero", MovieCharacter.class);
-		assertThat(character).isEqualTo(MovieCharacter.create("R2-D2"));
+		assertThat(response.isValid()).isTrue();
+		assertThat(response.field("hero").toEntity(MovieCharacter.class)).isEqualTo(MovieCharacter.create("R2-D2"));
 
 		GraphQlRequest request = request();
 		assertThat(request.getDocument()).contains(document);
@@ -109,6 +111,18 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	}
 
 	@Test
+	void requestFailureBeforeExecution() {
+
+		String document = "{invalid";
+		setMockResponse(new ValidationError(ValidationErrorType.InvalidSyntax));
+
+		ClientGraphQlResponse response = execute(document);
+
+		assertThat(response.isValid()).isFalse();
+		assertThat(response.field("me").isValid()).isFalse();
+	}
+
+	@Test
 	void errors() {
 
 		String document = "{me {name, friends}}";
@@ -116,14 +130,16 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				GraphqlErrorBuilder.newError().message("some error").build(),
 				GraphqlErrorBuilder.newError().message("some other error").build());
 
-		GraphQlClient.Response response = execute(document);
+		ClientGraphQlResponse response = execute(document);
+		assertThat(response.isValid()).isFalse();
 
-		assertThat(response.errors()).extracting(GraphQLError::getMessage)
+		assertThat(response.getErrors())
+				.extracting(GraphQLError::getMessage)
 				.containsExactly("some error", "some other error");
 	}
 
-	private GraphQlClient.Response execute(String document) {
-		GraphQlClient.Response response = graphQlClient().document(document).execute().block(TIMEOUT);
+	private ClientGraphQlResponse execute(String document) {
+		ClientGraphQlResponse response = graphQlClient().document(document).execute().block(TIMEOUT);
 		assertThat(response).isNotNull();
 		return response;
 	}

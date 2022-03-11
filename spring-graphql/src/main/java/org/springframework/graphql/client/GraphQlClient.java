@@ -15,15 +15,11 @@
  */
 package org.springframework.graphql.client;
 
-import java.util.List;
 import java.util.Map;
 
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -135,15 +131,15 @@ public interface GraphQlClient {
 		/**
 		 * Execute as a request with a single response such as a "query" or
 		 * "mutation" operation.
-		 * @return a {@code Mono} with a {@code ResponseSpec} for further
+		 * @return a {@code Mono} with a {@code ClientGraphQlResponse} for further
 		 * decoding of the response. The {@code Mono} may end wth an error due
 		 * to transport level issues.
 		 */
-		Mono<Response> execute();
+		Mono<ClientGraphQlResponse> execute();
 
 		/**
 		 * Execute a "subscription" request with a stream of responses.
-		 * @return a {@code Flux} with a {@code ResponseSpec} for further
+		 * @return a {@code Flux} with a {@code ClientGraphQlResponse} for further
 		 * decoding of the response. The {@code Flux} may terminate as follows:
 		 * <ul>
 		 * <li>Completes if the subscription completes before the connection is closed.
@@ -155,72 +151,7 @@ public interface GraphQlClient {
 		 * <p>The {@code Flux} may be cancelled to notify the server to end the
 		 * subscription stream.
 		 */
-		Flux<Response> executeSubscription();
-
-	}
-
-
-	/**
-	 * Declare options to decode a response.
-	 */
-	interface Response {
-
-		/**
-		 * Switch to the given the "data" path of the GraphQL response and
-		 * convert the data to the target type. The path can be an operation
-		 * root type name, e.g. "book", or a nested path such as "book.name",
-		 * or any <a href="https://github.com/jayway/JsonPath">JsonPath</a>
-		 * relative to the "data" key of the response.
-		 * @param path a JSON path to the data of interest
-		 * @param entityType the type to convert to
-		 * @param <D> the target entity type
-		 * @return the entity resulting from the conversion
-		 */
-		<D> D toEntity(String path, Class<D> entityType);
-
-		/**
-		 * Variant of {@link #toEntity(String, Class)} for entity classes with
-		 * generic types.
-		 * @param path a JSON path to the data of interest
-		 * @param entityType the type to convert to
-		 * @param <D> the target entity type
-		 * @return the entity resulting from the conversion
-		 */
-		<D> D toEntity(String path, ParameterizedTypeReference<D> entityType);
-
-		/**
-		 * Switch to the given the "data" path of the GraphQL response and
-		 * convert the data to a List with the given element type.
-		 * The path can be an operation root type name, e.g. "book", or a
-		 * nested path such as "book.name", or any
-		 * <a href="https://github.com/jayway/JsonPath">JsonPath</a>
-		 * relative to the "data" key of the response.
-		 * @param path a JSON path to the data of interest
-		 * @param elementType the type of element to convert to
-		 * @param <D> the target entity type
-		 * @return the list of entities resulting from the conversion
-		 */
-		<D> List<D> toEntityList(String path, Class<D> elementType);
-
-		/**
-		 * Variant of {@link #toEntityList(String, Class)} for entity classes
-		 * with generic types.
-		 * @param path a JSON path to the data of interest
-		 * @param elementType the type to convert to
-		 * @param <D> the target entity type
-		 * @return the list of entities resulting from the conversion
-		 */
-		<D> List<D> toEntityList(String path, ParameterizedTypeReference<D> elementType);
-
-		/**
-		 * Return the errors from the response or an empty list.
-		 */
-		List<GraphQLError> errors();
-
-		/**
-		 * Return the underlying {@link GraphQlResponse}.
-		 */
-		GraphQlResponse andReturn();
+		Flux<ClientGraphQlResponse> executeSubscription();
 
 	}
 
