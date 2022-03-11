@@ -82,14 +82,15 @@ public class GraphQlHttpHandler {
 			logger.debug("Executing: " + input);
 		}
 
-		Mono<ServerResponse> responseMono = this.graphQlHandler.handleRequest(input).map((output) -> {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Execution complete");
-			}
-			ServerResponse.BodyBuilder builder = ServerResponse.ok();
-			builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
-			return builder.body(output.toSpecification());
-		});
+		Mono<ServerResponse> responseMono = this.graphQlHandler.handleRequest(input)
+				.map(output -> {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Execution complete");
+					}
+					ServerResponse.BodyBuilder builder = ServerResponse.ok();
+					builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
+					return builder.body(output.toMap());
+				});
 
 		return ServerResponse.async(responseMono);
 	}

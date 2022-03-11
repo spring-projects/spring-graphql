@@ -25,6 +25,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.test.util.AssertionErrors;
@@ -45,22 +46,23 @@ abstract class AbstractDirectTransport implements GraphQlTransport {
 
 
 	@Override
-	public Mono<ExecutionResult> execute(GraphQlRequest request) {
-		return executeInternal(request).cast(ExecutionResult.class);
+	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
+		return executeInternal(request).cast(GraphQlResponse.class);
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	@Override
-	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
-		return executeInternal(request).flatMapMany(result -> {
+	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
+		return executeInternal(request).flatMapMany(output -> {
 			try {
-				Object data = result.getData();
+				Object data = output.getData();
 				AssertionErrors.assertTrue("Not a Publisher: " + data, data instanceof Publisher);
 
-				List<GraphQLError> errors = result.getErrors();
+				List<GraphQLError> errors = output.getErrors();
 				AssertionErrors.assertTrue("Subscription errors: " + errors, CollectionUtils.isEmpty(errors));
 
-				return Flux.from((Publisher<ExecutionResult>) data);
+				return Flux.from((Publisher<ExecutionResult>) data)
+						.map(result -> new RequestOutput(output.getExecutionInput(), result));
 			}
 			catch (AssertionError ex) {
 				throw new AssertionError(ex.getMessage() + "\nRequest: " + request, ex);

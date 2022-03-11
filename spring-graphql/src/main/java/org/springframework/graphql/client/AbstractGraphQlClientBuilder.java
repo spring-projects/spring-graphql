@@ -116,7 +116,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 				Configuration.defaultConfiguration().mappingProvider().getClass();
 
 		// We only need a MappingProvider:
-		// GraphQlTransport returns ExecutionResult with JSON parsed to Map/List
+		// GraphQlTransport returns GraphQlResponse with already parsed JSON
 
 		static Configuration configure(Configuration config) {
 			MappingProvider provider = config.mappingProvider();

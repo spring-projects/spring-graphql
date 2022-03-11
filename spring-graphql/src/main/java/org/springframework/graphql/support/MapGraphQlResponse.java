@@ -21,18 +21,18 @@ import java.util.List;
 import java.util.Map;
 
 import graphql.ExecutionResult;
-import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.util.Assert;
 
 /**
- * Implementation of {@link ExecutionResult} backed by a {@link Map}.
+ * {@link GraphQlResponse} for client use that wraps the GraphQL response map.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public final class MapExecutionResult implements ExecutionResult {
+public final class MapGraphQlResponse implements GraphQlResponse {
 
 	private final Map<String, Object> resultMap;
 
@@ -40,12 +40,17 @@ public final class MapExecutionResult implements ExecutionResult {
 
 
 	@SuppressWarnings("unchecked")
-	private MapExecutionResult(Map<String, Object> resultMap) {
+	private MapGraphQlResponse(Map<String, Object> resultMap) {
 		Assert.notNull(resultMap, "'resultMap' is required");
 		this.resultMap = resultMap;
 		this.errors = MapGraphQlError.from((List<Map<String, Object>>) resultMap.get("errors"));
 	}
 
+
+	@Override
+	public boolean isValid() {
+		return (this.resultMap.containsKey("data") && this.resultMap.get("data") != null);
+	}
 
 	@Override
 	public List<GraphQLError> getErrors() {
@@ -58,26 +63,21 @@ public final class MapExecutionResult implements ExecutionResult {
 		return (T) this.resultMap.get("data");
 	}
 
-	@Override
-	public boolean isDataPresent() {
-		return (this.resultMap.get("data") != null);
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<Object, Object> getExtensions() {
-		return (Map<Object, Object>) this.resultMap.get("extensions");
+		return (Map<Object, Object>) this.resultMap.getOrDefault("extensions", Collections.emptyMap());
 	}
 
 	@Override
-	public Map<String, Object> toSpecification() {
-		return ExecutionResultImpl.newExecutionResult().from(this).build().toSpecification();
+	public Map<String, Object> toMap() {
+		return this.resultMap;
 	}
 
 	@Override
 	public boolean equals(Object other) {
-		return (other instanceof MapExecutionResult &&
-				this.resultMap.equals(((MapExecutionResult) other).resultMap));
+		return (other instanceof MapGraphQlResponse &&
+				this.resultMap.equals(((MapGraphQlResponse) other).resultMap));
 	}
 
 	@Override
@@ -95,24 +95,24 @@ public final class MapExecutionResult implements ExecutionResult {
 	 * Create an instance from an {@code ExecutionResult} serialized to map via
 	 * {@link ExecutionResult#toSpecification()}.
 	 */
-	public static ExecutionResult from(Map<String, Object> map) {
-		return new MapExecutionResult(map);
+	public static GraphQlResponse forResponse(Map<String, Object> map) {
+		return new MapGraphQlResponse(map);
 	}
 
 	/**
 	 * Create an {@code ExecutionResult} with a "data" key that returns the
 	 * given map.
 	 */
-	public static ExecutionResult forDataOnly(Map<String, Object> map) {
-		return new MapExecutionResult(Collections.singletonMap("data", map));
+	public static GraphQlResponse forDataOnly(Map<String, Object> map) {
+		return new MapGraphQlResponse(Collections.singletonMap("data", map));
 	}
 
 	/**
 	 * Create an {@code ExecutionResult} with an "errors" key that returns the
 	 * given serialized errors.
 	 */
-	public static ExecutionResult forErrorsOnly(List<Map<String, Object>> errors) {
-		return new MapExecutionResult(Collections.singletonMap("errors", errors));
+	public static GraphQlResponse forErrorsOnly(List<Map<String, Object>> errors) {
+		return new MapGraphQlResponse(Collections.singletonMap("errors", errors));
 	}
 
 }

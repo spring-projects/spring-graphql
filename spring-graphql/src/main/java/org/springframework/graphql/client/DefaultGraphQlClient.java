@@ -25,7 +25,6 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.TypeRef;
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,6 +32,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -178,16 +178,16 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	 */
 	private static class DefaultResponse implements Response {
 
-		private final ExecutionResult result;
+		private final GraphQlResponse response;
 
 		private final DocumentContext jsonPathDoc;
 
 		private final List<GraphQLError> errors;
 
-		private DefaultResponse(ExecutionResult result, Configuration jsonPathConfig) {
-			this.result = result;
-			this.jsonPathDoc = JsonPath.parse(result.toSpecification(), jsonPathConfig);
-			this.errors = result.getErrors();
+		private DefaultResponse(GraphQlResponse response, Configuration jsonPathConfig) {
+			this.response = response;
+			this.jsonPathDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
+			this.errors = response.getErrors();
 		}
 
 		@Override
@@ -226,8 +226,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
-		public ExecutionResult andReturn() {
-			return this.result;
+		public GraphQlResponse andReturn() {
+			return this.response;
 		}
 
 	}

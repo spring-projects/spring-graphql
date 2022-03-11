@@ -18,12 +18,12 @@ package org.springframework.graphql.client;
 import java.util.List;
 import java.util.Map;
 
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -218,9 +218,9 @@ public interface GraphQlClient {
 		List<GraphQLError> errors();
 
 		/**
-		 * Return the underlying {@link ExecutionResult} for the response.
+		 * Return the underlying {@link GraphQlResponse}.
 		 */
-		ExecutionResult andReturn();
+		GraphQlResponse andReturn();
 
 	}
 

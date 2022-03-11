@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
@@ -31,7 +30,8 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.support.MapGraphQlResponse;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -80,14 +80,11 @@ public class GraphQlClientTestSupport {
 	}
 
 	private void setMockResponse(Consumer<ExecutionResultImpl.Builder> consumer) {
-
 		ExecutionResultImpl.Builder builder = new ExecutionResultImpl.Builder();
 		consumer.accept(builder);
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput("{}").build();
 		ExecutionResult result = builder.build();
-
-		when(this.transport.execute(this.requestCaptor.capture()))
-				.thenReturn(Mono.just(new RequestOutput(executionInput, result)));
+		GraphQlResponse response = MapGraphQlResponse.forResponse(result.toSpecification());
+		when(this.transport.execute(this.requestCaptor.capture())).thenReturn(Mono.just(response));
 	}
 
 	private void serialize(String data, ExecutionResultImpl.Builder builder) {

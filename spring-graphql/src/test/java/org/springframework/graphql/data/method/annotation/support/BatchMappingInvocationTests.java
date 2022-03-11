@@ -28,7 +28,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.TestRequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
@@ -70,10 +70,10 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = createGraphQlService(controller)
+		Mono<RequestOutput> outputMono = createGraphQlService(controller)
 				.execute(TestRequestInput.forDocument(query));
 
-		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
+		List<Course> actualCourses = ResponseHelper.forResponse(outputMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 
@@ -103,10 +103,10 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = createGraphQlService(controller)
+		Mono<RequestOutput> outputMono = createGraphQlService(controller)
 				.execute(TestRequestInput.forDocument(document));
 
-		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
+		List<Course> actualCourses = ResponseHelper.forResponse(outputMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 

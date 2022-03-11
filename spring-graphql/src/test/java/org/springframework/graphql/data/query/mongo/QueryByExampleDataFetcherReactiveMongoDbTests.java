@@ -41,7 +41,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -77,7 +77,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 		Consumer<GraphQlSetup> tester = setup -> {
 			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
-			Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+			Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -99,7 +99,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
@@ -113,7 +113,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
@@ -126,7 +126,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		Consumer<GraphQlSetup> tester = setup -> {
 			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
 
-			List<String> names = GraphQlResponse.from(outputMono).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(outputMono).toList("books", Book.class)
 					.stream().map(Book::getName).collect(Collectors.toList());
 
 			assertThat(names).containsExactlyInAnyOrder("Breaking Bad", "Hitchhiker's Guide to the Galaxy");

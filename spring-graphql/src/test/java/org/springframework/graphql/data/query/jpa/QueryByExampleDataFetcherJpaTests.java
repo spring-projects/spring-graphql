@@ -40,7 +40,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -80,7 +80,7 @@ class QueryByExampleDataFetcherJpaTests {
 
 		Consumer<GraphQlSetup> tester = setup -> {
 			Mono<WebOutput> output = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
-			Book actualBook = GraphQlResponse.from(output).toEntity("bookById", Book.class);
+			Book actualBook = ResponseHelper.forResponse(output).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -101,7 +101,7 @@ class QueryByExampleDataFetcherJpaTests {
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
 			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
 
-			List<String> names = GraphQlResponse.from(output).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(output).toList("books", Book.class)
 					.stream()
 					.map(Book::getName)
 					.collect(Collectors.toList());
@@ -126,7 +126,7 @@ class QueryByExampleDataFetcherJpaTests {
 		WebGraphQlHandler handler = graphQlSetup(mockRepository).toWebGraphQlHandler();
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy");
 
 		// 2) Automatic registration and explicit wiring
@@ -136,7 +136,7 @@ class QueryByExampleDataFetcherJpaTests {
 
 		outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
 
-		actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Breaking Bad");
 	}
 
@@ -150,7 +150,7 @@ class QueryByExampleDataFetcherJpaTests {
 
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
@@ -165,7 +165,7 @@ class QueryByExampleDataFetcherJpaTests {
 
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 

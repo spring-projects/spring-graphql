@@ -31,12 +31,12 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.TypeRef;
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
@@ -165,7 +165,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@SuppressWarnings("ConstantConditions")
 		@Override
 		public Response execute() {
-			return transport.execute(request()).map(result -> response(result, request())).block(responseTimeout);
+			return transport.execute(request()).map(response -> mapResponse(response, request())).block(responseTimeout);
 		}
 
 		@Override
@@ -175,15 +175,15 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public Subscription executeSubscription() {
-			return () -> transport.executeSubscription(request()).map(result -> response(result, request()));
+			return () -> transport.executeSubscription(request()).map(result -> mapResponse(result, request()));
 		}
 
 		private GraphQlRequest request() {
 			return new GraphQlRequest(this.document, this.operationName, this.variables);
 		}
 
-		private DefaultResponse response(ExecutionResult result, GraphQlRequest request) {
-			return new DefaultResponse(result, errorFilter, assertDecorator(request), jsonPathConfig);
+		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {
+			return new DefaultResponse(response, errorFilter, assertDecorator(request), jsonPathConfig);
 		}
 
 		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {
@@ -217,12 +217,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 
 		private ResponseDelegate(
-				ExecutionResult result, @Nullable Predicate<GraphQLError> errorFilter,
+				GraphQlResponse response, @Nullable Predicate<GraphQLError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
-			this.jsonDoc = JsonPath.parse(result.toSpecification(), jsonPathConfig);
+			this.jsonDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
 			this.jsonContent = this.jsonDoc::jsonString;
-			this.errors = result.getErrors();
+			this.errors = response.getErrors();
 			this.unexpectedErrors = new ArrayList<>(this.errors);
 			this.assertDecorator = assertDecorator;
 
@@ -293,10 +293,10 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private final ResponseDelegate delegate;
 
 		private DefaultResponse(
-				ExecutionResult result, @Nullable Predicate<GraphQLError> errorFilter,
+				GraphQlResponse response, @Nullable Predicate<GraphQLError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
-			this.delegate = new ResponseDelegate(result, errorFilter, assertDecorator, jsonPathConfig);
+			this.delegate = new ResponseDelegate(response, errorFilter, assertDecorator, jsonPathConfig);
 		}
 
 		@Override

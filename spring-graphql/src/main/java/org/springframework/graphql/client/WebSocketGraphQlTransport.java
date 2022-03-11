@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,8 +33,9 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.support.MapExecutionResult;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.MapGraphQlError;
+import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
@@ -145,12 +145,12 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	}
 
 	@Override
-	public Mono<ExecutionResult> execute(GraphQlRequest request) {
+	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.graphQlSessionMono.flatMap(session -> session.execute(request));
 	}
 
 	@Override
-	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
 	}
 
@@ -372,9 +372,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final Sinks.Many<GraphQlMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
 
-		private final Map<String, Sinks.One<ExecutionResult>> resultSinks = new ConcurrentHashMap<>();
+		private final Map<String, Sinks.One<GraphQlResponse>> responseSinks = new ConcurrentHashMap<>();
 
-		private final Map<String, Sinks.Many<ExecutionResult>> streamingSinks = new ConcurrentHashMap<>();
+		private final Map<String, Sinks.Many<GraphQlResponse>> streamSinks = new ConcurrentHashMap<>();
 
 
 		GraphQlSession(WebSocketSession webSocketSession) {
@@ -389,32 +389,32 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			return this.requestSink.asFlux();
 		}
 
-		public Mono<ExecutionResult> execute(GraphQlRequest request) {
+		public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
 				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
-				Sinks.One<ExecutionResult> sink = Sinks.one();
-				this.resultSinks.put(id, sink);
+				Sinks.One<GraphQlResponse> sink = Sinks.one();
+				this.responseSinks.put(id, sink);
 				trySend(message);
-				return sink.asMono().doOnCancel(() -> this.resultSinks.remove(id));
+				return sink.asMono().doOnCancel(() -> this.responseSinks.remove(id));
 			}
 			catch (Exception ex) {
-				this.resultSinks.remove(id);
+				this.responseSinks.remove(id);
 				return Mono.error(ex);
 			}
 		}
 
-		public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+		public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
 				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
-				Sinks.Many<ExecutionResult> sink = Sinks.many().unicast().onBackpressureBuffer();
-				this.streamingSinks.put(id, sink);
+				Sinks.Many<GraphQlResponse> sink = Sinks.many().unicast().onBackpressureBuffer();
+				this.streamSinks.put(id, sink);
 				trySend(message);
 				return sink.asFlux().doOnCancel(() -> cancelStream(id));
 			}
 			catch (Exception ex) {
-				this.streamingSinks.remove(id);
+				this.streamSinks.remove(id);
 				return Flux.error(ex);
 			}
 		}
@@ -438,7 +438,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 
 		private void cancelStream(String id) {
-			Sinks.Many<ExecutionResult> streamSink = this.streamingSinks.remove(id);
+			Sinks.Many<GraphQlResponse> streamSink = this.streamSinks.remove(id);
 			if (streamSink != null) {
 				try {
 					trySend(GraphQlMessage.complete(id));
@@ -458,8 +458,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 */
 		public void handleNext(GraphQlMessage message) {
 			String id = message.getId();
-			Sinks.One<ExecutionResult> sink = this.resultSinks.remove(id);
-			Sinks.Many<ExecutionResult> streamingSink = this.streamingSinks.get(id);
+			Sinks.One<GraphQlResponse> sink = this.responseSinks.remove(id);
+			Sinks.Many<GraphQlResponse> streamingSink = this.streamSinks.get(id);
 
 			if (sink == null && streamingSink == null) {
 				if (logger.isDebugEnabled()) {
@@ -468,10 +468,10 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return;
 			}
 
-			Map<String, Object> resultMap = message.getPayload();
-			ExecutionResult result = MapExecutionResult.from(resultMap);
+			Map<String, Object> responseMap = message.getPayload();
+			GraphQlResponse response = MapGraphQlResponse.forResponse(responseMap);
 
-			Sinks.EmitResult emitResult = (sink != null ? sink.tryEmitValue(result) : streamingSink.tryEmitNext(result));
+			Sinks.EmitResult emitResult = (sink != null ? sink.tryEmitValue(response) : streamingSink.tryEmitNext(response));
 			if (emitResult.isFailure()) {
 				// Just log: cannot overflow, is serialized, and cancel is handled in doOnCancel
 				if (logger.isDebugEnabled()) {
@@ -481,13 +481,13 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 
 		/**
-		 * Handle an "error" message, turning it into an {@link ExecutionResult}
-		 * for a single result response, or signaling an error to streams.
+		 * Handle an "error" message, turning it into an {@link GraphQlResponse}
+		 * for single responses, or signaling an error for streams.
 		 */
 		public void handleError(GraphQlMessage message) {
 			String id = message.getId();
-			Sinks.One<ExecutionResult> sink = this.resultSinks.remove(id);
-			Sinks.Many<ExecutionResult> streamingSink = this.streamingSinks.remove(id);
+			Sinks.One<GraphQlResponse> sink = this.responseSinks.remove(id);
+			Sinks.Many<GraphQlResponse> streamingSink = this.streamSinks.remove(id);
 
 			if (sink == null && streamingSink == null ) {
 				if (logger.isDebugEnabled()) {
@@ -500,8 +500,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 			Sinks.EmitResult emitResult;
 			if (sink != null) {
-				ExecutionResult result = MapExecutionResult.forErrorsOnly(payload);
-				emitResult = sink.tryEmitValue(result);
+				GraphQlResponse response = MapGraphQlResponse.forErrorsOnly(payload);
+				emitResult = sink.tryEmitValue(response);
 			}
 			else {
 				List<GraphQLError> graphQLErrors = MapGraphQlError.from(payload);
@@ -518,14 +518,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Handle a "complete" message.
 		 */
 		public void handleComplete(GraphQlMessage message) {
-			Sinks.One<ExecutionResult> resultSink = this.resultSinks.remove(message.getId());
-			Sinks.Many<ExecutionResult> streamingResultSink = this.streamingSinks.remove(message.getId());
+			Sinks.One<GraphQlResponse> sink = this.responseSinks.remove(message.getId());
+			Sinks.Many<GraphQlResponse> streamSink = this.streamSinks.remove(message.getId());
 
-			if (resultSink != null) {
-				resultSink.tryEmitEmpty();
+			if (sink != null) {
+				sink.tryEmitEmpty();
 			}
-			else if (streamingResultSink != null) {
-				streamingResultSink.tryEmitComplete();
+			else if (streamSink != null) {
+				streamSink.tryEmitComplete();
 			}
 		}
 
@@ -548,10 +548,10 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Terminate and clean all in-progress requests with the given error.
 		 */
 		public void terminateRequests(Exception ex) {
-			this.resultSinks.values().forEach(sink -> sink.tryEmitError(ex));
-			this.streamingSinks.values().forEach(sink -> sink.tryEmitError(ex));
-			this.resultSinks.clear();
-			this.streamingSinks.clear();
+			this.responseSinks.values().forEach(sink -> sink.tryEmitError(ex));
+			this.streamSinks.values().forEach(sink -> sink.tryEmitError(ex));
+			this.responseSinks.clear();
+			this.streamSinks.clear();
 		}
 
 		@Override

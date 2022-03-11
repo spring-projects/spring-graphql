@@ -72,14 +72,13 @@ public class GraphQlHttpHandler {
 					}
 					return this.graphQlHandler.handleRequest(input);
 				})
-				.flatMap((output) -> {
-					Map<String, Object> spec = output.toSpecification();
+				.flatMap(output -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
-					return builder.bodyValue(spec);
+					return builder.bodyValue(output.toMap());
 				});
 	}
 

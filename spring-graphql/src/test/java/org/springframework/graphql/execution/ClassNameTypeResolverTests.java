@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.TestRequestInput;
@@ -83,11 +83,11 @@ public class ClassNameTypeResolverTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlSetup.queryFetcher("animals", env -> animalList)
+		Mono<RequestOutput> outputMono = graphQlSetup.queryFetcher("animals", env -> animalList)
 				.toGraphQlService()
 				.execute(TestRequestInput.forDocument(document));
 
-		GraphQlResponse response = GraphQlResponse.from(resultMono);
+		ResponseHelper response = ResponseHelper.forResponse(outputMono);
 		for (int i = 0; i < animalList.size(); i++) {
 			Animal animal = animalList.get(i);
 			if (animal instanceof Bird) {
@@ -125,12 +125,12 @@ public class ClassNameTypeResolverTests {
 		ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
 		typeResolver.addMapping(Tree.class, "Plant");
 
-		Mono<RequestOutput> result = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
+		Mono<RequestOutput> output = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
 				.typeResolver(typeResolver)
 				.toGraphQlService()
 				.execute(TestRequestInput.forDocument(document));
 
-		GraphQlResponse response = GraphQlResponse.from(result);
+		ResponseHelper response = ResponseHelper.forResponse(output);
 		for (int i = 0; i < animalAndPlantList.size(); i++) {
 			Object sighting = animalAndPlantList.get(i);
 			if (sighting instanceof Animal) {

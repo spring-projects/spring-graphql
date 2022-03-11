@@ -48,7 +48,6 @@ import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebOutput;
 import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
-import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -226,10 +225,11 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					+ (!CollectionUtils.isEmpty(output.getErrors()) ? " with errors: " + output.getErrors() : "")
 					+ ".");
 		}
-		Flux<ExecutionResult> outputFlux;
+		Flux<Map<String, Object>> responseFlux;
 		if (output.getData() instanceof Publisher) {
 			// Subscription
-			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+			responseFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+					.map(ExecutionResult::toSpecification)
 					.doOnSubscribe((subscription) -> {
 							Subscription prev = getSessionInfo(session).getSubscriptions().putIfAbsent(id, subscription);
 							if (prev != null) {
@@ -239,11 +239,11 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		}
 		else {
 			// Single response (query or mutation) that may contain errors
-			outputFlux = Flux.just(output);
+			responseFlux = Flux.just(output.toMap());
 		}
 
-		return outputFlux
-				.map(result -> encode(GraphQlMessage.next(id, result)))
+		return responseFlux
+				.map(responseMap -> encode(GraphQlMessage.next(id, responseMap)))
 				.concatWith(Mono.fromCallable(() -> encode(GraphQlMessage.complete(id))))
 				.onErrorResume((ex) -> {
 						if (ex instanceof SubscriptionExistsException) {

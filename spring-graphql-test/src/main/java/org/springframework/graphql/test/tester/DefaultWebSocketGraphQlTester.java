@@ -20,11 +20,11 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.util.function.Consumer;
 
-import graphql.ExecutionResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.CodecMappingProvider;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
@@ -164,7 +164,7 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 			return new GraphQlTransport() {
 
 				@Override
-				public Mono<ExecutionResult> execute(GraphQlRequest request) {
+				public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 					return client
 							.document(request.getDocument())
 							.operationName(request.getOperationName())
@@ -174,7 +174,7 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 				}
 
 				@Override
-				public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+				public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 					return client
 							.document(request.getDocument())
 							.operationName(request.getOperationName())

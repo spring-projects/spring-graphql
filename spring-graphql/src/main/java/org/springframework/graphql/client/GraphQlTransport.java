@@ -16,11 +16,11 @@
 
 package org.springframework.graphql.client;
 
-import graphql.ExecutionResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 
 
 /**
@@ -34,16 +34,16 @@ public interface GraphQlTransport {
 	/**
 	 * Execute a request with a single response such as a "query" or "mutation".
 	 * @param request the request to execute
-	 * @return a {@code Mono} with the {@code ExecutionResult} for the response.
+	 * @return a {@code Mono} with the {@code GraphQlResponse} for the response.
 	 * The {@code Mono} may end wth an error due to transport or other issues
 	 * such as failures to encode the request or decode the response.
 	 */
-	Mono<ExecutionResult> execute(GraphQlRequest request);
+	Mono<GraphQlResponse> execute(GraphQlRequest request);
 
 	/**
 	 * Execute a "subscription" request with a stream of responses.
 	 * @param request the request to execute
-	 * @return a {@code Flux} of {@code ExecutionResult} responses.
+	 * @return a {@code Flux} of {@code GraphQlResponse} responses.
 	 * The {@code Flux} may terminate as follows:
 	 * <ul>
 	 * <li>Completes if the subscription completes before the connection is closed.
@@ -55,6 +55,6 @@ public interface GraphQlTransport {
 	 * <p>The {@code Flux} may be cancelled to notify the server to end the
 	 * subscription stream.
 	 */
-	Flux<ExecutionResult> executeSubscription(GraphQlRequest request);
+	Flux<GraphQlResponse> executeSubscription(GraphQlRequest request);
 
 }
