@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public class GraphQlHttpHandler {
 
 		WebInput input = new WebInput(
 				request.uri(), request.headers().asHttpHeaders(), readBody(request),
-				LocaleContextHolder.getLocale(), this.idGenerator.generateId().toString());
+				this.idGenerator.generateId().toString(), LocaleContextHolder.getLocale());
 
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + input);
@@ -87,9 +87,7 @@ public class GraphQlHttpHandler {
 				logger.debug("Execution complete");
 			}
 			ServerResponse.BodyBuilder builder = ServerResponse.ok();
-			if (output.getResponseHeaders() != null) {
-				builder.headers((headers) -> headers.putAll(output.getResponseHeaders()));
-			}
+			builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
 			return builder.body(output.toSpecification());
 		});
 

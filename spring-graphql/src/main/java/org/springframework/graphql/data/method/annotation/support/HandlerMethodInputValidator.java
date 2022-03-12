@@ -69,7 +69,7 @@ class HandlerMethodInputValidator {
 	 * Validate the {@link HandlerMethod} input before invocation, throwing
 	 * an {@link ConstraintViolationException} if validation fails.
 	 *
-	 * @param handlerMethod the handler method for the current query
+	 * @param handlerMethod the handler method for the current request
 	 * @param arguments the resolved arguments for the method invocation
 	 */
 	public void validate(HandlerMethod handlerMethod, Object[] arguments) {

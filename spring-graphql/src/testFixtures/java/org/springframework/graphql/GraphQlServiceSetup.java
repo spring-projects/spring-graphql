@@ -16,6 +16,7 @@
 package org.springframework.graphql;
 
 import org.springframework.graphql.execution.DataLoaderRegistrar;
+import org.springframework.graphql.web.WebGraphQlSetup;
 
 /**
  * Workflow that results in the creation of a {@link GraphQlService} or a

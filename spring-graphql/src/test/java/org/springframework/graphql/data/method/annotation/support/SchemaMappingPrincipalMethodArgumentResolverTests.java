@@ -33,8 +33,8 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.TestRequestInput;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.ExecutionGraphQlService;
@@ -151,7 +151,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 	}
 
 	private Mono<RequestOutput> executeAsync(
-			String schema, String op, Function<Context, Context> contextWriter) {
+			String schema, String document, Function<Context, Context> contextWriter) {
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.registerBean(GreetingController.class, () -> greetingController);
@@ -162,7 +162,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 				.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
-				.flatMap(aLong -> graphQlService.execute(new RequestInput(op, null, null, null, "1")))
+				.flatMap(aLong -> graphQlService.execute(TestRequestInput.forDocument(document)))
 				.contextWrite(contextWriter);
 	}
 

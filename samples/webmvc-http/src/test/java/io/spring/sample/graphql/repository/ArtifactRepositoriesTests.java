@@ -19,20 +19,20 @@ package io.spring.sample.graphql.repository;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureWebGraphQlTester;
+import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.graphql.test.tester.GraphQlTester;
 
 @SpringBootTest
-@AutoConfigureWebGraphQlTester
+@AutoConfigureGraphQlTester
 class ArtifactRepositoriesTests {
 
 	@Autowired
-	private WebGraphQlTester graphQlTester;
+	private GraphQlTester graphQlTester;
 	
 	@Test
 	void querydslRepositorySingle() {
-		this.graphQlTester.queryName("artifactRepository")
+		this.graphQlTester.documentName("artifactRepository")
 				.variable("id", "spring-releases")
 				.execute()
 				.path("artifactRepository.name")
@@ -41,7 +41,7 @@ class ArtifactRepositoriesTests {
 
 	@Test
 	void querydslRepositoryMany() {
-		this.graphQlTester.queryName("artifactRepositories")
+		this.graphQlTester.documentName("artifactRepositories")
 				.execute()
 				.path("artifactRepositories[*].id")
 				.entityList(String.class).containsExactly("spring-releases", "spring-milestones");

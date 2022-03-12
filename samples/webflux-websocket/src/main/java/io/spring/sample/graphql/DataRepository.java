@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,24 +33,17 @@ public class DataRepository {
 	}
 
 	public Mono<String> getGreeting() {
-		return Mono.deferContextual(context -> {
-			Object name = context.get("name");
-			return Mono.delay(Duration.ofMillis(50)).map(aLong -> "Hello " + name);
-		});
+		return Mono.delay(Duration.ofMillis(50)).map(aLong -> "Hello!");
 	}
 
 	public Flux<String> getGreetings() {
-		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong -> Flux.deferContextual(context -> {
-			String name = context.get("name");
-			return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
-		}));
+		return Mono.delay(Duration.ofMillis(50))
+				.flatMapMany(aLong -> Flux.just("Hi!", "Bonjour!", "Hola!", "Ciao!", "Zdravo!"));
 	}
 
 	public Flux<String> getGreetingsStream() {
-		return Mono.delay(Duration.ofMillis(50)).flatMapMany(aLong -> Flux.deferContextual(context -> {
-			String name = context.get("name");
-			return Flux.just("Hi", "Bonjour", "Hola", "Ciao", "Zdravo").map(s -> s + " " + name);
-		}));
+		return Mono.delay(Duration.ofMillis(50))
+				.flatMapMany(aLong -> Flux.just("Hi!", "Bonjour!", "Hola!", "Ciao!", "Zdravo!"));
 	}
 
 }

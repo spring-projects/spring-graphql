@@ -217,11 +217,18 @@ public class GraphQlArgumentInitializer {
 			Object value = arguments.get(key);
 			if (value instanceof List) {
 				List<Object> items = (List<Object>) value;
-				Map<String, Object> subValues = new HashMap<>(items.size());
-				for (int i = 0; i < items.size(); i++) {
-					subValues.put(key + "[" + i + "]", items.get(i));
+				if (items.isEmpty()) {
+					path.push(key);
+					mpvs.add(pathToPropertyName(path), value);
+					path.pop();
 				}
-				visitArgumentMap(subValues, mpvs, path);
+				else {
+					Map<String, Object> subValues = new HashMap<>(items.size());
+					for (int i = 0; i < items.size(); i++) {
+						subValues.put(key + "[" + i + "]", items.get(i));
+					}
+					visitArgumentMap(subValues, mpvs, path);
+				}
 			}
 			else if (value instanceof Map) {
 				path.push(key);
@@ -232,8 +239,7 @@ public class GraphQlArgumentInitializer {
 			}
 			else {
 				path.push(key);
-				String propertyName = pathToPropertyName(path);
-				mpvs.add(propertyName, value);
+				mpvs.add(pathToPropertyName(path), value);
 				path.pop();
 			}
 		}

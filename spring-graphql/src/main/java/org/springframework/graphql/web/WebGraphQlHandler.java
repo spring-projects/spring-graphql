@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
 package org.springframework.graphql.web;
 
 import java.util.List;
-import java.util.Map;
 
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
+
 
 /**
  * Contract for common handling of a GraphQL request over HTTP or WebSocket,
@@ -33,6 +33,7 @@ import org.springframework.graphql.execution.ThreadLocalAccessor;
  */
 public interface WebGraphQlHandler {
 
+
 	/**
 	 * Execute the given request and return the resulting output.
 	 * @param input the GraphQL request input container
@@ -41,24 +42,10 @@ public interface WebGraphQlHandler {
 	Mono<WebOutput> handleRequest(WebInput input);
 
 	/**
-	 * Handle the payload from the connection initialization message that a
-	 * GraphQL over WebSocket client must send after the WebSocket session is
-	 * established and before sending any requests.
-	 * @param payload the payload from the {@code ConnectionInit} message
-	 * @return an optional payload for the {@code ConnectionAck} message
+	 * Return the single interceptor of type {@link WebSocketInterceptor} among
+	 * all the configured interceptors.
 	 */
-	default Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
-		return Mono.empty();
-	}
-
-	/**
-	 * Handle the completion message that a GraphQL over WebSocket clients sends
-	 * before closing the WebSocket connection.
-	 * @return signals the end of completion handling
-	 */
-	default Mono<Void> handleWebSocketCompletion() {
-		return Mono.empty();
-	}
+	WebSocketInterceptor webSocketInterceptor();
 
 
 	/**

@@ -18,26 +18,34 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.jayway.jsonpath.Configuration;
 import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.support.DocumentSource;
+import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
 
 /**
- * Contract for testing GraphQL requests.
+ * Define a workflow to test GraphQL requests that is independent of the
+ * underlying transport.
  *
- * <p>The workflow declared to prepare, execute, and verify requests is not tied
- * to any specific underlying transport. Use {@link WebGraphQlTester} to test
- * GraphQL requests over a Web transport. This class can also be used to perform
- * calls directly on {@link graphql.GraphQL}, without a transport, via
- * {@link GraphQlService}.
+ * <p>To test using a client that connects to a server, with or without a live
+ * server, see {@code GraphQlTester} extensions:
+ * <ul>
+ * <li>{@link HttpGraphQlTester}
+ * <li>{@link WebSocketGraphQlTester}
+ * </ul>
+ *
+ * <p>To test on the server side, without a client, see the following:
+ * <ul>
+ * <li>{@link GraphQlServiceTester}
+ * <li>{@link WebGraphQlTester}
+ * </ul>
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -45,76 +53,71 @@ import org.springframework.lang.Nullable;
 public interface GraphQlTester {
 
 	/**
-	 * Prepare to perform a GraphQL request with the given operation which may
-	 * be a query, mutation, or a subscription.
-	 * @param query the operation to be performed
+	 * Start defining a GraphQL request with the given document, which is the
+	 * textual representation of an operation (or operations) to perform,
+	 * including selection sets and fragments.
+	 * @param document the document for the request
 	 * @return spec for response assertions
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	RequestSpec<?> query(String query);
+	Request<?> document(String document);
 
 	/**
-	 * Refer to a query by name where the given name is to look for a file with
-	 * the same name and extension {@code ".graphql"} or {@code ".gql"} under
-	 * classpath location {@code "graphql/"}.
+	 * Variant of {@link #document(String)} that uses the given key to resolve
+	 * the GraphQL document from a file, or in another way with the help of the
+	 * {@link DocumentSource} that the client is configured with.
 	 * @return spec for response assertions
-	 * @throws IllegalArgumentException if the queryName cannot be resolved
+	 * @throws IllegalArgumentException if the documentName cannot be resolved
 	 * @throws AssertionError if the response status is not 200 (OK)
 	 */
-	RequestSpec<?> queryName(String queryName);
+	Request<?> documentName(String documentName);
+
+	/**
+	 * Create a builder initialized from the configuration of "this" tester.
+	 * Use it to build a new, independently configured instance.
+	 */
+	Builder<?> mutate();
 
 
 	/**
-	 * Create a {@code GraphQlTester} that performs GraphQL requests through the
-	 * given {@link GraphQlService}.
-	 * @param service the service to execute requests with
-	 * @return the created {@code GraphQlTester}
+	 * Create a builder with a custom {@code GraphQlTransport}.
+	 * <p>For most cases, use a transport specific extension such as
+	 * {@link HttpGraphQlTester} or {@link WebSocketGraphQlTester}. This method
+	 * is for use with a custom {@code GraphQlTransport}.
+	 * @param transport the transport to execute requests with
+	 * @return the builder for further initialization
 	 */
-	static GraphQlTester create(GraphQlService service) {
-		return builder(service).build();
-	}
-
-	/**
-	 * Return a builder with options to initialize a {@code GraphQlTester}.
-	 * @param service the service to execute requests with
-	 * @return the builder to use
-	 */
-	static Builder<?> builder(GraphQlService service) {
-		return new DefaultGraphQlTesterBuilder(service);
+	static GraphQlTester.Builder<?> builder(GraphQlTransport transport) {
+		return new DefaultGraphQlTester.Builder(transport);
 	}
 
 
 	/**
 	 * A builder to create a {@link GraphQlTester} instance.
 	 */
-	interface Builder<T extends Builder<T>> {
+	interface Builder<B extends Builder<B>> {
 
 		/**
-		 * Configure a global {@link ErrorSpec#filter(Predicate) filter} that
+		 * Configure a global {@link Errors#filter(Predicate) filter} that
 		 * applies to all requests.
 		 * @param predicate the error filter to add
 		 * @return the same builder instance
 		 */
-		T errorFilter(Predicate<GraphQLError> predicate);
+		B errorFilter(Predicate<GraphQLError> predicate);
 
 		/**
-		 * Provide JSONPath configuration settings, including a
-		 * {@link com.jayway.jsonpath.spi.json.JsonProvider} as well as a
-		 * {@link com.jayway.jsonpath.spi.mapper.MappingProvider} that are used
-		 * to serialize and deserialize GraphQL JSON content.
-		 * <p>By default the configuration is to use Jackson JSON if it is
-		 * present on the classpath.
-		 * @param config the JSONPath configuration to use
-		 * @return the same builder instance
+		 * Configure a {@link DocumentSource} for use with
+		 * {@link #documentName(String)} for resolving a document by name.
+		 * <p>By default, {@link ResourceDocumentSource} is used.
 		 */
-		T jsonPathConfig(Configuration config);
+		B documentSource(DocumentSource contentLoader);
 
 		/**
 		 * Max amount of time to wait for a GraphQL response.
 		 * <p>By default this is set to 5 seconds.
 		 * @param timeout the response timeout value
 		 */
-		T responseTimeout(Duration timeout);
+		B responseTimeout(Duration timeout);
 
 		/**
 		 * Build the {@code GraphQlTester}.
@@ -124,39 +127,9 @@ public interface GraphQlTester {
 	}
 
 	/**
-	 * Declare options to perform a GraphQL request.
-	 */
-	interface ExecuteSpec {
-
-		/**
-		 * Execute the GraphQL request and return a spec for further inspection of
-		 * response data and errors.
-		 * @return options for asserting the response
-		 * @throws AssertionError if the request is performed over HTTP and the response
-		 * status is not 200 (OK).
-		 */
-		ResponseSpec execute();
-
-		/**
-		 * Execute the GraphQL request and verify the response contains no errors.
-		 */
-		void executeAndVerify();
-
-		/**
-		 * Execute the GraphQL request as a subscription and return a spec with options to
-		 * transform the result stream.
-		 * @return spec with options to transform the subscription result stream
-		 * @throws AssertionError if the request is performed over HTTP and the response
-		 * status is not 200 (OK).
-		 */
-		SubscriptionSpec executeSubscription();
-
-	}
-
-	/**
 	 * Declare options to gather input for a GraphQL request and execute it.
 	 */
-	interface RequestSpec<T extends RequestSpec<T>> extends ExecuteSpec {
+	interface Request<T extends Request<T>> {
 
 		/**
 		 * Set the operation name.
@@ -175,18 +148,34 @@ public interface GraphQlTester {
 		T variable(String name, @Nullable Object value);
 
 		/**
-		 * Set the locale to associate with the request.
-		 * @param locale the locale to use
-		 * @return this request spec
+		 * Execute the GraphQL request and return a spec for further inspection of
+		 * response data and errors.
+		 * @return options for asserting the response
+		 * @throws AssertionError if the request is performed over HTTP and the response
+		 * status is not 200 (OK).
 		 */
-		T locale(Locale locale);
+		Response execute();
+
+		/**
+		 * Execute the GraphQL request and verify the response contains no errors.
+		 */
+		void executeAndVerify();
+
+		/**
+		 * Execute the GraphQL request as a subscription and return a spec with options to
+		 * transform the result stream.
+		 * @return spec with options to transform the subscription result stream
+		 * @throws AssertionError if the request is performed over HTTP and the response
+		 * status is not 200 (OK).
+		 */
+		Subscription executeSubscription();
 
 	}
 
 	/**
 	 * Declare options to switch to different part of the GraphQL response.
 	 */
-	interface TraverseSpec {
+	interface Traversable {
 
 		/**
 		 * Switch to a path under the "data" section of the GraphQL response. The path can
@@ -197,16 +186,16 @@ public interface GraphQlTester {
 		 * @return spec for asserting the content under the given path
 		 * @throws AssertionError if the GraphQL response contains
 		 * <a href="https://spec.graphql.org/June2018/#sec-Errors">errors</a> that have
-		 * not be checked via {@link ResponseSpec#errors()}
+		 * not be checked via {@link Response#errors()}
 		 */
-		PathSpec path(String path);
+		Path path(String path);
 
 	}
 
 	/**
 	 * Declare options to check the data and errors of a GraphQL response.
 	 */
-	interface ResponseSpec extends TraverseSpec {
+	interface Response extends Traversable {
 
 		/**
 		 * Return a spec to filter out or inspect errors. This must be used before
@@ -214,39 +203,39 @@ public interface GraphQlTester {
 		 * be filtered out.
 		 * @return the error spec
 		 */
-		ErrorSpec errors();
+		Errors errors();
 
 	}
 
 	/**
 	 * Declare options available to assert data at a given path.
 	 */
-	interface PathSpec extends TraverseSpec {
+	interface Path extends Traversable {
 
 		/**
 		 * Assert the given path exists, even if the value is {@code null}.
 		 * @return spec to assert the converted entity with
 		 */
-		PathSpec pathExists();
+		Path pathExists();
 
 		/**
 		 * Assert the given path does not {@link #pathExists() exist}.
 		 * @return spec to assert the converted entity with
 		 */
-		PathSpec pathDoesNotExist();
+		Path pathDoesNotExist();
 
 		/**
 		 * Assert a value exists at the given path where the value is any {@code non-null}
 		 * value, possibly an empty array or map.
 		 * @return spec to assert the converted entity with
 		 */
-		PathSpec valueExists();
+		Path valueExists();
 
 		/**
 		 * Assert a value does not {@link #valueExists() exist} at the given path.
 		 * @return spec to assert the converted entity with
 		 */
-		PathSpec valueDoesNotExist();
+		Path valueDoesNotExist();
 
 		/**
 		 * Assert the value at the given path does exist but is empty as defined
@@ -254,13 +243,13 @@ public interface GraphQlTester {
 		 * @return spec to assert the converted entity with
 		 * @see org.springframework.util.ObjectUtils#isEmpty(Object)
 		 */
-		PathSpec valueIsEmpty();
+		Path valueIsEmpty();
 
 		/**
 		 * Assert the value at the given path is not {@link #valueIsEmpty() empty}.
 		 * @return spec to assert the converted entity with
 		 */
-		PathSpec valueIsNotEmpty();
+		Path valueIsNotEmpty();
 
 		/**
 		 * Convert the data at the given path to the target type.
@@ -268,7 +257,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return spec to assert the converted entity with
 		 */
-		<D> EntitySpec<D, ?> entity(Class<D> entityType);
+		<D> Entity<D, ?> entity(Class<D> entityType);
 
 		/**
 		 * Convert the data at the given path to the target type.
@@ -276,7 +265,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return spec to assert the converted entity with
 		 */
-		<D> EntitySpec<D, ?> entity(ParameterizedTypeReference<D> entityType);
+		<D> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType);
 
 		/**
 		 * Convert the data at the given path to a List of the target type.
@@ -284,7 +273,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return spec to assert the converted List of entities with
 		 */
-		<D> ListEntitySpec<D> entityList(Class<D> elementType);
+		<D> EntityList<D> entityList(Class<D> elementType);
 
 		/**
 		 * Convert the data at the given path to a List of the target type.
@@ -292,7 +281,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return spec to assert the converted List of entities with
 		 */
-		<D> ListEntitySpec<D> entityList(ParameterizedTypeReference<D> elementType);
+		<D> EntityList<D> entityList(ParameterizedTypeReference<D> elementType);
 
 		/**
 		 * Parse the JSON at the given path and the given expected JSON and assert that
@@ -306,7 +295,7 @@ public interface GraphQlTester {
 		 * @see org.springframework.test.util.JsonExpectationsHelper#assertJsonEqual(String,
 		 * String)
 		 */
-		TraverseSpec matchesJson(String expectedJson);
+		Traversable matchesJson(String expectedJson);
 
 		/**
 		 * Parse the JSON at the given path and the given expected JSON and assert that
@@ -318,7 +307,7 @@ public interface GraphQlTester {
 		 * @see org.springframework.test.util.JsonExpectationsHelper#assertJsonEqual(String,
 		 * String, boolean)
 		 */
-		TraverseSpec matchesJsonStrictly(String expectedJson);
+		Traversable matchesJsonStrictly(String expectedJson);
 
 	}
 
@@ -328,7 +317,7 @@ public interface GraphQlTester {
 	 * @param <D> the entity type
 	 * @param <S> the spec type, including subtypes
 	 */
-	interface EntitySpec<D, S extends EntitySpec<D, S>> extends TraverseSpec {
+	interface Entity<D, S extends Entity<D, S>> extends Traversable {
 
 		/**
 		 * Assert the converted entity equals the given Object.
@@ -387,12 +376,12 @@ public interface GraphQlTester {
 	}
 
 	/**
-	 * Extension of {@link EntitySpec} with options available to assert data converted to
+	 * Extension of {@link Entity} with options available to assert data converted to
 	 * a List of entities.
 	 *
 	 * @param <E> the type of elements in the list
 	 */
-	interface ListEntitySpec<E> extends EntitySpec<List<E>, ListEntitySpec<E>> {
+	interface EntityList<E> extends Entity<List<E>, EntityList<E>> {
 
 		/**
 		 * Assert the list contains the given elements.
@@ -400,7 +389,7 @@ public interface GraphQlTester {
 		 * @return the same spec for more assertions
 		 */
 		@SuppressWarnings("unchecked")
-		ListEntitySpec<E> contains(E... elements);
+		EntityList<E> contains(E... elements);
 
 		/**
 		 * Assert the list does not contain the given elements.
@@ -408,7 +397,7 @@ public interface GraphQlTester {
 		 * @return the same spec for more assertions
 		 */
 		@SuppressWarnings("unchecked")
-		ListEntitySpec<E> doesNotContain(E... elements);
+		EntityList<E> doesNotContain(E... elements);
 
 		/**
 		 * Assert the list contains the given elements.
@@ -416,28 +405,28 @@ public interface GraphQlTester {
 		 * @return the same spec for more assertions
 		 */
 		@SuppressWarnings("unchecked")
-		ListEntitySpec<E> containsExactly(E... elements);
+		EntityList<E> containsExactly(E... elements);
 
 		/**
 		 * Assert the list contains the specified number of elements.
 		 * @param size the number of elements expected
 		 * @return the same spec for more assertions
 		 */
-		ListEntitySpec<E> hasSize(int size);
+		EntityList<E> hasSize(int size);
 
 		/**
 		 * Assert the list contains fewer elements than the specified number.
 		 * @param boundary the number to compare the number of elements to
 		 * @return the same spec for more assertions
 		 */
-		ListEntitySpec<E> hasSizeLessThan(int boundary);
+		EntityList<E> hasSizeLessThan(int boundary);
 
 		/**
 		 * Assert the list contains more elements than the specified number.
 		 * @param boundary the number to compare the number of elements to
 		 * @return the same spec for more assertions
 		 */
-		ListEntitySpec<E> hasSizeGreaterThan(int boundary);
+		EntityList<E> hasSizeGreaterThan(int boundary);
 
 	}
 
@@ -445,7 +434,7 @@ public interface GraphQlTester {
 	 * Declare options to filter out expected errors or inspect all errors and verify
 	 * there are no unexpected errors.
 	 */
-	interface ErrorSpec {
+	interface Errors {
 
 		/**
 		 * Use this to filter out errors that are expected and can be ignored.
@@ -453,18 +442,18 @@ public interface GraphQlTester {
 		 * with the data.
 		 * <p>The configured filters are applied to all errors. Those that match
 		 * are treated as expected and are ignored on {@link #verify()} or when
-		 * {@link TraverseSpec#path(String) traversing} to a data path.
+		 * {@link Traversable#path(String) traversing} to a data path.
 		 * <p>In contrast to {@link #expect(Predicate)}, filters do not have to
 		 * match any errors, and don't imply that the errors must be present.
 		 * @param errorPredicate the error filter to add
 		 * @return the same spec to add more filters before {@link #verify()}
 		 */
-		ErrorSpec filter(Predicate<GraphQLError> errorPredicate);
+		Errors filter(Predicate<GraphQLError> errorPredicate);
 
 		/**
 		 * Use this to declare errors that are expected.
 		 * <p>Errors that match are treated as expected and are ignored on
-		 * {@link #verify()} or when {@link TraverseSpec#path(String) traversing}
+		 * {@link #verify()} or when {@link Traversable#path(String) traversing}
 		 * to a data path.
 		 * <p>In contrast to {@link #filter(Predicate)}, use of this option
 		 * does imply that errors are  present or else an {@link AssertionError}
@@ -472,30 +461,30 @@ public interface GraphQlTester {
 		 * @param errorPredicate the predicate for the expected error
 		 * @return the same spec to add more filters or expected errors
 		 */
-		ErrorSpec expect(Predicate<GraphQLError> errorPredicate);
+		Errors expect(Predicate<GraphQLError> errorPredicate);
 
 		/**
 		 * Verify there are either no errors or that there no unexpected errors that have
 		 * not been {@link #filter(Predicate) filtered out}.
 		 * @return a spec to switch to a data path
 		 */
-		TraverseSpec verify();
+		Traversable verify();
 
 		/**
 		 * Inspect <a href="https://spec.graphql.org/June2018/#sec-Errors">errors</a> in
 		 * the response, if any. Use of this method effectively suppresses all errors and
-		 * allows {@link TraverseSpec#path(String) traversing} to a data path.
+		 * allows {@link Traversable#path(String) traversing} to a data path.
 		 * @param errorsConsumer to inspect errors with
 		 * @return a spec to switch to a data path
 		 */
-		TraverseSpec satisfy(Consumer<List<GraphQLError>> errorsConsumer);
+		Traversable satisfy(Consumer<List<GraphQLError>> errorsConsumer);
 
 	}
 
 	/**
 	 * Declare options available to assert a GraphQL Subscription response.
 	 */
-	interface SubscriptionSpec {
+	interface Subscription {
 
 		/**
 		 * Return a {@link Flux} of entities converted from some part of the data in each
@@ -511,12 +500,12 @@ public interface GraphQlTester {
 		}
 
 		/**
-		 * Return a {@link Flux} of {@link ResponseSpec} instances, each representing an
+		 * Return a {@link Flux} of {@link Response} instances, each representing an
 		 * individual subscription event.
 		 * @return a {@code Flux} of {@code ResponseSpec} instances that can be further
 		 * inspected, e.g. with {@code reactor.test.StepVerifier}
 		 */
-		Flux<ResponseSpec> toFlux();
+		Flux<Response> toFlux();
 
 	}
 

@@ -256,6 +256,9 @@ You can use `RuntimeWiringConfigurer` to register:
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 
+NOTE: Unlike web frameworks, GraphQL does not use Jackson annotations to drive JSON serialization/deserialization.
+Custom data types and their serialization https://www.graphql-java.com/documentation/scalars/[must be described as Scalars].
+
 The Spring Boot starter detects beans of type `RuntimeWiringConfigurer` and
 registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
 something like the following in your configuration:
@@ -1237,7 +1240,7 @@ for reacting to validation errors: those are globally dealt with as exceptions.
 
 
 [[controllers-schema-mapping-projectedpayload-argument]]
-==== `@ProjectPayload` Interface
+==== `@ProjectedPayload` Interface
 
 As an alternative to using complete Objects with <<controllers-schema-mapping-argument>>,
 you can also use a projection interface to access GraphQL request arguments through a
@@ -1484,9 +1487,12 @@ The Spring for GraphQL repository contains samples for
 
 
 
+include::client.adoc[leveloffset=+1]
+
+
+
+
 include::testing.adoc[leveloffset=+1]
-
-
 
 
 

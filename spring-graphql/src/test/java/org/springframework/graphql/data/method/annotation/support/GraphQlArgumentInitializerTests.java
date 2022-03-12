@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
@@ -40,9 +39,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class GraphQlArgumentInitializerTests {
 
-	private ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper();
 
-	private GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(null);
+	private final GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(null);
 
 
 	@Test
@@ -71,10 +70,13 @@ class GraphQlArgumentInitializerTests {
 	void shouldFailIfNoPrimaryConstructor() throws Exception {
 		String payload = "{\"noPrimary\": { \"name\": \"test\"} }";
 		DataFetchingEnvironment environment = initEnvironment(payload);
-		assertThatThrownBy(() -> {
-			ResolvableType targetType = ResolvableType.forClass(NoPrimaryConstructor.class);
-			initializer.initializeArgument(environment, "noPrimary", targetType);
-		}).isInstanceOf(IllegalStateException.class).hasMessageContaining("No primary or single unique constructor found");
+		assertThatThrownBy(
+				() -> {
+					ResolvableType targetType = ResolvableType.forClass(NoPrimaryConstructor.class);
+					initializer.initializeArgument(environment, "noPrimary", targetType);
+				})
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("No primary or single unique constructor found");
 	}
 
 	@Test
@@ -101,6 +103,16 @@ class GraphQlArgumentInitializerTests {
 		assertThat(((NestedList) result).getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
+	@Test // gh-301
+	void shouldInstantiateNestedBeanListsEmpty() throws Exception {
+		String payload = "{\"nestedList\": { \"items\": [] } }";
+		Object result = initializer.initializeArgument(
+				initEnvironment(payload), "nestedList", ResolvableType.forClass(NestedList.class));
+
+		assertThat(result).isNotNull().isInstanceOf(NestedList.class);
+		assertThat(((NestedList) result).getItems()).hasSize(0);
+	}
+
 	@Test
 	void shouldInstantiatePrimaryConstructorNestedBeanLists() throws Exception {
 		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
@@ -125,9 +137,9 @@ class GraphQlArgumentInitializerTests {
 		assertThat(((PrimaryConstructorComplexInput) result).name).isEqualTo("Hello");
 	}
 
+	@SuppressWarnings("unchecked")
 	private DataFetchingEnvironment initEnvironment(String jsonPayload) throws JsonProcessingException {
-		Map<String, Object> arguments = this.mapper.readValue(jsonPayload, new TypeReference<Map<String, Object>>() {
-		});
+		Map<String, Object> arguments = this.mapper.readValue(jsonPayload, Map.class);
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}
 

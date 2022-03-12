@@ -1,12 +1,15 @@
+include::attributes.adoc[]
+
+
+
+
 [[testing]]
 = Testing
 
-It's possible to test GraphQL requests with Spring's `WebTestClient`, just sending and
-receiving JSON, but a number of GraphQL specific details make this approach more
-cumbersome than is necessary.
+Spring for GraphQL provides dedicated support for testing GraphQL requests over HTTP or
+WebSocket, and for testing GraphQL requests executed directly against a server.
 
-To get the full testing support, you'll need to add the `spring-graphql-test` dependdency
-in your build:
+To make use of this, add `spring-graphql-test` to your build:
 
 [source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
 .Gradle
@@ -31,48 +34,36 @@ dependencies {
 ----
 
 
+
+
 [[testing-graphqltester]]
 == `GraphQlTester`
 
-`GraphQlTester` defines a workflow to test GraphQL requests with the following benefits:
+`GraphQlTester` defines a common workflow for testing GraphQL requests. It is
+independent of and agnostic to the underlying transport. To create an instance, you'll
+need to choose a specific `GraphQlTester` extension as a starting point.
 
-- Verify no unexpected errors under the "errors" key in the response.
-- Decode under the "data" key in the response.
-- Use JsonPath to decode different parts of the response.
-- Test subscriptions.
+To test with a client sending requests to a server over a transport, use the
+<<testing-httpgraphqltester>> or the <<testing-websocketgraphqltester>> `GraphQlTester`
+extensions. For server side tests, executed without any client, use the
+<<testing-graphqlservicetester>> or the <<testing-webgraphqlhandlertester>> extensions.
 
-To create `GraphQlTester`, you only need a `GraphQlService`, and no transport:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	GraphQlSource graphQlSource = GraphQlSource.builder()
-			.schemaResources(...)
-			.runtimeWiringConfigurer(...)
-			.build();
-
-	GraphQlService graphQlService = new ExecutionGraphQlService(graphQlSource);
-
-	GraphQlTester graphQlTester = GraphQlTester.builder(graphQlService).build();
-----
+The main purpose of a `GraphQlTester` extension is to provide a transport specific
+`Builder`. There is also a <<testing-graphqltester-builder>> in `GraphQlTester` with
+common configuration options that apply to any extension.
 
 
 
-[[testing-webgraphqltester]]
-== `WebGraphQlTester`
+[[testing-httpgraphqltester]]
+=== HTTP
 
-`WebGraphQlTester` extends `GraphQlTester` to add a workflow and configuration specific
-to <<index#web-transports>>, and it always verifies GraphQL HTTP responses are 200 (OK).
+`HttpGraphQlTester` uses
+{spring-framework-ref-docs}/testing.html#webtestclient[WebTestClient] to execute
+GraphQL requests over HTTP, with or without a live server, depending on how
+`WebTestClient` is configured.
 
-
-To create `WebGraphQlTester`, you need one of the following inputs:
-
-- `WebTestClient` -- perform requests as an HTTP client, either against <<index#web-http>>
-handlers without a server, or against a live server.
-- `WebGraphQlHandler` -- perform requests through the <<index#web-interception>> chain used
-by both <<index#web-http>> and <<index#web-websocket>> handlers, which in effect is testing without
-a Web framework. One reason to use this is for <<testing-subscriptions>>.
-
-For Spring WebFlux without a server, you can point to your Spring configuration:
+To test in Spring WebFlux, without a live server, point to your Spring configuration
+that declares the GraphQL HTTP endpoint:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -84,14 +75,14 @@ For Spring WebFlux without a server, you can point to your Spring configuration:
 					.baseUrl("/graphql")
 					.build();
 
-	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
+	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
 ----
 
-For Spring MVC without a server, the same but using `MockMvcWebTestClient`:
+To test in Spring MVC, without a live server, do the same using `MockMvcWebTestClient`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	WebApplicationContext context = ... ;
+	ApplicationContext context = ... ;
 
 	WebTestClient client =
 			MockMvcWebTestClient.bindToApplicationContext(context)
@@ -99,10 +90,10 @@ For Spring MVC without a server, the same but using `MockMvcWebTestClient`:
 					.baseUrl("/graphql")
 					.build();
 
-	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
+	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
 ----
 
-To test against a live, running server:
+Or to test against a live server running on a port:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -111,45 +102,148 @@ To test against a live, running server:
 					.baseUrl("http://localhost:8080/graphql")
 					.build();
 
-	WebGraphQlTester tester = WebGraphQlTester.builder(client).build();
+	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
 ----
 
-`WebGraphQlTester` supports setting HTTP request headers and access to HTTP response
-headers. This may be useful to inspect or set security related headers.
+The `HttpGraphQlTester` extension is nothing but a `GraphQlTester` with a specialized
+builder. Once created, it exposes the same workflow for testing requests that is
+independent of the underlying transport.
+
+This means you can only configure HTTP request details at build time, and
+those apply to all requests through that Tester instance. To change HTTP request
+details, use `mutate()` on an existing `HttpGraphQlTester` to create another
+instance with different configuration:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	this.graphQlTester.queryName("{ myQuery }")
-			.httpHeaders(headers -> headers.setBasicAuth("rob", "..."))
-			.execute()
-			.httpHeadersSatisfy(headers -> {
-				// check response headers
-			})
-			.path("myQuery.field1").entity(String.class).isEqualTo("value1")
-			.path("myQuery.field2").entity(String.class).isEqualTo("value2");
+	HttpGraphQlTester tester = HttpGraphQlTester.builder(clientBuilder)
+			.headers(headers -> headers.setBasicAuth("joe", "..."))
+			.build();
+
+	// Use tester...
+
+	HttpGraphQlTester anotherTester = tester.mutate()
+			.headers(headers -> headers.setBasicAuth("peter", "..."))
+			.build();
+
+	// Use anotherTester...
+
 ----
 
-You can also set default request headers at the builder level:
+
+
+[[testing-websocketgraphqltester]]
+=== WebSocket
+
+`WebSocketGraphQlTester` uses
+{spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
+from Spring WebFlux to execute GraphQL requests over WebSocket:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	WebGraphQlTester tester = WebGraphQlTester.builder(client)
-		.defaultHttpHeaders(headers -> headers.setBasicAuth("rob", "..."))
-		.build();
+	String url = "http://localhost:8080/graphql";
+	WebSocketClient client = new ReactorNettyWebSocketClient();
+
+	WebSocketGraphQlTester tester = WebSocketGraphQlTester.builder(url, client).build();
 ----
 
-
-
-[[testing-queries]]
-== Queries
-
-Below is an example query test using
-https://github.com/json-path/JsonPath[JsonPath] to extract all release versions in the
-GraphQL response.
+Once created, `WebSocketGraphQlTester` exposes the same transport agnostic workflow for
+request execution as any `GrahQlTeste`. To change any transport details, use `mutate()`
+on an existing `WebSocketGraphQlTester` to create another with different configuration:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	String query = "{" +
+	URI url = ... ;
+	WebSocketClient client = ... ;
+
+	WebSocketGraphQlTester tester = WebSocketGraphQlTester.builder(url, client)
+			.headers(headers -> headers.setBasicAuth("joe", "..."))
+			.build();
+
+	// Use tester...
+
+	WebSocketGraphQlTester anotherTester = tester.mutate()
+			.headers(headers -> headers.setBasicAuth("peter", "..."))
+			.build();
+
+	// Use anotherTester...
+----
+
+`WebSocketGraphQlTester` provides a `stop()` method that you can use to have the WebSocket
+connection closed, e.g. after a test runs.
+
+
+
+[[testing-graphqlservicetester]]
+=== `GraphQlService`
+
+Many times it's enough to test GraphQL requests on the server side, without the use of a
+client to send requests over a transport protocol. To test directly against a
+`GraphQlService`, use the `GraphQlServiceTester` extension:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	GraphQlService service = ... ;
+	GraphQlServiceTester tester = GraphQlServiceTester.create(service);
+----
+
+
+
+[[testing-webgraphqlhandlertester]]
+=== `WebGraphQlHandler`
+
+The <<testing-graphqlservicetester>> extension lets you test on the server side, without
+a client. However, in some cases it's useful to involve server side transport
+handling with given mock transport input.
+
+The `WebGraphQlHandlerTester` extension lets you processes request through the
+`WebInterceptor` chain before handing off to `GraphQlService` for request execution:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	WebGraphQlHandler handler = ... ;
+	WebGraphQlHandlerTester tester = WebGraphQlHandlerTester.create(handler);
+----
+
+The builder for this extension allows you to define HTTP request details:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	WebGraphQlHandler handler = ... ;
+
+	WebGraphQlHandlerTester tester = WebGraphQlHandlerTester.builder(handler)
+			.headers(headers -> headers.setBasicAuth("joe", "..."))
+			.build();
+----
+
+
+
+[[testing-graphqltester-builder]]
+=== Builder
+
+`GraphQlTester` defines a parent `Builder` with common configuration options for the
+builders of all extensions. It lets you configure the following:
+
+- `errorFilter` - a predicate to suppress expected errors, so you can inspect the data
+of the response.
+- `documentSource` - a strategy for loading the document for a request from a file on
+the classpath or from anywhere else.
+- `responseTimeout` - how long to wait for request execution to complete before timing
+out.
+
+
+
+
+[[testing-requests]]
+== Requests
+
+Once you have a `GraphQlTester`, you can begin to test requests. The below executes a
+query for a project and uses https://github.com/json-path/JsonPath[JsonPath] to extract
+project release versions from the response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	String document = "{" +
 			"  project(slug:\"spring-framework\") {" +
 			"	releases {" +
 			"	  version" +
@@ -157,7 +251,7 @@ GraphQL response.
 			"  }" +
 			"}";
 
-	graphQlTester.query(query)
+	graphQlTester.document(document)
 			.execute()
 			.path("project.releases[*].version")
 			.entityList(String.class)
@@ -166,9 +260,9 @@ GraphQL response.
 
 The JsonPath is relative to the "data" section of the response.
 
-You can also create query files with extensions `.graphql` or `.gql` under `"graphql/"` on
-the classpath and refer to them by file name. For example, given a file called
-`projectReleases.graphql` in `src/main/resources/graphql`, with content:
+You can also create document files with extensions `.graphql` or `.gql` under
+`"graphql/"` on the classpath and refer to them by file name. For example, given a file
+called `projectReleases.graphql` in `src/main/resources/graphql`, with content:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
@@ -181,18 +275,18 @@ the classpath and refer to them by file name. For example, given a file called
 	}
 ----
 
-You can write the same test as follows:
+You can then use:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	graphQlTester.queryName("projectReleases") <1>
+	graphQlTester.documentName("projectReleases") <1>
 			.variable("slug", "spring-framework") <2>
 			.execute()
 			.path("project.releases[*].version")
 			.entityList(String.class)
 			.hasSizeGreaterThan(1);
 ----
-<1> Refer to the query in the file named "projectReleases".
+<1> Refer to the document in the file named "project".
 <2> Set the `slug` variable.
 
 [TIP]
@@ -200,14 +294,50 @@ You can write the same test as follows:
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
 ====
 
+If a request does not have any response data, e.g. mutation, use `executeAndVerify`
+instead of `execute` to verify there are no errors in the response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.query(query).executeAndVerify();
+----
+
+See <<testing-errors>> for more details on error handling.
+
+
+
+
+[[testing-subscriptions]]
+== Subscriptions
+
+To test subscriptions, call `executeSubscription` instead of `execute` to obtain a stream
+of responses and then use `StepVerifier` from Project Reactor to inspect the stream:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	Flux<String> greetingFlux = tester.document("subscription { greetings }")
+			.executeSubscription()
+			.toFlux("greetings", String.class);  // decode at JSONPath
+
+	StepVerifier.create(greetingFlux)
+			.expectNext("Hi")
+			.expectNext("Bonjour")
+			.expectNext("Hola")
+			.verifyComplete();
+----
+
+Subscriptions are supported only with <<testing-websocketgraphqltester,
+WebSocketGraphQlTester>>, or with the server side
+<<testing-graphqlservicetester>> and <<testing-webgraphqlhandlertester>> extensions.
+
 
 
 [[testing-errors]]
 == Errors
 
-Verify won't succeed when there are errors under the "errors" key in the response.
-
-If necessary to ignore an error, use an error filter `Predicate`:
+When you use `verify()`, any errors under the "errors" key in the response will cause
+an assertion failure. To suppress a specific error, use the error filter before
+`verify()`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -221,7 +351,7 @@ If necessary to ignore an error, use an error filter `Predicate`:
 			.hasSizeGreaterThan(1);
 ----
 
-An error filter can be registered globally and apply to all tests:
+You can register an error filter at the builder level, to apply to all tests:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -230,9 +360,8 @@ An error filter can be registered globally and apply to all tests:
 			.build();
 ----
 
-
-Or to expect an error, and in contrast to `filter`, throw an assertion error 
-when it doesn't exist in the response:
+If you want to verify that an error does exist, and in contrast to `filter`, throw an
+assertion error if it doesn't, then use `exepect` instead:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -246,7 +375,8 @@ when it doesn't exist in the response:
 			.hasSizeGreaterThan(1);
 ----
 
-Or inspect all errors directly and that also marks them as filtered:
+You can also inspect all errors through a `Consumer`, and doing so also marks them as
+filtered, so you can then also inspect the data in the response:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -257,65 +387,3 @@ Or inspect all errors directly and that also marks them as filtered:
 				// ...
 			});
 ----
-
-If a request does not have any response data (e.g. mutation), use `executeAndVerify`
-instead of `execute` to verify there are no errors in the response:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	graphQlTester.query(query).executeAndVerify();
-----
-
-
-
-[[testing-subscriptions]]
-== Subscriptions
-
-The `executeSubscription` method defines a workflow specific to subscriptions which return
-a stream of responses instead of a single response.
-
-To test subscriptions, you can create `GraphQlTester` with a `GraphQlService`, which
-calls `graphql.GraphQL` directly and that returns a stream of responses:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	GraphQlService service = ... ;
-
-	GraphQlTester graphQlTester = GraphQlTester.builder(service).build();
-
-	Flux<String> result = graphQlTester.query("subscription { greetings }")
-		.executeSubscription()
-		.toFlux("greetings", String.class);  // decode each response
-----
-
-The `StepVerifier` from Project Reactor is useful to verify a stream:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	Flux<String> result = graphQlTester.query("subscription { greetings }")
-		.executeSubscription()
-		.toFlux("greetings", String.class);
-
-	StepVerifier.create(result)
-			.expectNext("Hi")
-			.expectNext("Bonjour")
-			.expectNext("Hola")
-			.verifyComplete();
-----
-
-To test with the <<index#web-interception>> chain, you can create `WebGraphQlTester` with a
-`WebGraphQlHandler`:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	GraphQlService service = ... ;
-
-	WebGraphQlHandler handler = WebGraphQlHandler.builder(service)
-		.interceptor((input, next) -> next.handle(input))
-		.build();
-
-	WebGraphQlTester graphQlTester = WebGraphQlTester.builder(handler).build();
-----
-
-Currently, Spring for GraphQL does not support testing with a WebSocket client, and it
-cannot be used for integration test of GraphQL over WebSocket requests.

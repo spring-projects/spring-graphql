@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.Map;
 
 import reactor.core.publisher.Mono;
 
+
 /**
  * An extension of {@link WebInterceptor} with additional methods to handle the
  * start and end of a WebSocket connection. Only a single interceptor of type
@@ -35,23 +36,43 @@ public interface WebSocketInterceptor extends WebInterceptor {
 	}
 
 	/**
-	 * Handle the payload from the connection initialization message that a
-	 * GraphQL over WebSocket client must send after the WebSocket session is
-	 * established and before sending any requests.
-	 * @param payload the payload from the {@code ConnectionInit} message
-	 * @return an optional payload for the {@code ConnectionAck} message
+	 * Handle the {@code "connection_init"} message at the start of a GraphQL over
+	 * WebSocket session and return an optional payload for the
+	 * {@code "connection_ack"} message to send back.
+	 * @param sessionId the id of the WebSocket session
+	 * @param connectionInitPayload the payload from the {@code "connection_init"} message
+	 * @return the payload for the {@code "connection_ack"}, or empty
 	 */
-	default Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
+	default Mono<Object> handleConnectionInitialization(
+			String sessionId, Map<String, Object> connectionInitPayload) {
+
 		return Mono.empty();
 	}
 
 	/**
-	 * Handle the completion message that a GraphQL over WebSocket clients sends
-	 * before closing the WebSocket connection.
-	 * @return signals the end of completion handling
+	 * Handle the {@code "complete"} message that a client sends to stop a
+	 * subscription stream. The underlying {@link org.reactivestreams.Publisher}
+	 * for the subscription is automatically cancelled. This callback is for any
+	 * additional, or more centralized handling across subscriptions.
+	 * @param sessionId the id of the WebSocket session
+	 * @param subscriptionId the unique id for the subscription; correlates to the
+	 * {@link WebInput#getId() requestId} from the original {@code "subscribe"}
+	 * message that started the subscription
+	 * @return {@code Mono} for the completion of handling
 	 */
-	default Mono<Void> handleConnectionCompletion() {
+	default Mono<Void> handleCancelledSubscription(String sessionId, String subscriptionId) {
 		return Mono.empty();
+	}
+
+	/**
+	 * Invoked when the WebSocket session is closed, from either side.
+	 * @param sessionId the id of the WebSocket session
+	 * @param statusCode the WebSocket "close" status code
+	 * @param connectionInitPayload the payload from the {@code "connect_init"}
+	 * message received at the start of the connection
+	 */
+	default void handleConnectionClosed(
+			String sessionId, int statusCode, Map<String, Object> connectionInitPayload) {
 	}
 
 }

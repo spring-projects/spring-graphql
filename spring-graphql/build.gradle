@@ -12,6 +12,7 @@ dependencies {
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'javax.servlet:javax.servlet-api'
+	compileOnly 'javax.validation:validation-api'
 
 	compileOnly 'org.springframework.security:spring-security-core'
 
@@ -22,7 +23,8 @@ dependencies {
 	compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
 	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 
-	compileOnly 'javax.validation:validation-api'
+	compileOnly 'com.jayway.jsonpath:json-path'
+	compileOnly 'com.fasterxml.jackson.core:jackson-databind'
 
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
@@ -47,6 +49,7 @@ dependencies {
 	testImplementation 'com.querydsl:querydsl-core'
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'javax.servlet:javax.servlet-api'
+	testImplementation 'com.squareup.okhttp3:mockwebserver:3.14.9'
 	testImplementation 'javax.validation:validation-api'
 	testImplementation 'com.jayway.jsonpath:json-path'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -54,6 +57,8 @@ dependencies {
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
+
+	testFixturesApi 'org.springframework:spring-webflux'
 }
 
 test {

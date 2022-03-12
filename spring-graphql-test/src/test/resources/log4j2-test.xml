@@ -8,6 +8,7 @@
 	<Loggers>
 		<Logger name="org.springframework.web" level="debug" />
 		<Logger name="org.springframework.http" level="debug" />
+		<Logger name="org.springframework.graphql" level="debug" />
 		<Root level="error">
 			<AppenderRef ref="Console" />
 		</Root>

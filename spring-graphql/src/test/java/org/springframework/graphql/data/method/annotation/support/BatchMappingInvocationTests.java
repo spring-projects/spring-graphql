@@ -29,8 +29,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.TestRequestInput;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.stereotype.Controller;
 
@@ -71,7 +71,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"}";
 
 		Mono<RequestOutput> resultMono = createGraphQlService(controller)
-				.execute(new RequestInput(query, null, null, null, "1"));
+				.execute(TestRequestInput.forDocument(query));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
@@ -91,7 +91,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 	@ParameterizedTest
 	@MethodSource("controllers")
 	void oneToMany(CourseController controller) {
-		String query = "{ " +
+		String document = "{ " +
 				"  courses { " +
 				"    id" +
 				"    name" +
@@ -104,7 +104,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"}";
 
 		Mono<RequestOutput> resultMono = createGraphQlService(controller)
-				.execute(new RequestInput(query, null, null, null, "1"));
+				.execute(TestRequestInput.forDocument(document));
 
 		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();

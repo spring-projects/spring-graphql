@@ -54,7 +54,7 @@ public abstract class ReactorContextManager {
 	 * Save the given Reactor {@link ContextView} in the an {@link ExecutionInput} for
 	 * later access through the {@link DataFetchingEnvironment}.
 	 * @param contextView the reactor context view
-	 * @param input the GraphQL query input
+	 * @param input the input prepared from the GraphQL request
 	 */
 	static void setReactorContext(ContextView contextView, ExecutionInput input) {
 		input.getGraphQLContext().put(CONTEXT_VIEW_KEY, contextView);

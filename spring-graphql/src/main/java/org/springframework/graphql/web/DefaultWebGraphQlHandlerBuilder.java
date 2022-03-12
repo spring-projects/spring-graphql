@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,7 @@ package org.springframework.graphql.web;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -32,6 +29,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
+
 /**
  * Default implementation of {@link WebGraphQlHandler.Builder}.
  *
@@ -41,16 +39,20 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	private final GraphQlService service;
 
+	private final List<WebInterceptor> interceptors = new ArrayList<>();
+
 	@Nullable
-	private List<WebInterceptor> interceptors;
+	private WebSocketInterceptor webSocketInterceptor;
 
 	@Nullable
 	private List<ThreadLocalAccessor> accessors;
+
 
 	DefaultWebGraphQlHandlerBuilder(GraphQlService service) {
 		Assert.notNull(service, "GraphQlService is required");
 		this.service = service;
 	}
+
 
 	@Override
 	public WebGraphQlHandler.Builder interceptor(WebInterceptor... interceptors) {
@@ -59,10 +61,13 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	@Override
 	public WebGraphQlHandler.Builder interceptors(List<WebInterceptor> interceptors) {
-		if (!CollectionUtils.isEmpty(interceptors)) {
-			this.interceptors = (this.interceptors != null) ? this.interceptors : new ArrayList<>();
-			this.interceptors.addAll(interceptors);
-		}
+		this.interceptors.addAll(interceptors);
+		interceptors.forEach(interceptor -> {
+			if (interceptor instanceof WebSocketInterceptor) {
+				Assert.isNull(this.webSocketInterceptor, "There can be at most 1 WebSocketInterceptor");
+				this.webSocketInterceptor = (WebSocketInterceptor) interceptor;
+			}
+		});
 		return this;
 	}
 
@@ -83,98 +88,34 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		List<WebInterceptor> interceptorsToUse =
-				(this.interceptors != null) ? this.interceptors : Collections.emptyList();
+		WebInterceptorChain endOfChain =
+				webInput -> this.service.execute(webInput).map(WebOutput::new);
 
-		WebInterceptorChain interceptorChain = initWebInterceptorChain(interceptorsToUse);
-		WebSocketInterceptor webSocketInterceptor = initWebSocketInterceptor(interceptorsToUse);
-
-		WebGraphQlHandler graphQlHandler = new WebGraphQlHandler() {
-
-			@Override
-			public Mono<WebOutput> handleRequest(WebInput input) {
-				return interceptorChain.next(input);
-			}
-
-			@Override
-			public Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
-				return (webSocketInterceptor != null ?
-						webSocketInterceptor.handleConnectionInitialization(payload) : Mono.empty());
-			}
-
-			@Override
-			public Mono<Void> handleWebSocketCompletion() {
-				return (webSocketInterceptor != null ?
-						webSocketInterceptor.handleConnectionCompletion() : Mono.empty());
-			}
-		};
-
-		if (!CollectionUtils.isEmpty(this.accessors)) {
-			graphQlHandler = new ThreadLocalExtractingHandler(
-					graphQlHandler, ThreadLocalAccessor.composite(this.accessors));
-		}
-
-		return graphQlHandler;
-	}
-
-	private WebInterceptorChain initWebInterceptorChain(List<WebInterceptor> interceptors) {
-
-		WebInterceptorChain endOfChain = webInput -> this.service.execute(webInput).map(WebOutput::new);
-
-		return interceptors.stream()
+		WebInterceptorChain chain = this.interceptors.stream()
 				.reduce(WebInterceptor::andThen)
 				.map(interceptor -> (WebInterceptorChain) (input) -> interceptor.intercept(input, endOfChain))
 				.orElse(endOfChain);
-	}
 
-	@Nullable
-	private WebSocketInterceptor initWebSocketInterceptor(List<WebInterceptor> interceptors) {
+		return new WebGraphQlHandler() {
 
-		List<WebSocketInterceptor> filtered = interceptors.stream()
-				.filter(current -> current instanceof WebSocketInterceptor)
-				.map(current -> (WebSocketInterceptor) current)
-				.collect(Collectors.toList());
+			@Override
+			public Mono<WebOutput> handleRequest(WebInput input) {
+				return chain.next(input)
+						.contextWrite(context -> {
+							if (!CollectionUtils.isEmpty(accessors)) {
+								ThreadLocalAccessor accessor = ThreadLocalAccessor.composite(accessors);
+								return ReactorContextManager.extractThreadLocalValues(accessor, context);
+							}
+							return context;
+						});
+			}
 
-		if (filtered.size() > 1) {
-			throw new IllegalArgumentException(
-					"There can be at most 1 WebSocketInterceptor. Found " + filtered.size() + ".");
-		}
+			@Override
+			public WebSocketInterceptor webSocketInterceptor() {
+				return (webSocketInterceptor != null ? webSocketInterceptor : new WebSocketInterceptor() {});
+			}
 
-		return (!filtered.isEmpty() ? filtered.get(0) : null);
-	}
-
-
-	/**
-	 * {@link WebGraphQlHandler} that extracts ThreadLocal values and saves them in the
-	 * Reactor context for subsequent use for DataFetcher's.
-	 */
-	private static class ThreadLocalExtractingHandler implements WebGraphQlHandler {
-
-		private final WebGraphQlHandler delegate;
-
-		private final ThreadLocalAccessor accessor;
-
-		ThreadLocalExtractingHandler(WebGraphQlHandler delegate, ThreadLocalAccessor accessor) {
-			this.delegate = delegate;
-			this.accessor = accessor;
-		}
-
-		@Override
-		public Mono<WebOutput> handleRequest(WebInput input) {
-			return this.delegate.handleRequest(input).contextWrite((context) ->
-					ReactorContextManager.extractThreadLocalValues(this.accessor, context));
-		}
-
-		@Override
-		public Mono<Object> handleWebSocketInitialization(Map<String, Object> payload) {
-			return this.delegate.handleWebSocketInitialization(payload);
-		}
-
-		@Override
-		public Mono<Void> handleWebSocketCompletion() {
-			return this.delegate.handleWebSocketCompletion();
-		}
-
+		};
 	}
 
 }

@@ -116,9 +116,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 
 	/**
-	 * Prepare a {@link Predicate} from GraphQL query arguments, also applying
+	 * Prepare a {@link Predicate} from GraphQL request arguments, also applying
 	 * any {@link QuerydslBinderCustomizer} that may have been configured.
-	 * @param environment contextual info for the GraphQL query
+	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting predicate
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -341,7 +341,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
 		 *
-		 * @param customizer to customize the GraphQL query to Querydsl
+		 * @param customizer to customize GraphQL request input to Querydsl
 		 * Predicate binding with
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied

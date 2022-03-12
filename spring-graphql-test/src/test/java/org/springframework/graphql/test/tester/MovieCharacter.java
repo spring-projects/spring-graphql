@@ -17,11 +17,14 @@
 package org.springframework.graphql.test.tester;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
+
 
 public class MovieCharacter {
 
 	@Nullable
 	private String name;
+
 
 	public void setName(String name) {
 		this.name = name;
@@ -32,11 +35,13 @@ public class MovieCharacter {
 		return this.name;
 	}
 
+
 	public static MovieCharacter create(String name) {
-		MovieCharacter movieCharacter = new MovieCharacter();
-		movieCharacter.setName(name);
-		return movieCharacter;
+		MovieCharacter character = new MovieCharacter();
+		character.setName(name);
+		return character;
 	}
+
 
 	@Override
 	public boolean equals(Object other) {
@@ -46,13 +51,12 @@ public class MovieCharacter {
 		if (other == null || getClass() != other.getClass()) {
 			return false;
 		}
-		MovieCharacter movieCharacter = (MovieCharacter) other;
-		return (this.name != null) ? this.name.equals(movieCharacter.name) : movieCharacter.name == null;
+		return ObjectUtils.nullSafeEquals(this.name, ((MovieCharacter) other).name);
 	}
 
 	@Override
 	public int hashCode() {
-		return (this.name != null) ? this.name.hashCode() : 0;
+		return (this.name != null) ? this.name.hashCode() : super.hashCode();
 	}
 
 }

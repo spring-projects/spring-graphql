@@ -17,8 +17,6 @@
 package org.springframework.graphql;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -29,86 +27,90 @@ import graphql.execution.ExecutionId;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 
 /**
- * Common, server-side representation of GraphQL request input independent of
- * the underlying transport. This can be converted to {@link ExecutionInput}
- * via {@link #toExecutionInput()} while the resulting {@code ExecutionInput}
- * can be customized via {@link #configureExecutionInput(BiFunction)} callbacks.
+ * Extension of {@link GraphQlRequest} for server side handling, adding the
+ * transport (e.g. HTTP or WebSocket handler) assigned {@link #getId() id} and
+ * {@link #getLocale() locale} in the addition to the {@link GraphQlRequest}
+ * inputs.
+ *
+ * <p>{@code RequestInput} supports the initialization of {@link ExecutionInput}
+ * that is passed to {@link graphql.GraphQL}. You can customize that via
+ * {@link #configureExecutionInput(BiFunction)}.
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class RequestInput {
-
-	private final String query;
-
-	@Nullable
-	private final String operationName;
-
-	private final Map<String, Object> variables;
-
-	@Nullable
-	private final Locale locale;
+public class RequestInput extends GraphQlRequest {
 
 	private final String id;
-
-	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
 
 	@Nullable
 	private ExecutionId executionId;
 
+	@Nullable
+	private final Locale locale;
+
+	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
+
 
 	/**
 	 * Create an instance.
-	 * @param query the query, mutation, or subscription for the request
-	 * @param operationName an optional, explicit name assigned to the query
-	 * @param  variables variables by which the query is parameterized
-	 * @param locale the locale associated with the request, if any
+	 * @param document textual representation of the operation(s)
+	 * @param operationName optionally, the name of the operation to execute
+	 * @param variables variables by which the query is parameterized
 	 * @param id the request id, to be used as the {@link ExecutionId}
+	 * @param locale the locale associated with the request
 	 */
 	public RequestInput(
-			String query, @Nullable String operationName, @Nullable Map<String, Object> variables,
-			@Nullable Locale locale, String id) {
+			String document, @Nullable String operationName, @Nullable Map<String, Object> variables,
+			String id, @Nullable Locale locale) {
 
-		Assert.notNull(query, "'query' is required");
+		super(document, operationName, variables);
 		Assert.notNull(id, "'id' is required");
-		this.query = query;
-		this.operationName = operationName;
-		this.variables = ((variables != null) ? variables : Collections.emptyMap());
-		this.locale = locale;
 		this.id = id;
+		this.locale = locale;
 	}
 
 
 	/**
-	 * Return the id for the request selected by the transport handler.
+	 * Return the transport assigned id for the request which is then used to set
+	 * {@link ExecutionInput.Builder#executionId(ExecutionId) executionId}.
+	 * The is initialized as follows:
 	 * <ul>
+	 * <li>For WebFlux, this is the {@code ServerHttpRequest} id which correlates
+	 * to WebFlux log messages. For Reactor Netty, it also correlates to server
+	 * log messages.
 	 * <li>For Spring MVC, the id is generated via
-	 * {@link org.springframework.util.AlternativeJdkIdGenerator}, which is more
-	 * efficient than {@code UUID.randomUUID()}.
-	 * <li>For WebFlux the id is from the {@code ServerHttpRequest}, which is
-	 * useful to correlate to WebFlux log messages.
-	 * <li>For WebSocket, the id is from the {@code Subscribe} message of the
-	 * GraphQL over WebSocket protocol, which is useful to correlate to
-	 * WebSocket messages.
+	 * {@link org.springframework.util.AlternativeJdkIdGenerator}, which does
+	 * not correlate to anything, but is more efficient than the default
+	 * {@link graphql.execution.ExecutionIdProvider} which relies on
+	 * {@code UUID.randomUUID()}.
+	 * <li>For WebSocket, this is the GraphQL over WebSocket {@code "subscribe"}
+	 * message id, which correlates to WebSocket messages.
 	 * </ul>
-	 * <p> By default, the transport id becomes the
-	 * {@link ExecutionInput.Builder#executionId(ExecutionId) executionId} for
-	 * the GraphQL request. You can override this via
-	 * {@link #executionId(ExecutionId)} or by configuring an
-	 * {@link graphql.execution.ExecutionIdProvider} on {@link graphql.GraphQL}.
+	 * <p>To override this id, use {@link #executionId(ExecutionId)} or configure
+	 * {@link graphql.GraphQL} with an {@link graphql.execution.ExecutionIdProvider}.
 	 * @return the request id
-	 * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket Protocol</a>
 	 */
 	public String getId() {
 		return this.id;
 	}
 
 	/**
-	 * Return the {@code executionId} configured via {@link #executionId(ExecutionId)}.
+	 * Configure the {@link ExecutionId} to set on
+	 * {@link ExecutionInput#getExecutionId()}, overriding the transport assigned
+	 * {@link #getId() id}.
+	 * @param executionId the id to use
+	 */
+	public void executionId(ExecutionId executionId) {
+		Assert.notNull(executionId, "executionId is required");
+		this.executionId = executionId;
+	}
+
+	/**
+	 * Return the configured {@link #executionId(ExecutionId) executionId}.
 	 */
 	@Nullable
 	public ExecutionId getExecutionId() {
@@ -116,33 +118,7 @@ public class RequestInput {
 	}
 
 	/**
-	 * Return the query, mutation, or subscription for the request.
-	 * @return the query, a non-empty string.
-	 */
-	public String getQuery() {
-		return this.query;
-	}
-
-	/**
-	 * Return the explicitly assigned name for the query.
-	 * @return the operation name or {@code null}.
-	 */
-	@Nullable
-	public String getOperationName() {
-		return this.operationName;
-	}
-
-	/**
-	 * Return values for variable referenced within the query via $syntax.
-	 * @return a map of variables, or an empty map.
-	 */
-	public Map<String, Object> getVariables() {
-		return this.variables;
-	}
-
-	/**
-	 * Return the locale associated with the request.
-	 * @return the locale of {@code null}.
+	 * Return the transport assigned locale value, if any.
 	 */
 	@Nullable
 	public Locale getLocale() {
@@ -150,40 +126,29 @@ public class RequestInput {
 	}
 
 	/**
-	 * Configure the {@link ExecutionId} to use for the GraphQL request, which
-	 * is set on the {@link ExecutionInput}. This option overrides the
-	 * {@link #getId() id} selected by the transport handler.
-	 * @param executionId the execution id to set on the {@link ExecutionInput}.
-	 */
-	public void executionId(ExecutionId executionId) {
-		Assert.notNull(executionId, "executionId should not be null");
-		this.executionId = executionId;
-	}
-
-	/**
-	 * Provide a consumer to configure the {@link ExecutionInput} used for input to
-	 * {@link graphql.GraphQL#executeAsync(ExecutionInput)}. The builder is initially
-	 * populated with the values from {@link #getQuery()}, {@link #getOperationName()},
-	 * and {@link #getVariables()}.
-	 * @param configurer a {@code BiFunction} with the current {@code ExecutionInput} and
-	 * a builder to modify it.
+	 * Provide a {@code BiFunction} to help initialize the {@link ExecutionInput}
+	 * passed to {@link graphql.GraphQL}. The {@code ExecutionInput} is first
+	 * pre-populated with values from "this" {@code RequestInput}, and is then
+	 * customized with the functions provided here.
+	 * @param configurer a {@code BiFunction} that accepts the
+	 * {@code ExecutionInput} initialized so far, and a builder to customize it.
 	 */
 	public void configureExecutionInput(BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer) {
 		this.executionInputConfigurers.add(configurer);
 	}
 
 	/**
-	 * Create the {@link ExecutionInput} for request execution. This is initially
-	 * populated from {@link #getQuery()}, {@link #getOperationName()}, and
-	 * {@link #getVariables()}, and is then further customized through
-	 * {@link #configureExecutionInput(BiFunction)}.
-	 * @return the execution input
+	 * Create the {@link ExecutionInput} to pass to {@link graphql.GraphQL}.
+	 * passed to {@link graphql.GraphQL}. The {@code ExecutionInput} is populated
+	 * with values from "this" {@code RequestInput}, and then customized with
+	 * functions provided via {@link #configureExecutionInput(BiFunction)}.
+	 * @return the resulting {@code ExecutionInput}
 	 */
 	public ExecutionInput toExecutionInput() {
 		ExecutionInput.Builder inputBuilder = ExecutionInput.newExecutionInput()
-				.query(this.query)
-				.operationName(this.operationName)
-				.variables(this.variables)
+				.query(getDocument())
+				.operationName(getOperationName())
+				.variables(getVariables())
 				.locale(this.locale)
 				.executionId(this.executionId != null ? this.executionId : ExecutionId.from(this.id));
 
@@ -197,28 +162,9 @@ public class RequestInput {
 		return executionInput;
 	}
 
-	/**
-	 * Return a Map representation of the request input.
-	 * @return map representation of the input
-	 */
-	public Map<String, Object> toMap() {
-		Map<String, Object> map = new LinkedHashMap<>(3);
-		map.put("query", getQuery());
-		if (getOperationName() != null) {
-			map.put("operationName", getOperationName());
-		}
-		if (!CollectionUtils.isEmpty(getVariables())) {
-			map.put("variables", new LinkedHashMap<>(getVariables()));
-		}
-		return map;
-	}
-
 	@Override
 	public String toString() {
-		return "Query='" + getQuery() + "'" +
-				((getOperationName() != null) ? ", Operation='" + getOperationName() + "'" : "") +
-				(!CollectionUtils.isEmpty(getVariables()) ? ", Variables=" + getVariables() : "") +
-				(getLocale() != null ? ", Locale=" + getLocale() : "");
+		return super.toString() + (getLocale() != null ? ", Locale=" + getLocale() : "");
 	}
 
 }

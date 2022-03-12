@@ -30,8 +30,8 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.RequestInput;
 import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.TestRequestInput;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,7 +48,7 @@ public class BatchLoadingTests {
 
 	@Test
 	void batchLoader() {
-		String query = "{ " +
+		String document = "{ " +
 				"  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
 				"    author {" +
 				"      firstName, " +
@@ -76,7 +76,7 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<RequestOutput> resultMono = service.execute(new RequestInput(query, null, null, null, "1"));
+		Mono<RequestOutput> resultMono = service.execute(TestRequestInput.forDocument(document));
 
 		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);

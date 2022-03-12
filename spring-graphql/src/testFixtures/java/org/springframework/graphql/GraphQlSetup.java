@@ -37,6 +37,7 @@ import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.web.WebGraphQlSetup;
 import org.springframework.graphql.web.WebInterceptor;
 
 /**
