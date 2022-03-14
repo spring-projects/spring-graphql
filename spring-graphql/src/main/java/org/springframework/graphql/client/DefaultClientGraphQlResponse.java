@@ -30,10 +30,10 @@ import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -46,37 +46,32 @@ import org.springframework.util.StringUtils;
  */
 class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientGraphQlResponse {
 
+	private final GraphQlRequest request;
+
 	private final DocumentContext jsonPathDoc;
 
 
-	DefaultClientGraphQlResponse(GraphQlResponse response, Configuration jsonPathConfig) {
+	DefaultClientGraphQlResponse(GraphQlRequest request, GraphQlResponse response, Configuration jsonPathConfig) {
 		super(response.toMap());
+		this.request = request;
 		this.jsonPathDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
 	}
 
 
 	@Override
+	public ResponseField field(String path) {
+		path = "$.data" + (StringUtils.hasText(path) ? "." + path : "");
+		return new DefaultField(this.request, this, path, this.jsonPathDoc, getErrors());
+	}
+
+	@Override
 	public <D> D toEntity(Class<D> type) {
-		assertValidResponse();
 		return field("").toEntity(type);
 	}
 
 	@Override
 	public <D> D toEntity(ParameterizedTypeReference<D> type) {
-		assertValidResponse();
 		return field("").toEntity(type);
-	}
-
-	@Override
-	public ResponseField field(String path) {
-		path = "$.data" + (StringUtils.hasText(path) ? "." + path : "");
-		return new DefaultField(path, this.jsonPathDoc, getErrors());
-	}
-
-	private void assertValidResponse() {
-		if (!isValid()) {
-			throw new IllegalStateException("Path not present exception");
-		}
 	}
 
 
@@ -84,6 +79,10 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 	 * Default implementation of {@link ResponseField}.
 	 */
 	private static class DefaultField implements ResponseField {
+
+		private final GraphQlRequest request;
+
+		private final ClientGraphQlResponse response;
 
 		private final String path;
 
@@ -93,36 +92,49 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 
 		private final List<GraphQLError> errorsBelow;
 
+		private final List<GraphQLError> errorsAtOrBelow;
+
 		private final boolean exists;
 
 		@Nullable
 		private final Object value;
 
-		public DefaultField(String path, DocumentContext jsonPathDoc, List<GraphQLError> errors) {
-			Assert.notNull(path, "'path' is required");
-			this.path = path;
+		public DefaultField(
+				GraphQlRequest request, ClientGraphQlResponse response,
+				String path, DocumentContext jsonPathDoc, List<GraphQLError> errors) {
+
+			this.request = request;
+			this.response = response;
+			this.path = path ;
 			this.jsonPathDoc = jsonPathDoc;
+
 
 			List<GraphQLError> errorsAt = null;
 			List<GraphQLError> errorsBelow = null;
+			List<GraphQLError> errorsAtOrBelow = null;
 
 			for (GraphQLError error : errors) {
 				String errorPath = toJsonPath(error);
 				if (errorPath == null) {
 					continue;
 				}
-				if (errorPath.equals(path)) {
-					errorsAt = (errorsAt != null ? errorsAt : new ArrayList<>());
-					errorsAt.add(error);
-				}
 				if (errorPath.startsWith(path)) {
-					errorsBelow = (errorsBelow != null ? errorsBelow : new ArrayList<>());
-					errorsBelow.add(error);
+					if (errorPath.length() == path.length()) {
+						errorsAt = (errorsAt != null ? errorsAt : new ArrayList<>());
+						errorsAt.add(error);
+					}
+					else {
+						errorsBelow = (errorsBelow != null ? errorsBelow : new ArrayList<>());
+						errorsBelow.add(error);
+					}
+					errorsAtOrBelow = (errorsAtOrBelow != null ? errorsAtOrBelow : new ArrayList<>());
+					errorsAtOrBelow.add(error);
 				}
 			}
 
 			this.errorsAt = (errorsAt != null ? errorsAt : Collections.emptyList());
 			this.errorsBelow = (errorsBelow != null ? errorsBelow : Collections.emptyList());
+			this.errorsAtOrBelow = (errorsAtOrBelow != null ? errorsAtOrBelow : Collections.emptyList());
 
 
 			boolean exists = true;
@@ -184,34 +196,37 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 		}
 
 		@Override
+		public List<GraphQLError> getErrorsAtOrBelow() {
+			return this.errorsAtOrBelow;
+		}
+
+		@Override
 		public <D> D toEntity(Class<D> entityType) {
-			assertValidField();
+			assertIsValid();
 			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
-			assertValidField();
+			assertIsValid();
 			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(Class<D> elementType) {
-			assertValidField();
+			assertIsValid();
 			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
-			assertValidField();
+			assertIsValid();
 			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(List.class, elementType));
 		}
 
-		private void assertValidField() {
+		private void assertIsValid() {
 			if (!isValid()) {
-				throw (CollectionUtils.isEmpty(this.errorsAt) ?
-						new IllegalStateException("Path not present exception") :
-						new IllegalStateException("Field error exception"));
+				throw new FieldAccessException(this.request, this.response, this);
 			}
 		}
 

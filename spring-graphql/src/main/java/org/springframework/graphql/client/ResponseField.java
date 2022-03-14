@@ -70,6 +70,11 @@ public interface ResponseField {
 	List<GraphQLError> getErrorsBelow();
 
 	/**
+	 * Return errors with paths at or below that of the field.
+	 */
+	List<GraphQLError> getErrorsAtOrBelow();
+
+	/**
 	 * Decode the field to an entity of the given type.
 	 * @param entityType the type to convert to
 	 * @return the entity instance

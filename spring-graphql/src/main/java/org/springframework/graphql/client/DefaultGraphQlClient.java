@@ -145,19 +145,31 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		public Mono<ClientGraphQlResponse> execute() {
 			return initRequest().flatMap(request ->
 					this.transport.execute(request)
-							.map(response -> new DefaultClientGraphQlResponse(response, this.jsonPathConfig)));
+							.map(result ->
+									new DefaultClientGraphQlResponse(request, result, this.jsonPathConfig))
+							.onErrorResume(
+									ex -> !(ex instanceof GraphQlClientException),
+									ex -> toGraphQlTransportException(ex, request)));
 		}
 
 		@Override
 		public Flux<ClientGraphQlResponse> executeSubscription() {
 			return initRequest().flatMapMany(request ->
 					this.transport.executeSubscription(request)
-							.map(response -> new DefaultClientGraphQlResponse(response, this.jsonPathConfig)));
+							.map(result ->
+									new DefaultClientGraphQlResponse(request, result, this.jsonPathConfig))
+							.onErrorResume(
+									ex -> !(ex instanceof GraphQlClientException),
+									ex -> toGraphQlTransportException(ex, request)));
 		}
 
 		private Mono<GraphQlRequest> initRequest() {
 			return this.documentMono.map(document ->
 					new GraphQlRequest(document, this.operationName, this.variables));
+		}
+
+		private <T> Mono<T> toGraphQlTransportException(Throwable ex, GraphQlRequest request) {
+			return Mono.error(new GraphQlTransportException(ex, request));
 		}
 
 	}
