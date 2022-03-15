@@ -40,21 +40,22 @@ public class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
 		DocumentSource documentSource = name -> name.equals("name") ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
-		setMockResponse("{}");
+		initDataResponse(DOCUMENT, "{}");
 
 		// Original
 		GraphQlClient.Builder<?> builder = graphQlClientBuilder().documentSource(documentSource);
 		GraphQlClient client = builder.build();
-		client.documentName("name").execute().block(TIMEOUT);
+		ClientGraphQlResponse response = client.documentName("name").execute().block(TIMEOUT);
 
-		GraphQlRequest request = request();
-		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
+		assertThat(response).isNotNull();
+		assertThat(response.isValid()).isTrue();
 
 		// Mutate
 		client = client.mutate().build();
-		client.documentName("name").execute().block(TIMEOUT);
+		response = client.documentName("name").execute().block(TIMEOUT);
 
-		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(response).isNotNull();
+		assertThat(response.isValid()).isTrue();
 	}
 
 }

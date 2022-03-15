@@ -23,6 +23,7 @@ import java.util.Map;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Represents a GraphQL request with the inputs to pass to a GraphQL service
@@ -63,7 +64,7 @@ public class GraphQlRequest {
 		Assert.notNull(document, "'document' is required");
 		this.document = document;
 		this.operationName = operationName;
-		this.variables = ((variables != null) ? variables : Collections.emptyMap());
+		this.variables = (variables != null ? variables : Collections.emptyMap());
 	}
 
 
@@ -113,6 +114,24 @@ public class GraphQlRequest {
 			map.put("variables", new LinkedHashMap<>(getVariables()));
 		}
 		return map;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (! (o instanceof GraphQlRequest)) {
+			return false;
+		}
+		GraphQlRequest other = (GraphQlRequest) o;
+		return (getDocument().equals(other.getDocument()) &&
+				ObjectUtils.nullSafeEquals(getOperationName(), other.getOperationName()) &&
+				ObjectUtils.nullSafeEquals(getVariables(), other.getVariables()));
+	}
+
+	@Override
+	public int hashCode() {
+		return this.document.hashCode() +
+				31 * ObjectUtils.nullSafeHashCode(this.operationName) +
+				31 * this.variables.hashCode();
 	}
 
 	@Override

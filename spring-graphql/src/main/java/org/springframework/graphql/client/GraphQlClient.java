@@ -15,11 +15,13 @@
  */
 package org.springframework.graphql.client;
 
+import java.util.List;
 import java.util.Map;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -50,7 +52,7 @@ public interface GraphQlClient {
 	 * @param document the document for the request
 	 * @return spec to further define or execute the request
 	 */
-	Request document(String document);
+	RequestSpec document(String document);
 
 	/**
 	 * Variant of {@link #document(String)} that uses the given key to resolve
@@ -58,7 +60,7 @@ public interface GraphQlClient {
 	 * {@link DocumentSource} that the client is configured with.
 	 * @throws IllegalArgumentException if the content could not be loaded
 	 */
-	Request documentName(String name);
+	RequestSpec documentName(String name);
 
 	/**
 	 * Return a builder initialized from the configuration of "this" client
@@ -103,7 +105,7 @@ public interface GraphQlClient {
 	/**
 	 * Declare options to gather input for a GraphQL request and execute it.
 	 */
-	interface Request {
+	interface RequestSpec {
 
 		/**
 		 * Set the name of the operation in the {@link #document(String) document}
@@ -111,7 +113,7 @@ public interface GraphQlClient {
 		 * @param operationName the operation name
 		 * @return this request spec
 		 */
-		Request operationName(@Nullable String operationName);
+		RequestSpec operationName(@Nullable String operationName);
 
 		/**
 		 * Add a value for a variable defined by the operation.
@@ -119,18 +121,32 @@ public interface GraphQlClient {
 		 * @param value the variable value
 		 * @return this request spec
 		 */
-		Request variable(String name, Object value);
+		RequestSpec variable(String name, @Nullable Object value);
 
 		/**
 		 * Add all given values for variables defined by the operation.
 		 * @param variables the variable values
 		 * @return this request spec
 		 */
-		Request variables(Map<String, Object> variables);
+		RequestSpec variables(Map<String, Object> variables);
 
 		/**
-		 * Execute as a request with a single response such as a "query" or
-		 * "mutation" operation.
+		 * Shortcut for {@link #execute()} with a single field path to decode from.
+		 * @return a spec with decoding options
+		 * @throws FieldAccessException if the target field has any errors,
+		 * including nested errors.
+		 */
+		RetrieveSpec retrieve(String path);
+
+		/**
+		 * Shortcut for {@link #executeSubscription()} with a single field path to decode from.
+		 * @return a spec with decoding options
+		 */
+		RetrieveSubscriptionSpec retrieveSubscription(String path);
+
+		/**
+		 * Execute request with a single response, e.g. "query" or "mutation", and
+		 * return a response for further options.
 		 * @return a {@code Mono} with a {@code ClientGraphQlResponse} for further
 		 * decoding of the response. The {@code Mono} may end wth an error due
 		 * to transport level issues.
@@ -138,7 +154,7 @@ public interface GraphQlClient {
 		Mono<ClientGraphQlResponse> execute();
 
 		/**
-		 * Execute a "subscription" request with a stream of responses.
+		 * Execute a "subscription" request and return a stream of responses.
 		 * @return a {@code Flux} with a {@code ClientGraphQlResponse} for further
 		 * decoding of the response. The {@code Flux} may terminate as follows:
 		 * <ul>
@@ -152,6 +168,88 @@ public interface GraphQlClient {
 		 * subscription stream.
 		 */
 		Flux<ClientGraphQlResponse> executeSubscription();
+
+	}
+
+
+	/**
+	 * Declares options to decode a field for a single response operation.
+	 */
+	interface RetrieveSpec {
+
+		/**
+		 * Decode the field to an entity of the given type.
+		 * @param entityType the type to convert to
+		 * @return {@code Mono} with the decoded entity, possibly empty if the field
+		 * {@link ResponseField#getValue() value} is {@code null}
+		 * @throws FieldAccessException if the target field is not
+		 * {@link ResponseField#isValid() valid} or has any errors, including
+		 * nested errors.
+		 */
+		<D> Mono<D> toEntity(Class<D> entityType);
+
+		/**
+		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
+		 */
+		<D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType);
+
+		/**
+		 * Decode the field to a list of entities with the given type.
+		 * @param elementType the type of elements in the list
+		 * @return {@code Mono} with the list of decoded entities, possibly an
+		 * empty list if the field {@link ResponseField#getValue() value} is
+		 * {@code null} or empty
+		 * @throws FieldAccessException if the target field is not
+		 * {@link ResponseField#isValid() valid} or has any errors, including
+		 * nested errors.
+		 */
+		<D> Mono<List<D>> toEntityList(Class<D> elementType);
+
+		/**
+		 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
+		 */
+		<D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
+
+	}
+
+
+	/**
+	 * Declares options to decode a field in each response of a subscription.
+	 */
+	interface RetrieveSubscriptionSpec {
+
+		/**
+		 * Decode the field to an entity of the given type.
+		 * @param entityType the type to convert to
+		 * @return {@code Mono} with the decoded entity, possibly empty if the field
+		 * {@link ResponseField#getValue() value} is {@code null}
+		 * @throws FieldAccessException if the target field is not
+		 * {@link ResponseField#isValid() valid} or has any errors, including
+		 * nested errors.
+		 */
+		<D> Flux<D> toEntity(Class<D> entityType);
+
+		/**
+		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
+		 */
+		<D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType);
+
+		/**
+		 * Decode the field to a list of entities with the given type.
+		 * @param elementType the type of elements in the list
+		 * @return {@code Mono} with the list of decoded entities, possibly an
+		 * empty list if the field {@link ResponseField#getValue() value} is
+		 * {@code null} or empty
+		 * @throws FieldAccessException if the target field is not
+		 * {@link ResponseField#isValid() valid} or has any errors, including
+		 * nested errors.
+		 */
+		<D> Flux<List<D>> toEntityList(Class<D> elementType);
+
+		/**
+		 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
+		 */
+		<D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
 
 	}
 

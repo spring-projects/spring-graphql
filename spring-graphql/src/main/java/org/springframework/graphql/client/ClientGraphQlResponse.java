@@ -18,6 +18,7 @@ package org.springframework.graphql.client;
 
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.lang.Nullable;
 
@@ -29,6 +30,11 @@ import org.springframework.lang.Nullable;
  * @since 1.0.0
  */
 public interface ClientGraphQlResponse extends GraphQlResponse {
+
+	/**
+	 * Return the request associated with this response.
+	 */
+	GraphQlRequest getRequest();
 
 	/**
 	 * Navigate to the given path under the "data" key of the response map where
@@ -44,7 +50,7 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	 * @param path relative to the "data" key
 	 * @return representation for the field with further options to inspect or
 	 * decode its value; use {@link ResponseField#isValid()} to check if the
-	 * field actually exists and its value is present
+	 * field actually exists, has a value, or field errors
 	 */
 	ResponseField field(String path);
 

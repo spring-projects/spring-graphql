@@ -19,7 +19,6 @@ package org.springframework.graphql.client;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,9 +29,11 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.MapGraphQlResponse;
+import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,25 +72,37 @@ public class GraphQlClientTestSupport {
 	}
 
 
-	protected void setMockResponse(String data) {
-		setMockResponse(builder -> serialize(data, builder));
+	protected void initDataResponse(String document, String responseData) {
+		initResponse(new GraphQlRequest(document), responseData);
 	}
 
-	protected void setMockResponse(GraphQLError... errors) {
-		setMockResponse(builder -> builder.errors(Arrays.asList(errors)));
+	protected void initErrorResponse(String document, GraphQLError... errors) {
+		initResponse(new GraphQlRequest(document), null, errors);
 	}
 
-	private void setMockResponse(Consumer<ExecutionResultImpl.Builder> consumer) {
+	protected void initResponse(String document, String responseData, GraphQLError... errors) {
+		initResponse(new GraphQlRequest(document), responseData, errors);
+	}
+
+	protected void initResponse(GraphQlRequest request, @Nullable String responseData, GraphQLError... errors) {
 		ExecutionResultImpl.Builder builder = new ExecutionResultImpl.Builder();
-		consumer.accept(builder);
-		ExecutionResult result = builder.build();
-		GraphQlResponse response = MapGraphQlResponse.forResponse(result.toSpecification());
-		when(this.transport.execute(this.requestCaptor.capture())).thenReturn(Mono.just(response));
+		if (responseData != null) {
+			builder.data(decode(responseData));
+		}
+		if (!ObjectUtils.isEmpty(errors)) {
+			builder.errors(Arrays.asList(errors));
+		}
+		ExecutionResult executionResult = builder.build();
+		Map<String, Object> responseMap = executionResult.toSpecification();
+
+		when(this.transport.execute(eq(request)))
+				.thenReturn(Mono.just(MapGraphQlResponse.forResponse(responseMap)));
 	}
 
-	private void serialize(String data, ExecutionResultImpl.Builder builder) {
+	@SuppressWarnings("unchecked")
+	private <T> T decode(String data) {
 		try {
-			builder.data(OBJECT_MAPPER.readValue(data, Map.class));
+			return (T) OBJECT_MAPPER.readValue(data, Map.class);
 		}
 		catch (JsonProcessingException ex) {
 			throw new IllegalStateException(ex);

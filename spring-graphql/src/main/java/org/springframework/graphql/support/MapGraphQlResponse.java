@@ -49,7 +49,6 @@ public class MapGraphQlResponse implements GraphQlResponse {
 	private final List<GraphQLError> errors;
 
 
-	@SuppressWarnings("unchecked")
 	protected MapGraphQlResponse(Map<String, Object> responseMap) {
 		Assert.notNull(responseMap, "'responseMap' is required");
 		this.responseMap = responseMap;

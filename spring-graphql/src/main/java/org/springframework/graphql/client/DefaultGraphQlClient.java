@@ -16,12 +16,14 @@
 package org.springframework.graphql.client;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.graphql.GraphQlRequest;
@@ -69,13 +71,13 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 
 	@Override
-	public Request document(String document) {
-		return new DefaultRequest(Mono.just(document));
+	public RequestSpec document(String document) {
+		return new DefaultRequestSpec(Mono.just(document));
 	}
 
 	@Override
-	public Request documentName(String name) {
-		return new DefaultRequest(this.documentSource.getDocument(name));
+	public RequestSpec documentName(String name) {
+		return new DefaultRequestSpec(this.documentSource.getDocument(name));
 	}
 
 	@Override
@@ -107,9 +109,9 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 
 	/**
-	 * Default {@link GraphQlClient.Request} implementation.
+	 * Default {@link RequestSpec} implementation.
 	 */
-	private final class DefaultRequest implements Request {
+	private final class DefaultRequestSpec implements RequestSpec {
 
 		private final Mono<String> documentMono;
 
@@ -118,27 +120,37 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		DefaultRequest(Mono<String> documentMono) {
+		DefaultRequestSpec(Mono<String> documentMono) {
 			Assert.notNull(documentMono, "'document' is required");
 			this.documentMono = documentMono;
 		}
 
 		@Override
-		public DefaultRequest operationName(@Nullable String operationName) {
+		public DefaultRequestSpec operationName(@Nullable String operationName) {
 			this.operationName = operationName;
 			return this;
 		}
 
 		@Override
-		public DefaultRequest variable(String name, Object value) {
+		public DefaultRequestSpec variable(String name, @Nullable Object value) {
 			this.variables.put(name, value);
 			return this;
 		}
 
 		@Override
-		public Request variables(Map<String, Object> variables) {
+		public RequestSpec variables(Map<String, Object> variables) {
 			this.variables.putAll(variables);
 			return this;
+		}
+
+		@Override
+		public RetrieveSpec retrieve(String path) {
+			return new DefaultRetrieveSpec(execute(), path);
+		}
+
+		@Override
+		public RetrieveSubscriptionSpec retrieveSubscription(String path) {
+			return new DefaultRetrieveSubscriptionSpec(executeSubscription(), path);
 		}
 
 		@Override
@@ -176,5 +188,88 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	}
 
+
+	private static class RetrieveSpecSupport {
+
+		private final String path;
+
+		protected RetrieveSpecSupport(String path) {
+			this.path = path;
+		}
+
+		protected ResponseField getField(ClientGraphQlResponse response) {
+			ResponseField field = response.field(this.path);
+			if (!field.isValid() || !field.getErrors().isEmpty()) {
+				GraphQlRequest request = response.getRequest();
+				throw new FieldAccessException(request, response, field);
+			}
+			return field;
+		}
+
+	}
+
+
+	private static class DefaultRetrieveSpec extends RetrieveSpecSupport implements RetrieveSpec {
+
+		private final Mono<ClientGraphQlResponse> responseMono;
+
+		DefaultRetrieveSpec(Mono<ClientGraphQlResponse> responseMono, String path) {
+			super(path);
+			this.responseMono = responseMono;
+		}
+
+		@Override
+		public <D> Mono<D> toEntity(Class<D> entityType) {
+			return this.responseMono.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType) {
+			return this.responseMono.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Mono<List<D>> toEntityList(Class<D> elementType) {
+			return this.responseMono.map(this::getField).map(field -> field.toEntityList(elementType));
+		}
+
+		@Override
+		public <D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
+			return this.responseMono.map(this::getField).map(field -> field.toEntityList(elementType));
+		}
+
+	}
+
+
+	private static class DefaultRetrieveSubscriptionSpec extends RetrieveSpecSupport implements RetrieveSubscriptionSpec {
+
+		private final Flux<ClientGraphQlResponse> responseFlux;
+
+		DefaultRetrieveSubscriptionSpec(Flux<ClientGraphQlResponse> responseFlux, String path) {
+			super(path);
+			this.responseFlux = responseFlux;
+		}
+
+		@Override
+		public <D> Flux<D> toEntity(Class<D> entityType) {
+			return this.responseFlux.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType) {
+			return this.responseFlux.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Flux<List<D>> toEntityList(Class<D> elementType) {
+			return this.responseFlux.map(this::getField).map(field -> field.toEntityList(elementType));
+		}
+
+		@Override
+		public <D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
+			return this.responseFlux.map(this::getField).map(field -> field.toEntityList(elementType));
+		}
+
+	}
 
 }

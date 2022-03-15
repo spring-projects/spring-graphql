@@ -84,10 +84,6 @@ public interface ResponseField {
 
 	/**
 	 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
-	 * @param entityType the type to convert to
-	 * @return the decoded entity, possibly {@code null} if the field
-	 * {@link #getValue() value} is {@code null}
-	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
 	 */
 	@Nullable
 	<D> D toEntity(ParameterizedTypeReference<D> entityType);
@@ -102,9 +98,6 @@ public interface ResponseField {
 
 	/**
 	 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
-	 * @param elementType the type of elements in the list
-	 * @return the decoded list of entities, possibly empty
-	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
 	 */
 	<D> List<D> toEntityList(ParameterizedTypeReference<D> elementType);
 

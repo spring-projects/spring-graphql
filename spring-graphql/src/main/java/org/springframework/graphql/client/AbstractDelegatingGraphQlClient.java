@@ -42,11 +42,11 @@ public abstract class AbstractDelegatingGraphQlClient implements GraphQlClient {
 	}
 
 
-	public Request document(String document) {
+	public RequestSpec document(String document) {
 		return this.graphQlClient.document(document);
 	}
 
-	public Request documentName(String name) {
+	public RequestSpec documentName(String name) {
 		return this.graphQlClient.documentName(name);
 	}
 

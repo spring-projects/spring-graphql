@@ -64,6 +64,11 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 
 	@Override
+	public GraphQlRequest getRequest() {
+		return this.request;
+	}
+
+	@Override
 	public ResponseField field(String path) {
 
 		List<Object> dataPath = parseFieldPath(path);
