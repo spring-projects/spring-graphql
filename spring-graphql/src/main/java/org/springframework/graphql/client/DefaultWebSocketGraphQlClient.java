@@ -152,20 +152,15 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 		@Override
 		public WebSocketGraphQlClient build() {
 
-			registerJsonPathMappingProvider();
+			setJsonCodecs(
+					CodecDelegate.findJsonEncoder(this.codecConfigurer),
+					CodecDelegate.findJsonDecoder(this.codecConfigurer));
 
 			WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
 					this.url, this.headers, this.webSocketClient, this.codecConfigurer, null, payload -> {});
 
 			GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
 			return new DefaultWebSocketGraphQlClient(graphQlClient, transport, getBuilderInitializer());
-		}
-
-		private void registerJsonPathMappingProvider() {
-			configureJsonPathConfig(jsonPathConfig -> {
-				CodecMappingProvider provider = new CodecMappingProvider(this.codecConfigurer);
-				return jsonPathConfig.mappingProvider(provider);
-			});
 		}
 
 	}

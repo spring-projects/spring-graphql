@@ -46,7 +46,7 @@ public class FieldAccessException extends GraphQlClientException {
 	}
 
 	private static String initDefaultMessage(ResponseField field) {
-		return "Invalid field '" + field.getPath() + "', errors: " + field.getErrorsAtOrBelow();
+		return "Invalid field '" + field.getPath() + "', errors: " + field.getErrors();
 	}
 
 

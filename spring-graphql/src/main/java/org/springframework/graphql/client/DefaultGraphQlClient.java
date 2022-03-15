@@ -19,11 +19,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import com.jayway.jsonpath.Configuration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.codec.Decoder;
+import org.springframework.core.codec.Encoder;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -36,40 +38,44 @@ import org.springframework.util.Assert;
  */
 final class DefaultGraphQlClient implements GraphQlClient {
 
+	private final DocumentSource documentSource;
+
 	private final GraphQlTransport transport;
 
-	private final Configuration jsonPathConfig;
+	private final Encoder<?> jsonEncoder;
 
-	private final DocumentSource documentSource;
+	private final Decoder<?> jsonDecoder;
 
 	private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 
 	DefaultGraphQlClient(
-			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource,
+			DocumentSource documentSource, GraphQlTransport transport,
+			Encoder<?> jsonEncoder, Decoder<?> jsonDecoder,
 			Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
-		Assert.notNull(transport, "GraphQlTransport is required");
-		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
 		Assert.notNull(documentSource, "DocumentSource is required");
+		Assert.notNull(transport, "GraphQlTransport is required");
+		Assert.notNull(jsonEncoder, "'jsonEncoder' is required");
+		Assert.notNull(jsonEncoder, "'jsonDecoder' is required");
 		Assert.notNull(builderInitializer, "`builderInitializer` is required");
 
-		this.transport = transport;
-		this.jsonPathConfig = jsonPathConfig;
 		this.documentSource = documentSource;
+		this.transport = transport;
+		this.jsonEncoder = jsonEncoder;
+		this.jsonDecoder = jsonDecoder;
 		this.builderInitializer = builderInitializer;
 	}
 
 
 	@Override
 	public Request document(String document) {
-		return new DefaultRequest(Mono.just(document), this.transport, this.jsonPathConfig);
+		return new DefaultRequest(Mono.just(document));
 	}
 
 	@Override
 	public Request documentName(String name) {
-		Mono<String> document = this.documentSource.getDocument(name);
-		return new DefaultRequest(document, this.transport, this.jsonPathConfig);
+		return new DefaultRequest(this.documentSource.getDocument(name));
 	}
 
 	@Override
@@ -103,7 +109,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	/**
 	 * Default {@link GraphQlClient.Request} implementation.
 	 */
-	private static final class DefaultRequest implements Request {
+	private final class DefaultRequest implements Request {
 
 		private final Mono<String> documentMono;
 
@@ -112,15 +118,9 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		private final GraphQlTransport transport;
-
-		private final Configuration jsonPathConfig;
-
-		DefaultRequest(Mono<String> documentMono, GraphQlTransport transport, Configuration jsonPathConfig) {
+		DefaultRequest(Mono<String> documentMono) {
 			Assert.notNull(documentMono, "'document' is required");
 			this.documentMono = documentMono;
-			this.transport = transport;
-			this.jsonPathConfig = jsonPathConfig;
 		}
 
 		@Override
@@ -144,9 +144,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public Mono<ClientGraphQlResponse> execute() {
 			return initRequest().flatMap(request ->
-					this.transport.execute(request)
-							.map(result ->
-									new DefaultClientGraphQlResponse(request, result, this.jsonPathConfig))
+					transport.execute(request)
+							.map(response -> initResponse(request, response))
 							.onErrorResume(
 									ex -> !(ex instanceof GraphQlClientException),
 									ex -> toGraphQlTransportException(ex, request)));
@@ -155,9 +154,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public Flux<ClientGraphQlResponse> executeSubscription() {
 			return initRequest().flatMapMany(request ->
-					this.transport.executeSubscription(request)
-							.map(result ->
-									new DefaultClientGraphQlResponse(request, result, this.jsonPathConfig))
+					transport.executeSubscription(request)
+							.map(response -> initResponse(request, response))
 							.onErrorResume(
 									ex -> !(ex instanceof GraphQlClientException),
 									ex -> toGraphQlTransportException(ex, request)));
@@ -166,6 +164,10 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		private Mono<GraphQlRequest> initRequest() {
 			return this.documentMono.map(document ->
 					new GraphQlRequest(document, this.operationName, this.variables));
+		}
+
+		private DefaultClientGraphQlResponse initResponse(GraphQlRequest request, GraphQlResponse response) {
+			return new DefaultClientGraphQlResponse(request, response, jsonEncoder, jsonDecoder);
 		}
 
 		private <T> Mono<T> toGraphQlTransportException(Throwable ex, GraphQlRequest request) {

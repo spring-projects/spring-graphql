@@ -19,38 +19,51 @@ package org.springframework.graphql.client;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.lang.Nullable;
 
 /**
- * {@link GraphQlResponse} for client use with further options to navigate and
- * handle the selection set in the response.
+ * {@link GraphQlResponse} for client use, with further options to handle the
+ * response.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 public interface ClientGraphQlResponse extends GraphQlResponse {
 
-
 	/**
-	 * Navigate to the given path under the "data" key of the response map and
-	 * return a representation with further options to decode the field value,
-	 * or to check whether it's valid, and so on.
-	 * @param path relative to the "data" key.
-	 * @return a representation for the field at the given path; this
+	 * Navigate to the given path under the "data" key of the response map where
+	 * the path is a dot-separated string with optional array indexes.
+	 * <p>Example paths:
+	 * <pre style="class">
+	 * "hero"
+	 * "hero.name"
+	 * "hero.friends"
+	 * "hero.friends[2]"
+	 * "hero.friends[2].name"
+	 * </pre>
+	 * @param path relative to the "data" key
+	 * @return representation for the field with further options to inspect or
+	 * decode its value; use {@link ResponseField#isValid()} to check if the
+	 * field actually exists and its value is present
 	 */
 	ResponseField field(String path);
 
 	/**
 	 * Decode the full response map to the given target type.
 	 * @param type the target class
-	 * @return the decoded value
+	 * @return the decoded value, or {@code null} if the "data" is {@code null}
+	 * @throws FieldAccessException if the response is not {@link #isValid() valid}
 	 */
+	@Nullable
 	<D> D toEntity(Class<D> type);
 
 	/**
 	 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
 	 * @param type the target type
-	 * @return the decoded value
+	 * @return the decoded value, or {@code null} if the "data" is {@code null}
+	 * @throws FieldAccessException if the response is not {@link #isValid() valid}
 	 */
+	@Nullable
 	<D> D toEntity(ParameterizedTypeReference<D> type);
 
 }

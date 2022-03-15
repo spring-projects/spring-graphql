@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.support;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,10 @@ import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link GraphQlResponse} for client use that wraps the GraphQL response map.
@@ -33,6 +37,12 @@ import org.springframework.util.Assert;
  * @since 1.0.0
  */
 public class MapGraphQlResponse implements GraphQlResponse {
+
+	/**
+	 * Returned from {@link #getFieldValue(List)} to indicate a value does not exist.
+	 */
+	protected final static Object NO_VALUE = new Object();
+
 
 	private final Map<String, Object> responseMap;
 
@@ -43,7 +53,20 @@ public class MapGraphQlResponse implements GraphQlResponse {
 	protected MapGraphQlResponse(Map<String, Object> responseMap) {
 		Assert.notNull(responseMap, "'responseMap' is required");
 		this.responseMap = responseMap;
-		this.errors = MapGraphQlError.from((List<Map<String, Object>>) responseMap.get("errors"));
+		this.errors = wrapErrors(responseMap);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<GraphQLError> wrapErrors(Map<String, Object> responseMap) {
+		List<Map<String, Object>> rawErrors = (List<Map<String, Object>>) responseMap.get("errors");
+		if (CollectionUtils.isEmpty(rawErrors)) {
+			return Collections.emptyList();
+		}
+		List<GraphQLError> errors = new ArrayList<>(rawErrors.size());
+		for (Map<String, Object> map : rawErrors) {
+			errors.add(new MapGraphQlError(map));
+		}
+		return errors;
 	}
 
 
@@ -74,6 +97,112 @@ public class MapGraphQlResponse implements GraphQlResponse {
 		return this.responseMap;
 	}
 
+	/**
+	 * Parse the given field path, producing an output compatible with
+	 * {@link graphql.execution.ResultPath#parse(String)} but using "." instead
+	 * of "/" as separators.
+	 * @param path the path to parse
+	 * @return the parsed path segments and offsets, possibly empty
+	 * @throws IllegalArgumentException for path syntax issues
+	 */
+	protected static List<Object> parseFieldPath(String path) {
+		if (!StringUtils.hasText(path)) {
+			return Collections.emptyList();
+		}
+
+		String invalidPathMessage = "Invalid path: '" + path + "'";
+		List<Object> dataPath = new ArrayList<>();
+
+		StringBuilder sb = new StringBuilder();
+		boolean readingIndex = false;
+
+		for (int i = 0; i < path.length(); i++) {
+			char c = path.charAt(i);
+			switch (c) {
+				case '.':
+				case '[':
+					Assert.isTrue(!readingIndex, invalidPathMessage);
+					break;
+				case ']':
+					i++;
+					Assert.isTrue(readingIndex, invalidPathMessage);
+					Assert.isTrue(i == path.length() || path.charAt(i) == '.', invalidPathMessage);
+					break;
+				default:
+					sb.append(c);
+					if (i < path.length() - 1) {
+						continue;
+					}
+			}
+			String token = sb.toString();
+			Assert.hasText(token, invalidPathMessage);
+			dataPath.add(readingIndex ? Integer.parseInt(token) : token);
+			sb.delete(0, sb.length());
+
+			readingIndex = (c == '[');
+		}
+
+		return dataPath;
+	}
+
+	/**
+	 * Return the field value under the given path relative to the "data" key.
+	 * @param fieldPath a field path parsed via {@link #parseFieldPath(String)}
+	 * @return the field value, possibly {@code null} or {@link #NO_VALUE}
+	 * @throws IllegalArgumentException in case of a mismatch between the path
+	 * and the data, e.g. map or list expected vs actual value type
+	 */
+	@Nullable
+	protected Object getFieldValue(List<Object> fieldPath) {
+		Object value = (isValid() ? getData() : NO_VALUE);
+		for (Object segment : fieldPath) {
+			if (value == null || value == NO_VALUE) {
+				return NO_VALUE;
+			}
+			if (segment instanceof String) {
+				Assert.isTrue(value instanceof Map, () -> "Invalid path " + fieldPath + ", data: " + getData());
+				Map<?, ?> map = (Map<?, ?>) value;
+				value = (map.containsKey(segment) ? map.get(segment) : NO_VALUE);
+			}
+			else {
+				Assert.isTrue(value instanceof List, () -> "Invalid path " + fieldPath + ", data: " + getData());
+				int index = (int) segment;
+				List<?> list = (List<?>) value;
+				value = (index < list.size() ? list.get(index) : NO_VALUE);
+			}
+		}
+		return value;
+	}
+
+	/**
+	 * Return field errors whose path starts with the given field path.
+	 * @param fieldPath the field path to match
+	 * @return errors whose path starts with the dataPath
+	 */
+	protected List<GraphQLError> getFieldErrors(List<Object> fieldPath) {
+		if (fieldPath.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<GraphQLError> fieldErrors = Collections.emptyList();
+		for (GraphQLError error : this.errors) {
+			List<Object> errorPath = error.getPath();
+			if (CollectionUtils.isEmpty(errorPath) || errorPath.size() < fieldPath.size()) {
+				continue;
+			}
+			boolean match = true;
+			for (int i = 0; match && i < fieldPath.size(); i++) {
+				match = fieldPath.get(i).equals(errorPath.get(i));
+			}
+			if (!match) {
+				continue;
+			}
+			fieldErrors = (fieldErrors.isEmpty() ? new ArrayList<>() : fieldErrors);
+			fieldErrors.add(error);
+		}
+		return fieldErrors;
+	}
+
+
 	@Override
 	public boolean equals(Object other) {
 		return (other instanceof MapGraphQlResponse &&
@@ -95,7 +224,7 @@ public class MapGraphQlResponse implements GraphQlResponse {
 	 * Create an instance from an {@code ExecutionResult} serialized to map via
 	 * {@link ExecutionResult#toSpecification()}.
 	 */
-	public static GraphQlResponse forResponse(Map<String, Object> map) {
+	public static MapGraphQlResponse forResponse(Map<String, Object> map) {
 		return new MapGraphQlResponse(map);
 	}
 
@@ -103,7 +232,7 @@ public class MapGraphQlResponse implements GraphQlResponse {
 	 * Create an {@code ExecutionResult} with a "data" key that returns the
 	 * given map.
 	 */
-	public static GraphQlResponse forDataOnly(Map<String, Object> map) {
+	public static MapGraphQlResponse forDataOnly(@Nullable Map<String, Object> map) {
 		return new MapGraphQlResponse(Collections.singletonMap("data", map));
 	}
 
@@ -111,7 +240,7 @@ public class MapGraphQlResponse implements GraphQlResponse {
 	 * Create an {@code ExecutionResult} with an "errors" key that returns the
 	 * given serialized errors.
 	 */
-	public static GraphQlResponse forErrorsOnly(List<Map<String, Object>> errors) {
+	public static MapGraphQlResponse forErrorsOnly(List<Map<String, Object>> errors) {
 		return new MapGraphQlResponse(Collections.singletonMap("errors", errors));
 	}
 

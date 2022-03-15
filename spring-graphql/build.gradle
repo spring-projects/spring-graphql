@@ -23,7 +23,6 @@ dependencies {
 	compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
 	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 
-	compileOnly 'com.jayway.jsonpath:json-path'
 	compileOnly 'com.fasterxml.jackson.core:jackson-databind'
 
 	testImplementation 'org.junit.jupiter:junit-jupiter'

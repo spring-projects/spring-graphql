@@ -60,45 +60,51 @@ public interface ResponseField {
 	<T> T getValue();
 
 	/**
-	 * Return errors with paths matching that of the field.
+	 * Return the first error whose path is equal to the field path.
+	 * <p>According to section 6.4.4 "Handling Field Errors" of the GraphQL
+	 * spec, only one error should be added to the errors list per field.
 	 */
-	List<GraphQLError> getErrorsAt();
+	@Nullable
+	GraphQLError getError();
 
 	/**
-	 * Return errors with paths below that of the field.
+	 * Return all field errors including those whose path is below the field path.
 	 */
-	List<GraphQLError> getErrorsBelow();
-
-	/**
-	 * Return errors with paths at or below that of the field.
-	 */
-	List<GraphQLError> getErrorsAtOrBelow();
+	List<GraphQLError> getErrors();
 
 	/**
 	 * Decode the field to an entity of the given type.
 	 * @param entityType the type to convert to
-	 * @return the entity instance
+	 * @return the decoded entity, possibly {@code null} if the field
+	 * {@link #getValue() value} is {@code null}
+	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
 	 */
+	@Nullable
 	<D> D toEntity(Class<D> entityType);
 
 	/**
 	 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
 	 * @param entityType the type to convert to
-	 * @return the entity instance
+	 * @return the decoded entity, possibly {@code null} if the field
+	 * {@link #getValue() value} is {@code null}
+	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
 	 */
+	@Nullable
 	<D> D toEntity(ParameterizedTypeReference<D> entityType);
 
 	/**
 	 * Decode the field to a list of entities with the given type.
 	 * @param elementType the type of elements in the list
-	 * @return the list of entities
+	 * @return the decoded list of entities, possibly empty
+	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
 	 */
 	<D> List<D> toEntityList(Class<D> elementType);
 
 	/**
 	 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
 	 * @param elementType the type of elements in the list
-	 * @return the list of entities
+	 * @return the decoded list of entities, possibly empty
+	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
 	 */
 	<D> List<D> toEntityList(ParameterizedTypeReference<D> elementType);
 

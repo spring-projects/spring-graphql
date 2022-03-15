@@ -21,7 +21,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
-import org.springframework.graphql.client.CodecMappingProvider;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -134,7 +133,7 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 
 		private void registerJsonPathMappingProvider() {
 			configureJsonPathConfig(jsonPathConfig -> {
-				CodecMappingProvider provider = new CodecMappingProvider(this.codecConfigurer);
+				EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(this.codecConfigurer);
 				return jsonPathConfig.mappingProvider(provider);
 			});
 		}

@@ -37,14 +37,14 @@ import org.springframework.util.Assert;
  * @since 1.0.0
  */
 @SuppressWarnings("serial")
-public final class MapGraphQlError implements GraphQLError {
+final class MapGraphQlError implements GraphQLError {
 
 	private final Map<String, Object> errorMap;
 
 	private final List<SourceLocation> locations;
 
 
-	private MapGraphQlError(Map<String, Object> errorMap) {
+	MapGraphQlError(Map<String, Object> errorMap) {
 		Assert.notNull(errorMap, "'errorMap' is required");
 		this.errorMap = errorMap;
 		this.locations = initLocations(errorMap);
@@ -132,16 +132,6 @@ public final class MapGraphQlError implements GraphQLError {
 	@Override
 	public String toString() {
 		return toSpecification().toString();
-	}
-
-
-	/**
-	 * Create a list of {@code GraphQlError} instances from the given
-	 * deserialized content.
-	 */
-	public static List<GraphQLError> from(@Nullable List<Map<String, Object>> errors) {
-		errors = (errors != null ? errors : Collections.emptyList());
-		return errors.stream().map(MapGraphQlError::new).collect(Collectors.toList());
 	}
 
 }

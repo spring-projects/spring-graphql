@@ -16,26 +16,25 @@
 
 package org.springframework.graphql.client;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.TypeRef;
 import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.Decoder;
+import org.springframework.core.codec.Encoder;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.lang.Nullable;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 
 
 /**
@@ -44,24 +43,35 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientGraphQlResponse {
+final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientGraphQlResponse {
 
 	private final GraphQlRequest request;
 
-	private final DocumentContext jsonPathDoc;
+	private final Encoder<?> encoder;
+
+	private final Decoder<?> decoder;
 
 
-	DefaultClientGraphQlResponse(GraphQlRequest request, GraphQlResponse response, Configuration jsonPathConfig) {
+	DefaultClientGraphQlResponse(
+			GraphQlRequest request, GraphQlResponse response, Encoder<?> encoder, Decoder<?> decoder) {
+
 		super(response.toMap());
+
 		this.request = request;
-		this.jsonPathDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
+		this.encoder = encoder;
+		this.decoder = decoder;
 	}
 
 
 	@Override
 	public ResponseField field(String path) {
-		path = "$.data" + (StringUtils.hasText(path) ? "." + path : "");
-		return new DefaultField(this.request, this, path, this.jsonPathDoc, getErrors());
+
+		List<Object> dataPath = parseFieldPath(path);
+		Object value = getFieldValue(dataPath);
+		List<GraphQLError> errors = getFieldErrors(dataPath);
+
+		return new DefaultField(
+				path, dataPath, (value != NO_VALUE), (value != NO_VALUE ? value : null), errors);
 	}
 
 	@Override
@@ -78,21 +88,13 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 	/**
 	 * Default implementation of {@link ResponseField}.
 	 */
-	private static class DefaultField implements ResponseField {
-
-		private final GraphQlRequest request;
-
-		private final ClientGraphQlResponse response;
+	private class DefaultField implements ResponseField {
 
 		private final String path;
 
-		private final DocumentContext jsonPathDoc;
+		private final List<Object> parsedPath;
 
-		private final List<GraphQLError> errorsAt;
-
-		private final List<GraphQLError> errorsBelow;
-
-		private final List<GraphQLError> errorsAtOrBelow;
+		private final List<GraphQLError> errors;
 
 		private final boolean exists;
 
@@ -100,73 +102,14 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 		private final Object value;
 
 		public DefaultField(
-				GraphQlRequest request, ClientGraphQlResponse response,
-				String path, DocumentContext jsonPathDoc, List<GraphQLError> errors) {
+				String path, List<Object> parsedPath, boolean exists, @Nullable Object value,
+				List<GraphQLError> errors) {
 
-			this.request = request;
-			this.response = response;
-			this.path = path ;
-			this.jsonPathDoc = jsonPathDoc;
-
-
-			List<GraphQLError> errorsAt = null;
-			List<GraphQLError> errorsBelow = null;
-			List<GraphQLError> errorsAtOrBelow = null;
-
-			for (GraphQLError error : errors) {
-				String errorPath = toJsonPath(error);
-				if (errorPath == null) {
-					continue;
-				}
-				if (errorPath.startsWith(path)) {
-					if (errorPath.length() == path.length()) {
-						errorsAt = (errorsAt != null ? errorsAt : new ArrayList<>());
-						errorsAt.add(error);
-					}
-					else {
-						errorsBelow = (errorsBelow != null ? errorsBelow : new ArrayList<>());
-						errorsBelow.add(error);
-					}
-					errorsAtOrBelow = (errorsAtOrBelow != null ? errorsAtOrBelow : new ArrayList<>());
-					errorsAtOrBelow.add(error);
-				}
-			}
-
-			this.errorsAt = (errorsAt != null ? errorsAt : Collections.emptyList());
-			this.errorsBelow = (errorsBelow != null ? errorsBelow : Collections.emptyList());
-			this.errorsAtOrBelow = (errorsAtOrBelow != null ? errorsAtOrBelow : Collections.emptyList());
-
-
-			boolean exists = true;
-			Object value = null;
-			try {
-				value = jsonPathDoc.read(this.path);
-			}
-			catch (PathNotFoundException ex) {
-				exists = false;
-			}
-
+			this.path = path;
+			this.parsedPath = parsedPath;
 			this.exists = exists;
 			this.value = value;
-		}
-
-		@Nullable
-		private String toJsonPath(GraphQLError error) {
-			if (CollectionUtils.isEmpty(error.getPath())) {
-				return null;
-			}
-			List<Object> segments = error.getPath();
-			StringBuilder sb = new StringBuilder((String) segments.get(0));
-			for (int i = 1; i < segments.size(); i++) {
-				Object segment = segments.get(i);
-				if (segment instanceof Integer) {
-					sb.append("[").append(segment).append("]");
-				}
-				else {
-					sb.append(".").append(segment);
-				}
-			}
-			return sb.toString();
+			this.errors = errors;
 		}
 
 		@Override
@@ -176,7 +119,7 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 
 		@Override
 		public boolean isValid() {
-			return (this.exists && (this.value != null || (this.errorsAt.isEmpty() && this.errorsBelow.isEmpty())));
+			return (this.exists && (this.value != null || this.errors.isEmpty()));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -186,82 +129,63 @@ class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientG
 		}
 
 		@Override
-		public List<GraphQLError> getErrorsAt() {
-			return this.errorsAt;
+		public GraphQLError getError() {
+			for (GraphQLError error : this.errors) {
+				if (this.parsedPath.size() == error.getPath().size()) {
+					return error;
+				}
+			}
+			return null;
 		}
 
 		@Override
-		public List<GraphQLError> getErrorsBelow() {
-			return this.errorsBelow;
-		}
-
-		@Override
-		public List<GraphQLError> getErrorsAtOrBelow() {
-			return this.errorsAtOrBelow;
+		public List<GraphQLError> getErrors() {
+			return this.errors;
 		}
 
 		@Override
 		public <D> D toEntity(Class<D> entityType) {
-			assertIsValid();
-			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(entityType));
+			return toEntity(ResolvableType.forType(entityType));
 		}
 
 		@Override
 		public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
-			assertIsValid();
-			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(entityType));
+			return toEntity(ResolvableType.forType(entityType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(Class<D> elementType) {
-			assertIsValid();
-			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(List.class, elementType));
+			List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
+			return (list != null ? list : Collections.emptyList());
 		}
 
 		@Override
 		public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
-			assertIsValid();
-			return this.jsonPathDoc.read(this.path, new TypeRefAdapter<>(List.class, elementType));
+			List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
+			return (list != null ? list : Collections.emptyList());
 		}
 
-		private void assertIsValid() {
+		@SuppressWarnings("unchecked")
+		@Nullable
+		private <T> T toEntity(ResolvableType targetType) {
 			if (!isValid()) {
-				throw new FieldAccessException(this.request, this.response, this);
+				throw new FieldAccessException(request, DefaultClientGraphQlResponse.this, this);
 			}
+
+			if (this.value == null) {
+				return null;
+			}
+
+			DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;
+			MimeType mimeType = MimeTypeUtils.APPLICATION_JSON;
+			Map<String, Object> hints = Collections.emptyMap();
+
+			DataBuffer buffer = ((Encoder<T>) encoder).encodeValue(
+					(T) this.value, bufferFactory, ResolvableType.forInstance(this.value), mimeType, hints);
+
+			return ((Decoder<T>) decoder).decode(buffer, targetType, mimeType, hints);
 		}
 
 	}
-
-
-	/**
-	 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
-	 */
-	private static final class TypeRefAdapter<T> extends TypeRef<T> {
-
-		private final Type type;
-
-		TypeRefAdapter(Class<T> clazz) {
-			this.type = clazz;
-		}
-
-		TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
-			this.type = typeReference.getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, Class<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
-		}
-
-		@Override
-		public Type getType() {
-			return this.type;
-		}
-
-	}
-
 
 }
