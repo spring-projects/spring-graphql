@@ -180,11 +180,9 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} with the decoded entity, possibly empty if the field
-		 * {@link ResponseField#getValue() value} is {@code null}
-		 * @throws FieldAccessException if the target field is not
-		 * {@link ResponseField#isValid() valid} or has any errors, including
-		 * nested errors.
+		 * @return {@code Mono} with the decoded entity, or a
+		 * {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}.
 		 */
 		<D> Mono<D> toEntity(Class<D> entityType);
 
@@ -196,12 +194,9 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to a list of entities with the given type.
 		 * @param elementType the type of elements in the list
-		 * @return {@code Mono} with the list of decoded entities, possibly an
-		 * empty list if the field {@link ResponseField#getValue() value} is
-		 * {@code null} or empty
-		 * @throws FieldAccessException if the target field is not
-		 * {@link ResponseField#isValid() valid} or has any errors, including
-		 * nested errors.
+		 * @return {@code Mono} with a list of decoded entities, possibly empty, or
+		 * a {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}; the stream
 		 */
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
@@ -221,11 +216,9 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} with the decoded entity, possibly empty if the field
-		 * {@link ResponseField#getValue() value} is {@code null}
-		 * @throws FieldAccessException if the target field is not
-		 * {@link ResponseField#isValid() valid} or has any errors, including
-		 * nested errors.
+		 * @return {@code Mono} with the decoded entity, or a
+		 * {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}.
 		 */
 		<D> Flux<D> toEntity(Class<D> entityType);
 
@@ -237,12 +230,10 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to a list of entities with the given type.
 		 * @param elementType the type of elements in the list
-		 * @return {@code Mono} with the list of decoded entities, possibly an
-		 * empty list if the field {@link ResponseField#getValue() value} is
-		 * {@code null} or empty
-		 * @throws FieldAccessException if the target field is not
-		 * {@link ResponseField#isValid() valid} or has any errors, including
-		 * nested errors.
+		 * @return lists of decoded entities, possibly empty, or a
+		 * {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}; the stream
+		 * may also end with a range of {@link GraphQlTransportException} types.
 		 */
 		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 

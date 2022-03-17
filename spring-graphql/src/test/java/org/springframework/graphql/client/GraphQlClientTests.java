@@ -165,7 +165,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 
 		assertThat(response).isNotNull();
 		assertThat(response.isValid()).isFalse();
-		assertThat(response.field("me").isValid()).isFalse();
+		assertThat(response.field("me").hasValue()).isFalse();
 
 		assertThatThrownBy(() -> response.field("me").toEntity(MovieCharacter.class))
 				.isInstanceOf(FieldAccessException.class);
@@ -187,7 +187,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.isTrue();
 
 		ResponseField field = response.field("me");
-		assertThat(field.isValid()).isTrue();
+		assertThat(field.hasValue()).isTrue();
 		assertThat(field.getErrors()).hasSize(1);
 		assertThat(field.getErrors().get(0).getPath()).containsExactly("me", "name");
 		assertThat(field.toEntity(MovieCharacter.class))
@@ -195,7 +195,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.isNotNull();
 
 		ResponseField nameField = response.field("me.name");
-		assertThat(nameField.isValid()).isFalse();
+		assertThat(nameField.hasValue()).isFalse();
 		assertThat(nameField.getError()).isNotNull();
 		assertThat(nameField.getError().getPath()).containsExactly("me", "name");
 		assertThatThrownBy(() -> nameField.toEntity(String.class))
@@ -203,7 +203,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.isInstanceOf(FieldAccessException.class);
 
 		ResponseField nonExistingField = response.field("me.name.other");
-		assertThat(nonExistingField.isValid()).isFalse();
+		assertThat(nonExistingField.hasValue()).isFalse();
 		assertThat(nameField.getError()).isNotNull();
 		assertThat(nameField.getError().getPath()).containsExactly("me", "name");
 	}

@@ -20,7 +20,6 @@ package org.springframework.graphql.client;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.lang.Nullable;
 
 /**
  * {@link GraphQlResponse} for client use, with further options to handle the
@@ -49,27 +48,25 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	 * </pre>
 	 * @param path relative to the "data" key
 	 * @return representation for the field with further options to inspect or
-	 * decode its value; use {@link ResponseField#isValid()} to check if the
-	 * field actually exists, has a value, or field errors
+	 * decode its value; use {@link ResponseField#hasValue()} to check if the
+	 * field actually exists and has a value.
 	 */
 	ResponseField field(String path);
 
 	/**
 	 * Decode the full response map to the given target type.
 	 * @param type the target class
-	 * @return the decoded value, or {@code null} if the "data" is {@code null}
+	 * @return the decoded value, or never {@code null}
 	 * @throws FieldAccessException if the response is not {@link #isValid() valid}
 	 */
-	@Nullable
 	<D> D toEntity(Class<D> type);
 
 	/**
 	 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
 	 * @param type the target type
-	 * @return the decoded value, or {@code null} if the "data" is {@code null}
+	 * @return the decoded value, or never {@code null}
 	 * @throws FieldAccessException if the response is not {@link #isValid() valid}
 	 */
-	@Nullable
 	<D> D toEntity(ParameterizedTypeReference<D> type);
 
 }

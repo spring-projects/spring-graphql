@@ -199,7 +199,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		protected ResponseField getField(ClientGraphQlResponse response) {
 			ResponseField field = response.field(this.path);
-			if (!field.isValid() || !field.getErrors().isEmpty()) {
+			if (!field.hasValue() || !field.getErrors().isEmpty()) {
 				GraphQlRequest request = response.getRequest();
 				throw new FieldAccessException(request, response, field);
 			}
@@ -220,12 +220,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public <D> Mono<D> toEntity(Class<D> entityType) {
-			return this.responseMono.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+			return this.responseMono.map(this::getField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType) {
-			return this.responseMono.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+			return this.responseMono.map(this::getField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
@@ -252,12 +252,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public <D> Flux<D> toEntity(Class<D> entityType) {
-			return this.responseFlux.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+			return this.responseFlux.map(this::getField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType) {
-			return this.responseFlux.map(this::getField).mapNotNull(field -> field.toEntity(entityType));
+			return this.responseFlux.map(this::getField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override

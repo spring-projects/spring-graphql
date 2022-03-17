@@ -75,8 +75,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 		Object value = getFieldValue(dataPath);
 		List<GraphQLError> errors = getFieldErrors(dataPath);
 
-		return new DefaultField(
-				path, dataPath, (value != NO_VALUE), (value != NO_VALUE ? value : null), errors);
+		return new DefaultField(path, dataPath, (value != NO_VALUE ? value : null), errors);
 	}
 
 	@Override
@@ -101,18 +100,14 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		private final List<GraphQLError> errors;
 
-		private final boolean exists;
-
 		@Nullable
 		private final Object value;
 
 		public DefaultField(
-				String path, List<Object> parsedPath, boolean exists, @Nullable Object value,
-				List<GraphQLError> errors) {
+				String path, List<Object> parsedPath, @Nullable Object value, List<GraphQLError> errors) {
 
 			this.path = path;
 			this.parsedPath = parsedPath;
-			this.exists = exists;
 			this.value = value;
 			this.errors = errors;
 		}
@@ -123,8 +118,8 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 		}
 
 		@Override
-		public boolean isValid() {
-			return (this.exists && (this.value != null || this.errors.isEmpty()));
+		public boolean hasValue() {
+			return (this.value != null);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -160,25 +155,18 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		@Override
 		public <D> List<D> toEntityList(Class<D> elementType) {
-			List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
-			return (list != null ? list : Collections.emptyList());
+			return toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
 		}
 
 		@Override
 		public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
-			List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
-			return (list != null ? list : Collections.emptyList());
+			return toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
 		}
 
-		@SuppressWarnings("unchecked")
-		@Nullable
+		@SuppressWarnings({"unchecked", "ConstantConditions"})
 		private <T> T toEntity(ResolvableType targetType) {
-			if (!isValid()) {
-				throw new FieldAccessException(request, DefaultClientGraphQlResponse.this, this);
-			}
-
 			if (this.value == null) {
-				return null;
+				throw new FieldAccessException(request, DefaultClientGraphQlResponse.this, this);
 			}
 
 			DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;

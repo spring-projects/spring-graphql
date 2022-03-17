@@ -34,17 +34,18 @@ import org.springframework.lang.Nullable;
 public interface ResponseField {
 
 	/**
-	 * Whether the field is valid. A field is invalid if:
+	 * Whether the field is valid and has a value.
 	 * <ul>
-	 * <li>the path doesn't exist
-	 * <li>it is {@code null} AND has a field error
+	 * <li>{@code "true"} means the field is not {@code null} in which case there
+	 * is no field {@link #getError() error}. The field may still be partial and
+	 * have nested, field {@link #getErrors() errors}.
+	 * <li>{@code "false"} means the field is {@code null} or does not exist.
+	 * Check for a field {@link #getError()}, which may be on the field or on a
+	 * parent field. The field may also be {@code null} because it is defined as
+	 * optional in the schema.
 	 * </ul>
-	 * <p>A field that is not {@code null} is valid but may still be partial
-	 * with some fields below it set to {@code null} due to field errors.
-	 * A valid field may be {@code null} if the schema allows it, but in that
-	 * case it will not have any field errors.
 	 */
-	boolean isValid();
+	boolean hasValue();
 
 	/**
 	 * Return the path for the field under the "data" key in the response map.
@@ -84,24 +85,23 @@ public interface ResponseField {
 	/**
 	 * Decode the field to an entity of the given type.
 	 * @param entityType the type to convert to
-	 * @return the decoded entity, possibly {@code null} if the field
-	 * {@link #getValue() value} is {@code null}
-	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
+	 * @return the decoded entity, never {@code null}
+	 * @throws FieldAccessException if the target field is not present or
+	 * has no value, checked via {@link #hasValue()}.
 	 */
-	@Nullable
 	<D> D toEntity(Class<D> entityType);
 
 	/**
 	 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
 	 */
-	@Nullable
 	<D> D toEntity(ParameterizedTypeReference<D> entityType);
 
 	/**
 	 * Decode the field to a list of entities with the given type.
 	 * @param elementType the type of elements in the list
 	 * @return the decoded list of entities, possibly empty
-	 * @throws FieldAccessException if "this" field is not {@link #isValid() valid}
+	 * @throws FieldAccessException if the target field is not present or
+	 * has no value, checked via {@link #hasValue()}.
 	 */
 	<D> List<D> toEntityList(Class<D> elementType);
 
