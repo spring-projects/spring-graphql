@@ -26,7 +26,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.GraphQlTransport;
-import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.Assert;
@@ -67,7 +66,7 @@ final class WebTestClientTransport implements GraphQlTransport {
 				.getResponseBody();
 
 		responseMap = (responseMap != null ? responseMap : Collections.emptyMap());
-		GraphQlResponse response = MapGraphQlResponse.forResponse(responseMap);
+		GraphQlResponse response = GraphQlTransport.wrapResponseMap(responseMap);
 		return Mono.just(response);
 	}
 

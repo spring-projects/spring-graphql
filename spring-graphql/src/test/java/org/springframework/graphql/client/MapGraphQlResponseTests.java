@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.support;
+package org.springframework.graphql.client;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,7 +33,6 @@ import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.springframework.graphql.support.MapGraphQlResponse.NO_VALUE;
 
 
 /**
@@ -81,12 +81,12 @@ public class MapGraphQlResponseTests {
 
 		// null "data"
 		testFieldValue("", "null", null);
-		testFieldValue("me", "null", NO_VALUE);
+		testFieldValue("me", "null", MapGraphQlResponse.NO_VALUE);
 
 		// no such key or index
-		testFieldValue("me", "{}", NO_VALUE); // "data" not null but no such key
-		testFieldValue("me.friends", "{\"me\":{}}", NO_VALUE);
-		testFieldValue("me.friends[0]", "{\"me\": {\"friends\": []}}", NO_VALUE);
+		testFieldValue("me", "{}", MapGraphQlResponse.NO_VALUE); // "data" not null but no such key
+		testFieldValue("me.friends", "{\"me\":{}}", MapGraphQlResponse.NO_VALUE);
+		testFieldValue("me.friends[0]", "{\"me\": {\"friends\": []}}", MapGraphQlResponse.NO_VALUE);
 
 		// nest within map or list
 		testFieldValue("me.name", "{\"me\":{\"name\":\"Luke\"}}", "Luke");
@@ -97,7 +97,7 @@ public class MapGraphQlResponseTests {
 	private static void testFieldValue(String path, String json, @Nullable Object expected) throws IOException {
 		List<Object> parsedPath = MapGraphQlResponse.parseFieldPath(path);
 		Map<String, Object> map = mapper.readValue(json, Map.class);
-		MapGraphQlResponse response = MapGraphQlResponse.forDataOnly(map);
+		MapGraphQlResponse response = new MapGraphQlResponse(Collections.singletonMap("data", map));
 		Object value = response.getFieldValue(parsedPath);
 		if (expected != null) {
 			assertThat(value).isEqualTo(expected);
@@ -119,7 +119,7 @@ public class MapGraphQlResponseTests {
 	private static void testFieldValueInvalidPath(String path, String json) throws IOException {
 		List<Object> parsedPath = MapGraphQlResponse.parseFieldPath(path);
 		Map<String, Object> map = mapper.readValue(json, Map.class);
-		MapGraphQlResponse response = MapGraphQlResponse.forDataOnly(map);
+		MapGraphQlResponse response = new MapGraphQlResponse(Collections.singletonMap("data", map));
 
 		assertThatIllegalArgumentException().isThrownBy(() -> response.getFieldValue(parsedPath))
 				.withMessage("Invalid path " + parsedPath + ", data: " + map);
@@ -139,7 +139,7 @@ public class MapGraphQlResponseTests {
 				Stream.of(error0, error1, error2, error3)
 						.map(GraphQLError::toSpecification).collect(Collectors.toList());
 
-		MapGraphQlResponse response = MapGraphQlResponse.forErrorsOnly(errorList);
+		MapGraphQlResponse response = new MapGraphQlResponse(Collections.singletonMap("errors", errorList));
 		List<GraphQLError> errors = response.getFieldErrors(path);
 
 		assertThat(errors).containsExactly(error1, error2, error3);

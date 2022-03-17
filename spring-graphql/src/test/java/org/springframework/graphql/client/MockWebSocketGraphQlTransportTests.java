@@ -34,7 +34,6 @@ import reactor.test.StepVerifier;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.web.support.GraphQlMessage;
@@ -70,9 +69,11 @@ public class MockWebSocketGraphQlTransportTests {
 	
 	private final WebSocketGraphQlTransport transport = createTransport(this.webSocketClient);
 
-	private final GraphQlResponse response1 = MapGraphQlResponse.forDataOnly(Collections.singletonMap("key1", "value1"));
+	private final GraphQlResponse response1 = GraphQlTransport.wrapResponseMap(
+			Collections.singletonMap("data", Collections.singletonMap("key1", "value1")));
 
-	private final GraphQlResponse response2 = MapGraphQlResponse.forDataOnly(Collections.singletonMap("key2", "value2"));
+	private final GraphQlResponse response2 = GraphQlTransport.wrapResponseMap(
+			Collections.singletonMap("data", Collections.singletonMap("key2", "value2")));
 
 
 	@Test

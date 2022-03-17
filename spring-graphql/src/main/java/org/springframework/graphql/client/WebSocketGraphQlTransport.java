@@ -34,7 +34,6 @@ import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
@@ -477,7 +476,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 
 			Map<String, Object> responseMap = message.getPayload();
-			GraphQlResponse graphQlResponse = MapGraphQlResponse.forResponse(responseMap);
+			GraphQlResponse graphQlResponse = GraphQlTransport.wrapResponseMap(responseMap);
 
 			Sinks.EmitResult emitResult = (responseState != null ?
 					responseState.sink().tryEmitValue(graphQlResponse) :
@@ -508,7 +507,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 
 			List<Map<String, Object>> errorList = message.getPayload();
-			GraphQlResponse response = MapGraphQlResponse.forErrorsOnly(errorList);
+			GraphQlResponse response = GraphQlTransport.wrapResponseMap(Collections.singletonMap("errors", errorList));
 
 			Sinks.EmitResult emitResult;
 			if (responseState != null) {

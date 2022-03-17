@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.client;
 
+import java.util.Map;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -56,5 +58,13 @@ public interface GraphQlTransport {
 	 * subscription stream.
 	 */
 	Flux<GraphQlResponse> executeSubscription(GraphQlRequest request);
+
+
+	/**
+	 * Wrap the given response map and expose it as a {@link GraphQlResponse}.
+	 */
+	static GraphQlResponse wrapResponseMap(Map<String, Object> map) {
+		return new MapGraphQlResponse(map);
+	}
 
 }

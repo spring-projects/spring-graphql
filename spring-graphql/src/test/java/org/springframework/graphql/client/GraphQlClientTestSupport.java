@@ -29,7 +29,6 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 
@@ -96,7 +95,7 @@ public class GraphQlClientTestSupport {
 		Map<String, Object> responseMap = executionResult.toSpecification();
 
 		when(this.transport.execute(eq(request)))
-				.thenReturn(Mono.just(MapGraphQlResponse.forResponse(responseMap)));
+				.thenReturn(Mono.just(GraphQlTransport.wrapResponseMap(responseMap)));
 	}
 
 	@SuppressWarnings("unchecked")

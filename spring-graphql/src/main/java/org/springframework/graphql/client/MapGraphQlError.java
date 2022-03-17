@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.support;
+package org.springframework.graphql.client;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +31,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Implementation of {@link GraphQLError} backed by a {@link Map}.
+ * {@link GraphQLError} that wraps a deserialized the GraphQL response map.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
