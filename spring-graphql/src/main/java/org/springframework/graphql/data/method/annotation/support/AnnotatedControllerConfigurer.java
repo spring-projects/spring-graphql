@@ -36,8 +36,6 @@ import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
-import org.springframework.context.expression.BeanFactoryResolver;
-import org.springframework.expression.BeanResolver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,11 +43,13 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.expression.BeanResolver;
 import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
@@ -156,7 +156,7 @@ public class AnnotatedControllerConfigurer
 		// Annotation based
 		if (springDataPresent) {
 			// Must be ahead of ArgumentMethodArgumentResolver
-			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver());
+			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
 		}
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
