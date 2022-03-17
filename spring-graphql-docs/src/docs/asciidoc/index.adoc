@@ -201,9 +201,25 @@ the following:
 - Detect <<execution-graphqlsource-runtimewiring-configurer>> beans.
 - Detect https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
   {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics].
-- Detect `DataFetcherExceptionResolver` beans for
-  <<execution-exceptions, exception resolution>>.
-- Detect `GraphQlSourceBuilderCustomizer` beans for any other customizations.
+- Detect `DataFetcherExceptionResolver` beans for <<execution-exceptions, exception resolution>>.
+
+For further customizations, you can declare your own `GraphQlSourceBuilderCustomizer` beans;
+for example, for configuring your own `ExecutionIdProvider`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration(proxyBeanMethods = false)
+class GraphQlConfig {
+
+	@Bean
+	public GraphQlSourceBuilderCustomizer sourceBuilderCustomizer() {
+		return (builder) -> {
+			builder.configureGraphQl(graphQlBuilder ->
+				graphQlBuilder.executionIdProvider(new CustomExecutionIdProvider()));
+		};
+	}
+}
+----
 
 
 
@@ -230,18 +246,18 @@ necessary, you can hook into the schema creation through the builder:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-// Typically, accessed through Spring Boot's GraphQlSourceBuilderCustomizer
 GraphQlSource.Builder builder = ...
 
 builder.schemaResources(..)
 		.configureRuntimeWiring(..)
 		.schemaFactory((typeDefinitionRegistry, runtimeWiring) -> {
-			// create `GraphQLSchema`
+			// create GraphQLSchema
 		})
 ----
 
 The primary reason for this is to create the schema through a federation library.
 
+The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution-graphqlsource-runtimewiring-configurer]]
 ==== `RuntimeWiringConfigurer`
@@ -302,8 +318,19 @@ returned from the `DataFetcher` for a GraphQL Interface or Union field.
 Object Type and if it is not successful, it also navigates its super types including
 base classes and interfaces, looking for a match. `ClassNameTypeResolver` provides an
 option to configure a name extracting function along with `Class` to GraphQL Object type
-name mappings that should help to cover more corner cases.
+name mappings that should help to cover more corner cases:
 
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlSource.Builder builder = ...
+ClassNameTypeResolver classNameTypeResolver = new ClassNameTypeResolver();
+classNameTypeResolver.setClassNameExtractor((klass) -> {
+	// Implement Custom ClassName Extractor here
+});
+builder.defaultTypeResolver(classNameTypeResolver);
+----
+
+The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution-graphqlsource-operation-caching]]
 ==== Operation Caching
@@ -331,6 +358,7 @@ builder.schemaResources(..)
 		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
 ----
 
+The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution-graphqlsource-directives]]
 ==== Directives
