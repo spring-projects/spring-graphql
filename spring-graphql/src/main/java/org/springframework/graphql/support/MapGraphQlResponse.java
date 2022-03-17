@@ -185,11 +185,11 @@ public class MapGraphQlResponse implements GraphQlResponse {
 		List<GraphQLError> fieldErrors = Collections.emptyList();
 		for (GraphQLError error : this.errors) {
 			List<Object> errorPath = error.getPath();
-			if (CollectionUtils.isEmpty(errorPath) || errorPath.size() < fieldPath.size()) {
+			if (CollectionUtils.isEmpty(errorPath)) {
 				continue;
 			}
 			boolean match = true;
-			for (int i = 0; match && i < fieldPath.size(); i++) {
+			for (int i = 0; match && i < fieldPath.size() && i < errorPath.size(); i++) {
 				match = fieldPath.get(i).equals(errorPath.get(i));
 			}
 			if (!match) {

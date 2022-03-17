@@ -60,15 +60,24 @@ public interface ResponseField {
 	<T> T getValue();
 
 	/**
-	 * Return the first error whose path is equal to the field path.
-	 * <p>According to section 6.4.4 "Handling Field Errors" of the GraphQL
-	 * spec, only one error should be added to the errors list per field.
+	 * Return the error for this field, if any. The error may be for this field
+	 * when the field is {@code null}, or it may be for a parent field, when the
+	 * current field does not exist.
+	 * <p><strong>Note:</strong> The field error is identified by searching for
+	 * the first error with a matching path that is shorter or the same as the
+	 * field path. According to the GraphQL spec, section 6.4.4,
+	 * "Handling Field Errors", there should be only one field error per field.
+	 * @return return the error for this field, or {@code null} if there is no
+	 * error with the same path as the field path
 	 */
 	@Nullable
 	GraphQLError getError();
 
 	/**
-	 * Return all field errors including those whose path is below the field path.
+	 * Return all field errors including errors above, at, and below this field.
+	 * <p>In practice, when the field has a value, all errors are for fields
+	 * below. When the field does not have a value, there is only one error, and
+	 * it is the same as {@link #getError()}.
 	 */
 	List<GraphQLError> getErrors();
 

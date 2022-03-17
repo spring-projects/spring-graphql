@@ -142,11 +142,11 @@ public class MapGraphQlResponseTests {
 		MapGraphQlResponse response = MapGraphQlResponse.forErrorsOnly(errorList);
 		List<GraphQLError> errors = response.getFieldErrors(path);
 
-		assertThat(errors).containsExactly(error2, error3);
+		assertThat(errors).containsExactly(error1, error2, error3);
 	}
 
 	private GraphQLError createError(@Nullable String errorPath, String message) {
-		GraphqlErrorBuilder builder = GraphqlErrorBuilder.newError().message(message);
+		GraphqlErrorBuilder<?> builder = GraphqlErrorBuilder.newError().message(message);
 		if (errorPath != null) {
 			builder = builder.path(ResultPath.parse(errorPath));
 		}

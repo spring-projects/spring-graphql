@@ -188,15 +188,24 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 
 		ResponseField field = response.field("me");
 		assertThat(field.isValid()).isTrue();
+		assertThat(field.getErrors()).hasSize(1);
+		assertThat(field.getErrors().get(0).getPath()).containsExactly("me", "name");
 		assertThat(field.toEntity(MovieCharacter.class))
 				.as("Decoding with nested field error should not be precluded")
 				.isNotNull();
 
 		ResponseField nameField = response.field("me.name");
 		assertThat(nameField.isValid()).isFalse();
+		assertThat(nameField.getError()).isNotNull();
+		assertThat(nameField.getError().getPath()).containsExactly("me", "name");
 		assertThatThrownBy(() -> nameField.toEntity(String.class))
 				.as("Decoding field null with direct field error should be rejected")
 				.isInstanceOf(FieldAccessException.class);
+
+		ResponseField nonExistingField = response.field("me.name.other");
+		assertThat(nonExistingField.isValid()).isFalse();
+		assertThat(nameField.getError()).isNotNull();
+		assertThat(nameField.getError().getPath()).containsExactly("me", "name");
 	}
 
 	private GraphQLError errorForPath(String errorPath) {

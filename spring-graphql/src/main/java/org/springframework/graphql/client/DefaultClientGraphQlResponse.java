@@ -136,7 +136,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 		@Override
 		public GraphQLError getError() {
 			for (GraphQLError error : this.errors) {
-				if (this.parsedPath.size() == error.getPath().size()) {
+				if (error.getPath().size() <= this.parsedPath.size()) {
 					return error;
 				}
 			}
