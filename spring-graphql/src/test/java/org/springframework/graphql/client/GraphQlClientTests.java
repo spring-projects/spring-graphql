@@ -133,7 +133,9 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		String document = "fieldErrorResponse";
 		initResponse(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
 
-		testRetrieveFieldAccessException(document, "me");
+		MovieCharacter character = graphQlClient().document(document).retrieve("me").toEntity(MovieCharacter.class).block();
+		assertThat(character).isNotNull().extracting(MovieCharacter::getName).isNull();
+
 		testRetrieveFieldAccessException(document, "me.name");
 	}
 

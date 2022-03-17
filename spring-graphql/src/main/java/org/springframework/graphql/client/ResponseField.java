@@ -34,7 +34,7 @@ import org.springframework.lang.Nullable;
 public interface ResponseField {
 
 	/**
-	 * Whether the field is valid and has a value.
+	 * Whether the field has a value.
 	 * <ul>
 	 * <li>{@code "true"} means the field is not {@code null} in which case there
 	 * is no field {@link #getError() error}. The field may still be partial and

@@ -15,6 +15,7 @@
  */
 package org.springframework.graphql.client;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,13 +198,17 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			this.path = path;
 		}
 
-		protected ResponseField getField(ClientGraphQlResponse response) {
+		/**
+		 * Return the field if valid, possibly {@code null}.
+		 * @throws FieldAccessException if the response or field is not valid
+		 */
+		@Nullable
+		protected ResponseField getValidField(ClientGraphQlResponse response) {
 			ResponseField field = response.field(this.path);
-			if (!field.hasValue() || !field.getErrors().isEmpty()) {
-				GraphQlRequest request = response.getRequest();
-				throw new FieldAccessException(request, response, field);
+			if (!response.isValid() || field.getError() != null) {
+				throw new FieldAccessException(response.getRequest(), response, field);
 			}
-			return field;
+			return (field.hasValue() ? field : null);
 		}
 
 	}
@@ -220,22 +225,28 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public <D> Mono<D> toEntity(Class<D> entityType) {
-			return this.responseMono.map(this::getField).map(field -> field.toEntity(entityType));
+			return this.responseMono.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType) {
-			return this.responseMono.map(this::getField).map(field -> field.toEntity(entityType));
+			return this.responseMono.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Mono<List<D>> toEntityList(Class<D> elementType) {
-			return this.responseMono.map(this::getField).map(field -> field.toEntityList(elementType));
+			return this.responseMono.map(response -> {
+				ResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
 		}
 
 		@Override
 		public <D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
-			return this.responseMono.map(this::getField).map(field -> field.toEntityList(elementType));
+			return this.responseMono.map(response -> {
+				ResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
 		}
 
 	}
@@ -252,22 +263,28 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public <D> Flux<D> toEntity(Class<D> entityType) {
-			return this.responseFlux.map(this::getField).map(field -> field.toEntity(entityType));
+			return this.responseFlux.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType) {
-			return this.responseFlux.map(this::getField).map(field -> field.toEntity(entityType));
+			return this.responseFlux.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Flux<List<D>> toEntityList(Class<D> elementType) {
-			return this.responseFlux.map(this::getField).map(field -> field.toEntityList(elementType));
+			return this.responseFlux.map(response -> {
+				ResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
 		}
 
 		@Override
 		public <D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
-			return this.responseFlux.map(this::getField).map(field -> field.toEntityList(elementType));
+			return this.responseFlux.map(response -> {
+				ResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
 		}
 
 	}
