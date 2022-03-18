@@ -47,12 +47,29 @@ import org.springframework.validation.DataBinder;
  */
 public class GraphQlArgumentInitializer {
 
+	@Nullable
 	private final SimpleTypeConverter typeConverter;
 
 
 	public GraphQlArgumentInitializer(@Nullable ConversionService conversionService) {
-		this.typeConverter = new SimpleTypeConverter();
-		this.typeConverter.setConversionService(conversionService);
+		if (conversionService != null) {
+			this.typeConverter = new SimpleTypeConverter();
+			this.typeConverter.setConversionService(conversionService);
+		}
+		else {
+			//  Not thread-safe when using PropertyEditors
+			this.typeConverter = null;
+		}
+	}
+
+
+	private SimpleTypeConverter getTypeConverter() {
+		return (this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
+	}
+
+	@Nullable
+	private ConversionService getConversionService() {
+		return (this.typeConverter != null ? this.typeConverter.getConversionService() : null);
 	}
 
 
@@ -108,7 +125,7 @@ public class GraphQlArgumentInitializer {
 			return wrapAsOptionalIfNecessary(sourceValue, targetType);
 		}
 
-		Object target = this.typeConverter.convertIfNecessary(sourceValue, targetClass);
+		Object target = getTypeConverter().convertIfNecessary(sourceValue, targetClass);
 		if (target == null) {
 			throw new IllegalStateException("Cannot convert argument value " +
 					"type [" + sourceValue.getClass().getName() + "] to method parameter " +
@@ -145,7 +162,7 @@ public class GraphQlArgumentInitializer {
 				collection.add((T) this.initializeFromMap((Map<String, Object>) item, elementClass));
 			}
 			else {
-				collection.add(this.typeConverter.convertIfNecessary(item, elementClass));
+				collection.add(getTypeConverter().convertIfNecessary(item, elementClass));
 			}
 		}
 		return collection;
@@ -166,7 +183,7 @@ public class GraphQlArgumentInitializer {
 			MutablePropertyValues propertyValues = extractPropertyValues(arguments);
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
-			dataBinder.setConversionService(this.typeConverter.getConversionService());
+			dataBinder.setConversionService(getConversionService());
 			dataBinder.bind(propertyValues);
 			return target;
 		}
@@ -193,7 +210,7 @@ public class GraphQlArgumentInitializer {
 				args[i] = this.initializeFromMap((Map<String, Object>) value, methodParameter.getParameterType());
 			}
 			else {
-				args[i] = this.typeConverter.convertIfNecessary(value, paramTypes[i], methodParameter);
+				args[i] = getTypeConverter().convertIfNecessary(value, paramTypes[i], methodParameter);
 			}
 		}
 
