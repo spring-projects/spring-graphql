@@ -39,7 +39,7 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	 * Navigate to the given path under the "data" key of the response map where
 	 * the path is a dot-separated string with optional array indexes.
 	 * <p>Example paths:
-	 * <pre style="class">
+	 * <pre>
 	 * "hero"
 	 * "hero.name"
 	 * "hero.friends"

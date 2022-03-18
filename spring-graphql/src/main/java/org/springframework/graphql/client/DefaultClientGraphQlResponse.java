@@ -16,9 +16,11 @@
 
 package org.springframework.graphql.client;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
@@ -34,6 +36,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
+import org.springframework.util.StringUtils;
 
 
 /**
@@ -69,12 +72,85 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 	@Override
 	public ResponseField field(String path) {
-
 		List<Object> dataPath = parseFieldPath(path);
-		Object value = getFieldValue(dataPath);
-		List<GraphQlResponseError> errors = getFieldErrors(dataPath);
+		return new DefaultField(path, dataPath, getFieldValue(dataPath), getFieldErrors(path));
+	}
 
-		return new DefaultField(path, dataPath, (value != NO_VALUE ? value : null), errors);
+	private static List<Object> parseFieldPath(String path) {
+		if (!StringUtils.hasText(path)) {
+			return Collections.emptyList();
+		}
+
+		String invalidPathMessage = "Invalid path: '" + path + "'";
+		List<Object> dataPath = new ArrayList<>();
+
+		StringBuilder sb = new StringBuilder();
+		boolean readingIndex = false;
+
+		for (int i = 0; i < path.length(); i++) {
+			char c = path.charAt(i);
+			switch (c) {
+				case '.':
+				case '[':
+					Assert.isTrue(!readingIndex, invalidPathMessage);
+					break;
+				case ']':
+					i++;
+					Assert.isTrue(readingIndex, invalidPathMessage);
+					Assert.isTrue(i == path.length() || path.charAt(i) == '.', invalidPathMessage);
+					break;
+				default:
+					sb.append(c);
+					if (i < path.length() - 1) {
+						continue;
+					}
+			}
+			String token = sb.toString();
+			Assert.hasText(token, invalidPathMessage);
+			dataPath.add(readingIndex ? Integer.parseInt(token) : token);
+			sb.delete(0, sb.length());
+
+			readingIndex = (c == '[');
+		}
+
+		return dataPath;
+	}
+
+	@Nullable
+	private Object getFieldValue(List<Object> fieldPath) {
+		Object value = (isValid() ? getData() : null);
+		for (Object segment : fieldPath) {
+			if (value == null) {
+				return null;
+			}
+			if (segment instanceof String) {
+				Assert.isTrue(value instanceof Map, () -> "Invalid path " + fieldPath + ", data: " + getData());
+				value = ((Map<?, ?>) value).getOrDefault(segment, null);
+			}
+			else {
+				Assert.isTrue(value instanceof List, () -> "Invalid path " + fieldPath + ", data: " + getData());
+				int index = (int) segment;
+				value = (index < ((List<?>) value).size() ? ((List<?>) value).get(index) : null);
+			}
+		}
+		return value;
+	}
+
+	/**
+	 * Return field errors whose path starts with the given field path.
+	 * @param path the field path to match
+	 * @return errors whose path starts with the dataPath
+	 */
+	private List<GraphQlResponseError> getFieldErrors(String path) {
+		if (path.isEmpty()) {
+			return Collections.emptyList();
+		}
+		return getErrors().stream()
+				.filter(error -> {
+					String errorPath = error.getPath();
+					return !errorPath.isEmpty() && (errorPath.startsWith(path) || path.startsWith(errorPath));
+				})
+				.collect(Collectors.toList());
 	}
 
 	@Override
@@ -97,7 +173,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		private final List<Object> parsedPath;
 
-		private final List<GraphQlResponseError> errors;
+		private final List<GraphQlResponseError> fieldErrors;
 
 		@Nullable
 		private final Object value;
@@ -108,12 +184,17 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 			this.path = path;
 			this.parsedPath = parsedPath;
 			this.value = value;
-			this.errors = errors;
+			this.fieldErrors = errors;
 		}
 
 		@Override
 		public String getPath() {
 			return this.path;
+		}
+
+		@Override
+		public List<Object> getParsedPath() {
+			return this.parsedPath;
 		}
 
 		@Override
@@ -129,9 +210,8 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		@Override
 		public GraphQlResponseError getError() {
-			for (GraphQlResponseError error : this.errors) {
-				Assert.notNull(error.getPath(), "Expected field error");
-				if (error.getPath().size() <= this.parsedPath.size()) {
+			for (GraphQlResponseError error : this.fieldErrors) {
+				if (error.getParsedPath().size() <= this.parsedPath.size()) {
 					return error;
 				}
 			}
@@ -140,7 +220,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		@Override
 		public List<GraphQlResponseError> getErrors() {
-			return this.errors;
+			return this.fieldErrors;
 		}
 
 		@Override

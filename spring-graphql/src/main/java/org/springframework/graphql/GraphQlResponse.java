@@ -55,9 +55,13 @@ public interface GraphQlResponse {
 	<T> T getData();
 
 	/**
-	 * Return errors for the response. This contains "request errors" when the
-	 * response is not {@link #isValid() valid} and/or "field errors" for a
-	 * partial response.
+	 * Return errors included in the response.
+	 * <p>A response that is not {@link #isValid() valid} contains "request
+	 * errors". Those are errors that apply to the request as a whole, and have
+	 * an empty error {@link GraphQlResponseError#getPath() path}.
+	 * <p>A response that is valid may still be partial and contain "field
+	 * errors". Those are errors associated with a specific field through their
+	 * error path.
 	 */
 	List<GraphQlResponseError> getErrors();
 

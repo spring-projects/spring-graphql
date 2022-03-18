@@ -47,9 +47,17 @@ public interface ResponseField {
 	boolean hasValue();
 
 	/**
-	 * Return the path for the field under the "data" key in the response map.
+	 * Return a String representation of the field path as described in
+	 * {@link ClientGraphQlResponse#field(String)}.
 	 */
 	String getPath();
+
+	/**
+	 * Return a parsed representation of the field path, in the format described
+	 * for error paths in Section 7.1.2, "Response Format" of the GraphQL spec.
+	 * @see GraphQlResponseError#getParsedPath()
+	 */
+	List<Object> getParsedPath();
 
 	/**
 	 * Return the field value without any decoding.

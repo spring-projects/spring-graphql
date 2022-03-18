@@ -86,7 +86,7 @@ public class RequestOutput implements GraphQlResponse {
 	}
 
 	public List<GraphQlResponseError> getErrors() {
-		return this.result.getErrors().stream().map(OutputError::new).collect(Collectors.toList());
+		return this.result.getErrors().stream().map(Error::new).collect(Collectors.toList());
 	}
 
 	public Map<Object, Object> getExtensions() {
@@ -104,11 +104,14 @@ public class RequestOutput implements GraphQlResponse {
 	}
 
 
-	private static class OutputError implements GraphQlResponseError {
+	/**
+	 * {@link GraphQLError} that wraps a {@link GraphQLError}.
+	 */
+	private static class Error implements GraphQlResponseError {
 
 		private final GraphQLError delegate;
 
-		OutputError(GraphQLError delegate) {
+		Error(GraphQLError delegate) {
 			this.delegate = delegate;
 		}
 
@@ -128,13 +131,21 @@ public class RequestOutput implements GraphQlResponse {
 		}
 
 		@Override
-		public List<Object> getPath() {
-			return this.delegate.getPath();
+		public String getPath() {
+			return getParsedPath().stream()
+					.reduce("",
+							(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
+							(s, s2) -> null);
+		}
+
+		@Override
+		public List<Object> getParsedPath() {
+			return (this.delegate.getPath() != null ? this.delegate.getPath() : Collections.emptyList());
 		}
 
 		@Override
 		public Map<String, Object> getExtensions() {
-			return this.delegate.getExtensions();
+			return (this.delegate.getExtensions() != null ? this.delegate.getExtensions() : Collections.emptyMap());
 		}
 
 	}

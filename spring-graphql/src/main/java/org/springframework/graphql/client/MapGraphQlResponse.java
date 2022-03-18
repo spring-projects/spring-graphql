@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.client;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,12 +27,9 @@ import graphql.language.SourceLocation;
 
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlResponseError;
-import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * {@link GraphQlResponse} that wraps a deserialized the GraphQL response map.
@@ -42,12 +38,6 @@ import org.springframework.util.StringUtils;
  * @since 1.0.0
  */
 class MapGraphQlResponse implements GraphQlResponse {
-
-	/**
-	 * Returned from {@link #getFieldValue(List)} to indicate a value does not exist.
-	 */
-	protected final static Object NO_VALUE = new Object();
-
 
 	private final Map<String, Object> responseMap;
 
@@ -70,7 +60,7 @@ class MapGraphQlResponse implements GraphQlResponse {
 	private static List<GraphQlResponseError> wrapErrors(Map<String, Object> map) {
 		List<Map<String, Object>> errors = (List<Map<String, Object>>) map.get("errors");
 		errors = (errors != null ? errors : Collections.emptyList());
-		return errors.stream().map(MapError::new).collect(Collectors.toList());
+		return errors.stream().map(Error::new).collect(Collectors.toList());
 	}
 
 
@@ -101,112 +91,6 @@ class MapGraphQlResponse implements GraphQlResponse {
 		return this.responseMap;
 	}
 
-	/**
-	 * Parse the given field path, producing an output compatible with
-	 * {@link graphql.execution.ResultPath#parse(String)} but using "." instead
-	 * of "/" as separators.
-	 * @param path the path to parse
-	 * @return the parsed path segments and offsets, possibly empty
-	 * @throws IllegalArgumentException for path syntax issues
-	 */
-	protected static List<Object> parseFieldPath(String path) {
-		if (!StringUtils.hasText(path)) {
-			return Collections.emptyList();
-		}
-
-		String invalidPathMessage = "Invalid path: '" + path + "'";
-		List<Object> dataPath = new ArrayList<>();
-
-		StringBuilder sb = new StringBuilder();
-		boolean readingIndex = false;
-
-		for (int i = 0; i < path.length(); i++) {
-			char c = path.charAt(i);
-			switch (c) {
-				case '.':
-				case '[':
-					Assert.isTrue(!readingIndex, invalidPathMessage);
-					break;
-				case ']':
-					i++;
-					Assert.isTrue(readingIndex, invalidPathMessage);
-					Assert.isTrue(i == path.length() || path.charAt(i) == '.', invalidPathMessage);
-					break;
-				default:
-					sb.append(c);
-					if (i < path.length() - 1) {
-						continue;
-					}
-			}
-			String token = sb.toString();
-			Assert.hasText(token, invalidPathMessage);
-			dataPath.add(readingIndex ? Integer.parseInt(token) : token);
-			sb.delete(0, sb.length());
-
-			readingIndex = (c == '[');
-		}
-
-		return dataPath;
-	}
-
-	/**
-	 * Return the field value under the given path relative to the "data" key.
-	 * @param fieldPath a field path parsed via {@link #parseFieldPath(String)}
-	 * @return the field value, possibly {@code null} or {@link #NO_VALUE}
-	 * @throws IllegalArgumentException in case of a mismatch between the path
-	 * and the data, e.g. map or list expected vs actual value type
-	 */
-	@Nullable
-	protected Object getFieldValue(List<Object> fieldPath) {
-		Object value = (isValid() ? getData() : NO_VALUE);
-		for (Object segment : fieldPath) {
-			if (value == null || value == NO_VALUE) {
-				return NO_VALUE;
-			}
-			if (segment instanceof String) {
-				Assert.isTrue(value instanceof Map, () -> "Invalid path " + fieldPath + ", data: " + getData());
-				Map<?, ?> map = (Map<?, ?>) value;
-				value = (map.containsKey(segment) ? map.get(segment) : NO_VALUE);
-			}
-			else {
-				Assert.isTrue(value instanceof List, () -> "Invalid path " + fieldPath + ", data: " + getData());
-				int index = (int) segment;
-				List<?> list = (List<?>) value;
-				value = (index < list.size() ? list.get(index) : NO_VALUE);
-			}
-		}
-		return value;
-	}
-
-	/**
-	 * Return field errors whose path starts with the given field path.
-	 * @param fieldPath the field path to match
-	 * @return errors whose path starts with the dataPath
-	 */
-	protected List<GraphQlResponseError> getFieldErrors(List<Object> fieldPath) {
-		if (fieldPath.isEmpty()) {
-			return Collections.emptyList();
-		}
-		List<GraphQlResponseError> fieldErrors = Collections.emptyList();
-		for (GraphQlResponseError error : this.errors) {
-			List<Object> errorPath = error.getPath();
-			if (CollectionUtils.isEmpty(errorPath)) {
-				continue;
-			}
-			boolean match = true;
-			for (int i = 0; match && i < fieldPath.size() && i < errorPath.size(); i++) {
-				match = fieldPath.get(i).equals(errorPath.get(i));
-			}
-			if (!match) {
-				continue;
-			}
-			fieldErrors = (fieldErrors.isEmpty() ? new ArrayList<>() : fieldErrors);
-			fieldErrors.add(error);
-		}
-		return fieldErrors;
-	}
-
-
 	@Override
 	public boolean equals(Object other) {
 		return (other instanceof MapGraphQlResponse &&
@@ -227,31 +111,34 @@ class MapGraphQlResponse implements GraphQlResponse {
 	/**
 	 * {@link GraphQLError} that wraps a deserialized the GraphQL response map.
 	 */
-	@SuppressWarnings("serial")
-	private static final class MapError implements GraphQlResponseError {
+	private static final class Error implements GraphQlResponseError {
 
 		private final Map<String, Object> errorMap;
 
 		private final List<SourceLocation> locations;
 
-		MapError(Map<String, Object> errorMap) {
+		private final String path;
+
+		Error(Map<String, Object> errorMap) {
 			Assert.notNull(errorMap, "'errorMap' is required");
 			this.errorMap = errorMap;
 			this.locations = initLocations(errorMap);
+			this.path = initPath(errorMap);
 		}
 
 		@SuppressWarnings("unchecked")
 		private static List<SourceLocation> initLocations(Map<String, Object> errorMap) {
-			List<Map<String, Object>> locations = (List<Map<String, Object>>) errorMap.get("locations");
-			if (locations == null) {
-				return Collections.emptyList();
-			}
-			return locations.stream()
-					.map(map -> new SourceLocation(
-							(int) map.getOrDefault("line", 0),
-							(int) map.getOrDefault("column", 0),
-							(String) map.get("sourceName")))
+			return ((List<Map<String, Object>>) errorMap.getOrDefault("locations", Collections.emptyList())).stream()
+					.map(map -> new SourceLocation((int) map.get("line"), (int) map.get("column"), (String) map.get("sourceName")))
 					.collect(Collectors.toList());
+		}
+
+		@SuppressWarnings("unchecked")
+		private static String initPath(Map<String, Object> errorMap) {
+			return ((List<Object>) errorMap.getOrDefault("path", Collections.emptyList())).stream()
+					.reduce("",
+							(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
+							(s, s2) -> null);
 		}
 
 		@Override
@@ -266,40 +153,31 @@ class MapGraphQlResponse implements GraphQlResponse {
 		}
 
 		@Override
-		@Nullable
 		public ErrorClassification getErrorType() {
-			// Attempt the reverse of how errorType is serialized in GraphqlErrorHelper.toSpecification.
-			// However, we can only do that for ErrorClassification enums that we know of.
-			String value = (getExtensions() != null ? (String) getExtensions().get("classification") : null);
-			if (value != null) {
-				try {
-					return graphql.ErrorType.valueOf(value);
-				}
-				catch (IllegalArgumentException ex) {
-					// ignore
-				}
-				try {
-					return ErrorType.valueOf(value);
-				}
-				catch (IllegalArgumentException ex) {
-					// ignore
-				}
+			String classification = (String) getExtensions().getOrDefault("classification", "");
+			try {
+				return graphql.ErrorType.valueOf(classification);
 			}
-			return null;
+			catch (IllegalArgumentException ex) {
+				return org.springframework.graphql.execution.ErrorType.valueOf(classification);
+			}
+		}
+
+		@Override
+		public String getPath() {
+			return this.path;
 		}
 
 		@SuppressWarnings("unchecked")
 		@Override
-		@Nullable
-		public List<Object> getPath() {
-			return (List<Object>) this.errorMap.get("path");
+		public List<Object> getParsedPath() {
+			return (List<Object>) this.errorMap.getOrDefault("path", Collections.emptyList());
 		}
 
 		@SuppressWarnings("unchecked")
 		@Override
-		@Nullable
 		public Map<String, Object> getExtensions() {
-			return (Map<String, Object>) this.errorMap.get("extensions");
+			return (Map<String, Object>) this.errorMap.getOrDefault("extensions", Collections.emptyMap());
 		}
 
 		@Override
@@ -313,7 +191,7 @@ class MapGraphQlResponse implements GraphQlResponse {
 			GraphQlResponseError other = (GraphQlResponseError) o;
 			return (ObjectUtils.nullSafeEquals(getMessage(), other.getMessage()) &&
 					ObjectUtils.nullSafeEquals(getLocations(), other.getLocations()) &&
-					ObjectUtils.nullSafeEquals(getPath(), other.getPath()) &&
+					ObjectUtils.nullSafeEquals(getParsedPath(), other.getParsedPath()) &&
 					getErrorType() == other.getErrorType());
 		}
 
@@ -322,7 +200,7 @@ class MapGraphQlResponse implements GraphQlResponse {
 			int result = 1;
 			result = 31 * result + ObjectUtils.nullSafeHashCode(getMessage());
 			result = 31 * result + ObjectUtils.nullSafeHashCode(getLocations());
-			result = 31 * result + ObjectUtils.nullSafeHashCode(getPath());
+			result = 31 * result + ObjectUtils.nullSafeHashCode(getParsedPath());
 			result = 31 * result + ObjectUtils.nullSafeHashCode(getErrorType());
 			return result;
 		}

@@ -134,8 +134,8 @@ which is a strategy for loading the document for a request by file name.
 == Requests
 
 Once you have a <<client-graphqlclient>>, you can begin to perform requests via
-<<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>,
-with one merely a shortcut over the other.
+<<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>
+where the former is merely a shortcut for the latter.
 
 
 
@@ -160,8 +160,8 @@ The below retrieves and decodes the data for a query:
 			.toEntity(Project.class); <3>
 ----
 <1> The operation to perform
-<2> Retrieve the response, and specify a path to decode from
-<3> Decode to a target object
+<2> Specify a path under the "data" key in the response map
+<3> Decode the data at the path to the target type
 
 The document is a `String` that could be a literal or produced through a code generated
 request object. You can also define documents in files and use a
@@ -169,11 +169,10 @@ request object. You can also define documents in files and use a
 
 The path is relative to the "data" key and uses a simple dot (".") separated notation
 for nested fields with optional array indices for list elements, e.g. `"project.name"`,
-`"project .releases[0].version"`, and so on.
+`"project.releases[0].version"`, and so on.
 
 Decoding can fail with `FieldAccessException` if the given path is not present in the
-response map, or when there is no "data" key (failed response) at all, or when there is
-a `null` value with a field error at the path.
+response map, or when the value is `null` and there is an error for the field.
 
 By default, `FieldAccessException` is also raised on `retrieve` for partial data where
 the field value exists but nested fields may be `null` with a field error. In such
@@ -202,8 +201,10 @@ attempts to decode those are always rejected.
 [[client-requests-execute]]
 === Execute
 
-The `retrieve` method is only a shortcut to decode to a single higher level object. For
-more control and access to the response, use the `execute` method. For example:
+The `retrieve` method is only a shortcut to decode from a single path to a higher level
+object. For more control and access to the response, use the `execute` method.
+
+For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -214,7 +215,7 @@ more control and access to the response, use the `execute` method. For example:
 				// Check response.isValid(), getErrors()
 
 				ResponseField field = response.field("project");
-				// Check field.isValid(), getError()
+				// Check field.hasValue(), getError()
 
 				return field.toEntity(Project.class)
 			});
