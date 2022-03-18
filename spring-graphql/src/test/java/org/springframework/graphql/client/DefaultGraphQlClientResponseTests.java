@@ -127,7 +127,7 @@ public class DefaultGraphQlClientResponseTests {
 		GraphQLError error2 = createError("/me/friends", "fail-me-friends");
 		GraphQLError error3 = createError("/me/friends[0]/name", "fail-me-friends-name");
 
-		GraphQlResponseField field = getField(path, error0, error1, error2, error3);
+		ClientGraphQlResponseField field = getField(path, error0, error1, error2, error3);
 		List<GraphQlResponseError> errors = field.getErrors();
 
 		assertThat(errors).hasSize(3);
@@ -144,13 +144,13 @@ public class DefaultGraphQlClientResponseTests {
 		return builder.build();
 	}
 
-	private GraphQlResponseField getField(String path, String dataJson) throws Exception {
+	private ClientGraphQlResponseField getField(String path, String dataJson) throws Exception {
 		Map<?, ?> dataMap = mapper.readValue(dataJson, Map.class);
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("data", dataMap));
 		return response.field(path);
 	}
 
-	private GraphQlResponseField getField(String path, GraphQLError... errors) {
+	private ClientGraphQlResponseField getField(String path, GraphQLError... errors) {
 		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).collect(Collectors.toList());
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("errors", list));
 		return response.field(path);

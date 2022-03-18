@@ -27,83 +27,24 @@ import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.GraphQlResponseError;
-import org.springframework.lang.Nullable;
+import org.springframework.graphql.DefaultGraphQlResponseField;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
 
 /**
- * Default implementation of {@link GraphQlResponseField}.
+ * Default implementation of {@link ClientGraphQlResponseField}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultGraphQlResponseField implements GraphQlResponseField {
-
-	private final DefaultClientGraphQlResponse response;
-
-	private final String path;
-
-	private final List<Object> parsedPath;
-
-	@Nullable
-	private final Object value;
-
-	private final List<GraphQlResponseError> fieldErrors;
+final class DefaultClientGraphQlResponseField extends DefaultGraphQlResponseField implements ClientGraphQlResponseField {
 
 
-	DefaultGraphQlResponseField(
-			DefaultClientGraphQlResponse response, String path, List<Object> parsedPath,
-			@Nullable Object value, List<GraphQlResponseError> errors) {
-
-		this.response = response;
-		this.path = path;
-		this.parsedPath = parsedPath;
-		this.value = value;
-		this.fieldErrors = errors;
+	DefaultClientGraphQlResponseField(DefaultClientGraphQlResponse response, String path) {
+		super(response, path);
 	}
 
-
-	@Override
-	public String getPath() {
-		return this.path;
-	}
-
-	@Override
-	public List<Object> getParsedPath() {
-		return this.parsedPath;
-	}
-
-	@Override
-	public boolean hasValue() {
-		return (this.value != null);
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T> T getValue() {
-		return (T) this.value;
-	}
-
-	@Override
-	public GraphQlResponseError getError() {
-		if (!hasValue()) {
-			if (!this.fieldErrors.isEmpty()) {
-				return this.fieldErrors.get(0);
-			}
-			if (!this.response.getErrors().isEmpty()) {
-				return this.response.getErrors().get(0);
-			}
-			// No errors, set to null by DataFetcher
-		}
-		return null;
-	}
-
-	@Override
-	public List<GraphQlResponseError> getErrors() {
-		return this.fieldErrors;
-	}
 
 	@Override
 	public <D> D toEntity(Class<D> entityType) {
@@ -127,18 +68,19 @@ final class DefaultGraphQlResponseField implements GraphQlResponseField {
 
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	private <T> T toEntity(ResolvableType targetType) {
-		if (this.value == null) {
-			throw new FieldAccessException(this.response, this);
+		DefaultClientGraphQlResponse response = getResponse();
+		if (!hasValue()) {
+			throw new FieldAccessException(response, this);
 		}
 
 		DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;
 		MimeType mimeType = MimeTypeUtils.APPLICATION_JSON;
 		Map<String, Object> hints = Collections.emptyMap();
 
-		DataBuffer buffer = ((Encoder<T>) this.response.getEncoder()).encodeValue(
-				(T) this.value, bufferFactory, ResolvableType.forInstance(this.value), mimeType, hints);
+		DataBuffer buffer = ((Encoder<T>) response.getEncoder()).encodeValue(
+				(T) getValue(), bufferFactory, ResolvableType.forInstance(getValue()), mimeType, hints);
 
-		return ((Decoder<T>) this.response.getDecoder()).decode(buffer, targetType, mimeType, hints);
+		return ((Decoder<T>) response.getDecoder()).decode(buffer, targetType, mimeType, hints);
 	}
 
 }

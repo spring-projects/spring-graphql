@@ -36,22 +36,9 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	GraphQlRequest getRequest();
 
 	/**
-	 * Navigate to the given path under the "data" key of the response map where
-	 * the path is a dot-separated string with optional array indexes.
-	 * <p>Example paths:
-	 * <pre>
-	 * "hero"
-	 * "hero.name"
-	 * "hero.friends"
-	 * "hero.friends[2]"
-	 * "hero.friends[2].name"
-	 * </pre>
-	 * @param path relative to the "data" key
-	 * @return representation for the field with further options to inspect or
-	 * decode its value; use {@link GraphQlResponseField#hasValue()} to check if
-	 * the field actually exists and has a value.
+	 * {@inheritDoc}
 	 */
-	GraphQlResponseField field(String path);
+	ClientGraphQlResponseField field(String path);
 
 	/**
 	 * Decode the full response map to the given target type.
