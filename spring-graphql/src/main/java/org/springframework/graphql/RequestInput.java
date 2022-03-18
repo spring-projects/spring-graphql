@@ -29,10 +29,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Extension of {@link GraphQlRequest} for server side handling, adding the
- * transport (e.g. HTTP or WebSocket handler) assigned {@link #getId() id} and
- * {@link #getLocale() locale} in the addition to the {@link GraphQlRequest}
- * inputs.
+ * {@link GraphQlRequest} for server side handling, adding the transport (e.g. HTTP
+ * or WebSocket handler) assigned {@link #getId() id} and {@link #getLocale()
+ * locale} in the addition to the {@code GraphQlRequest} inputs.
  *
  * <p>{@code RequestInput} supports the initialization of {@link ExecutionInput}
  * that is passed to {@link graphql.GraphQL}. You can customize that via
@@ -42,7 +41,7 @@ import org.springframework.util.Assert;
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class RequestInput extends GraphQlRequest {
+public class RequestInput extends DefaultGraphQlRequest {
 
 	private final String id;
 

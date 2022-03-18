@@ -31,6 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.springframework.graphql.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlResponseError;
@@ -175,7 +176,7 @@ public class MockWebSocketGraphQlTransportTests {
 		TestWebSocketClient client = new TestWebSocketClient(new PingResponseHandler(this.response1));
 		WebSocketGraphQlTransport transport = createTransport(client);
 
-		StepVerifier.create(transport.execute(new GraphQlRequest("{Query1}")))
+		StepVerifier.create(transport.execute(new DefaultGraphQlRequest("{Query1}")))
 				.expectNext(this.response1)
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -183,7 +184,7 @@ public class MockWebSocketGraphQlTransportTests {
 		assertActualClientMessages(client.getConnection(0),
 				GraphQlMessage.connectionInit(null),
 				GraphQlMessage.pong(null),
-				GraphQlMessage.subscribe("1", new GraphQlRequest("{Query1}")));
+				GraphQlMessage.subscribe("1", new DefaultGraphQlRequest("{Query1}")));
 	}
 
 	@Test
@@ -303,7 +304,7 @@ public class MockWebSocketGraphQlTransportTests {
 
 		String expectedMessage = "disconnected with CloseStatus[code=4400, reason=Invalid message]";
 
-		StepVerifier.create(transport.execute(new GraphQlRequest("{Query1}")))
+		StepVerifier.create(transport.execute(new DefaultGraphQlRequest("{Query1}")))
 				.expectErrorSatisfies(ex -> assertThat(ex).hasMessageEndingWith(expectedMessage))
 				.verify(TIMEOUT);
 	}
@@ -381,7 +382,7 @@ public class MockWebSocketGraphQlTransportTests {
 
 				GraphQlMessage outputMessage = (inputMessage.resolvedType() == GraphQlMessageType.CONNECTION_INIT ?
 						GraphQlMessage.connectionAck(null) :
-						GraphQlMessage.subscribe(id, new GraphQlRequest("")));
+						GraphQlMessage.subscribe(id, new DefaultGraphQlRequest("")));
 
 				return Flux.just(this.codecDelegate.encode(session, outputMessage));
 			}));

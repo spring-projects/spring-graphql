@@ -28,6 +28,7 @@ import graphql.GraphQLError;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
@@ -49,7 +50,7 @@ public class GraphQlClientTestSupport {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 
-	private final ArgumentCaptor<GraphQlRequest> requestCaptor = ArgumentCaptor.forClass(GraphQlRequest.class);
+	private final ArgumentCaptor<GraphQlRequest> requestCaptor = ArgumentCaptor.forClass(DefaultGraphQlRequest.class);
 
 	private final GraphQlTransport transport = mock(GraphQlTransport.class);
 
@@ -72,15 +73,15 @@ public class GraphQlClientTestSupport {
 
 
 	protected void initDataResponse(String document, String responseData) {
-		initResponse(new GraphQlRequest(document), responseData);
+		initResponse(new DefaultGraphQlRequest(document), responseData);
 	}
 
 	protected void initErrorResponse(String document, GraphQLError... errors) {
-		initResponse(new GraphQlRequest(document), null, errors);
+		initResponse(new DefaultGraphQlRequest(document), null, errors);
 	}
 
 	protected void initResponse(String document, String responseData, GraphQLError... errors) {
-		initResponse(new GraphQlRequest(document), responseData, errors);
+		initResponse(new DefaultGraphQlRequest(document), responseData, errors);
 	}
 
 	protected void initResponse(GraphQlRequest request, @Nullable String responseData, GraphQLError... errors) {

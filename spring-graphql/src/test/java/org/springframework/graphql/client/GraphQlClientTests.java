@@ -30,6 +30,7 @@ import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,7 +101,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		vars.put("foo", "bar");
 		vars.put("keyOnly", null);
 
-		GraphQlRequest request = new GraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
+		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
 		initResponse(request, "{\"hero\": {\"name\":\"R2-D2\"}}");
 
 		MovieCharacter character = graphQlClient().document(document)

@@ -28,7 +28,7 @@ import graphql.execution.ResultPath;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -158,7 +158,7 @@ public class DefaultGraphQlClientResponseTests {
 
 	private ClientGraphQlResponse creatResponse(Map<String, Object> responseMap) {
 		return new DefaultClientGraphQlResponse(
-				new GraphQlRequest("{test}"), GraphQlTransport.wrapResponseMap(responseMap),
+				new DefaultGraphQlRequest("{test}"), GraphQlTransport.wrapResponseMap(responseMap),
 				new Jackson2JsonEncoder(), new Jackson2JsonDecoder());
 	}
 

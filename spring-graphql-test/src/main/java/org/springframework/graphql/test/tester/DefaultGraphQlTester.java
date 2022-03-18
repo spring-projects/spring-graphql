@@ -34,6 +34,7 @@ import com.jayway.jsonpath.TypeRef;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
+import org.springframework.graphql.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlResponseError;
@@ -179,7 +180,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private GraphQlRequest request() {
-			return new GraphQlRequest(this.document, this.operationName, this.variables);
+			return new DefaultGraphQlRequest(this.document, this.operationName, this.variables);
 		}
 
 		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {

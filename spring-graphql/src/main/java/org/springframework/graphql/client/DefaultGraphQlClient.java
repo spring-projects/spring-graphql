@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
+import org.springframework.graphql.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
@@ -176,7 +177,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private Mono<GraphQlRequest> initRequest() {
 			return this.documentMono.map(document ->
-					new GraphQlRequest(document, this.operationName, this.variables));
+					new DefaultGraphQlRequest(document, this.operationName, this.variables));
 		}
 
 		private DefaultClientGraphQlResponse initResponse(GraphQlRequest request, GraphQlResponse response) {

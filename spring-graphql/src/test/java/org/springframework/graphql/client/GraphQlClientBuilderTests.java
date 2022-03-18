@@ -19,7 +19,6 @@ package org.springframework.graphql.client;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
