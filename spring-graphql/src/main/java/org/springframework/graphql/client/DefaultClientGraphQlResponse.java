@@ -23,19 +23,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.MimeType;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.StringUtils;
 
 
@@ -70,13 +64,22 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 		return this.request;
 	}
 
-	@Override
-	public ResponseField field(String path) {
-		List<Object> dataPath = parseFieldPath(path);
-		return new DefaultField(path, dataPath, getFieldValue(dataPath), getFieldErrors(path));
+	Encoder<?> getEncoder() {
+		return this.encoder;
 	}
 
-	private static List<Object> parseFieldPath(String path) {
+	Decoder<?> getDecoder() {
+		return this.decoder;
+	}
+
+
+	@Override
+	public GraphQlResponseField field(String path) {
+		List<Object> parsedPath = parsePath(path);
+		return new DefaultGraphQlResponseField(this, path, parsedPath, getValue(parsedPath), getFieldErrors(path));
+	}
+
+	private static List<Object> parsePath(String path) {
 		if (!StringUtils.hasText(path)) {
 			return Collections.emptyList();
 		}
@@ -117,18 +120,18 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 	}
 
 	@Nullable
-	private Object getFieldValue(List<Object> fieldPath) {
+	private Object getValue(List<Object> path) {
 		Object value = (isValid() ? getData() : null);
-		for (Object segment : fieldPath) {
+		for (Object segment : path) {
 			if (value == null) {
 				return null;
 			}
 			if (segment instanceof String) {
-				Assert.isTrue(value instanceof Map, () -> "Invalid path " + fieldPath + ", data: " + getData());
+				Assert.isTrue(value instanceof Map, () -> "Invalid path " + path + ", data: " + getData());
 				value = ((Map<?, ?>) value).getOrDefault(segment, null);
 			}
 			else {
-				Assert.isTrue(value instanceof List, () -> "Invalid path " + fieldPath + ", data: " + getData());
+				Assert.isTrue(value instanceof List, () -> "Invalid path " + path + ", data: " + getData());
 				int index = (int) segment;
 				value = (index < ((List<?>) value).size() ? ((List<?>) value).get(index) : null);
 			}
@@ -161,104 +164,6 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 	@Override
 	public <D> D toEntity(ParameterizedTypeReference<D> type) {
 		return field("").toEntity(type);
-	}
-
-
-	/**
-	 * Default implementation of {@link ResponseField}.
-	 */
-	private class DefaultField implements ResponseField {
-
-		private final String path;
-
-		private final List<Object> parsedPath;
-
-		private final List<GraphQlResponseError> fieldErrors;
-
-		@Nullable
-		private final Object value;
-
-		public DefaultField(
-				String path, List<Object> parsedPath, @Nullable Object value, List<GraphQlResponseError> errors) {
-
-			this.path = path;
-			this.parsedPath = parsedPath;
-			this.value = value;
-			this.fieldErrors = errors;
-		}
-
-		@Override
-		public String getPath() {
-			return this.path;
-		}
-
-		@Override
-		public List<Object> getParsedPath() {
-			return this.parsedPath;
-		}
-
-		@Override
-		public boolean hasValue() {
-			return (this.value != null);
-		}
-
-		@SuppressWarnings("unchecked")
-		@Override
-		public <T> T getValue() {
-			return (T) this.value;
-		}
-
-		@Override
-		public GraphQlResponseError getError() {
-			for (GraphQlResponseError error : this.fieldErrors) {
-				if (error.getParsedPath().size() <= this.parsedPath.size()) {
-					return error;
-				}
-			}
-			return null;
-		}
-
-		@Override
-		public List<GraphQlResponseError> getErrors() {
-			return this.fieldErrors;
-		}
-
-		@Override
-		public <D> D toEntity(Class<D> entityType) {
-			return toEntity(ResolvableType.forType(entityType));
-		}
-
-		@Override
-		public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
-			return toEntity(ResolvableType.forType(entityType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(Class<D> elementType) {
-			return toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
-			return toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
-		}
-
-		@SuppressWarnings({"unchecked", "ConstantConditions"})
-		private <T> T toEntity(ResolvableType targetType) {
-			if (this.value == null) {
-				throw new FieldAccessException(request, DefaultClientGraphQlResponse.this, this);
-			}
-
-			DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;
-			MimeType mimeType = MimeTypeUtils.APPLICATION_JSON;
-			Map<String, Object> hints = Collections.emptyMap();
-
-			DataBuffer buffer = ((Encoder<T>) encoder).encodeValue(
-					(T) this.value, bufferFactory, ResolvableType.forInstance(this.value), mimeType, hints);
-
-			return ((Decoder<T>) decoder).decode(buffer, targetType, mimeType, hints);
-		}
-
 	}
 
 }

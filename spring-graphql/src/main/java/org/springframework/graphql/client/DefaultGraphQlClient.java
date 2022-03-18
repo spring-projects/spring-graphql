@@ -199,14 +199,14 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		/**
-		 * Return the field if valid, possibly {@code null}.
-		 * @throws FieldAccessException if the response or field is not valid
+		 * Return the field if valid, or {@code null} if {@code null} without errors.
+		 * @throws FieldAccessException for invalid response or failed field
 		 */
 		@Nullable
-		protected ResponseField getValidField(ClientGraphQlResponse response) {
-			ResponseField field = response.field(this.path);
+		protected GraphQlResponseField getValidField(ClientGraphQlResponse response) {
+			GraphQlResponseField field = response.field(this.path);
 			if (!response.isValid() || field.getError() != null) {
-				throw new FieldAccessException(response.getRequest(), response, field);
+				throw new FieldAccessException(response, field);
 			}
 			return (field.hasValue() ? field : null);
 		}
@@ -236,7 +236,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Mono<List<D>> toEntityList(Class<D> elementType) {
 			return this.responseMono.map(response -> {
-				ResponseField field = getValidField(response);
+				GraphQlResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}
@@ -244,7 +244,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
 			return this.responseMono.map(response -> {
-				ResponseField field = getValidField(response);
+				GraphQlResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}
@@ -274,7 +274,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Flux<List<D>> toEntityList(Class<D> elementType) {
 			return this.responseFlux.map(response -> {
-				ResponseField field = getValidField(response);
+				GraphQlResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}
@@ -282,7 +282,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
 			return this.responseFlux.map(response -> {
-				ResponseField field = getValidField(response);
+				GraphQlResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}

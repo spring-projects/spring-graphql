@@ -31,7 +31,7 @@ import org.springframework.graphql.GraphQlResponse;
 public interface ClientGraphQlResponse extends GraphQlResponse {
 
 	/**
-	 * Return the request associated with this response.
+	 * Return the request for the response.
 	 */
 	GraphQlRequest getRequest();
 
@@ -48,10 +48,10 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	 * </pre>
 	 * @param path relative to the "data" key
 	 * @return representation for the field with further options to inspect or
-	 * decode its value; use {@link ResponseField#hasValue()} to check if the
-	 * field actually exists and has a value.
+	 * decode its value; use {@link GraphQlResponseField#hasValue()} to check if
+	 * the field actually exists and has a value.
 	 */
-	ResponseField field(String path);
+	GraphQlResponseField field(String path);
 
 	/**
 	 * Decode the full response map to the given target type.

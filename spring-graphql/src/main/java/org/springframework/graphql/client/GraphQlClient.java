@@ -22,6 +22,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -180,10 +181,11 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} that provides the decoded entity, or completes
-		 * empty when the field is {@code null} but without errors, or ends with
-		 * a {@link FieldAccessException} if the target field is not present or
-		 * has no value.
+		 * @return {@code Mono} with the decoded entity. Completes empty when
+		 * the field is {@code null} without errors, or ends with
+		 * {@link FieldAccessException} for an invalid response or a failed field
+		 * @see GraphQlResponse#isValid()
+		 * @see GraphQlResponseField#getError()
 		 */
 		<D> Mono<D> toEntity(Class<D> entityType);
 
@@ -198,6 +200,8 @@ public interface GraphQlClient {
 		 * @return {@code Mono} with a list of decoded entities, possibly an
 		 * empty list, or ends with {@link FieldAccessException} if the target
 		 * field is not present or has no value.
+		 * @see GraphQlResponse#isValid()
+		 * @see GraphQlResponseField#getError()
 		 */
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
@@ -217,11 +221,12 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return decoded entities, one for each response, except responses
-		 * in which the field is {@code null} but without errors, or ending with
-		 * {@link FieldAccessException} if the target field is not present or
-		 * has no value in a given response; the stream may also end with a
-		 * {@link GraphQlTransportException}.
+		 * @return a stream of decoded entities, one for each response, excluding
+		 * responses in which the field is {@code null} without errors. Ends with
+		 * {@link FieldAccessException} for an invalid response or a failed field.
+		 * May also end with a {@link GraphQlTransportException}.
+		 * @see GraphQlResponse#isValid()
+		 * @see GraphQlResponseField#getError()
 		 */
 		<D> Flux<D> toEntity(Class<D> entityType);
 
@@ -233,11 +238,12 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to a list of entities with the given type.
 		 * @param elementType the type of elements in the list
-		 * @return lists of decoded entities, one for each response, except responses
-		 * in which the field is {@code null} but without errors, or ending with
-		 * {@link FieldAccessException} if the target field is not present or
-		 * has no value in a given response; the stream may also end with a
-		 * {@link GraphQlTransportException}.
+		 * @return lists of decoded entities, one for each response, excluding
+		 * responses in which the field is {@code null} without errors. Ends with
+		 * {@link FieldAccessException} for an invalid response or a failed field.
+		 * May also end with a {@link GraphQlTransportException}.
+		 * @see GraphQlResponse#isValid()
+		 * @see GraphQlResponseField#getError()
 		 */
 		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 

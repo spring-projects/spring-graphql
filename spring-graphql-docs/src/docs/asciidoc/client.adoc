@@ -135,7 +135,7 @@ which is a strategy for loading the document for a request by file name.
 
 Once you have a <<client-graphqlclient>>, you can begin to perform requests via
 <<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>
-where the former is merely a shortcut for the latter.
+where the former is only a shortcut for the latter.
 
 
 
@@ -159,25 +159,21 @@ The below retrieves and decodes the data for a query:
 			.retrieve("project") <2>
 			.toEntity(Project.class); <3>
 ----
-<1> The operation to perform
-<2> Specify a path under the "data" key in the response map
-<3> Decode the data at the path to the target type
+<1> The operation to perform.
+<2> The path under the "data" key in the response map to decode from.
+<3> Decode the data at the path to the target type.
 
-The document is a `String` that could be a literal or produced through a code generated
-request object. You can also define documents in files and use a
+The input document is a `String` that could be a literal or produced through a code
+generated request object. You can also define documents in files and use a
 <<client-requests-document-source>> to resole them by file name.
 
 The path is relative to the "data" key and uses a simple dot (".") separated notation
-for nested fields with optional array indices for list elements, e.g. `"project.name"`,
-`"project.releases[0].version"`, and so on.
+for nested fields with optional array indices for list elements, e.g. `"project.name"`
+or `"project.releases[0].version"`.
 
-Decoding can fail with `FieldAccessException` if the given path is not present in the
-response map, or when the value is `null` and there is an error for the field.
-
-By default, `FieldAccessException` is also raised on `retrieve` for partial data where
-the field value exists but nested fields may be `null` with a field error. In such
-cases, you can handle the exception to examine the errors and decide whether or how to
-decode the partial data:
+Decoding can result in `FieldAccessException` if the given path is not present, or the
+field value is `null` and has an error. `FieldAccessException` provides access to the
+response and the field:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -185,24 +181,20 @@ decode the partial data:
 			.retrieve("project")
 			.toEntity(Project.class)
 			.onErrorResume(FieldAccessException.class, ex -> {
-				ResponseField field = ex.getField();
-				// Use field to check nested field errors and/or decode
-				// Return Mono with Project or an error
+				ClientGraphQlResponse response = ex.getResponse();
+				// ...
+				GraphQlResponseField field = ex.getField();
+				// ...
 			});
 ----
-
-TIP: The GraphQL spec considers a partial response or a partial field to be valid, and
-it may be feasible to decode them. By contrast, a failed field (i.e. value not present or
-is `null` with field error) or a failed response (no "data" key) are not valid and
-attempts to decode those are always rejected.
 
 
 
 [[client-requests-execute]]
 === Execute
 
-The `retrieve` method is only a shortcut to decode from a single path to a higher level
-object. For more control and access to the response, use the `execute` method.
+`retrieve` is only a shortcut to decode from a single path in the response map. For more
+control, use the `execute` method and handle the response:
 
 For example:
 
@@ -212,17 +204,27 @@ For example:
 	Mono<Project> projectMono = graphQlClient.document(document)
 			.execute()
 			.map(response -> {
-				// Check response.isValid(), getErrors()
+				if (!response.isValid()) {
+					// Request failure... <1>
+				}
 
 				ResponseField field = response.field("project");
-				// Check field.hasValue(), getError()
+				if (!field.hasValue()) {
+					if (field.getError() != null) {
+						// Field failure... <2>
+					}
+					else {
+						// Optional field set to null... <3>
+					}
+				}
 
-				return field.toEntity(Project.class)
+				return field.toEntity(Project.class); <4>
 			});
 ----
-
-You can use `execute` to check response errors, obtain different fields, check their
-field errors and nested field errors, and/or decode their values.
+<1> The response does not have data, only errors
+<2> Field that is `null` and has an associated error
+<3> Field that was set to `null` by its `DataFetcher`
+<4> Decode the data at the given path
 
 
 
@@ -272,7 +274,7 @@ You can use the `GraphQlClient` <<client-graphqlclient-builder>> to customize th
 == Subscriptions
 
 For a subscription operation, call `retrieveSubscription` instead of `retrieve` to
-obtain a stream of responses rather than a single response:
+obtain a stream of responses, each decoded to a target object:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -281,29 +283,34 @@ obtain a stream of responses rather than a single response:
 			.toEntity(String.class);
 ----
 
-Similar to the <<client-requests-retrieve>> vs <<client-requests-execute>> choice
-for requests with a single response, the same choice is also available for subscriptions.
-For example, for more control over each response, use `executeSubscription` instead of
-`retrieveSubscription`:
+Similar to the <<client-requests-retrieve, retrieve>> vs <<client-requests-execute, execute>>
+alternatives for single response requests, the same is also available for subscriptions.
+For more control over each response, use `executeSubscription`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	Flux<String> greetingFlux = client.document("subscription { greetings }")
 			.executeSubscription()
 			.map(response -> {
-				// Check response.isValid(), getErrors()
+				if (!response.isValid()) {
+					// Request failure...
+				}
 
-				ResponseField field = response.field("greeting");
-				// Check field.isValid(), getError()
+				ResponseField field = response.field("project");
+				if (!field.hasValue()) {
+					if (field.getError() != null) {
+						// Field failure...
+					}
+					else {
+						// Optional field set to null... <3>
+					}
+				}
 
 				return field.toEntity(String.class)
 			});
 ----
 
-
-
-Subscriptions are supported only with the <<client-websocketgraphqlclient,
-WebSocketGraphQlClient>> extension.
+NOTE: Subscriptions are supported only over <<client-websocketgraphqlclient, WebSocket>>.
 
 
 
