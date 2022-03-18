@@ -32,6 +32,7 @@ import org.dataloader.DataLoaderFactory;
 import org.dataloader.DataLoaderOptions;
 import org.dataloader.DataLoaderRegistry;
 import org.dataloader.MappedBatchLoaderWithContext;
+import org.dataloader.stats.NoOpStatisticsCollector;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
@@ -68,7 +69,8 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	@Override
 	public void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context) {
 		BatchLoaderContextProvider contextProvider = () -> context;
-		DataLoaderOptions defaultOptions = DataLoaderOptions.newOptions().setBatchLoaderContextProvider(contextProvider);
+		DataLoaderOptions defaultOptions = DataLoaderOptions.newOptions().setBatchLoaderContextProvider(contextProvider)
+				.setStatisticsCollector(NoOpStatisticsCollector::new);
 		for (ReactorBatchLoader<?, ?> loader : this.loaders) {
 			DataLoaderOptions options = loader.getOptionsOrDefault(contextProvider, defaultOptions);
 			DataLoader<?, ?> dataLoader = DataLoaderFactory.newDataLoader(loader, options);
@@ -117,7 +119,9 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer) {
-			this.options = (this.options != null ? this.options : DataLoaderOptions.newOptions());
+			this.options = (this.options != null ?
+					this.options :
+					DataLoaderOptions.newOptions().setStatisticsCollector(NoOpStatisticsCollector::new));
 			optionsConsumer.accept(this.options);
 			return this;
 		}
