@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
@@ -103,7 +103,7 @@ public interface GraphQlTester {
 		 * @param predicate the error filter to add
 		 * @return the same builder instance
 		 */
-		B errorFilter(Predicate<GraphQLError> predicate);
+		B errorFilter(Predicate<GraphQlResponseError> predicate);
 
 		/**
 		 * Configure a {@link DocumentSource} for use with
@@ -448,7 +448,7 @@ public interface GraphQlTester {
 		 * @param errorPredicate the error filter to add
 		 * @return the same spec to add more filters before {@link #verify()}
 		 */
-		Errors filter(Predicate<GraphQLError> errorPredicate);
+		Errors filter(Predicate<GraphQlResponseError> errorPredicate);
 
 		/**
 		 * Use this to declare errors that are expected.
@@ -461,7 +461,7 @@ public interface GraphQlTester {
 		 * @param errorPredicate the predicate for the expected error
 		 * @return the same spec to add more filters or expected errors
 		 */
-		Errors expect(Predicate<GraphQLError> errorPredicate);
+		Errors expect(Predicate<GraphQlResponseError> errorPredicate);
 
 		/**
 		 * Verify there are either no errors or that there no unexpected errors that have
@@ -477,7 +477,7 @@ public interface GraphQlTester {
 		 * @param errorsConsumer to inspect errors with
 		 * @return a spec to switch to a data path
 		 */
-		Traversable satisfy(Consumer<List<GraphQLError>> errorsConsumer);
+		Traversable satisfy(Consumer<List<GraphQlResponseError>> errorsConsumer);
 
 	}
 

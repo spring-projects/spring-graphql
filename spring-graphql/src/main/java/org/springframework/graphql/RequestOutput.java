@@ -18,10 +18,13 @@ package org.springframework.graphql;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import graphql.ErrorClassification;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import graphql.language.SourceLocation;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -55,9 +58,7 @@ public class RequestOutput implements GraphQlResponse {
 	 * Constructor to re-wrap from transport specific subclass.
 	 */
 	protected RequestOutput(RequestOutput requestOutput) {
-		Assert.notNull(requestOutput, "RequestOutput is required.");
-		this.input = requestOutput.getExecutionInput();
-		this.result = requestOutput.result;
+		this(requestOutput.getExecutionInput(), requestOutput.result);
 	}
 
 
@@ -84,8 +85,8 @@ public class RequestOutput implements GraphQlResponse {
 		return this.result.getData();
 	}
 
-	public List<GraphQLError> getErrors() {
-		return this.result.getErrors();
+	public List<GraphQlResponseError> getErrors() {
+		return this.result.getErrors().stream().map(OutputError::new).collect(Collectors.toList());
 	}
 
 	public Map<Object, Object> getExtensions() {
@@ -101,5 +102,42 @@ public class RequestOutput implements GraphQlResponse {
 	public String toString() {
 		return this.result.toString();
 	}
+
+
+	private static class OutputError implements GraphQlResponseError {
+
+		private final GraphQLError delegate;
+
+		OutputError(GraphQLError delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override
+		public String getMessage() {
+			return this.delegate.getMessage();
+		}
+
+		@Override
+		public List<SourceLocation> getLocations() {
+			return this.delegate.getLocations();
+		}
+
+		@Override
+		public ErrorClassification getErrorType() {
+			return this.delegate.getErrorType();
+		}
+
+		@Override
+		public List<Object> getPath() {
+			return this.delegate.getPath();
+		}
+
+		@Override
+		public Map<String, Object> getExtensions() {
+			return this.delegate.getExtensions();
+		}
+
+	}
+
 
 }

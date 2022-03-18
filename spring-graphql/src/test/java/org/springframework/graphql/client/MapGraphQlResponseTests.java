@@ -29,6 +29,7 @@ import graphql.execution.ResultPath;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -140,9 +141,12 @@ public class MapGraphQlResponseTests {
 						.map(GraphQLError::toSpecification).collect(Collectors.toList());
 
 		MapGraphQlResponse response = new MapGraphQlResponse(Collections.singletonMap("errors", errorList));
-		List<GraphQLError> errors = response.getFieldErrors(path);
+		List<GraphQlResponseError> errors = response.getFieldErrors(path);
 
-		assertThat(errors).containsExactly(error1, error2, error3);
+		assertThat(errors).hasSize(3);
+		assertThat(errors.get(0).getPath()).containsExactly("me");
+		assertThat(errors.get(1).getPath()).containsExactly("me", "friends");
+		assertThat(errors.get(2).getPath()).containsExactly("me", "friends", 0, "name");
 	}
 
 	private GraphQLError createError(@Nullable String errorPath, String message) {
@@ -150,8 +154,7 @@ public class MapGraphQlResponseTests {
 		if (errorPath != null) {
 			builder = builder.path(ResultPath.parse(errorPath));
 		}
-		Map<String, Object> errorMap = builder.build().toSpecification();
-		return new MapGraphQlError(errorMap);
+		return builder.build();
 	}
 
 }

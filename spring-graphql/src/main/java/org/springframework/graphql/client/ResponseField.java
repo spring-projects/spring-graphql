@@ -19,9 +19,8 @@ package org.springframework.graphql.client;
 
 import java.util.List;
 
-import graphql.GraphQLError;
-
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.lang.Nullable;
 
 /**
@@ -72,7 +71,7 @@ public interface ResponseField {
 	 * error with the same path as the field path
 	 */
 	@Nullable
-	GraphQLError getError();
+	GraphQlResponseError getError();
 
 	/**
 	 * Return all field errors including errors above, at, and below this field.
@@ -80,7 +79,7 @@ public interface ResponseField {
 	 * below. When the field does not have a value, there is only one error, and
 	 * it is the same as {@link #getError()}.
 	 */
-	List<GraphQLError> getErrors();
+	List<GraphQlResponseError> getErrors();
 
 	/**
 	 * Decode the field to an entity of the given type.

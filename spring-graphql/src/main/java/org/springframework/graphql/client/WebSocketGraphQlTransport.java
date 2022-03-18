@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.Scannable;
@@ -34,6 +33,7 @@ import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
@@ -514,8 +514,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				emitResult = responseState.sink().tryEmitValue(response);
 			}
 			else {
-				List<GraphQLError> graphQLErrors = response.getErrors();
-				Exception ex = new SubscriptionErrorException(subscriptionState.request(), graphQLErrors);
+				List<GraphQlResponseError> errors = response.getErrors();
+				Exception ex = new SubscriptionErrorException(subscriptionState.request(), errors);
 				emitResult = subscriptionState.sink().tryEmitError(ex);
 			}
 

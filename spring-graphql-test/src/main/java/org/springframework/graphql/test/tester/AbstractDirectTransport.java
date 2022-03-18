@@ -19,13 +19,13 @@ package org.springframework.graphql.test.tester;
 import java.util.List;
 
 import graphql.ExecutionResult;
-import graphql.GraphQLError;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.test.util.AssertionErrors;
@@ -58,7 +58,7 @@ abstract class AbstractDirectTransport implements GraphQlTransport {
 				Object data = output.getData();
 				AssertionErrors.assertTrue("Not a Publisher: " + data, data instanceof Publisher);
 
-				List<GraphQLError> errors = output.getErrors();
+				List<GraphQlResponseError> errors = output.getErrors();
 				AssertionErrors.assertTrue("Subscription errors: " + errors, CollectionUtils.isEmpty(errors));
 
 				return Flux.from((Publisher<ExecutionResult>) data)

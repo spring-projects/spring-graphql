@@ -20,8 +20,6 @@ package org.springframework.graphql;
 import java.util.List;
 import java.util.Map;
 
-import graphql.GraphQLError;
-
 import org.springframework.lang.Nullable;
 
 /**
@@ -61,7 +59,7 @@ public interface GraphQlResponse {
 	 * response is not {@link #isValid() valid} and/or "field errors" for a
 	 * partial response.
 	 */
-	List<GraphQLError> getErrors();
+	List<GraphQlResponseError> getErrors();
 
 	/**
 	 * Return implementor specific, protocol extensions, if any.

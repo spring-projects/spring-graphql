@@ -20,13 +20,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import graphql.ErrorClassification;
 import graphql.GraphQLError;
+import graphql.language.SourceLocation;
 
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -45,7 +51,7 @@ class MapGraphQlResponse implements GraphQlResponse {
 
 	private final Map<String, Object> responseMap;
 
-	private final List<GraphQLError> errors;
+	private final List<GraphQlResponseError> errors;
 
 
 	MapGraphQlResponse(Map<String, Object> responseMap) {
@@ -54,17 +60,17 @@ class MapGraphQlResponse implements GraphQlResponse {
 		this.errors = wrapErrors(responseMap);
 	}
 
+	MapGraphQlResponse(GraphQlResponse response) {
+		Assert.notNull(response, "'GraphQlResponse' is required");
+		this.responseMap = response.toMap();
+		this.errors =  response.getErrors();
+	}
+
 	@SuppressWarnings("unchecked")
-	private static List<GraphQLError> wrapErrors(Map<String, Object> responseMap) {
-		List<Map<String, Object>> rawErrors = (List<Map<String, Object>>) responseMap.get("errors");
-		if (CollectionUtils.isEmpty(rawErrors)) {
-			return Collections.emptyList();
-		}
-		List<GraphQLError> errors = new ArrayList<>(rawErrors.size());
-		for (Map<String, Object> map : rawErrors) {
-			errors.add(new MapGraphQlError(map));
-		}
-		return errors;
+	private static List<GraphQlResponseError> wrapErrors(Map<String, Object> map) {
+		List<Map<String, Object>> errors = (List<Map<String, Object>>) map.get("errors");
+		errors = (errors != null ? errors : Collections.emptyList());
+		return errors.stream().map(MapError::new).collect(Collectors.toList());
 	}
 
 
@@ -74,7 +80,7 @@ class MapGraphQlResponse implements GraphQlResponse {
 	}
 
 	@Override
-	public List<GraphQLError> getErrors() {
+	public List<GraphQlResponseError> getErrors() {
 		return this.errors;
 	}
 
@@ -177,12 +183,12 @@ class MapGraphQlResponse implements GraphQlResponse {
 	 * @param fieldPath the field path to match
 	 * @return errors whose path starts with the dataPath
 	 */
-	protected List<GraphQLError> getFieldErrors(List<Object> fieldPath) {
+	protected List<GraphQlResponseError> getFieldErrors(List<Object> fieldPath) {
 		if (fieldPath.isEmpty()) {
 			return Collections.emptyList();
 		}
-		List<GraphQLError> fieldErrors = Collections.emptyList();
-		for (GraphQLError error : this.errors) {
+		List<GraphQlResponseError> fieldErrors = Collections.emptyList();
+		for (GraphQlResponseError error : this.errors) {
 			List<Object> errorPath = error.getPath();
 			if (CollectionUtils.isEmpty(errorPath)) {
 				continue;
@@ -215,6 +221,117 @@ class MapGraphQlResponse implements GraphQlResponse {
 	@Override
 	public String toString() {
 		return this.responseMap.toString();
+	}
+
+
+	/**
+	 * {@link GraphQLError} that wraps a deserialized the GraphQL response map.
+	 */
+	@SuppressWarnings("serial")
+	private static final class MapError implements GraphQlResponseError {
+
+		private final Map<String, Object> errorMap;
+
+		private final List<SourceLocation> locations;
+
+		MapError(Map<String, Object> errorMap) {
+			Assert.notNull(errorMap, "'errorMap' is required");
+			this.errorMap = errorMap;
+			this.locations = initLocations(errorMap);
+		}
+
+		@SuppressWarnings("unchecked")
+		private static List<SourceLocation> initLocations(Map<String, Object> errorMap) {
+			List<Map<String, Object>> locations = (List<Map<String, Object>>) errorMap.get("locations");
+			if (locations == null) {
+				return Collections.emptyList();
+			}
+			return locations.stream()
+					.map(map -> new SourceLocation(
+							(int) map.getOrDefault("line", 0),
+							(int) map.getOrDefault("column", 0),
+							(String) map.get("sourceName")))
+					.collect(Collectors.toList());
+		}
+
+		@Override
+		@Nullable
+		public String getMessage() {
+			return (String) errorMap.get("message");
+		}
+
+		@Override
+		public List<SourceLocation> getLocations() {
+			return this.locations;
+		}
+
+		@Override
+		@Nullable
+		public ErrorClassification getErrorType() {
+			// Attempt the reverse of how errorType is serialized in GraphqlErrorHelper.toSpecification.
+			// However, we can only do that for ErrorClassification enums that we know of.
+			String value = (getExtensions() != null ? (String) getExtensions().get("classification") : null);
+			if (value != null) {
+				try {
+					return graphql.ErrorType.valueOf(value);
+				}
+				catch (IllegalArgumentException ex) {
+					// ignore
+				}
+				try {
+					return ErrorType.valueOf(value);
+				}
+				catch (IllegalArgumentException ex) {
+					// ignore
+				}
+			}
+			return null;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		@Nullable
+		public List<Object> getPath() {
+			return (List<Object>) this.errorMap.get("path");
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		@Nullable
+		public Map<String, Object> getExtensions() {
+			return (Map<String, Object>) this.errorMap.get("extensions");
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) {
+				return true;
+			}
+			if (o == null || this.getClass() != o.getClass()) {
+				return false;
+			}
+			GraphQlResponseError other = (GraphQlResponseError) o;
+			return (ObjectUtils.nullSafeEquals(getMessage(), other.getMessage()) &&
+					ObjectUtils.nullSafeEquals(getLocations(), other.getLocations()) &&
+					ObjectUtils.nullSafeEquals(getPath(), other.getPath()) &&
+					getErrorType() == other.getErrorType());
+		}
+
+		@Override
+		public int hashCode() {
+			int result = 1;
+			result = 31 * result + ObjectUtils.nullSafeHashCode(getMessage());
+			result = 31 * result + ObjectUtils.nullSafeHashCode(getLocations());
+			result = 31 * result + ObjectUtils.nullSafeHashCode(getPath());
+			result = 31 * result + ObjectUtils.nullSafeHashCode(getErrorType());
+			return result;
+		}
+
+		@Override
+		public String toString() {
+			return this.errorMap.toString();
+		}
+
 	}
 
 }

@@ -31,12 +31,12 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.TypeRef;
-import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
@@ -61,7 +61,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	private final GraphQlTransport transport;
 
 	@Nullable
-	private final Predicate<GraphQLError> errorFilter;
+	private final Predicate<GraphQlResponseError> errorFilter;
 
 	private final Configuration jsonPathConfig;
 
@@ -76,7 +76,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	 * Package private constructor for use from {@link AbstractGraphQlTesterBuilder}.
 	 */
 	DefaultGraphQlTester(
-			GraphQlTransport transport, @Nullable Predicate<GraphQLError> errorFilter,
+			GraphQlTransport transport, @Nullable Predicate<GraphQlResponseError> errorFilter,
 			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
@@ -209,15 +209,15 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Supplier<String> jsonContent;
 
-		private final List<GraphQLError> errors;
+		private final List<GraphQlResponseError> errors;
 
-		private final List<GraphQLError> unexpectedErrors;
+		private final List<GraphQlResponseError> unexpectedErrors;
 
 		private final Consumer<Runnable> assertDecorator;
 
 
 		private ResponseDelegate(
-				GraphQlResponse response, @Nullable Predicate<GraphQLError> errorFilter,
+				GraphQlResponse response, @Nullable Predicate<GraphQlResponseError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
 			this.jsonDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
@@ -253,9 +253,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			this.assertDecorator.accept(task);
 		}
 
-		boolean filterErrors(Predicate<GraphQLError> predicate) {
+		boolean filterErrors(Predicate<GraphQlResponseError> predicate) {
 			boolean filtered = false;
-			for (GraphQLError error : this.errors) {
+			for (GraphQlResponseError error : this.errors) {
 				if (predicate.test(error)) {
 					this.unexpectedErrors.remove(error);
 					filtered = true;
@@ -264,12 +264,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			return filtered;
 		}
 
-		void expectErrors(Predicate<GraphQLError> predicate) {
+		void expectErrors(Predicate<GraphQlResponseError> predicate) {
 			boolean filtered = filterErrors(predicate);
 			this.assertDecorator.accept(() -> AssertionErrors.assertTrue("No matching errors.", filtered));
 		}
 
-		void consumeErrors(Consumer<List<GraphQLError>> consumer) {
+		void consumeErrors(Consumer<List<GraphQlResponseError>> consumer) {
 			filterErrors(error -> true);
 			consumer.accept(this.errors);
 		}
@@ -293,7 +293,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private final ResponseDelegate delegate;
 
 		private DefaultResponse(
-				GraphQlResponse response, @Nullable Predicate<GraphQLError> errorFilter,
+				GraphQlResponse response, @Nullable Predicate<GraphQlResponseError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
 			this.delegate = new ResponseDelegate(response, errorFilter, assertDecorator, jsonPathConfig);
@@ -311,13 +311,13 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public Errors filter(Predicate<GraphQLError> predicate) {
+		public Errors filter(Predicate<GraphQlResponseError> predicate) {
 			this.delegate.filterErrors(predicate);
 			return this;
 		}
 
 		@Override
-		public Errors expect(Predicate<GraphQLError> predicate) {
+		public Errors expect(Predicate<GraphQlResponseError> predicate) {
 			this.delegate.expectErrors(predicate);
 			return this;
 		}
@@ -329,7 +329,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public Traversable satisfy(Consumer<List<GraphQLError>> consumer) {
+		public Traversable satisfy(Consumer<List<GraphQlResponseError>> consumer) {
 			this.delegate.consumeErrors(consumer);
 			return this;
 		}

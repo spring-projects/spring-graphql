@@ -20,8 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import graphql.GraphQLError;
-
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -31,7 +29,9 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
@@ -54,7 +54,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 	DefaultClientGraphQlResponse(
 			GraphQlRequest request, GraphQlResponse response, Encoder<?> encoder, Decoder<?> decoder) {
 
-		super(response.toMap());
+		super(response);
 
 		this.request = request;
 		this.encoder = encoder;
@@ -72,7 +72,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		List<Object> dataPath = parseFieldPath(path);
 		Object value = getFieldValue(dataPath);
-		List<GraphQLError> errors = getFieldErrors(dataPath);
+		List<GraphQlResponseError> errors = getFieldErrors(dataPath);
 
 		return new DefaultField(path, dataPath, (value != NO_VALUE ? value : null), errors);
 	}
@@ -97,13 +97,13 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 		private final List<Object> parsedPath;
 
-		private final List<GraphQLError> errors;
+		private final List<GraphQlResponseError> errors;
 
 		@Nullable
 		private final Object value;
 
 		public DefaultField(
-				String path, List<Object> parsedPath, @Nullable Object value, List<GraphQLError> errors) {
+				String path, List<Object> parsedPath, @Nullable Object value, List<GraphQlResponseError> errors) {
 
 			this.path = path;
 			this.parsedPath = parsedPath;
@@ -128,8 +128,9 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 		}
 
 		@Override
-		public GraphQLError getError() {
-			for (GraphQLError error : this.errors) {
+		public GraphQlResponseError getError() {
+			for (GraphQlResponseError error : this.errors) {
+				Assert.notNull(error.getPath(), "Expected field error");
 				if (error.getPath().size() <= this.parsedPath.size()) {
 					return error;
 				}
@@ -138,7 +139,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 		}
 
 		@Override
-		public List<GraphQLError> getErrors() {
+		public List<GraphQlResponseError> getErrors() {
 			return this.errors;
 		}
 
