@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql;
+package org.springframework.graphql.support;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;

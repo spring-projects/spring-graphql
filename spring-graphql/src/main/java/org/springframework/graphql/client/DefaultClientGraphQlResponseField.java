@@ -27,24 +27,62 @@ import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.DefaultGraphQlResponseField;
+import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.GraphQlResponseField;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
 
 /**
- * Default implementation of {@link ClientGraphQlResponseField}.
+ * Default implementation of {@link ClientGraphQlResponseField} that wraps the
+ * field from {@link org.springframework.graphql.GraphQlResponse} and adds
+ * support for decoding.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultClientGraphQlResponseField extends DefaultGraphQlResponseField implements ClientGraphQlResponseField {
+final class DefaultClientGraphQlResponseField implements ClientGraphQlResponseField {
+
+	private final DefaultClientGraphQlResponse response;
+
+	private final GraphQlResponseField field;
 
 
-	DefaultClientGraphQlResponseField(DefaultClientGraphQlResponse response, String path) {
-		super(response, path);
+	DefaultClientGraphQlResponseField(DefaultClientGraphQlResponse response, GraphQlResponseField field) {
+		this.response = response;
+		this.field = field;
 	}
 
+
+	@Override
+	public boolean hasValue() {
+		return this.field.hasValue();
+	}
+
+	@Override
+	public String getPath() {
+		return this.field.getPath();
+	}
+
+	@Override
+	public List<Object> getParsedPath() {
+		return this.field.getParsedPath();
+	}
+
+	@Override
+	public <T> T getValue() {
+		return this.field.getValue();
+	}
+
+	@Override
+	public GraphQlResponseError getError() {
+		return this.field.getError();
+	}
+
+	@Override
+	public List<GraphQlResponseError> getErrors() {
+		return this.field.getErrors();
+	}
 
 	@Override
 	public <D> D toEntity(Class<D> entityType) {
@@ -68,19 +106,18 @@ final class DefaultClientGraphQlResponseField extends DefaultGraphQlResponseFiel
 
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	private <T> T toEntity(ResolvableType targetType) {
-		DefaultClientGraphQlResponse response = getResponse();
 		if (!hasValue()) {
-			throw new FieldAccessException(response, this);
+			throw new FieldAccessException(this.response, this);
 		}
 
 		DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;
 		MimeType mimeType = MimeTypeUtils.APPLICATION_JSON;
 		Map<String, Object> hints = Collections.emptyMap();
 
-		DataBuffer buffer = ((Encoder<T>) response.getEncoder()).encodeValue(
+		DataBuffer buffer = ((Encoder<T>) this.response.getEncoder()).encodeValue(
 				(T) getValue(), bufferFactory, ResolvableType.forInstance(getValue()), mimeType, hints);
 
-		return ((Decoder<T>) response.getDecoder()).decode(buffer, targetType, mimeType, hints);
+		return ((Decoder<T>) this.response.getDecoder()).decode(buffer, targetType, mimeType, hints);
 	}
 
 }

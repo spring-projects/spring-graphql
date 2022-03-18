@@ -30,7 +30,7 @@ import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.DefaultGraphQlRequest;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;

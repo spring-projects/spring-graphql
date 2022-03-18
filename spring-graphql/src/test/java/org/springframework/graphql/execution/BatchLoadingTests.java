@@ -27,11 +27,11 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.RequestOutput;
-import org.springframework.graphql.TestRequestInput;
+import org.springframework.graphql.TestExecutionRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -76,9 +76,9 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<RequestOutput> outputMono = service.execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = service.execute(TestExecutionRequest.forDocument(document));
 
-		List<Book> books = ResponseHelper.forResponse(outputMono).toList("booksByCriteria", Book.class);
+		List<Book> books = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);
 
 		Author author = books.get(0).getAuthor();

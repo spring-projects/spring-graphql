@@ -16,21 +16,30 @@
 
 package org.springframework.graphql;
 
-import reactor.core.publisher.Mono;
+import graphql.ExecutionInput;
+import graphql.ExecutionResult;
+
 
 /**
- * Strategy to execute a GraphQL request by inoking GraphQL Java.
+ * Implementation of {@link GraphQlResponse} that wraps the {@link ExecutionResult}
+ * returned from {@link graphql.GraphQL} to expose it as {@link GraphQlResponse},
+ * also providing access to the {@link ExecutionInput} used for the request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface GraphQlService {
+public interface ExecutionGraphQlResponse extends GraphQlResponse {
 
 	/**
-	 * Execute the request and return the response.
-	 * @param request the request to execute
-	 * @return the resulting response
+	 * Return the {@link ExecutionInput} that was prepared through the
+	 * {@link ExecutionGraphQlRequest} and passed to {@link graphql.GraphQL}.
 	 */
-	Mono<ExecutionGraphQlResponse> execute(ExecutionGraphQlRequest request);
+	ExecutionInput getExecutionInput();
+
+	/**
+	 * Return the {@link ExecutionResult} that was returned from the invocation
+	 * to {@link graphql.GraphQL}.
+	 */
+	ExecutionResult getExecutionResult();
 
 }

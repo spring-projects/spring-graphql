@@ -81,9 +81,7 @@ public interface GraphQlResponse {
 	 * decode its value; use {@link GraphQlResponseField#hasValue()} to check if
 	 * the field actually exists and has a value.
 	 */
-	default GraphQlResponseField field(String path) {
-		return new DefaultGraphQlResponseField(this, path);
-	}
+	GraphQlResponseField field(String path);
 
 	/**
 	 * Return implementor specific, protocol extensions, if any.

@@ -28,7 +28,7 @@ import graphql.GraphQLError;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.DefaultGraphQlRequest;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;

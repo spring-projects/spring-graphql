@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.support;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +26,9 @@ import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import graphql.language.SourceLocation;
 
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.GraphQlResponseError;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -37,7 +40,7 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class RequestOutput implements GraphQlResponse {
+public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse implements ExecutionGraphQlResponse {
 
 	private final ExecutionInput input;
 
@@ -47,9 +50,9 @@ public class RequestOutput implements GraphQlResponse {
 	/**
 	 * Constructor to create initial instance.
 	 */
-	public RequestOutput(ExecutionInput input, ExecutionResult result) {
-		Assert.notNull(input, "ExecutionInput is required.");
-		Assert.notNull(result, "ExecutionResult is required.");
+	public DefaultExecutionGraphQlResponse(ExecutionInput input, ExecutionResult result) {
+		Assert.notNull(input, "ExecutionInput is required");
+		Assert.notNull(result, "ExecutionResult is required");
 		this.input = input;
 		this.result = result;
 	}
@@ -57,20 +60,18 @@ public class RequestOutput implements GraphQlResponse {
 	/**
 	 * Constructor to re-wrap from transport specific subclass.
 	 */
-	protected RequestOutput(RequestOutput requestOutput) {
-		this(requestOutput.getExecutionInput(), requestOutput.result);
+	protected DefaultExecutionGraphQlResponse(ExecutionGraphQlResponse response) {
+		this(response.getExecutionInput(), response.getExecutionResult());
 	}
 
 
-	/**
-	 * Return the {@link ExecutionInput} that was prepared from the
-	 * {@link RequestInput} and passed to {@link graphql.GraphQL}.
-	 */
+	@Override
 	public ExecutionInput getExecutionInput() {
 		return this.input;
 	}
 
-	protected ExecutionResult getExecutionResult() {
+	@Override
+	public ExecutionResult getExecutionResult() {
 		return this.result;
 	}
 
@@ -85,10 +86,12 @@ public class RequestOutput implements GraphQlResponse {
 		return this.result.getData();
 	}
 
+	@Override
 	public List<GraphQlResponseError> getErrors() {
 		return this.result.getErrors().stream().map(Error::new).collect(Collectors.toList());
 	}
 
+	@Override
 	public Map<Object, Object> getExtensions() {
 		return (this.result.getExtensions() != null ? this.result.getExtensions() : Collections.emptyMap());
 	}
@@ -149,6 +152,5 @@ public class RequestOutput implements GraphQlResponse {
 		}
 
 	}
-
 
 }

@@ -19,10 +19,9 @@ package org.springframework.graphql.test.tester;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.RequestOutput;
 import org.springframework.util.Assert;
 
 
@@ -48,13 +47,8 @@ final class GraphQlServiceTransport extends AbstractDirectTransport {
 	}
 
 	@Override
-	protected Mono<RequestOutput> executeInternal(GraphQlRequest request) {
-
-		RequestInput requestInput = new RequestInput(
-				request.getDocument(), request.getOperationName(), request.getVariables(),
-				idGenerator.generateId().toString(), null);
-
-		return this.graphQlService.execute(requestInput);
+	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest request) {
+		return this.graphQlService.execute(request);
 	}
 
 }

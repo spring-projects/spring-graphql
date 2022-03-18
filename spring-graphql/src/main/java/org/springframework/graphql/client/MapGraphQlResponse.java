@@ -27,6 +27,7 @@ import graphql.language.SourceLocation;
 
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.support.AbstractGraphQlResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -37,7 +38,7 @@ import org.springframework.util.ObjectUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-class MapGraphQlResponse implements GraphQlResponse {
+class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlResponse {
 
 	private final Map<String, Object> responseMap;
 

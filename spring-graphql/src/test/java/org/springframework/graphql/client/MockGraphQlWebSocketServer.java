@@ -29,6 +29,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -154,7 +155,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 
 
 		private Exchange(String operation) {
-			this.request = new GraphQlRequest(operation);
+			this.request = new DefaultGraphQlRequest(operation);
 		}
 
 		@Override

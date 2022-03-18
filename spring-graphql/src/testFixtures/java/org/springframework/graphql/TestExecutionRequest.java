@@ -18,24 +18,26 @@ package org.springframework.graphql;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
+
 /**
- * {@link RequestInput} for use in tests with a convenient single-arg constructor
- * and simple incrementing id generation.
+ * {@link ExecutionGraphQlRequest} for use in tests with a convenient single-arg
+ * constructor and simple incrementing id generation.
  *
  * @author Rossen Stoyanchev
  */
-public class TestRequestInput extends RequestInput {
+public class TestExecutionRequest extends DefaultExecutionGraphQlRequest {
 
 	private static final AtomicLong idIndex = new AtomicLong();
 
 
-	private TestRequestInput(String document) {
+	private TestExecutionRequest(String document) {
 		super(document, null, null, String.valueOf(idIndex.incrementAndGet()), null);
 	}
 
 
-	public static RequestInput forDocument(String document) {
-		return new TestRequestInput(document);
+	public static ExecutionGraphQlRequest forDocument(String document) {
+		return new TestExecutionRequest(document);
 	}
 
 }

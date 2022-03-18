@@ -48,13 +48,13 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 		GraphQlTester tester = builder.build();
 		tester.documentName("name").execute();
 
-		assertThat(requestInput().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
 		tester = tester.mutate().build();
 		tester.documentName("name").execute();
 
-		assertThat(requestInput().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 				.errors().verify()
 				.path("me").pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 }

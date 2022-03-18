@@ -34,7 +34,8 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
@@ -223,11 +224,11 @@ public class WebGraphQlClientBuilderTests {
 
 		private WebInput webInput;
 
-		private final Map<String, RequestOutput> responses = new HashMap<>();
+		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
 
 		public AbstractBuilderSetup() {
 
-			RequestOutput defaultResponse = new RequestOutput(
+			ExecutionGraphQlResponse defaultResponse = new DefaultExecutionGraphQlResponse(
 					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
 					ExecutionResultImpl.newExecutionResult().build());
 
@@ -235,11 +236,11 @@ public class WebGraphQlClientBuilderTests {
 		}
 
 		protected WebGraphQlHandler webGraphQlHandler() {
-			return WebGraphQlHandler.builder(requestInput -> {
-						String document = requestInput.getDocument();
-						RequestOutput output = this.responses.get(document);
-						Assert.notNull(output, "Unexpected request: " + document);
-						return Mono.just(output);
+			return WebGraphQlHandler.builder(request -> {
+						String document = request.getDocument();
+						ExecutionGraphQlResponse response = this.responses.get(document);
+						Assert.notNull(response, "Unexpected request: " + document);
+						return Mono.just(response);
 					})
 					.interceptor((input, chain) -> {
 						this.webInput = input;
@@ -251,7 +252,7 @@ public class WebGraphQlClientBuilderTests {
 		@Override
 		public void setMockResponse(String document, ExecutionResult result) {
 			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
-			this.responses.put(document, new RequestOutput(executionInput, result));
+			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
 		}
 
 		@Override

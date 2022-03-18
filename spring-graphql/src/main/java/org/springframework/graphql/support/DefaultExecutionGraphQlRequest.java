@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql;
+package org.springframework.graphql.support;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +25,8 @@ import java.util.function.BiFunction;
 import graphql.ExecutionInput;
 import graphql.execution.ExecutionId;
 
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -41,7 +43,7 @@ import org.springframework.util.Assert;
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class RequestInput extends DefaultGraphQlRequest {
+public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implements ExecutionGraphQlRequest {
 
 	private final String id;
 
@@ -62,7 +64,7 @@ public class RequestInput extends DefaultGraphQlRequest {
 	 * @param id the request id, to be used as the {@link ExecutionId}
 	 * @param locale the locale associated with the request
 	 */
-	public RequestInput(
+	public DefaultExecutionGraphQlRequest(
 			String document, @Nullable String operationName, @Nullable Map<String, Object> variables,
 			String id, @Nullable Locale locale) {
 
@@ -73,76 +75,35 @@ public class RequestInput extends DefaultGraphQlRequest {
 	}
 
 
-	/**
-	 * Return the transport assigned id for the request which is then used to set
-	 * {@link ExecutionInput.Builder#executionId(ExecutionId) executionId}.
-	 * The is initialized as follows:
-	 * <ul>
-	 * <li>For WebFlux, this is the {@code ServerHttpRequest} id which correlates
-	 * to WebFlux log messages. For Reactor Netty, it also correlates to server
-	 * log messages.
-	 * <li>For Spring MVC, the id is generated via
-	 * {@link org.springframework.util.AlternativeJdkIdGenerator}, which does
-	 * not correlate to anything, but is more efficient than the default
-	 * {@link graphql.execution.ExecutionIdProvider} which relies on
-	 * {@code UUID.randomUUID()}.
-	 * <li>For WebSocket, this is the GraphQL over WebSocket {@code "subscribe"}
-	 * message id, which correlates to WebSocket messages.
-	 * </ul>
-	 * <p>To override this id, use {@link #executionId(ExecutionId)} or configure
-	 * {@link graphql.GraphQL} with an {@link graphql.execution.ExecutionIdProvider}.
-	 * @return the request id
-	 */
+	@Override
 	public String getId() {
 		return this.id;
 	}
 
-	/**
-	 * Configure the {@link ExecutionId} to set on
-	 * {@link ExecutionInput#getExecutionId()}, overriding the transport assigned
-	 * {@link #getId() id}.
-	 * @param executionId the id to use
-	 */
+	@Override
 	public void executionId(ExecutionId executionId) {
 		Assert.notNull(executionId, "executionId is required");
 		this.executionId = executionId;
 	}
 
-	/**
-	 * Return the configured {@link #executionId(ExecutionId) executionId}.
-	 */
+	@Override
 	@Nullable
 	public ExecutionId getExecutionId() {
 		return this.executionId;
 	}
 
-	/**
-	 * Return the transport assigned locale value, if any.
-	 */
+	@Override
 	@Nullable
 	public Locale getLocale() {
 		return this.locale;
 	}
 
-	/**
-	 * Provide a {@code BiFunction} to help initialize the {@link ExecutionInput}
-	 * passed to {@link graphql.GraphQL}. The {@code ExecutionInput} is first
-	 * pre-populated with values from "this" {@code RequestInput}, and is then
-	 * customized with the functions provided here.
-	 * @param configurer a {@code BiFunction} that accepts the
-	 * {@code ExecutionInput} initialized so far, and a builder to customize it.
-	 */
+	@Override
 	public void configureExecutionInput(BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer) {
 		this.executionInputConfigurers.add(configurer);
 	}
 
-	/**
-	 * Create the {@link ExecutionInput} to pass to {@link graphql.GraphQL}.
-	 * passed to {@link graphql.GraphQL}. The {@code ExecutionInput} is populated
-	 * with values from "this" {@code RequestInput}, and then customized with
-	 * functions provided via {@link #configureExecutionInput(BiFunction)}.
-	 * @return the resulting {@code ExecutionInput}
-	 */
+	@Override
 	public ExecutionInput toExecutionInput() {
 		ExecutionInput.Builder inputBuilder = ExecutionInput.newExecutionInput()
 				.query(getDocument())

@@ -20,7 +20,7 @@ import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -38,7 +38,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebInput extends RequestInput {
+public class WebInput extends DefaultExecutionGraphQlRequest {
 
 	private final UriComponents uri;
 

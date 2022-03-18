@@ -20,15 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 /**
  * Decorate an {@link ExecutionResult}, provide a way to {@link #transform(Consumer)
@@ -38,24 +37,23 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebOutput extends RequestOutput {
+public class WebOutput extends DefaultExecutionGraphQlResponse {
 
 	private final HttpHeaders responseHeaders;
 
 
 	/**
-	 * Create an instance from the given {@link RequestOutput}.
-	 * @param requestOutput the output from an executed request
+	 * Create an instance that wraps the given {@link ExecutionGraphQlResponse}.
+	 * @param response the response to wrap
 	 */
-	public WebOutput(RequestOutput requestOutput) {
-		super(requestOutput);
+	public WebOutput(ExecutionGraphQlResponse response) {
+		super(response);
 		this.responseHeaders = new HttpHeaders();
 	}
 
-	private WebOutput(ExecutionInput executionInput, ExecutionResult executionResult, HttpHeaders headers) {
-		super(executionInput, executionResult);
-		Assert.notNull(headers, "HttpHeaders is required");
-		this.responseHeaders = headers;
+	private WebOutput(WebOutput original, ExecutionResult executionResult) {
+		super(original.getExecutionInput(), executionResult);
+		this.responseHeaders = original.getResponseHeaders();
 	}
 
 
@@ -90,11 +88,11 @@ public class WebOutput extends RequestOutput {
 
 		private final WebOutput original;
 
-		private final ExecutionResultImpl.Builder builder;
+		private final ExecutionResultImpl.Builder executionResultBuilder;
 
 		private Builder(WebOutput original) {
 			this.original = original;
-			this.builder = ExecutionResultImpl.newExecutionResult().from(original.getExecutionResult());
+			this.executionResultBuilder = ExecutionResultImpl.newExecutionResult().from(original.getExecutionResult());
 		}
 
 		/**
@@ -103,7 +101,7 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder data(Object data) {
-			this.builder.data(data);
+			this.executionResultBuilder.data(data);
 			return this;
 		}
 
@@ -114,7 +112,7 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder errors(@Nullable List<GraphQLError> errors) {
-			this.builder.errors(errors);
+			this.executionResultBuilder.errors(errors);
 			return this;
 		}
 
@@ -125,13 +123,12 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder extensions(@Nullable Map<Object, Object> extensions) {
-			this.builder.extensions(extensions);
+			this.executionResultBuilder.extensions(extensions);
 			return this;
 		}
 
 		public WebOutput build() {
-			return new WebOutput(this.original.getExecutionInput(), this.builder.build(),
-					this.original.getResponseHeaders());
+			return new WebOutput(this.original, this.executionResultBuilder.build());
 		}
 
 	}

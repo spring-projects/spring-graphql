@@ -26,8 +26,8 @@ import graphql.language.SourceLocation;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.RequestInput;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,7 +51,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		response.path("me.friends").pathExists().valueExists();
 		response.path("hero").pathDoesNotExist().valueDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -69,7 +69,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.as("Path does not even exist")
 				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.as("Extended fields should fail in strict mode")
 				.hasMessageContaining("Unexpected: name");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -118,7 +118,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
 				.isEqualTo(Collections.singletonMap("me", luke));
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -153,7 +153,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
 				.containsExactly(han, leia);
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -176,13 +176,13 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		response.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
 
-		RequestInput input = requestInput();
-		assertThat(input.getDocument()).contains(document);
-		assertThat(input.getOperationName()).isEqualTo("HeroNameAndFriends");
-		assertThat(input.getVariables()).hasSize(3);
-		assertThat(input.getVariables()).containsEntry("episode", "JEDI");
-		assertThat(input.getVariables()).containsEntry("foo", "bar");
-		assertThat(input.getVariables()).containsEntry("keyOnly", null);
+		ExecutionGraphQlRequest request = request();
+		assertThat(request.getDocument()).contains(document);
+		assertThat(request.getOperationName()).isEqualTo("HeroNameAndFriends");
+		assertThat(request.getVariables()).hasSize(3);
+		assertThat(request.getVariables()).containsEntry("episode", "JEDI");
+		assertThat(request.getVariables()).containsEntry("foo", "bar");
+		assertThat(request.getVariables()).containsEntry("keyOnly", null);
 	}
 
 	@Test
@@ -193,7 +193,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		graphQlTester().document(document).executeAndVerify();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -205,7 +205,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThatThrownBy(() -> graphQlTester().document(document).executeAndVerify())
 				.hasMessageContaining("Response has 1 unexpected error(s)");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -217,7 +217,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThatThrownBy(() -> graphQlTester().document(document).execute().path("me"))
 				.hasMessageContaining("Response has 1 unexpected error(s)");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -236,7 +236,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 						.verify())
 				.hasMessageContaining("Response has 1 unexpected error(s) of 2 total.");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -255,7 +255,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.path("me")
 				.pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -273,7 +273,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.verify()
 				.path("me").pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -312,7 +312,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				})
 				.path("me").pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 }

@@ -27,8 +27,9 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,9 +77,9 @@ public class WebInterceptorTests {
 		AtomicReference<String> actualName = new AtomicReference<>();
 
 		WebGraphQlHandler handler = WebGraphQlHandler
-				.builder((input) -> {
-					actualName.set(input.toExecutionInput().getOperationName());
-					return emptyExecutionResult(input);
+				.builder((request) -> {
+					actualName.set(request.toExecutionInput().getOperationName());
+					return emptyExecutionResult(request);
 				})
 				.interceptor((webInput, next) -> {
 					webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
@@ -91,8 +92,8 @@ public class WebInterceptorTests {
 		assertThat(actualName.get()).isEqualTo("testOp");
 	}
 
-	private Mono<RequestOutput> emptyExecutionResult(RequestInput input) {
-		return Mono.just(new RequestOutput(
+	private Mono<ExecutionGraphQlResponse> emptyExecutionResult(ExecutionGraphQlRequest request) {
+		return Mono.just(new DefaultExecutionGraphQlResponse(
 				ExecutionInput.newExecutionInput("{}").build(),
 				ExecutionResultImpl.newExecutionResult().build()));
 	}

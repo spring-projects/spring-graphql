@@ -22,8 +22,8 @@ import java.util.Map;
 
 import graphql.GraphQLError;
 
+import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.RequestOutput;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -179,8 +179,8 @@ public class GraphQlMessage {
 	 * @param id unique request id
 	 * @param output the output to obtain the result map from
 	 */
-	public static GraphQlMessage next(String id, RequestOutput output) {
-		Assert.notNull(output, "'RequestOutput' is required");
+	public static GraphQlMessage next(String id, ExecutionGraphQlResponse output) {
+		Assert.notNull(output, "ExecutionGraphQlResponse is required");
 		return next(id, output.toMap());
 	}
 
