@@ -20,22 +20,29 @@ import java.util.List;
 
 import graphql.GraphQLError;
 
+import org.springframework.graphql.GraphQlRequest;
+
 /**
- * Exception that is sent as an error signal to a {@code Flux} returned from
- * {@link GraphQlClient} or from its underlying {@link GraphQlTransport} for a
- * GraphQL over WebSocket subscription that ends with an "error" message.
+ * WebSocket {@link GraphQlTransportException} raised when a subscription
+ * ends with an {@code "error"} message. The {@link #getErrors()} method provides
+ * access to the GraphQL errors from the message payload.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 @SuppressWarnings("serial")
-public class SubscriptionErrorException extends RuntimeException {
+public class SubscriptionErrorException extends GraphQlTransportException {
 
 	private final List<GraphQLError> errors;
 
 
-	public SubscriptionErrorException(List<GraphQLError> errors) {
-		super("GraphQL subscription error: " + errors);
+	/**
+	 * Constructor with the request details and the errors listed in the payload
+	 * of the {@code "errors"} message.
+	 */
+	public SubscriptionErrorException(GraphQlRequest request, List<GraphQLError> errors) {
+		super("GraphQL subscription completed with an \"error\" message, " +
+				"with the following errors: " + errors, null, request);
 		this.errors = errors;
 	}
 

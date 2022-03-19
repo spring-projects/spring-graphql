@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestOutput;
@@ -76,9 +76,9 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<RequestOutput> resultMono = service.execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = service.execute(TestRequestInput.forDocument(document));
 
-		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
+		List<Book> books = ResponseHelper.forResponse(outputMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);
 
 		Author author = books.get(0).getAuthor();

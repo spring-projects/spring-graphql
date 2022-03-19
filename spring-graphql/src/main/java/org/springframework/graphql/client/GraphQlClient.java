@@ -18,8 +18,6 @@ package org.springframework.graphql.client;
 import java.util.List;
 import java.util.Map;
 
-import graphql.ExecutionResult;
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -54,7 +52,7 @@ public interface GraphQlClient {
 	 * @param document the document for the request
 	 * @return spec to further define or execute the request
 	 */
-	Request document(String document);
+	RequestSpec document(String document);
 
 	/**
 	 * Variant of {@link #document(String)} that uses the given key to resolve
@@ -62,7 +60,7 @@ public interface GraphQlClient {
 	 * {@link DocumentSource} that the client is configured with.
 	 * @throws IllegalArgumentException if the content could not be loaded
 	 */
-	Request documentName(String name);
+	RequestSpec documentName(String name);
 
 	/**
 	 * Return a builder initialized from the configuration of "this" client
@@ -107,7 +105,7 @@ public interface GraphQlClient {
 	/**
 	 * Declare options to gather input for a GraphQL request and execute it.
 	 */
-	interface Request {
+	interface RequestSpec {
 
 		/**
 		 * Set the name of the operation in the {@link #document(String) document}
@@ -115,7 +113,7 @@ public interface GraphQlClient {
 		 * @param operationName the operation name
 		 * @return this request spec
 		 */
-		Request operationName(@Nullable String operationName);
+		RequestSpec operationName(@Nullable String operationName);
 
 		/**
 		 * Add a value for a variable defined by the operation.
@@ -123,27 +121,41 @@ public interface GraphQlClient {
 		 * @param value the variable value
 		 * @return this request spec
 		 */
-		Request variable(String name, Object value);
+		RequestSpec variable(String name, @Nullable Object value);
 
 		/**
 		 * Add all given values for variables defined by the operation.
 		 * @param variables the variable values
 		 * @return this request spec
 		 */
-		Request variables(Map<String, Object> variables);
+		RequestSpec variables(Map<String, Object> variables);
 
 		/**
-		 * Execute as a request with a single response such as a "query" or
-		 * "mutation" operation.
-		 * @return a {@code Mono} with a {@code ResponseSpec} for further
+		 * Shortcut for {@link #execute()} with a single field path to decode from.
+		 * @return a spec with decoding options
+		 * @throws FieldAccessException if the target field has any errors,
+		 * including nested errors.
+		 */
+		RetrieveSpec retrieve(String path);
+
+		/**
+		 * Shortcut for {@link #executeSubscription()} with a single field path to decode from.
+		 * @return a spec with decoding options
+		 */
+		RetrieveSubscriptionSpec retrieveSubscription(String path);
+
+		/**
+		 * Execute request with a single response, e.g. "query" or "mutation", and
+		 * return a response for further options.
+		 * @return a {@code Mono} with a {@code ClientGraphQlResponse} for further
 		 * decoding of the response. The {@code Mono} may end wth an error due
 		 * to transport level issues.
 		 */
-		Mono<Response> execute();
+		Mono<ClientGraphQlResponse> execute();
 
 		/**
-		 * Execute a "subscription" request with a stream of responses.
-		 * @return a {@code Flux} with a {@code ResponseSpec} for further
+		 * Execute a "subscription" request and return a stream of responses.
+		 * @return a {@code Flux} with a {@code ClientGraphQlResponse} for further
 		 * decoding of the response. The {@code Flux} may terminate as follows:
 		 * <ul>
 		 * <li>Completes if the subscription completes before the connection is closed.
@@ -155,72 +167,80 @@ public interface GraphQlClient {
 		 * <p>The {@code Flux} may be cancelled to notify the server to end the
 		 * subscription stream.
 		 */
-		Flux<Response> executeSubscription();
+		Flux<ClientGraphQlResponse> executeSubscription();
 
 	}
 
 
 	/**
-	 * Declare options to decode a response.
+	 * Declares options to decode a field for a single response operation.
 	 */
-	interface Response {
+	interface RetrieveSpec {
 
 		/**
-		 * Switch to the given the "data" path of the GraphQL response and
-		 * convert the data to the target type. The path can be an operation
-		 * root type name, e.g. "book", or a nested path such as "book.name",
-		 * or any <a href="https://github.com/jayway/JsonPath">JsonPath</a>
-		 * relative to the "data" key of the response.
-		 * @param path a JSON path to the data of interest
+		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @param <D> the target entity type
-		 * @return the entity resulting from the conversion
+		 * @return {@code Mono} with the decoded entity, or a
+		 * {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}.
 		 */
-		<D> D toEntity(String path, Class<D> entityType);
+		<D> Mono<D> toEntity(Class<D> entityType);
 
 		/**
-		 * Variant of {@link #toEntity(String, Class)} for entity classes with
-		 * generic types.
-		 * @param path a JSON path to the data of interest
+		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
+		 */
+		<D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType);
+
+		/**
+		 * Decode the field to a list of entities with the given type.
+		 * @param elementType the type of elements in the list
+		 * @return {@code Mono} with a list of decoded entities, possibly empty, or
+		 * a {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}; the stream
+		 */
+		<D> Mono<List<D>> toEntityList(Class<D> elementType);
+
+		/**
+		 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
+		 */
+		<D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
+
+	}
+
+
+	/**
+	 * Declares options to decode a field in each response of a subscription.
+	 */
+	interface RetrieveSubscriptionSpec {
+
+		/**
+		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @param <D> the target entity type
-		 * @return the entity resulting from the conversion
+		 * @return {@code Mono} with the decoded entity, or a
+		 * {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}.
 		 */
-		<D> D toEntity(String path, ParameterizedTypeReference<D> entityType);
+		<D> Flux<D> toEntity(Class<D> entityType);
 
 		/**
-		 * Switch to the given the "data" path of the GraphQL response and
-		 * convert the data to a List with the given element type.
-		 * The path can be an operation root type name, e.g. "book", or a
-		 * nested path such as "book.name", or any
-		 * <a href="https://github.com/jayway/JsonPath">JsonPath</a>
-		 * relative to the "data" key of the response.
-		 * @param path a JSON path to the data of interest
-		 * @param elementType the type of element to convert to
-		 * @param <D> the target entity type
-		 * @return the list of entities resulting from the conversion
+		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
 		 */
-		<D> List<D> toEntityList(String path, Class<D> elementType);
+		<D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType);
 
 		/**
-		 * Variant of {@link #toEntityList(String, Class)} for entity classes
-		 * with generic types.
-		 * @param path a JSON path to the data of interest
-		 * @param elementType the type to convert to
-		 * @param <D> the target entity type
-		 * @return the list of entities resulting from the conversion
+		 * Decode the field to a list of entities with the given type.
+		 * @param elementType the type of elements in the list
+		 * @return lists of decoded entities, possibly empty, or a
+		 * {@link FieldAccessException} if the target field is not present or
+		 * has no value, checked via {@link ResponseField#hasValue()}; the stream
+		 * may also end with a range of {@link GraphQlTransportException} types.
 		 */
-		<D> List<D> toEntityList(String path, ParameterizedTypeReference<D> elementType);
+		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 
 		/**
-		 * Return the errors from the response or an empty list.
+		 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
 		 */
-		List<GraphQLError> errors();
-
-		/**
-		 * Return the underlying {@link ExecutionResult} for the response.
-		 */
-		ExecutionResult andReturn();
+		<D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
 
 	}
 

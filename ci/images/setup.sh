@@ -15,8 +15,6 @@ rm -rf /var/lib/apt/lists/*
 
 curl https://raw.githubusercontent.com/spring-io/concourse-java-scripts/v0.0.4/concourse-java.sh > /opt/concourse-java.sh
 
-curl --output /opt/concourse-release-scripts.jar https://repo.spring.io/release/io/spring/concourse/releasescripts/concourse-release-scripts/0.3.3/concourse-release-scripts-0.3.3.jar
-
 ###########################################################
 # JAVA
 ###########################################################

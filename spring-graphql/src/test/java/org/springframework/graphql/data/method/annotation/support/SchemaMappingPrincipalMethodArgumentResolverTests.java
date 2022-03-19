@@ -31,7 +31,7 @@ import reactor.util.context.Context;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.MethodParameter;
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestOutput;
 import org.springframework.graphql.TestRequestInput;
@@ -106,7 +106,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 			Mono<RequestOutput> resultMono = executeAsync(
 					"type Query { " + field + ": String }", "{ " + field + " }", contextWriter);
 
-			String greeting = GraphQlResponse.from(resultMono).toEntity(field, String.class);
+			String greeting = ResponseHelper.forResponse(resultMono).toEntity(field, String.class);
 			assertThat(greeting).isEqualTo("Hello");
 			assertThat(greetingController.principal()).isSameAs(authentication);
 		}
@@ -141,7 +141,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 					"subscription Greeting { " + field + " }",
 					contextModifier);
 
-			Flux<String> greetingFlux = GraphQlResponse.forSubscription(resultMono)
+			Flux<String> greetingFlux = ResponseHelper.forSubscription(resultMono)
 					.map(response -> response.toEntity(field, String.class));
 
 			StepVerifier.create(greetingFlux).expectNext("Hello", "Hi").verifyComplete();

@@ -20,12 +20,11 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.util.function.Consumer;
 
-import graphql.ExecutionResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.client.CodecMappingProvider;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.client.WebSocketGraphQlClient;
@@ -150,7 +149,7 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 		private void registerJsonPathMappingProvider() {
 			this.graphQlClientBuilder.codecConfigurer(codecConfigurer -> {
 				configureJsonPathConfig(jsonPathConfig -> {
-					CodecMappingProvider provider = new CodecMappingProvider(codecConfigurer);
+					EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(codecConfigurer);
 					return jsonPathConfig.mappingProvider(provider);
 				});
 			});
@@ -164,22 +163,23 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 			return new GraphQlTransport() {
 
 				@Override
-				public Mono<ExecutionResult> execute(GraphQlRequest request) {
+				public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 					return client
 							.document(request.getDocument())
 							.operationName(request.getOperationName())
 							.variables(request.getVariables())
 							.execute()
-							.map(GraphQlClient.Response::andReturn);
+							.cast(GraphQlResponse.class);
 				}
 
 				@Override
-				public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+				public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 					return client
 							.document(request.getDocument())
 							.operationName(request.getOperationName())
 							.variables(request.getVariables())
-							.executeSubscription().map(GraphQlClient.Response::andReturn);
+							.executeSubscription()
+							.cast(GraphQlResponse.class);
 				}
 			};
 		}

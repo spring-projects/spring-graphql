@@ -130,19 +130,15 @@ final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient imp
 		@Override
 		public HttpGraphQlClient build() {
 
-			registerJsonPathMappingProvider();
+			this.webClientBuilder.codecs(configurer ->
+					setJsonCodecs(
+							CodecDelegate.findJsonEncoder(configurer),
+							CodecDelegate.findJsonDecoder(configurer)));
+
 			WebClient webClient = this.webClientBuilder.build();
 
 			GraphQlClient graphQlClient = super.buildGraphQlClient(new HttpGraphQlTransport(webClient));
 			return new DefaultHttpGraphQlClient(graphQlClient, webClient, getBuilderInitializer());
-		}
-
-		private void registerJsonPathMappingProvider() {
-			this.webClientBuilder.codecs(codecConfigurer ->
-					configureJsonPathConfig(config -> {
-						CodecMappingProvider provider = new CodecMappingProvider(codecConfigurer);
-						return config.mappingProvider(provider);
-					}));
 		}
 
 	}

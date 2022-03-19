@@ -106,17 +106,17 @@ on an existing `WebSocketGraphQlClient` to create another with different configu
 
 ----
 
-`WebSocketGraphQlClient` exposes a `start()` method to connect the underlying WebSocket.
-This can be used on startup up to prepare for requests, but it is not required. A
-connection is established automatically when a request is made.
+A connection is established transparently when requests are made. There is only one
+shared, active connection at a time. If the connection is lost, it is automatically
+re-established on the next request.
 
-`WebSocketGraphQlClient` maintains only one connection at a time that is used in
-multiplex style and shared for all requests through the client. If the connection is
-lost, it is automatically re-established on the next request.
+`WebSocketGraphQlClient` also exposes lifecycle methods:
 
-`WebSocketGraphQlClient` also exposes a `stop()` method that cancels ongoing
-requests and subscriptions, and closes the connection. A stopped client rejects
-new requests. Use `start()` to re-establish the connection and allow requests again.
+- `start()` - connect the WebSocket and initialize the GraphQL session. This can be used
+on startup up to be ready for requests, but it is not required.
+- `stop()` - cancels ongoing requests and subscriptions, and closes the connection. A
+stopped client rejects new requests. Use `start()` to re-establish the connection and
+allow requests again.
 
 
 
@@ -133,9 +133,16 @@ which is a strategy for loading the document for a request by file name.
 [[client-requests]]
 == Requests
 
-Once you have a `GraphQlClient`, you can begin to execute requests. The below executes
-a query for a project and uses https://github.com/json-path/JsonPath[JsonPath] to
-access the project from the response:
+Once you have a <<client-graphqlclient>>, you can begin to perform requests via
+<<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>,
+with one merely a shortcut over the other.
+
+
+
+[[client-requests-retrieve]]
+=== Retrieve
+
+The below retrieves and decodes the data for a query:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -148,18 +155,88 @@ access the project from the response:
 			"  }" +
 			"}";
 
+	Mono<Project> projectMono = graphQlClient.document(document) <1>
+			.retrieve("project") <2>
+			.toEntity(Project.class); <3>
+----
+<1> The operation to perform
+<2> Retrieve the response, and specify a path to decode from
+<3> Decode to a target object
+
+The document is a `String` that could be a literal or produced through a code generated
+request object. You can also define documents in files and use a
+<<client-requests-document-source>> to resole them by file name.
+
+The path is relative to the "data" key and uses a simple dot (".") separated notation
+for nested fields with optional array indices for list elements, e.g. `"project.name"`,
+`"project .releases[0].version"`, and so on.
+
+Decoding can fail with `FieldAccessException` if the given path is not present in the
+response map, or when there is no "data" key (failed response) at all, or when there is
+a `null` value with a field error at the path.
+
+By default, `FieldAccessException` is also raised on `retrieve` for partial data where
+the field value exists but nested fields may be `null` with a field error. In such
+cases, you can handle the exception to examine the errors and decide whether or how to
+decode the partial data:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
 	Mono<Project> projectMono = graphQlClient.document(document)
-			.execute()
-			.map(response -> response.toEntity("project", Project.class));
+			.retrieve("project")
+			.toEntity(Project.class)
+			.onErrorResume(FieldAccessException.class, ex -> {
+				ResponseField field = ex.getField();
+				// Use field to check nested field errors and/or decode
+				// Return Mono with Project or an error
+			});
 ----
 
-The JsonPath is relative to the "data" section of the response.
+TIP: The GraphQL spec considers a partial response or a partial field to be valid, and
+it may be feasible to decode them. By contrast, a failed field (i.e. value not present or
+is `null` with field error) or a failed response (no "data" key) are not valid and
+attempts to decode those are always rejected.
 
-You can also create document files with extensions `.graphql` or `.gql` under
-`"graphql/"` on the classpath and refer to them by file name. For example, given a file
-called `project.graphql` in `src/main/resources/graphql`, with content:
+
+
+[[client-requests-execute]]
+=== Execute
+
+The `retrieve` method is only a shortcut to decode to a single higher level object. For
+more control and access to the response, use the `execute` method. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+
+	Mono<Project> projectMono = graphQlClient.document(document)
+			.execute()
+			.map(response -> {
+				// Check response.isValid(), getErrors()
+
+				ResponseField field = response.field("project");
+				// Check field.isValid(), getError()
+
+				return field.toEntity(Project.class)
+			});
+----
+
+You can use `execute` to check response errors, obtain different fields, check their
+field errors and nested field errors, and/or decode their values.
+
+
+
+[[client-requests-document-source]]
+=== Document Source
+
+The document for a request is a `String` that may be defined in a local variable or
+constant, or it may be produced through a code generated request object.
+
+Alternatively, you can also keep documents in files with extensions `.graphql` or `
+.gql`, on the classpath or anywhere else, and refer to those by file name. For example,
+given:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
+.src/main/resources/graphql/project.graphql
 ----
 	query projectReleases($slug: ID!) {
 		project(slug: $slug) {
@@ -171,40 +248,61 @@ called `project.graphql` in `src/main/resources/graphql`, with content:
 	}
 ----
 
-You can then use:
+You can then:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	Mono<Project> projectMono = graphQlClient.documentName("project") <1>
 			.variable("slug", "spring-framework") <2>
-			.execute()
-			.map(response -> response.toEntity("project", Project.class));
+			.retrieve()
+			.toEntity(Project.class);
 ----
-<1> Refer to the document in the file named "projectReleases".
-<2> Set the `slug` variable.
+<1> Load the document from "project.graphql"
+<2> Provide variable values.
 
-[TIP]
-====
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
-====
+
+You can use the `GraphQlClient` <<client-graphqlclient-builder>> to customize the
+`DocumentSource` for loading documents by names.
 
 
 
 [[client-subscriptions]]
 == Subscriptions
 
-To start a subscription, call `executeSubscription` instead of `execute` to obtain a
-stream of responses rather than a single response:
+For a subscription operation, call `retrieveSubscription` instead of `retrieve` to
+obtain a stream of responses rather than a single response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	Flux<String> greetingFlux = client.document("subscription { greetings }")
+			.retrieveSubscription("greeting")
+			.toEntity(String.class);
+----
+
+Similar to the <<client-requests-retrieve>> vs <<client-requests-execute>> choice
+for requests with a single response, the same choice is also available for subscriptions.
+For example, for more control over each response, use `executeSubscription` instead of
+`retrieveSubscription`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	Flux<String> greetingFlux = client.document("subscription { greetings }")
 			.executeSubscription()
-			.toFlux("greetings", String.class);  // decode at JSONPath
+			.map(response -> {
+				// Check response.isValid(), getErrors()
+
+				ResponseField field = response.field("greeting");
+				// Check field.isValid(), getError()
+
+				return field.toEntity(String.class)
+			});
 ----
 
-Subscriptions are supported only with <<client-websocketgraphqlclient,
-WebSocketGraphQlClient>>.
+
+
+Subscriptions are supported only with the <<client-websocketgraphqlclient,
+WebSocketGraphQlClient>> extension.
 
 
 

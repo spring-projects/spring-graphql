@@ -48,9 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class GraphQlResponse {
+public class ResponseHelper {
 
-	private static final Log logger = LogFactory.getLog(GraphQlResponse.class);
+	private static final Log logger = LogFactory.getLog(ResponseHelper.class);
 
 
 	private final DocumentContext documentContext;
@@ -60,9 +60,9 @@ public class GraphQlResponse {
 	private boolean errorsChecked;
 
 
-	private GraphQlResponse(ExecutionResult result) {
-		this.documentContext = JsonPath.parse(result.toSpecification(), initJsonPathConfig());
-		this.errors = result.getErrors();
+	private ResponseHelper(Map<String, Object> responseMap, List<GraphQLError> errors) {
+		this.documentContext = JsonPath.parse(responseMap, initJsonPathConfig());
+		this.errors = errors;
 	}
 
 	private static Configuration initJsonPathConfig() {
@@ -73,7 +73,7 @@ public class GraphQlResponse {
 	}
 
 
-	public GraphQlResponse log() {
+	public ResponseHelper log() {
 		logger.debug("GraphQlResponse: " + this.documentContext.jsonString());
 		return this;
 	}
@@ -132,27 +132,33 @@ public class GraphQlResponse {
 	}
 
 
-	public static GraphQlResponse from(ExecutionResult result) {
-		return new GraphQlResponse(result);
+	public static ResponseHelper forResult(ExecutionResult result) {
+		return new ResponseHelper(result.toSpecification(), result.getErrors());
 	}
 
-	public static GraphQlResponse from(Mono<? extends ExecutionResult> resultMono) {
+	public static ResponseHelper forResult(Mono<? extends ExecutionResult> resultMono) {
 		ExecutionResult result = resultMono.block(Duration.ofSeconds(5));
 		assertThat(result).isNotNull();
-		return from(result);
+		return forResult(result);
 	}
 
-	public static Flux<GraphQlResponse> forSubscription(ExecutionResult result) {
+	public static ResponseHelper forResponse(Mono<? extends RequestOutput> outputMono) {
+		RequestOutput output = outputMono.block(Duration.ofSeconds(5));
+		assertThat(output).isNotNull();
+		return forResult(output.getExecutionResult());
+	}
+
+	public static Flux<ResponseHelper> forSubscription(ExecutionResult result) {
 		assertThat(result.getErrors()).as("Errors present in GraphQL response").isEmpty();
 		Publisher<ExecutionResult> publisher = result.getData();
-		return Flux.from(publisher).map(GraphQlResponse::from);
+		return Flux.from(publisher).map(ResponseHelper::forResult);
 	}
 
 	@SuppressWarnings("BlockingMethodInNonBlockingContext")
-	public static Flux<GraphQlResponse> forSubscription(Mono<? extends ExecutionResult> resultMono) {
-		ExecutionResult result = resultMono.block(Duration.ofSeconds(5));
-		assertThat(result).isNotNull();
-		return forSubscription(result);
+	public static Flux<ResponseHelper> forSubscription(Mono<? extends RequestOutput> resultMono) {
+		RequestOutput output = resultMono.block(Duration.ofSeconds(5));
+		assertThat(output).isNotNull();
+		return forSubscription(output.getExecutionResult());
 	}
 
 
@@ -165,15 +171,15 @@ public class GraphQlResponse {
 		}
 
 		public String message() {
-			return GraphQlResponse.this.errors.get(index).getMessage();
+			return ResponseHelper.this.errors.get(index).getMessage();
 		}
 
 		public String errorType() {
-			return GraphQlResponse.this.errors.get(index).getErrorType().toString();
+			return ResponseHelper.this.errors.get(index).getErrorType().toString();
 		}
 
 		public Map<String, Object> extensions() {
-			return GraphQlResponse.this.errors.get(index).getExtensions();
+			return ResponseHelper.this.errors.get(index).getExtensions();
 		}
 
 	}

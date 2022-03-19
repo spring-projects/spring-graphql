@@ -42,7 +42,7 @@ import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.RequestInput;
@@ -81,9 +81,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
-		Book book = GraphQlResponse.from(resultMono).toEntity("bookById", Book.class);
+		Book book = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
 		assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
 
@@ -101,9 +101,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
-		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
+		List<Book> bookList = ResponseHelper.forResponse(outputMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -118,9 +118,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
-		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedArguments", Book.class);
+		List<Book> bookList = ResponseHelper.forResponse(outputMono).toList("booksByProjectedArguments", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -135,9 +135,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
-		List<Book> bookList = GraphQlResponse.from(resultMono).toList("booksByProjectedCriteria", Book.class);
+		List<Book> bookList = ResponseHelper.forResponse(outputMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -160,9 +160,9 @@ public class SchemaMappingInvocationTests {
 			return executionInput;
 		});
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(requestInput);
+		Mono<RequestOutput> outputMono = graphQlService().execute(requestInput);
 
-		Author author = GraphQlResponse.from(resultMono).toEntity("authorById", Author.class);
+		Author author = ResponseHelper.forResponse(outputMono).toEntity("authorById", Author.class);
 		assertThat(author.getId()).isEqualTo(101);
 		assertThat(author.getFirstName()).isEqualTo("George");
 		assertThat(author.getLastName()).isEqualTo("Orwell");
@@ -180,9 +180,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
-		Author author = GraphQlResponse.from(resultMono).toEntity("addAuthor", Author.class);
+		Author author = ResponseHelper.forResponse(outputMono).toEntity("addAuthor", Author.class);
 		assertThat(author.getId()).isEqualTo(99);
 		assertThat(author.getFirstName()).isEqualTo("James");
 		assertThat(author.getLastName()).isEqualTo("Joyce");
@@ -197,9 +197,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> resultMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
 
-		Flux<Book> bookFlux = GraphQlResponse.forSubscription(resultMono)
+		Flux<Book> bookFlux = ResponseHelper.forSubscription(outputMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));
 
 		StepVerifier.create(bookFlux)

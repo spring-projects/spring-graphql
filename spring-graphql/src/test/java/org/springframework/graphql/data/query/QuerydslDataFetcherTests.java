@@ -43,7 +43,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.Repository;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -77,7 +77,7 @@ class QuerydslDataFetcherTests {
 
 		Consumer<GraphQlSetup> tester = setup -> {
 			Mono<WebOutput> output = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
-			Book actualBook = GraphQlResponse.from(output).toEntity("bookById", Book.class);
+			Book actualBook = ResponseHelper.forResponse(output).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -98,7 +98,7 @@ class QuerydslDataFetcherTests {
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
 			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
 
-			List<String> names = GraphQlResponse.from(output).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(output).toList("books", Book.class)
 					.stream().map(Book::getName).collect(Collectors.toList());
 
 			assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
@@ -120,7 +120,7 @@ class QuerydslDataFetcherTests {
 		Mono<WebOutput> output = graphQlSetup(mockRepository).toWebGraphQlHandler()
 				.handleRequest(input("{ booksById(id: [42,53]) {name}}"));
 
-		List<String> names = GraphQlResponse.from(output).toList("booksById", Book.class)
+		List<String> names = ResponseHelper.forResponse(output).toList("booksById", Book.class)
 				.stream().map(Book::getName).collect(Collectors.toList());
 
 		assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
@@ -136,7 +136,7 @@ class QuerydslDataFetcherTests {
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
 			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
 
-			List<String> names = GraphQlResponse.from(output).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(output).toList("books", Book.class)
 					.stream().map(Book::getName).collect(Collectors.toList());
 
 			assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
@@ -179,7 +179,7 @@ class QuerydslDataFetcherTests {
 		WebGraphQlHandler handler = graphQlSetup(mockRepository).toWebGraphQlHandler();
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy");
 
 		// 2) Automatic registration and explicit wiring
@@ -189,7 +189,7 @@ class QuerydslDataFetcherTests {
 
 		outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
 
-		actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Breaking Bad");
 	}
 
@@ -203,7 +203,7 @@ class QuerydslDataFetcherTests {
 
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
@@ -217,7 +217,7 @@ class QuerydslDataFetcherTests {
 
 		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
@@ -229,7 +229,7 @@ class QuerydslDataFetcherTests {
 
 		Consumer<GraphQlSetup> tester = setup -> {
 			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 1) {name}}"));
-			Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+			Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -251,7 +251,7 @@ class QuerydslDataFetcherTests {
 		Consumer<GraphQlSetup> tester = setup -> {
 			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
 
-			List<String> names = GraphQlResponse.from(outputMono).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(outputMono).toList("books", Book.class)
 					.stream().map(Book::getName).collect(Collectors.toList());
 
 			assertThat(names).containsExactlyInAnyOrder("Breaking Bad", "Hitchhiker's Guide to the Galaxy");

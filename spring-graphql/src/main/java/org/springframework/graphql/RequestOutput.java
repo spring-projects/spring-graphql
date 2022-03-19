@@ -15,6 +15,7 @@
  */
 package org.springframework.graphql;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -26,29 +27,37 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Wraps an {@link ExecutionResult} and also exposes the {@link ExecutionInput}
- * prepared for the request.
+ * {@link GraphQlResponse} for server use that wraps the {@link ExecutionResult}
+ * returned from {@link graphql.GraphQL} and also exposes the actual
+ * {@link ExecutionInput} instance passed into it.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class RequestOutput implements ExecutionResult {
+public class RequestOutput implements GraphQlResponse {
 
-	private final ExecutionInput executionInput;
+	private final ExecutionInput input;
 
-	private final ExecutionResult executionResult;
+	private final ExecutionResult result;
 
 
 	/**
-	 * Create an instance.
-	 * @param executionInput the input prepared for the request
-	 * @param executionResult the result from performing the request
+	 * Constructor to create initial instance.
 	 */
-	public RequestOutput(ExecutionInput executionInput, ExecutionResult executionResult) {
-		Assert.notNull(executionInput, "ExecutionInput is required.");
-		Assert.notNull(executionResult, "ExecutionResult is required.");
-		this.executionInput = executionInput;
-		this.executionResult = executionResult;
+	public RequestOutput(ExecutionInput input, ExecutionResult result) {
+		Assert.notNull(input, "ExecutionInput is required.");
+		Assert.notNull(result, "ExecutionResult is required.");
+		this.input = input;
+		this.result = result;
+	}
+
+	/**
+	 * Constructor to re-wrap from transport specific subclass.
+	 */
+	protected RequestOutput(RequestOutput requestOutput) {
+		Assert.notNull(requestOutput, "RequestOutput is required.");
+		this.input = requestOutput.getExecutionInput();
+		this.result = requestOutput.result;
 	}
 
 
@@ -57,37 +66,40 @@ public class RequestOutput implements ExecutionResult {
 	 * {@link RequestInput} and passed to {@link graphql.GraphQL}.
 	 */
 	public ExecutionInput getExecutionInput() {
-		return this.executionInput;
+		return this.input;
+	}
+
+	protected ExecutionResult getExecutionResult() {
+		return this.result;
+	}
+
+	@Override
+	public boolean isValid() {
+		return (this.result.isDataPresent() && this.result.getData() != null);
 	}
 
 	@Nullable
 	@Override
 	public <T> T getData() {
-		return this.executionResult.getData();
-	}
-
-	@Override
-	public boolean isDataPresent() {
-		return this.executionResult.isDataPresent();
+		return this.result.getData();
 	}
 
 	public List<GraphQLError> getErrors() {
-		return this.executionResult.getErrors();
+		return this.result.getErrors();
 	}
 
-	@Nullable
 	public Map<Object, Object> getExtensions() {
-		return this.executionResult.getExtensions();
+		return (this.result.getExtensions() != null ? this.result.getExtensions() : Collections.emptyMap());
 	}
 
 	@Override
-	public Map<String, Object> toSpecification() {
-		return this.executionResult.toSpecification();
+	public Map<String, Object> toMap() {
+		return this.result.toSpecification();
 	}
 
 	@Override
 	public String toString() {
-		return this.executionResult.toString();
+		return this.result.toString();
 	}
 
 }

@@ -15,7 +15,8 @@
  */
 package org.springframework.graphql.web.webflux;
 
-import graphql.ExecutionResult;
+import java.util.Map;
+
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 
@@ -93,8 +94,8 @@ final class CodecDelegate {
 		return encode(session, GraphQlMessage.connectionAck(ackPayload));
 	}
 
-	public WebSocketMessage encodeNext(WebSocketSession session, String id, ExecutionResult result) {
-		return encode(session, GraphQlMessage.next(id, result));
+	public WebSocketMessage encodeNext(WebSocketSession session, String id, Map<String, Object> responseMap) {
+		return encode(session, GraphQlMessage.next(id, responseMap));
 	}
 
 	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {

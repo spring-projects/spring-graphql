@@ -25,7 +25,7 @@ import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
@@ -63,7 +63,7 @@ public class WebGraphQlHandlerTests {
 						.handleRequest(webInput)
 						.contextWrite((context) -> context.put("name", "007"));
 
-		String greeting = GraphQlResponse.from(outputMono).toEntity("greeting", String.class);
+		String greeting = ResponseHelper.forResponse(outputMono).toEntity("greeting", String.class);
 		assertThat(greeting).isEqualTo("Hello 007");
 	}
 
@@ -82,7 +82,7 @@ public class WebGraphQlHandlerTests {
 				.handleRequest(webInput)
 				.contextWrite((cxt) -> cxt.put("name", "007"));
 
-		GraphQlResponse response = GraphQlResponse.from(outputMono);
+		ResponseHelper response = ResponseHelper.forResponse(outputMono);
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 
@@ -104,7 +104,7 @@ public class WebGraphQlHandlerTests {
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
 
-			String greeting = GraphQlResponse.from(outputMono).toEntity("greeting", String.class);
+			String greeting = ResponseHelper.forResponse(outputMono).toEntity("greeting", String.class);
 			assertThat(greeting).isEqualTo("Hello 007");
 		}
 		finally {
@@ -131,7 +131,7 @@ public class WebGraphQlHandlerTests {
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
 
-			GraphQlResponse response = GraphQlResponse.from(outputMono);
+			ResponseHelper response = ResponseHelper.forResponse(outputMono);
 			assertThat(response.errorCount()).isEqualTo(1);
 			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}

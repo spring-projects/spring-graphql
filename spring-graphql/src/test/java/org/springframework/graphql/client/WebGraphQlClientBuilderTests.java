@@ -197,13 +197,13 @@ public class WebGraphQlClientBuilderTests {
 						.build());
 
 		WebGraphQlClient client = builder.build();
-		GraphQlClient.Response response = client.document(document).execute().block(TIMEOUT);
+		ClientGraphQlResponse response = client.document(document).execute().block(TIMEOUT);
 
 		testDecoder.resetLastValue();
 		assertThat(testDecoder.getLastValue()).isNull();
 
 		assertThat(response).isNotNull();
-		assertThat(response.toEntity("me", MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
+		assertThat(response.field("me").toEntity(MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
 		assertThat(testDecoder.getLastValue()).isEqualTo(character);
 	}
 

@@ -127,7 +127,10 @@ class WebFluxSecuritySampleTests {
 						.build()
 						.documentName("employeesNamesAndSalaries")
 						.executeAndVerify())
-				.hasMessage("Invalid handshake response getStatus: 401 Unauthorized");
+				.hasMessage(
+						"GraphQlTransport error: Invalid handshake response getStatus: 401 Unauthorized; " +
+								"nested exception is io.netty.handler.codec.http.websocketx.WebSocketClientHandshakeException: " +
+								"Invalid handshake response getStatus: 401 Unauthorized");
 	}
 
 }

@@ -185,10 +185,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					+ ".");
 		}
 
-		Flux<ExecutionResult> outputFlux;
+		Flux<Map<String, Object>> responseFlux;
 		if (output.getData() instanceof Publisher) {
 			// Subscription
-			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+			responseFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+					.map(ExecutionResult::toSpecification)
 					.doOnSubscribe((subscription) -> {
 							Subscription previous = subscriptions.putIfAbsent(id, subscription);
 							if (previous != null) {
@@ -198,11 +199,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 		else {
 			// Single response (query or mutation) that may contain errors
-			outputFlux = Flux.just(output);
+			responseFlux = Flux.just(output.toMap());
 		}
 
-		return outputFlux
-				.map(result -> this.codecDelegate.encodeNext(session, id, result))
+		return responseFlux
+				.map(responseMap -> this.codecDelegate.encodeNext(session, id, responseMap))
 				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeComplete(session, id)))
 				.onErrorResume(ex -> {
 						if (ex instanceof SubscriptionExistsException) {

@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,8 +33,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.support.MapExecutionResult;
-import org.springframework.graphql.support.MapGraphQlError;
+import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.support.MapGraphQlResponse;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
@@ -145,12 +144,12 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	}
 
 	@Override
-	public Mono<ExecutionResult> execute(GraphQlRequest request) {
+	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.graphQlSessionMono.flatMap(session -> session.execute(request));
 	}
 
 	@Override
-	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
 	}
 
@@ -260,22 +259,31 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 							}
 						}
 						else {
-							GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
-							switch (message.resolvedType()) {
-								case NEXT:
-									graphQlSession.handleNext(message);
-									break;
-								case PING:
-									graphQlSession.sendPong(null);
-									break;
-								case ERROR:
-									graphQlSession.handleError(message);
-									break;
-								case COMPLETE:
-									graphQlSession.handleComplete(message);
-									break;
-								default:
-									return Mono.error(new IllegalStateException("Unexpected message: " + message));
+							try {
+								GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+								switch (message.resolvedType()) {
+									case NEXT:
+										graphQlSession.handleNext(message);
+										break;
+									case PING:
+										graphQlSession.sendPong(null);
+										break;
+									case ERROR:
+										graphQlSession.handleError(message);
+										break;
+									case COMPLETE:
+										graphQlSession.handleComplete(message);
+										break;
+									default:
+										throw new IllegalStateException(
+												"Unexpected message type: '" + message.getType() + "'");
+								}
+							}
+							catch (Exception ex) {
+								if (logger.isErrorEnabled()) {
+									logger.error("Closing " + session + ": " + ex);
+								}
+								return session.close(new CloseStatus(4400, "Invalid message"));
 							}
 						}
 						return Mono.empty();
@@ -293,18 +301,19 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			session.closeStatus()
 					.defaultIfEmpty(CloseStatus.NO_STATUS_CODE)
 					.doOnNext(closeStatus -> {
-						Exception ex = initDisconnectError(closeStatus, null, graphQlSession);
+						String closeStatusMessage = initCloseStatusMessage(closeStatus, null, graphQlSession);
 						if (logger.isDebugEnabled()) {
-							logger.debug(ex.getMessage());
+							logger.debug(closeStatusMessage);
 						}
-						graphQlSession.terminateRequests(ex);
+						graphQlSession.terminateRequests(closeStatusMessage, closeStatus);
 					})
 					.doOnError(cause -> {
-						Exception ex = initDisconnectError(null, cause, graphQlSession);
+						CloseStatus closeStatus = CloseStatus.NO_STATUS_CODE;
+						String closeStatusMessage = initCloseStatusMessage(closeStatus, cause, graphQlSession);
 						if (logger.isErrorEnabled()) {
-							logger.error(ex.getMessage());
+							logger.error(closeStatusMessage);
 						}
-						graphQlSession.terminateRequests(ex);
+						graphQlSession.terminateRequests(closeStatusMessage, closeStatus);
 					})
 					.doOnTerminate(() -> {
 						// Reset GraphQlSession sink to be ready to connect again
@@ -313,23 +322,21 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 					.subscribe();
 		}
 
-		private Exception initDisconnectError(
-				@Nullable CloseStatus status, @Nullable Throwable ex, GraphQlSession graphQlSession) {
-
-			String reason = graphQlSession + " disconnected";
+		private String initCloseStatusMessage(CloseStatus status, @Nullable Throwable ex, GraphQlSession session) {
+			String reason = session + " disconnected";
 			if (isStopped()) {
-				reason = graphQlSession + " was stopped";
+				reason = session + " was stopped";
 			}
 			else if (ex != null) {
 				reason += ", closeStatus() completed with error " + ex;
 			}
-			else if (status != null && !status.equals(CloseStatus.NO_STATUS_CODE)) {
+			else if (!status.equals(CloseStatus.NO_STATUS_CODE)) {
 				reason += " with " + status;
 			}
 			else {
 				reason += " without a status";
 			}
-			return new IllegalStateException(reason);
+			return reason;
 		}
 
 		/**
@@ -372,9 +379,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final Sinks.Many<GraphQlMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
 
-		private final Map<String, Sinks.One<ExecutionResult>> resultSinks = new ConcurrentHashMap<>();
+		private final Map<String, ResponseState> responseMap = new ConcurrentHashMap<>();
 
-		private final Map<String, Sinks.Many<ExecutionResult>> streamingSinks = new ConcurrentHashMap<>();
+		private final Map<String, SubscriptionState> subscriptionMap = new ConcurrentHashMap<>();
 
 
 		GraphQlSession(WebSocketSession webSocketSession) {
@@ -389,32 +396,32 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			return this.requestSink.asFlux();
 		}
 
-		public Mono<ExecutionResult> execute(GraphQlRequest request) {
+		public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
 				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
-				Sinks.One<ExecutionResult> sink = Sinks.one();
-				this.resultSinks.put(id, sink);
+				ResponseState state = new ResponseState(request);
+				this.responseMap.put(id, state);
 				trySend(message);
-				return sink.asMono().doOnCancel(() -> this.resultSinks.remove(id));
+				return state.sink().asMono().doOnCancel(() -> this.responseMap.remove(id));
 			}
 			catch (Exception ex) {
-				this.resultSinks.remove(id);
+				this.responseMap.remove(id);
 				return Mono.error(ex);
 			}
 		}
 
-		public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+		public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
 				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
-				Sinks.Many<ExecutionResult> sink = Sinks.many().unicast().onBackpressureBuffer();
-				this.streamingSinks.put(id, sink);
+				SubscriptionState state = new SubscriptionState(request);
+				this.subscriptionMap.put(id, state);
 				trySend(message);
-				return sink.asFlux().doOnCancel(() -> cancelStream(id));
+				return state.sink().asFlux().doOnCancel(() -> stopSubscription(id));
 			}
 			catch (Exception ex) {
-				this.streamingSinks.remove(id);
+				this.subscriptionMap.remove(id);
 				return Flux.error(ex);
 			}
 		}
@@ -437,9 +444,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			Assert.state(emitResult.isSuccess(), "Failed to send request: " + emitResult);
 		}
 
-		private void cancelStream(String id) {
-			Sinks.Many<ExecutionResult> streamSink = this.streamingSinks.remove(id);
-			if (streamSink != null) {
+		private void stopSubscription(String id) {
+			SubscriptionState state = this.subscriptionMap.remove(id);
+			if (state != null) {
 				try {
 					trySend(GraphQlMessage.complete(id));
 				}
@@ -448,7 +455,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						logger.error("Closing " + this.connection.getDescription() +
 								" after failure to send 'complete' for subscription id='" + id + "'.");
 					}
-					this.connection.close().subscribe();
+					// No other suitable status (like server error but there is none for client)
+					this.connection.close(CloseStatus.PROTOCOL_ERROR).subscribe();
 				}
 			}
 		}
@@ -458,20 +466,23 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 */
 		public void handleNext(GraphQlMessage message) {
 			String id = message.getId();
-			Sinks.One<ExecutionResult> sink = this.resultSinks.remove(id);
-			Sinks.Many<ExecutionResult> streamingSink = this.streamingSinks.get(id);
+			ResponseState responseState = this.responseMap.remove(id);
+			SubscriptionState subscriptionState = this.subscriptionMap.get(id);
 
-			if (sink == null && streamingSink == null) {
+			if (responseState == null && subscriptionState == null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("No receiver for message: " + message);
 				}
 				return;
 			}
 
-			Map<String, Object> resultMap = message.getPayload();
-			ExecutionResult result = MapExecutionResult.from(resultMap);
+			Map<String, Object> responseMap = message.getPayload();
+			GraphQlResponse graphQlResponse = MapGraphQlResponse.forResponse(responseMap);
 
-			Sinks.EmitResult emitResult = (sink != null ? sink.tryEmitValue(result) : streamingSink.tryEmitNext(result));
+			Sinks.EmitResult emitResult = (responseState != null ?
+					responseState.sink().tryEmitValue(graphQlResponse) :
+					subscriptionState.sink().tryEmitNext(graphQlResponse));
+
 			if (emitResult.isFailure()) {
 				// Just log: cannot overflow, is serialized, and cancel is handled in doOnCancel
 				if (logger.isDebugEnabled()) {
@@ -481,32 +492,32 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 
 		/**
-		 * Handle an "error" message, turning it into an {@link ExecutionResult}
-		 * for a single result response, or signaling an error to streams.
+		 * Handle an "error" message, turning it into an {@link GraphQlResponse}
+		 * for single responses, or signaling an error for streams.
 		 */
 		public void handleError(GraphQlMessage message) {
 			String id = message.getId();
-			Sinks.One<ExecutionResult> sink = this.resultSinks.remove(id);
-			Sinks.Many<ExecutionResult> streamingSink = this.streamingSinks.remove(id);
+			ResponseState responseState = this.responseMap.remove(id);
+			SubscriptionState subscriptionState = this.subscriptionMap.remove(id);
 
-			if (sink == null && streamingSink == null ) {
+			if (responseState == null && subscriptionState == null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("No receiver for message: " + message);
 				}
 				return;
 			}
 
-			List<Map<String, Object>> payload = message.getPayload();
+			List<Map<String, Object>> errorList = message.getPayload();
+			GraphQlResponse response = MapGraphQlResponse.forErrorsOnly(errorList);
 
 			Sinks.EmitResult emitResult;
-			if (sink != null) {
-				ExecutionResult result = MapExecutionResult.forErrorsOnly(payload);
-				emitResult = sink.tryEmitValue(result);
+			if (responseState != null) {
+				emitResult = responseState.sink().tryEmitValue(response);
 			}
 			else {
-				List<GraphQLError> graphQLErrors = MapGraphQlError.from(payload);
-				Exception ex = new SubscriptionErrorException(graphQLErrors);
-				emitResult = streamingSink.tryEmitError(ex);
+				List<GraphQLError> graphQLErrors = response.getErrors();
+				Exception ex = new SubscriptionErrorException(subscriptionState.request(), graphQLErrors);
+				emitResult = subscriptionState.sink().tryEmitError(ex);
 			}
 
 			if (emitResult.isFailure() && logger.isDebugEnabled()) {
@@ -518,14 +529,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Handle a "complete" message.
 		 */
 		public void handleComplete(GraphQlMessage message) {
-			Sinks.One<ExecutionResult> resultSink = this.resultSinks.remove(message.getId());
-			Sinks.Many<ExecutionResult> streamingResultSink = this.streamingSinks.remove(message.getId());
+			ResponseState responseState = this.responseMap.remove(message.getId());
+			SubscriptionState subscriptionState = this.subscriptionMap.remove(message.getId());
 
-			if (resultSink != null) {
-				resultSink.tryEmitEmpty();
+			if (responseState != null) {
+				responseState.sink().tryEmitEmpty();
 			}
-			else if (streamingResultSink != null) {
-				streamingResultSink.tryEmitComplete();
+			else if (subscriptionState != null) {
+				subscriptionState.sink().tryEmitComplete();
 			}
 		}
 
@@ -541,17 +552,17 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Close the underlying connection.
 		 */
 		public Mono<Void> close() {
-			return this.connection.close();
+			return this.connection.close(CloseStatus.GOING_AWAY);
 		}
 
 		/**
 		 * Terminate and clean all in-progress requests with the given error.
 		 */
-		public void terminateRequests(Exception ex) {
-			this.resultSinks.values().forEach(sink -> sink.tryEmitError(ex));
-			this.streamingSinks.values().forEach(sink -> sink.tryEmitError(ex));
-			this.resultSinks.clear();
-			this.streamingSinks.clear();
+		public void terminateRequests(String message, CloseStatus status) {
+			this.responseMap.values().forEach(info -> info.emitDisconnectError(message, status));
+			this.subscriptionMap.values().forEach(info -> info.emitDisconnectError(message, status)			);
+			this.responseMap.clear();
+			this.subscriptionMap.clear();
 		}
 
 		@Override
@@ -568,7 +579,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 */
 	private interface DisposableConnection {
 
-		Mono<Void> close();
+		Mono<Void> close(CloseStatus status);
 
 		Mono<Void> notifyWhenClosed();
 
@@ -580,8 +591,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			return new DisposableConnection() {
 
 				@Override
-				public Mono<Void> close() {
-					return session.close();
+				public Mono<Void> close(CloseStatus status) {
+					return session.close(status);
 				}
 
 				@Override
@@ -598,5 +609,74 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 	}
 
+
+	/**
+	 * Base class, state container for any request type.
+	 */
+	private abstract static class AbstractRequestState {
+
+		private final GraphQlRequest request;
+
+		public AbstractRequestState(GraphQlRequest request) {
+			this.request = request;
+		}
+
+		public GraphQlRequest request() {
+			return this.request;
+		}
+
+		public void emitDisconnectError(String message, CloseStatus closeStatus) {
+			emitDisconnectError(new WebSocketDisconnectedException(message, this.request, closeStatus));
+		}
+
+		protected abstract void emitDisconnectError(WebSocketDisconnectedException ex);
+
+	}
+
+
+	/**
+	 * State container for a request that emits a single response.
+	 */
+	private static class ResponseState extends AbstractRequestState {
+
+		private final Sinks.One<GraphQlResponse> sink = Sinks.one();
+
+		ResponseState(GraphQlRequest request) {
+			super(request);
+		}
+
+		public Sinks.One<GraphQlResponse> sink() {
+			return this.sink;
+		}
+
+		@Override
+		protected void emitDisconnectError(WebSocketDisconnectedException ex) {
+			this.sink.tryEmitError(ex);
+		}
+
+	}
+
+
+	/**
+	 * State container for a subscription request that emits a stream of responses.
+	 */
+	private static class SubscriptionState extends AbstractRequestState {
+
+		private final Sinks.Many<GraphQlResponse> sink = Sinks.many().unicast().onBackpressureBuffer();
+
+		SubscriptionState(GraphQlRequest request) {
+			super(request);
+		}
+
+		public Sinks.Many<GraphQlResponse> sink() {
+			return this.sink;
+		}
+
+		@Override
+		protected void emitDisconnectError(WebSocketDisconnectedException ex) {
+			this.sink.tryEmitError(ex);
+		}
+
+	}
 
 }

@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.web;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -49,15 +48,14 @@ public class WebOutput extends RequestOutput {
 	 * @param requestOutput the output from an executed request
 	 */
 	public WebOutput(RequestOutput requestOutput) {
-		this(requestOutput.getExecutionInput(), requestOutput, new HttpHeaders());
+		super(requestOutput);
+		this.responseHeaders = new HttpHeaders();
 	}
 
-	private WebOutput(ExecutionInput executionInput, ExecutionResult executionResult,
-			HttpHeaders responseHeaders) {
-
+	private WebOutput(ExecutionInput executionInput, ExecutionResult executionResult, HttpHeaders headers) {
 		super(executionInput, executionResult);
-		Assert.notNull(responseHeaders, "HttpHeaders is required");
-		this.responseHeaders = responseHeaders;
+		Assert.notNull(headers, "HttpHeaders is required");
+		this.responseHeaders = headers;
 	}
 
 
@@ -90,21 +88,13 @@ public class WebOutput extends RequestOutput {
 	 */
 	public static final class Builder {
 
-		private final WebOutput webOutput;
+		private final WebOutput original;
 
-		@Nullable
-		private Object data;
+		private final ExecutionResultImpl.Builder builder;
 
-		private List<GraphQLError> errors;
-
-		@Nullable
-		private Map<Object, Object> extensions;
-
-		private Builder(WebOutput output) {
-			this.webOutput = output;
-			this.data = output.getData();
-			this.errors = output.getErrors();
-			this.extensions = output.getExtensions();
+		private Builder(WebOutput original) {
+			this.original = original;
+			this.builder = ExecutionResultImpl.newExecutionResult().from(original.getExecutionResult());
 		}
 
 		/**
@@ -112,8 +102,8 @@ public class WebOutput extends RequestOutput {
 		 * @param data the execution result data
 		 * @return the current builder
 		 */
-		public Builder data(@Nullable Object data) {
-			this.data = data;
+		public Builder data(Object data) {
+			this.builder.data(data);
 			return this;
 		}
 
@@ -124,7 +114,7 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder errors(@Nullable List<GraphQLError> errors) {
-			this.errors = (errors != null) ? errors : Collections.emptyList();
+			this.builder.errors(errors);
 			return this;
 		}
 
@@ -135,13 +125,13 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder extensions(@Nullable Map<Object, Object> extensions) {
-			this.extensions = extensions;
+			this.builder.extensions(extensions);
 			return this;
 		}
 
 		public WebOutput build() {
-			ExecutionResult result = new ExecutionResultImpl(this.data, this.errors, this.extensions);
-			return new WebOutput(this.webOutput.getExecutionInput(), result, this.webOutput.getResponseHeaders());
+			return new WebOutput(this.original.getExecutionInput(), this.builder.build(),
+					this.original.getResponseHeaders());
 		}
 
 	}

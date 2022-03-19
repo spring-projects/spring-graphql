@@ -121,7 +121,7 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting predicate
 	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
+	@SuppressWarnings({"unchecked"})
 	protected Predicate buildPredicate(DataFetchingEnvironment environment) {
 		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
 		QuerydslBindings bindings = new QuerydslBindings();
@@ -135,7 +135,7 @@ public abstract class QuerydslDataFetcher<T> {
 			parameters.put(entry.getKey(), values);
 		}
 
-		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
+		return BUILDER.getPredicate(this.domainType, parameters, bindings);
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {
