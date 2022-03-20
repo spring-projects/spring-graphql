@@ -18,15 +18,14 @@ package org.springframework.graphql.test.tester;
 
 
 import java.net.URI;
+import java.util.Map;
 
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebOutput;
+import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
@@ -77,9 +76,15 @@ final class WebGraphQlHandlerTransport extends AbstractDirectTransport {
 
 
 	@Override
-	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest request) {
-		WebInput input = new WebInput(this.url, this.headers, request.toMap(), idGenerator.generateId().toString(), null);
-		return this.graphQlHandler.handleRequest(input).cast(ExecutionGraphQlResponse.class);
+	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest executionRequest) {
+
+		String id = idGenerator.generateId().toString();
+		Map<String, Object> body = executionRequest.toMap();
+
+		WebGraphQlRequest webExecutionRequest =
+				new WebGraphQlRequest(this.url, this.headers, body, id, null);
+
+		return this.graphQlHandler.handleRequest(webExecutionRequest).cast(ExecutionGraphQlResponse.class);
 	}
 
 }

@@ -35,11 +35,11 @@ public interface WebGraphQlHandler {
 
 
 	/**
-	 * Execute the given request and return the resulting output.
-	 * @param input the GraphQL request input container
-	 * @return the result from execution
+	 * Execute the given request and return the response.
+	 * @param request the request to execute
+	 * @return the response
 	 */
-	Mono<WebOutput> handleRequest(WebInput input);
+	Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request);
 
 	/**
 	 * Return the single interceptor of type {@link WebSocketInterceptor} among

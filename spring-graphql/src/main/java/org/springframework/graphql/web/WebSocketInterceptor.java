@@ -31,8 +31,8 @@ import reactor.core.publisher.Mono;
 public interface WebSocketInterceptor extends WebInterceptor {
 
 	@Override
-	default Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
-		return chain.next(webInput);
+	default Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain) {
+		return chain.next(request);
 	}
 
 	/**
@@ -56,7 +56,7 @@ public interface WebSocketInterceptor extends WebInterceptor {
 	 * additional, or more centralized handling across subscriptions.
 	 * @param sessionId the id of the WebSocket session
 	 * @param subscriptionId the unique id for the subscription; correlates to the
-	 * {@link WebInput#getId() requestId} from the original {@code "subscribe"}
+	 * {@link WebGraphQlRequest#getId() requestId} from the original {@code "subscribe"}
 	 * message that started the subscription
 	 * @return {@code Mono} for the completion of handling
 	 */

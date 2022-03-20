@@ -20,7 +20,7 @@
  * {@link org.springframework.graphql.web.webmvc Spring WebMvc} or
  * {@link org.springframework.graphql.web.webflux Spring WebFlux} with a common
  * {@link org.springframework.graphql.web.WebInterceptor interception} model that allows
- * applications to customize request input and output.
+ * applications to customize the request and response.
  */
 @NonNullApi
 @NonNullFields

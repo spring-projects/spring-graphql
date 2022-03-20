@@ -30,10 +30,10 @@ public interface WebInterceptorChain {
 	 * Delegate to the rest of the chain that consists of other interceptors
 	 * followed by a {@link org.springframework.graphql.GraphQlService} that
 	 * executes the request through the GraphQL Java.
-	 * @param webInput provides access to GraphQL request input and allows
-	 * customizing the {@link ExecutionInput} that will be used.
-	 * @return the output with the result from request execution
+	 * @param request provides access to GraphQL request and allows customizing
+	 * the {@link ExecutionInput} for {@link graphql.GraphQL}.
+	 * @return {@code Mono} with the response
 	 */
-	Mono<WebOutput> next(WebInput webInput);
+	Mono<WebGraphQlResponse> next(WebGraphQlRequest request);
 
 }

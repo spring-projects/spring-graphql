@@ -32,9 +32,9 @@ import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebOutput;
+import org.springframework.graphql.web.WebGraphQlResponse;
 import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.http.codec.CodecConfigurer;
@@ -139,13 +139,13 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					if (id == null) {
 						return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 					}
-					WebInput input = new WebInput(
+					WebGraphQlRequest request = new WebGraphQlRequest(
 							handshakeInfo.getUri(), handshakeInfo.getHeaders(), payload, id, null);
 					if (logger.isDebugEnabled()) {
-						logger.debug("Executing: " + input);
+						logger.debug("Executing: " + request);
 					}
-					return this.graphQlHandler.handleRequest(input)
-							.flatMapMany((output) -> handleWebOutput(session, id, subscriptions, output))
+					return this.graphQlHandler.handleRequest(request)
+							.flatMapMany(response -> handleResponse(session, id, subscriptions, response))
 							.doOnTerminate(() -> subscriptions.remove(id));
 				case PING:
 					return Flux.just(this.codecDelegate.encode(session, GraphQlMessage.pong(null)));
@@ -176,19 +176,19 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 
 	@SuppressWarnings("unchecked")
-	private Flux<WebSocketMessage> handleWebOutput(WebSocketSession session, String id,
-			Map<String, Subscription> subscriptions, WebOutput output) {
+	private Flux<WebSocketMessage> handleResponse(WebSocketSession session, String id,
+			Map<String, Subscription> subscriptions, WebGraphQlResponse response) {
 
 		if (logger.isDebugEnabled()) {
 			logger.debug("Execution result ready"
-					+ (!CollectionUtils.isEmpty(output.getErrors()) ? " with errors: " + output.getErrors() : "")
+					+ (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
 					+ ".");
 		}
 
 		Flux<Map<String, Object>> responseFlux;
-		if (output.getData() instanceof Publisher) {
+		if (response.getData() instanceof Publisher) {
 			// Subscription
-			responseFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+			responseFlux = Flux.from((Publisher<ExecutionResult>) response.getData())
 					.map(ExecutionResult::toSpecification)
 					.doOnSubscribe((subscription) -> {
 							Subscription previous = subscriptions.putIfAbsent(id, subscription);
@@ -199,7 +199,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 		else {
 			// Single response (query or mutation) that may contain errors
-			responseFlux = Flux.just(output.toMap());
+			responseFlux = Flux.just(response.toMap());
 		}
 
 		return responseFlux

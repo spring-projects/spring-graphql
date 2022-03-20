@@ -23,9 +23,9 @@ import reactor.core.publisher.Mono;
 public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
 
 	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
-		return chain.next(webInput).map((output) -> output.transform(builder -> {
-			Object originalData = output.getData();
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain) {
+		return chain.next(request).map(response -> response.transform(builder -> {
+			Object originalData = response.getData();
 			if (originalData instanceof Publisher) {
 				Flux<?> updatedData = Flux.from((Publisher<?>) originalData).take(1).concatWith(Flux.never());
 				builder.data(updatedData);

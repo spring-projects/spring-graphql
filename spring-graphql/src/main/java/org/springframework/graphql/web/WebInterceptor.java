@@ -45,12 +45,12 @@ public interface WebInterceptor {
 	 * of other interceptors followed by a
 	 * {@link org.springframework.graphql.GraphQlService} that executes the
 	 * request through the GraphQL Java.
-	 * @param webInput provides access to GraphQL request input and allows
-	 * customizing the {@link ExecutionInput} that will be used.
+	 * @param request provides access to GraphQL request and allows customization
+	 * of the {@link ExecutionInput} for {@link graphql.GraphQL}.
 	 * @param chain the rest of the chain to handle the request
-	 * @return a {@link Mono} with the result
+	 * @return a {@link Mono} with the response
 	 */
-	Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain);
+	Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain);
 
 	/**
 	 * Return a new {@link WebInterceptor} that invokes the current interceptor
@@ -60,8 +60,10 @@ public interface WebInterceptor {
 	 */
 	default WebInterceptor andThen(WebInterceptor interceptor) {
 		Assert.notNull(interceptor, "WebInterceptor is required");
-		return (currentInput, next) -> intercept(currentInput,
-				(nextInput) -> interceptor.intercept(nextInput, next));
+		return (request, chain) -> {
+			WebInterceptorChain nextChain = nextRequest -> interceptor.intercept(nextRequest, chain);
+			return intercept(request, nextChain);
+		};
 	}
 
 }

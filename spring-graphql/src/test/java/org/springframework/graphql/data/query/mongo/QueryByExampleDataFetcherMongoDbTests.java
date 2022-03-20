@@ -47,8 +47,8 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebOutput;
+import org.springframework.graphql.web.WebGraphQlRequest;
+import org.springframework.graphql.web.WebGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.test.context.ContextConfiguration;
@@ -80,8 +80,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 		repository.save(book);
 
 		Consumer<GraphQlSetup> tester = setup -> {
-			Mono<WebOutput> output = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
-			Book actualBook = ResponseHelper.forResponse(output).toEntity("bookById", Book.class);
+			WebGraphQlRequest request = request("{ bookById(id: 42) {name}}");
+			Mono<WebGraphQlResponse> responseMono = setup.toWebGraphQlHandler().handleRequest(request);
+			Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -100,9 +101,10 @@ class QueryByExampleDataFetcherMongoDbTests {
 		repository.saveAll(Arrays.asList(book1, book2));
 
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
-			Mono<WebOutput> output = graphQlSetup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
+			WebGraphQlRequest request = request("{ books {name}}");
+			Mono<WebGraphQlResponse> responseMono = graphQlSetup.toWebGraphQlHandler().handleRequest(request);
 
-			List<String> names = ResponseHelper.forResponse(output).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(responseMono).toList("books", Book.class)
 					.stream().map(Book::getName).collect(Collectors.toList());
 
 			assertThat(names).containsExactlyInAnyOrder(book1.getName(), book2.getName());
@@ -123,9 +125,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 		// 1) Automatic registration only
 		WebGraphQlHandler handler = graphQlSetup(mockRepository).toWebGraphQlHandler();
-		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
+		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 1) {name}}"));
 
-		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy");
 
 		// 2) Automatic registration and explicit wiring
@@ -133,9 +135,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 				.queryFetcher("bookById", env -> new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg")))
 				.toWebGraphQlHandler();
 
-		outputMono = handler.handleRequest(input("{ bookById(id: 1) {name}}"));
+		responseMono = handler.handleRequest(request("{ bookById(id: 1) {name}}"));
 
-		actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
+		actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Breaking Bad");
 	}
 
@@ -147,9 +149,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookProjection.class).single();
 		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
 
-		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
+		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
@@ -161,9 +163,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookDto.class).single();
 		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
 
-		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
+		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
@@ -184,8 +186,9 @@ class QueryByExampleDataFetcherMongoDbTests {
 		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
 	}
 
-	private WebInput input(String query) {
-		return new WebInput(URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
+	private WebGraphQlRequest request(String query) {
+		return new WebGraphQlRequest(
+				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
 	}
 
 

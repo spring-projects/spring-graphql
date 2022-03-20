@@ -39,35 +39,35 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class WebInterceptorTests {
 
-	private static final WebInput webInput = new WebInput(
+	private static final WebGraphQlRequest webRequest = new WebGraphQlRequest(
 			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ notUsed }"), "1", null);
 
 	@Test
 	void interceptorOrder() {
-		StringBuilder output = new StringBuilder();
+		StringBuilder sb = new StringBuilder();
 
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(this::emptyExecutionResult)
 				.interceptors(Arrays.asList(
-						new OrderInterceptor(1, output),
-						new OrderInterceptor(2, output),
-						new OrderInterceptor(3, output)))
+						new OrderInterceptor(1, sb),
+						new OrderInterceptor(2, sb),
+						new OrderInterceptor(3, sb)))
 				.build();
 
-		handler.handleRequest(webInput).block();
-		assertThat(output.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
+		handler.handleRequest(webRequest).block();
+		assertThat(sb.toString()).isEqualTo(":pre1:pre2:pre3:post3:post2:post1");
 	}
 
 	@Test
 	void responseHeader() {
 		WebGraphQlHandler handler = WebGraphQlHandler.builder(this::emptyExecutionResult)
 				.interceptor((input, next) -> next.next(input)
-						.doOnNext(output -> {
-							HttpHeaders httpHeaders = output.getResponseHeaders();
+						.doOnNext(response -> {
+							HttpHeaders httpHeaders = response.getResponseHeaders();
 							httpHeaders.add("testHeader", "testValue");
 						}))
 				.build();
 
-		HttpHeaders headers = handler.handleRequest(webInput).block().getResponseHeaders();
+		HttpHeaders headers = handler.handleRequest(webRequest).block().getResponseHeaders();
 
 		assertThat(headers.get("testHeader")).containsExactly("testValue");
 	}
@@ -81,13 +81,13 @@ public class WebInterceptorTests {
 					actualName.set(request.toExecutionInput().getOperationName());
 					return emptyExecutionResult(request);
 				})
-				.interceptor((webInput, next) -> {
-					webInput.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
-					return next.next(webInput);
+				.interceptor((request, chain) -> {
+					request.configureExecutionInput((input, builder) -> builder.operationName("testOp").build());
+					return chain.next(request);
 				})
 				.build();
 
-		handler.handleRequest(webInput).block();
+		handler.handleRequest(webRequest).block();
 
 		assertThat(actualName.get()).isEqualTo("testOp");
 	}
@@ -100,22 +100,22 @@ public class WebInterceptorTests {
 
 	private static class OrderInterceptor implements WebInterceptor {
 
-		private final StringBuilder output;
+		private final StringBuilder sb;
 
 		private final int order;
 
-		OrderInterceptor(int order, StringBuilder output) {
-			this.output = output;
+		OrderInterceptor(int order, StringBuilder sb) {
+			this.sb = sb;
 			this.order = order;
 		}
 
 		@Override
-		public Mono<WebOutput> intercept(WebInput input, WebInterceptorChain chain) {
-			this.output.append(":pre").append(this.order);
-			return chain.next(input)
-					.map((output) -> {
-						this.output.append(":post").append(this.order);
-						return output;
+		public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain) {
+			this.sb.append(":pre").append(this.order);
+			return chain.next(request)
+					.map((response) -> {
+						this.sb.append(":post").append(this.order);
+						return response;
 					})
 					.subscribeOn(Schedulers.boundedElastic());
 		}

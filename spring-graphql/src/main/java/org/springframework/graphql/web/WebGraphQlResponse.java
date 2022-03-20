@@ -30,14 +30,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 
 /**
- * Decorate an {@link ExecutionResult}, provide a way to {@link #transform(Consumer)
- * transform} it, and collect input for custom HTTP response headers for GraphQL over HTTP
- * requests.
+ * {@link org.springframework.graphql.GraphQlResponse} implementation for server
+ * handling over HTTP or over WebSocket.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebOutput extends DefaultExecutionGraphQlResponse {
+public class WebGraphQlResponse extends DefaultExecutionGraphQlResponse {
 
 	private final HttpHeaders responseHeaders;
 
@@ -46,12 +45,12 @@ public class WebOutput extends DefaultExecutionGraphQlResponse {
 	 * Create an instance that wraps the given {@link ExecutionGraphQlResponse}.
 	 * @param response the response to wrap
 	 */
-	public WebOutput(ExecutionGraphQlResponse response) {
+	public WebGraphQlResponse(ExecutionGraphQlResponse response) {
 		super(response);
 		this.responseHeaders = new HttpHeaders();
 	}
 
-	private WebOutput(WebOutput original, ExecutionResult executionResult) {
+	private WebGraphQlResponse(WebGraphQlResponse original, ExecutionResult executionResult) {
 		super(original.getExecutionInput(), executionResult);
 		this.responseHeaders = original.getResponseHeaders();
 	}
@@ -69,12 +68,12 @@ public class WebOutput extends DefaultExecutionGraphQlResponse {
 	}
 
 	/**
-	 * Transform this {@code WebOutput} instance through a {@link Builder} and return a
-	 * new instance with the modified values.
-	 * @param consumer teh callback that will transform the WebOutput
-	 * @return the transformed WebOutput
+	 * Transform the underlying {@link ExecutionResult} through a {@link Builder}
+	 * and return a new instance with the modified values.
+	 * @param consumer callback to transform the result
+	 * @return the new response instance with the mutated {@code ExecutionResult}
 	 */
-	public WebOutput transform(Consumer<Builder> consumer) {
+	public WebGraphQlResponse transform(Consumer<Builder> consumer) {
 		Builder builder = new Builder(this);
 		consumer.accept(builder);
 		return builder.build();
@@ -82,15 +81,15 @@ public class WebOutput extends DefaultExecutionGraphQlResponse {
 
 
 	/**
-	 * Builder to transform a {@link WebOutput}.
+	 * Builder to transform a {@link WebGraphQlResponse}.
 	 */
 	public static final class Builder {
 
-		private final WebOutput original;
+		private final WebGraphQlResponse original;
 
 		private final ExecutionResultImpl.Builder executionResultBuilder;
 
-		private Builder(WebOutput original) {
+		private Builder(WebGraphQlResponse original) {
 			this.original = original;
 			this.executionResultBuilder = ExecutionResultImpl.newExecutionResult().from(original.getExecutionResult());
 		}
@@ -127,8 +126,8 @@ public class WebOutput extends DefaultExecutionGraphQlResponse {
 			return this;
 		}
 
-		public WebOutput build() {
-			return new WebOutput(this.original, this.executionResultBuilder.build());
+		public WebGraphQlResponse build() {
+			return new WebGraphQlResponse(this.original, this.executionResultBuilder.build());
 		}
 
 	}

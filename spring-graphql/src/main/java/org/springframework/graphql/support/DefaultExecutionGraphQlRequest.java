@@ -35,8 +35,8 @@ import org.springframework.util.Assert;
  * or WebSocket handler) assigned {@link #getId() id} and {@link #getLocale()
  * locale} in the addition to the {@code GraphQlRequest} inputs.
  *
- * <p>{@code RequestInput} supports the initialization of {@link ExecutionInput}
- * that is passed to {@link graphql.GraphQL}. You can customize that via
+ * <p>Supports the initialization of {@link ExecutionInput} that is passed to
+ * {@link graphql.GraphQL}. You can customize that via
  * {@link #configureExecutionInput(BiFunction)}.
  *
  * @author Rossen Stoyanchev

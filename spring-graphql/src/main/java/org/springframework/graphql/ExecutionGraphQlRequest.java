@@ -82,8 +82,8 @@ public interface ExecutionGraphQlRequest extends GraphQlRequest {
 	/**
 	 * Provide a {@code BiFunction} to help initialize the {@link ExecutionInput}
 	 * passed to {@link graphql.GraphQL}. The {@code ExecutionInput} is first
-	 * pre-populated with values from "this" {@code RequestInput}, and is then
-	 * customized with the functions provided here.
+	 * pre-populated with values from "this" {@code ExecutionGraphQlRequest}, and
+	 * is then customized with the functions provided here.
 	 * @param configurer a {@code BiFunction} that accepts the
 	 * {@code ExecutionInput} initialized so far, and a builder to customize it.
 	 */
@@ -92,8 +92,8 @@ public interface ExecutionGraphQlRequest extends GraphQlRequest {
 	/**
 	 * Create the {@link ExecutionInput} to pass to {@link graphql.GraphQL}.
 	 * passed to {@link graphql.GraphQL}. The {@code ExecutionInput} is populated
-	 * with values from "this" {@code RequestInput}, and then customized with
-	 * functions provided via {@link #configureExecutionInput(BiFunction)}.
+	 * with values from "this" {@code ExecutionGraphQlRequest}, and then customized
+	 * with functions provided via {@link #configureExecutionInput(BiFunction)}.
 	 * @return the resulting {@code ExecutionInput}
 	 */
 	ExecutionInput toExecutionInput();
