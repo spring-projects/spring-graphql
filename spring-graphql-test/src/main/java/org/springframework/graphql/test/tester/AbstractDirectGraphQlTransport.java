@@ -43,7 +43,7 @@ import org.springframework.util.IdGenerator;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-abstract class AbstractDirectTransport implements GraphQlTransport {
+abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 
 	protected static final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 

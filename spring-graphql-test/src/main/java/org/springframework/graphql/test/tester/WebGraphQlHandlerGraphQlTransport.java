@@ -37,7 +37,7 @@ import org.springframework.lang.Nullable;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class WebGraphQlHandlerTransport extends AbstractDirectTransport {
+final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTransport {
 
 	private final URI url;
 
@@ -48,7 +48,7 @@ final class WebGraphQlHandlerTransport extends AbstractDirectTransport {
 	private final CodecConfigurer codecConfigurer;
 
 
-	WebGraphQlHandlerTransport(
+	WebGraphQlHandlerGraphQlTransport(
 			@Nullable URI url, HttpHeaders headers, WebGraphQlHandler handler, CodecConfigurer configurer) {
 
 		this.url = (url != null ? url : URI.create(""));

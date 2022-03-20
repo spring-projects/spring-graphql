@@ -32,12 +32,12 @@ import org.springframework.util.Assert;
  */
 final class DefaultGraphQlServiceTester extends AbstractDelegatingGraphQlTester implements GraphQlServiceTester {
 
-	private final GraphQlServiceTransport transport;
+	private final GraphQlServiceGraphQlTransport transport;
 
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	DefaultGraphQlServiceTester(GraphQlTester tester, GraphQlServiceTransport transport,
+	DefaultGraphQlServiceTester(GraphQlTester tester, GraphQlServiceGraphQlTransport transport,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(tester);
@@ -71,13 +71,13 @@ final class DefaultGraphQlServiceTester extends AbstractDelegatingGraphQlTester 
 			this.service = service;
 		}
 
-		Builder(GraphQlServiceTransport transport) {
+		Builder(GraphQlServiceGraphQlTransport transport) {
 			this.service = transport.getGraphQlService();
 		}
 
 		@Override
 		public GraphQlServiceTester build() {
-			GraphQlServiceTransport transport = new GraphQlServiceTransport(this.service);
+			GraphQlServiceGraphQlTransport transport = new GraphQlServiceGraphQlTransport(this.service);
 			GraphQlTester tester = super.buildGraphQlTester(transport);
 			return new DefaultGraphQlServiceTester(tester, transport, getBuilderInitializer());
 		}

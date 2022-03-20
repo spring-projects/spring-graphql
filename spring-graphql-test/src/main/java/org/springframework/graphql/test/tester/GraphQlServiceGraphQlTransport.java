@@ -31,12 +31,12 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class GraphQlServiceTransport extends AbstractDirectTransport {
+final class GraphQlServiceGraphQlTransport extends AbstractDirectGraphQlTransport {
 
 	private final ExecutionGraphQlService graphQlService;
 
 
-	GraphQlServiceTransport(ExecutionGraphQlService graphQlService) {
+	GraphQlServiceGraphQlTransport(ExecutionGraphQlService graphQlService) {
 		Assert.notNull(graphQlService, "GraphQlService is required");
 		this.graphQlService = graphQlService;
 	}
