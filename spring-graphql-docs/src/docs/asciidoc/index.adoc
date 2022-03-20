@@ -118,8 +118,8 @@ The Spring for GraphQL repository contains a WebFlux
 
 <<web-http>> and <<web-websocket>> transport handlers delegate to a common Web
 interception chain for request execution. The chain consists of a sequence of
-`WebInterceptor` components, followed by a `GraphQlService` that invokes the GraphQL
-Java engine.
+`WebInterceptor` components, followed by a `ExecutionGraphQlService` that invokes
+GraphQL Java.
 
 `WebInterceptor` is as a common contract to use in both Spring MVC and WebFlux
 applications. Use it to intercept requests, inspect HTTP request headers, or to register a
@@ -170,13 +170,12 @@ it contains, for the actual config.
 [[execution]]
 == Request Execution
 
-`GraphQlService` is the main Spring abstraction to call GraphQL Java to execute
-requests. Underlying transports, such as the <<web-transports>>, delegate to `GraphQlService` to
-handle requests.
+`ExecutionGraphQlService` is the main Spring abstraction to call GraphQL Java to execute
+requests. Underlying transports, such as the <<web-transports>>, delegate to
+`ExecutionGraphQlService` to handle requests.
 
-The main implementation, `ExecutionGraphQlService`, is a thin facade around the
-invocation of `graphql.GraphQL`. It is configured with a `GraphQlSource` for access to
-the `graphql.GraphQL` instance.
+The main implementation, `DefaultExecutionGraphQlService`, is configured with a
+`GraphQlSource` for access to the `graphql.GraphQL` instance to invoke.
 
 
 
@@ -413,10 +412,10 @@ transport layer, such as from a WebFlux request handling, see
 [[execution-context]]
 === Context Propagation
 
-Spring for GraphQL provides support to transparently propagate context from the <<web-transports>>,
-through the GraphQL engine, and to `DataFetcher` and other components it invokes.
-This includes both `ThreadLocal` context from the Spring MVC request handling thread and
-Reactor `Context` from the WebFlux processing pipeline.
+Spring for GraphQL provides support to transparently propagate context from the
+<<web-transports>>, through GraphQL Java, and to `DataFetcher` and other components it
+invokes. This includes both `ThreadLocal` context from the Spring MVC request handling
+thread and Reactor `Context` from the WebFlux processing pipeline.
 
 
 [[execution-context-webmvc]]
@@ -427,7 +426,7 @@ the same thread as the Spring MVC handler, for example if an asynchronous
 <<web-interception, `WebInterceptor`>> or `DataFetcher` switches to a different thread.
 
 Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
-thread to the thread a `DataFetcher` and other components invoked by the GraphQL engine
+thread to the thread a `DataFetcher` and other components invoked by GraphQL Java to
 execute on. To do this, an application needs to create a `ThreadLocalAccessor` to extract
 `ThreadLocal` values of interest:
 
@@ -558,7 +557,7 @@ public class MyConfig {
 The Spring Boot starter declares a `BatchLoaderRegistry` bean that you can inject into
 your configuration, as shown above, or into any component such as a controller in order
 register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
-`ExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
+`DefaultExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
 
 By default, the `DataLoader` name is based on the class name of the target entity.
 This allows an `@SchemaMapping` method to declare a
@@ -1202,7 +1201,7 @@ If needed, you can customize the name through the annotation, e.g. `@Argument("b
 
 TIP: The `@Argument` annotation does not have a "required" flag, nor the option to
 specify a default value. Both of these can be specified at the GraphQL schema level and
-are enforced by the GraphQL Engine.
+are enforced by GraphQL Java.
 
 You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
 values. The name attribute on `@Argument` must not be set.

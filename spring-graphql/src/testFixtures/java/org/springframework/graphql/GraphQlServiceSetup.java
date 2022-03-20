@@ -19,7 +19,7 @@ import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.web.WebGraphQlSetup;
 
 /**
- * Workflow that results in the creation of a {@link GraphQlService} or a
+ * Workflow that results in the creation of a {@link ExecutionGraphQlService} or a
  * {@link org.springframework.graphql.web.WebGraphQlHandler}.
  *
  * @author Rossen Stoyanchev
@@ -28,6 +28,6 @@ public interface GraphQlServiceSetup extends WebGraphQlSetup {
 
 	GraphQlServiceSetup dataLoaders(DataLoaderRegistrar... registrars);
 
-	GraphQlService toGraphQlService();
+	ExecutionGraphQlService toGraphQlService();
 
 }

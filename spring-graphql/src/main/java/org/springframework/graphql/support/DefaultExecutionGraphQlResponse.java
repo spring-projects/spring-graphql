@@ -28,7 +28,7 @@ import graphql.language.SourceLocation;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -87,7 +87,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 	}
 
 	@Override
-	public List<GraphQlResponseError> getErrors() {
+	public List<ResponseError> getErrors() {
 		return this.result.getErrors().stream().map(Error::new).collect(Collectors.toList());
 	}
 
@@ -110,7 +110,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 	/**
 	 * {@link GraphQLError} that wraps a {@link GraphQLError}.
 	 */
-	private static class Error implements GraphQlResponseError {
+	private static class Error implements ResponseError {
 
 		private final GraphQLError delegate;
 

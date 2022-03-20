@@ -14,7 +14,7 @@ import org.springframework.lang.Nullable;
  * @author Rossen Stoyanchev
  * @since 1.0
  */
-public interface GraphQlResponseError {
+public interface ResponseError {
 
 	/**
 	 * Return the message with a description of the error intended for the

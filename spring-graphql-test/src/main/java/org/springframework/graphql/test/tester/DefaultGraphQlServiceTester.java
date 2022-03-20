@@ -19,12 +19,12 @@ package org.springframework.graphql.test.tester;
 
 import java.util.function.Consumer;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.util.Assert;
 
 
 /**
- * Default {@link GraphQlServiceTester} that uses a {@link GraphQlService} for
+ * Default {@link GraphQlServiceTester} that uses a {@link ExecutionGraphQlService} for
  * request execution.
  *
  * @author Rossen Stoyanchev
@@ -64,9 +64,9 @@ final class DefaultGraphQlServiceTester extends AbstractDelegatingGraphQlTester 
 	static class Builder<B extends Builder<B>> extends AbstractGraphQlTesterBuilder<B>
 			implements GraphQlServiceTester.Builder<B> {
 
-		private final GraphQlService service;
+		private final ExecutionGraphQlService service;
 
-		Builder(GraphQlService service) {
+		Builder(ExecutionGraphQlService service) {
 			Assert.notNull(service, "GraphQlService is required");
 			this.service = service;
 		}

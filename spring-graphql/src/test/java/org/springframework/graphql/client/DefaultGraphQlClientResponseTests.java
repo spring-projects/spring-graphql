@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.graphql.support.DefaultGraphQlRequest;
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.lang.Nullable;
@@ -127,8 +127,8 @@ public class DefaultGraphQlClientResponseTests {
 		GraphQLError error2 = createError("/me/friends", "fail-me-friends");
 		GraphQLError error3 = createError("/me/friends[0]/name", "fail-me-friends-name");
 
-		ClientGraphQlResponseField field = getField(path, error0, error1, error2, error3);
-		List<GraphQlResponseError> errors = field.getErrors();
+		ClientResponseField field = getField(path, error0, error1, error2, error3);
+		List<ResponseError> errors = field.getErrors();
 
 		assertThat(errors).hasSize(3);
 		assertThat(errors.get(0).getPath()).isEqualTo("me");
@@ -144,13 +144,13 @@ public class DefaultGraphQlClientResponseTests {
 		return builder.build();
 	}
 
-	private ClientGraphQlResponseField getField(String path, String dataJson) throws Exception {
+	private ClientResponseField getField(String path, String dataJson) throws Exception {
 		Map<?, ?> dataMap = mapper.readValue(dataJson, Map.class);
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("data", dataMap));
 		return response.field(path);
 	}
 
-	private ClientGraphQlResponseField getField(String path, GraphQLError... errors) {
+	private ClientResponseField getField(String path, GraphQLError... errors) {
 		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).collect(Collectors.toList());
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("errors", list));
 		return response.field(path);

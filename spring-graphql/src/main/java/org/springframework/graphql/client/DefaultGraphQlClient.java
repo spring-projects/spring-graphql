@@ -204,8 +204,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		 * @throws FieldAccessException for invalid response or failed field
 		 */
 		@Nullable
-		protected ClientGraphQlResponseField getValidField(ClientGraphQlResponse response) {
-			ClientGraphQlResponseField field = response.field(this.path);
+		protected ClientResponseField getValidField(ClientGraphQlResponse response) {
+			ClientResponseField field = response.field(this.path);
 			if (!response.isValid() || field.getError() != null) {
 				throw new FieldAccessException(response, field);
 			}
@@ -237,7 +237,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Mono<List<D>> toEntityList(Class<D> elementType) {
 			return this.responseMono.map(response -> {
-				ClientGraphQlResponseField field = getValidField(response);
+				ClientResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}
@@ -245,7 +245,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
 			return this.responseMono.map(response -> {
-				ClientGraphQlResponseField field = getValidField(response);
+				ClientResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}
@@ -275,7 +275,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Flux<List<D>> toEntityList(Class<D> elementType) {
 			return this.responseFlux.map(response -> {
-				ClientGraphQlResponseField field = getValidField(response);
+				ClientResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}
@@ -283,7 +283,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public <D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
 			return this.responseFlux.map(response -> {
-				ClientGraphQlResponseField field = getValidField(response);
+				ClientResponseField field = getValidField(response);
 				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 			});
 		}

@@ -189,7 +189,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.as("Partial response with field errors should be considered valid")
 				.isTrue();
 
-		ClientGraphQlResponseField field = response.field("me");
+		ClientResponseField field = response.field("me");
 		assertThat(field.hasValue()).isTrue();
 		assertThat(field.getErrors()).hasSize(1);
 		assertThat(field.getErrors().get(0).getParsedPath()).containsExactly("me", "name");
@@ -197,7 +197,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.as("Decoding with nested field error should not be precluded")
 				.isNotNull();
 
-		ClientGraphQlResponseField nameField = response.field("me.name");
+		ClientResponseField nameField = response.field("me.name");
 		assertThat(nameField.hasValue()).isFalse();
 		assertThat(nameField.getError()).isNotNull();
 		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
@@ -205,7 +205,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.as("Decoding field null with direct field error should be rejected")
 				.isInstanceOf(FieldAccessException.class);
 
-		ClientGraphQlResponseField nonExistingField = response.field("me.name.other");
+		ClientResponseField nonExistingField = response.field("me.name.other");
 		assertThat(nonExistingField.hasValue()).isFalse();
 		assertThat(nameField.getError()).isNotNull();
 		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");

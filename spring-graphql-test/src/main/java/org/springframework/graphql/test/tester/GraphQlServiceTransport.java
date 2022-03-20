@@ -21,28 +21,28 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.util.Assert;
 
 
 /**
- * {@code GraphQlTransport} that calls directly a {@link GraphQlService}.
+ * {@code GraphQlTransport} that calls directly a {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 final class GraphQlServiceTransport extends AbstractDirectTransport {
 
-	private final GraphQlService graphQlService;
+	private final ExecutionGraphQlService graphQlService;
 
 
-	GraphQlServiceTransport(GraphQlService graphQlService) {
+	GraphQlServiceTransport(ExecutionGraphQlService graphQlService) {
 		Assert.notNull(graphQlService, "GraphQlService is required");
 		this.graphQlService = graphQlService;
 	}
 
 
-	public GraphQlService getGraphQlService() {
+	public ExecutionGraphQlService getGraphQlService() {
 		return this.graphQlService;
 	}
 

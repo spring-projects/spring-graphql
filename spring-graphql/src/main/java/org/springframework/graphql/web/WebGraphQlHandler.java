@@ -20,7 +20,7 @@ import java.util.List;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 
 
@@ -50,18 +50,18 @@ public interface WebGraphQlHandler {
 
 	/**
 	 * Provides access to a builder to create a {@link WebGraphQlHandler} instance.
-	 * @param graphQlService the {@link GraphQlService} to use for actual execution of the
+	 * @param graphQlService the {@link ExecutionGraphQlService} to use for actual execution of the
 	 * request.
 	 * @return a builder for a WebGraphQlHandler
 	 */
-	static Builder builder(GraphQlService graphQlService) {
+	static Builder builder(ExecutionGraphQlService graphQlService) {
 		return new DefaultWebGraphQlHandlerBuilder(graphQlService);
 	}
 
 
 	/**
 	 * Builder for a {@link WebGraphQlHandler} that executes a
-	 * {@link WebInterceptor} chain followed by a {@link GraphQlService}.
+	 * {@link WebInterceptor} chain followed by a {@link ExecutionGraphQlService}.
 	 */
 	interface Builder {
 

@@ -27,28 +27,28 @@ import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.GraphQlResponseError;
-import org.springframework.graphql.GraphQlResponseField;
+import org.springframework.graphql.ResponseError;
+import org.springframework.graphql.ResponseField;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
 
 /**
- * Default implementation of {@link ClientGraphQlResponseField} that wraps the
+ * Default implementation of {@link ClientResponseField} that wraps the
  * field from {@link org.springframework.graphql.GraphQlResponse} and adds
  * support for decoding.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultClientGraphQlResponseField implements ClientGraphQlResponseField {
+final class DefaultClientResponseField implements ClientResponseField {
 
 	private final DefaultClientGraphQlResponse response;
 
-	private final GraphQlResponseField field;
+	private final ResponseField field;
 
 
-	DefaultClientGraphQlResponseField(DefaultClientGraphQlResponse response, GraphQlResponseField field) {
+	DefaultClientResponseField(DefaultClientGraphQlResponse response, ResponseField field) {
 		this.response = response;
 		this.field = field;
 	}
@@ -75,12 +75,12 @@ final class DefaultClientGraphQlResponseField implements ClientGraphQlResponseFi
 	}
 
 	@Override
-	public GraphQlResponseError getError() {
+	public ResponseError getError() {
 		return this.field.getError();
 	}
 
 	@Override
-	public List<GraphQlResponseError> getErrors() {
+	public List<ResponseError> getErrors() {
 		return this.field.getErrors();
 	}
 

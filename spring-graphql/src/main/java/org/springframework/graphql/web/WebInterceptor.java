@@ -21,6 +21,7 @@ import graphql.ExecutionResult;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.util.Assert;
 
 /**
@@ -43,7 +44,7 @@ public interface WebInterceptor {
 	/**
 	 * Intercept a request and delegate to the rest of the chain that consists
 	 * of other interceptors followed by a
-	 * {@link org.springframework.graphql.GraphQlService} that executes the
+	 * {@link ExecutionGraphQlService} that executes the
 	 * request through the GraphQL Java.
 	 * @param request provides access to GraphQL request and allows customization
 	 * of the {@link ExecutionInput} for {@link graphql.GraphQL}.

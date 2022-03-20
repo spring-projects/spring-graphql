@@ -58,12 +58,12 @@ public interface GraphQlResponse {
 	 * Return errors included in the response.
 	 * <p>A response that is not {@link #isValid() valid} contains "request
 	 * errors". Those are errors that apply to the request as a whole, and have
-	 * an empty error {@link GraphQlResponseError#getPath() path}.
+	 * an empty error {@link ResponseError#getPath() path}.
 	 * <p>A response that is valid may still be partial and contain "field
 	 * errors". Those are errors associated with a specific field through their
 	 * error path.
 	 */
-	List<GraphQlResponseError> getErrors();
+	List<ResponseError> getErrors();
 
 	/**
 	 * Navigate to the given path under the "data" key of the response map where
@@ -78,10 +78,10 @@ public interface GraphQlResponse {
 	 * </pre>
 	 * @param path relative to the "data" key
 	 * @return representation for the field with further options to inspect or
-	 * decode its value; use {@link GraphQlResponseField#hasValue()} to check if
+	 * decode its value; use {@link ResponseField#hasValue()} to check if
 	 * the field actually exists and has a value.
 	 */
-	GraphQlResponseField field(String path);
+	ResponseField field(String path);
 
 	/**
 	 * Return implementor specific, protocol extensions, if any.

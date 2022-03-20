@@ -64,8 +64,8 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 
 	@Override
-	public ClientGraphQlResponseField field(String path) {
-		return new DefaultClientGraphQlResponseField(this, super.field(path));
+	public ClientResponseField field(String path) {
+		return new DefaultClientResponseField(this, super.field(path));
 	}
 
 	@Override

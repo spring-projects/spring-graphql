@@ -20,15 +20,15 @@ package org.springframework.graphql.client;
 import java.util.List;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlResponseField;
+import org.springframework.graphql.ResponseField;
 
 /**
- * Extends {@link GraphQlResponseField} to add options for decoding the field value.
+ * Extends {@link ResponseField} to add options for decoding the field value.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface ClientGraphQlResponseField extends GraphQlResponseField {
+public interface ClientResponseField extends ResponseField {
 
 	/**
 	 * Decode the field to an entity of the given type.

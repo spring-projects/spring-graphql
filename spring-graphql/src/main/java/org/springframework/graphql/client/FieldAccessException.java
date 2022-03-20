@@ -18,12 +18,13 @@ package org.springframework.graphql.client;
 
 
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseField;
 
 /**
  * An exception raised on an attempt to decode data from a
  * {@link GraphQlResponse#isValid() failed response} or a field is not present,
  * or has no value, checked via
- * {@link org.springframework.graphql.GraphQlResponseField#hasValue()}.
+ * {@link ResponseField#hasValue()}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -33,19 +34,19 @@ public class FieldAccessException extends GraphQlClientException {
 
 	private final ClientGraphQlResponse response;
 
-	private final ClientGraphQlResponseField field;
+	private final ClientResponseField field;
 
 
 	/**
 	 * Constructor with the request and response, and the accessed field.
 	 */
-	public FieldAccessException(ClientGraphQlResponse response, ClientGraphQlResponseField field) {
+	public FieldAccessException(ClientGraphQlResponse response, ClientResponseField field) {
 		super(initDefaultMessage(field), null, response.getRequest());
 		this.response = response;
 		this.field = field;
 	}
 
-	private static String initDefaultMessage(ClientGraphQlResponseField field) {
+	private static String initDefaultMessage(ClientResponseField field) {
 		return "Invalid field '" + field.getPath() + "', errors: " + field.getErrors();
 	}
 
@@ -60,7 +61,7 @@ public class FieldAccessException extends GraphQlClientException {
 	/**
 	 * Return the field that needed to be accessed.
 	 */
-	public ClientGraphQlResponseField getField() {
+	public ClientResponseField getField() {
 		return this.field;
 	}
 

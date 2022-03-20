@@ -34,7 +34,7 @@ import reactor.test.StepVerifier;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.web.support.GraphQlMessage;
@@ -111,7 +111,7 @@ public class MockWebSocketGraphQlTransportTests {
 		StepVerifier.create(this.transport.execute(request))
 				.consumeNextWith(result -> {
 					assertThat(result.isValid()).isFalse();
-					assertThat(result.getErrors()).extracting(GraphQlResponseError::getMessage).containsExactly("boo");
+					assertThat(result.getErrors()).extracting(ResponseError::getMessage).containsExactly("boo");
 				})
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -129,8 +129,8 @@ public class MockWebSocketGraphQlTransportTests {
 		StepVerifier.create(this.transport.executeSubscription(request))
 				.expectNext(this.response1)
 				.expectErrorSatisfies(actualEx -> {
-					List<GraphQlResponseError> errors = ((SubscriptionErrorException) actualEx).getErrors();
-					assertThat(errors).extracting(GraphQlResponseError::getMessage).containsExactly("boo");
+					List<ResponseError> errors = ((SubscriptionErrorException) actualEx).getErrors();
+					assertThat(errors).extracting(ResponseError::getMessage).containsExactly("boo");
 				})
 				.verify(TIMEOUT);
 

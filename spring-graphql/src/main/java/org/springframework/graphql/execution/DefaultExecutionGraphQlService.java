@@ -29,17 +29,17 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 
 /**
- * {@link GraphQlService} that uses a {@link GraphQlSource} to obtain a
+ * {@link ExecutionGraphQlService} that uses a {@link GraphQlSource} to obtain a
  * {@link GraphQL} instance and perform query execution.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class ExecutionGraphQlService implements GraphQlService {
+public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private static final BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> RESET_EXECUTION_ID_CONFIGURER =
 			(executionInput, builder) -> builder.executionId(null).build();
@@ -52,7 +52,7 @@ public class ExecutionGraphQlService implements GraphQlService {
 	private final boolean isDefaultExecutionIdProvider;
 
 
-	public ExecutionGraphQlService(GraphQlSource graphQlSource) {
+	public DefaultExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
 		this.isDefaultExecutionIdProvider =
 				(graphQlSource.graphQl().getIdProvider() == ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER);

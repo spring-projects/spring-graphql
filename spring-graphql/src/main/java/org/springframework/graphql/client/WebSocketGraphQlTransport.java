@@ -33,7 +33,7 @@ import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
@@ -514,7 +514,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				emitResult = responseState.sink().tryEmitValue(response);
 			}
 			else {
-				List<GraphQlResponseError> errors = response.getErrors();
+				List<ResponseError> errors = response.getErrors();
 				Exception ex = new SubscriptionErrorException(subscriptionState.request(), errors);
 				emitResult = subscriptionState.sink().tryEmitError(ex);
 			}

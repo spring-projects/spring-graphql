@@ -20,13 +20,13 @@ import graphql.GraphqlErrorBuilder;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DocumentSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link GraphQlTester} builder with a mock {@link GraphQlService}.
+ * Tests for {@link GraphQlTester} builder with a mock {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
  */

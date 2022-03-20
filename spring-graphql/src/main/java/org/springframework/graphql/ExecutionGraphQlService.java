@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface GraphQlService {
+public interface ExecutionGraphQlService {
 
 	/**
 	 * Execute the request and return the response.

@@ -38,7 +38,7 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	/**
 	 * {@inheritDoc}
 	 */
-	ClientGraphQlResponseField field(String path);
+	ClientResponseField field(String path);
 
 	/**
 	 * Decode the full response map to the given target type.

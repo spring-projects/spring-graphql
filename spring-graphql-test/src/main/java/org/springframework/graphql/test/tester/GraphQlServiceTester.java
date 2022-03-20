@@ -16,10 +16,10 @@
 
 package org.springframework.graphql.test.tester;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 
 /**
- * {@link GraphQlTester} that executes requests through a {@link GraphQlService}
+ * {@link GraphQlTester} that executes requests through a {@link ExecutionGraphQlService}
  * Use it for server-side tests, without a client.
  *
  * @author Rossen Stoyanchev
@@ -35,14 +35,14 @@ public interface GraphQlServiceTester extends GraphQlTester {
 	/**
 	 * Create a {@link GraphQlServiceTester} instance.
 	 */
-	static GraphQlServiceTester create(GraphQlService service) {
+	static GraphQlServiceTester create(ExecutionGraphQlService service) {
 		return builder(service).build();
 	}
 
 	/**
 	 * Return a builder for {@link GraphQlServiceTester}.
 	 */
-	static GraphQlServiceTester.Builder<?> builder(GraphQlService service) {
+	static GraphQlServiceTester.Builder<?> builder(ExecutionGraphQlService service) {
 		return new DefaultGraphQlServiceTester.Builder<>(service);
 	}
 

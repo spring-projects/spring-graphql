@@ -26,7 +26,7 @@ import graphql.GraphQLError;
 import graphql.language.SourceLocation;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.support.AbstractGraphQlResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -42,7 +42,7 @@ class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlRespo
 
 	private final Map<String, Object> responseMap;
 
-	private final List<GraphQlResponseError> errors;
+	private final List<ResponseError> errors;
 
 
 	MapGraphQlResponse(Map<String, Object> responseMap) {
@@ -58,7 +58,7 @@ class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlRespo
 	}
 
 	@SuppressWarnings("unchecked")
-	private static List<GraphQlResponseError> wrapErrors(Map<String, Object> map) {
+	private static List<ResponseError> wrapErrors(Map<String, Object> map) {
 		List<Map<String, Object>> errors = (List<Map<String, Object>>) map.get("errors");
 		errors = (errors != null ? errors : Collections.emptyList());
 		return errors.stream().map(Error::new).collect(Collectors.toList());
@@ -71,7 +71,7 @@ class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlRespo
 	}
 
 	@Override
-	public List<GraphQlResponseError> getErrors() {
+	public List<ResponseError> getErrors() {
 		return this.errors;
 	}
 
@@ -112,7 +112,7 @@ class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlRespo
 	/**
 	 * {@link GraphQLError} that wraps a deserialized the GraphQL response map.
 	 */
-	private static final class Error implements GraphQlResponseError {
+	private static final class Error implements ResponseError {
 
 		private final Map<String, Object> errorMap;
 
@@ -189,7 +189,7 @@ class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlRespo
 			if (o == null || this.getClass() != o.getClass()) {
 				return false;
 			}
-			GraphQlResponseError other = (GraphQlResponseError) o;
+			ResponseError other = (ResponseError) o;
 			return (ObjectUtils.nullSafeEquals(getMessage(), other.getMessage()) &&
 					ObjectUtils.nullSafeEquals(getLocations(), other.getLocations()) &&
 					ObjectUtils.nullSafeEquals(getParsedPath(), other.getParsedPath()) &&

@@ -30,7 +30,7 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 
 import static org.mockito.BDDMockito.given;
@@ -48,7 +48,7 @@ public class GraphQlTesterTestSupport {
 
 	private final ArgumentCaptor<ExecutionGraphQlRequest> requestCaptor = ArgumentCaptor.forClass(ExecutionGraphQlRequest.class);
 
-	private final GraphQlService graphQlService = mock(GraphQlService.class);
+	private final ExecutionGraphQlService graphQlService = mock(ExecutionGraphQlService.class);
 
 	private final GraphQlTester.Builder<?> graphQlTesterBuilder = GraphQlServiceTester.builder(this.graphQlService);
 

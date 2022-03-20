@@ -35,7 +35,7 @@ import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
@@ -205,7 +205,7 @@ public class SchemaMappingInvocationTests {
 	}
 
 
-	private GraphQlService graphQlService() {
+	private ExecutionGraphQlService graphQlService() {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();

@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseField;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -185,7 +186,7 @@ public interface GraphQlClient {
 		 * the field is {@code null} without errors, or ends with
 		 * {@link FieldAccessException} for an invalid response or a failed field
 		 * @see GraphQlResponse#isValid()
-		 * @see org.springframework.graphql.GraphQlResponseField#getError()
+		 * @see ResponseField#getError()
 		 */
 		<D> Mono<D> toEntity(Class<D> entityType);
 
@@ -201,7 +202,7 @@ public interface GraphQlClient {
 		 * empty list, or ends with {@link FieldAccessException} if the target
 		 * field is not present or has no value.
 		 * @see GraphQlResponse#isValid()
-		 * @see org.springframework.graphql.GraphQlResponseField#getError()
+		 * @see ResponseField#getError()
 		 */
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
@@ -226,7 +227,7 @@ public interface GraphQlClient {
 		 * {@link FieldAccessException} for an invalid response or a failed field.
 		 * May also end with a {@link GraphQlTransportException}.
 		 * @see GraphQlResponse#isValid()
-		 * @see org.springframework.graphql.GraphQlResponseField#getError()
+		 * @see ResponseField#getError()
 		 */
 		<D> Flux<D> toEntity(Class<D> entityType);
 
@@ -243,7 +244,7 @@ public interface GraphQlClient {
 		 * {@link FieldAccessException} for an invalid response or a failed field.
 		 * May also end with a {@link GraphQlTransportException}.
 		 * @see GraphQlResponse#isValid()
-		 * @see org.springframework.graphql.GraphQlResponseField#getError()
+		 * @see ResponseField#getError()
 		 */
 		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 

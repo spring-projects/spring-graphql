@@ -27,13 +27,13 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.ExecutionGraphQlRequest;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Tests for {@link GraphQlTester} with a mock {@link GraphQlService}.
+ * Tests for {@link GraphQlTester} with a mock {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
  */

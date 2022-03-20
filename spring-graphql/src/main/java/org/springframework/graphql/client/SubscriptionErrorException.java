@@ -19,7 +19,7 @@ package org.springframework.graphql.client;
 import java.util.List;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 
 /**
  * WebSocket {@link GraphQlTransportException} raised when a subscription
@@ -32,14 +32,14 @@ import org.springframework.graphql.GraphQlResponseError;
 @SuppressWarnings("serial")
 public class SubscriptionErrorException extends GraphQlTransportException {
 
-	private final List<GraphQlResponseError> errors;
+	private final List<ResponseError> errors;
 
 
 	/**
 	 * Constructor with the request details and the errors listed in the payload
 	 * of the {@code "errors"} message.
 	 */
-	public SubscriptionErrorException(GraphQlRequest request, List<GraphQlResponseError> errors) {
+	public SubscriptionErrorException(GraphQlRequest request, List<ResponseError> errors) {
 		super("GraphQL subscription completed with an \"error\" message, " +
 				"with the following errors: " + errors, null, request);
 		this.errors = errors;
@@ -49,7 +49,7 @@ public class SubscriptionErrorException extends GraphQlTransportException {
 	/**
 	 * Return the errors contained in the GraphQL over WebSocket "errors" message.
 	 */
-	public List<GraphQlResponseError> getErrors() {
+	public List<ResponseError> getErrors() {
 		return this.errors;
 	}
 

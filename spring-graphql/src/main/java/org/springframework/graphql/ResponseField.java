@@ -29,7 +29,7 @@ import org.springframework.lang.Nullable;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface GraphQlResponseField {
+public interface ResponseField {
 
 	/**
 	 * Whether the field has a value.
@@ -51,7 +51,7 @@ public interface GraphQlResponseField {
 	/**
 	 * Return a parsed representation of the field path, in the format described
 	 * for error paths in Section 7.1.2, "Response Format" of the GraphQL spec.
-	 * @see GraphQlResponseError#getParsedPath()
+	 * @see ResponseError#getParsedPath()
 	 */
 	List<Object> getParsedPath();
 
@@ -85,7 +85,7 @@ public interface GraphQlResponseField {
 	 * error with the same path as the field path
 	 */
 	@Nullable
-	GraphQlResponseError getError();
+	ResponseError getError();
 
 	/**
 	 * Return all field errors including errors above, at, and below this field.
@@ -94,6 +94,6 @@ public interface GraphQlResponseField {
 	 * field <strong>does not have</strong> a value, there should be only one
 	 * field error, and in that case it is better to use {@link #getError()}.
 	 */
-	List<GraphQlResponseError> getErrors();
+	List<ResponseError> getErrors();
 
 }

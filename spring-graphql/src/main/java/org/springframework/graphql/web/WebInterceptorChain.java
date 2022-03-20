@@ -18,6 +18,8 @@ package org.springframework.graphql.web;
 import graphql.ExecutionInput;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.ExecutionGraphQlService;
+
 /**
  * Allows a {@link WebInterceptor} to invoke the rest of the chain.
  *
@@ -28,7 +30,7 @@ public interface WebInterceptorChain {
 
 	/**
 	 * Delegate to the rest of the chain that consists of other interceptors
-	 * followed by a {@link org.springframework.graphql.GraphQlService} that
+	 * followed by a {@link ExecutionGraphQlService} that
 	 * executes the request through the GraphQL Java.
 	 * @param request provides access to GraphQL request and allows customizing
 	 * the {@link ExecutionInput} for {@link graphql.GraphQL}.

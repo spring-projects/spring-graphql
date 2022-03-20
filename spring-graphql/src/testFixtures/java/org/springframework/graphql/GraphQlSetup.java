@@ -31,7 +31,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataLoaderRegistrar;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
+import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
@@ -42,7 +42,7 @@ import org.springframework.graphql.web.WebInterceptor;
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
  * related input, and then optionally moving on to the creation of a
- * {@link GraphQlService} or a {@link WebGraphQlHandler}.
+ * {@link ExecutionGraphQlService} or a {@link WebGraphQlHandler}.
  *
  * @author Rossen Stoyanchev
  */
@@ -126,7 +126,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public ExecutionGraphQlService toGraphQlService() {
 		GraphQlSource source = graphQlSourceBuilder.build();
-		ExecutionGraphQlService service = new ExecutionGraphQlService(source);
+		DefaultExecutionGraphQlService service = new DefaultExecutionGraphQlService(source);
 		this.dataLoaderRegistrars.forEach(service::addDataLoaderRegistrar);
 		return service;
 	}

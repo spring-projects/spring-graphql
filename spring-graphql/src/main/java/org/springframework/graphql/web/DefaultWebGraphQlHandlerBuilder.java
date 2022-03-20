@@ -22,7 +22,7 @@ import java.util.List;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.lang.Nullable;
@@ -37,7 +37,7 @@ import org.springframework.util.CollectionUtils;
  */
 class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
-	private final GraphQlService service;
+	private final ExecutionGraphQlService service;
 
 	private final List<WebInterceptor> interceptors = new ArrayList<>();
 
@@ -48,7 +48,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	private List<ThreadLocalAccessor> accessors;
 
 
-	DefaultWebGraphQlHandlerBuilder(GraphQlService service) {
+	DefaultWebGraphQlHandlerBuilder(ExecutionGraphQlService service) {
 		Assert.notNull(service, "GraphQlService is required");
 		this.service = service;
 	}

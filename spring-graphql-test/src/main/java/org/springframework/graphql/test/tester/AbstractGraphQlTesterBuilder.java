@@ -25,7 +25,7 @@ import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
-import org.springframework.graphql.GraphQlResponseError;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.AbstractGraphQlClientBuilder;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.CachingDocumentSource;
@@ -57,7 +57,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 
 
 	@Nullable
-	private Predicate<GraphQlResponseError> errorFilter;
+	private Predicate<ResponseError> errorFilter;
 
 	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
 
@@ -67,7 +67,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 
 
 	@Override
-	public B errorFilter(Predicate<GraphQlResponseError> predicate) {
+	public B errorFilter(Predicate<ResponseError> predicate) {
 		this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
 		return self();
 	}

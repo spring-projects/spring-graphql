@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlResponseError;
-import org.springframework.graphql.GraphQlResponseField;
+import org.springframework.graphql.ResponseError;
+import org.springframework.graphql.ResponseField;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -33,7 +33,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * Base class for {@link GraphQlResponse} that pre-implements the ability to
- * access a {@link GraphQlResponseField}.
+ * access a {@link ResponseField}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -42,15 +42,15 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 
 
 	@Override
-	public GraphQlResponseField field(String path) {
-		return new DefaultGraphQlResponseField(this, path);
+	public ResponseField field(String path) {
+		return new DefaultResponseField(this, path);
 	}
 
 
 	/**
-	 * Default implementation of {@link GraphQlResponseField}.
+	 * Default implementation of {@link ResponseField}.
 	 */
-	private static class DefaultGraphQlResponseField implements GraphQlResponseField {
+	private static class DefaultResponseField implements ResponseField {
 
 		private final GraphQlResponse response;
 
@@ -61,10 +61,10 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 		@Nullable
 		private final Object value;
 
-		private final List<GraphQlResponseError> fieldErrors;
+		private final List<ResponseError> fieldErrors;
 
 
-		DefaultGraphQlResponseField(GraphQlResponse response, String path) {
+		DefaultResponseField(GraphQlResponse response, String path) {
 			this.response = response;
 			this.path = path;
 			this.parsedPath = parsePath(path);
@@ -137,7 +137,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 		 * @param path the field path to match
 		 * @return errors whose path starts with the dataPath
 		 */
-		private static List<GraphQlResponseError> initFieldErrors(String path, GraphQlResponse response) {
+		private static List<ResponseError> initFieldErrors(String path, GraphQlResponse response) {
 			if (path.isEmpty() || response.getErrors().isEmpty()) {
 				return Collections.emptyList();
 			}
@@ -172,7 +172,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 		}
 
 		@Override
-		public GraphQlResponseError getError() {
+		public ResponseError getError() {
 			if (!hasValue()) {
 				if (!this.fieldErrors.isEmpty()) {
 					return this.fieldErrors.get(0);
@@ -186,7 +186,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 		}
 
 		@Override
-		public List<GraphQlResponseError> getErrors() {
+		public List<ResponseError> getErrors() {
 			return this.fieldErrors;
 		}
 
