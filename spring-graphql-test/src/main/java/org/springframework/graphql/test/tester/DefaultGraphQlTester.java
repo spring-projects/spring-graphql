@@ -562,9 +562,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public EntityList<E> contains(E... elements) {
+		public EntityList<E> contains(E... values) {
 			doAssert(() -> {
-				List<E> expected = Arrays.asList(elements);
+				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue("List at path '" + getPath() + "' does not contain " + expected,
 						getEntity().containsAll(expected));
 			});
@@ -573,9 +573,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public EntityList<E> doesNotContain(E... elements) {
+		public EntityList<E> doesNotContain(E... values) {
 			doAssert(() -> {
-				List<E> expected = Arrays.asList(elements);
+				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue(
 						"List at path '" + getPath() + "' should not have contained " + expected,
 						!getEntity().containsAll(expected));
@@ -585,9 +585,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public EntityList<E> containsExactly(E... elements) {
+		public EntityList<E> containsExactly(E... values) {
 			doAssert(() -> {
-				List<E> expected = Arrays.asList(elements);
+				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue(
 						"List at path '" + getPath() + "' should have contained exactly " + expected,
 						getEntity().equals(expected));
@@ -603,18 +603,18 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public EntityList<E> hasSizeLessThan(int boundary) {
+		public EntityList<E> hasSizeLessThan(int size) {
 			doAssert(() -> AssertionErrors.assertTrue(
-					"List at path '" + getPath() + "' should have size less than " + boundary,
-					getEntity().size() < boundary));
+					"List at path '" + getPath() + "' should have size less than " + size,
+					getEntity().size() < size));
 			return this;
 		}
 
 		@Override
-		public EntityList<E> hasSizeGreaterThan(int boundary) {
+		public EntityList<E> hasSizeGreaterThan(int size) {
 			doAssert(() -> AssertionErrors.assertTrue(
-					"List at path '" + getPath() + "' should have size greater than " + boundary,
-					getEntity().size() > boundary));
+					"List at path '" + getPath() + "' should have size greater than " + size,
+					getEntity().size() > size));
 			return this;
 		}
 	}

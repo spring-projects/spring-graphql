@@ -138,7 +138,10 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		MovieCharacter leia = MovieCharacter.create("Leia Organa");
 		MovieCharacter jabba = MovieCharacter.create("Jabba the Hutt");
 
-		List<MovieCharacter> actual = response.path("me.friends").entityList(MovieCharacter.class)
+		GraphQlTester.EntityList<MovieCharacter> entityList =
+				response.path("me.friends").entityList(MovieCharacter.class);
+
+		List<MovieCharacter> actual = entityList
 				.contains(han)
 				.containsExactly(han, leia)
 				.doesNotContain(jabba)
@@ -148,6 +151,10 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.get();
 
 		assertThat(actual).containsExactly(han, leia);
+
+		assertThatThrownBy(() -> entityList.containsExactly(leia, han))
+				.as("Should be exactly the same order")
+				.hasMessageStartingWith("List at path 'me.friends' should have contained exactly");
 
 		response.path("me.friends")
 				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
