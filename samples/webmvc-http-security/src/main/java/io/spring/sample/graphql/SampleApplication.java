@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
 
 @SpringBootApplication
 public class SampleApplication {
@@ -33,7 +33,7 @@ public class SampleApplication {
 	}
 
 	@Bean
-	public WebInterceptor interceptor() {
+	public WebGraphQlHandlerInterceptor interceptor() {
 		return (webInput, interceptorChain) -> {
 			// Switch threads to prove ThreadLocal context propagation works
 			return Mono.delay(Duration.ofMillis(10)).flatMap(aLong -> interceptorChain.next(webInput));
