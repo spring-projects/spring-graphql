@@ -32,58 +32,37 @@ import org.springframework.graphql.data.GraphQlArgumentInitializer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+
 /**
  * Tests for {@link GraphQlArgumentInitializer}
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  */
 class GraphQlArgumentInitializerTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(null);
+	private final ThreadLocal<GraphQlArgumentInitializer> initializer = ThreadLocal.withInitial(() -> new GraphQlArgumentInitializer(null));
 
 
 	@Test
-	void shouldInstantiateDefaultConstructor() throws Exception {
-		String payload = "{\"simpleBean\": { \"name\": \"test\"} }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		Object result = initializer.initializeArgument(
-				environment, "simpleBean", ResolvableType.forClass(SimpleBean.class));
+	void defaultConstructor() throws Exception {
+
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\": { \"name\": \"test\"} }"), "key",
+				ResolvableType.forClass(SimpleBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(SimpleBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
 	}
 
 	@Test
-	void shouldInstantiatePrimaryConstructor() throws Exception {
-		String payload = "{\"constructorBean\": { \"name\": \"test\"} }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		Object result = initializer.initializeArgument(
-				environment, "constructorBean", ResolvableType.forClass(ContructorBean.class));
+	void defaultConstructorWithNestedBeanProperty() throws Exception {
 
-		assertThat(result).isNotNull().isInstanceOf(ContructorBean.class);
-		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
-	}
-
-	@Test
-	void shouldFailIfNoPrimaryConstructor() throws Exception {
-		String payload = "{\"noPrimary\": { \"name\": \"test\"} }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		assertThatThrownBy(
-				() -> {
-					ResolvableType targetType = ResolvableType.forClass(NoPrimaryConstructor.class);
-					initializer.initializeArgument(environment, "noPrimary", targetType);
-				})
-				.isInstanceOf(IllegalStateException.class)
-				.hasMessageContaining("No primary or single unique constructor found");
-	}
-
-	@Test
-	void shouldInstantiateNestedBean() throws Exception {
-		String payload = "{\"book\": { \"name\": \"test name\", \"author\": { \"firstName\": \"Jane\", \"lastName\": \"Spring\"} } }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		Object result = initializer.initializeArgument(environment, "book", ResolvableType.forClass(Book.class));
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\":{\"name\":\"test name\",\"author\":{\"firstName\":\"Jane\",\"lastName\":\"Spring\"}}}"), "key",
+				ResolvableType.forClass(Book.class));
 
 		assertThat(result).isNotNull().isInstanceOf(Book.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test name");
@@ -93,52 +72,77 @@ class GraphQlArgumentInitializerTests {
 	}
 
 	@Test
-	void shouldInstantiateNestedBeanLists() throws Exception {
-		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		Object result = initializer.initializeArgument(
-				environment, "nestedList", ResolvableType.forClass(NestedList.class));
+	void defaultConstructorWithNestedBeanListProperty() throws Exception {
 
-		assertThat(result).isNotNull().isInstanceOf(NestedList.class);
-		assertThat(((NestedList) result).getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
+				ResolvableType.forClass(ItemListHolder.class));
+
+		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
+		assertThat(((ItemListHolder) result).getItems())
+				.hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
 	@Test // gh-301
-	void shouldInstantiateNestedBeanListsEmpty() throws Exception {
-		String payload = "{\"nestedList\": { \"items\": [] } }";
-		Object result = initializer.initializeArgument(
-				initEnvironment(payload), "nestedList", ResolvableType.forClass(NestedList.class));
+	void defaultConstructorWithNestedBeanListEmpty() throws Exception {
 
-		assertThat(result).isNotNull().isInstanceOf(NestedList.class);
-		assertThat(((NestedList) result).getItems()).hasSize(0);
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\": { \"items\": [] } }"), "key",
+				ResolvableType.forClass(ItemListHolder.class));
+
+		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
+		assertThat(((ItemListHolder) result).getItems()).hasSize(0);
 	}
 
 	@Test
-	void shouldInstantiatePrimaryConstructorNestedBeanLists() throws Exception {
-		String payload = "{\"nestedList\": { \"items\": [ {\"name\": \"first\"}, {\"name\": \"second\"}] } }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		Object result = initializer.initializeArgument(
-				environment, "nestedList", ResolvableType.forClass(PrimaryConstructorNestedList.class));
+	void primaryConstructor() throws Exception {
 
-		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorNestedList.class);
-		assertThat(((PrimaryConstructorNestedList) result).getItems())
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\":{\"name\":\"test\"}}"), "key",
+				ResolvableType.forClass(PrimaryConstructorBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorBean.class);
+		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
+	}
+
+	@Test
+	void primaryConstructorWithBeanArgument() throws Exception {
+
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\":{\"item\":{\"name\":\"Item name\"},\"name\":\"Hello\"}}"), "key",
+				ResolvableType.forClass(PrimaryConstructorItemBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemBean.class);
+		assertThat(((PrimaryConstructorItemBean) result).item.name).isEqualTo("Item name");
+		assertThat(((PrimaryConstructorItemBean) result).name).isEqualTo("Hello");
+	}
+
+	@Test
+	void primaryConstructorWithNestedBeanList() throws Exception {
+
+		Object result = initializer.get().initializeArgument(
+				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
+				ResolvableType.forClass(PrimaryConstructorItemListBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemListBean.class);
+		assertThat(((PrimaryConstructorItemListBean) result).getItems())
 				.hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
 	@Test
-	void shouldInstantiateComplexNestedBean() throws Exception {
-		String payload = "{\"complex\": { \"item\": {\"name\": \"Item name\"}, \"name\": \"Hello\" } }";
-		DataFetchingEnvironment environment = initEnvironment(payload);
-		Object result = initializer.initializeArgument(
-				environment, "complex", ResolvableType.forClass(PrimaryConstructorComplexInput.class));
-
-		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorComplexInput.class);
-		assertThat(((PrimaryConstructorComplexInput) result).item.name).isEqualTo("Item name");
-		assertThat(((PrimaryConstructorComplexInput) result).name).isEqualTo("Hello");
+	void primaryConstructorNotFound() {
+		assertThatThrownBy(
+				() -> {
+					initializer.get().initializeArgument(
+							environment("{\"key\": { \"name\": \"test\"} }"), "key",
+							ResolvableType.forClass(NoPrimaryConstructorBean.class));
+				})
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("No primary or single unique constructor found");
 	}
 
 	@SuppressWarnings("unchecked")
-	private DataFetchingEnvironment initEnvironment(String jsonPayload) throws JsonProcessingException {
+	private DataFetchingEnvironment environment(String jsonPayload) throws JsonProcessingException {
 		Map<String, Object> arguments = this.mapper.readValue(jsonPayload, Map.class);
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}
@@ -158,11 +162,11 @@ class GraphQlArgumentInitializerTests {
 	}
 
 
-	static class ContructorBean {
+	static class PrimaryConstructorBean {
 
 		final String name;
 
-		public ContructorBean(String name) {
+		public PrimaryConstructorBean(String name) {
 			this.name = name;
 		}
 
@@ -172,17 +176,51 @@ class GraphQlArgumentInitializerTests {
 	}
 
 
-	static class NoPrimaryConstructor {
+	static class NoPrimaryConstructorBean {
 
-		NoPrimaryConstructor(String name) {
+		NoPrimaryConstructorBean(String name) {
 		}
 
-		NoPrimaryConstructor(String name, Long id) {
+		NoPrimaryConstructorBean(String name, Long id) {
 		}
 	}
 
 
-	static class NestedList {
+	static class PrimaryConstructorItemBean {
+		final String name;
+
+		final Item item;
+
+		public PrimaryConstructorItemBean(String name, Item item) {
+			this.name = name;
+			this.item = item;
+		}
+
+		public String getName() {
+			return this.name;
+		}
+
+		public Item getItem() {
+			return item;
+		}
+	}
+
+
+	static class PrimaryConstructorItemListBean {
+
+		final List<Item> items;
+
+		public PrimaryConstructorItemListBean(List<Item> items) {
+			this.items = items;
+		}
+
+		public List<Item> getItems() {
+			return items;
+		}
+	}
+
+
+	static class ItemListHolder {
 
 		List<Item> items;
 
@@ -192,19 +230,6 @@ class GraphQlArgumentInitializerTests {
 
 		public void setItems(List<Item> items) {
 			this.items = items;
-		}
-	}
-
-	static class PrimaryConstructorNestedList {
-
-		final List<Item> items;
-
-		public PrimaryConstructorNestedList(List<Item> items) {
-			this.items = items;
-		}
-
-		public List<Item> getItems() {
-			return items;
 		}
 	}
 
@@ -222,24 +247,4 @@ class GraphQlArgumentInitializerTests {
 		}
 	}
 
-
-	static class PrimaryConstructorComplexInput {
-		final String name;
-
-		final Item item;
-
-		public PrimaryConstructorComplexInput(String name, Item item) {
-			this.name = name;
-			this.item = item;
-		}
-
-		public String getName() {
-			return this.name;
-		}
-
-		public Item getItem() {
-			return item;
-		}
-	}
-	
 }
