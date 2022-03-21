@@ -106,9 +106,14 @@ on an existing `WebSocketGraphQlClient` to create another with different configu
 
 ----
 
+
+
+[[client-websocketgraphqlclient-connection]]
+==== Connection
+
 A connection is established transparently when requests are made. There is only one
-shared, active connection at a time. If the connection is lost, it is automatically
-re-established on the next request.
+shared, active connection at a time. If the connection is lost, it is re-established on
+the next request.
 
 `WebSocketGraphQlClient` also exposes lifecycle methods:
 
@@ -120,12 +125,48 @@ allow requests again.
 
 
 
+[[client-websocketgraphqlclient-interceptor]]
+==== Interceptor
+
+The https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[GraphQL over WebSocket]
+protocol defines a number of connection oriented messages in addition to executing
+requests. For example, a client sends `"connection_init"` and the server responds with
+`"connection_ack"` at the start of a connection.
+
+For WebSocket transport specific interception, you can create a
+`WebSocketGraphQlClientInterceptor`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	static class MyInterceptor implements WebSocketGraphQlClientInterceptor {
+
+		@Override
+		public Mono<Object> connectionInitPayload() {
+			// ... the "connection_init" payload to send
+		}
+
+		@Override
+		public Mono<Void> handleConnectionAck(Map<String, Object> ackPayload) {
+			// ... the "connection_ack" payload received
+		}
+
+	}
+----
+
+<<client-interception,Register>> the above interceptor as any other
+`GraphQlClientInterceptor` and use it also to intercept GraphQL requests, but note there
+can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
+
+
+
 [[client-graphqlclient-builder]]
 === Builder
 
 `GraphQlClient` defines a parent `Builder` with common configuration options for the
-builders of all extensions. Currently, it has lets you configure a `DocumentSource`,
-which is a strategy for loading the document for a request by file name.
+builders of all extensions. Currently, it has lets you configure:
+
+- `DocumentSource` strategy to load the document for a request from a file
+- <<client-interception>> of executed requests
 
 
 
@@ -193,8 +234,8 @@ response and the field:
 [[client-requests-execute]]
 === Execute
 
-`retrieve` is only a shortcut to decode from a single path in the response map. For more
-control, use the `execute` method and handle the response:
+<<client-requests-retrieve>> is only a shortcut to decode from a single path in the
+response map. For more control, use the `execute` method and handle the response:
 
 For example:
 
@@ -270,11 +311,22 @@ You can use the `GraphQlClient` <<client-graphqlclient-builder>> to customize th
 
 
 
-[[client-subscriptions]]
-== Subscriptions
 
-For a subscription operation, call `retrieveSubscription` instead of `retrieve` to
-obtain a stream of responses, each decoded to a target object:
+[[client-subscriptions]]
+== Subscription Requests
+
+`GraphQlClient` can execute subscriptions over transports that support it. Currently, only
+the WebSocket transport supports GraphQL streams, so you'll need to create a
+<<client-websocketgraphqlclient,WebSocketGraphQlClient>>.
+
+
+
+[[client-subscriptions-retrieve]]
+=== Retrieve
+
+To start a subscription stream, use `retrieveSubscription` which is similar to
+<<client-requests-retrieve,retrieve>> for a single response but returning a stream of
+responses, each decoded to some data:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -283,9 +335,26 @@ obtain a stream of responses, each decoded to a target object:
 			.toEntity(String.class);
 ----
 
-Similar to the <<client-requests-retrieve, retrieve>> vs <<client-requests-execute, execute>>
-alternatives for single response requests, the same is also available for subscriptions.
-For more control over each response, use `executeSubscription`:
+A subscription stream may end with:
+
+- `SubscriptionErrorException` if the server ends the
+subscription with an explicit "error" message that contains one or more GraphQL errors.
+The exception provides access to the GraphQL errors decoded from that message.
+- `GraphQlTransportException` such as `WebSocketDisconnectedException` if the underlying
+connection is closed or lost in which case you can use the `retry` operator to reestablish
+the connection and start the subscription again.
+
+
+
+
+
+
+[[client-subscriptions-execute]]
+=== Execute
+
+<<client-subscriptions-retrieve>> is only a shortcut to decode from a single path in each
+response map. For more control, use the `executeSubscription` method and handle each
+response directly:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -310,12 +379,42 @@ For more control over each response, use `executeSubscription`:
 			});
 ----
 
-NOTE: Subscriptions are supported only over <<client-websocketgraphqlclient, WebSocket>>.
 
 
 
+[[client-interception]]
+== Interception
 
+You create a `GraphQlClientInterceptor` to intercept all requests through a client:
 
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+static class MyInterceptor implements GraphQlClientInterceptor {
 
+	@Override
+	public Mono<ClientGraphQlResponse> intercept(ClientGraphQlRequest request, Chain chain) {
+		// ...
+		return chain.next(request);
+	}
 
+	@Override
+	public Flux<ClientGraphQlResponse> interceptSubscription(ClientGraphQlRequest request, SubscriptionChain chain) {
+		// ...
+		return chain.next(request);
+	}
+
+}
+----
+
+Once the interceptor is created, register it through the client builder:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	URI url = ... ;
+	WebSocketClient client = ... ;
+
+	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
+			.interceptor(new MyInterceptor())
+			.build();
+----
 

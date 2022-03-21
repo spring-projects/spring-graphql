@@ -50,8 +50,8 @@ public interface GraphQlTransport {
 	 * <ul>
 	 * <li>Completes if the subscription completes before the connection is closed.
 	 * <li>{@link SubscriptionErrorException} if the subscription ends with an error.
-	 * <li>{@link IllegalStateException} if the connection is closed or lost
-	 * before the stream terminates.
+	 * <li>{@link WebSocketDisconnectedException} if the connection is closed or
+	 * lost before the stream terminates.
 	 * <li>Exception for connection and GraphQL session initialization issues.
 	 * </ul>
 	 * <p>The {@code Flux} may be cancelled to notify the server to end the
