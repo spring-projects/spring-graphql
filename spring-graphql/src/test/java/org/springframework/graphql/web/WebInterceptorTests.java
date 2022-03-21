@@ -110,7 +110,7 @@ public class WebInterceptorTests {
 		}
 
 		@Override
-		public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain) {
+		public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
 			this.sb.append(":pre").append(this.order);
 			return chain.next(request)
 					.map((response) -> {

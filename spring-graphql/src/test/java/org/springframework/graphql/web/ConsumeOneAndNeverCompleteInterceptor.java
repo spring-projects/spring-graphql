@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
 
 	@Override
-	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain) {
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
 		return chain.next(request).map(response -> response.transform(builder -> {
 			Object originalData = response.getData();
 			if (originalData instanceof Publisher) {

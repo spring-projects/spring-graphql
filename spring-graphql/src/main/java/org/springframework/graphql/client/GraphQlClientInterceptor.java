@@ -84,7 +84,7 @@ public interface GraphQlClientInterceptor {
 
 		/**
 		 * Delegate to the rest of the chain to perform the request.
-		 * @param request the request to perform.
+		 * @param request the request to perform
 		 * @return {@code Mono} with the response
 		 * @see GraphQlClient.RequestSpec#execute()
 		 */

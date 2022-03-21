@@ -88,12 +88,12 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		WebInterceptorChain endOfChain =
+		WebInterceptor.Chain endOfChain =
 				request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
-		WebInterceptorChain chain = this.interceptors.stream()
+		WebInterceptor.Chain chain = this.interceptors.stream()
 				.reduce(WebInterceptor::andThen)
-				.map(interceptor -> (WebInterceptorChain) (request) -> interceptor.intercept(request, endOfChain))
+				.map(interceptor -> (WebInterceptor.Chain) (request) -> interceptor.intercept(request, endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {

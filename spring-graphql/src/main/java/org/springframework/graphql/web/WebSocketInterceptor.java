@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono;
 public interface WebSocketInterceptor extends WebInterceptor {
 
 	@Override
-	default Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, WebInterceptorChain chain) {
+	default Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
 		return chain.next(request);
 	}
 
