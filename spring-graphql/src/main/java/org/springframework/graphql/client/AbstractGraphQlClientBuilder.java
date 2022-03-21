@@ -16,10 +16,15 @@
 
 package org.springframework.graphql.client;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
+import org.springframework.graphql.client.GraphQlClientInterceptor.Chain;
+import org.springframework.graphql.client.GraphQlClientInterceptor.SubscriptionChain;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
@@ -49,6 +54,8 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 
+	private final List<GraphQlClientInterceptor> interceptors = new ArrayList<>();
+
 	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
 
 	@Nullable
@@ -66,6 +73,18 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	protected AbstractGraphQlClientBuilder() {
 	}
 
+
+	@Override
+	public B interceptor(GraphQlClientInterceptor... interceptors) {
+		this.interceptors.addAll(Arrays.asList(interceptors));
+		return self();
+	}
+
+	@Override
+	public B interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer) {
+		interceptorsConsumer.accept(this.interceptors);
+		return self();
+	}
 
 	@Override
 	public B documentSource(DocumentSource contentLoader) {
@@ -104,7 +123,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 		}
 
 		return new DefaultGraphQlClient(
-				this.documentSource, transport, getJsonEncoder(), getJsonDecoder(), getBuilderInitializer());
+				this.documentSource, createExecuteChain(transport), createExecuteSubscriptionChain(transport));
 	}
 
 	/**
@@ -112,17 +131,40 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	 */
 	protected Consumer<AbstractGraphQlClientBuilder<?>> getBuilderInitializer() {
 		return builder -> {
+			builder.interceptors(interceptorList -> interceptorList.addAll(interceptors));
 			builder.documentSource(documentSource);
-			builder.setJsonCodecs(getJsonEncoder(), getJsonDecoder());
+			builder.setJsonCodecs(getEncoder(), getDecoder());
 		};
 	}
 
-	private Encoder<?> getJsonEncoder() {
+	private Chain createExecuteChain(GraphQlTransport transport) {
+
+		Chain chain = request -> transport.execute(request).map(response ->
+				new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
+
+		return this.interceptors.stream()
+				.reduce(GraphQlClientInterceptor::andThen)
+				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, chain))
+				.orElse(chain);
+	}
+
+	private SubscriptionChain createExecuteSubscriptionChain(GraphQlTransport transport) {
+
+		SubscriptionChain chain = request -> transport.executeSubscription(request)
+				.map(response -> new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
+
+		return this.interceptors.stream()
+				.reduce(GraphQlClientInterceptor::andThen)
+				.map(interceptor -> (SubscriptionChain) (request) -> interceptor.interceptSubscription(request, chain))
+				.orElse(chain);
+	}
+
+	private Encoder<?> getEncoder() {
 		Assert.notNull(this.jsonEncoder, "jsonEncoder has not been set");
 		return this.jsonEncoder;
 	}
 
-	private Decoder<?> getJsonDecoder() {
+	private Decoder<?> getDecoder() {
 		Assert.notNull(this.jsonDecoder, "jsonDecoder has not been set");
 		return this.jsonDecoder;
 	}

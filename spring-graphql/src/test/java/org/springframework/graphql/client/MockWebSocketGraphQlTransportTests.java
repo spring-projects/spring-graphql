@@ -70,10 +70,10 @@ public class MockWebSocketGraphQlTransportTests {
 	
 	private final WebSocketGraphQlTransport transport = createTransport(this.webSocketClient);
 
-	private final GraphQlResponse response1 = GraphQlTransport.wrapResponseMap(
+	private final GraphQlResponse response1 = new ResponseMapGraphQlResponse(
 			Collections.singletonMap("data", Collections.singletonMap("key1", "value1")));
 
-	private final GraphQlResponse response2 = GraphQlTransport.wrapResponseMap(
+	private final GraphQlResponse response2 = new ResponseMapGraphQlResponse(
 			Collections.singletonMap("data", Collections.singletonMap("key2", "value2")));
 
 

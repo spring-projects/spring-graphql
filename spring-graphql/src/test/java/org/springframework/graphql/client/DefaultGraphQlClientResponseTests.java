@@ -28,7 +28,6 @@ import graphql.execution.ResultPath;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.ResponseError;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -39,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 
 /**
- * Unit tests for {@link MapGraphQlResponse}.
+ * Unit tests for {@link DefaultClientGraphQlResponse}.
  * @author Rossen Stoyanchev
  */
 public class DefaultGraphQlClientResponseTests {
@@ -158,7 +157,8 @@ public class DefaultGraphQlClientResponseTests {
 
 	private ClientGraphQlResponse creatResponse(Map<String, Object> responseMap) {
 		return new DefaultClientGraphQlResponse(
-				new DefaultGraphQlRequest("{test}"), GraphQlTransport.wrapResponseMap(responseMap),
+				new DefaultClientGraphQlRequest("{test}", null, Collections.emptyMap(), Collections.emptyMap()),
+				new ResponseMapGraphQlResponse(responseMap),
 				new Jackson2JsonEncoder(), new Jackson2JsonDecoder());
 	}
 

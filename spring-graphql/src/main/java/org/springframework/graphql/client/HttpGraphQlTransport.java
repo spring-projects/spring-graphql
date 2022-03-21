@@ -60,7 +60,7 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)
-				.map(GraphQlTransport::wrapResponseMap);
+				.map(ResponseMapGraphQlResponse::new);
 	}
 
 	@Override

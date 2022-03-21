@@ -19,7 +19,6 @@ package org.springframework.graphql.client;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 
 
@@ -29,9 +28,9 @@ import org.springframework.graphql.GraphQlResponse;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientGraphQlResponse {
+final class DefaultClientGraphQlResponse extends ResponseMapGraphQlResponse implements ClientGraphQlResponse {
 
-	private final GraphQlRequest request;
+	private final ClientGraphQlRequest request;
 
 	private final Encoder<?> encoder;
 
@@ -39,7 +38,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 
 	DefaultClientGraphQlResponse(
-			GraphQlRequest request, GraphQlResponse response, Encoder<?> encoder, Decoder<?> decoder) {
+			ClientGraphQlRequest request, GraphQlResponse response, Encoder<?> encoder, Decoder<?> decoder) {
 
 		super(response);
 
@@ -49,8 +48,7 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 	}
 
 
-	@Override
-	public GraphQlRequest getRequest() {
+	ClientGraphQlRequest getRequest() {
 		return this.request;
 	}
 

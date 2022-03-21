@@ -476,7 +476,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 
 			Map<String, Object> responseMap = message.getPayload();
-			GraphQlResponse graphQlResponse = GraphQlTransport.wrapResponseMap(responseMap);
+			GraphQlResponse graphQlResponse = new ResponseMapGraphQlResponse(responseMap);
 
 			Sinks.EmitResult emitResult = (responseState != null ?
 					responseState.sink().tryEmitValue(graphQlResponse) :
@@ -507,7 +507,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 
 			List<Map<String, Object>> errorList = message.getPayload();
-			GraphQlResponse response = GraphQlTransport.wrapResponseMap(Collections.singletonMap("errors", errorList));
+			GraphQlResponse response = new ResponseMapGraphQlResponse(Collections.singletonMap("errors", errorList));
 
 			Sinks.EmitResult emitResult;
 			if (responseState != null) {

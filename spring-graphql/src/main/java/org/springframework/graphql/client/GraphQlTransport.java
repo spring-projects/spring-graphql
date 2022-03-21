@@ -61,10 +61,11 @@ public interface GraphQlTransport {
 
 
 	/**
-	 * Wrap the given response map and expose it as a {@link GraphQlResponse}.
+	 * Factory method to create {@link GraphQlResponse} from a GraphQL response
+	 * map for use in transport implementations.
 	 */
-	static GraphQlResponse wrapResponseMap(Map<String, Object> map) {
-		return new MapGraphQlResponse(map);
+	static GraphQlResponse createResponse(Map<String, Object> responseMap) {
+		return new ResponseMapGraphQlResponse(responseMap);
 	}
 
 }

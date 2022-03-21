@@ -107,7 +107,7 @@ final class DefaultClientResponseField implements ClientResponseField {
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	private <T> T toEntity(ResolvableType targetType) {
 		if (!hasValue()) {
-			throw new FieldAccessException(this.response, this);
+			throw new FieldAccessException(this.response.getRequest(), this.response, this);
 		}
 
 		DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;

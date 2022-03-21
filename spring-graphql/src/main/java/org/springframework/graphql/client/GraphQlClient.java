@@ -17,6 +17,7 @@ package org.springframework.graphql.client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -80,7 +81,7 @@ public interface GraphQlClient {
 	 * @return the builder for further initialization
 	 */
 	static Builder<?> builder(GraphQlTransport transport) {
-		return new DefaultGraphQlClient.Builder(transport);
+		return new GenericGraphQlClient.Builder(transport);
 	}
 
 
@@ -88,6 +89,22 @@ public interface GraphQlClient {
 	 * Defines a builder for creating {@link GraphQlClient} instances.
 	 */
 	interface Builder<B extends Builder<B>> {
+
+		/**
+		 * Configure interceptors to be invoked before delegating to the
+		 * {@link GraphQlTransport} to perform the request.
+		 * @param interceptors the interceptors to add
+		 * @return this builder
+		 */
+		B interceptor(GraphQlClientInterceptor... interceptors);
+
+		/**
+		 * Customize the list of interceptors. The provided list is "live", so
+		 * the consumer can inspect and insert interceptors accordingly.
+		 * @param interceptorsConsumer consumer to customize the interceptors with
+		 * @return this builder
+		 */
+		B interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer);
 
 		/**
 		 * Configure a {@link DocumentSource} for use with
@@ -131,6 +148,24 @@ public interface GraphQlClient {
 		 * @return this request spec
 		 */
 		RequestSpec variables(Map<String, Object> variables);
+
+		/**
+		 * Set a client request attribute.
+		 * <p>This is purely for client side request processing, i.e. available
+		 * throughout the {@link GraphQlClientInterceptor} chain but not sent.
+		 * @param name the name of the attribute
+		 * @param value the attribute value
+		 * @return this builder
+		 */
+		RequestSpec attribute(String name, Object value);
+
+		/**
+		 * Manipulate the client request attributes. The map provided to the consumer
+		 * is "live", so the consumer can inspect and modify attributes accordingly.
+		 * @param attributesConsumer consumer to customize attributes with
+		 * @return this builder
+		 */
+		RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer);
 
 		/**
 		 * Shortcut for {@link #execute()} with a single field path to decode from.

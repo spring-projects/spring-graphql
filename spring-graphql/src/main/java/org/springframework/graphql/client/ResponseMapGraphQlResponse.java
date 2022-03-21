@@ -38,20 +38,20 @@ import org.springframework.util.ObjectUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlResponse {
+class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
 	private final Map<String, Object> responseMap;
 
 	private final List<ResponseError> errors;
 
 
-	MapGraphQlResponse(Map<String, Object> responseMap) {
+	ResponseMapGraphQlResponse(Map<String, Object> responseMap) {
 		Assert.notNull(responseMap, "'responseMap' is required");
 		this.responseMap = responseMap;
 		this.errors = wrapErrors(responseMap);
 	}
 
-	MapGraphQlResponse(GraphQlResponse response) {
+	protected ResponseMapGraphQlResponse(GraphQlResponse response) {
 		Assert.notNull(response, "'GraphQlResponse' is required");
 		this.responseMap = response.toMap();
 		this.errors =  response.getErrors();
@@ -94,8 +94,8 @@ class MapGraphQlResponse extends AbstractGraphQlResponse implements GraphQlRespo
 
 	@Override
 	public boolean equals(Object other) {
-		return (other instanceof MapGraphQlResponse &&
-				this.responseMap.equals(((MapGraphQlResponse) other).responseMap));
+		return (other instanceof ResponseMapGraphQlResponse &&
+				this.responseMap.equals(((ResponseMapGraphQlResponse) other).responseMap));
 	}
 
 	@Override

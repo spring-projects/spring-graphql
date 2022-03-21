@@ -18,7 +18,6 @@ package org.springframework.graphql.client;
 
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 
 /**
@@ -29,11 +28,6 @@ import org.springframework.graphql.GraphQlResponse;
  * @since 1.0.0
  */
 public interface ClientGraphQlResponse extends GraphQlResponse {
-
-	/**
-	 * Return the request for the response.
-	 */
-	GraphQlRequest getRequest();
 
 	/**
 	 * {@inheritDoc}

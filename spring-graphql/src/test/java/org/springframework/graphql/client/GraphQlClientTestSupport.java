@@ -96,7 +96,7 @@ public class GraphQlClientTestSupport {
 		Map<String, Object> responseMap = executionResult.toSpecification();
 
 		when(this.transport.execute(eq(request)))
-				.thenReturn(Mono.just(GraphQlTransport.wrapResponseMap(responseMap)));
+				.thenReturn(Mono.just(new ResponseMapGraphQlResponse(responseMap)));
 	}
 
 	@SuppressWarnings("unchecked")

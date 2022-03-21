@@ -40,8 +40,10 @@ public class FieldAccessException extends GraphQlClientException {
 	/**
 	 * Constructor with the request and response, and the accessed field.
 	 */
-	public FieldAccessException(ClientGraphQlResponse response, ClientResponseField field) {
-		super(initDefaultMessage(field), null, response.getRequest());
+	public FieldAccessException(
+			ClientGraphQlRequest request, ClientGraphQlResponse response, ClientResponseField field) {
+
+		super(initDefaultMessage(field), null, request);
 		this.response = response;
 		this.field = field;
 	}
