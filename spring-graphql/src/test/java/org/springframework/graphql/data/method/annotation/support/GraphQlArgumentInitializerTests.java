@@ -50,7 +50,7 @@ class GraphQlArgumentInitializerTests {
 	void defaultConstructor() throws Exception {
 
 		Object result = initializer.get().initializeArgument(
-				environment("{\"key\": { \"name\": \"test\"} }"), "key",
+				environment("{\"key\":{\"name\":\"test\"}}"), "key",
 				ResolvableType.forClass(SimpleBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(SimpleBean.class);
@@ -87,7 +87,7 @@ class GraphQlArgumentInitializerTests {
 	void defaultConstructorWithNestedBeanListEmpty() throws Exception {
 
 		Object result = initializer.get().initializeArgument(
-				environment("{\"key\": { \"items\": [] } }"), "key",
+				environment("{\"key\":{\"items\": []}}"), "key",
 				ResolvableType.forClass(ItemListHolder.class));
 
 		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
@@ -134,7 +134,7 @@ class GraphQlArgumentInitializerTests {
 		assertThatThrownBy(
 				() -> {
 					initializer.get().initializeArgument(
-							environment("{\"key\": { \"name\": \"test\"} }"), "key",
+							environment("{\"key\":{\"name\":\"test\"}}"), "key",
 							ResolvableType.forClass(NoPrimaryConstructorBean.class));
 				})
 				.isInstanceOf(IllegalStateException.class)
@@ -152,12 +152,22 @@ class GraphQlArgumentInitializerTests {
 
 		String name;
 
+		int age;
+
 		public String getName() {
 			return this.name;
 		}
 
 		public void setName(String name) {
 			this.name = name;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public void setAge(int age) {
+			this.age = age;
 		}
 	}
 
