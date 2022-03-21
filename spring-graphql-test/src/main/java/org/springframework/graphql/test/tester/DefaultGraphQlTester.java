@@ -34,11 +34,11 @@ import com.jayway.jsonpath.TypeRef;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
-import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.test.util.AssertionErrors;
@@ -377,38 +377,25 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public Path pathExists() {
-			this.delegate.doAssert(() -> this.pathHelper.hasJsonPath(this.delegate.jsonContent()));
+		public Path hasValue() {
+			this.delegate.doAssert(() -> this.pathHelper.exists(this.delegate.jsonContent()));
+			return this;
+		}
+
+		@Override
+		public Path valueIsNull() {
+			Assert.isTrue(this.jsonPath.isDefinite(), "isNull applies only to JSONPath targeting a single value");
+			this.delegate.doAssert(() -> {
+				Object value = this.pathHelper.evaluateJsonPath(this.delegate.jsonContent());
+				AssertionErrors.assertNull(
+						"Expected null value at JSON path \"" + path + "\" but found " + value, value);
+			});
 			return this;
 		}
 
 		@Override
 		public Path pathDoesNotExist() {
 			this.delegate.doAssert(() -> this.pathHelper.doesNotHaveJsonPath(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueExists() {
-			this.delegate.doAssert(() -> this.pathHelper.exists(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueDoesNotExist() {
-			this.delegate.doAssert(() -> this.pathHelper.doesNotExist(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueIsEmpty() {
-			this.delegate.doAssert(() -> this.pathHelper.assertValueIsEmpty(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueIsNotEmpty() {
-			this.delegate.doAssert(() -> this.pathHelper.assertValueIsNotEmpty(this.delegate.jsonContent()));
 			return this;
 		}
 

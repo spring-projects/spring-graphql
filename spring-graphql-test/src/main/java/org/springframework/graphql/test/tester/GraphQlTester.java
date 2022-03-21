@@ -213,43 +213,21 @@ public interface GraphQlTester {
 	interface Path extends Traversable {
 
 		/**
-		 * Verify the given path exists, even if the value is {@code null}.
+		 * Verify there is a {@code non-null} value or a non-empty list at the current path.
 		 * @return the same {@code Path} spec for further assertions
 		 */
-		Path pathExists();
+		Path hasValue();
 
 		/**
-		 * Assert the given path does not {@link #pathExists() exist}.
+		 * Verify there is a {@code null} value at the current path.
+		 */
+		Path valueIsNull();
+
+		/**
+		 * Verify the current path does not exist.
 		 * @return the same {@code Path} spec for further assertions
 		 */
 		Path pathDoesNotExist();
-
-		/**
-		 * Assert a value exists at the given path where the value is any {@code non-null}
-		 * value, possibly an empty array or map.
-		 * @return the same {@code Path} spec for further assertions
-		 */
-		Path valueExists();
-
-		/**
-		 * Assert a value does not {@link #valueExists() exist} at the given path.
-		 * @return the same {@code Path} spec for further assertions
-		 */
-		Path valueDoesNotExist();
-
-		/**
-		 * Assert the value at the given path does exist but is empty as defined
-		 * in {@link org.springframework.util.ObjectUtils#isEmpty(Object)}.
-		 * @return the same {@code Path} spec for further assertions
-		 * @see org.springframework.util.ObjectUtils#isEmpty(Object)
-		 */
-		Path valueIsEmpty();
-
-		/**
-		 * Assert the value at the given path is not {@link #valueIsEmpty() empty}.
-		 * @return the same {@code Path} spec for further assertions
-		 */
-		Path valueIsNotEmpty();
 
 		/**
 		 * Convert the data at the given path to the target type.

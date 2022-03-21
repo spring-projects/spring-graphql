@@ -40,36 +40,59 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 	@Test
-	void pathAndValueExist() {
+	void hasValue() {
 
 		String document = "{me {name, friends}}";
 		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
+		response.path("me.name").hasValue();
+		response.path("me.friends").hasValue();
 
-		response.path("me.name").pathExists().valueExists();
-		response.path("me.friends").pathExists().valueExists();
-		response.path("hero").pathDoesNotExist().valueDoesNotExist();
+		assertThatThrownBy(() -> response.path("hero").hasValue())
+				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
 
 		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
-	void valueIsEmpty() {
+	void valueIsNull() {
 
 		String document = "{me {name, friends}}";
-		setMockResponse("{\"me\": {\"name\":null, \"friends\":[]}}");
+		setMockResponse("{\"me\": {\"name\":null, \"friends\":null}}");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
-		response.path("me.name").valueIsEmpty();
-		response.path("me.friends").valueIsEmpty();
+		response.path("me.name").valueIsNull();
+		response.path("me.friends").valueIsNull();
 
-		assertThatThrownBy(() -> response.path("hero").valueIsEmpty())
-				.as("Path does not even exist")
-				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
+		assertThatThrownBy(() -> response.path("me").valueIsNull())
+				.hasMessageContaining("Expected null value at JSON path");
 
 		assertThat(request().getDocument()).contains(document);
+	}
+
+	@Test
+	void valueIsEmptyList() {
+
+		String document = "{me {name, friends}}";
+		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
+		response.path("me.friends").hasValue().entityList(MovieCharacter.class).hasSize(0);
+	}
+
+	@Test
+	void pathDoesNotExist() {
+		String document = "{me {name, friends}}";
+		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
+
+		response.path("hero").pathDoesNotExist();
+
+		assertThatThrownBy(() -> response.path("me.name").pathDoesNotExist())
+				.hasMessageContaining("Expected no value at JSON path");
 	}
 
 	@Test
