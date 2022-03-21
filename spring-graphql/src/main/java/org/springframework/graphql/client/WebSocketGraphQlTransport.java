@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -69,17 +68,18 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	WebSocketGraphQlTransport(
 			URI url, @Nullable HttpHeaders headers, WebSocketClient client, CodecConfigurer codecConfigurer,
-			@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler) {
+			WebSocketGraphQlClientInterceptor interceptor) {
 
 		Assert.notNull(url, "URI is required");
-		Assert.notNull(url, "URI is required");
+		Assert.notNull(client, "WebSocketClient is required");
+		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
+		Assert.notNull(interceptor, "WebSocketGraphQlClientInterceptor is required");
 
 		this.url = url;
 		this.headers.putAll(headers != null ? headers : HttpHeaders.EMPTY);
 		this.webSocketClient = client;
 
-		this.graphQlSessionHandler = new GraphQlSessionHandler(
-				codecConfigurer, connectionInitPayload, connectionAckHandler);
+		this.graphQlSessionHandler = new GraphQlSessionHandler(codecConfigurer, interceptor);
 
 		this.graphQlSessionMono = initGraphQlSession(this.url, this.headers, client, this.graphQlSessionHandler)
 				.cacheInvalidateWhen(GraphQlSession::notifyWhenClosed);
@@ -167,21 +167,16 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final CodecDelegate codecDelegate;
 
-		private final GraphQlMessage connectionInitMessage;
-
-		private final Consumer<Map<String, Object>> connectionAckHandler;
+		private final WebSocketGraphQlClientInterceptor interceptor;
 
 		private Sinks.One<GraphQlSession> graphQlSessionSink;
 
 		private final AtomicBoolean stopped = new AtomicBoolean();
 
 
-		GraphQlSessionHandler(CodecConfigurer codecConfigurer,
-				@Nullable Object connectionInitPayload, Consumer<Map<String, Object>> connectionAckHandler) {
-
+		GraphQlSessionHandler(CodecConfigurer codecConfigurer, WebSocketGraphQlClientInterceptor interceptor) {
 			this.codecDelegate = new CodecDelegate(codecConfigurer);
-			this.connectionInitMessage = GraphQlMessage.connectionInit(connectionInitPayload);
-			this.connectionAckHandler = connectionAckHandler;
+			this.interceptor = interceptor;
 			this.graphQlSessionSink = Sinks.unsafe().one();
 		}
 
@@ -231,8 +226,12 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			GraphQlSession graphQlSession = new GraphQlSession(session);
 			registerCloseStatusHandling(graphQlSession, session);
 
+			Mono<GraphQlMessage> connectionInitMono = this.interceptor.connectionInitPayload()
+					.defaultIfEmpty(Collections.emptyMap())
+					.map(GraphQlMessage::connectionInit);
+
 			Mono<Void> sendCompletion =
-					session.send(Flux.just(this.connectionInitMessage).concatWith(graphQlSession.getRequestFlux())
+					session.send(connectionInitMono.concatWith(graphQlSession.getRequestFlux())
 							.map(message -> this.codecDelegate.encode(session, message)));
 
 			Mono<Void> receiveCompletion = session.receive()
@@ -242,19 +241,22 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 								GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
 								Assert.state(message.resolvedType() == GraphQlMessageType.CONNECTION_ACK,
 										() -> "Unexpected message before connection_ack: " + message);
-								this.connectionAckHandler.accept(message.getPayload());
-								if (logger.isDebugEnabled()) {
-									logger.debug(graphQlSession + " initialized");
-								}
+								return this.interceptor.handleConnectionAck(message.getPayload())
+										.then(Mono.defer(() -> {
+											if (logger.isDebugEnabled()) {
+												logger.debug(graphQlSession + " initialized");
+											}
+											Sinks.EmitResult result = this.graphQlSessionSink.tryEmitValue(graphQlSession);
+											if (result.isFailure()) {
+												return Mono.error(new IllegalStateException(
+														"GraphQlSession initialized but could not be emitted: " + result));
+											}
+											return Mono.empty();
+										}));
 							}
 							catch (Throwable ex) {
 								this.graphQlSessionSink.tryEmitError(ex);
 								return Mono.error(ex);
-							}
-							Sinks.EmitResult emitResult = this.graphQlSessionSink.tryEmitValue(graphQlSession);
-							if (emitResult.isFailure()) {
-								return Mono.error(new IllegalStateException(
-										"GraphQlSession initialized but could not be emitted: " + emitResult));
 							}
 						}
 						else {

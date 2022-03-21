@@ -31,10 +31,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.web.support.GraphQlMessage;
@@ -196,9 +196,23 @@ public class MockWebSocketGraphQlTransportTests {
 		Map<String, String> initPayload = Collections.singletonMap("key", "valueInit");
 		AtomicReference<Map<String, Object>> connectionAckRef = new AtomicReference<>();
 
+		WebSocketGraphQlClientInterceptor interceptor = new WebSocketGraphQlClientInterceptor() {
+
+			@Override
+			public Mono<Object> connectionInitPayload() {
+				return Mono.just(initPayload);
+			}
+
+			@Override
+			public Mono<Void> handleConnectionAck(Map<String, Object> ackPayload) {
+				connectionAckRef.set(ackPayload);
+				return Mono.empty();
+			}
+		};
+
+
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
-				initPayload, connectionAckRef::set);
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor);
 
 		transport.start().block(TIMEOUT);
 
@@ -311,7 +325,8 @@ public class MockWebSocketGraphQlTransportTests {
 
 	private static WebSocketGraphQlTransport createTransport(WebSocketClient client) {
 		return new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), null, p -> {});
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
+				new WebSocketGraphQlClientInterceptor() {});
 	}
 
 	private void assertActualClientMessages(GraphQlMessage... expectedMessages) {

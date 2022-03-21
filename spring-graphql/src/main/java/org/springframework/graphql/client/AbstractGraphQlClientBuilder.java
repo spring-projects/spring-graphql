@@ -112,6 +112,14 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	}
 
 	/**
+	 * Return the configured interceptors. For subclasses that look for a
+	 * transport specific interceptor extensions.
+	 */
+	protected List<GraphQlClientInterceptor> getInterceptors() {
+		return this.interceptors;
+	}
+
+	/**
 	 * Build the default transport-agnostic client that subclasses can then wrap
 	 * with {@link AbstractDelegatingGraphQlClient}.
 	 */
