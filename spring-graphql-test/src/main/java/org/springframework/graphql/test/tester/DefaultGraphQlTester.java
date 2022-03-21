@@ -70,28 +70,23 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 	private final Duration responseTimeout;
 
-	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
-
 
 	/**
 	 * Package private constructor for use from {@link AbstractGraphQlTesterBuilder}.
 	 */
 	DefaultGraphQlTester(
 			GraphQlTransport transport, @Nullable Predicate<ResponseError> errorFilter,
-			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout,
-			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
+			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout) {
 
 		Assert.notNull(transport, "GraphQlTransport is required");
 		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
 		Assert.notNull(documentSource, "DocumentSource is required");
-		Assert.notNull(builderInitializer, "`builderInitializer` is required");
 
 		this.transport = transport;
 		this.errorFilter = errorFilter;
 		this.jsonPathConfig = jsonPathConfig;
 		this.documentSource = documentSource;
 		this.responseTimeout = timeout;
-		this.builderInitializer = builderInitializer;
 	}
 
 
@@ -107,30 +102,14 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		return document(document);
 	}
 
-	@Override
-	public Builder mutate() {
-		Builder builder = new Builder(this.transport);
-		this.builderInitializer.accept(builder);
-		return builder;
-	}
-
-
 	/**
-	 * Default {@link GraphQlTester.Builder} with a given transport.
+	 * The default tester is unaware of transport details, and cannot implement
+	 * mutate directly. It should be wrapped from transport aware extensions via
+	 * {@link AbstractDelegatingGraphQlTester} that also implement mutate.
 	 */
-	static final class Builder extends AbstractGraphQlTesterBuilder<Builder> {
-
-		private final GraphQlTransport transport;
-
-		Builder(GraphQlTransport transport) {
-			this.transport = transport;
-		}
-
-		@Override
-		public GraphQlTester build() {
-			return super.buildGraphQlTester(this.transport);
-		}
-
+	@Override
+	public Builder<?> mutate() {
+		throw new UnsupportedOperationException();
 	}
 
 

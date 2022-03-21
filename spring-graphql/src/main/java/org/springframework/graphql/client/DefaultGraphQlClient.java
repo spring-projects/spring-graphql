@@ -70,9 +70,9 @@ final class DefaultGraphQlClient implements GraphQlClient {
 	}
 
 	/**
-	 * The default client is unaware of transport details, and doesn't implement
-	 * this method. It should always be wrapped via with a transport specific
-	 * {@link AbstractDelegatingGraphQlClient} that implements mutation.
+	 * The default client is unaware of transport details, and cannot implement
+	 * mutate directly. It should be wrapped from transport aware extensions via
+	 * {@link AbstractDelegatingGraphQlClient} that also implement mutate.
 	 */
 	@Override
 	public Builder<?> mutate() {

@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.client;
+package org.springframework.graphql.test.tester;
 
 
 import java.util.function.Consumer;
 
+import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.util.Assert;
 
-
 /**
- * GraphQL client with a given, externally prepared transport.
+ * {@link GraphQlTester} with a given, externally prepared transport.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class GenericGraphQlClient extends AbstractDelegatingGraphQlClient {
+final class GenericGraphQlTester extends AbstractDelegatingGraphQlTester {
 
 	private final GraphQlTransport transport;
 
-	private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
+	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	GenericGraphQlClient(
-			GraphQlClient graphQlClient, GraphQlTransport transport,
-			Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
+	GenericGraphQlTester(
+			GraphQlTester delegate, GraphQlTransport transport,
+			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
-		super(graphQlClient);
+		super(delegate);
 		Assert.notNull(transport, "GraphQlTransport is required");
 		Assert.notNull(builderInitializer, "'builderInitializer' is required");
 		this.transport = transport;
@@ -56,21 +56,20 @@ final class GenericGraphQlClient extends AbstractDelegatingGraphQlClient {
 
 
 	/**
-	 * Default {@link GraphQlClient.Builder} with a given transport.
+	 * Default {@link GraphQlTester.Builder} with a given transport.
 	 */
-	static final class Builder extends AbstractGraphQlClientBuilder<Builder> {
+	static final class Builder extends AbstractGraphQlTesterBuilder<Builder> {
 
 		private final GraphQlTransport transport;
 
 		Builder(GraphQlTransport transport) {
-			Assert.notNull(transport, "GraphQlTransport is required");
 			this.transport = transport;
 		}
 
 		@Override
-		public GraphQlClient build() {
-			GraphQlClient client = buildGraphQlClient(this.transport);
-			return new GenericGraphQlClient(client, this.transport, getBuilderInitializer());
+		public GraphQlTester build() {
+			GraphQlTester tester = super.buildGraphQlTester(this.transport);
+			return new GenericGraphQlTester(tester, this.transport, getBuilderInitializer());
 		}
 
 	}

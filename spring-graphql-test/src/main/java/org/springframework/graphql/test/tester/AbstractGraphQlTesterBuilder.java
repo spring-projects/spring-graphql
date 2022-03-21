@@ -113,7 +113,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 		}
 
 		return new DefaultGraphQlTester(transport, this.errorFilter,
-				this.jsonPathConfig, this.documentSource, this.responseTimeout, getBuilderInitializer());
+				this.jsonPathConfig, this.documentSource, this.responseTimeout);
 	}
 
 	/**

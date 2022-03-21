@@ -88,7 +88,7 @@ public interface GraphQlTester {
 	 * @return the builder for further initialization
 	 */
 	static GraphQlTester.Builder<?> builder(GraphQlTransport transport) {
-		return new DefaultGraphQlTester.Builder(transport);
+		return new GenericGraphQlTester.Builder(transport);
 	}
 
 
