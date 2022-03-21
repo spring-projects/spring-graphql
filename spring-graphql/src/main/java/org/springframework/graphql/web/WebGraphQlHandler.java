@@ -42,10 +42,11 @@ public interface WebGraphQlHandler {
 	Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request);
 
 	/**
-	 * Return the single interceptor of type {@link WebSocketInterceptor} among
-	 * all the configured interceptors.
+	 * Return the single interceptor of type
+	 * {@link WebSocketGraphQlHandlerInterceptor} among all the configured
+	 * interceptors.
 	 */
-	WebSocketInterceptor webSocketInterceptor();
+	WebSocketGraphQlHandlerInterceptor webSocketInterceptor();
 
 
 	/**
@@ -61,28 +62,31 @@ public interface WebGraphQlHandler {
 
 	/**
 	 * Builder for a {@link WebGraphQlHandler} that executes a
-	 * {@link WebInterceptor} chain followed by a {@link ExecutionGraphQlService}.
+	 * {@link WebGraphQlHandlerInterceptor} chain followed by a
+	 * {@link ExecutionGraphQlService}.
 	 */
 	interface Builder {
 
 		/**
 		 * Configure interceptors to be invoked before the target
 		 * {@code GraphQlService}.
-		 * <p>One of the interceptors can be of type {@link WebSocketInterceptor}
-		 * to handle data from the first {@code ConnectionInit} message expected
-		 * on a GraphQL over WebSocket session, as well as the {@code Complete}
-		 * message expected at the end of a session.
+		 * <p>One of the interceptors can be of type
+		 * {@link WebSocketGraphQlHandlerInterceptor} to handle data from the
+		 * first {@code ConnectionInit} message expected on a GraphQL over
+		 * WebSocket session, as well as the {@code Complete} message expected
+		 * at the end of a session.
 		 * @param interceptors the interceptors to add
 		 * @return this builder
 		 */
-		Builder interceptor(WebInterceptor... interceptors);
+		Builder interceptor(WebGraphQlHandlerInterceptor... interceptors);
 
 		/**
-		 * Alternative to {@link #interceptor(WebInterceptor...)} with a List.
+		 * Alternative to {@link #interceptor(WebGraphQlHandlerInterceptor...)}
+		 * with a List.
 		 * @param interceptors the list of interceptors to add
 		 * @return this builder
 		 */
-		Builder interceptors(List<WebInterceptor> interceptors);
+		Builder interceptors(List<WebGraphQlHandlerInterceptor> interceptors);
 
 		/**
 		 * Configure accessors for ThreadLocal variables to use to extract

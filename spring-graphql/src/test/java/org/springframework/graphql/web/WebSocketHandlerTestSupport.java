@@ -64,7 +64,7 @@ public abstract class WebSocketHandlerTestSupport {
 			"}";
 
 
-	protected WebGraphQlHandler initHandler(WebInterceptor... interceptors) {
+	protected WebGraphQlHandler initHandler(WebGraphQlHandlerInterceptor... interceptors) {
 		return GraphQlSetup.schemaResource(BookSource.schema)
 				.queryFetcher("bookById", environment -> {
 					Long id = Long.parseLong(environment.getArgument("id"));
@@ -75,7 +75,7 @@ public abstract class WebSocketHandlerTestSupport {
 					return Flux.fromIterable(BookSource.books())
 							.filter((book) -> book.getAuthor().getFullName().contains(author));
 				})
-				.webInterceptor(interceptors)
+				.interceptor(interceptors)
 				.toWebGraphQlHandler();
 	}
 

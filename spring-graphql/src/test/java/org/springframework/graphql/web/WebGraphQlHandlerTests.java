@@ -99,7 +99,7 @@ public class WebGraphQlHandlerTests {
 
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup
 					.queryFetcher("greeting", env -> "Hello " + nameThreadLocal.get())
-					.webInterceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
@@ -126,7 +126,7 @@ public class WebGraphQlHandlerTests {
 
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup.queryFetcher("greeting", this.errorDataFetcher)
 					.exceptionResolver(exceptionResolver)
-					.webInterceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
 					.threadLocalAccessor(threadLocalAccessor)
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);

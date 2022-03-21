@@ -41,7 +41,7 @@ import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -63,8 +63,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 
 /**
  * Tests for the builders of Web {@code GraphQlClient} extensions, using a
- * {@link WebInterceptor} to capture the WebInput on the server side, and
- * optionally returning a mock response, or an empty response.
+ * {@link WebGraphQlHandlerInterceptor} to capture the WebInput on the server
+ * side, and optionally returning a mock response, or an empty response.
  *
  * <ul>
  * <li>{@link HttpGraphQlClient} via {@link HttpHandlerConnector} to {@link GraphQlHttpHandler}

@@ -37,7 +37,7 @@ import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebGraphQlSetup;
-import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
 
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
@@ -53,7 +53,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
-	private final List<WebInterceptor> webInterceptors = new ArrayList<>();
+	private final List<WebGraphQlHandlerInterceptor> interceptors = new ArrayList<>();
 
 	private final List<ThreadLocalAccessor> accessors = new ArrayList<>();
 
@@ -134,8 +134,8 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	// WebGraphQlSetup...
 
-	public WebGraphQlSetup webInterceptor(WebInterceptor... interceptors) {
-		this.webInterceptors.addAll(Arrays.asList(interceptors));
+	public WebGraphQlSetup interceptor(WebGraphQlHandlerInterceptor... interceptors) {
+		this.interceptors.addAll(Arrays.asList(interceptors));
 		return this;
 	}
 
@@ -148,7 +148,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	public WebGraphQlHandler toWebGraphQlHandler() {
 		ExecutionGraphQlService service = toGraphQlService();
 		return WebGraphQlHandler.builder(service)
-				.interceptors(webInterceptors)
+				.interceptors(this.interceptors)
 				.threadLocalAccessors(this.accessors)
 				.build();
 	}

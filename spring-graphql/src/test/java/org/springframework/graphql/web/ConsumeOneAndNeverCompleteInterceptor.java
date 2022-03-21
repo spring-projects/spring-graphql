@@ -20,7 +20,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class ConsumeOneAndNeverCompleteInterceptor implements WebInterceptor {
+public class ConsumeOneAndNeverCompleteInterceptor implements WebGraphQlHandlerInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {

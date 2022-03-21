@@ -35,9 +35,9 @@ import org.springframework.http.HttpHeaders;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for a {@link WebInterceptor} chain.
+ * Unit tests for a {@link WebGraphQlHandlerInterceptor} chain.
  */
-public class WebInterceptorTests {
+public class WebGraphQlHandlerInterceptorTests {
 
 	private static final WebGraphQlRequest webRequest = new WebGraphQlRequest(
 			URI.create("http://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ notUsed }"), "1", null);
@@ -98,7 +98,7 @@ public class WebInterceptorTests {
 				ExecutionResultImpl.newExecutionResult().build()));
 	}
 
-	private static class OrderInterceptor implements WebInterceptor {
+	private static class OrderInterceptor implements WebGraphQlHandlerInterceptor {
 
 		private final StringBuilder sb;
 

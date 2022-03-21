@@ -37,9 +37,9 @@ import org.springframework.util.Assert;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see WebSocketInterceptor
+ * @see WebSocketGraphQlHandlerInterceptor
  */
-public interface WebInterceptor {
+public interface WebGraphQlHandlerInterceptor {
 
 	/**
 	 * Intercept a request and delegate to the rest of the chain including other
@@ -51,13 +51,13 @@ public interface WebInterceptor {
 	Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain);
 
 	/**
-	 * Return a new {@link WebInterceptor} that invokes the current interceptor
-	 * first and then the one that is passed in.
+	 * Return a new {@link WebGraphQlHandlerInterceptor} that invokes the current
+	 * interceptor first and then the one that is passed in.
 	 * @param interceptor the interceptor to delegate to after "this"
-	 * @return the new {@code WebInterceptor}
+	 * @return the new {@code WebGraphQlHandlerInterceptor}
 	 */
-	default WebInterceptor andThen(WebInterceptor interceptor) {
-		Assert.notNull(interceptor, "WebInterceptor is required");
+	default WebGraphQlHandlerInterceptor andThen(WebGraphQlHandlerInterceptor interceptor) {
+		Assert.notNull(interceptor, "WebGraphQlHandlerInterceptor is required");
 		return (request, chain) -> {
 			Chain nextChain = nextRequest -> interceptor.intercept(nextRequest, chain);
 			return intercept(request, nextChain);

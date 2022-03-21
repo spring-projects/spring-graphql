@@ -46,7 +46,7 @@ import reactor.core.scheduler.Schedulers;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.WebGraphQlResponse;
-import org.springframework.graphql.web.WebSocketInterceptor;
+import org.springframework.graphql.web.WebSocketGraphQlHandlerInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -81,7 +81,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	private final WebSocketInterceptor webSocketInterceptor;
+	private final WebSocketGraphQlHandlerInterceptor webSocketInterceptor;
 
 	private final Duration initTimeoutDuration;
 

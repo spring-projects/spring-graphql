@@ -39,10 +39,10 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	private final ExecutionGraphQlService service;
 
-	private final List<WebInterceptor> interceptors = new ArrayList<>();
+	private final List<WebGraphQlHandlerInterceptor> interceptors = new ArrayList<>();
 
 	@Nullable
-	private WebSocketInterceptor webSocketInterceptor;
+	private WebSocketGraphQlHandlerInterceptor webSocketInterceptor;
 
 	@Nullable
 	private List<ThreadLocalAccessor> accessors;
@@ -55,17 +55,17 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 
 	@Override
-	public WebGraphQlHandler.Builder interceptor(WebInterceptor... interceptors) {
+	public WebGraphQlHandler.Builder interceptor(WebGraphQlHandlerInterceptor... interceptors) {
 		return interceptors(Arrays.asList(interceptors));
 	}
 
 	@Override
-	public WebGraphQlHandler.Builder interceptors(List<WebInterceptor> interceptors) {
+	public WebGraphQlHandler.Builder interceptors(List<WebGraphQlHandlerInterceptor> interceptors) {
 		this.interceptors.addAll(interceptors);
 		interceptors.forEach(interceptor -> {
-			if (interceptor instanceof WebSocketInterceptor) {
+			if (interceptor instanceof WebSocketGraphQlHandlerInterceptor) {
 				Assert.isNull(this.webSocketInterceptor, "There can be at most 1 WebSocketInterceptor");
-				this.webSocketInterceptor = (WebSocketInterceptor) interceptor;
+				this.webSocketInterceptor = (WebSocketGraphQlHandlerInterceptor) interceptor;
 			}
 		});
 		return this;
@@ -88,12 +88,12 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		WebInterceptor.Chain endOfChain =
+		WebGraphQlHandlerInterceptor.Chain endOfChain =
 				request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
-		WebInterceptor.Chain chain = this.interceptors.stream()
-				.reduce(WebInterceptor::andThen)
-				.map(interceptor -> (WebInterceptor.Chain) (request) -> interceptor.intercept(request, endOfChain))
+		WebGraphQlHandlerInterceptor.Chain chain = this.interceptors.stream()
+				.reduce(WebGraphQlHandlerInterceptor::andThen)
+				.map(interceptor -> (WebGraphQlHandlerInterceptor.Chain) (request) -> interceptor.intercept(request, endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {
@@ -111,8 +111,8 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			}
 
 			@Override
-			public WebSocketInterceptor webSocketInterceptor() {
-				return (webSocketInterceptor != null ? webSocketInterceptor : new WebSocketInterceptor() {});
+			public WebSocketGraphQlHandlerInterceptor webSocketInterceptor() {
+				return (webSocketInterceptor != null ? webSocketInterceptor : new WebSocketGraphQlHandlerInterceptor() {});
 			}
 
 		};
