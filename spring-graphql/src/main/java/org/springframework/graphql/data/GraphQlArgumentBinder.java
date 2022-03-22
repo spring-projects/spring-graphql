@@ -48,11 +48,11 @@ import org.springframework.validation.FieldError;
 
 
 /**
- * Bind a GraphQL argument values to higher level objects.
+ * Bind a GraphQL argument, or the full arguments map, onto a target object.
  *
  * <p>Binding is performed by mapping argument values to a primary data
- * constructor of the target Object, or by using a default constructor
- * and mapping argument values to properties. This is applied recursively.
+ * constructor of the target object, or by using a default constructor and
+ * mapping argument values to its properties. This is applied recursively.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
@@ -93,9 +93,9 @@ public class GraphQlArgumentBinder {
 
 
 	/**
-	 * Bind a single argument or the full arguments map onto an object of the
+	 * Bind a single argument, or the full arguments map, onto an object of the
 	 * given target type.
-	 * @param environment to obtain the argument value(s) from
+	 * @param environment for access to the arguments
 	 * @param argumentName the name of the argument to bind, or {@code null} to
 	 * use the full arguments map
 	 * @param targetType the type of Object to create
@@ -103,8 +103,8 @@ public class GraphQlArgumentBinder {
 	 * @throws BindException in case of binding issues such as conversion errors,
 	 * mismatches between the source and the target object structure, and so on.
 	 * Binding issues are accumulated as {@link BindException#getFieldErrors()
-	 * field errors} where the {@code field} of each error is the argument path
-	 * where the issue occurred.
+	 * field errors} where the {@link FieldError#getField() field} of each error
+	 * is the argument path where the issue occurred.
 	 */
 	@Nullable
 	@SuppressWarnings("unchecked")

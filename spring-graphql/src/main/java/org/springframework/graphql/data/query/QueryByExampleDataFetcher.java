@@ -92,12 +92,12 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private final TypeInformation<T> domainType;
 
-	private final GraphQlArgumentBinder argumentInitializer;
+	private final GraphQlArgumentBinder argumentBinder;
 
 
 	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
 		this.domainType = domainType;
-		this.argumentInitializer = new GraphQlArgumentBinder();
+		this.argumentBinder = new GraphQlArgumentBinder();
 	}
 
 
@@ -109,7 +109,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	protected Example<T> buildExample(DataFetchingEnvironment env) throws BindException {
 		ResolvableType targetType = ResolvableType.forClass(this.domainType.getType());
-		return (Example<T>) Example.of(this.argumentInitializer.bind(env, null, targetType));
+		return (Example<T>) Example.of(this.argumentBinder.bind(env, null, targetType));
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {

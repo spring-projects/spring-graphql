@@ -45,7 +45,8 @@ class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final ThreadLocal<GraphQlArgumentBinder> initializer = ThreadLocal.withInitial(() -> new GraphQlArgumentBinder(null));
+	private final ThreadLocal<GraphQlArgumentBinder> initializer =
+			ThreadLocal.withInitial(() -> new GraphQlArgumentBinder(null));
 
 
 	@Test

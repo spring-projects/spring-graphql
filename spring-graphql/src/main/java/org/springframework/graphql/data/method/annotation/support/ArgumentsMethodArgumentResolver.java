@@ -34,12 +34,12 @@ import org.springframework.util.Assert;
  */
 public class ArgumentsMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private final GraphQlArgumentBinder argumentInitializer;
+	private final GraphQlArgumentBinder argumentBinder;
 
 
-	public ArgumentsMethodArgumentResolver(GraphQlArgumentBinder initializer) {
-		Assert.notNull(initializer, "GraphQlArgumentInitializer is required");
-		this.argumentInitializer = initializer;
+	public ArgumentsMethodArgumentResolver(GraphQlArgumentBinder argumentBinder) {
+		Assert.notNull(argumentBinder, "GraphQlArgumentBinder is required");
+		this.argumentBinder = argumentBinder;
 	}
 
 
@@ -51,7 +51,7 @@ public class ArgumentsMethodArgumentResolver implements HandlerMethodArgumentRes
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
-		return this.argumentInitializer.bind(environment, null, resolvableType);
+		return this.argumentBinder.bind(environment, null, resolvableType);
 	}
 
 }

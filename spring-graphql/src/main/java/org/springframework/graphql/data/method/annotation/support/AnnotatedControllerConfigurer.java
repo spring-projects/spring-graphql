@@ -159,9 +159,9 @@ public class AnnotatedControllerConfigurer
 			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
 		}
 		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
-		GraphQlArgumentBinder initializer = new GraphQlArgumentBinder(this.conversionService);
-		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(initializer));
-		this.argumentResolvers.addResolver(new ArgumentsMethodArgumentResolver(initializer));
+		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
+		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
+		this.argumentResolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		this.argumentResolvers.addResolver(new ContextValueMethodArgumentResolver());
 
 		// Type based
