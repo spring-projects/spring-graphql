@@ -1,4 +1,4 @@
-# <img src="spring-graphql-docs/src/docs/spring-graphql-horizontal.png" width="469" height="140"> [![Build status](https://ci.spring.io/api/v1/teams/spring-graphql/pipelines/spring-graphql/jobs/build/badge)](https://ci.spring.io/teams/spring-graphql/pipelines/spring-graphql)
+# <img align="left" src="spring-graphql-docs/src/docs/spring-graphql.svg" width="100" height="100"> Spring for GraphQL [![Build status](https://ci.spring.io/api/v1/teams/spring-graphql/pipelines/spring-graphql/jobs/build/badge)](https://ci.spring.io/teams/spring-graphql/pipelines/spring-graphql)
 
 [GraphQL](https://graphql.org/) support for Spring applications with [GraphQL Java](https://github.com/graphql-java/graphql-java).
 
