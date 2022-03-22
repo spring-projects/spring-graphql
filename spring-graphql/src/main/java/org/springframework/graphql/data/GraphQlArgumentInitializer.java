@@ -18,6 +18,7 @@ package org.springframework.graphql.data;
 
 import java.lang.reflect.Constructor;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,20 +27,30 @@ import java.util.Stack;
 
 import graphql.schema.DataFetchingEnvironment;
 
+import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.SimpleTypeConverter;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingErrorProcessor;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.DataBinder;
+import org.springframework.validation.DefaultBindingErrorProcessor;
+import org.springframework.validation.FieldError;
+
 
 /**
- * Instantiate a target type and bind data from
- * {@link graphql.schema.DataFetchingEnvironment} arguments.
+ * Bind GraphQL arguments to higher level objects. 
+ * 
+ * <p>The target object may have 
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
@@ -49,6 +60,8 @@ public class GraphQlArgumentInitializer {
 
 	@Nullable
 	private final SimpleTypeConverter typeConverter;
+
+	private final BindingErrorProcessor bindingErrorProcessor = new DefaultBindingErrorProcessor();
 
 
 	public GraphQlArgumentInitializer(@Nullable ConversionService conversionService) {
@@ -82,57 +95,60 @@ public class GraphQlArgumentInitializer {
 	 * or if {@code null}, the full map of arguments is used.
 	 * @param targetType the type of Object to initialize
 	 * @return the initialized Object, or {@code null}
+	 * @throws BindException raised in case of issues with binding argument values
+	 * such as conversion errors, type mismatches between the source values and
+	 * the target type structure, etc.
 	 */
 	@Nullable
 	@SuppressWarnings("unchecked")
 	public Object initializeArgument(
-			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType) {
+			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType) throws BindException {
 
-		Object sourceValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
 
-		if (sourceValue == null) {
+		if (rawValue == null) {
 			return wrapAsOptionalIfNecessary(null, targetType);
 		}
 
 		Class<?> targetClass = targetType.resolve();
 		Assert.notNull(targetClass, "Could not determine target type from " + targetType);
 
-		// From Collection
+		DataBinder binder = new DataBinder(null, name != null ? name : "arguments");
+		BindingResult bindingResult = binder.getBindingResult();
+		Stack<String> segments = new Stack<>();
 
-		if (CollectionFactory.isApproximableCollectionType(sourceValue.getClass())) {
-			Assert.isAssignable(Collection.class, targetClass,
-					"Argument '" + name + "' is a Collection while method parameter is " + targetClass.getName());
-			Class<?> elementType = targetType.asCollection().getGeneric(0).resolve();
-			Assert.notNull(elementType, "Could not determine element type for " + targetType);
-			return initializeFromCollection((Collection<Object>) sourceValue, elementType);
-		}
+		try {
+			// From Collection
 
-		if (targetClass == Optional.class) {
-			targetClass = targetType.getNested(2).resolve();
-			Assert.notNull(targetClass, "Could not determine Optional<T> type from " + targetType);
-		}
+			if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
+				segments.push(name);
+				return createCollection((Collection<Object>) rawValue, targetType, bindingResult, segments);
+			}
 
-		// From Map
+			if (targetClass == Optional.class) {
+				targetClass = targetType.getNested(2).resolve();
+				Assert.notNull(targetClass, "Could not determine Optional<T> type from " + targetType);
+			}
 
-		if (sourceValue instanceof Map) {
-			Object target = initializeFromMap((Map<String, Object>) sourceValue, targetClass);
+			// From Map
+
+			if (rawValue instanceof Map) {
+				Object target = createValue((Map<String, Object>) rawValue, targetClass, bindingResult, segments);
+				return wrapAsOptionalIfNecessary(target, targetType);
+			}
+
+			// From Scalar
+
+			if (targetClass.isInstance(rawValue)) {
+				return wrapAsOptionalIfNecessary(rawValue, targetType);
+			}
+
+			Object target = convertValue(rawValue, targetClass, bindingResult, segments);
 			return wrapAsOptionalIfNecessary(target, targetType);
 		}
-
-		// From Scalar
-
-		if (targetClass.isInstance(sourceValue)) {
-			return wrapAsOptionalIfNecessary(sourceValue, targetType);
+		finally {
+			checkBindingResult(bindingResult);
 		}
-
-		Object target = getTypeConverter().convertIfNecessary(sourceValue, targetClass);
-		if (target == null) {
-			throw new IllegalStateException("Cannot convert argument value " +
-					"type [" + sourceValue.getClass().getName() + "] to method parameter " +
-					"type [" + targetClass.getName() + "].");
-		}
-
-		return wrapAsOptionalIfNecessary(target, targetType);
 	}
 
 	@Nullable
@@ -140,134 +156,198 @@ public class GraphQlArgumentInitializer {
 		return (type.resolve(Object.class).equals(Optional.class) ? Optional.ofNullable(value) : value);
 	}
 
-	/**
-	 * Instantiate a collection of {@code elementType} using the given {@code values}.
-	 * <p>This will instantiate a new Collection of the closest type possible
-	 * from the one provided as an argument.
-	 *
-	 * @param <T> the type of Collection elements
-	 * @param values the collection of values to bind and instantiate
-	 * @param elementClass the type of elements in the given Collection
-	 * @return the instantiated and populated Collection.
-	 * @throws IllegalStateException if there is no suitable constructor.
-	 */
-	@SuppressWarnings("unchecked")
-	private <T> Collection<T> initializeFromCollection(Collection<Object> values, Class<T> elementClass) {
-		Collection<T> collection = CollectionFactory.createApproximateCollection(values, values.size());
-		for (Object item : values) {
-			if (elementClass.isAssignableFrom(item.getClass())) {
-				collection.add((T) item);
+	@SuppressWarnings({"ConstantConditions", "unchecked"})
+	private <T> Collection<T> createCollection(
+			Collection<Object> rawCollection, ResolvableType collectionType,
+			BindingResult bindingResult, Stack<String> segments) {
+
+		if (!Collection.class.isAssignableFrom(collectionType.resolve())) {
+			bindingResult.rejectValue(toArgumentPath(segments), "typeMismatch", "Expected collection: " + collectionType);
+			return Collections.emptyList();
+		}
+
+		Class<?> elementClass = collectionType.asCollection().getGeneric(0).resolve();
+		if (elementClass == null) {
+			bindingResult.rejectValue(toArgumentPath(segments), "unknownElementType", "Unknown element type");
+			return Collections.emptyList();
+		}
+
+		Collection<T> collection = CollectionFactory.createApproximateCollection(rawCollection, rawCollection.size());
+		int i = 0;
+		for (Object rawValue : rawCollection) {
+			segments.push("[" + i++ + "]");
+			if (elementClass.isAssignableFrom(rawValue.getClass())) {
+				collection.add((T) rawValue);
 			}
-			else if (item instanceof Map) {
-				collection.add((T) this.initializeFromMap((Map<String, Object>) item, elementClass));
+			else if (rawValue instanceof Map) {
+				collection.add((T) createValueOrNull((Map<String, Object>) rawValue, elementClass, bindingResult, segments));
 			}
 			else {
-				collection.add(getTypeConverter().convertIfNecessary(item, elementClass));
+				collection.add((T) convertValue(rawValue, elementClass, bindingResult, segments));
 			}
+			segments.pop();
 		}
 		return collection;
 	}
 
-	/**
-	 * Instantiate an Object of the given target type and bind
-	 * {@link graphql.schema.DataFetchingEnvironment} argument values to it.
-	 * This considers the default constructor or a primary constructor, if available.
-	 * @throws IllegalStateException if there is no suitable constructor.
-	 */
+	@Nullable
+	private Object createValueOrNull(
+			Map<String, Object> rawMap, Class<?> targetType, BindingResult result, Stack<String> segments) {
+
+		try {
+			return createValue(rawMap, targetType, result, segments);
+		}
+		catch (BindException ex) {
+			return null;
+		}
+	}
+
 	@SuppressWarnings("unchecked")
-	private Object initializeFromMap(Map<String, Object> arguments, Class<?> targetType) {
+	private Object createValue(
+			Map<String, Object> rawMap, Class<?> targetType, BindingResult bindingResult,
+			Stack<String> segments) throws BindException {
+
 		Object target;
 		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
 
+		// Default constructor with data binding
+
 		if (ctor.getParameterCount() == 0) {
-			MutablePropertyValues propertyValues = extractPropertyValues(arguments);
+			MutablePropertyValues mpvs = new MutablePropertyValues();
+			visitArgumentMap(rawMap, mpvs, new Stack<>());
+
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
+			dataBinder.getBindingResult().setNestedPath(toArgumentPath(segments));
 			dataBinder.setConversionService(getConversionService());
-			dataBinder.bind(propertyValues);
+			dataBinder.bind(mpvs);
+
+			if (dataBinder.getBindingResult().hasErrors()) {
+				addErrors(dataBinder, bindingResult, segments);
+				throw new BindException(bindingResult);
+			}
+
 			return target;
 		}
 
 		// Data class constructor
 
+		if (!segments.isEmpty()) {
+			segments.push(".");
+		}
+
 		String[] paramNames = BeanUtils.getParameterNames(ctor);
 		Class<?>[] paramTypes = ctor.getParameterTypes();
 		Object[] args = new Object[paramTypes.length];
+
 		for (int i = 0; i < paramNames.length; i++) {
 			String paramName = paramNames[i];
-			Object value = arguments.get(paramName);
-			MethodParameter methodParameter = new MethodParameter(ctor, i);
-			if (value == null && methodParameter.isOptional()) {
-				args[i] = (methodParameter.getParameterType() == Optional.class ? Optional.empty() : null);
+			Object rawValue = rawMap.get(paramName);
+			segments.push(paramName);
+			MethodParameter methodParam = new MethodParameter(ctor, i);
+			if (rawValue == null && methodParam.isOptional()) {
+				args[i] = (paramTypes[i] == Optional.class ? Optional.empty() : null);
 			}
-			else if (value != null && CollectionFactory.isApproximableCollectionType(value.getClass())) {
-				ResolvableType resolvableType = ResolvableType.forMethodParameter(methodParameter);
-				Class<?> elementType = resolvableType.asCollection().getGeneric(0).resolve();
-				Assert.notNull(elementType, "Cannot determine element type for " + resolvableType);
-				args[i] = initializeFromCollection((Collection<Object>) value, elementType);
+			else if (rawValue != null && CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
+				ResolvableType elementType = ResolvableType.forMethodParameter(methodParam);
+				args[i] = createCollection((Collection<Object>) rawValue, elementType, bindingResult, segments);
 			}
-			else if (value instanceof Map) {
-				args[i] = this.initializeFromMap((Map<String, Object>) value, methodParameter.getParameterType());
+			else if (rawValue instanceof Map) {
+				args[i] = createValueOrNull((Map<String, Object>) rawValue, paramTypes[i], bindingResult, segments);
 			}
 			else {
-				args[i] = getTypeConverter().convertIfNecessary(value, paramTypes[i], methodParameter);
+				args[i] = convertValue(rawValue, paramTypes[i], new TypeDescriptor(methodParam), bindingResult, segments);
 			}
+			segments.pop();
 		}
 
-		return BeanUtils.instantiateClass(ctor, args);
-	}
+		if (segments.size() > 1) {
+			segments.pop();
+		}
 
-	/**
-	 * Perform a Depth First Search in the given JSON map to collect attribute values
-	 * as {@link MutablePropertyValues} using the full property path as key.
-	 */
-	private MutablePropertyValues extractPropertyValues(Map<String, Object> arguments) {
-		MutablePropertyValues mpvs = new MutablePropertyValues();
-		Stack<String> path = new Stack<>();
-		visitArgumentMap(arguments, mpvs, path);
-		return mpvs;
+		try {
+			return BeanUtils.instantiateClass(ctor, args);
+		}
+		catch (BeanInstantiationException ex) {
+			// Swallow if we had binding errors, it's as far as we could go
+			checkBindingResult(bindingResult);
+			throw ex;
+		}
 	}
 
 	@SuppressWarnings("unchecked")
-	private void visitArgumentMap(Map<String, Object> arguments, MutablePropertyValues mpvs, Stack<String> path) {
-		for (String key : arguments.keySet()) {
-			Object value = arguments.get(key);
-			if (value instanceof List) {
-				List<Object> items = (List<Object>) value;
+	private void visitArgumentMap(Map<String, Object> rawMap, MutablePropertyValues mpvs, Stack<String> segments) {
+		for (String key : rawMap.keySet()) {
+			Object rawValue = rawMap.get(key);
+			if (rawValue instanceof List) {
+				List<Object> items = (List<Object>) rawValue;
 				if (items.isEmpty()) {
-					path.push(key);
-					mpvs.add(pathToPropertyName(path), value);
-					path.pop();
+					segments.push(key);
+					mpvs.add(toArgumentPath(segments), rawValue);
+					segments.pop();
 				}
 				else {
 					Map<String, Object> subValues = new HashMap<>(items.size());
 					for (int i = 0; i < items.size(); i++) {
 						subValues.put(key + "[" + i + "]", items.get(i));
 					}
-					visitArgumentMap(subValues, mpvs, path);
+					visitArgumentMap(subValues, mpvs, segments);
 				}
 			}
-			else if (value instanceof Map) {
-				path.push(key);
-				path.push(".");
-				visitArgumentMap((Map<String, Object>) value, mpvs, path);
-				path.pop();
-				path.pop();
+			else if (rawValue instanceof Map) {
+				segments.push(key + ".");
+				visitArgumentMap((Map<String, Object>) rawValue, mpvs, segments);
+				segments.pop();
 			}
 			else {
-				path.push(key);
-				mpvs.add(pathToPropertyName(path), value);
-				path.pop();
+				segments.push(key);
+				mpvs.add(toArgumentPath(segments), rawValue);
+				segments.pop();
 			}
 		}
 	}
 
-	private String pathToPropertyName(Stack<String> path) {
+	private String toArgumentPath(Stack<String> path) {
 		StringBuilder sb = new StringBuilder();
-		for (String s : path) {
-			sb.append(s);
-		}
+		path.forEach(sb::append);
 		return sb.toString();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Nullable
+	private <T> T convertValue(@Nullable Object rawValue, Class<T> type, BindingResult result, Stack<String> segments) {
+		return (T) convertValue(rawValue, type, TypeDescriptor.valueOf(type), result, segments);
+	}
+
+	@Nullable
+	private Object convertValue(
+			@Nullable Object rawValue, Class<?> type, TypeDescriptor descriptor,
+			BindingResult bindingResult, Stack<String> segments) {
+
+		try {
+			return getTypeConverter().convertIfNecessary(rawValue, type, descriptor);
+		}
+		catch (TypeMismatchException ex) {
+			String name = toArgumentPath(segments);
+			ex.initPropertyName(name);
+			bindingResult.recordFieldValue(name, type, rawValue);
+			this.bindingErrorProcessor.processPropertyAccessException(ex, bindingResult);
+		}
+		return null;
+	}
+
+	private void addErrors(DataBinder binder, BindingResult bindingResult, Stack<String> segments) {
+		String path = (!segments.isEmpty() ? toArgumentPath(segments) + "." : "");
+		binder.getBindingResult().getFieldErrors().forEach(error -> bindingResult.addError(
+				new FieldError(bindingResult.getObjectName(), path + error.getField(),
+						error.getRejectedValue(), error.isBindingFailure(), error.getCodes(),
+						error.getArguments(), error.getDefaultMessage())));
+	}
+
+	private void checkBindingResult(BindingResult bindingResult) throws BindException {
+		if (bindingResult.hasErrors()) {
+			throw new BindException(bindingResult);
+		}
 	}
 
 }

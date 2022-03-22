@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -101,6 +103,22 @@ class GraphQlArgumentInitializerTests {
 		assertThat(((ItemListHolder) result).getItems()).hasSize(0);
 	}
 
+	@Test // gh-280
+	void defaultConstructorBindingError() {
+
+		assertThatThrownBy(
+				() -> initializer.get().initializeArgument(
+						environment("{\"key\":{\"name\":\"test\",\"age\":\"invalid\"}}"), "key",
+						ResolvableType.forClass(SimpleBean.class)))
+				.extracting(ex -> ((BindException) ex).getFieldErrors())
+				.satisfies(errors -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getObjectName()).isEqualTo("key");
+					assertThat(errors.get(0).getField()).isEqualTo("age");
+					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
+				});
+	}
+
 	@Test
 	void primaryConstructor() throws Exception {
 
@@ -154,6 +172,56 @@ class GraphQlArgumentInitializerTests {
 						ResolvableType.forClass(NoPrimaryConstructorBean.class)))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("No primary or single unique constructor found");
+	}
+
+	@Test
+	void primaryConstructorBindingError() {
+
+		assertThatThrownBy(
+				() -> initializer.get().initializeArgument(
+						environment(
+								"{\"key\":{" +
+										"\"name\":\"Hello\"," +
+										"\"age\":\"invalid\"," +
+										"\"item\":{\"name\":\"Item name\",\"age\":\"invalid\"}}}"),
+						"key",
+						ResolvableType.forClass(PrimaryConstructorItemBean.class)))
+				.extracting(ex -> ((BindException) ex).getFieldErrors())
+				.satisfies(errors -> {
+					assertThat(errors).hasSize(2);
+
+					assertThat(errors.get(0).getObjectName()).isEqualTo("key");
+					assertThat(errors.get(0).getField()).isEqualTo("age");
+					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
+
+					assertThat(errors.get(1).getObjectName()).isEqualTo("key");
+					assertThat(errors.get(1).getField()).isEqualTo("item.age");
+					assertThat(errors.get(1).getRejectedValue()).isEqualTo("invalid");
+				});
+	}
+
+	@Test
+	void primaryConstructorBindingErrorWithNestedBeanList() {
+
+		assertThatThrownBy(
+				() -> initializer.get().initializeArgument(
+						environment(
+								"{\"key\":{\"items\":[" +
+										"{\"name\":\"first\", \"age\":\"invalid\"}," +
+										"{\"name\":\"second\", \"age\":\"invalid\"}]}}"),
+						"key",
+						ResolvableType.forClass(PrimaryConstructorItemListBean.class)))
+				.extracting(ex -> ((BindException) ex).getFieldErrors())
+				.satisfies(errors -> {
+					assertThat(errors).hasSize(2);
+					for (int i = 0; i < errors.size(); i++) {
+						FieldError error = errors.get(i);
+						assertThat(error.getObjectName()).isEqualTo("key");
+						assertThat(error.getField()).isEqualTo("items[" + i + "].age");
+						assertThat(error.getRejectedValue()).isEqualTo("invalid");
+						assertThat(error.getDefaultMessage()).startsWith("Failed to convert property value");
+					}
+				});
 	}
 
 	@SuppressWarnings("unchecked")
@@ -271,12 +339,22 @@ class GraphQlArgumentInitializerTests {
 
 		private String name;
 
+		private int age;
+
 		public String getName() {
 			return this.name;
 		}
 
 		public void setName(String name) {
 			this.name = name;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public void setAge(int age) {
+			this.age = age;
 		}
 	}
 
