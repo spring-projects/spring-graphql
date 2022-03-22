@@ -19,7 +19,6 @@ package org.springframework.graphql.data;
 import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -222,14 +221,11 @@ public class GraphQlArgumentBinder {
 		// Default constructor with data binding
 
 		if (ctor.getParameterCount() == 0) {
-			MutablePropertyValues mpvs = new MutablePropertyValues();
-			visitArgumentMap(rawMap, mpvs, new Stack<>());
-
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
 			dataBinder.getBindingResult().setNestedPath(toArgumentPath(segments));
 			dataBinder.setConversionService(getConversionService());
-			dataBinder.bind(mpvs);
+			dataBinder.bind(initBindValues(rawMap));
 
 			if (dataBinder.getBindingResult().hasErrors()) {
 				addErrors(dataBinder, bindingResult, segments);
@@ -284,35 +280,42 @@ public class GraphQlArgumentBinder {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private void visitArgumentMap(Map<String, Object> rawMap, MutablePropertyValues mpvs, Stack<String> segments) {
+	private MutablePropertyValues initBindValues(Map<String, Object> rawMap) {
+		MutablePropertyValues mpvs = new MutablePropertyValues();
+		Stack<String> segments = new Stack<>();
 		for (String key : rawMap.keySet()) {
-			Object rawValue = rawMap.get(key);
-			if (rawValue instanceof List) {
-				List<Object> items = (List<Object>) rawValue;
-				if (items.isEmpty()) {
-					segments.push(key);
-					mpvs.add(toArgumentPath(segments), rawValue);
-					segments.pop();
-				}
-				else {
-					Map<String, Object> subValues = new HashMap<>(items.size());
-					for (int i = 0; i < items.size(); i++) {
-						subValues.put(key + "[" + i + "]", items.get(i));
-					}
-					visitArgumentMap(subValues, mpvs, segments);
-				}
-			}
-			else if (rawValue instanceof Map) {
-				segments.push(key + ".");
-				visitArgumentMap((Map<String, Object>) rawValue, mpvs, segments);
+			addBindValues(mpvs, key, rawMap.get(key), segments);
+		}
+		return mpvs;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void addBindValues(MutablePropertyValues mpvs, String name, Object value, Stack<String> segments) {
+		if (value instanceof List) {
+			List<Object> items = (List<Object>) value;
+			if (items.isEmpty()) {
+				segments.push(name);
+				mpvs.add(toArgumentPath(segments), value);
 				segments.pop();
 			}
 			else {
-				segments.push(key);
-				mpvs.add(toArgumentPath(segments), rawValue);
-				segments.pop();
+				for (int i = 0; i < items.size(); i++) {
+					addBindValues(mpvs, name + "[" + i + "]", items.get(i), segments);
+				}
 			}
+		}
+		else if (value instanceof Map) {
+			segments.push(name + ".");
+			Map<String, Object> map = (Map<String, Object>) value;
+			for (String key : map.keySet()) {
+				addBindValues(mpvs, key, map.get(key), segments);
+			}
+			segments.pop();
+		}
+		else {
+			segments.push(name);
+			mpvs.add(toArgumentPath(segments), value);
+			segments.pop();
 		}
 	}
 
