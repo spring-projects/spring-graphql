@@ -21,13 +21,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import graphql.schema.DataFetchingEnvironment;
+
 /**
- * Similar to {@link Argument @Argument} but using the full map of argument
- * values as the source of values to bind to the target Object.
+ * Analogous to {@link Argument} but binding with the full
+ * {@link DataFetchingEnvironment#getArgument(String) arguments} map.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see Argument
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)

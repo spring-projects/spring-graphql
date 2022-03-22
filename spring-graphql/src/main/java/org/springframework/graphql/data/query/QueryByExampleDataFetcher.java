@@ -38,7 +38,7 @@ import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.util.Assert;
@@ -92,12 +92,12 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private final TypeInformation<T> domainType;
 
-	private final GraphQlArgumentInitializer argumentInitializer;
+	private final GraphQlArgumentBinder argumentInitializer;
 
 
 	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
 		this.domainType = domainType;
-		this.argumentInitializer = new GraphQlArgumentInitializer(null);
+		this.argumentInitializer = new GraphQlArgumentBinder();
 	}
 
 
@@ -109,7 +109,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	protected Example<T> buildExample(DataFetchingEnvironment env) throws BindException {
 		ResolvableType targetType = ResolvableType.forClass(this.domainType.getType());
-		return (Example<T>) Example.of(this.argumentInitializer.initializeArgument(env, null, targetType));
+		return (Example<T>) Example.of(this.argumentInitializer.bind(env, null, targetType));
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {

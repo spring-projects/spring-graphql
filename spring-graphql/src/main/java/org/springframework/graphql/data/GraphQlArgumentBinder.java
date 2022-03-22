@@ -48,15 +48,17 @@ import org.springframework.validation.FieldError;
 
 
 /**
- * Bind GraphQL arguments to higher level objects. 
- * 
- * <p>The target object may have 
+ * Bind a GraphQL argument values to higher level objects.
+ *
+ * <p>Binding is performed by mapping argument values to a primary data
+ * constructor of the target Object, or by using a default constructor
+ * and mapping argument values to properties. This is applied recursively.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class GraphQlArgumentInitializer {
+public class GraphQlArgumentBinder {
 
 	@Nullable
 	private final SimpleTypeConverter typeConverter;
@@ -64,7 +66,11 @@ public class GraphQlArgumentInitializer {
 	private final BindingErrorProcessor bindingErrorProcessor = new DefaultBindingErrorProcessor();
 
 
-	public GraphQlArgumentInitializer(@Nullable ConversionService conversionService) {
+	public GraphQlArgumentBinder() {
+		this(null);
+	}
+
+	public GraphQlArgumentBinder(@Nullable ConversionService conversionService) {
 		if (conversionService != null) {
 			this.typeConverter = new SimpleTypeConverter();
 			this.typeConverter.setConversionService(conversionService);
@@ -87,24 +93,27 @@ public class GraphQlArgumentInitializer {
 
 
 	/**
-	 * Initialize an Object of the given {@code targetType}, either from a named
-	 * {@link DataFetchingEnvironment#getArgument(String) argument value}, or from all
-	 * {@link DataFetchingEnvironment#getArguments() values} as the source.
-	 * @param environment the environment with the argument values
-	 * @param name optionally, the name of an argument to initialize from,
-	 * or if {@code null}, the full map of arguments is used.
-	 * @param targetType the type of Object to initialize
-	 * @return the initialized Object, or {@code null}
-	 * @throws BindException raised in case of issues with binding argument values
-	 * such as conversion errors, type mismatches between the source values and
-	 * the target type structure, etc.
+	 * Bind a single argument or the full arguments map onto an object of the
+	 * given target type.
+	 * @param environment to obtain the argument value(s) from
+	 * @param argumentName the name of the argument to bind, or {@code null} to
+	 * use the full arguments map
+	 * @param targetType the type of Object to create
+	 * @return the created Object, possibly {@code null}
+	 * @throws BindException in case of binding issues such as conversion errors,
+	 * mismatches between the source and the target object structure, and so on.
+	 * Binding issues are accumulated as {@link BindException#getFieldErrors()
+	 * field errors} where the {@code field} of each error is the argument path
+	 * where the issue occurred.
 	 */
 	@Nullable
 	@SuppressWarnings("unchecked")
-	public Object initializeArgument(
-			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType) throws BindException {
+	public Object bind(
+			DataFetchingEnvironment environment, @Nullable String argumentName, ResolvableType targetType)
+			throws BindException {
 
-		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+		Object rawValue = (argumentName != null ?
+				environment.getArgument(argumentName) : environment.getArguments());
 
 		if (rawValue == null) {
 			return wrapAsOptionalIfNecessary(null, targetType);
@@ -113,7 +122,7 @@ public class GraphQlArgumentInitializer {
 		Class<?> targetClass = targetType.resolve();
 		Assert.notNull(targetClass, "Could not determine target type from " + targetType);
 
-		DataBinder binder = new DataBinder(null, name != null ? name : "arguments");
+		DataBinder binder = new DataBinder(null, argumentName != null ? argumentName : "arguments");
 		BindingResult bindingResult = binder.getBindingResult();
 		Stack<String> segments = new Stack<>();
 
@@ -121,7 +130,7 @@ public class GraphQlArgumentInitializer {
 			// From Collection
 
 			if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
-				segments.push(name);
+				segments.push(argumentName);
 				return createCollection((Collection<Object>) rawValue, targetType, bindingResult, segments);
 			}
 

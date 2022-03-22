@@ -1118,11 +1118,11 @@ Schema mapping handler methods can have any of the following method arguments:
 | Method Argument | Description
 
 | `@Argument`
-| For access to a named field argument converted to a higher-level, typed Object.
+| For access to a named field argument bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-argument>>.
 
 | `@Arguments`
-| For access to all field arguments converted to a higher-level, typed Object.
+| For access to all field arguments bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-arguments>>.
 
 | `@ProjectedPayload` Interface
@@ -1173,11 +1173,12 @@ In GraphQL Java, `DataFetchingEnvironment` provides access to a map of field-spe
 argument values. The values can be simple scalar values (e.g. String, Long), a `Map` of
 values for more complex input, or a `List` of values.
 
-Use the `@Argument` annotation to inject a named field argument into a handler method.
-The method parameter can be a higher-level, typed Object of any type. It is created and
-initialized from the named field argument value(s), either matching them to single data
-constructor parameters, or using the default constructor and then matching keys onto
-Object properties through a `org.springframework.validation.DataBinder`:
+Use the `@Argument` annotation to have an argument bound to a target object and
+injected into the handler method. Binding is performed by mapping argument values to a
+primary data constructor of the expected method parameter type, or by using a default
+constructor to create the object and then map argument values to its properties. This is
+repeated recursively, using all nested argument values and creating nested target objects
+accordingly. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -1203,6 +1204,9 @@ If needed, you can customize the name through the annotation, e.g. `@Argument("b
 TIP: The `@Argument` annotation does not have a "required" flag, nor the option to
 specify a default value. Both of these can be specified at the GraphQL schema level and
 are enforced by GraphQL Java.
+
+If binding fails, a `BindException` is raised with binding issues accumulated as field
+errors where the `field` of each error is the argument path where the issue occurred.
 
 You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
 values. The name attribute on `@Argument` must not be set.

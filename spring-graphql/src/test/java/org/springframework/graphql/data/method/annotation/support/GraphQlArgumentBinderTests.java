@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 
@@ -36,22 +36,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 /**
- * Tests for {@link GraphQlArgumentInitializer}
+ * Tests for {@link GraphQlArgumentBinder}
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
  */
-class GraphQlArgumentInitializerTests {
+class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final ThreadLocal<GraphQlArgumentInitializer> initializer = ThreadLocal.withInitial(() -> new GraphQlArgumentInitializer(null));
+	private final ThreadLocal<GraphQlArgumentBinder> initializer = ThreadLocal.withInitial(() -> new GraphQlArgumentBinder(null));
 
 
 	@Test
 	void defaultConstructor() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment("{\"key\":{\"name\":\"test\"}}"), "key",
 				ResolvableType.forClass(SimpleBean.class));
 
@@ -62,7 +62,7 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void defaultConstructorWithNestedBeanProperty() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment(
 						"{\"key\":{" +
 								"\"name\":\"test name\"," +
@@ -83,7 +83,7 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void defaultConstructorWithNestedBeanListProperty() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
 				ResolvableType.forClass(ItemListHolder.class));
 
@@ -95,7 +95,7 @@ class GraphQlArgumentInitializerTests {
 	@Test // gh-301
 	void defaultConstructorWithNestedBeanListEmpty() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment("{\"key\":{\"items\": []}}"), "key",
 				ResolvableType.forClass(ItemListHolder.class));
 
@@ -107,7 +107,7 @@ class GraphQlArgumentInitializerTests {
 	void defaultConstructorBindingError() {
 
 		assertThatThrownBy(
-				() -> initializer.get().initializeArgument(
+				() -> initializer.get().bind(
 						environment("{\"key\":{\"name\":\"test\",\"age\":\"invalid\"}}"), "key",
 						ResolvableType.forClass(SimpleBean.class)))
 				.extracting(ex -> ((BindException) ex).getFieldErrors())
@@ -122,7 +122,7 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void primaryConstructor() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment("{\"key\":{\"name\":\"test\"}}"), "key",
 				ResolvableType.forClass(PrimaryConstructorBean.class));
 
@@ -133,7 +133,7 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void primaryConstructorWithBeanArgument() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment(
 						"{\"key\":{" +
 								"\"item\":{\"name\":\"Item name\"}," +
@@ -151,7 +151,7 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void primaryConstructorWithNestedBeanList() throws Exception {
 
-		Object result = initializer.get().initializeArgument(
+		Object result = initializer.get().bind(
 				environment(
 						"{\"key\":{\"items\":[" +
 								"{\"name\":\"first\"}," +
@@ -167,7 +167,7 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void primaryConstructorNotFound() {
 		assertThatThrownBy(
-				() -> initializer.get().initializeArgument(
+				() -> initializer.get().bind(
 						environment("{\"key\":{\"name\":\"test\"}}"), "key",
 						ResolvableType.forClass(NoPrimaryConstructorBean.class)))
 				.isInstanceOf(IllegalStateException.class)
@@ -178,7 +178,7 @@ class GraphQlArgumentInitializerTests {
 	void primaryConstructorBindingError() {
 
 		assertThatThrownBy(
-				() -> initializer.get().initializeArgument(
+				() -> initializer.get().bind(
 						environment(
 								"{\"key\":{" +
 										"\"name\":\"Hello\"," +
@@ -204,7 +204,7 @@ class GraphQlArgumentInitializerTests {
 	void primaryConstructorBindingErrorWithNestedBeanList() {
 
 		assertThatThrownBy(
-				() -> initializer.get().initializeArgument(
+				() -> initializer.get().bind(
 						environment(
 								"{\"key\":{\"items\":[" +
 										"{\"name\":\"first\", \"age\":\"invalid\"}," +

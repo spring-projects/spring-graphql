@@ -19,25 +19,25 @@ import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Arguments;
 import org.springframework.util.Assert;
 
 /**
- * Resolver for {@link Arguments @Arguments} annotated method parameters,
- * obtained via {@link DataFetchingEnvironment#getArgument(String)} and
- * converted to the declared type of the method parameter.
+ * Analogous to {@link ArgumentMethodArgumentResolver} but resolving method
+ * parameters annotated with {@link Arguments @Arguments} and binding with the
+ * full {@link DataFetchingEnvironment#getArgument(String) arguments} map.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 public class ArgumentsMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private final GraphQlArgumentInitializer argumentInitializer;
+	private final GraphQlArgumentBinder argumentInitializer;
 
 
-	public ArgumentsMethodArgumentResolver(GraphQlArgumentInitializer initializer) {
+	public ArgumentsMethodArgumentResolver(GraphQlArgumentBinder initializer) {
 		Assert.notNull(initializer, "GraphQlArgumentInitializer is required");
 		this.argumentInitializer = initializer;
 	}
@@ -51,7 +51,7 @@ public class ArgumentsMethodArgumentResolver implements HandlerMethodArgumentRes
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
-		return this.argumentInitializer.initializeArgument(environment, null, resolvableType);
+		return this.argumentInitializer.bind(environment, null, resolvableType);
 	}
 
 }
