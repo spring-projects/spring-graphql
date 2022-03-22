@@ -61,7 +61,14 @@ class GraphQlArgumentInitializerTests {
 	void defaultConstructorWithNestedBeanProperty() throws Exception {
 
 		Object result = initializer.get().initializeArgument(
-				environment("{\"key\":{\"name\":\"test name\",\"author\":{\"firstName\":\"Jane\",\"lastName\":\"Spring\"}}}"), "key",
+				environment(
+						"{\"key\":{" +
+								"\"name\":\"test name\"," +
+								"\"author\":{" +
+								"  \"firstName\":\"Jane\"," +
+								"  \"lastName\":\"Spring\"" +
+								"}}}"),
+				"key",
 				ResolvableType.forClass(Book.class));
 
 		assertThat(result).isNotNull().isInstanceOf(Book.class);
@@ -109,19 +116,29 @@ class GraphQlArgumentInitializerTests {
 	void primaryConstructorWithBeanArgument() throws Exception {
 
 		Object result = initializer.get().initializeArgument(
-				environment("{\"key\":{\"item\":{\"name\":\"Item name\"},\"name\":\"Hello\"}}"), "key",
+				environment(
+						"{\"key\":{" +
+								"\"item\":{\"name\":\"Item name\"}," +
+								"\"name\":\"Hello\"," +
+								"\"age\":\"30\"}}"),
+				"key",
 				ResolvableType.forClass(PrimaryConstructorItemBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemBean.class);
-		assertThat(((PrimaryConstructorItemBean) result).item.name).isEqualTo("Item name");
-		assertThat(((PrimaryConstructorItemBean) result).name).isEqualTo("Hello");
+		assertThat(((PrimaryConstructorItemBean) result).getItem().getName()).isEqualTo("Item name");
+		assertThat(((PrimaryConstructorItemBean) result).getName()).isEqualTo("Hello");
+		assertThat(((PrimaryConstructorItemBean) result).getAge()).isEqualTo(30);
 	}
 
 	@Test
 	void primaryConstructorWithNestedBeanList() throws Exception {
 
 		Object result = initializer.get().initializeArgument(
-				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
+				environment(
+						"{\"key\":{\"items\":[" +
+								"{\"name\":\"first\"}," +
+								"{\"name\":\"second\"}]}}"),
+				"key",
 				ResolvableType.forClass(PrimaryConstructorItemListBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemListBean.class);
@@ -132,11 +149,9 @@ class GraphQlArgumentInitializerTests {
 	@Test
 	void primaryConstructorNotFound() {
 		assertThatThrownBy(
-				() -> {
-					initializer.get().initializeArgument(
-							environment("{\"key\":{\"name\":\"test\"}}"), "key",
-							ResolvableType.forClass(NoPrimaryConstructorBean.class));
-				})
+				() -> initializer.get().initializeArgument(
+						environment("{\"key\":{\"name\":\"test\"}}"), "key",
+						ResolvableType.forClass(NoPrimaryConstructorBean.class)))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("No primary or single unique constructor found");
 	}
@@ -150,9 +165,9 @@ class GraphQlArgumentInitializerTests {
 
 	static class SimpleBean {
 
-		String name;
+		private String name;
 
-		int age;
+		private int age;
 
 		public String getName() {
 			return this.name;
@@ -174,7 +189,7 @@ class GraphQlArgumentInitializerTests {
 
 	static class PrimaryConstructorBean {
 
-		final String name;
+		private final String name;
 
 		public PrimaryConstructorBean(String name) {
 			this.name = name;
@@ -182,6 +197,48 @@ class GraphQlArgumentInitializerTests {
 
 		public String getName() {
 			return this.name;
+		}
+	}
+
+
+	static class PrimaryConstructorItemBean {
+
+		private final String name;
+
+		private final int age;
+
+		private final Item item;
+
+		public PrimaryConstructorItemBean(String name, int age, Item item) {
+			this.name = name;
+			this.age = age;
+			this.item = item;
+		}
+
+		public String getName() {
+			return this.name;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public Item getItem() {
+			return item;
+		}
+	}
+
+
+	static class PrimaryConstructorItemListBean {
+
+		private final List<Item> items;
+
+		public PrimaryConstructorItemListBean(List<Item> items) {
+			this.items = items;
+		}
+
+		public List<Item> getItems() {
+			return items;
 		}
 	}
 
@@ -196,43 +253,9 @@ class GraphQlArgumentInitializerTests {
 	}
 
 
-	static class PrimaryConstructorItemBean {
-		final String name;
-
-		final Item item;
-
-		public PrimaryConstructorItemBean(String name, Item item) {
-			this.name = name;
-			this.item = item;
-		}
-
-		public String getName() {
-			return this.name;
-		}
-
-		public Item getItem() {
-			return item;
-		}
-	}
-
-
-	static class PrimaryConstructorItemListBean {
-
-		final List<Item> items;
-
-		public PrimaryConstructorItemListBean(List<Item> items) {
-			this.items = items;
-		}
-
-		public List<Item> getItems() {
-			return items;
-		}
-	}
-
-
 	static class ItemListHolder {
 
-		List<Item> items;
+		private List<Item> items;
 
 		public List<Item> getItems() {
 			return this.items;
@@ -246,7 +269,7 @@ class GraphQlArgumentInitializerTests {
 
 	static class Item {
 
-		String name;
+		private String name;
 
 		public String getName() {
 			return this.name;
