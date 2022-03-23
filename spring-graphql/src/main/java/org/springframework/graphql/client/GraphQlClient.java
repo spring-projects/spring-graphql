@@ -17,11 +17,14 @@ package org.springframework.graphql.client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseField;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -78,7 +81,7 @@ public interface GraphQlClient {
 	 * @return the builder for further initialization
 	 */
 	static Builder<?> builder(GraphQlTransport transport) {
-		return new DefaultGraphQlClient.Builder(transport);
+		return new GenericGraphQlClient.Builder(transport);
 	}
 
 
@@ -86,6 +89,22 @@ public interface GraphQlClient {
 	 * Defines a builder for creating {@link GraphQlClient} instances.
 	 */
 	interface Builder<B extends Builder<B>> {
+
+		/**
+		 * Configure interceptors to be invoked before delegating to the
+		 * {@link GraphQlTransport} to perform the request.
+		 * @param interceptors the interceptors to add
+		 * @return this builder
+		 */
+		B interceptor(GraphQlClientInterceptor... interceptors);
+
+		/**
+		 * Customize the list of interceptors. The provided list is "live", so
+		 * the consumer can inspect and insert interceptors accordingly.
+		 * @param interceptorsConsumer consumer to customize the interceptors with
+		 * @return this builder
+		 */
+		B interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer);
 
 		/**
 		 * Configure a {@link DocumentSource} for use with
@@ -131,6 +150,24 @@ public interface GraphQlClient {
 		RequestSpec variables(Map<String, Object> variables);
 
 		/**
+		 * Set a client request attribute.
+		 * <p>This is purely for client side request processing, i.e. available
+		 * throughout the {@link GraphQlClientInterceptor} chain but not sent.
+		 * @param name the name of the attribute
+		 * @param value the attribute value
+		 * @return this builder
+		 */
+		RequestSpec attribute(String name, Object value);
+
+		/**
+		 * Manipulate the client request attributes. The map provided to the consumer
+		 * is "live", so the consumer can inspect and modify attributes accordingly.
+		 * @param attributesConsumer consumer to customize attributes with
+		 * @return this builder
+		 */
+		RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer);
+
+		/**
 		 * Shortcut for {@link #execute()} with a single field path to decode from.
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the target field has any errors,
@@ -155,13 +192,13 @@ public interface GraphQlClient {
 
 		/**
 		 * Execute a "subscription" request and return a stream of responses.
-		 * @return a {@code Flux} with a {@code ClientGraphQlResponse} for further
-		 * decoding of the response. The {@code Flux} may terminate as follows:
+		 * @return a {@code Flux} with responses that provide further options for
+		 * decoding of each response. The {@code Flux} may terminate as follows:
 		 * <ul>
 		 * <li>Completes if the subscription completes before the connection is closed.
 		 * <li>{@link SubscriptionErrorException} if the subscription ends with an error.
-		 * <li>{@link IllegalStateException} if the connection is closed or lost
-		 * before the stream terminates.
+		 * <li>{@link WebSocketDisconnectedException} if the connection is closed or
+		 * lost before the stream terminates.
 		 * <li>Exception for connection and GraphQL session initialization issues.
 		 * </ul>
 		 * <p>The {@code Flux} may be cancelled to notify the server to end the
@@ -180,9 +217,11 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} with the decoded entity, or a
-		 * {@link FieldAccessException} if the target field is not present or
-		 * has no value, checked via {@link ResponseField#hasValue()}.
+		 * @return {@code Mono} with the decoded entity. Completes empty when
+		 * the field is {@code null} without errors, or ends with
+		 * {@link FieldAccessException} for an invalid response or a failed field
+		 * @see GraphQlResponse#isValid()
+		 * @see ResponseField#getError()
 		 */
 		<D> Mono<D> toEntity(Class<D> entityType);
 
@@ -194,9 +233,11 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to a list of entities with the given type.
 		 * @param elementType the type of elements in the list
-		 * @return {@code Mono} with a list of decoded entities, possibly empty, or
-		 * a {@link FieldAccessException} if the target field is not present or
-		 * has no value, checked via {@link ResponseField#hasValue()}; the stream
+		 * @return {@code Mono} with a list of decoded entities, possibly an
+		 * empty list, or ends with {@link FieldAccessException} if the target
+		 * field is not present or has no value.
+		 * @see GraphQlResponse#isValid()
+		 * @see ResponseField#getError()
 		 */
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
@@ -216,9 +257,12 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} with the decoded entity, or a
-		 * {@link FieldAccessException} if the target field is not present or
-		 * has no value, checked via {@link ResponseField#hasValue()}.
+		 * @return a stream of decoded entities, one for each response, excluding
+		 * responses in which the field is {@code null} without errors. Ends with
+		 * {@link FieldAccessException} for an invalid response or a failed field.
+		 * May also end with a {@link GraphQlTransportException}.
+		 * @see GraphQlResponse#isValid()
+		 * @see ResponseField#getError()
 		 */
 		<D> Flux<D> toEntity(Class<D> entityType);
 
@@ -230,10 +274,12 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to a list of entities with the given type.
 		 * @param elementType the type of elements in the list
-		 * @return lists of decoded entities, possibly empty, or a
-		 * {@link FieldAccessException} if the target field is not present or
-		 * has no value, checked via {@link ResponseField#hasValue()}; the stream
-		 * may also end with a range of {@link GraphQlTransportException} types.
+		 * @return lists of decoded entities, one for each response, excluding
+		 * responses in which the field is {@code null} without errors. Ends with
+		 * {@link FieldAccessException} for an invalid response or a failed field.
+		 * May also end with a {@link GraphQlTransportException}.
+		 * @see GraphQlResponse#isValid()
+		 * @see ResponseField#getError()
 		 */
 		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 

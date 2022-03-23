@@ -23,8 +23,8 @@ import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -57,28 +57,28 @@ public class GraphQlHttpHandler {
 
 	/**
 	 * Handle GraphQL requests over HTTP.
-	 * @param request the incoming HTTP request
+	 * @param serverRequest the incoming HTTP request
 	 * @return the HTTP response
 	 */
-	public Mono<ServerResponse> handleRequest(ServerRequest request) {
-		return request.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
-				.flatMap((body) -> {
-					WebInput input = new WebInput(
-							request.uri(), request.headers().asHttpHeaders(), body,
-							request.exchange().getRequest().getId(),
-							request.exchange().getLocaleContext().getLocale());
+	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
+		return serverRequest.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
+				.flatMap(body -> {
+					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
+							serverRequest.uri(), serverRequest.headers().asHttpHeaders(), body,
+							serverRequest.exchange().getRequest().getId(),
+							serverRequest.exchange().getLocaleContext().getLocale());
 					if (logger.isDebugEnabled()) {
-						logger.debug("Executing: " + input);
+						logger.debug("Executing: " + graphQlRequest);
 					}
-					return this.graphQlHandler.handleRequest(input);
+					return this.graphQlHandler.handleRequest(graphQlRequest);
 				})
-				.flatMap(output -> {
+				.flatMap(response -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					builder.headers(headers -> headers.putAll(output.getResponseHeaders()));
-					return builder.bodyValue(output.toMap());
+					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					return builder.bodyValue(response.toMap());
 				});
 	}
 

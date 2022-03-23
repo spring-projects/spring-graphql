@@ -19,7 +19,7 @@ import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.util.Assert;
@@ -33,28 +33,29 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  * @since 1.0.0
+ * @see Argument
  */
 public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private final GraphQlArgumentInitializer argumentInitializer;
+	private final GraphQlArgumentBinder argumentBinder;
 
 
-	public ArgumentMethodArgumentResolver(GraphQlArgumentInitializer initializer) {
-		Assert.notNull(initializer, "GraphQlArgumentInitializer is required");
-		this.argumentInitializer = initializer;
+	public ArgumentMethodArgumentResolver(GraphQlArgumentBinder argumentBinder) {
+		Assert.notNull(argumentBinder, "GraphQlArgumentBinder is required");
+		this.argumentBinder = argumentBinder;
 	}
 
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.getParameterAnnotation(Argument.class) != null;
+		return (parameter.getParameterAnnotation(Argument.class) != null);
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		String name = getArgumentName(parameter);
 		ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
-		return this.argumentInitializer.initializeArgument(environment, name, resolvableType);
+		return this.argumentBinder.bind(environment, name, resolvableType);
 	}
 
 	static String getArgumentName(MethodParameter parameter) {

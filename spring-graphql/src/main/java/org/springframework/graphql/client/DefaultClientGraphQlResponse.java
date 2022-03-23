@@ -16,25 +16,10 @@
 
 package org.springframework.graphql.client;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import graphql.GraphQLError;
-
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.support.MapGraphQlResponse;
-import org.springframework.lang.Nullable;
-import org.springframework.util.MimeType;
-import org.springframework.util.MimeTypeUtils;
 
 
 /**
@@ -43,9 +28,9 @@ import org.springframework.util.MimeTypeUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements ClientGraphQlResponse {
+final class DefaultClientGraphQlResponse extends ResponseMapGraphQlResponse implements ClientGraphQlResponse {
 
-	private final GraphQlRequest request;
+	private final ClientGraphQlRequest request;
 
 	private final Encoder<?> encoder;
 
@@ -53,9 +38,9 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 
 
 	DefaultClientGraphQlResponse(
-			GraphQlRequest request, GraphQlResponse response, Encoder<?> encoder, Decoder<?> decoder) {
+			ClientGraphQlRequest request, GraphQlResponse response, Encoder<?> encoder, Decoder<?> decoder) {
 
-		super(response.toMap());
+		super(response);
 
 		this.request = request;
 		this.encoder = encoder;
@@ -63,19 +48,22 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 	}
 
 
-	@Override
-	public GraphQlRequest getRequest() {
+	ClientGraphQlRequest getRequest() {
 		return this.request;
 	}
 
+	Encoder<?> getEncoder() {
+		return this.encoder;
+	}
+
+	Decoder<?> getDecoder() {
+		return this.decoder;
+	}
+
+
 	@Override
-	public ResponseField field(String path) {
-
-		List<Object> dataPath = parseFieldPath(path);
-		Object value = getFieldValue(dataPath);
-		List<GraphQLError> errors = getFieldErrors(dataPath);
-
-		return new DefaultField(path, dataPath, (value != NO_VALUE ? value : null), errors);
+	public ClientResponseField field(String path) {
+		return new DefaultClientResponseField(this, super.field(path));
 	}
 
 	@Override
@@ -86,99 +74,6 @@ final class DefaultClientGraphQlResponse extends MapGraphQlResponse implements C
 	@Override
 	public <D> D toEntity(ParameterizedTypeReference<D> type) {
 		return field("").toEntity(type);
-	}
-
-
-	/**
-	 * Default implementation of {@link ResponseField}.
-	 */
-	private class DefaultField implements ResponseField {
-
-		private final String path;
-
-		private final List<Object> parsedPath;
-
-		private final List<GraphQLError> errors;
-
-		@Nullable
-		private final Object value;
-
-		public DefaultField(
-				String path, List<Object> parsedPath, @Nullable Object value, List<GraphQLError> errors) {
-
-			this.path = path;
-			this.parsedPath = parsedPath;
-			this.value = value;
-			this.errors = errors;
-		}
-
-		@Override
-		public String getPath() {
-			return this.path;
-		}
-
-		@Override
-		public boolean hasValue() {
-			return (this.value != null);
-		}
-
-		@SuppressWarnings("unchecked")
-		@Override
-		public <T> T getValue() {
-			return (T) this.value;
-		}
-
-		@Override
-		public GraphQLError getError() {
-			for (GraphQLError error : this.errors) {
-				if (error.getPath().size() <= this.parsedPath.size()) {
-					return error;
-				}
-			}
-			return null;
-		}
-
-		@Override
-		public List<GraphQLError> getErrors() {
-			return this.errors;
-		}
-
-		@Override
-		public <D> D toEntity(Class<D> entityType) {
-			return toEntity(ResolvableType.forType(entityType));
-		}
-
-		@Override
-		public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
-			return toEntity(ResolvableType.forType(entityType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(Class<D> elementType) {
-			return toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
-			return toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
-		}
-
-		@SuppressWarnings({"unchecked", "ConstantConditions"})
-		private <T> T toEntity(ResolvableType targetType) {
-			if (this.value == null) {
-				throw new FieldAccessException(request, DefaultClientGraphQlResponse.this, this);
-			}
-
-			DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;
-			MimeType mimeType = MimeTypeUtils.APPLICATION_JSON;
-			Map<String, Object> hints = Collections.emptyMap();
-
-			DataBuffer buffer = ((Encoder<T>) encoder).encodeValue(
-					(T) this.value, bufferFactory, ResolvableType.forInstance(this.value), mimeType, hints);
-
-			return ((Decoder<T>) decoder).decode(buffer, targetType, mimeType, hints);
-		}
-
 	}
 
 }

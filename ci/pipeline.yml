@@ -153,7 +153,6 @@ jobs:
         download_artifacts: false
         save_build_info: true
     - task: promote
-      image: ci-image
       file: git-repo/ci/tasks/promote-version.yml
       params:
         RELEASE_TYPE: M
@@ -203,7 +202,6 @@ jobs:
         download_artifacts: false
         save_build_info: true
     - task: promote
-      image: ci-image
       file: git-repo/ci/tasks/promote-version.yml
       params:
         RELEASE_TYPE: RC

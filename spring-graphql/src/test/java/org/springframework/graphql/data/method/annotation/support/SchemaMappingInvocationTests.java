@@ -42,12 +42,12 @@ import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.RequestOutput;
-import org.springframework.graphql.TestRequestInput;
+import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -81,9 +81,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-		Book book = ResponseHelper.forResponse(outputMono).toEntity("bookById", Book.class);
+		Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
 		assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
 
@@ -101,9 +101,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-		List<Book> bookList = ResponseHelper.forResponse(outputMono).toList("booksByCriteria", Book.class);
+		List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -118,9 +118,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-		List<Book> bookList = ResponseHelper.forResponse(outputMono).toList("booksByProjectedArguments", Book.class);
+		List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedArguments", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -135,9 +135,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-		List<Book> bookList = ResponseHelper.forResponse(outputMono).toList("booksByProjectedCriteria", Book.class);
+		List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
 		assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
 		assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
@@ -154,15 +154,15 @@ public class SchemaMappingInvocationTests {
 				"}";
 
 		AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
-		RequestInput requestInput = TestRequestInput.forDocument(document);
-		requestInput.configureExecutionInput((executionInput, builder) -> {
+		ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
+		request.configureExecutionInput((executionInput, builder) -> {
 			contextRef.set(executionInput.getGraphQLContext());
 			return executionInput;
 		});
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(requestInput);
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(request);
 
-		Author author = ResponseHelper.forResponse(outputMono).toEntity("authorById", Author.class);
+		Author author = ResponseHelper.forResponse(responseMono).toEntity("authorById", Author.class);
 		assertThat(author.getId()).isEqualTo(101);
 		assertThat(author.getFirstName()).isEqualTo("George");
 		assertThat(author.getLastName()).isEqualTo("Orwell");
@@ -180,9 +180,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-		Author author = ResponseHelper.forResponse(outputMono).toEntity("addAuthor", Author.class);
+		Author author = ResponseHelper.forResponse(responseMono).toEntity("addAuthor", Author.class);
 		assertThat(author.getId()).isEqualTo(99);
 		assertThat(author.getFirstName()).isEqualTo("James");
 		assertThat(author.getLastName()).isEqualTo("Joyce");
@@ -197,9 +197,9 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<RequestOutput> outputMono = graphQlService().execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-		Flux<Book> bookFlux = ResponseHelper.forSubscription(outputMono)
+		Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));
 
 		StepVerifier.create(bookFlux)
@@ -215,7 +215,7 @@ public class SchemaMappingInvocationTests {
 	}
 
 
-	private GraphQlService graphQlService() {
+	private ExecutionGraphQlService graphQlService() {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();

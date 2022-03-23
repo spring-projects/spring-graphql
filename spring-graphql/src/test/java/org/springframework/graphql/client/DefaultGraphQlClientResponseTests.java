@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.support;
+package org.springframework.graphql.client;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
@@ -28,24 +28,26 @@ import graphql.execution.ResultPath;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.graphql.ResponseError;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.springframework.graphql.support.MapGraphQlResponse.NO_VALUE;
 
 
 /**
- * Unit tests for {@link MapGraphQlResponse}.
+ * Unit tests for {@link DefaultClientGraphQlResponse}.
  * @author Rossen Stoyanchev
  */
-public class MapGraphQlResponseTests {
+public class DefaultGraphQlClientResponseTests {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 
 
 	@Test
-	void parsePath() {
+	void parsePath() throws Exception {
 		testParsePath("");
 		testParsePath("        \t  ");
 		testParsePath("me.name", "me", "name");
@@ -54,8 +56,8 @@ public class MapGraphQlResponseTests {
 		testParsePath(" me . name ", " me ", " name ");
 	}
 
-	private static void testParsePath(String path, Object... expected) {
-		assertThat(MapGraphQlResponse.parseFieldPath(path)).containsExactly(expected);
+	private void testParsePath(String path, Object... expected) throws Exception {
+		assertThat(getField(path, "{}").getParsedPath()).containsExactly(expected);
 	}
 
 	@Test
@@ -70,10 +72,8 @@ public class MapGraphQlResponseTests {
 		testParseInvalidPath("me.friends[5]]");
 	}
 
-	private static void testParseInvalidPath(String path) {
-		assertThatIllegalArgumentException()
-				.isThrownBy(() -> MapGraphQlResponse.parseFieldPath(path))
-				.withMessage("Invalid path: '" + path + "'");
+	private void testParseInvalidPath(String path) {
+		assertThatIllegalArgumentException().isThrownBy(() -> getField(path, "{}")).withMessage("Invalid path: '" + path + "'");
 	}
 
 	@Test
@@ -81,68 +81,58 @@ public class MapGraphQlResponseTests {
 
 		// null "data"
 		testFieldValue("", "null", null);
-		testFieldValue("me", "null", NO_VALUE);
+		testFieldValue("me", "null", null);
 
 		// no such key or index
-		testFieldValue("me", "{}", NO_VALUE); // "data" not null but no such key
-		testFieldValue("me.friends", "{\"me\":{}}", NO_VALUE);
-		testFieldValue("me.friends[0]", "{\"me\": {\"friends\": []}}", NO_VALUE);
+		testFieldValue("me", "{}", null); // "data" not null but no such key
+		testFieldValue("me.friends", "{\"me\":{}}", null);
+		testFieldValue("me.friends[0]", "{\"me\": {\"friends\": []}}", null);
 
 		// nest within map or list
 		testFieldValue("me.name", "{\"me\":{\"name\":\"Luke\"}}", "Luke");
 		testFieldValue("me.friends[1].name", "{\"me\": {\"friends\": [{\"name\": \"Luke\"}, {\"name\": \"Yoda\"}]}}", "Yoda");
 	}
 
-	@SuppressWarnings("unchecked")
-	private static void testFieldValue(String path, String json, @Nullable Object expected) throws IOException {
-		List<Object> parsedPath = MapGraphQlResponse.parseFieldPath(path);
-		Map<String, Object> map = mapper.readValue(json, Map.class);
-		MapGraphQlResponse response = MapGraphQlResponse.forDataOnly(map);
-		Object value = response.getFieldValue(parsedPath);
-		if (expected != null) {
-			assertThat(value).isEqualTo(expected);
+	private void testFieldValue(String path, String dataJson, @Nullable Object expected) throws Exception {
+		Object value = getField(path, dataJson).getValue();
+		if (expected == null) {
+			assertThat(value).isNull();
 		}
 		else {
-			assertThat(value).isNotNull();
+			assertThat(value).isEqualTo(expected);
 		}
 	}
 
 	@Test
-	void fieldValueInvalidPath() throws Exception {
+	void fieldValueInvalidPath() {
 		testFieldValueInvalidPath("me.name", "{\"me\": []}");
 		testFieldValueInvalidPath("me.name", "{\"me\": \"string\"}");
 		testFieldValueInvalidPath("me.friends[0]", "{\"me\": {\"friends\": {}}}");
 		testFieldValueInvalidPath("me.friends[0]", "{\"me\": {\"friends\": {\"name\":\"Luke\"}}}");
 	}
 
-	@SuppressWarnings("unchecked")
-	private static void testFieldValueInvalidPath(String path, String json) throws IOException {
-		List<Object> parsedPath = MapGraphQlResponse.parseFieldPath(path);
-		Map<String, Object> map = mapper.readValue(json, Map.class);
-		MapGraphQlResponse response = MapGraphQlResponse.forDataOnly(map);
-
-		assertThatIllegalArgumentException().isThrownBy(() -> response.getFieldValue(parsedPath))
-				.withMessage("Invalid path " + parsedPath + ", data: " + map);
+	private void testFieldValueInvalidPath(String path, String json) {
+		assertThatIllegalArgumentException().isThrownBy(() -> getField(path, json))
+				.withMessageStartingWith("Invalid path");
 	}
 
 	@Test
 	void fieldErrors() {
 
-		List<Object> path = MapGraphQlResponse.parseFieldPath("me.friends");
+		String path = "me.friends";
 
 		GraphQLError error0 = createError(null, "fail-me");
 		GraphQLError error1 = createError("/me", "fail-me");
 		GraphQLError error2 = createError("/me/friends", "fail-me-friends");
 		GraphQLError error3 = createError("/me/friends[0]/name", "fail-me-friends-name");
 
-		List<Map<String, Object>> errorList =
-				Stream.of(error0, error1, error2, error3)
-						.map(GraphQLError::toSpecification).collect(Collectors.toList());
+		ClientResponseField field = getField(path, error0, error1, error2, error3);
+		List<ResponseError> errors = field.getErrors();
 
-		MapGraphQlResponse response = MapGraphQlResponse.forErrorsOnly(errorList);
-		List<GraphQLError> errors = response.getFieldErrors(path);
-
-		assertThat(errors).containsExactly(error1, error2, error3);
+		assertThat(errors).hasSize(3);
+		assertThat(errors.get(0).getPath()).isEqualTo("me");
+		assertThat(errors.get(1).getPath()).isEqualTo("me.friends");
+		assertThat(errors.get(2).getPath()).isEqualTo("me.friends[0].name");
 	}
 
 	private GraphQLError createError(@Nullable String errorPath, String message) {
@@ -150,8 +140,26 @@ public class MapGraphQlResponseTests {
 		if (errorPath != null) {
 			builder = builder.path(ResultPath.parse(errorPath));
 		}
-		Map<String, Object> errorMap = builder.build().toSpecification();
-		return new MapGraphQlError(errorMap);
+		return builder.build();
+	}
+
+	private ClientResponseField getField(String path, String dataJson) throws Exception {
+		Map<?, ?> dataMap = mapper.readValue(dataJson, Map.class);
+		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("data", dataMap));
+		return response.field(path);
+	}
+
+	private ClientResponseField getField(String path, GraphQLError... errors) {
+		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).collect(Collectors.toList());
+		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("errors", list));
+		return response.field(path);
+	}
+
+	private ClientGraphQlResponse creatResponse(Map<String, Object> responseMap) {
+		return new DefaultClientGraphQlResponse(
+				new DefaultClientGraphQlRequest("{test}", null, Collections.emptyMap(), Collections.emptyMap()),
+				new ResponseMapGraphQlResponse(responseMap),
+				new Jackson2JsonEncoder(), new Jackson2JsonDecoder());
 	}
 
 }

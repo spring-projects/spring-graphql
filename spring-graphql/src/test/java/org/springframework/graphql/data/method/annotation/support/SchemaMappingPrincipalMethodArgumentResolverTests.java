@@ -31,13 +31,13 @@ import reactor.util.context.Context;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.MethodParameter;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.RequestOutput;
-import org.springframework.graphql.TestRequestInput;
+import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
 import org.springframework.lang.Nullable;
@@ -103,10 +103,10 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		}
 
 		private void testQuery(String field, Function<Context, Context> contextWriter) {
-			Mono<RequestOutput> resultMono = executeAsync(
+			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
 					"type Query { " + field + ": String }", "{ " + field + " }", contextWriter);
 
-			String greeting = ResponseHelper.forResponse(resultMono).toEntity(field, String.class);
+			String greeting = ResponseHelper.forResponse(responseMono).toEntity(field, String.class);
 			assertThat(greeting).isEqualTo("Hello");
 			assertThat(greetingController.principal()).isSameAs(authentication);
 		}
@@ -136,12 +136,12 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		private void testSubscription(Function<Context, Context> contextModifier) {
 			String field = "greetingSubscription";
 
-			Mono<RequestOutput> resultMono = executeAsync(
+			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
 					"type Query { greeting: String } type Subscription { " + field + ": String }",
 					"subscription Greeting { " + field + " }",
 					contextModifier);
 
-			Flux<String> greetingFlux = ResponseHelper.forSubscription(resultMono)
+			Flux<String> greetingFlux = ResponseHelper.forSubscription(responseMono)
 					.map(response -> response.toEntity(field, String.class));
 
 			StepVerifier.create(greetingFlux).expectNext("Hello", "Hi").verifyComplete();
@@ -150,7 +150,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 	}
 
-	private Mono<RequestOutput> executeAsync(
+	private Mono<ExecutionGraphQlResponse> executeAsync(
 			String schema, String document, Function<Context, Context> contextWriter) {
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
@@ -162,7 +162,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 				.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
-				.flatMap(aLong -> graphQlService.execute(TestRequestInput.forDocument(document)))
+				.flatMap(aLong -> graphQlService.execute(TestExecutionRequest.forDocument(document)))
 				.contextWrite(contextWriter);
 	}
 

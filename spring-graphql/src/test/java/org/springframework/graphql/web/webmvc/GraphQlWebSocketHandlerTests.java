@@ -37,9 +37,9 @@ import reactor.test.StepVerifier;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
 import org.springframework.graphql.web.WebSocketHandlerTestSupport;
-import org.springframework.graphql.web.WebSocketInterceptor;
+import org.springframework.graphql.web.WebSocketGraphQlHandlerInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
@@ -148,7 +148,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	@Test
 	void connectionInitHandling() throws Exception {
 
-		WebSocketInterceptor interceptor = new WebSocketInterceptor() {
+		WebSocketGraphQlHandlerInterceptor interceptor = new WebSocketGraphQlHandlerInterceptor() {
 
 			@Override
 			public Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> payload) {
@@ -192,7 +192,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		CloseStatus closeStatus = CloseStatus.PROTOCOL_ERROR;
 		AtomicBoolean called = new AtomicBoolean();
 
-		WebSocketInterceptor interceptor = new WebSocketInterceptor() {
+		WebSocketGraphQlHandlerInterceptor interceptor = new WebSocketGraphQlHandlerInterceptor() {
 
 			@Override
 			public void handleConnectionClosed(String sessionId, int status, Map<String, Object> payload) {
@@ -219,7 +219,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	@Test
 	void connectionInitRejected() throws Exception {
 
-		WebSocketInterceptor interceptor = new WebSocketInterceptor() {
+		WebSocketGraphQlHandlerInterceptor interceptor = new WebSocketGraphQlHandlerInterceptor() {
 
 			@Override
 			public Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> payload) {
@@ -333,7 +333,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
 				.subscriptionFetcher("greeting", env -> Flux.just("a", null, "b"))
-				.webInterceptor()
+				.interceptor()
 				.toWebGraphQlHandler();
 
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(initHandler, converter, Duration.ofSeconds(60));
@@ -378,7 +378,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		}
 	}
 
-	private GraphQlWebSocketHandler initWebSocketHandler(WebInterceptor... interceptors) {
+	private GraphQlWebSocketHandler initWebSocketHandler(WebGraphQlHandlerInterceptor... interceptors) {
 		try {
 			return new GraphQlWebSocketHandler(initHandler(interceptors), converter, Duration.ofSeconds(60));
 		}

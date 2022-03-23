@@ -19,15 +19,18 @@ package org.springframework.graphql.test.tester;
 import java.util.List;
 
 import graphql.ExecutionResult;
-import graphql.GraphQLError;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.test.util.AssertionErrors;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.CollectionUtils;
@@ -40,29 +43,29 @@ import org.springframework.util.IdGenerator;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-abstract class AbstractDirectTransport implements GraphQlTransport {
+abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 
 	protected static final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
 
 	@Override
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
-		return executeInternal(request).cast(GraphQlResponse.class);
+		return executeInternal(toExecutionRequest(request)).cast(GraphQlResponse.class);
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	@Override
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-		return executeInternal(request).flatMapMany(output -> {
+		return executeInternal(toExecutionRequest(request)).flatMapMany(response -> {
 			try {
-				Object data = output.getData();
+				Object data = response.getData();
 				AssertionErrors.assertTrue("Not a Publisher: " + data, data instanceof Publisher);
 
-				List<GraphQLError> errors = output.getErrors();
+				List<ResponseError> errors = response.getErrors();
 				AssertionErrors.assertTrue("Subscription errors: " + errors, CollectionUtils.isEmpty(errors));
 
-				return Flux.from((Publisher<ExecutionResult>) data)
-						.map(result -> new RequestOutput(output.getExecutionInput(), result));
+				return Flux.from((Publisher<ExecutionResult>) data).map(executionResult ->
+						new DefaultExecutionGraphQlResponse(response.getExecutionInput(), executionResult));
 			}
 			catch (AssertionError ex) {
 				throw new AssertionError(ex.getMessage() + "\nRequest: " + request, ex);
@@ -70,9 +73,15 @@ abstract class AbstractDirectTransport implements GraphQlTransport {
 		});
 	}
 
+	private ExecutionGraphQlRequest toExecutionRequest(GraphQlRequest request) {
+		return new DefaultExecutionGraphQlRequest(
+				request.getDocument(), request.getOperationName(), request.getVariables(),
+				idGenerator.generateId().toString(), null);
+	}
+
 	/**
 	 * Subclasses must implement this to execute requests.
 	 */
-	protected abstract Mono<? extends RequestOutput> executeInternal(GraphQlRequest request);
+	protected abstract Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest request);
 
 }

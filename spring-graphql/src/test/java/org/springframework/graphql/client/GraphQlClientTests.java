@@ -30,6 +30,7 @@ import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,7 +101,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		vars.put("foo", "bar");
 		vars.put("keyOnly", null);
 
-		GraphQlRequest request = new GraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
+		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
 		initResponse(request, "{\"hero\": {\"name\":\"R2-D2\"}}");
 
 		MovieCharacter character = graphQlClient().document(document)
@@ -133,7 +134,9 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		String document = "fieldErrorResponse";
 		initResponse(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
 
-		testRetrieveFieldAccessException(document, "me");
+		MovieCharacter character = graphQlClient().document(document).retrieve("me").toEntity(MovieCharacter.class).block();
+		assertThat(character).isNotNull().extracting(MovieCharacter::getName).isNull();
+
 		testRetrieveFieldAccessException(document, "me.name");
 	}
 
@@ -186,26 +189,26 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.as("Partial response with field errors should be considered valid")
 				.isTrue();
 
-		ResponseField field = response.field("me");
+		ClientResponseField field = response.field("me");
 		assertThat(field.hasValue()).isTrue();
 		assertThat(field.getErrors()).hasSize(1);
-		assertThat(field.getErrors().get(0).getPath()).containsExactly("me", "name");
+		assertThat(field.getErrors().get(0).getParsedPath()).containsExactly("me", "name");
 		assertThat(field.toEntity(MovieCharacter.class))
 				.as("Decoding with nested field error should not be precluded")
 				.isNotNull();
 
-		ResponseField nameField = response.field("me.name");
+		ClientResponseField nameField = response.field("me.name");
 		assertThat(nameField.hasValue()).isFalse();
 		assertThat(nameField.getError()).isNotNull();
-		assertThat(nameField.getError().getPath()).containsExactly("me", "name");
+		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
 		assertThatThrownBy(() -> nameField.toEntity(String.class))
 				.as("Decoding field null with direct field error should be rejected")
 				.isInstanceOf(FieldAccessException.class);
 
-		ResponseField nonExistingField = response.field("me.name.other");
+		ClientResponseField nonExistingField = response.field("me.name.other");
 		assertThat(nonExistingField.hasValue()).isFalse();
 		assertThat(nameField.getError()).isNotNull();
-		assertThat(nameField.getError().getPath()).containsExactly("me", "name");
+		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
 	}
 
 	private GraphQLError errorForPath(String errorPath) {

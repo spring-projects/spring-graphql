@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -34,7 +33,8 @@ import reactor.test.StepVerifier;
 
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.support.MapGraphQlResponse;
+import org.springframework.graphql.ResponseError;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.web.support.GraphQlMessage;
@@ -70,9 +70,11 @@ public class MockWebSocketGraphQlTransportTests {
 	
 	private final WebSocketGraphQlTransport transport = createTransport(this.webSocketClient);
 
-	private final GraphQlResponse response1 = MapGraphQlResponse.forDataOnly(Collections.singletonMap("key1", "value1"));
+	private final GraphQlResponse response1 = new ResponseMapGraphQlResponse(
+			Collections.singletonMap("data", Collections.singletonMap("key1", "value1")));
 
-	private final GraphQlResponse response2 = MapGraphQlResponse.forDataOnly(Collections.singletonMap("key2", "value2"));
+	private final GraphQlResponse response2 = new ResponseMapGraphQlResponse(
+			Collections.singletonMap("data", Collections.singletonMap("key2", "value2")));
 
 
 	@Test
@@ -109,7 +111,7 @@ public class MockWebSocketGraphQlTransportTests {
 		StepVerifier.create(this.transport.execute(request))
 				.consumeNextWith(result -> {
 					assertThat(result.isValid()).isFalse();
-					assertThat(result.getErrors()).extracting(GraphQLError::getMessage).containsExactly("boo");
+					assertThat(result.getErrors()).extracting(ResponseError::getMessage).containsExactly("boo");
 				})
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -127,8 +129,8 @@ public class MockWebSocketGraphQlTransportTests {
 		StepVerifier.create(this.transport.executeSubscription(request))
 				.expectNext(this.response1)
 				.expectErrorSatisfies(actualEx -> {
-					List<GraphQLError> errorList = ((SubscriptionErrorException) actualEx).getErrors();
-					assertThat(errorList).extracting(GraphQLError::getMessage).containsExactly("boo");
+					List<ResponseError> errors = ((SubscriptionErrorException) actualEx).getErrors();
+					assertThat(errors).extracting(ResponseError::getMessage).containsExactly("boo");
 				})
 				.verify(TIMEOUT);
 
@@ -174,7 +176,7 @@ public class MockWebSocketGraphQlTransportTests {
 		TestWebSocketClient client = new TestWebSocketClient(new PingResponseHandler(this.response1));
 		WebSocketGraphQlTransport transport = createTransport(client);
 
-		StepVerifier.create(transport.execute(new GraphQlRequest("{Query1}")))
+		StepVerifier.create(transport.execute(new DefaultGraphQlRequest("{Query1}")))
 				.expectNext(this.response1)
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -182,7 +184,7 @@ public class MockWebSocketGraphQlTransportTests {
 		assertActualClientMessages(client.getConnection(0),
 				GraphQlMessage.connectionInit(null),
 				GraphQlMessage.pong(null),
-				GraphQlMessage.subscribe("1", new GraphQlRequest("{Query1}")));
+				GraphQlMessage.subscribe("1", new DefaultGraphQlRequest("{Query1}")));
 	}
 
 	@Test
@@ -194,9 +196,23 @@ public class MockWebSocketGraphQlTransportTests {
 		Map<String, String> initPayload = Collections.singletonMap("key", "valueInit");
 		AtomicReference<Map<String, Object>> connectionAckRef = new AtomicReference<>();
 
+		WebSocketGraphQlClientInterceptor interceptor = new WebSocketGraphQlClientInterceptor() {
+
+			@Override
+			public Mono<Object> connectionInitPayload() {
+				return Mono.just(initPayload);
+			}
+
+			@Override
+			public Mono<Void> handleConnectionAck(Map<String, Object> ackPayload) {
+				connectionAckRef.set(ackPayload);
+				return Mono.empty();
+			}
+		};
+
+
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
-				initPayload, connectionAckRef::set);
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor);
 
 		transport.start().block(TIMEOUT);
 
@@ -302,14 +318,15 @@ public class MockWebSocketGraphQlTransportTests {
 
 		String expectedMessage = "disconnected with CloseStatus[code=4400, reason=Invalid message]";
 
-		StepVerifier.create(transport.execute(new GraphQlRequest("{Query1}")))
+		StepVerifier.create(transport.execute(new DefaultGraphQlRequest("{Query1}")))
 				.expectErrorSatisfies(ex -> assertThat(ex).hasMessageEndingWith(expectedMessage))
 				.verify(TIMEOUT);
 	}
 
 	private static WebSocketGraphQlTransport createTransport(WebSocketClient client) {
 		return new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), null, p -> {});
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
+				new WebSocketGraphQlClientInterceptor() {});
 	}
 
 	private void assertActualClientMessages(GraphQlMessage... expectedMessages) {
@@ -380,7 +397,7 @@ public class MockWebSocketGraphQlTransportTests {
 
 				GraphQlMessage outputMessage = (inputMessage.resolvedType() == GraphQlMessageType.CONNECTION_INIT ?
 						GraphQlMessage.connectionAck(null) :
-						GraphQlMessage.subscribe(id, new GraphQlRequest("")));
+						GraphQlMessage.subscribe(id, new DefaultGraphQlRequest("")));
 
 				return Flux.just(this.codecDelegate.encode(session, outputMessage));
 			}));

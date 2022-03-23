@@ -37,12 +37,12 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
  */
 final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
 
-	private final WebGraphQlHandlerTransport transport;
+	private final WebGraphQlHandlerGraphQlTransport transport;
 
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerTransport transport,
+	DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerGraphQlTransport transport,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(tester);
@@ -78,7 +78,7 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 			this.handler = handler;
 		}
 
-		Builder(WebGraphQlHandlerTransport transport) {
+		Builder(WebGraphQlHandlerGraphQlTransport transport) {
 			this.url = transport.getUrl();
 			this.headers.putAll(transport.getHeaders());
 			this.handler = transport.getGraphQlHandler();
@@ -124,8 +124,8 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 
 			registerJsonPathMappingProvider();
 
-			WebGraphQlHandlerTransport transport =
-					new WebGraphQlHandlerTransport(this.url, this.headers, this.handler, this.codecConfigurer);
+			WebGraphQlHandlerGraphQlTransport transport =
+					new WebGraphQlHandlerGraphQlTransport(this.url, this.headers, this.handler, this.codecConfigurer);
 
 			GraphQlTester tester = super.buildGraphQlTester(transport);
 			return new DefaultWebGraphQlTester(tester, transport, getBuilderInitializer());

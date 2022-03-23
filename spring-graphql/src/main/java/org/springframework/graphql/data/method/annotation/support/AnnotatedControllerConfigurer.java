@@ -55,7 +55,7 @@ import org.springframework.expression.BeanResolver;
 import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -199,9 +199,9 @@ public class AnnotatedControllerConfigurer
 			resolvers.add(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
 		}
 		resolvers.add(new ArgumentMapMethodArgumentResolver());
-		GraphQlArgumentInitializer initializer = new GraphQlArgumentInitializer(this.conversionService);
-		resolvers.add(new ArgumentMethodArgumentResolver(initializer));
-		resolvers.add(new ArgumentsMethodArgumentResolver(initializer));
+		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
+		resolvers.add(new ArgumentMethodArgumentResolver(argumentBinder));
+		resolvers.add(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.add(new ContextValueMethodArgumentResolver());
 
 		// Type based

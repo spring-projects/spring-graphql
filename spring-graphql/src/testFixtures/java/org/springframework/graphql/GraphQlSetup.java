@@ -32,18 +32,18 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataLoaderRegistrar;
-import org.springframework.graphql.execution.ExecutionGraphQlService;
+import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebGraphQlSetup;
-import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
 
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
  * related input, and then optionally moving on to the creation of a
- * {@link GraphQlService} or a {@link WebGraphQlHandler}.
+ * {@link ExecutionGraphQlService} or a {@link WebGraphQlHandler}.
  *
  * @author Rossen Stoyanchev
  */
@@ -54,7 +54,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
-	private final List<WebInterceptor> webInterceptors = new ArrayList<>();
+	private final List<WebGraphQlHandlerInterceptor> interceptors = new ArrayList<>();
 
 	private final List<ThreadLocalAccessor> accessors = new ArrayList<>();
 
@@ -132,7 +132,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public ExecutionGraphQlService toGraphQlService() {
 		GraphQlSource source = graphQlSourceBuilder.build();
-		ExecutionGraphQlService service = new ExecutionGraphQlService(source);
+		DefaultExecutionGraphQlService service = new DefaultExecutionGraphQlService(source);
 		this.dataLoaderRegistrars.forEach(service::addDataLoaderRegistrar);
 		return service;
 	}
@@ -140,8 +140,8 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	// WebGraphQlSetup...
 
-	public WebGraphQlSetup webInterceptor(WebInterceptor... interceptors) {
-		this.webInterceptors.addAll(Arrays.asList(interceptors));
+	public WebGraphQlSetup interceptor(WebGraphQlHandlerInterceptor... interceptors) {
+		this.interceptors.addAll(Arrays.asList(interceptors));
 		return this;
 	}
 
@@ -154,7 +154,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	public WebGraphQlHandler toWebGraphQlHandler() {
 		ExecutionGraphQlService service = toGraphQlService();
 		return WebGraphQlHandler.builder(service)
-				.interceptors(webInterceptors)
+				.interceptors(this.interceptors)
 				.threadLocalAccessors(this.accessors)
 				.build();
 	}

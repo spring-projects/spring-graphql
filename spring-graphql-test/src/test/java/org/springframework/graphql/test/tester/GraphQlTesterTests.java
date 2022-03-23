@@ -26,50 +26,73 @@ import graphql.language.SourceLocation;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Tests for {@link GraphQlTester} with a mock {@link GraphQlService}.
+ * Tests for {@link GraphQlTester} with a mock {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
  */
 public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 	@Test
-	void pathAndValueExist() {
+	void hasValue() {
 
 		String document = "{me {name, friends}}";
 		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
+		response.path("me.name").hasValue();
+		response.path("me.friends").hasValue();
 
-		response.path("me.name").pathExists().valueExists();
-		response.path("me.friends").pathExists().valueExists();
-		response.path("hero").pathDoesNotExist().valueDoesNotExist();
+		assertThatThrownBy(() -> response.path("hero").hasValue())
+				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
-	void valueIsEmpty() {
+	void valueIsNull() {
 
 		String document = "{me {name, friends}}";
-		setMockResponse("{\"me\": {\"name\":null, \"friends\":[]}}");
+		setMockResponse("{\"me\": {\"name\":null, \"friends\":null}}");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
-		response.path("me.name").valueIsEmpty();
-		response.path("me.friends").valueIsEmpty();
+		response.path("me.name").valueIsNull();
+		response.path("me.friends").valueIsNull();
 
-		assertThatThrownBy(() -> response.path("hero").valueIsEmpty())
-				.as("Path does not even exist")
-				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
+		assertThatThrownBy(() -> response.path("me").valueIsNull())
+				.hasMessageContaining("Expected null value at JSON path");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
+	}
+
+	@Test
+	void valueIsEmptyList() {
+
+		String document = "{me {name, friends}}";
+		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
+		response.path("me.friends").hasValue().entityList(MovieCharacter.class).hasSize(0);
+	}
+
+	@Test
+	void pathDoesNotExist() {
+		String document = "{me {name, friends}}";
+		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
+
+		response.path("hero").pathDoesNotExist();
+
+		assertThatThrownBy(() -> response.path("me.name").pathDoesNotExist())
+				.hasMessageContaining("Expected no value at JSON path");
 	}
 
 	@Test
@@ -88,7 +111,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.as("Extended fields should fail in strict mode")
 				.hasMessageContaining("Unexpected: name");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -118,7 +141,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
 				.isEqualTo(Collections.singletonMap("me", luke));
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -138,7 +161,10 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		MovieCharacter leia = MovieCharacter.create("Leia Organa");
 		MovieCharacter jabba = MovieCharacter.create("Jabba the Hutt");
 
-		List<MovieCharacter> actual = response.path("me.friends").entityList(MovieCharacter.class)
+		GraphQlTester.EntityList<MovieCharacter> entityList =
+				response.path("me.friends").entityList(MovieCharacter.class);
+
+		List<MovieCharacter> actual = entityList
 				.contains(han)
 				.containsExactly(han, leia)
 				.doesNotContain(jabba)
@@ -149,11 +175,15 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		assertThat(actual).containsExactly(han, leia);
 
+		assertThatThrownBy(() -> entityList.containsExactly(leia, han))
+				.as("Should be exactly the same order")
+				.hasMessageStartingWith("List at path 'me.friends' should have contained exactly");
+
 		response.path("me.friends")
 				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
 				.containsExactly(han, leia);
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -176,13 +206,13 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		response.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
 
-		RequestInput input = requestInput();
-		assertThat(input.getDocument()).contains(document);
-		assertThat(input.getOperationName()).isEqualTo("HeroNameAndFriends");
-		assertThat(input.getVariables()).hasSize(3);
-		assertThat(input.getVariables()).containsEntry("episode", "JEDI");
-		assertThat(input.getVariables()).containsEntry("foo", "bar");
-		assertThat(input.getVariables()).containsEntry("keyOnly", null);
+		ExecutionGraphQlRequest request = request();
+		assertThat(request.getDocument()).contains(document);
+		assertThat(request.getOperationName()).isEqualTo("HeroNameAndFriends");
+		assertThat(request.getVariables()).hasSize(3);
+		assertThat(request.getVariables()).containsEntry("episode", "JEDI");
+		assertThat(request.getVariables()).containsEntry("foo", "bar");
+		assertThat(request.getVariables()).containsEntry("keyOnly", null);
 	}
 
 	@Test
@@ -193,7 +223,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		graphQlTester().document(document).executeAndVerify();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -205,7 +235,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThatThrownBy(() -> graphQlTester().document(document).executeAndVerify())
 				.hasMessageContaining("Response has 1 unexpected error(s)");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -217,7 +247,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThatThrownBy(() -> graphQlTester().document(document).execute().path("me"))
 				.hasMessageContaining("Response has 1 unexpected error(s)");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -236,7 +266,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 						.verify())
 				.hasMessageContaining("Response has 1 unexpected error(s) of 2 total.");
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -255,7 +285,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.path("me")
 				.pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -273,7 +303,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.verify()
 				.path("me").pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 	@Test
@@ -312,7 +342,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				})
 				.path("me").pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 }

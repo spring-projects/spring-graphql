@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,27 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql;
+package org.springframework.graphql.client;
 
-import reactor.core.publisher.Mono;
+import java.util.Map;
+
+import org.springframework.graphql.GraphQlRequest;
+
 
 /**
- * Strategy to execute a GraphQL request.
+ * {@link GraphQlRequest} for client side use.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface GraphQlService {
+public interface ClientGraphQlRequest extends GraphQlRequest {
 
 	/**
-	 * Execute the GraphQL request and return the result.
-	 * @param input container for GraphQL request input
-	 * @return the result from execution
+	 * Return the client request attributes.
+	 * <p>The attributes purely for client side request processing, i.e. available
+	 * throughout the {@link GraphQlClientInterceptor} chain, but not sent.
 	 */
-	Mono<RequestOutput> execute(RequestInput input);
+	Map<String, Object> getAttributes();
 
 }
+

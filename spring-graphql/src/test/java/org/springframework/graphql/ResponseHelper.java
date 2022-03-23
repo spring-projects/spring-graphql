@@ -142,10 +142,10 @@ public class ResponseHelper {
 		return forResult(result);
 	}
 
-	public static ResponseHelper forResponse(Mono<? extends RequestOutput> outputMono) {
-		RequestOutput output = outputMono.block(Duration.ofSeconds(5));
-		assertThat(output).isNotNull();
-		return forResult(output.getExecutionResult());
+	public static ResponseHelper forResponse(Mono<? extends ExecutionGraphQlResponse> responseMono) {
+		ExecutionGraphQlResponse response = responseMono.block(Duration.ofSeconds(5));
+		assertThat(response).isNotNull();
+		return forResult(response.getExecutionResult());
 	}
 
 	public static Flux<ResponseHelper> forSubscription(ExecutionResult result) {
@@ -155,10 +155,10 @@ public class ResponseHelper {
 	}
 
 	@SuppressWarnings("BlockingMethodInNonBlockingContext")
-	public static Flux<ResponseHelper> forSubscription(Mono<? extends RequestOutput> resultMono) {
-		RequestOutput output = resultMono.block(Duration.ofSeconds(5));
-		assertThat(output).isNotNull();
-		return forSubscription(output.getExecutionResult());
+	public static Flux<ResponseHelper> forSubscription(Mono<? extends ExecutionGraphQlResponse> resultMono) {
+		ExecutionGraphQlResponse response = resultMono.block(Duration.ofSeconds(5));
+		assertThat(response).isNotNull();
+		return forSubscription(response.getExecutionResult());
 	}
 
 

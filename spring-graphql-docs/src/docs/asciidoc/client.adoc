@@ -106,9 +106,14 @@ on an existing `WebSocketGraphQlClient` to create another with different configu
 
 ----
 
+
+
+[[client-websocketgraphqlclient-connection]]
+==== Connection
+
 A connection is established transparently when requests are made. There is only one
-shared, active connection at a time. If the connection is lost, it is automatically
-re-established on the next request.
+shared, active connection at a time. If the connection is lost, it is re-established on
+the next request.
 
 `WebSocketGraphQlClient` also exposes lifecycle methods:
 
@@ -120,12 +125,48 @@ allow requests again.
 
 
 
+[[client-websocketgraphqlclient-interceptor]]
+==== Interceptor
+
+The https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[GraphQL over WebSocket]
+protocol defines a number of connection oriented messages in addition to executing
+requests. For example, a client sends `"connection_init"` and the server responds with
+`"connection_ack"` at the start of a connection.
+
+For WebSocket transport specific interception, you can create a
+`WebSocketGraphQlClientInterceptor`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	static class MyInterceptor implements WebSocketGraphQlClientInterceptor {
+
+		@Override
+		public Mono<Object> connectionInitPayload() {
+			// ... the "connection_init" payload to send
+		}
+
+		@Override
+		public Mono<Void> handleConnectionAck(Map<String, Object> ackPayload) {
+			// ... the "connection_ack" payload received
+		}
+
+	}
+----
+
+<<client-interception,Register>> the above interceptor as any other
+`GraphQlClientInterceptor` and use it also to intercept GraphQL requests, but note there
+can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
+
+
+
 [[client-graphqlclient-builder]]
 === Builder
 
 `GraphQlClient` defines a parent `Builder` with common configuration options for the
-builders of all extensions. Currently, it has lets you configure a `DocumentSource`,
-which is a strategy for loading the document for a request by file name.
+builders of all extensions. Currently, it has lets you configure:
+
+- `DocumentSource` strategy to load the document for a request from a file
+- <<client-interception>> of executed requests
 
 
 
@@ -134,8 +175,8 @@ which is a strategy for loading the document for a request by file name.
 == Requests
 
 Once you have a <<client-graphqlclient>>, you can begin to perform requests via
-<<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>,
-with one merely a shortcut over the other.
+<<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>
+where the former is only a shortcut for the latter.
 
 
 
@@ -159,26 +200,21 @@ The below retrieves and decodes the data for a query:
 			.retrieve("project") <2>
 			.toEntity(Project.class); <3>
 ----
-<1> The operation to perform
-<2> Retrieve the response, and specify a path to decode from
-<3> Decode to a target object
+<1> The operation to perform.
+<2> The path under the "data" key in the response map to decode from.
+<3> Decode the data at the path to the target type.
 
-The document is a `String` that could be a literal or produced through a code generated
-request object. You can also define documents in files and use a
+The input document is a `String` that could be a literal or produced through a code
+generated request object. You can also define documents in files and use a
 <<client-requests-document-source>> to resole them by file name.
 
 The path is relative to the "data" key and uses a simple dot (".") separated notation
-for nested fields with optional array indices for list elements, e.g. `"project.name"`,
-`"project .releases[0].version"`, and so on.
+for nested fields with optional array indices for list elements, e.g. `"project.name"`
+or `"project.releases[0].version"`.
 
-Decoding can fail with `FieldAccessException` if the given path is not present in the
-response map, or when there is no "data" key (failed response) at all, or when there is
-a `null` value with a field error at the path.
-
-By default, `FieldAccessException` is also raised on `retrieve` for partial data where
-the field value exists but nested fields may be `null` with a field error. In such
-cases, you can handle the exception to examine the errors and decide whether or how to
-decode the partial data:
+Decoding can result in `FieldAccessException` if the given path is not present, or the
+field value is `null` and has an error. `FieldAccessException` provides access to the
+response and the field:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -186,24 +222,22 @@ decode the partial data:
 			.retrieve("project")
 			.toEntity(Project.class)
 			.onErrorResume(FieldAccessException.class, ex -> {
+				ClientGraphQlResponse response = ex.getResponse();
+				// ...
 				ResponseField field = ex.getField();
-				// Use field to check nested field errors and/or decode
-				// Return Mono with Project or an error
+				// ...
 			});
 ----
-
-TIP: The GraphQL spec considers a partial response or a partial field to be valid, and
-it may be feasible to decode them. By contrast, a failed field (i.e. value not present or
-is `null` with field error) or a failed response (no "data" key) are not valid and
-attempts to decode those are always rejected.
 
 
 
 [[client-requests-execute]]
 === Execute
 
-The `retrieve` method is only a shortcut to decode to a single higher level object. For
-more control and access to the response, use the `execute` method. For example:
+<<client-requests-retrieve>> is only a shortcut to decode from a single path in the
+response map. For more control, use the `execute` method and handle the response:
+
+For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -211,17 +245,27 @@ more control and access to the response, use the `execute` method. For example:
 	Mono<Project> projectMono = graphQlClient.document(document)
 			.execute()
 			.map(response -> {
-				// Check response.isValid(), getErrors()
+				if (!response.isValid()) {
+					// Request failure... <1>
+				}
 
 				ResponseField field = response.field("project");
-				// Check field.isValid(), getError()
+				if (!field.hasValue()) {
+					if (field.getError() != null) {
+						// Field failure... <2>
+					}
+					else {
+						// Optional field set to null... <3>
+					}
+				}
 
-				return field.toEntity(Project.class)
+				return field.toEntity(Project.class); <4>
 			});
 ----
-
-You can use `execute` to check response errors, obtain different fields, check their
-field errors and nested field errors, and/or decode their values.
+<1> The response does not have data, only errors
+<2> Field that is `null` and has an associated error
+<3> Field that was set to `null` by its `DataFetcher`
+<4> Decode the data at the given path
 
 
 
@@ -267,11 +311,22 @@ You can use the `GraphQlClient` <<client-graphqlclient-builder>> to customize th
 
 
 
-[[client-subscriptions]]
-== Subscriptions
 
-For a subscription operation, call `retrieveSubscription` instead of `retrieve` to
-obtain a stream of responses rather than a single response:
+[[client-subscriptions]]
+== Subscription Requests
+
+`GraphQlClient` can execute subscriptions over transports that support it. Currently, only
+the WebSocket transport supports GraphQL streams, so you'll need to create a
+<<client-websocketgraphqlclient,WebSocketGraphQlClient>>.
+
+
+
+[[client-subscriptions-retrieve]]
+=== Retrieve
+
+To start a subscription stream, use `retrieveSubscription` which is similar to
+<<client-requests-retrieve,retrieve>> for a single response but returning a stream of
+responses, each decoded to some data:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -280,20 +335,45 @@ obtain a stream of responses rather than a single response:
 			.toEntity(String.class);
 ----
 
-Similar to the <<client-requests-retrieve>> vs <<client-requests-execute>> choice
-for requests with a single response, the same choice is also available for subscriptions.
-For example, for more control over each response, use `executeSubscription` instead of
-`retrieveSubscription`:
+A subscription stream may end with:
+
+- `SubscriptionErrorException` if the server ends the
+subscription with an explicit "error" message that contains one or more GraphQL errors.
+The exception provides access to the GraphQL errors decoded from that message.
+- `GraphQlTransportException` such as `WebSocketDisconnectedException` if the underlying
+connection is closed or lost in which case you can use the `retry` operator to reestablish
+the connection and start the subscription again.
+
+
+
+
+
+
+[[client-subscriptions-execute]]
+=== Execute
+
+<<client-subscriptions-retrieve>> is only a shortcut to decode from a single path in each
+response map. For more control, use the `executeSubscription` method and handle each
+response directly:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	Flux<String> greetingFlux = client.document("subscription { greetings }")
 			.executeSubscription()
 			.map(response -> {
-				// Check response.isValid(), getErrors()
+				if (!response.isValid()) {
+					// Request failure...
+				}
 
-				ResponseField field = response.field("greeting");
-				// Check field.isValid(), getError()
+				ResponseField field = response.field("project");
+				if (!field.hasValue()) {
+					if (field.getError() != null) {
+						// Field failure...
+					}
+					else {
+						// Optional field set to null... <3>
+					}
+				}
 
 				return field.toEntity(String.class)
 			});
@@ -301,13 +381,40 @@ For example, for more control over each response, use `executeSubscription` inst
 
 
 
-Subscriptions are supported only with the <<client-websocketgraphqlclient,
-WebSocketGraphQlClient>> extension.
 
+[[client-interception]]
+== Interception
 
+You create a `GraphQlClientInterceptor` to intercept all requests through a client:
 
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+static class MyInterceptor implements GraphQlClientInterceptor {
 
+	@Override
+	public Mono<ClientGraphQlResponse> intercept(ClientGraphQlRequest request, Chain chain) {
+		// ...
+		return chain.next(request);
+	}
 
+	@Override
+	public Flux<ClientGraphQlResponse> interceptSubscription(ClientGraphQlRequest request, SubscriptionChain chain) {
+		// ...
+		return chain.next(request);
+	}
 
+}
+----
 
+Once the interceptor is created, register it through the client builder:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	URI url = ... ;
+	WebSocketClient client = ... ;
+
+	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
+			.interceptor(new MyInterceptor())
+			.build();
+----
 

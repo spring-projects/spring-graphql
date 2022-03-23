@@ -22,7 +22,7 @@ import java.util.List;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.lang.Nullable;
@@ -37,35 +37,35 @@ import org.springframework.util.CollectionUtils;
  */
 class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
-	private final GraphQlService service;
+	private final ExecutionGraphQlService service;
 
-	private final List<WebInterceptor> interceptors = new ArrayList<>();
+	private final List<WebGraphQlHandlerInterceptor> interceptors = new ArrayList<>();
 
 	@Nullable
-	private WebSocketInterceptor webSocketInterceptor;
+	private WebSocketGraphQlHandlerInterceptor webSocketInterceptor;
 
 	@Nullable
 	private List<ThreadLocalAccessor> accessors;
 
 
-	DefaultWebGraphQlHandlerBuilder(GraphQlService service) {
+	DefaultWebGraphQlHandlerBuilder(ExecutionGraphQlService service) {
 		Assert.notNull(service, "GraphQlService is required");
 		this.service = service;
 	}
 
 
 	@Override
-	public WebGraphQlHandler.Builder interceptor(WebInterceptor... interceptors) {
+	public WebGraphQlHandler.Builder interceptor(WebGraphQlHandlerInterceptor... interceptors) {
 		return interceptors(Arrays.asList(interceptors));
 	}
 
 	@Override
-	public WebGraphQlHandler.Builder interceptors(List<WebInterceptor> interceptors) {
+	public WebGraphQlHandler.Builder interceptors(List<WebGraphQlHandlerInterceptor> interceptors) {
 		this.interceptors.addAll(interceptors);
 		interceptors.forEach(interceptor -> {
-			if (interceptor instanceof WebSocketInterceptor) {
+			if (interceptor instanceof WebSocketGraphQlHandlerInterceptor) {
 				Assert.isNull(this.webSocketInterceptor, "There can be at most 1 WebSocketInterceptor");
-				this.webSocketInterceptor = (WebSocketInterceptor) interceptor;
+				this.webSocketInterceptor = (WebSocketGraphQlHandlerInterceptor) interceptor;
 			}
 		});
 		return this;
@@ -88,19 +88,19 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		WebInterceptorChain endOfChain =
-				webInput -> this.service.execute(webInput).map(WebOutput::new);
+		WebGraphQlHandlerInterceptor.Chain endOfChain =
+				request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
-		WebInterceptorChain chain = this.interceptors.stream()
-				.reduce(WebInterceptor::andThen)
-				.map(interceptor -> (WebInterceptorChain) (input) -> interceptor.intercept(input, endOfChain))
+		WebGraphQlHandlerInterceptor.Chain chain = this.interceptors.stream()
+				.reduce(WebGraphQlHandlerInterceptor::andThen)
+				.map(interceptor -> (WebGraphQlHandlerInterceptor.Chain) (request) -> interceptor.intercept(request, endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {
 
 			@Override
-			public Mono<WebOutput> handleRequest(WebInput input) {
-				return chain.next(input)
+			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
+				return chain.next(request)
 						.contextWrite(context -> {
 							if (!CollectionUtils.isEmpty(accessors)) {
 								ThreadLocalAccessor accessor = ThreadLocalAccessor.composite(accessors);
@@ -111,8 +111,8 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			}
 
 			@Override
-			public WebSocketInterceptor webSocketInterceptor() {
-				return (webSocketInterceptor != null ? webSocketInterceptor : new WebSocketInterceptor() {});
+			public WebSocketGraphQlHandlerInterceptor webSocketInterceptor() {
+				return (webSocketInterceptor != null ? webSocketInterceptor : new WebSocketGraphQlHandlerInterceptor() {});
 			}
 
 		};

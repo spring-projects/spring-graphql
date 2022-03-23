@@ -38,10 +38,11 @@ import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.util.Assert;
+import org.springframework.validation.BindException;
 
 /**
  * Main class to create a {@link DataFetcher} from a Query By Example repository.
@@ -91,12 +92,12 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private final TypeInformation<T> domainType;
 
-	private final GraphQlArgumentInitializer argumentInitializer;
+	private final GraphQlArgumentBinder argumentBinder;
 
 
 	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
 		this.domainType = domainType;
-		this.argumentInitializer = new GraphQlArgumentInitializer(null);
+		this.argumentBinder = new GraphQlArgumentBinder();
 	}
 
 
@@ -106,9 +107,9 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @return the resulting example
 	 */
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
-	protected Example<T> buildExample(DataFetchingEnvironment env) {
+	protected Example<T> buildExample(DataFetchingEnvironment env) throws BindException {
 		ResolvableType targetType = ResolvableType.forClass(this.domainType.getType());
-		return (Example<T>) Example.of(this.argumentInitializer.initializeArgument(env, null, targetType));
+		return (Example<T>) Example.of(this.argumentBinder.bind(env, null, targetType));
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {
@@ -379,7 +380,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Sort sort;
 
-		@SuppressWarnings({"unchecked", "rawtypes"})
 		SingleEntityFetcher(
 				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType, Sort sort) {
 
@@ -391,7 +391,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings({"ConstantConditions", "unchecked"})
-		public R get(DataFetchingEnvironment env) {
+		public R get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), query -> {
 				FluentQuery.FetchableFluentQuery<R> queryToUse = (FluentQuery.FetchableFluentQuery<R>) query;
 
@@ -422,7 +422,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Sort sort;
 
-		@SuppressWarnings({"unchecked", "rawtypes"})
 		ManyEntityFetcher(
 				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
@@ -435,7 +434,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Iterable<R> get(DataFetchingEnvironment env) {
+		public Iterable<R> get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), query -> {
 				FluentQuery.FetchableFluentQuery<R> queryToUse = (FluentQuery.FetchableFluentQuery<R>) query;
 
@@ -465,7 +464,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Sort sort;
 
-		@SuppressWarnings({"unchecked", "rawtypes"})
 		ReactiveSingleEntityFetcher(
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
@@ -478,7 +476,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Mono<R> get(DataFetchingEnvironment env) {
+		public Mono<R> get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), query -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
@@ -508,7 +506,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Sort sort;
 
-		@SuppressWarnings({"unchecked", "rawtypes"})
 		ReactiveManyEntityFetcher(
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
@@ -521,7 +518,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Flux<R> get(DataFetchingEnvironment env) {
+		public Flux<R> get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), query -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 

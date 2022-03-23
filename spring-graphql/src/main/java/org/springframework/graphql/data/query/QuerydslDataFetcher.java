@@ -341,8 +341,8 @@ public abstract class QuerydslDataFetcher<T> {
 		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
 		 *
-		 * @param customizer to customize GraphQL request input to Querydsl
-		 * Predicate binding with
+		 * @param customizer to customize the binding of the GraphQL request to
+		 * Querydsl Predicate
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied
 		 */

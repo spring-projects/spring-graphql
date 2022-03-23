@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.client;
 
+import java.util.Map;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -48,13 +50,22 @@ public interface GraphQlTransport {
 	 * <ul>
 	 * <li>Completes if the subscription completes before the connection is closed.
 	 * <li>{@link SubscriptionErrorException} if the subscription ends with an error.
-	 * <li>{@link IllegalStateException} if the connection is closed or lost
-	 * before the stream terminates.
+	 * <li>{@link WebSocketDisconnectedException} if the connection is closed or
+	 * lost before the stream terminates.
 	 * <li>Exception for connection and GraphQL session initialization issues.
 	 * </ul>
 	 * <p>The {@code Flux} may be cancelled to notify the server to end the
 	 * subscription stream.
 	 */
 	Flux<GraphQlResponse> executeSubscription(GraphQlRequest request);
+
+
+	/**
+	 * Factory method to create {@link GraphQlResponse} from a GraphQL response
+	 * map for use in transport implementations.
+	 */
+	static GraphQlResponse createResponse(Map<String, Object> responseMap) {
+		return new ResponseMapGraphQlResponse(responseMap);
+	}
 
 }

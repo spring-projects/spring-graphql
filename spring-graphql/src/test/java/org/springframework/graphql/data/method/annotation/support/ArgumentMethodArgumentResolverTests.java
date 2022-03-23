@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 	private final HandlerMethodArgumentResolver resolver = new ArgumentMethodArgumentResolver(
-			new GraphQlArgumentInitializer(new DefaultFormattingConversionService()));
+			new GraphQlArgumentBinder(new DefaultFormattingConversionService()));
 
 
 	@Test
