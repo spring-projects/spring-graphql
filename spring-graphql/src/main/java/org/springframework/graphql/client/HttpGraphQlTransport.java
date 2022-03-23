@@ -18,13 +18,12 @@ package org.springframework.graphql.client;
 
 import java.util.Map;
 
-import graphql.ExecutionResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.support.MapExecutionResult;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -54,18 +53,18 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 
 
 	@Override
-	public Mono<ExecutionResult> execute(GraphQlRequest request) {
+	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.webClient.post()
 				.contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.APPLICATION_JSON)
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)
-				.map(MapExecutionResult::from);
+				.map(ResponseMapGraphQlResponse::new);
 	}
 
 	@Override
-	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
 	}
 

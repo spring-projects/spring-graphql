@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,16 @@ package org.springframework.graphql.execution;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
-import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
@@ -62,7 +59,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		ExecutionResult result = this.graphQlSetup.exceptionResolver(resolver).toGraphQl()
 				.executeAsync(this.input).get();
 
-		GraphQlResponse response = GraphQlResponse.from(result);
+		ResponseHelper response = ResponseHelper.forResult(result);
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting");
 		assertThat(response.error(0).errorType()).isEqualTo("BAD_REQUEST");
@@ -84,7 +81,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		ExecutionResult result = this.graphQlSetup.exceptionResolver(resolver).toGraphQl()
 				.executeAsync(this.input).get();
 
-		GraphQlResponse response = GraphQlResponse.from(result);
+		ResponseHelper response = ResponseHelper.forResult(result);
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 	}
@@ -110,7 +107,7 @@ public class ExceptionResolversExceptionHandlerTests {
 			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap((aLong) ->
 					Mono.fromFuture(this.graphQlSetup.exceptionResolver(resolver).toGraphQl().executeAsync(this.input)));
 
-			GraphQlResponse response = GraphQlResponse.from(result);
+			ResponseHelper response = ResponseHelper.forResult(result);
 			assertThat(response.errorCount()).isEqualTo(1);
 			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}
@@ -127,7 +124,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		ExecutionResult result = this.graphQlSetup.exceptionResolver(resolver).toGraphQl()
 				.executeAsync(this.input).get();
 
-		GraphQlResponse response = GraphQlResponse.from(result);
+		ResponseHelper response = ResponseHelper.forResult(result);
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).isEqualTo("Invalid greeting");
 		assertThat(response.error(0).errorType()).isEqualTo("INTERNAL_ERROR");
@@ -143,7 +140,7 @@ public class ExceptionResolversExceptionHandlerTests {
 				.exceptionResolver((ex, env) -> Mono.just(Collections.emptyList())).toGraphQl()
 				.executeAsync(input).get();
 
-		String greeting = GraphQlResponse.from(result).rawValue("greeting");
+		String greeting = ResponseHelper.forResult(result).rawValue("greeting");
 		assertThat(greeting).isNull();
 	}
 

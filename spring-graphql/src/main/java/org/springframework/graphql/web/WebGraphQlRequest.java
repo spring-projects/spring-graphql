@@ -20,7 +20,8 @@ import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.graphql.RequestInput;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -30,19 +31,20 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Container for the input of a GraphQL request over HTTP or WebSocket, including
- * the URL and HTTP headers, along with the query, operation name, and variables
- * from the body of the request. For WebSocket, the URL and HTTP headers  are
- * those of the WebSocket handshake request.
+ * {@link org.springframework.graphql.GraphQlRequest} implementation for server
+ * handling over HTTP or WebSocket. Provides access to the URL and headers of
+ * the underlying request. For WebSocket, these are the URL and headers of the
+ * HTTP handshake request.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebInput extends RequestInput {
+public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements ExecutionGraphQlRequest {
 
 	private final UriComponents uri;
 
 	private final HttpHeaders headers;
+
 
 	/**
 	 * Create an instance.
@@ -50,13 +52,17 @@ public class WebInput extends RequestInput {
 	 * @param headers the HTTP request headers
 	 * @param body the deserialized content of the GraphQL request
 	 * @param id an identifier for the GraphQL request, e.g. a subscription id for
-* correlating request and response messages, or it could be an id associated with the
+	 * correlating request and response messages, or it could be an id associated with the
 	 * @param locale the locale from the HTTP request, if any
 	 */
-	public WebInput(URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
+	public WebGraphQlRequest(
+			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
+
 		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), id, locale);
+
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
+
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
 	}
@@ -64,7 +70,7 @@ public class WebInput extends RequestInput {
 	@SuppressWarnings("unchecked")
 	private static <T> T getKey(String key, Map<String, Object> body) {
 		if (key.equals("query") && !StringUtils.hasText((String) body.get(key))) {
-			throw new ServerWebInputException("No \"query\" in the request input");
+			throw new ServerWebInputException("No \"query\" in the request document");
 		}
 		return (T) body.get(key);
 	}

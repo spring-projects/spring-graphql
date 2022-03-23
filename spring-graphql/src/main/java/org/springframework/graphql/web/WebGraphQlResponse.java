@@ -16,48 +16,43 @@
 
 package org.springframework.graphql.web;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 /**
- * Decorate an {@link ExecutionResult}, provide a way to {@link #transform(Consumer)
- * transform} it, and collect input for custom HTTP response headers for GraphQL over HTTP
- * requests.
+ * {@link org.springframework.graphql.GraphQlResponse} implementation for server
+ * handling over HTTP or over WebSocket.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebOutput extends RequestOutput {
+public class WebGraphQlResponse extends DefaultExecutionGraphQlResponse {
 
 	private final HttpHeaders responseHeaders;
 
 
 	/**
-	 * Create an instance from the given {@link RequestOutput}.
-	 * @param requestOutput the output from an executed request
+	 * Create an instance that wraps the given {@link ExecutionGraphQlResponse}.
+	 * @param response the response to wrap
 	 */
-	public WebOutput(RequestOutput requestOutput) {
-		this(requestOutput.getExecutionInput(), requestOutput, new HttpHeaders());
+	public WebGraphQlResponse(ExecutionGraphQlResponse response) {
+		super(response);
+		this.responseHeaders = new HttpHeaders();
 	}
 
-	private WebOutput(ExecutionInput executionInput, ExecutionResult executionResult,
-			HttpHeaders responseHeaders) {
-
-		super(executionInput, executionResult);
-		Assert.notNull(responseHeaders, "HttpHeaders is required");
-		this.responseHeaders = responseHeaders;
+	private WebGraphQlResponse(WebGraphQlResponse original, ExecutionResult executionResult) {
+		super(original.getExecutionInput(), executionResult);
+		this.responseHeaders = original.getResponseHeaders();
 	}
 
 
@@ -73,12 +68,12 @@ public class WebOutput extends RequestOutput {
 	}
 
 	/**
-	 * Transform this {@code WebOutput} instance through a {@link Builder} and return a
-	 * new instance with the modified values.
-	 * @param consumer teh callback that will transform the WebOutput
-	 * @return the transformed WebOutput
+	 * Transform the underlying {@link ExecutionResult} through a {@link Builder}
+	 * and return a new instance with the modified values.
+	 * @param consumer callback to transform the result
+	 * @return the new response instance with the mutated {@code ExecutionResult}
 	 */
-	public WebOutput transform(Consumer<Builder> consumer) {
+	public WebGraphQlResponse transform(Consumer<Builder> consumer) {
 		Builder builder = new Builder(this);
 		consumer.accept(builder);
 		return builder.build();
@@ -86,25 +81,17 @@ public class WebOutput extends RequestOutput {
 
 
 	/**
-	 * Builder to transform a {@link WebOutput}.
+	 * Builder to transform a {@link WebGraphQlResponse}.
 	 */
 	public static final class Builder {
 
-		private final WebOutput webOutput;
+		private final WebGraphQlResponse original;
 
-		@Nullable
-		private Object data;
+		private final ExecutionResultImpl.Builder executionResultBuilder;
 
-		private List<GraphQLError> errors;
-
-		@Nullable
-		private Map<Object, Object> extensions;
-
-		private Builder(WebOutput output) {
-			this.webOutput = output;
-			this.data = output.getData();
-			this.errors = output.getErrors();
-			this.extensions = output.getExtensions();
+		private Builder(WebGraphQlResponse original) {
+			this.original = original;
+			this.executionResultBuilder = ExecutionResultImpl.newExecutionResult().from(original.getExecutionResult());
 		}
 
 		/**
@@ -112,8 +99,8 @@ public class WebOutput extends RequestOutput {
 		 * @param data the execution result data
 		 * @return the current builder
 		 */
-		public Builder data(@Nullable Object data) {
-			this.data = data;
+		public Builder data(Object data) {
+			this.executionResultBuilder.data(data);
 			return this;
 		}
 
@@ -124,7 +111,7 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder errors(@Nullable List<GraphQLError> errors) {
-			this.errors = (errors != null) ? errors : Collections.emptyList();
+			this.executionResultBuilder.errors(errors);
 			return this;
 		}
 
@@ -135,13 +122,12 @@ public class WebOutput extends RequestOutput {
 		 * @return the current builder
 		 */
 		public Builder extensions(@Nullable Map<Object, Object> extensions) {
-			this.extensions = extensions;
+			this.executionResultBuilder.extensions(extensions);
 			return this;
 		}
 
-		public WebOutput build() {
-			ExecutionResult result = new ExecutionResultImpl(this.data, this.errors, this.extensions);
-			return new WebOutput(this.webOutput.getExecutionInput(), result, this.webOutput.getResponseHeaders());
+		public WebGraphQlResponse build() {
+			return new WebGraphQlResponse(this.original, this.executionResultBuilder.build());
 		}
 
 	}

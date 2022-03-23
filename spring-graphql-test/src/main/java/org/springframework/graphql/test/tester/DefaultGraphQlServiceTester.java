@@ -19,12 +19,12 @@ package org.springframework.graphql.test.tester;
 
 import java.util.function.Consumer;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.util.Assert;
 
 
 /**
- * Default {@link GraphQlServiceTester} that uses a {@link GraphQlService} for
+ * Default {@link GraphQlServiceTester} that uses a {@link ExecutionGraphQlService} for
  * request execution.
  *
  * @author Rossen Stoyanchev
@@ -32,12 +32,12 @@ import org.springframework.util.Assert;
  */
 final class DefaultGraphQlServiceTester extends AbstractDelegatingGraphQlTester implements GraphQlServiceTester {
 
-	private final GraphQlServiceTransport transport;
+	private final GraphQlServiceGraphQlTransport transport;
 
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	DefaultGraphQlServiceTester(GraphQlTester tester, GraphQlServiceTransport transport,
+	DefaultGraphQlServiceTester(GraphQlTester tester, GraphQlServiceGraphQlTransport transport,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(tester);
@@ -64,20 +64,20 @@ final class DefaultGraphQlServiceTester extends AbstractDelegatingGraphQlTester 
 	static class Builder<B extends Builder<B>> extends AbstractGraphQlTesterBuilder<B>
 			implements GraphQlServiceTester.Builder<B> {
 
-		private final GraphQlService service;
+		private final ExecutionGraphQlService service;
 
-		Builder(GraphQlService service) {
+		Builder(ExecutionGraphQlService service) {
 			Assert.notNull(service, "GraphQlService is required");
 			this.service = service;
 		}
 
-		Builder(GraphQlServiceTransport transport) {
+		Builder(GraphQlServiceGraphQlTransport transport) {
 			this.service = transport.getGraphQlService();
 		}
 
 		@Override
 		public GraphQlServiceTester build() {
-			GraphQlServiceTransport transport = new GraphQlServiceTransport(this.service);
+			GraphQlServiceGraphQlTransport transport = new GraphQlServiceGraphQlTransport(this.service);
 			GraphQlTester tester = super.buildGraphQlTester(transport);
 			return new DefaultGraphQlServiceTester(tester, transport, getBuilderInitializer());
 		}

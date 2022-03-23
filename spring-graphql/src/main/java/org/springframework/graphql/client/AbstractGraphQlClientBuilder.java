@@ -16,16 +16,22 @@
 
 package org.springframework.graphql.client;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
-import com.jayway.jsonpath.spi.mapper.MappingProvider;
-
+import org.springframework.core.codec.Decoder;
+import org.springframework.core.codec.Encoder;
+import org.springframework.graphql.client.GraphQlClientInterceptor.Chain;
+import org.springframework.graphql.client.GraphQlClientInterceptor.SubscriptionChain;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 
@@ -48,9 +54,15 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 
+	private final List<GraphQlClientInterceptor> interceptors = new ArrayList<>();
+
 	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
 
-	private Configuration jsonPathConfig = Configuration.builder().build();
+	@Nullable
+	private Encoder<?> jsonEncoder;
+
+	@Nullable
+	private Decoder<?> jsonDecoder;
 
 
 	/**
@@ -61,6 +73,18 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	protected AbstractGraphQlClientBuilder() {
 	}
 
+
+	@Override
+	public B interceptor(GraphQlClientInterceptor... interceptors) {
+		this.interceptors.addAll(Arrays.asList(interceptors));
+		return self();
+	}
+
+	@Override
+	public B interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer) {
+		interceptorsConsumer.accept(this.interceptors);
+		return self();
+	}
 
 	@Override
 	public B documentSource(DocumentSource contentLoader) {
@@ -78,11 +102,21 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 
 	/**
-	 * Allow transport-specific subclass builders to register a JSON Path
-	 * {@link MappingProvider} that matches the JSON encoding/decoding they use.
+	 * Transport-specific subclasses can provide their JSON {@code Encoder} and
+	 * {@code Decoder} for use at the client level, for mapping response data
+	 * to some target entity type.
 	 */
-	protected void configureJsonPathConfig(Function<Configuration, Configuration> configurer) {
-		this.jsonPathConfig = configurer.apply(this.jsonPathConfig);
+	protected void setJsonCodecs(Encoder<?> encoder, Decoder<?> decoder) {
+		this.jsonEncoder = encoder;
+		this.jsonDecoder = decoder;
+	}
+
+	/**
+	 * Return the configured interceptors. For subclasses that look for a
+	 * transport specific interceptor extensions.
+	 */
+	protected List<GraphQlClientInterceptor> getInterceptors() {
+		return this.interceptors;
 	}
 
 	/**
@@ -92,11 +126,12 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	protected GraphQlClient buildGraphQlClient(GraphQlTransport transport) {
 
 		if (jackson2Present) {
-			configureJsonPathConfig(Jackson2Configurer::configure);
+			this.jsonEncoder = (this.jsonEncoder == null ? Jackson2Configurer.encoder() : this.jsonEncoder);
+			this.jsonDecoder = (this.jsonDecoder == null ? Jackson2Configurer.decoder() : this.jsonDecoder);
 		}
 
 		return new DefaultGraphQlClient(
-				transport, this.jsonPathConfig, this.documentSource, getBuilderInitializer());
+				this.documentSource, createExecuteChain(transport), createExecuteSubscriptionChain(transport));
 	}
 
 	/**
@@ -104,26 +139,53 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	 */
 	protected Consumer<AbstractGraphQlClientBuilder<?>> getBuilderInitializer() {
 		return builder -> {
+			builder.interceptors(interceptorList -> interceptorList.addAll(interceptors));
 			builder.documentSource(documentSource);
-			builder.configureJsonPathConfig(config -> this.jsonPathConfig);
+			builder.setJsonCodecs(getEncoder(), getDecoder());
 		};
+	}
+
+	private Chain createExecuteChain(GraphQlTransport transport) {
+
+		Chain chain = request -> transport.execute(request).map(response ->
+				new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
+
+		return this.interceptors.stream()
+				.reduce(GraphQlClientInterceptor::andThen)
+				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, chain))
+				.orElse(chain);
+	}
+
+	private SubscriptionChain createExecuteSubscriptionChain(GraphQlTransport transport) {
+
+		SubscriptionChain chain = request -> transport.executeSubscription(request)
+				.map(response -> new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
+
+		return this.interceptors.stream()
+				.reduce(GraphQlClientInterceptor::andThen)
+				.map(interceptor -> (SubscriptionChain) (request) -> interceptor.interceptSubscription(request, chain))
+				.orElse(chain);
+	}
+
+	private Encoder<?> getEncoder() {
+		Assert.notNull(this.jsonEncoder, "jsonEncoder has not been set");
+		return this.jsonEncoder;
+	}
+
+	private Decoder<?> getDecoder() {
+		Assert.notNull(this.jsonDecoder, "jsonDecoder has not been set");
+		return this.jsonDecoder;
 	}
 
 
 	private static class Jackson2Configurer {
 
-		private static final Class<?> defaultMappingProviderType =
-				Configuration.defaultConfiguration().mappingProvider().getClass();
+		static Encoder<?> encoder() {
+			return new Jackson2JsonEncoder();
+		}
 
-		// We only need a MappingProvider:
-		// GraphQlTransport returns ExecutionResult with JSON parsed to Map/List
-
-		static Configuration configure(Configuration config) {
-			MappingProvider provider = config.mappingProvider();
-			if (provider == null || defaultMappingProviderType.isInstance(provider)) {
-				config = config.mappingProvider(new JacksonMappingProvider());
-			}
-			return config;
+		static Decoder<?> decoder() {
+			return new Jackson2JsonDecoder();
 		}
 
 	}

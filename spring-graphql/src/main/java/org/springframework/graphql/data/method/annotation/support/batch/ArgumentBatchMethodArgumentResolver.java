@@ -19,7 +19,7 @@ import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.BatchLoaderEnvironment;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
-import org.springframework.graphql.data.GraphQlArgumentInitializer;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -37,11 +37,11 @@ import java.util.Map;
  */
 public class ArgumentBatchMethodArgumentResolver extends BatchHandlerMethodArgumentResolverSupport {
 
-    private final GraphQlArgumentInitializer argumentInitializer;
+    private final GraphQlArgumentBinder argumentBinder;
 
-    public ArgumentBatchMethodArgumentResolver(GraphQlArgumentInitializer initializer) {
-        Assert.notNull(initializer, "GraphQlArgumentInitializer is required");
-        this.argumentInitializer = initializer;
+    public ArgumentBatchMethodArgumentResolver(GraphQlArgumentBinder argumentBinder) {
+        Assert.notNull(argumentBinder, "GraphQlArgumentBinder is required");
+        this.argumentBinder = argumentBinder;
     }
 
     @Override
@@ -57,7 +57,7 @@ public class ArgumentBatchMethodArgumentResolver extends BatchHandlerMethodArgum
         String name = getArgumentName(parameter);
         ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
 
-        return this.argumentInitializer.initializeArgument(findFirstDataFetchingEnvironmentFromContexts(keyContexts), name, resolvableType);
+        return this.argumentBinder.bind(findFirstDataFetchingEnvironmentFromContexts(keyContexts), name, resolvableType);
     }
 
     static String getArgumentName(MethodParameter parameter) {

@@ -118,42 +118,42 @@ The Spring for GraphQL repository contains a WebFlux
 
 <<web-http>> and <<web-websocket>> transport handlers delegate to a common Web
 interception chain for request execution. The chain consists of a sequence of
-`WebInterceptor` components, followed by a `GraphQlService` that invokes the GraphQL
-Java engine.
+`WebGraphQlHandlerInterceptor` components, followed by a `ExecutionGraphQlService` that
+invokes GraphQL Java.
 
-`WebInterceptor` is as a common contract to use in both Spring MVC and WebFlux
-applications. Use it to intercept requests, inspect HTTP request headers, or to register a
-transformation of the `graphql.ExecutionInput`:
+`WebGraphQlHandlerInterceptor` is as a common contract to use in both Spring MVC and
+WebFlux applications. Use it to intercept requests, inspect HTTP request headers, or to
+register a transformation of the `graphql.ExecutionInput`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-class MyInterceptor implements WebInterceptor {
+class MyInterceptor implements WebGraphQlHandlerInterceptor {
 
 	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
-		webInput.configureExecutionInput((executionInput, builder) -> {
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
+		request.configureExecutionInput((executionInput, builder) -> {
 			Map<String, Object> map = ... ;
 			return builder.extensions(map).build();
 		});
-		return chain.next(webInput);
+		return chain.next(request);
 	}
 }
 ----
 
-Use `WebInterceptor` also to intercept responses, add HTTP response headers, or transform
-the `graphql.ExecutionResult`:
+Use `WebGraphQlHandlerInterceptor` also to intercept responses, add HTTP response headers,
+or transform the `graphql.ExecutionResult`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-class MyInterceptor implements WebInterceptor {
+class MyInterceptor implements WebGraphQlHandlerInterceptor {
 
 	@Override
-	public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
-		return chain.next(webInput)
-				.map(webOutput -> {
-					Object data = webOutput.getData();
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
+		return chain.next(request)
+				.map(response -> {
+					Object data = response.getData();
 					Object updatedData = ... ;
-					return webOutput.transform(builder -> builder.data(updatedData));
+					return response.transform(builder -> builder.data(updatedData));
 				});
 	}
 }
@@ -170,13 +170,12 @@ it contains, for the actual config.
 [[execution]]
 == Request Execution
 
-`GraphQlService` is the main Spring abstraction to call GraphQL Java to execute
-requests. Underlying transports, such as the <<web-transports>>, delegate to `GraphQlService` to
-handle requests.
+`ExecutionGraphQlService` is the main Spring abstraction to call GraphQL Java to execute
+requests. Underlying transports, such as the <<web-transports>>, delegate to
+`ExecutionGraphQlService` to handle requests.
 
-The main implementation, `ExecutionGraphQlService`, is a thin facade around the
-invocation of `graphql.GraphQL`. It is configured with a `GraphQlSource` for access to
-the `graphql.GraphQL` instance.
+The main implementation, `DefaultExecutionGraphQlService`, is configured with a
+`GraphQlSource` for access to the `graphql.GraphQL` instance to invoke.
 
 
 
@@ -201,9 +200,25 @@ the following:
 - Detect <<execution-graphqlsource-runtimewiring-configurer>> beans.
 - Detect https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
   {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics].
-- Detect `DataFetcherExceptionResolver` beans for
-  <<execution-exceptions, exception resolution>>.
-- Detect `GraphQlSourceBuilderCustomizer` beans for any other customizations.
+- Detect `DataFetcherExceptionResolver` beans for <<execution-exceptions, exception resolution>>.
+
+For further customizations, you can declare your own `GraphQlSourceBuilderCustomizer` beans;
+for example, for configuring your own `ExecutionIdProvider`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration(proxyBeanMethods = false)
+class GraphQlConfig {
+
+	@Bean
+	public GraphQlSourceBuilderCustomizer sourceBuilderCustomizer() {
+		return (builder) -> {
+			builder.configureGraphQl(graphQlBuilder ->
+				graphQlBuilder.executionIdProvider(new CustomExecutionIdProvider()));
+		};
+	}
+}
+----
 
 
 
@@ -230,18 +245,18 @@ necessary, you can hook into the schema creation through the builder:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-// Typically, accessed through Spring Boot's GraphQlSourceBuilderCustomizer
 GraphQlSource.Builder builder = ...
 
 builder.schemaResources(..)
 		.configureRuntimeWiring(..)
 		.schemaFactory((typeDefinitionRegistry, runtimeWiring) -> {
-			// create `GraphQLSchema`
+			// create GraphQLSchema
 		})
 ----
 
 The primary reason for this is to create the schema through a federation library.
 
+The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution-graphqlsource-runtimewiring-configurer]]
 ==== `RuntimeWiringConfigurer`
@@ -302,8 +317,19 @@ returned from the `DataFetcher` for a GraphQL Interface or Union field.
 Object Type and if it is not successful, it also navigates its super types including
 base classes and interfaces, looking for a match. `ClassNameTypeResolver` provides an
 option to configure a name extracting function along with `Class` to GraphQL Object type
-name mappings that should help to cover more corner cases.
+name mappings that should help to cover more corner cases:
 
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlSource.Builder builder = ...
+ClassNameTypeResolver classNameTypeResolver = new ClassNameTypeResolver();
+classNameTypeResolver.setClassNameExtractor((klass) -> {
+	// Implement Custom ClassName Extractor here
+});
+builder.defaultTypeResolver(classNameTypeResolver);
+----
+
+The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution-graphqlsource-operation-caching]]
 ==== Operation Caching
@@ -331,6 +357,7 @@ builder.schemaResources(..)
 		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
 ----
 
+The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution-graphqlsource-directives]]
 ==== Directives
@@ -385,10 +412,10 @@ transport layer, such as from a WebFlux request handling, see
 [[execution-context]]
 === Context Propagation
 
-Spring for GraphQL provides support to transparently propagate context from the <<web-transports>>,
-through the GraphQL engine, and to `DataFetcher` and other components it invokes.
-This includes both `ThreadLocal` context from the Spring MVC request handling thread and
-Reactor `Context` from the WebFlux processing pipeline.
+Spring for GraphQL provides support to transparently propagate context from the
+<<web-transports>>, through GraphQL Java, and to `DataFetcher` and other components it
+invokes. This includes both `ThreadLocal` context from the Spring MVC request handling
+thread and Reactor `Context` from the WebFlux processing pipeline.
 
 
 [[execution-context-webmvc]]
@@ -396,10 +423,11 @@ Reactor `Context` from the WebFlux processing pipeline.
 
 A `DataFetcher` and other components invoked by GraphQL Java may not always execute on
 the same thread as the Spring MVC handler, for example if an asynchronous
-<<web-interception, `WebInterceptor`>> or `DataFetcher` switches to a different thread.
+<<web-interception, `WebGraphQlHandlerInterceptor`>> or `DataFetcher` switches to a
+different thread.
 
 Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
-thread to the thread a `DataFetcher` and other components invoked by the GraphQL engine
+thread to the thread a `DataFetcher` and other components invoked by GraphQL Java to
 execute on. To do this, an application needs to create a `ThreadLocalAccessor` to extract
 `ThreadLocal` values of interest:
 
@@ -440,7 +468,7 @@ Spring MVC application, see the
 
 A <<execution-reactive-datafetcher>> can rely on access to Reactor context that
 originates from the WebFlux request handling chain. This includes Reactor context
-added by <<web-interception, WebInterceptor>> components.
+added by <<web-interception, WebGraphQlHandlerInterceptor>> components.
 
 
 
@@ -530,7 +558,7 @@ public class MyConfig {
 The Spring Boot starter declares a `BatchLoaderRegistry` bean that you can inject into
 your configuration, as shown above, or into any component such as a controller in order
 register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
-`ExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
+`DefaultExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
 
 By default, the `DataLoader` name is based on the class name of the target entity.
 This allows an `@SchemaMapping` method to declare a
@@ -1090,11 +1118,11 @@ Schema mapping handler methods can have any of the following method arguments:
 | Method Argument | Description
 
 | `@Argument`
-| For access to a named field argument converted to a higher-level, typed Object.
+| For access to a named field argument bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-argument>>.
 
 | `@Arguments`
-| For access to all field arguments converted to a higher-level, typed Object.
+| For access to all field arguments bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-arguments>>.
 
 | `@ProjectedPayload` Interface
@@ -1145,11 +1173,12 @@ In GraphQL Java, `DataFetchingEnvironment` provides access to a map of field-spe
 argument values. The values can be simple scalar values (e.g. String, Long), a `Map` of
 values for more complex input, or a `List` of values.
 
-Use the `@Argument` annotation to inject a named field argument into a handler method.
-The method parameter can be a higher-level, typed Object of any type. It is created and
-initialized from the named field argument value(s), either matching them to single data
-constructor parameters, or using the default constructor and then matching keys onto
-Object properties through a `org.springframework.validation.DataBinder`:
+Use the `@Argument` annotation to have an argument bound to a target object and
+injected into the handler method. Binding is performed by mapping argument values to a
+primary data constructor of the expected method parameter type, or by using a default
+constructor to create the object and then map argument values to its properties. This is
+repeated recursively, using all nested argument values and creating nested target objects
+accordingly. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -1174,7 +1203,10 @@ If needed, you can customize the name through the annotation, e.g. `@Argument("b
 
 TIP: The `@Argument` annotation does not have a "required" flag, nor the option to
 specify a default value. Both of these can be specified at the GraphQL schema level and
-are enforced by the GraphQL Engine.
+are enforced by GraphQL Java.
+
+If binding fails, a `BindException` is raised with binding issues accumulated as field
+errors where the `field` of each error is the argument path where the issue occurred.
 
 You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
 values. The name attribute on `@Argument` must not be set.

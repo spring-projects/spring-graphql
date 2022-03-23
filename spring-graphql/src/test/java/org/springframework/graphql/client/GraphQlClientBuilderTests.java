@@ -16,10 +16,14 @@
 
 package org.springframework.graphql.client;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,21 +44,67 @@ public class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
 		DocumentSource documentSource = name -> name.equals("name") ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
-		setMockResponse("{}");
+		initDataResponse(DOCUMENT, "{}");
 
 		// Original
 		GraphQlClient.Builder<?> builder = graphQlClientBuilder().documentSource(documentSource);
 		GraphQlClient client = builder.build();
-		client.documentName("name").execute().block(TIMEOUT);
+		ClientGraphQlResponse response = client.documentName("name").execute().block(TIMEOUT);
 
-		GraphQlRequest request = request();
-		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
+		assertThat(response).isNotNull();
+		assertThat(response.isValid()).isTrue();
 
 		// Mutate
 		client = client.mutate().build();
-		client.documentName("name").execute().block(TIMEOUT);
+		response = client.documentName("name").execute().block(TIMEOUT);
 
-		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(response).isNotNull();
+		assertThat(response.isValid()).isTrue();
+	}
+
+	@Test
+	void mutateInterceptors() {
+
+		String name = "name1";
+		String value = "value1";
+
+		Map<String, Object> savedAttributes = new HashMap<>();
+
+		GraphQlClientInterceptor savingInterceptor =
+				initInterceptor(request -> savedAttributes.putAll(request.getAttributes()));
+
+		GraphQlClientInterceptor changingInterceptor =
+				initInterceptor(request -> request.getAttributes().computeIfPresent(name, (k, v) -> v + "2"));
+
+		initDataResponse(DOCUMENT, "{}");
+
+		// Original
+		GraphQlClient.Builder<?> builder = graphQlClientBuilder().interceptor(savingInterceptor);
+		GraphQlClient client = builder.build();
+		GraphQlResponse response = client.document(DOCUMENT).attribute(name, value).execute().block(TIMEOUT);
+
+		assertThat(response).isNotNull();
+		assertThat(response.isValid()).isTrue();
+		assertThat(savedAttributes).hasSize(1).containsEntry(name, value);
+
+		// Mutate
+		savedAttributes.clear();
+		client = client.mutate().interceptors(interceptors -> interceptors.add(0, changingInterceptor)).build();
+		response = client.document(DOCUMENT).attribute(name, value).execute().block(TIMEOUT);
+
+		assertThat(response).isNotNull();
+		assertThat(response.isValid()).isTrue();
+		assertThat(savedAttributes).hasSize(1).containsEntry(name, value + "2");
+	}
+
+	private static GraphQlClientInterceptor initInterceptor(Consumer<ClientGraphQlRequest> requestConsumer) {
+		return new GraphQlClientInterceptor() {
+			@Override
+			public Mono<ClientGraphQlResponse> intercept(ClientGraphQlRequest request, Chain chain) {
+				requestConsumer.accept(request);
+				return chain.next(request);
+			}
+		};
 	}
 
 }

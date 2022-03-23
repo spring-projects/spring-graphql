@@ -29,9 +29,9 @@ import graphql.GraphQLError;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -46,9 +46,9 @@ public class GraphQlTesterTestSupport {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 
-	private final ArgumentCaptor<RequestInput> inputCaptor = ArgumentCaptor.forClass(RequestInput.class);
+	private final ArgumentCaptor<ExecutionGraphQlRequest> requestCaptor = ArgumentCaptor.forClass(ExecutionGraphQlRequest.class);
 
-	private final GraphQlService graphQlService = mock(GraphQlService.class);
+	private final ExecutionGraphQlService graphQlService = mock(ExecutionGraphQlService.class);
 
 	private final GraphQlTester.Builder<?> graphQlTesterBuilder = GraphQlServiceTester.builder(this.graphQlService);
 
@@ -63,8 +63,8 @@ public class GraphQlTesterTestSupport {
 		return this.graphQlTesterBuilder;
 	}
 
-	protected RequestInput requestInput() {
-		return this.inputCaptor.getValue();
+	protected ExecutionGraphQlRequest request() {
+		return this.requestCaptor.getValue();
 	}
 
 
@@ -83,8 +83,8 @@ public class GraphQlTesterTestSupport {
 		ExecutionInput executionInput = ExecutionInput.newExecutionInput("{}").build();
 		ExecutionResult result = builder.build();
 
-		given(this.graphQlService.execute(this.inputCaptor.capture()))
-				.willReturn(Mono.just(new RequestOutput(executionInput, result)));
+		given(this.graphQlService.execute(this.requestCaptor.capture()))
+				.willReturn(Mono.just(new DefaultExecutionGraphQlResponse(executionInput, result)));
 	}
 
 	private void serialize(String data, ExecutionResultImpl.Builder builder) {

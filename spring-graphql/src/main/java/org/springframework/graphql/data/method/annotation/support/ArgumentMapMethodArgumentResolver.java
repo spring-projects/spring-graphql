@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Map;
@@ -24,9 +25,11 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.util.StringUtils;
 
+
 /**
- * Resolves {@link Map} method arguments annotated with an @{@link Argument}
- * where the annotation does not specify an argument name.
+ * Resolves a {@link Map} method parameter annotated with an
+ * {@link Argument @Argument} by returning the GraphQL
+ * {@link DataFetchingEnvironment#getArguments() arguments} map.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

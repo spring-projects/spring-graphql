@@ -20,13 +20,13 @@ import graphql.GraphqlErrorBuilder;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DocumentSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link GraphQlTester} builder with a mock {@link GraphQlService}.
+ * Tests for {@link GraphQlTester} builder with a mock {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
  */
@@ -48,13 +48,13 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 		GraphQlTester tester = builder.build();
 		tester.documentName("name").execute();
 
-		assertThat(requestInput().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
 		tester = tester.mutate().build();
 		tester.documentName("name").execute();
 
-		assertThat(requestInput().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 				.errors().verify()
 				.path("me").pathDoesNotExist();
 
-		assertThat(requestInput().getDocument()).contains(document);
+		assertThat(request().getDocument()).contains(document);
 	}
 
 }

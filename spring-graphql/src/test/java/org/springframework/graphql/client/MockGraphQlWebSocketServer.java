@@ -20,7 +20,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,6 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -100,7 +101,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 					return Flux.error(new IllegalStateException("Unexpected request: " + message));
 				}
 				return request.getResponseFlux()
-						.map(result -> GraphQlMessage.next(id, result))
+						.map(response -> GraphQlMessage.next(id, response.toMap()))
 						.concatWithValues(
 								request.getError() != null ?
 										GraphQlMessage.error(id, request.getError()) :
@@ -118,12 +119,12 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 		/**
 		 * Respond with the given a single result.
 		 */
-		GraphQlRequest andRespond(ExecutionResult result);
+		GraphQlRequest andRespond(GraphQlResponse response);
 
 		/**
 		 * Respond with the given a single result {@code Mono}.
 		 */
-		GraphQlRequest andRespond(Mono<ExecutionResult> resultMono);
+		GraphQlRequest andRespond(Mono<GraphQlResponse> responseMono);
 
 		/**
 		 * Respond with a GraphQL over WebSocket "error" message.
@@ -133,12 +134,12 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 		/**
 		 * Respond with the given stream of responses.
 		 */
-		GraphQlRequest andStream(Flux<ExecutionResult> resultFlux);
+		GraphQlRequest andStream(Flux<GraphQlResponse> responseFlux);
 
 		/**
 		 * Respond with the given stream of responses and terminate with an error.
 		 */
-		GraphQlRequest andStreamWithError(Flux<ExecutionResult> resultFlux, GraphQLError error);
+		GraphQlRequest andStreamWithError(Flux<GraphQlResponse> responseFlux, GraphQLError error);
 
 	}
 
@@ -147,24 +148,24 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 
 		private final GraphQlRequest request;
 
-		private Flux<ExecutionResult> responseFlux = Flux.empty();
+		private Flux<GraphQlResponse> responseFlux = Flux.empty();
 
 		@Nullable
 		private GraphQLError error;
 
 
 		private Exchange(String operation) {
-			this.request = new GraphQlRequest(operation);
+			this.request = new DefaultGraphQlRequest(operation);
 		}
 
 		@Override
-		public GraphQlRequest andRespond(ExecutionResult result) {
-			return addResponse(Flux.just(result), null);
+		public GraphQlRequest andRespond(GraphQlResponse response) {
+			return addResponse(Flux.just(response), null);
 		}
 
 		@Override
-		public GraphQlRequest andRespond(Mono<ExecutionResult> resultMono) {
-			return addResponse(Flux.from(resultMono), null);
+		public GraphQlRequest andRespond(Mono<GraphQlResponse> responseMono) {
+			return addResponse(Flux.from(responseMono), null);
 		}
 
 		@Override
@@ -173,17 +174,17 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 		}
 
 		@Override
-		public GraphQlRequest andStream(Flux<ExecutionResult> resultFlux) {
-			return addResponse(resultFlux, null);
+		public GraphQlRequest andStream(Flux<GraphQlResponse> responseFlux) {
+			return addResponse(responseFlux, null);
 		}
 
 		@Override
-		public GraphQlRequest andStreamWithError(Flux<ExecutionResult> resultFlux, GraphQLError error) {
-			return addResponse(resultFlux, error);
+		public GraphQlRequest andStreamWithError(Flux<GraphQlResponse> responseFlux, GraphQLError error) {
+			return addResponse(responseFlux, error);
 		}
 
-		private GraphQlRequest addResponse(Flux<ExecutionResult> resultFlux, @Nullable GraphQLError error) {
-			this.responseFlux = resultFlux;
+		private GraphQlRequest addResponse(Flux<GraphQlResponse> responseFlux, @Nullable GraphQLError error) {
+			this.responseFlux = responseFlux;
 			this.error = error;
 			return this.request;
 		}
@@ -192,7 +193,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 			return this.request;
 		}
 
-		public Flux<ExecutionResult> getResponseFlux() {
+		public Flux<GraphQlResponse> getResponseFlux() {
 			return this.responseFlux;
 		}
 

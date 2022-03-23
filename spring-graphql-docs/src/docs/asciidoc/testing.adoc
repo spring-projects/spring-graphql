@@ -179,7 +179,7 @@ connection closed, e.g. after a test runs.
 
 Many times it's enough to test GraphQL requests on the server side, without the use of a
 client to send requests over a transport protocol. To test directly against a
-`GraphQlService`, use the `GraphQlServiceTester` extension:
+`ExecutionGraphQlService`, use the `GraphQlServiceTester` extension:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -197,7 +197,8 @@ a client. However, in some cases it's useful to involve server side transport
 handling with given mock transport input.
 
 The `WebGraphQlHandlerTester` extension lets you processes request through the
-`WebInterceptor` chain before handing off to `GraphQlService` for request execution:
+`WebGraphQlHandlerInterceptor` chain before handing off to `ExecutionGraphQlService` for
+request execution:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----

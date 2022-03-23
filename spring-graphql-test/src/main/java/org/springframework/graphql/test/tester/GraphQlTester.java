@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
@@ -88,7 +88,7 @@ public interface GraphQlTester {
 	 * @return the builder for further initialization
 	 */
 	static GraphQlTester.Builder<?> builder(GraphQlTransport transport) {
-		return new DefaultGraphQlTester.Builder(transport);
+		return new GenericGraphQlTester.Builder(transport);
 	}
 
 
@@ -103,7 +103,7 @@ public interface GraphQlTester {
 		 * @param predicate the error filter to add
 		 * @return the same builder instance
 		 */
-		B errorFilter(Predicate<GraphQLError> predicate);
+		B errorFilter(Predicate<ResponseError> predicate);
 
 		/**
 		 * Configure a {@link DocumentSource} for use with
@@ -208,54 +208,32 @@ public interface GraphQlTester {
 	}
 
 	/**
-	 * Declare options available to assert data at a given path.
+	 * Options available to assert the response values at the current path.
 	 */
 	interface Path extends Traversable {
 
 		/**
-		 * Assert the given path exists, even if the value is {@code null}.
-		 * @return spec to assert the converted entity with
+		 * Verify there is a {@code non-null} value or a non-empty list at the current path.
+		 * @return the same {@code Path} spec for further assertions
 		 */
-		Path pathExists();
+		Path hasValue();
 
 		/**
-		 * Assert the given path does not {@link #pathExists() exist}.
-		 * @return spec to assert the converted entity with
+		 * Verify there is a {@code null} value at the current path.
+		 */
+		Path valueIsNull();
+
+		/**
+		 * Verify the current path does not exist.
+		 * @return the same {@code Path} spec for further assertions
 		 */
 		Path pathDoesNotExist();
-
-		/**
-		 * Assert a value exists at the given path where the value is any {@code non-null}
-		 * value, possibly an empty array or map.
-		 * @return spec to assert the converted entity with
-		 */
-		Path valueExists();
-
-		/**
-		 * Assert a value does not {@link #valueExists() exist} at the given path.
-		 * @return spec to assert the converted entity with
-		 */
-		Path valueDoesNotExist();
-
-		/**
-		 * Assert the value at the given path does exist but is empty as defined
-		 * in {@link org.springframework.util.ObjectUtils#isEmpty(Object)}.
-		 * @return spec to assert the converted entity with
-		 * @see org.springframework.util.ObjectUtils#isEmpty(Object)
-		 */
-		Path valueIsEmpty();
-
-		/**
-		 * Assert the value at the given path is not {@link #valueIsEmpty() empty}.
-		 * @return spec to assert the converted entity with
-		 */
-		Path valueIsNotEmpty();
 
 		/**
 		 * Convert the data at the given path to the target type.
 		 * @param entityType the type to convert to
 		 * @param <D> the target entity type
-		 * @return spec to assert the converted entity with
+		 * @return an {@code Entity} spec to verify the decoded value with
 		 */
 		<D> Entity<D, ?> entity(Class<D> entityType);
 
@@ -263,7 +241,7 @@ public interface GraphQlTester {
 		 * Convert the data at the given path to the target type.
 		 * @param entityType the type to convert to
 		 * @param <D> the target entity type
-		 * @return spec to assert the converted entity with
+		 * @return an {@code Entity} spec to verify the decoded value with
 		 */
 		<D> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType);
 
@@ -271,7 +249,7 @@ public interface GraphQlTester {
 		 * Convert the data at the given path to a List of the target type.
 		 * @param elementType the type of element to convert to
 		 * @param <D> the target entity type
-		 * @return spec to assert the converted List of entities with
+		 * @return an {@code EntityList} spec to verify the decoded values with
 		 */
 		<D> EntityList<D> entityList(Class<D> elementType);
 
@@ -279,7 +257,7 @@ public interface GraphQlTester {
 		 * Convert the data at the given path to a List of the target type.
 		 * @param elementType the type to convert to
 		 * @param <D> the target entity type
-		 * @return spec to assert the converted List of entities with
+		 * @return an {@code EntityList} spec to verify the decoded values with
 		 */
 		<D> EntityList<D> entityList(ParameterizedTypeReference<D> elementType);
 
@@ -291,7 +269,7 @@ public interface GraphQlTester {
 		 * <a href="https://jsonassert.skyscreamer.org/">JSONassert</a> library on to be
 		 * on the classpath.
 		 * @param expectedJson the expected JSON
-		 * @return spec to specify a different path
+		 * @return {@code Traversable} spec to select a different path
 		 * @see org.springframework.test.util.JsonExpectationsHelper#assertJsonEqual(String,
 		 * String)
 		 */
@@ -303,7 +281,7 @@ public interface GraphQlTester {
 		 * of formatting, along with lenient checking, e.g. extensible and non-strict
 		 * array ordering.
 		 * @param expectedJson the expected JSON
-		 * @return spec to specify a different path
+		 * @return {@code Traversable} spec to select a different path
 		 * @see org.springframework.test.util.JsonExpectationsHelper#assertJsonEqual(String,
 		 * String, boolean)
 		 */
@@ -312,121 +290,114 @@ public interface GraphQlTester {
 	}
 
 	/**
-	 * Declare options available to assert data converted to an entity.
+	 * Contains a decoded entity and provides options to assert it
 	 *
 	 * @param <D> the entity type
-	 * @param <S> the spec type, including subtypes
+	 * @param <S> the {@code Entity} spec type
 	 */
 	interface Entity<D, S extends Entity<D, S>> extends Traversable {
 
 		/**
-		 * Assert the converted entity equals the given Object.
-		 * @param expected the expected Object
-		 * @param <T> the spec type
-		 * @return the same spec for more assertions
+		 * Verify the decoded entity is equal to the given value.
+		 * @param expected the expected value
+		 * @return the {@code Entity} spec for further assertions
 		 */
 		<T extends S> T isEqualTo(Object expected);
 
 		/**
-		 * Assert the converted entity does not equal the given Object.
-		 * @param other the Object to check against
-		 * @param <T> the spec type
-		 * @return the same spec for more assertions
+		 * Verify the decoded entity is not equal to the given value.
+		 * @param other the value to check against
+		 * @return the {@code Entity} spec for further assertions
 		 */
 		<T extends S> T isNotEqualTo(Object other);
 
 		/**
-		 * Assert the converted entity is the same instance as the given Object.
-		 * @param expected the expected Object
-		 * @param <T> the spec type
-		 * @return the same spec for more assertions
+		 * Verify the decoded entity is the same instance as the given value.
+		 * @param expected the expected value
+		 * @return the {@code Entity} spec for further assertions
 		 */
 		<T extends S> T isSameAs(Object expected);
 
 		/**
-		 * Assert the converted entity is not the same instance as the given Object.
-		 * @param other the Object to check against
-		 * @param <T> the spec type
-		 * @return the same spec for more assertions
+		 * Verify the decoded entity is not the same instance as the given value.
+		 * @param other the value to check against
+		 * @return the {@code Entity} spec for further assertions
 		 */
 		<T extends S> T isNotSameAs(Object other);
 
 		/**
-		 * Assert the converted entity matches the given predicate.
-		 * @param predicate the expected Object
-		 * @param <T> the spec type
-		 * @return the same spec for more assertions
+		 * Verify the decoded entity matches the given predicate.
+		 * @param predicate the predicate to apply
+		 * @return the {@code Entity} spec for further assertions
 		 */
 		<T extends S> T matches(Predicate<D> predicate);
 
 		/**
-		 * Perform any assertions on the converted entity, e.g. via AssertJ.
-		 * @param consumer the consumer to inspect the entity with
-		 * @param <T> the spec type
-		 * @return the same spec for more assertions
+		 * Verify the entity with the given {@link Consumer}.
+		 * @param consumer the consumer to apply
+		 * @return the {@code Entity} spec for further assertions
 		 */
 		<T extends S> T satisfies(Consumer<D> consumer);
 
 		/**
-		 * Return the converted entity.
-		 * @return the converter entity
+		 * Return the decoded entity value(s).
 		 */
 		D get();
 
 	}
 
 	/**
-	 * Extension of {@link Entity} with options available to assert data converted to
-	 * a List of entities.
+	 * Contains a List of decoded entities and provides options to assert them.
 	 *
 	 * @param <E> the type of elements in the list
 	 */
 	interface EntityList<E> extends Entity<List<E>, EntityList<E>> {
 
 		/**
-		 * Assert the list contains the given elements.
-		 * @param elements values that are expected
-		 * @return the same spec for more assertions
+		 * Verify the list contains the given values, in any order.
+		 * @param values values that are expected
+		 * @return the {@code EntityList} spec for further assertions
 		 */
 		@SuppressWarnings("unchecked")
-		EntityList<E> contains(E... elements);
+		EntityList<E> contains(E... values);
 
 		/**
-		 * Assert the list does not contain the given elements.
-		 * @param elements values that are not expected
-		 * @return the same spec for more assertions
+		 * Verify the list does not contain the given values.
+		 * @param values the values that are not expected
+		 * @return the {@code EntityList} spec for further assertions
 		 */
 		@SuppressWarnings("unchecked")
-		EntityList<E> doesNotContain(E... elements);
+		EntityList<E> doesNotContain(E... values);
 
 		/**
-		 * Assert the list contains the given elements.
-		 * @param elements values that are expected
-		 * @return the same spec for more assertions
+		 * Verify that the list contains exactly the given values and nothing
+		 * else, in the same order.
+		 * @param values the expected values
+		 * @return the {@code EntityList} spec for further assertions
 		 */
 		@SuppressWarnings("unchecked")
-		EntityList<E> containsExactly(E... elements);
+		EntityList<E> containsExactly(E... values);
 
 		/**
-		 * Assert the list contains the specified number of elements.
-		 * @param size the number of elements expected
-		 * @return the same spec for more assertions
+		 * Verify the number of values in the list.
+		 * @param size the expected size
+		 * @return the {@code EntityList} spec for further assertions
 		 */
 		EntityList<E> hasSize(int size);
 
 		/**
-		 * Assert the list contains fewer elements than the specified number.
-		 * @param boundary the number to compare the number of elements to
-		 * @return the same spec for more assertions
+		 * Verify the list has fewer than the number of values.
+		 * @param size the number to compare the actual size to
+		 * @return the {@code EntityList} spec for further assertions
 		 */
-		EntityList<E> hasSizeLessThan(int boundary);
+		EntityList<E> hasSizeLessThan(int size);
 
 		/**
-		 * Assert the list contains more elements than the specified number.
-		 * @param boundary the number to compare the number of elements to
-		 * @return the same spec for more assertions
+		 * Verify the list has more than the specified number of values.
+		 * @param size the number to compare the actual size to
+		 * @return the {@code EntityList} spec for further assertions
 		 */
-		EntityList<E> hasSizeGreaterThan(int boundary);
+		EntityList<E> hasSizeGreaterThan(int size);
 
 	}
 
@@ -448,7 +419,7 @@ public interface GraphQlTester {
 		 * @param errorPredicate the error filter to add
 		 * @return the same spec to add more filters before {@link #verify()}
 		 */
-		Errors filter(Predicate<GraphQLError> errorPredicate);
+		Errors filter(Predicate<ResponseError> errorPredicate);
 
 		/**
 		 * Use this to declare errors that are expected.
@@ -461,7 +432,7 @@ public interface GraphQlTester {
 		 * @param errorPredicate the predicate for the expected error
 		 * @return the same spec to add more filters or expected errors
 		 */
-		Errors expect(Predicate<GraphQLError> errorPredicate);
+		Errors expect(Predicate<ResponseError> errorPredicate);
 
 		/**
 		 * Verify there are either no errors or that there no unexpected errors that have
@@ -477,7 +448,7 @@ public interface GraphQlTester {
 		 * @param errorsConsumer to inspect errors with
 		 * @return a spec to switch to a data path
 		 */
-		Traversable satisfy(Consumer<List<GraphQLError>> errorsConsumer);
+		Traversable satisfy(Consumer<List<ResponseError>> errorsConsumer);
 
 	}
 

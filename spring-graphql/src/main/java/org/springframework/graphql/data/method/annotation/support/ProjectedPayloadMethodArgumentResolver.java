@@ -18,16 +18,14 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanClassLoaderAware;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.util.Assert;
 
 /**
  * Resolver to obtain an {@link ProjectedPayload @ProjectedPayload},
@@ -58,20 +56,22 @@ import org.springframework.graphql.data.method.annotation.Argument;
  * @author Mark Paluch
  * @since 1.0.0
  */
-public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgumentResolver,
-		BeanFactoryAware, BeanClassLoaderAware {
+public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
 	private final SpelAwareProxyProjectionFactory projectionFactory = new SpelAwareProxyProjectionFactory();
 
 
-	@Override
-	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-		this.projectionFactory.setBeanFactory(beanFactory);
-	}
-
-	@Override
-	public void setBeanClassLoader(ClassLoader classLoader) {
-		this.projectionFactory.setBeanClassLoader(classLoader);
+	/**
+	 * Create a new {@link ProjectedPayloadMethodArgumentResolver} using the given context.
+	 * @param applicationContext the {@link ApplicationContext} to use for bean lookup and class loading
+	 */
+	public ProjectedPayloadMethodArgumentResolver(ApplicationContext applicationContext) {
+		Assert.notNull(applicationContext, "ApplicationContext must not be null");
+		this.projectionFactory.setBeanFactory(applicationContext);
+		ClassLoader classLoader = applicationContext.getClassLoader();
+		if(classLoader != null) {
+			this.projectionFactory.setBeanClassLoader(classLoader);
+		}
 	}
 
 

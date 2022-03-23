@@ -22,20 +22,26 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.springframework.core.annotation.AliasFor;
+import org.springframework.validation.BindException;
 
 /**
- * Annotation to bind a method parameter to a GraphQL input
- * {@link graphql.schema.DataFetchingEnvironment#getArgument(String) argument}.
+ * Annotation to bind a named GraphQL
+ * {@link graphql.schema.DataFetchingEnvironment#getArgument(String) argument}
+ * onto a method parameter.
+ *
+ * <p>Binding is performed by mapping argument values to a primary data
+ * constructor of the expected method parameter type, or by using a default
+ * constructor to create it and then map values to its properties. This is
+ * applied recursively, using all nested values and creating nested target
+ * objects.
+ *
+ * <p>If binding fails, a {@link BindException} is raised with binding issues
+ * accumulated as {@link BindException#getFieldErrors() field errors} where the
+ * {@code field} of each error is the argument path where the issue occurred.
  *
  * <p>If the method parameter is {@link java.util.Map Map&lt;String, Object&gt;}
- * and a parameter name is not specified, then the map parameter is populated
- * via {@link graphql.schema.DataFetchingEnvironment#getArguments()}.
- *
- * <p>The target method parameter can be a higher-level, typed Object of any
- * type. It is created and initialized from the named field argument value(s),
- * either matching them to single data constructor parameters, or using the
- * default constructor and then matching keys onto Object properties through
- * a {@link org.springframework.validation.DataBinder}.
+ * and a parameter name is not specified, then the resolves value is the raw
+ * {@link graphql.schema.DataFetchingEnvironment#getArguments() arguments} map.
  *
  * <p>Note that this annotation has neither a "required" flag nor the option to
  * specify a default value, both of which can be specified at the GraphQL schema

@@ -36,7 +36,7 @@ import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.BatchLoaderEnvironment;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.MethodParameter;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.method.BatchHandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -92,7 +92,7 @@ public class BatchMappingTestSupport {
 			"}";
 
 
-	protected GraphQlService createGraphQlService(CourseController controller) {
+	protected ExecutionGraphQlService createGraphQlService(CourseController controller) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();

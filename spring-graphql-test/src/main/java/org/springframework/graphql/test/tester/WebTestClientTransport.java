@@ -19,14 +19,13 @@ package org.springframework.graphql.test.tester;
 import java.util.Collections;
 import java.util.Map;
 
-import graphql.ExecutionResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.GraphQlTransport;
-import org.springframework.graphql.support.MapExecutionResult;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.Assert;
@@ -53,9 +52,9 @@ final class WebTestClientTransport implements GraphQlTransport {
 
 
 	@Override
-	public Mono<ExecutionResult> execute(GraphQlRequest request) {
+	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 
-		Map<String, Object> resultMap = this.webTestClient.post()
+		Map<String, Object> responseMap = this.webTestClient.post()
 				.contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.APPLICATION_JSON)
 				.bodyValue(request.toMap())
@@ -66,13 +65,13 @@ final class WebTestClientTransport implements GraphQlTransport {
 				.returnResult()
 				.getResponseBody();
 
-		resultMap = (resultMap != null ? resultMap : Collections.emptyMap());
-		ExecutionResult result = MapExecutionResult.from(resultMap);
-		return Mono.just(result);
+		responseMap = (responseMap != null ? responseMap : Collections.emptyMap());
+		GraphQlResponse response = GraphQlTransport.createResponse(responseMap);
+		return Mono.just(response);
 	}
 
 	@Override
-	public Flux<ExecutionResult> executeSubscription(GraphQlRequest request) {
+	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
 	}
 

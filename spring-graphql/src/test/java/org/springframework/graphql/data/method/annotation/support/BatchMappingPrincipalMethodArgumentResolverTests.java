@@ -30,9 +30,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.RequestOutput;
-import org.springframework.graphql.TestRequestInput;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
@@ -92,14 +92,14 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 	}
 
 	private void testBatchLoading(PrincipalCourseController controller, Function<Context, Context> contextWriter) {
-		Mono<RequestOutput> resultMono = Mono.delay(Duration.ofMillis(10))
+		Mono<ExecutionGraphQlResponse> responseMono = Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> {
 					String document = "{ courses { id instructor { id } } }";
-					return createGraphQlService(controller).execute(TestRequestInput.forDocument(document));
+					return createGraphQlService(controller).execute(TestExecutionRequest.forDocument(document));
 				})
 				.contextWrite(contextWriter);
 
-		List<Course> actualCourses = GraphQlResponse.from(resultMono).toList("courses", Course.class);
+		List<Course> actualCourses = ResponseHelper.forResponse(responseMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
 		assertThat(actualCourses).hasSize(courses.size());
 		for (int i = 0; i < courses.size(); i++) {

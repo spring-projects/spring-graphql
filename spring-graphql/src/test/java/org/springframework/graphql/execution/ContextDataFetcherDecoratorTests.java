@@ -29,7 +29,7 @@ import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
-import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
@@ -56,7 +56,7 @@ public class ContextDataFetcherDecoratorTests {
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
-		String greeting = GraphQlResponse.from(executionResult).toEntity("greeting", String.class);
+		String greeting = ResponseHelper.forResult(executionResult).toEntity("greeting", String.class);
 		assertThat(greeting).isEqualTo("Hello 007");
 	}
 
@@ -76,7 +76,7 @@ public class ContextDataFetcherDecoratorTests {
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
-		List<String> data = GraphQlResponse.from(result).toList("greetings", String.class);
+		List<String> data = ResponseHelper.forResult(result).toList("greetings", String.class);
 		assertThat(data).containsExactly("Hi 007", "Bonjour 007", "Hola 007");
 	}
 
@@ -96,7 +96,7 @@ public class ContextDataFetcherDecoratorTests {
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
-		Flux<String> greetingsFlux = GraphQlResponse.forSubscription(executionResult)
+		Flux<String> greetingsFlux = ResponseHelper.forSubscription(executionResult)
 				.map(response -> response.toEntity("greetings", String.class));
 
 		StepVerifier.create(greetingsFlux)
@@ -121,7 +121,7 @@ public class ContextDataFetcherDecoratorTests {
 			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
 					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
 
-			String greeting = GraphQlResponse.from(resultMono).toEntity("greeting", String.class);
+			String greeting = ResponseHelper.forResult(resultMono).toEntity("greeting", String.class);
 			assertThat(greeting).isEqualTo("Hello 007");
 		}
 		finally {

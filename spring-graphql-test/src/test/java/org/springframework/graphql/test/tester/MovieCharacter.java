@@ -59,4 +59,9 @@ public class MovieCharacter {
 		return (this.name != null) ? this.name.hashCode() : super.hashCode();
 	}
 
+	@Override
+	public String toString() {
+		return "MovieCharacter[name='" + this.name + "']";
+	}
+
 }

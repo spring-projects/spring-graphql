@@ -18,7 +18,9 @@ package org.springframework.graphql.client;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -152,20 +154,28 @@ final class DefaultWebSocketGraphQlClient extends AbstractDelegatingGraphQlClien
 		@Override
 		public WebSocketGraphQlClient build() {
 
-			registerJsonPathMappingProvider();
+			setJsonCodecs(
+					CodecDelegate.findJsonEncoder(this.codecConfigurer),
+					CodecDelegate.findJsonDecoder(this.codecConfigurer));
 
 			WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-					this.url, this.headers, this.webSocketClient, this.codecConfigurer, null, payload -> {});
+					this.url, this.headers, this.webSocketClient, this.codecConfigurer, getInterceptor());
 
 			GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
 			return new DefaultWebSocketGraphQlClient(graphQlClient, transport, getBuilderInitializer());
 		}
 
-		private void registerJsonPathMappingProvider() {
-			configureJsonPathConfig(jsonPathConfig -> {
-				CodecMappingProvider provider = new CodecMappingProvider(this.codecConfigurer);
-				return jsonPathConfig.mappingProvider(provider);
-			});
+		private WebSocketGraphQlClientInterceptor getInterceptor() {
+
+			List<WebSocketGraphQlClientInterceptor> interceptors = getInterceptors().stream()
+					.filter(interceptor -> interceptor instanceof WebSocketGraphQlClientInterceptor)
+					.map(interceptor -> (WebSocketGraphQlClientInterceptor) interceptor)
+					.collect(Collectors.toList());
+
+			Assert.state(interceptors.size() <= 1,
+					"Only a single interceptor of type WebSocketGraphQlClientInterceptor may be configured");
+
+			return (!interceptors.isEmpty() ? interceptors.get(0) : new WebSocketGraphQlClientInterceptor() {});
 		}
 
 	}

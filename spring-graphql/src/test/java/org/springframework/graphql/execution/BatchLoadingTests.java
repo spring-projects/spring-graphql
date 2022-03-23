@@ -27,11 +27,11 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.GraphQlService;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.RequestOutput;
-import org.springframework.graphql.TestRequestInput;
+import org.springframework.graphql.TestExecutionRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -60,7 +60,7 @@ public class BatchLoadingTests {
 		this.registry.forTypePair(Long.class, Author.class)
 				.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
 
-		GraphQlService service = GraphQlSetup.schemaResource(BookSource.schema)
+		ExecutionGraphQlService service = GraphQlSetup.schemaResource(BookSource.schema)
 				.queryFetcher("booksByCriteria", env -> {
 					Map<String, Object> criteria = env.getArgument("criteria");
 					String authorName = (String) criteria.get("author");
@@ -76,9 +76,9 @@ public class BatchLoadingTests {
 				.dataLoaders(this.registry)
 				.toGraphQlService();
 
-		Mono<RequestOutput> resultMono = service.execute(TestRequestInput.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = service.execute(TestExecutionRequest.forDocument(document));
 
-		List<Book> books = GraphQlResponse.from(resultMono).toList("booksByCriteria", Book.class);
+		List<Book> books = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
 		assertThat(books).hasSize(2);
 
 		Author author = books.get(0).getAuthor();

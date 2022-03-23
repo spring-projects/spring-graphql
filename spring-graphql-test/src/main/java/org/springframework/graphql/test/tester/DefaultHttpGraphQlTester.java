@@ -20,7 +20,6 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.util.function.Consumer;
 
-import org.springframework.graphql.client.CodecMappingProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -119,7 +118,7 @@ final class DefaultHttpGraphQlTester extends AbstractDelegatingGraphQlTester imp
 		private void registerJsonPathMappingProvider() {
 			this.webTestClientBuilder.codecs(codecConfigurer ->
 					configureJsonPathConfig(config -> {
-						CodecMappingProvider provider = new CodecMappingProvider(codecConfigurer);
+						EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(codecConfigurer);
 						return config.mappingProvider(provider);
 					}));
 		}

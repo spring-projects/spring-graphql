@@ -34,13 +34,14 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.graphql.support.DocumentSource;
+import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.TestWebSocketClient;
 import org.springframework.graphql.web.TestWebSocketConnection;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebInterceptor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
 import org.springframework.graphql.web.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.web.webflux.GraphQlWebSocketHandler;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -62,8 +63,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 
 /**
  * Tests for the builders of Web {@code GraphQlClient} extensions, using a
- * {@link WebInterceptor} to capture the WebInput on the server side, and
- * optionally returning a mock response, or an empty response.
+ * {@link WebGraphQlHandlerInterceptor} to capture the WebInput on the server
+ * side, and optionally returning a mock response, or an empty response.
  *
  * <ul>
  * <li>{@link HttpGraphQlClient} via {@link HttpHandlerConnector} to {@link GraphQlHttpHandler}
@@ -98,24 +99,24 @@ public class WebGraphQlClientBuilderTests {
 		WebGraphQlClient client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		WebInput input = builderSetup.getWebInput();
-		assertThat(input.getUri().toString()).isEqualTo(url);
-		assertThat(input.getHeaders().get("h")).containsExactly("one");
+		WebGraphQlRequest request = builderSetup.getWebGraphQlRequest();
+		assertThat(request.getUri().toString()).isEqualTo(url);
+		assertThat(request.getHeaders().get("h")).containsExactly("one");
 
 		// Mutate to add header value
 		builder = client.mutate().headers(headers -> headers.add("h", "two"));
 		client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(builderSetup.getWebInput().getHeaders().get("h")).containsExactly("one", "two");
+		assertThat(builderSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("one", "two");
 
 		// Mutate to replace header
 		builder = client.mutate().header("h", "three", "four");
 		client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		input = builderSetup.getWebInput();
-		assertThat(input.getUri().toString()).isEqualTo(url);
-		assertThat(input.getHeaders().get("h")).containsExactly("three", "four");
+		request = builderSetup.getWebGraphQlRequest();
+		assertThat(request.getUri().toString()).isEqualTo(url);
+		assertThat(request.getHeaders().get("h")).containsExactly("three", "four");
 	}
 
 	@Test
@@ -128,7 +129,7 @@ public class WebGraphQlClientBuilderTests {
 
 		HttpGraphQlClient client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(clientSetup.getWebInput().getHeaders().get("h")).containsExactly("one");
+		assertThat(clientSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("one");
 
 		// Mutate to add header value
 		HttpGraphQlClient.Builder<?> builder2 = client.mutate()
@@ -136,7 +137,7 @@ public class WebGraphQlClientBuilderTests {
 
 		client = builder2.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(clientSetup.getWebInput().getHeaders().get("h")).containsExactly("one", "two");
+		assertThat(clientSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("one", "two");
 
 		// Mutate to replace header
 		HttpGraphQlClient.Builder<?> builder3 = client.mutate()
@@ -144,7 +145,7 @@ public class WebGraphQlClientBuilderTests {
 
 		client = builder3.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(clientSetup.getWebInput().getHeaders().get("h")).containsExactly("three");
+		assertThat(clientSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("three");
 	}
 
 	@ParameterizedTest
@@ -159,15 +160,15 @@ public class WebGraphQlClientBuilderTests {
 		WebGraphQlClient client = builder.build();
 		client.documentName("name").execute().block(TIMEOUT);
 
-		WebInput input = builderSetup.getWebInput();
-		assertThat(input.getDocument()).isEqualTo(DOCUMENT);
+		WebGraphQlRequest request = builderSetup.getWebGraphQlRequest();
+		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
 		client = client.mutate().build();
 		client.documentName("name").execute().block(TIMEOUT);
 
-		input = builderSetup.getWebInput();
-		assertThat(input.getDocument()).isEqualTo(DOCUMENT);
+		request = builderSetup.getWebGraphQlRequest();
+		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 	}
 
 	@ParameterizedTest
@@ -177,7 +178,7 @@ public class WebGraphQlClientBuilderTests {
 		WebGraphQlClient client = builderSetup.initBuilder().url("/graphql one").build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		assertThat(builderSetup.getWebInput().getUri().toString()).isEqualTo("/graphql%20one");
+		assertThat(builderSetup.getWebGraphQlRequest().getUri().toString()).isEqualTo("/graphql%20one");
 	}
 
 	@ParameterizedTest
@@ -197,13 +198,13 @@ public class WebGraphQlClientBuilderTests {
 						.build());
 
 		WebGraphQlClient client = builder.build();
-		GraphQlClient.Response response = client.document(document).execute().block(TIMEOUT);
+		ClientGraphQlResponse response = client.document(document).execute().block(TIMEOUT);
 
 		testDecoder.resetLastValue();
 		assertThat(testDecoder.getLastValue()).isNull();
 
 		assertThat(response).isNotNull();
-		assertThat(response.toEntity("me", MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
+		assertThat(response.field("me").toEntity(MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
 		assertThat(testDecoder.getLastValue()).isEqualTo(character);
 	}
 
@@ -214,20 +215,20 @@ public class WebGraphQlClientBuilderTests {
 
 		void setMockResponse(String document, ExecutionResult result);
 
-		WebInput getWebInput();
+		WebGraphQlRequest getWebGraphQlRequest();
 
 	}
 
 
 	private abstract static class AbstractBuilderSetup implements ClientBuilderSetup {
 
-		private WebInput webInput;
+		private WebGraphQlRequest graphQlRequest;
 
-		private final Map<String, RequestOutput> responses = new HashMap<>();
+		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
 
 		public AbstractBuilderSetup() {
 
-			RequestOutput defaultResponse = new RequestOutput(
+			ExecutionGraphQlResponse defaultResponse = new DefaultExecutionGraphQlResponse(
 					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
 					ExecutionResultImpl.newExecutionResult().build());
 
@@ -235,15 +236,15 @@ public class WebGraphQlClientBuilderTests {
 		}
 
 		protected WebGraphQlHandler webGraphQlHandler() {
-			return WebGraphQlHandler.builder(requestInput -> {
-						String document = requestInput.getDocument();
-						RequestOutput output = this.responses.get(document);
-						Assert.notNull(output, "Unexpected request: " + document);
-						return Mono.just(output);
+			return WebGraphQlHandler.builder(request -> {
+						String document = request.getDocument();
+						ExecutionGraphQlResponse response = this.responses.get(document);
+						Assert.notNull(response, "Unexpected request: " + document);
+						return Mono.just(response);
 					})
-					.interceptor((input, chain) -> {
-						this.webInput = input;
-						return chain.next(webInput);
+					.interceptor((request, chain) -> {
+						this.graphQlRequest = request;
+						return chain.next(graphQlRequest);
 					})
 					.build();
 		}
@@ -251,12 +252,12 @@ public class WebGraphQlClientBuilderTests {
 		@Override
 		public void setMockResponse(String document, ExecutionResult result) {
 			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
-			this.responses.put(document, new RequestOutput(executionInput, result));
+			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
 		}
 
 		@Override
-		public WebInput getWebInput() {
-			return this.webInput;
+		public WebGraphQlRequest getWebGraphQlRequest() {
+			return this.graphQlRequest;
 		}
 
 	}

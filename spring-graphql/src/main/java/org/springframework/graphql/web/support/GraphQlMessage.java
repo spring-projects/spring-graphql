@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
 import org.springframework.graphql.GraphQlRequest;
@@ -63,6 +62,7 @@ public class GraphQlMessage {
 	/**
 	 * Constructor for deserialization.
 	 */
+	@SuppressWarnings("unused")
 	GraphQlMessage() {
 		this.type = GraphQlMessageType.NOT_SPECIFIED;
 	}
@@ -176,11 +176,11 @@ public class GraphQlMessage {
 	/**
 	 * Create a {@code "next"} server message.
 	 * @param id unique request id
-	 * @param result the result from request execution to add as the message payload
+	 * @param responseMap the response map
 	 */
-	public static GraphQlMessage next(String id, ExecutionResult result) {
-		Assert.notNull(result, "ExecutionResult is required");
-		return new GraphQlMessage(id, GraphQlMessageType.NEXT, result.toSpecification());
+	public static GraphQlMessage next(String id, Map<String, Object> responseMap) {
+		Assert.notNull(responseMap, "'responseMap' is required");
+		return new GraphQlMessage(id, GraphQlMessageType.NEXT, responseMap);
 	}
 
 	/**

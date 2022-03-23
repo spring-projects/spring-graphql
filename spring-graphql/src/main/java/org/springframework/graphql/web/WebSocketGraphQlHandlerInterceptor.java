@@ -21,18 +21,19 @@ import reactor.core.publisher.Mono;
 
 
 /**
- * An extension of {@link WebInterceptor} with additional methods to handle the
- * start and end of a WebSocket connection. Only a single interceptor of type
- * {@link WebSocketInterceptor} may be declared.
+ * An extension of {@link WebGraphQlHandlerInterceptor} with additional methods
+ * to handle the start and end of a WebSocket connection. Only a single
+ * interceptor of type {@link WebSocketGraphQlHandlerInterceptor} may be
+ * declared.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface WebSocketInterceptor extends WebInterceptor {
+public interface WebSocketGraphQlHandlerInterceptor extends WebGraphQlHandlerInterceptor {
 
 	@Override
-	default Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
-		return chain.next(webInput);
+	default Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
+		return chain.next(request);
 	}
 
 	/**
@@ -56,7 +57,7 @@ public interface WebSocketInterceptor extends WebInterceptor {
 	 * additional, or more centralized handling across subscriptions.
 	 * @param sessionId the id of the WebSocket session
 	 * @param subscriptionId the unique id for the subscription; correlates to the
-	 * {@link WebInput#getId() requestId} from the original {@code "subscribe"}
+	 * {@link WebGraphQlRequest#getId() requestId} from the original {@code "subscribe"}
 	 * message that started the subscription
 	 * @return {@code Mono} for the completion of handling
 	 */

@@ -121,7 +121,7 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting predicate
 	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
+	@SuppressWarnings({"unchecked"})
 	protected Predicate buildPredicate(DataFetchingEnvironment environment) {
 		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
 		QuerydslBindings bindings = new QuerydslBindings();
@@ -135,7 +135,7 @@ public abstract class QuerydslDataFetcher<T> {
 			parameters.put(entry.getKey(), values);
 		}
 
-		return BUILDER.getPredicate(this.domainType, (MultiValueMap) parameters, bindings);
+		return BUILDER.getPredicate(this.domainType, parameters, bindings);
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {
@@ -341,8 +341,8 @@ public abstract class QuerydslDataFetcher<T> {
 		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
 		 *
-		 * @param customizer to customize GraphQL request input to Querydsl
-		 * Predicate binding with
+		 * @param customizer to customize the binding of the GraphQL request to
+		 * Querydsl Predicate
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code QuerydslBinderCustomizer} applied
 		 */

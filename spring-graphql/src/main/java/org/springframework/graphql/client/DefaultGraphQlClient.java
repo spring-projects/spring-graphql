@@ -13,30 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
-import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.TypeRef;
-import graphql.ExecutionResult;
-import graphql.GraphQLError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.ResolvableType;
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * Default, final {@link GraphQlClient} implementation for use with any transport.
@@ -46,74 +38,52 @@ import org.springframework.util.StringUtils;
  */
 final class DefaultGraphQlClient implements GraphQlClient {
 
-	private final GraphQlTransport transport;
-
-	private final Configuration jsonPathConfig;
-
 	private final DocumentSource documentSource;
 
-	private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
+	private final GraphQlClientInterceptor.Chain executeChain;
+
+	private final GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain;
 
 
 	DefaultGraphQlClient(
-			GraphQlTransport transport, Configuration jsonPathConfig, DocumentSource documentSource,
-			Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
+			DocumentSource documentSource, GraphQlClientInterceptor.Chain executeChain,
+			GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain) {
 
-		Assert.notNull(transport, "GraphQlTransport is required");
-		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
 		Assert.notNull(documentSource, "DocumentSource is required");
-		Assert.notNull(builderInitializer, "`builderInitializer` is required");
+		Assert.notNull(executeChain, "GraphQlClientInterceptor.Chain is required");
+		Assert.notNull(executeSubscriptionChain, "GraphQlClientInterceptor.SubscriptionChain is required");
 
-		this.transport = transport;
-		this.jsonPathConfig = jsonPathConfig;
 		this.documentSource = documentSource;
-		this.builderInitializer = builderInitializer;
+		this.executeChain = executeChain;
+		this.executeSubscriptionChain = executeSubscriptionChain;
 	}
 
 
 	@Override
-	public Request document(String document) {
-		return new DefaultRequest(Mono.just(document), this.transport, this.jsonPathConfig);
+	public RequestSpec document(String document) {
+		return new DefaultRequestSpec(Mono.just(document));
 	}
 
 	@Override
-	public Request documentName(String name) {
-		Mono<String> document = this.documentSource.getDocument(name);
-		return new DefaultRequest(document, this.transport, this.jsonPathConfig);
+	public RequestSpec documentName(String name) {
+		return new DefaultRequestSpec(this.documentSource.getDocument(name));
 	}
 
+	/**
+	 * The default client is unaware of transport details, and cannot implement
+	 * mutate directly. It should be wrapped from transport aware extensions via
+	 * {@link AbstractDelegatingGraphQlClient} that also implement mutate.
+	 */
 	@Override
-	public Builder mutate() {
-		Builder builder = new Builder(this.transport);
-		this.builderInitializer.accept(builder);
-		return builder;
+	public Builder<?> mutate() {
+		throw new UnsupportedOperationException();
 	}
 
 
 	/**
-	 * Default {@link GraphQlClient.Builder} with a given transport.
+	 * Default {@link RequestSpec} implementation.
 	 */
-	static final class Builder extends AbstractGraphQlClientBuilder<Builder> {
-
-		private final GraphQlTransport transport;
-
-		Builder(GraphQlTransport transport) {
-			Assert.notNull(transport, "GraphQlTransport is required");
-			this.transport = transport;
-		}
-
-		@Override
-		public GraphQlClient build() {
-			return super.buildGraphQlClient(this.transport);
-		}
-
-	}
-
-
-	/**
-	 * Default {@link GraphQlClient.Request} implementation.
-	 */
-	private static final class DefaultRequest implements Request {
+	private final class DefaultRequestSpec implements RequestSpec {
 
 		private final Mono<String> documentMono;
 
@@ -122,144 +92,175 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
-		private final GraphQlTransport transport;
+		private final Map<String, Object> attributes = new LinkedHashMap<>();
 
-		private final Configuration jsonPathConfig;
-
-		DefaultRequest(Mono<String> documentMono, GraphQlTransport transport, Configuration jsonPathConfig) {
+		DefaultRequestSpec(Mono<String> documentMono) {
 			Assert.notNull(documentMono, "'document' is required");
 			this.documentMono = documentMono;
-			this.transport = transport;
-			this.jsonPathConfig = jsonPathConfig;
 		}
 
 		@Override
-		public DefaultRequest operationName(@Nullable String operationName) {
+		public DefaultRequestSpec operationName(@Nullable String operationName) {
 			this.operationName = operationName;
 			return this;
 		}
 
 		@Override
-		public DefaultRequest variable(String name, Object value) {
+		public DefaultRequestSpec variable(String name, @Nullable Object value) {
 			this.variables.put(name, value);
 			return this;
 		}
 
 		@Override
-		public Request variables(Map<String, Object> variables) {
+		public RequestSpec variables(Map<String, Object> variables) {
 			this.variables.putAll(variables);
 			return this;
 		}
 
 		@Override
-		public Mono<Response> execute() {
-			return getRequestMono()
-					.flatMap(this.transport::execute)
-					.map(payload -> new DefaultResponse(payload, this.jsonPathConfig));
+		public RequestSpec attribute(String name, Object value) {
+			this.attributes.put(name, value);
+			return this;
 		}
 
 		@Override
-		public Flux<Response> executeSubscription() {
-			return getRequestMono()
-					.flatMapMany(this.transport::executeSubscription)
-					.map(payload -> new DefaultResponse(payload, this.jsonPathConfig));
+		public RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer) {
+			attributesConsumer.accept(this.attributes);
+			return this;
 		}
 
-		private Mono<GraphQlRequest> getRequestMono() {
+		@Override
+		public RetrieveSpec retrieve(String path) {
+			return new DefaultRetrieveSpec(execute(), path);
+		}
+
+		@Override
+		public RetrieveSubscriptionSpec retrieveSubscription(String path) {
+			return new DefaultRetrieveSubscriptionSpec(executeSubscription(), path);
+		}
+
+		@Override
+		public Mono<ClientGraphQlResponse> execute() {
+			return initRequest().flatMap(request -> executeChain.next(request)
+					.onErrorResume(
+							ex -> !(ex instanceof GraphQlClientException),
+							ex -> Mono.error(new GraphQlTransportException(ex, request))));
+		}
+
+		@Override
+		public Flux<ClientGraphQlResponse> executeSubscription() {
+			return initRequest().flatMapMany(request -> executeSubscriptionChain.next(request)
+					.onErrorResume(
+							ex -> !(ex instanceof GraphQlClientException),
+							ex -> Mono.error(new GraphQlTransportException(ex, request))));
+		}
+
+		private Mono<ClientGraphQlRequest> initRequest() {
 			return this.documentMono.map(document ->
-					new GraphQlRequest(document, this.operationName, this.variables));
+					new DefaultClientGraphQlRequest(document, this.operationName, this.variables, this.attributes));
 		}
 
 	}
 
 
-	/**
-	 * Default {@link GraphQlClient.Response} implementation.
-	 */
-	private static class DefaultResponse implements Response {
+	private static class RetrieveSpecSupport {
 
-		private final ExecutionResult result;
+		private final String path;
 
-		private final DocumentContext jsonPathDoc;
-
-		private final List<GraphQLError> errors;
-
-		private DefaultResponse(ExecutionResult result, Configuration jsonPathConfig) {
-			this.result = result;
-			this.jsonPathDoc = JsonPath.parse(result.toSpecification(), jsonPathConfig);
-			this.errors = result.getErrors();
+		protected RetrieveSpecSupport(String path) {
+			this.path = path;
 		}
 
-		@Override
-		public <D> D toEntity(String path, Class<D> entityType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
-		}
-
-		@Override
-		public <D> D toEntity(String path, ParameterizedTypeReference<D> entityType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(entityType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(String path, Class<D> elementType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
-		}
-
-		@Override
-		public <D> List<D> toEntityList(String path, ParameterizedTypeReference<D> elementType) {
-			return this.jsonPathDoc.read(initJsonPath(path), new TypeRefAdapter<>(List.class, elementType));
-		}
-
-		private static JsonPath initJsonPath(String path) {
-			if (!StringUtils.hasText(path)) {
-				path = "$.data";
+		/**
+		 * Return the field if valid, or {@code null} if {@code null} without errors.
+		 * @throws FieldAccessException for invalid response or failed field
+		 */
+		@Nullable
+		protected ClientResponseField getValidField(ClientGraphQlResponse response) {
+			ClientResponseField field = response.field(this.path);
+			if (!response.isValid() || field.getError() != null) {
+				throw new FieldAccessException(
+						((DefaultClientGraphQlResponse) response).getRequest(), response, field);
 			}
-			else if (!path.startsWith("$") && !path.startsWith("data.")) {
-				path = "$.data." + path;
-			}
-			return JsonPath.compile(path);
-		}
-
-		@Override
-		public List<GraphQLError> errors() {
-			return this.errors;
-		}
-
-		@Override
-		public ExecutionResult andReturn() {
-			return this.result;
+			return (field.hasValue() ? field : null);
 		}
 
 	}
 
 
-	/**
-	 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
-	 */
-	private static final class TypeRefAdapter<T> extends TypeRef<T> {
+	private static class DefaultRetrieveSpec extends RetrieveSpecSupport implements RetrieveSpec {
 
-		private final Type type;
+		private final Mono<ClientGraphQlResponse> responseMono;
 
-		TypeRefAdapter(Class<T> clazz) {
-			this.type = clazz;
-		}
-
-		TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
-			this.type = typeReference.getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, Class<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
+		DefaultRetrieveSpec(Mono<ClientGraphQlResponse> responseMono, String path) {
+			super(path);
+			this.responseMono = responseMono;
 		}
 
 		@Override
-		public Type getType() {
-			return this.type;
+		public <D> Mono<D> toEntity(Class<D> entityType) {
+			return this.responseMono.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType) {
+			return this.responseMono.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Mono<List<D>> toEntityList(Class<D> elementType) {
+			return this.responseMono.map(response -> {
+				ClientResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
+		}
+
+		@Override
+		public <D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
+			return this.responseMono.map(response -> {
+				ClientResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
 		}
 
 	}
+
+
+	private static class DefaultRetrieveSubscriptionSpec extends RetrieveSpecSupport implements RetrieveSubscriptionSpec {
+
+		private final Flux<ClientGraphQlResponse> responseFlux;
+
+		DefaultRetrieveSubscriptionSpec(Flux<ClientGraphQlResponse> responseFlux, String path) {
+			super(path);
+			this.responseFlux = responseFlux;
+		}
+
+		@Override
+		public <D> Flux<D> toEntity(Class<D> entityType) {
+			return this.responseFlux.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType) {
+			return this.responseFlux.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+		}
+
+		@Override
+		public <D> Flux<List<D>> toEntityList(Class<D> elementType) {
+			return this.responseFlux.map(response -> {
+				ClientResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
+		}
+
+		@Override
+		public <D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType) {
+			return this.responseFlux.map(response -> {
+				ClientResponseField field = getValidField(response);
+				return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+			});
+		}
+
+	}
+
 }

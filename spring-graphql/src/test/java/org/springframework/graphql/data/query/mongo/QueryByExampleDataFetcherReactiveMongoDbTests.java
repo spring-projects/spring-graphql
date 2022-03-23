@@ -41,13 +41,13 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
+import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebOutput;
+import org.springframework.graphql.web.WebGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.test.context.ContextConfiguration;
@@ -76,8 +76,9 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		repository.save(book).block();
 
 		Consumer<GraphQlSetup> tester = setup -> {
-			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ bookById(id: 42) {name}}"));
-			Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+			WebGraphQlRequest request = request("{ bookById(id: 42) {name}}");
+			Mono<WebGraphQlResponse> responseMono = setup.toWebGraphQlHandler().handleRequest(request);
+			Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 
 			assertThat(actualBook.getName()).isEqualTo(book.getName());
 		};
@@ -97,9 +98,9 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookProjection.class).single();
 		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
 
-		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
+		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
@@ -111,9 +112,9 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookDto.class).single();
 		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
 
-		Mono<WebOutput> outputMono = handler.handleRequest(input("{ bookById(id: 42) {name}}"));
+		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 42) {name}}"));
 
-		Book actualBook = GraphQlResponse.from(outputMono).toEntity("bookById", Book.class);
+		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
 	}
 
@@ -124,9 +125,10 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		repository.saveAll(Flux.just(book1, book2)).blockLast();
 
 		Consumer<GraphQlSetup> tester = setup -> {
-			Mono<WebOutput> outputMono = setup.toWebGraphQlHandler().handleRequest(input("{ books {name}}"));
+			WebGraphQlRequest request = request("{ books {name}}");
+			Mono<WebGraphQlResponse> responseMono = setup.toWebGraphQlHandler().handleRequest(request);
 
-			List<String> names = GraphQlResponse.from(outputMono).toList("books", Book.class)
+			List<String> names = ResponseHelper.forResponse(responseMono).toList("books", Book.class)
 					.stream().map(Book::getName).collect(Collectors.toList());
 
 			assertThat(names).containsExactlyInAnyOrder("Breaking Bad", "Hitchhiker's Guide to the Galaxy");
@@ -156,8 +158,9 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
 	}
 
-	private WebInput input(String query) {
-		return new WebInput(URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
+	private WebGraphQlRequest request(String query) {
+		return new WebGraphQlRequest(
+				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
 	}
 
 

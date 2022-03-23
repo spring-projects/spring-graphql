@@ -19,42 +19,36 @@ package org.springframework.graphql.test.tester;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.GraphQlService;
-import org.springframework.graphql.RequestInput;
-import org.springframework.graphql.RequestOutput;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.util.Assert;
 
 
 /**
- * {@code GraphQlTransport} that calls directly a {@link GraphQlService}.
+ * {@code GraphQlTransport} that calls directly a {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class GraphQlServiceTransport extends AbstractDirectTransport {
+final class GraphQlServiceGraphQlTransport extends AbstractDirectGraphQlTransport {
 
-	private final GraphQlService graphQlService;
+	private final ExecutionGraphQlService graphQlService;
 
 
-	GraphQlServiceTransport(GraphQlService graphQlService) {
+	GraphQlServiceGraphQlTransport(ExecutionGraphQlService graphQlService) {
 		Assert.notNull(graphQlService, "GraphQlService is required");
 		this.graphQlService = graphQlService;
 	}
 
 
-	public GraphQlService getGraphQlService() {
+	public ExecutionGraphQlService getGraphQlService() {
 		return this.graphQlService;
 	}
 
 	@Override
-	protected Mono<RequestOutput> executeInternal(GraphQlRequest request) {
-
-		RequestInput requestInput = new RequestInput(
-				request.getDocument(), request.getOperationName(), request.getVariables(),
-				idGenerator.generateId().toString(), null);
-
-		return this.graphQlService.execute(requestInput);
+	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest request) {
+		return this.graphQlService.execute(request);
 	}
 
 }

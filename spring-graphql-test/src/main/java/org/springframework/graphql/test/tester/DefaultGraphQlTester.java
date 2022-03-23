@@ -31,13 +31,14 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.TypeRef;
-import graphql.ExecutionResult;
-import graphql.GraphQLError;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.test.util.AssertionErrors;
@@ -61,7 +62,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	private final GraphQlTransport transport;
 
 	@Nullable
-	private final Predicate<GraphQLError> errorFilter;
+	private final Predicate<ResponseError> errorFilter;
 
 	private final Configuration jsonPathConfig;
 
@@ -69,28 +70,23 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 	private final Duration responseTimeout;
 
-	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
-
 
 	/**
 	 * Package private constructor for use from {@link AbstractGraphQlTesterBuilder}.
 	 */
 	DefaultGraphQlTester(
-			GraphQlTransport transport, @Nullable Predicate<GraphQLError> errorFilter,
-			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout,
-			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
+			GraphQlTransport transport, @Nullable Predicate<ResponseError> errorFilter,
+			Configuration jsonPathConfig, DocumentSource documentSource, Duration timeout) {
 
 		Assert.notNull(transport, "GraphQlTransport is required");
 		Assert.notNull(jsonPathConfig, "JSONPath Configuration is required");
 		Assert.notNull(documentSource, "DocumentSource is required");
-		Assert.notNull(builderInitializer, "`builderInitializer` is required");
 
 		this.transport = transport;
 		this.errorFilter = errorFilter;
 		this.jsonPathConfig = jsonPathConfig;
 		this.documentSource = documentSource;
 		this.responseTimeout = timeout;
-		this.builderInitializer = builderInitializer;
 	}
 
 
@@ -106,30 +102,14 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		return document(document);
 	}
 
-	@Override
-	public Builder mutate() {
-		Builder builder = new Builder(this.transport);
-		this.builderInitializer.accept(builder);
-		return builder;
-	}
-
-
 	/**
-	 * Default {@link GraphQlTester.Builder} with a given transport.
+	 * The default tester is unaware of transport details, and cannot implement
+	 * mutate directly. It should be wrapped from transport aware extensions via
+	 * {@link AbstractDelegatingGraphQlTester} that also implement mutate.
 	 */
-	static final class Builder extends AbstractGraphQlTesterBuilder<Builder> {
-
-		private final GraphQlTransport transport;
-
-		Builder(GraphQlTransport transport) {
-			this.transport = transport;
-		}
-
-		@Override
-		public GraphQlTester build() {
-			return super.buildGraphQlTester(this.transport);
-		}
-
+	@Override
+	public Builder<?> mutate() {
+		throw new UnsupportedOperationException();
 	}
 
 
@@ -165,7 +145,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@SuppressWarnings("ConstantConditions")
 		@Override
 		public Response execute() {
-			return transport.execute(request()).map(result -> response(result, request())).block(responseTimeout);
+			return transport.execute(request()).map(response -> mapResponse(response, request())).block(responseTimeout);
 		}
 
 		@Override
@@ -175,15 +155,15 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public Subscription executeSubscription() {
-			return () -> transport.executeSubscription(request()).map(result -> response(result, request()));
+			return () -> transport.executeSubscription(request()).map(result -> mapResponse(result, request()));
 		}
 
 		private GraphQlRequest request() {
-			return new GraphQlRequest(this.document, this.operationName, this.variables);
+			return new DefaultGraphQlRequest(this.document, this.operationName, this.variables);
 		}
 
-		private DefaultResponse response(ExecutionResult result, GraphQlRequest request) {
-			return new DefaultResponse(result, errorFilter, assertDecorator(request), jsonPathConfig);
+		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {
+			return new DefaultResponse(response, errorFilter, assertDecorator(request), jsonPathConfig);
 		}
 
 		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {
@@ -209,20 +189,20 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Supplier<String> jsonContent;
 
-		private final List<GraphQLError> errors;
+		private final List<ResponseError> errors;
 
-		private final List<GraphQLError> unexpectedErrors;
+		private final List<ResponseError> unexpectedErrors;
 
 		private final Consumer<Runnable> assertDecorator;
 
 
 		private ResponseDelegate(
-				ExecutionResult result, @Nullable Predicate<GraphQLError> errorFilter,
+				GraphQlResponse response, @Nullable Predicate<ResponseError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
-			this.jsonDoc = JsonPath.parse(result.toSpecification(), jsonPathConfig);
+			this.jsonDoc = JsonPath.parse(response.toMap(), jsonPathConfig);
 			this.jsonContent = this.jsonDoc::jsonString;
-			this.errors = result.getErrors();
+			this.errors = response.getErrors();
 			this.unexpectedErrors = new ArrayList<>(this.errors);
 			this.assertDecorator = assertDecorator;
 
@@ -253,9 +233,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			this.assertDecorator.accept(task);
 		}
 
-		boolean filterErrors(Predicate<GraphQLError> predicate) {
+		boolean filterErrors(Predicate<ResponseError> predicate) {
 			boolean filtered = false;
-			for (GraphQLError error : this.errors) {
+			for (ResponseError error : this.errors) {
 				if (predicate.test(error)) {
 					this.unexpectedErrors.remove(error);
 					filtered = true;
@@ -264,12 +244,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			return filtered;
 		}
 
-		void expectErrors(Predicate<GraphQLError> predicate) {
+		void expectErrors(Predicate<ResponseError> predicate) {
 			boolean filtered = filterErrors(predicate);
 			this.assertDecorator.accept(() -> AssertionErrors.assertTrue("No matching errors.", filtered));
 		}
 
-		void consumeErrors(Consumer<List<GraphQLError>> consumer) {
+		void consumeErrors(Consumer<List<ResponseError>> consumer) {
 			filterErrors(error -> true);
 			consumer.accept(this.errors);
 		}
@@ -293,10 +273,10 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private final ResponseDelegate delegate;
 
 		private DefaultResponse(
-				ExecutionResult result, @Nullable Predicate<GraphQLError> errorFilter,
+				GraphQlResponse response, @Nullable Predicate<ResponseError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
-			this.delegate = new ResponseDelegate(result, errorFilter, assertDecorator, jsonPathConfig);
+			this.delegate = new ResponseDelegate(response, errorFilter, assertDecorator, jsonPathConfig);
 		}
 
 		@Override
@@ -311,13 +291,13 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public Errors filter(Predicate<GraphQLError> predicate) {
+		public Errors filter(Predicate<ResponseError> predicate) {
 			this.delegate.filterErrors(predicate);
 			return this;
 		}
 
 		@Override
-		public Errors expect(Predicate<GraphQLError> predicate) {
+		public Errors expect(Predicate<ResponseError> predicate) {
 			this.delegate.expectErrors(predicate);
 			return this;
 		}
@@ -329,7 +309,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public Traversable satisfy(Consumer<List<GraphQLError>> consumer) {
+		public Traversable satisfy(Consumer<List<ResponseError>> consumer) {
 			this.delegate.consumeErrors(consumer);
 			return this;
 		}
@@ -376,38 +356,25 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public Path pathExists() {
-			this.delegate.doAssert(() -> this.pathHelper.hasJsonPath(this.delegate.jsonContent()));
+		public Path hasValue() {
+			this.delegate.doAssert(() -> this.pathHelper.exists(this.delegate.jsonContent()));
+			return this;
+		}
+
+		@Override
+		public Path valueIsNull() {
+			Assert.isTrue(this.jsonPath.isDefinite(), "isNull applies only to JSONPath targeting a single value");
+			this.delegate.doAssert(() -> {
+				Object value = this.pathHelper.evaluateJsonPath(this.delegate.jsonContent());
+				AssertionErrors.assertNull(
+						"Expected null value at JSON path \"" + path + "\" but found " + value, value);
+			});
 			return this;
 		}
 
 		@Override
 		public Path pathDoesNotExist() {
 			this.delegate.doAssert(() -> this.pathHelper.doesNotHaveJsonPath(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueExists() {
-			this.delegate.doAssert(() -> this.pathHelper.exists(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueDoesNotExist() {
-			this.delegate.doAssert(() -> this.pathHelper.doesNotExist(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueIsEmpty() {
-			this.delegate.doAssert(() -> this.pathHelper.assertValueIsEmpty(this.delegate.jsonContent()));
-			return this;
-		}
-
-		@Override
-		public Path valueIsNotEmpty() {
-			this.delegate.doAssert(() -> this.pathHelper.assertValueIsNotEmpty(this.delegate.jsonContent()));
 			return this;
 		}
 
@@ -561,9 +528,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public EntityList<E> contains(E... elements) {
+		public EntityList<E> contains(E... values) {
 			doAssert(() -> {
-				List<E> expected = Arrays.asList(elements);
+				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue("List at path '" + getPath() + "' does not contain " + expected,
 						getEntity().containsAll(expected));
 			});
@@ -572,9 +539,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public EntityList<E> doesNotContain(E... elements) {
+		public EntityList<E> doesNotContain(E... values) {
 			doAssert(() -> {
-				List<E> expected = Arrays.asList(elements);
+				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue(
 						"List at path '" + getPath() + "' should not have contained " + expected,
 						!getEntity().containsAll(expected));
@@ -584,12 +551,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public EntityList<E> containsExactly(E... elements) {
+		public EntityList<E> containsExactly(E... values) {
 			doAssert(() -> {
-				List<E> expected = Arrays.asList(elements);
+				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue(
 						"List at path '" + getPath() + "' should have contained exactly " + expected,
-						getEntity().containsAll(expected));
+						getEntity().equals(expected));
 			});
 			return this;
 		}
@@ -602,18 +569,18 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public EntityList<E> hasSizeLessThan(int boundary) {
+		public EntityList<E> hasSizeLessThan(int size) {
 			doAssert(() -> AssertionErrors.assertTrue(
-					"List at path '" + getPath() + "' should have size less than " + boundary,
-					getEntity().size() < boundary));
+					"List at path '" + getPath() + "' should have size less than " + size,
+					getEntity().size() < size));
 			return this;
 		}
 
 		@Override
-		public EntityList<E> hasSizeGreaterThan(int boundary) {
+		public EntityList<E> hasSizeGreaterThan(int size) {
 			doAssert(() -> AssertionErrors.assertTrue(
-					"List at path '" + getPath() + "' should have size greater than " + boundary,
-					getEntity().size() > boundary));
+					"List at path '" + getPath() + "' should have size greater than " + size,
+					getEntity().size() > size));
 			return this;
 		}
 	}

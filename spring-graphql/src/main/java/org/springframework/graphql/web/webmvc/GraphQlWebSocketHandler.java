@@ -44,11 +44,10 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebInput;
-import org.springframework.graphql.web.WebOutput;
-import org.springframework.graphql.web.WebSocketInterceptor;
+import org.springframework.graphql.web.WebGraphQlRequest;
+import org.springframework.graphql.web.WebGraphQlResponse;
+import org.springframework.graphql.web.WebSocketGraphQlHandlerInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
-import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -82,7 +81,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	private final WebSocketInterceptor webSocketInterceptor;
+	private final WebSocketGraphQlHandlerInterceptor webSocketInterceptor;
 
 	private final Duration initTimeoutDuration;
 
@@ -157,12 +156,12 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				URI uri = session.getUri();
 				Assert.notNull(uri, "Expected handshake url");
 				HttpHeaders headers = session.getHandshakeHeaders();
-				WebInput input = new WebInput(uri, headers, payload, id, null);
+				WebGraphQlRequest request = new WebGraphQlRequest(uri, headers, payload, id, null);
 				if (logger.isDebugEnabled()) {
-					logger.debug("Executing: " + input);
+					logger.debug("Executing: " + request);
 				}
-				this.graphQlHandler.handleRequest(input)
-						.flatMapMany((output) -> handleWebOutput(session, input.getId(), output))
+				this.graphQlHandler.handleRequest(request)
+						.flatMapMany((response) -> handleResponse(session, request.getId(), response))
 						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 						.subscribe(new SendMessageSubscriber(id, session, sessionState));
 				return;
@@ -220,16 +219,17 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 	@SuppressWarnings("unchecked")
-	private Flux<TextMessage> handleWebOutput(WebSocketSession session, String id, WebOutput output) {
+	private Flux<TextMessage> handleResponse(WebSocketSession session, String id, WebGraphQlResponse response) {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Execution result ready"
-					+ (!CollectionUtils.isEmpty(output.getErrors()) ? " with errors: " + output.getErrors() : "")
+					+ (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
 					+ ".");
 		}
-		Flux<ExecutionResult> outputFlux;
-		if (output.getData() instanceof Publisher) {
+		Flux<Map<String, Object>> responseFlux;
+		if (response.getData() instanceof Publisher) {
 			// Subscription
-			outputFlux = Flux.from((Publisher<ExecutionResult>) output.getData())
+			responseFlux = Flux.from((Publisher<ExecutionResult>) response.getData())
+					.map(ExecutionResult::toSpecification)
 					.doOnSubscribe((subscription) -> {
 							Subscription prev = getSessionInfo(session).getSubscriptions().putIfAbsent(id, subscription);
 							if (prev != null) {
@@ -239,11 +239,11 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		}
 		else {
 			// Single response (query or mutation) that may contain errors
-			outputFlux = Flux.just(output);
+			responseFlux = Flux.just(response.toMap());
 		}
 
-		return outputFlux
-				.map(result -> encode(GraphQlMessage.next(id, result)))
+		return responseFlux
+				.map(responseMap -> encode(GraphQlMessage.next(id, responseMap)))
 				.concatWith(Mono.fromCallable(() -> encode(GraphQlMessage.complete(id))))
 				.onErrorResume((ex) -> {
 						if (ex instanceof SubscriptionExistsException) {

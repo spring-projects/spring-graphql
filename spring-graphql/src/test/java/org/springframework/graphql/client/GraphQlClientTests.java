@@ -15,17 +15,26 @@
  */
 package org.springframework.graphql.client;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import graphql.execution.NonNullableValueCoercedAsNullException;
+import graphql.execution.ResultPath;
+import graphql.schema.GraphQLObjectType;
+import graphql.validation.ValidationError;
+import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 /**
@@ -36,96 +45,176 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GraphQlClientTests extends GraphQlClientTestSupport {
 
 	@Test
-	void entity() {
-		String document = "{me {name}}";
-		setMockResponse("{\"me\": {\"name\":\"Luke Skywalker\"}}");
+	void retrieveEntity() {
 
-		GraphQlClient.Response response = execute(document);
+		String document = "mockRequest1";
+		initDataResponse(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
-		MovieCharacter luke = MovieCharacter.create("Luke Skywalker");
-		assertThat(response.toEntity("me", MovieCharacter.class)).isEqualTo(luke);
+		MovieCharacter movieCharacter = graphQlClient().document(document)
+				.retrieve("me").toEntity(MovieCharacter.class)
+				.block(TIMEOUT);
 
-		Map<String, MovieCharacter> map = response.toEntity("", new ParameterizedTypeReference<Map<String, MovieCharacter>>() {});
-		assertThat(map).containsEntry("me", luke);
-
-		assertThat(request().getDocument()).contains(document);
+		assertThat(movieCharacter).isEqualTo(MovieCharacter.create("Luke Skywalker"));
 	}
 
 	@Test
-	void entityList() {
+	void retrieveEntityList() {
 
-		String document = "{me {name, friends}}";
-		setMockResponse("{" +
+		String document = "mockRequest1";
+		initDataResponse(document, "{" +
 				"  \"me\":{" +
 				"      \"name\":\"Luke Skywalker\","
-				+ "      \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
 				"  }" +
 				"}");
 
-		GraphQlClient.Response response = execute(document);
-
-		MovieCharacter han = MovieCharacter.create("Han Solo");
-		MovieCharacter leia = MovieCharacter.create("Leia Organa");
-
-		List<MovieCharacter> characters = response.toEntityList("me.friends", MovieCharacter.class);
-		assertThat(characters).containsExactly(han, leia);
-
-		characters = response.toEntityList("me.friends", new ParameterizedTypeReference<MovieCharacter>() {});
-		assertThat(characters).containsExactly(han, leia);
-
-		assertThat(request().getDocument()).contains(document);
-	}
-
-	@Test
-	void operationNameAndVariables() {
-
-		String document = "query HeroNameAndFriends($episode: Episode) {" +
-				"  hero(episode: $episode) {" +
-				"    name"
-				+ "  }" +
-				"}";
-		setMockResponse("{\"hero\": {\"name\":\"R2-D2\"}}");
-
-		GraphQlClient.Response response = graphQlClient().document(document)
-				.operationName("HeroNameAndFriends")
-				.variable("episode", "JEDI")
-				.variable("foo", "bar")
-				.variable("keyOnly", null)
-				.execute()
+		List<MovieCharacter> movieCharacters = graphQlClient().document(document)
+				.retrieve("me.friends")
+				.toEntityList(MovieCharacter.class)
 				.block(TIMEOUT);
 
-		assertThat(response).isNotNull();
-
-		MovieCharacter character = response.toEntity("hero", MovieCharacter.class);
-		assertThat(character).isEqualTo(MovieCharacter.create("R2-D2"));
-
-		GraphQlRequest request = request();
-		assertThat(request.getDocument()).contains(document);
-		assertThat(request.getOperationName()).isEqualTo("HeroNameAndFriends");
-		assertThat(request.getVariables()).hasSize(3);
-		assertThat(request.getVariables()).containsEntry("episode", "JEDI");
-		assertThat(request.getVariables()).containsEntry("foo", "bar");
-		assertThat(request.getVariables()).containsEntry("keyOnly", null);
+		assertThat(movieCharacters).containsExactly(
+				MovieCharacter.create("Han Solo"), MovieCharacter.create("Leia Organa"));
 	}
 
 	@Test
-	void errors() {
+	void retrieveAndDecodeDataMap() {
 
-		String document = "{me {name, friends}}";
-		setMockResponse(
-				GraphqlErrorBuilder.newError().message("some error").build(),
-				GraphqlErrorBuilder.newError().message("some other error").build());
+		String document = "mockRequest1";
+		initDataResponse(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
-		GraphQlClient.Response response = execute(document);
+		Map<String, MovieCharacter> map = graphQlClient().document(document)
+				.retrieve("").toEntity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
+				.block(TIMEOUT);
 
-		assertThat(response.errors()).extracting(GraphQLError::getMessage)
-				.containsExactly("some error", "some other error");
+		assertThat(map).containsEntry("me", MovieCharacter.create("Luke Skywalker"));
 	}
 
-	private GraphQlClient.Response execute(String document) {
-		GraphQlClient.Response response = graphQlClient().document(document).execute().block(TIMEOUT);
+	@Test
+	void retrieveWithOperationNameAndVariables() {
+
+		String document = "mockRequest1";
+		String operationName = "HeroNameAndFriends";
+
+		Map<String, Object> vars = new HashMap<>();
+		vars.put("episode", "JEDI");
+		vars.put("foo", "bar");
+		vars.put("keyOnly", null);
+
+		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
+		initResponse(request, "{\"hero\": {\"name\":\"R2-D2\"}}");
+
+		MovieCharacter character = graphQlClient().document(document)
+				.operationName(operationName)
+				.variables(vars)
+				.variable("keyOnly", null)
+				.retrieve("hero")
+				.toEntity(MovieCharacter.class)
+				.block(TIMEOUT);
+
+		assertThat(character).isEqualTo(MovieCharacter.create("R2-D2"));
+	}
+
+	@Test
+	void retrieveInvalidResponse() {
+
+		String document = "errorsOnlyResponse";
+		initErrorResponse(document, new ValidationError(ValidationErrorType.InvalidSyntax));
+		testRetrieveFieldAccessException(document, "me");
+
+		document = "nullDataResponse";
+		GraphQLObjectType type = GraphQLObjectType.newObject().name("n").build();
+		initResponse(document, "null", new NonNullableValueCoercedAsNullException("f", new ArrayList<>(), type));
+		testRetrieveFieldAccessException(document, "me");
+	}
+
+	@Test
+	void retrievePartialResponse() {
+
+		String document = "fieldErrorResponse";
+		initResponse(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
+
+		MovieCharacter character = graphQlClient().document(document).retrieve("me").toEntity(MovieCharacter.class).block();
+		assertThat(character).isNotNull().extracting(MovieCharacter::getName).isNull();
+
+		testRetrieveFieldAccessException(document, "me.name");
+	}
+
+	private void testRetrieveFieldAccessException(String document, String path) {
+		assertThatThrownBy(() ->
+				graphQlClient().document(document)
+						.retrieve(path).toEntity(MovieCharacter.class)
+						.block(TIMEOUT))
+				.isInstanceOf(FieldAccessException.class);
+	}
+
+	@Test
+	void executeInvalidResponse() {
+
+		String document = "errorsOnlyResponse";
+		initErrorResponse(document, new ValidationError(ValidationErrorType.InvalidSyntax));
+		testExecuteFailedResponse(document);
+
+		document = "nullDataResponse";
+		GraphQLObjectType type = GraphQLObjectType.newObject().name("n").build();
+		initResponse(document, "null", new NonNullableValueCoercedAsNullException("f", new ArrayList<>(), type));
+		testExecuteFailedResponse(document);
+	}
+
+	private void testExecuteFailedResponse(String document) {
+
+		ClientGraphQlResponse response =
+				graphQlClient().document(document).execute().block(TIMEOUT);
+
 		assertThat(response).isNotNull();
-		return response;
+		assertThat(response.isValid()).isFalse();
+		assertThat(response.field("me").hasValue()).isFalse();
+
+		assertThatThrownBy(() -> response.field("me").toEntity(MovieCharacter.class))
+				.isInstanceOf(FieldAccessException.class);
+	}
+
+	@Test
+	void executePartialResponse() {
+
+		String document = "fieldErrorResponse";
+		initResponse(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
+		testRetrieveFieldAccessException(document, "me.name");
+
+		ClientGraphQlResponse response =
+				graphQlClient().document(document).execute().block(TIMEOUT);
+
+		assertThat(response).isNotNull();
+		assertThat(response.isValid())
+				.as("Partial response with field errors should be considered valid")
+				.isTrue();
+
+		ClientResponseField field = response.field("me");
+		assertThat(field.hasValue()).isTrue();
+		assertThat(field.getErrors()).hasSize(1);
+		assertThat(field.getErrors().get(0).getParsedPath()).containsExactly("me", "name");
+		assertThat(field.toEntity(MovieCharacter.class))
+				.as("Decoding with nested field error should not be precluded")
+				.isNotNull();
+
+		ClientResponseField nameField = response.field("me.name");
+		assertThat(nameField.hasValue()).isFalse();
+		assertThat(nameField.getError()).isNotNull();
+		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
+		assertThatThrownBy(() -> nameField.toEntity(String.class))
+				.as("Decoding field null with direct field error should be rejected")
+				.isInstanceOf(FieldAccessException.class);
+
+		ClientResponseField nonExistingField = response.field("me.name.other");
+		assertThat(nonExistingField.hasValue()).isFalse();
+		assertThat(nameField.getError()).isNotNull();
+		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
+	}
+
+	private GraphQLError errorForPath(String errorPath) {
+		return GraphqlErrorBuilder.newError()
+				.message("Test error")
+				.path(ResultPath.parse(errorPath).toList()).build();
 	}
 
 }

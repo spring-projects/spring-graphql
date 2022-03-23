@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.client;
+package org.springframework.graphql.test.tester;
 
 
 import java.util.Collections;
@@ -30,7 +30,10 @@ import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
+import org.springframework.http.codec.DecoderHttpMessageReader;
+import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
@@ -42,7 +45,10 @@ import org.springframework.util.MimeTypeUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public final class CodecMappingProvider implements MappingProvider {
+final class EncoderDecoderMappingProvider implements MappingProvider {
+
+	private static final ResolvableType MAP_TYPE = ResolvableType.forClass(Map.class);
+
 
 	private final Encoder<?> encoder;
 
@@ -54,9 +60,25 @@ public final class CodecMappingProvider implements MappingProvider {
 	 * {@link Decoder} in the given {@link CodecConfigurer}.
 	 * @throws IllegalArgumentException if there is no JSON encoder or decoder.
 	 */
-	public CodecMappingProvider(CodecConfigurer configurer) {
-		this.encoder = CodecDelegate.findJsonEncoder(configurer);
-		this.decoder = CodecDelegate.findJsonDecoder(configurer);
+	public EncoderDecoderMappingProvider(CodecConfigurer configurer) {
+		this.encoder = findJsonEncoder(configurer);
+		this.decoder = findJsonDecoder(configurer);
+	}
+
+	private static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
+		return configurer.getReaders().stream()
+				.filter((reader) -> reader.canRead(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
+	}
+
+	private static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
+		return configurer.getWriters().stream()
+				.filter((writer) -> writer.canWrite(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
 	}
 
 

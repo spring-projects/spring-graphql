@@ -57,7 +57,7 @@ public class WebFluxWebSocketSampleSubscriptionTests {
 				.toFlux();
 
 		StepVerifier.create(result)
-				.consumeNextWith(response -> response.path("greetings").valueExists())
+				.consumeNextWith(response -> response.path("greetings").hasValue())
 				.consumeNextWith(response -> response.path("greetings").matchesJson("\"Bonjour!\""))
 				.consumeNextWith(response -> response.path("greetings").matchesJson("\"Hola!\""))
 				.expectNextCount(2)
