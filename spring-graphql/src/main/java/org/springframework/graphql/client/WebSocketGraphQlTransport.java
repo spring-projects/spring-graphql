@@ -33,8 +33,8 @@ import reactor.core.publisher.Sinks;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
-import org.springframework.graphql.server.support.GraphQlMessage;
-import org.springframework.graphql.server.support.GraphQlMessageType;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
@@ -226,9 +226,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			GraphQlSession graphQlSession = new GraphQlSession(session);
 			registerCloseStatusHandling(graphQlSession, session);
 
-			Mono<GraphQlMessage> connectionInitMono = this.interceptor.connectionInitPayload()
+			Mono<GraphQlWebSocketMessage> connectionInitMono = this.interceptor.connectionInitPayload()
 					.defaultIfEmpty(Collections.emptyMap())
-					.map(GraphQlMessage::connectionInit);
+					.map(GraphQlWebSocketMessage::connectionInit);
 
 			Mono<Void> sendCompletion =
 					session.send(connectionInitMono.concatWith(graphQlSession.getRequestFlux())
@@ -238,8 +238,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 					.flatMap(webSocketMessage -> {
 						if (sessionNotInitialized()) {
 							try {
-								GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
-								Assert.state(message.resolvedType() == GraphQlMessageType.CONNECTION_ACK,
+								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
+								Assert.state(message.resolvedType() == GraphQlWebSocketMessageType.CONNECTION_ACK,
 										() -> "Unexpected message before connection_ack: " + message);
 								return this.interceptor.handleConnectionAck(message.getPayload())
 										.then(Mono.defer(() -> {
@@ -261,7 +261,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						}
 						else {
 							try {
-								GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
 								switch (message.resolvedType()) {
 									case NEXT:
 										graphQlSession.handleNext(message);
@@ -378,7 +378,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final AtomicLong requestIndex = new AtomicLong();
 
-		private final Sinks.Many<GraphQlMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
+		private final Sinks.Many<GraphQlWebSocketMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
 
 		private final Map<String, ResponseState> responseMap = new ConcurrentHashMap<>();
 
@@ -393,14 +393,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Return the {@code Flux} of GraphQL requests to send as WebSocket messages.
 		 */
-		public Flux<GraphQlMessage> getRequestFlux() {
+		public Flux<GraphQlWebSocketMessage> getRequestFlux() {
 			return this.requestSink.asFlux();
 		}
 
 		public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
-				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
+				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, request);
 				ResponseState state = new ResponseState(request);
 				this.responseMap.put(id, state);
 				trySend(message);
@@ -415,7 +415,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
 			try {
-				GraphQlMessage message = GraphQlMessage.subscribe(id, request);
+				GraphQlWebSocketMessage message = GraphQlWebSocketMessage.subscribe(id, request);
 				SubscriptionState state = new SubscriptionState(request);
 				this.subscriptionMap.put(id, state);
 				trySend(message);
@@ -428,13 +428,13 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 
 		public void sendPong(@Nullable Map<String, Object> payload) {
-			GraphQlMessage message = GraphQlMessage.pong(payload);
+			GraphQlWebSocketMessage message = GraphQlWebSocketMessage.pong(payload);
 			trySend(message);
 		}
 
 		// TODO: queue to serialize sending?
 
-		private void trySend(GraphQlMessage message) {
+		private void trySend(GraphQlWebSocketMessage message) {
 			Sinks.EmitResult emitResult = null;
 			for (int i = 0; i < 100; i++) {
 				emitResult = this.requestSink.tryEmitNext(message);
@@ -449,7 +449,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			SubscriptionState state = this.subscriptionMap.remove(id);
 			if (state != null) {
 				try {
-					trySend(GraphQlMessage.complete(id));
+					trySend(GraphQlWebSocketMessage.complete(id));
 				}
 				catch (Exception ex) {
 					if (logger.isErrorEnabled()) {
@@ -465,7 +465,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Handle a "next" message and route to its recipient.
 		 */
-		public void handleNext(GraphQlMessage message) {
+		public void handleNext(GraphQlWebSocketMessage message) {
 			String id = message.getId();
 			ResponseState responseState = this.responseMap.remove(id);
 			SubscriptionState subscriptionState = this.subscriptionMap.get(id);
@@ -496,7 +496,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Handle an "error" message, turning it into an {@link GraphQlResponse}
 		 * for single responses, or signaling an error for streams.
 		 */
-		public void handleError(GraphQlMessage message) {
+		public void handleError(GraphQlWebSocketMessage message) {
 			String id = message.getId();
 			ResponseState responseState = this.responseMap.remove(id);
 			SubscriptionState subscriptionState = this.subscriptionMap.remove(id);
@@ -529,7 +529,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Handle a "complete" message.
 		 */
-		public void handleComplete(GraphQlMessage message) {
+		public void handleComplete(GraphQlWebSocketMessage message) {
 			ResponseState responseState = this.responseMap.remove(message.getId());
 			SubscriptionState subscriptionState = this.subscriptionMap.remove(message.getId());
 

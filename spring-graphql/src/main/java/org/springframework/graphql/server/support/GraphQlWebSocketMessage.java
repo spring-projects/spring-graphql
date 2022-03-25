@@ -35,13 +35,13 @@ import org.springframework.util.ObjectUtils;
  * @since 1.0.0
  * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL Over WebSocket Protocol</a>
  */
-public class GraphQlMessage {
+public class GraphQlWebSocketMessage {
 
 	@Nullable
 	private String id;
 
 	@Nullable
-	private GraphQlMessageType type;
+	private GraphQlWebSocketMessageType type;
 
 	@Nullable
 	private Object payload;
@@ -50,7 +50,7 @@ public class GraphQlMessage {
 	/**
 	 * Private constructor. See static factory methods.
 	 */
-	private GraphQlMessage(@Nullable String id, GraphQlMessageType type, @Nullable Object payload) {
+	private GraphQlWebSocketMessage(@Nullable String id, GraphQlWebSocketMessageType type, @Nullable Object payload) {
 		Assert.notNull(type, "GraphQlMessageType is required");
 		Assert.isTrue(payload != null || type.doesNotRequirePayload(), "Payload is required for [" + type + "]");
 		this.id = id;
@@ -63,8 +63,8 @@ public class GraphQlMessage {
 	 * Constructor for deserialization.
 	 */
 	@SuppressWarnings("unused")
-	GraphQlMessage() {
-		this.type = GraphQlMessageType.NOT_SPECIFIED;
+	GraphQlWebSocketMessage() {
+		this.type = GraphQlWebSocketMessageType.NOT_SPECIFIED;
 	}
 
 
@@ -88,7 +88,7 @@ public class GraphQlMessage {
 	/**
 	 * Return the message type as an emum.
 	 */
-	public GraphQlMessageType resolvedType() {
+	public GraphQlWebSocketMessageType resolvedType() {
 		Assert.state(this.type != null, "GraphQlWebSocketMessage does not have a type");
 		return this.type;
 	}
@@ -111,7 +111,7 @@ public class GraphQlMessage {
 	}
 
 	public void setType(String type) {
-		this.type = GraphQlMessageType.fromValue(type);
+		this.type = GraphQlWebSocketMessageType.fromValue(type);
 	}
 
 	public void setPayload(@Nullable Object payload) {
@@ -129,10 +129,10 @@ public class GraphQlMessage {
 
 	@Override
 	public boolean equals(Object o) {
-		if (!(o instanceof GraphQlMessage)) {
+		if (!(o instanceof GraphQlWebSocketMessage)) {
 			return false;
 		}
-		GraphQlMessage other = (GraphQlMessage) o;
+		GraphQlWebSocketMessage other = (GraphQlWebSocketMessage) o;
 		return (ObjectUtils.nullSafeEquals(this.type, other.type) &&
 				(ObjectUtils.nullSafeEquals(this.id, other.id) || (this.id == null && other.id == null)) &&
 				(ObjectUtils.nullSafeEquals(getPayload(), other.getPayload())));
@@ -151,16 +151,16 @@ public class GraphQlMessage {
 	 * Create a {@code "connection_init"} client message.
 	 * @param payload an optional payload
 	 */
-	public static GraphQlMessage connectionInit(@Nullable Object payload) {
-		return new GraphQlMessage(null, GraphQlMessageType.CONNECTION_INIT, payload);
+	public static GraphQlWebSocketMessage connectionInit(@Nullable Object payload) {
+		return new GraphQlWebSocketMessage(null, GraphQlWebSocketMessageType.CONNECTION_INIT, payload);
 	}
 
 	/**
 	 * Create a {@code "connection_ack"} server message.
 	 * @param payload an optional payload
 	 */
-	public static GraphQlMessage connectionAck(@Nullable Object payload) {
-		return new GraphQlMessage(null, GraphQlMessageType.CONNECTION_ACK, payload);
+	public static GraphQlWebSocketMessage connectionAck(@Nullable Object payload) {
+		return new GraphQlWebSocketMessage(null, GraphQlWebSocketMessageType.CONNECTION_ACK, payload);
 	}
 
 	/**
@@ -168,9 +168,9 @@ public class GraphQlMessage {
 	 * @param id unique request id
 	 * @param request the request to add as the message payload
 	 */
-	public static GraphQlMessage subscribe(String id, GraphQlRequest request) {
+	public static GraphQlWebSocketMessage subscribe(String id, GraphQlRequest request) {
 		Assert.notNull(request, "GraphQlRequest is required");
-		return new GraphQlMessage(id, GraphQlMessageType.SUBSCRIBE, request.toMap());
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.SUBSCRIBE, request.toMap());
 	}
 
 	/**
@@ -178,9 +178,9 @@ public class GraphQlMessage {
 	 * @param id unique request id
 	 * @param responseMap the response map
 	 */
-	public static GraphQlMessage next(String id, Map<String, Object> responseMap) {
+	public static GraphQlWebSocketMessage next(String id, Map<String, Object> responseMap) {
 		Assert.notNull(responseMap, "'responseMap' is required");
-		return new GraphQlMessage(id, GraphQlMessageType.NEXT, responseMap);
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.NEXT, responseMap);
 	}
 
 	/**
@@ -188,34 +188,34 @@ public class GraphQlMessage {
 	 * @param id unique request id
 	 * @param error the error to add as the message payload
 	 */
-	public static GraphQlMessage error(String id, GraphQLError error) {
+	public static GraphQlWebSocketMessage error(String id, GraphQLError error) {
 		Assert.notNull(error, "GraphQlError is required");
 		List<Map<String, Object>> errors = Collections.singletonList(error.toSpecification());
-		return new GraphQlMessage(id, GraphQlMessageType.ERROR, errors);
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR, errors);
 	}
 
 	/**
 	 * Create a {@code "complete"} server message.
 	 * @param id unique request id
 	 */
-	public static GraphQlMessage complete(String id) {
-		return new GraphQlMessage(id, GraphQlMessageType.COMPLETE, null);
+	public static GraphQlWebSocketMessage complete(String id) {
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.COMPLETE, null);
 	}
 
 	/**
 	 * Create a {@code "ping"} client or server message.
 	 * @param payload an optional payload
 	 */
-	public static GraphQlMessage ping(@Nullable Object payload) {
-		return new GraphQlMessage(null, GraphQlMessageType.PING, payload);
+	public static GraphQlWebSocketMessage ping(@Nullable Object payload) {
+		return new GraphQlWebSocketMessage(null, GraphQlWebSocketMessageType.PING, payload);
 	}
 
 	/**
 	 * Create a {@code "pong"} client or server message.
 	 * @param payload an optional payload
 	 */
-	public static GraphQlMessage pong(@Nullable Object payload) {
-		return new GraphQlMessage(null, GraphQlMessageType.PONG, payload);
+	public static GraphQlWebSocketMessage pong(@Nullable Object payload) {
+		return new GraphQlWebSocketMessage(null, GraphQlWebSocketMessageType.PONG, payload);
 	}
 
 }

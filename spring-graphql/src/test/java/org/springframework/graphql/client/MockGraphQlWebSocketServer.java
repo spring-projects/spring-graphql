@@ -30,7 +30,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
-import org.springframework.graphql.server.support.GraphQlMessage;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -84,15 +84,15 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 	}
 
 	@SuppressWarnings("SuspiciousMethodCalls")
-	private Publisher<GraphQlMessage> handleMessage(GraphQlMessage message) {
+	private Publisher<GraphQlWebSocketMessage> handleMessage(GraphQlWebSocketMessage message) {
 		switch (message.resolvedType()) {
 			case CONNECTION_INIT:
 				if (this.connectionInitHandler == null) {
-					return Flux.just(GraphQlMessage.connectionAck(null));
+					return Flux.just(GraphQlWebSocketMessage.connectionAck(null));
 				}
 				else {
 					Map<String, Object> payload = message.getPayload();
-					return this.connectionInitHandler.apply(payload).map(GraphQlMessage::connectionAck);
+					return this.connectionInitHandler.apply(payload).map(GraphQlWebSocketMessage::connectionAck);
 				}
 			case SUBSCRIBE:
 				String id = message.getId();
@@ -101,11 +101,11 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 					return Flux.error(new IllegalStateException("Unexpected request: " + message));
 				}
 				return request.getResponseFlux()
-						.map(response -> GraphQlMessage.next(id, response.toMap()))
+						.map(response -> GraphQlWebSocketMessage.next(id, response.toMap()))
 						.concatWithValues(
 								request.getError() != null ?
-										GraphQlMessage.error(id, request.getError()) :
-										GraphQlMessage.complete(id));
+										GraphQlWebSocketMessage.error(id, request.getError()) :
+										GraphQlWebSocketMessage.complete(id));
 			case COMPLETE:
 				return Flux.empty();
 			default:

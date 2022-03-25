@@ -36,7 +36,7 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
-import org.springframework.graphql.server.support.GraphQlMessage;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -128,7 +128,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				.subscribe();
 
 		return session.send(session.receive().flatMap(webSocketMessage -> {
-			GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+			GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
 			String id = message.getId();
 			Map<String, Object> payload = message.getPayload();
 			switch (message.resolvedType()) {
@@ -148,7 +148,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							.flatMapMany(response -> handleResponse(session, id, subscriptions, response))
 							.doOnTerminate(() -> subscriptions.remove(id));
 				case PING:
-					return Flux.just(this.codecDelegate.encode(session, GraphQlMessage.pong(null)));
+					return Flux.just(this.codecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
 				case COMPLETE:
 					if (id != null) {
 						Subscription subscription = subscriptions.remove(id);

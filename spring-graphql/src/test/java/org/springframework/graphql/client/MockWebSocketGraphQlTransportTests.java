@@ -37,8 +37,8 @@ import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.server.TestWebSocketClient;
 import org.springframework.graphql.server.TestWebSocketConnection;
-import org.springframework.graphql.server.support.GraphQlMessage;
-import org.springframework.graphql.server.support.GraphQlMessageType;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -86,8 +86,8 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.subscribe("1", request));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request));
 	}
 
 	@Test
@@ -99,8 +99,8 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.subscribe("1", request));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request));
 	}
 
 	@Test
@@ -117,8 +117,8 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.subscribe("1", request));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request));
 	}
 
 	@Test
@@ -135,8 +135,8 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.subscribe("1", request));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request));
 	}
 
 	@Test
@@ -149,8 +149,8 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.subscribe("1", request));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request));
 	}
 
 	@Test
@@ -165,9 +165,9 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.subscribe("1", request),
-				GraphQlMessage.complete("1"));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request),
+				GraphQlWebSocketMessage.complete("1"));
 	}
 
 	@Test
@@ -182,9 +182,9 @@ public class MockWebSocketGraphQlTransportTests {
 				.verify(TIMEOUT);
 
 		assertActualClientMessages(client.getConnection(0),
-				GraphQlMessage.connectionInit(null),
-				GraphQlMessage.pong(null),
-				GraphQlMessage.subscribe("1", new DefaultGraphQlRequest("{Query1}")));
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.pong(null),
+				GraphQlWebSocketMessage.subscribe("1", new DefaultGraphQlRequest("{Query1}")));
 	}
 
 	@Test
@@ -218,7 +218,7 @@ public class MockWebSocketGraphQlTransportTests {
 
 		assertThat(client.getConnection(0).isOpen()).isTrue();
 		assertThat(connectionAckRef.get()).isEqualTo(Collections.singletonMap("key", "valueInitAck"));
-		assertActualClientMessages(client.getConnection(0), GraphQlMessage.connectionInit(initPayload));
+		assertActualClientMessages(client.getConnection(0), GraphQlWebSocketMessage.connectionInit(initPayload));
 	}
 
 	@Test
@@ -329,14 +329,14 @@ public class MockWebSocketGraphQlTransportTests {
 				new WebSocketGraphQlClientInterceptor() {});
 	}
 
-	private void assertActualClientMessages(GraphQlMessage... expectedMessages) {
+	private void assertActualClientMessages(GraphQlWebSocketMessage... expectedMessages) {
 		assertActualClientMessages(this.webSocketClient.getConnection(0), expectedMessages);
 	}
 
 	private void assertActualClientMessages(
-			TestWebSocketConnection connection, GraphQlMessage... expectedMessages) {
+			TestWebSocketConnection connection, GraphQlWebSocketMessage... expectedMessages) {
 
-		List<GraphQlMessage> actualMessages = connection.getClientMessages().stream()
+		List<GraphQlWebSocketMessage> actualMessages = connection.getClientMessages().stream()
 				.map(CODEC_DELEGATE::decode)
 				.collect(Collectors.toList());
 
@@ -361,12 +361,14 @@ public class MockWebSocketGraphQlTransportTests {
 		public Mono<Void> handle(WebSocketSession session) {
 			return session.send(session.receive()
 					.flatMap(webSocketMessage -> {
-						GraphQlMessage message = this.codecDelegate.decode(webSocketMessage);
+						GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
 						switch (message.resolvedType()) {
 							case CONNECTION_INIT:
-								return Flux.just(GraphQlMessage.connectionAck(null), GraphQlMessage.ping(null));
+								return Flux.just(
+										GraphQlWebSocketMessage.connectionAck(null),
+										GraphQlWebSocketMessage.ping(null));
 							case SUBSCRIBE:
-								return Flux.just(GraphQlMessage.next("1", this.response.toMap()));
+								return Flux.just(GraphQlWebSocketMessage.next("1", this.response.toMap()));
 							case PONG:
 								return Flux.empty();
 							default:
@@ -392,12 +394,13 @@ public class MockWebSocketGraphQlTransportTests {
 		public Mono<Void> handle(WebSocketSession session) {
 			return session.send(session.receive().flatMap(webSocketMessage -> {
 
-				GraphQlMessage inputMessage = this.codecDelegate.decode(webSocketMessage);
+				GraphQlWebSocketMessage inputMessage = this.codecDelegate.decode(webSocketMessage);
 				String id = inputMessage.getId();
 
-				GraphQlMessage outputMessage = (inputMessage.resolvedType() == GraphQlMessageType.CONNECTION_INIT ?
-						GraphQlMessage.connectionAck(null) :
-						GraphQlMessage.subscribe(id, new DefaultGraphQlRequest("")));
+				GraphQlWebSocketMessage outputMessage =
+						(inputMessage.resolvedType() == GraphQlWebSocketMessageType.CONNECTION_INIT ?
+								GraphQlWebSocketMessage.connectionAck(null) :
+								GraphQlWebSocketMessage.subscribe(id, new DefaultGraphQlRequest("")));
 
 				return Flux.just(this.codecDelegate.encode(session, outputMessage));
 			}));

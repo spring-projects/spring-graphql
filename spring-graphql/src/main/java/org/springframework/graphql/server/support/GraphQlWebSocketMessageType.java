@@ -24,7 +24,7 @@ package org.springframework.graphql.server.support;
  * @since 1.0.0
  * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL Over WebSocket Protocol</a>
  */
-public enum GraphQlMessageType {
+public enum GraphQlWebSocketMessageType {
 
 	CONNECTION_INIT("connection_init", false),
 
@@ -48,7 +48,7 @@ public enum GraphQlMessageType {
 	NOT_SPECIFIED("", false);
 
 
-	private static final GraphQlMessageType[] VALUES;
+	private static final GraphQlWebSocketMessageType[] VALUES;
 
 	static {
 		VALUES = values();
@@ -60,7 +60,7 @@ public enum GraphQlMessageType {
 	private final boolean requiresPayload;
 
 
-	GraphQlMessageType(String value, boolean requiresPayload) {
+	GraphQlWebSocketMessageType(String value, boolean requiresPayload) {
 		this.value = value;
 		this.requiresPayload = requiresPayload;
 	}
@@ -81,8 +81,8 @@ public enum GraphQlMessageType {
 	}
 
 
-	public static GraphQlMessageType fromValue(String value) {
-		for (GraphQlMessageType type : VALUES) {
+	public static GraphQlWebSocketMessageType fromValue(String value) {
+		for (GraphQlWebSocketMessageType type : VALUES) {
 			if (type.value.equals(value)) {
 				return type;
 			}

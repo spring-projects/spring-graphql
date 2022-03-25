@@ -25,7 +25,7 @@ import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.graphql.server.support.GraphQlMessage;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
@@ -44,7 +44,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  */
 final class CodecDelegate {
 
-	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlMessage.class);
+	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlWebSocketMessage.class);
 
 
 	private final Decoder<?> decoder;
@@ -76,7 +76,7 @@ final class CodecDelegate {
 
 
 	@SuppressWarnings("unchecked")
-	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlMessage message) {
+	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
 
 		DataBuffer buffer = ((Encoder<T>) this.encoder).encodeValue(
 				(T) message, session.bufferFactory(), MESSAGE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
@@ -85,26 +85,26 @@ final class CodecDelegate {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public GraphQlMessage decode(WebSocketMessage webSocketMessage) {
+	public GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
 		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
-		return (GraphQlMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
+		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}
 
 	public WebSocketMessage encodeConnectionAck(WebSocketSession session, Object ackPayload) {
-		return encode(session, GraphQlMessage.connectionAck(ackPayload));
+		return encode(session, GraphQlWebSocketMessage.connectionAck(ackPayload));
 	}
 
 	public WebSocketMessage encodeNext(WebSocketSession session, String id, Map<String, Object> responseMap) {
-		return encode(session, GraphQlMessage.next(id, responseMap));
+		return encode(session, GraphQlWebSocketMessage.next(id, responseMap));
 	}
 
 	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
 		GraphQLError error = GraphqlErrorBuilder.newError().message(ex.getMessage()).build();
-		return encode(session, GraphQlMessage.error(id, error));
+		return encode(session, GraphQlWebSocketMessage.error(id, error));
 	}
 
 	public WebSocketMessage encodeComplete(WebSocketSession session, String id) {
-		return encode(session, GraphQlMessage.complete(id));
+		return encode(session, GraphQlWebSocketMessage.complete(id));
 	}
 
 
