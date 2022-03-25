@@ -35,9 +35,10 @@ import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
-import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebGraphQlSetup;
-import org.springframework.graphql.web.WebGraphQlInterceptor;
+import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
+import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlSetup;
+import org.springframework.graphql.server.WebGraphQlInterceptor;
 
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
@@ -154,13 +155,13 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	}
 
 	@Override
-	public org.springframework.graphql.web.webmvc.GraphQlHttpHandler toHttpHandler() {
-		return new org.springframework.graphql.web.webmvc.GraphQlHttpHandler(toWebGraphQlHandler());
+	public org.springframework.graphql.server.webmvc.GraphQlHttpHandler toHttpHandler() {
+		return new org.springframework.graphql.server.webmvc.GraphQlHttpHandler(toWebGraphQlHandler());
 	}
 
 	@Override
-	public org.springframework.graphql.web.webflux.GraphQlHttpHandler toHttpHandlerWebFlux() {
-		return new org.springframework.graphql.web.webflux.GraphQlHttpHandler(toWebGraphQlHandler());
+	public GraphQlHttpHandler toHttpHandlerWebFlux() {
+		return new GraphQlHttpHandler(toWebGraphQlHandler());
 	}
 
 

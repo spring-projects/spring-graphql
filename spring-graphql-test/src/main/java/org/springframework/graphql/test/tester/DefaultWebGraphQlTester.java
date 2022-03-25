@@ -21,7 +21,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
-import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;

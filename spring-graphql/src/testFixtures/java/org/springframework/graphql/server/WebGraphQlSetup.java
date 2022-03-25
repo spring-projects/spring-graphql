@@ -13,22 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql;
+package org.springframework.graphql.server;
 
-import org.springframework.graphql.execution.DataLoaderRegistrar;
-import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlSetup;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 
 /**
- * Workflow that results in the creation of a {@link ExecutionGraphQlService} or a
- * {@link WebGraphQlHandler}.
+ * Workflow that results in the creation of a {@link WebGraphQlHandler} or
+ * an HTTP handler for WebMvc or WebFlux.
  *
  * @author Rossen Stoyanchev
  */
-public interface GraphQlServiceSetup extends WebGraphQlSetup {
+public interface WebGraphQlSetup {
 
-	GraphQlServiceSetup dataLoaders(DataLoaderRegistrar... registrars);
+	WebGraphQlSetup interceptor(WebGraphQlInterceptor... interceptors);
 
-	ExecutionGraphQlService toGraphQlService();
+	WebGraphQlSetup threadLocalAccessor(ThreadLocalAccessor... accessors);
+
+	WebGraphQlHandler toWebGraphQlHandler();
+
+	org.springframework.graphql.server.webmvc.GraphQlHttpHandler toHttpHandler();
+
+	GraphQlHttpHandler toHttpHandlerWebFlux();
 
 }

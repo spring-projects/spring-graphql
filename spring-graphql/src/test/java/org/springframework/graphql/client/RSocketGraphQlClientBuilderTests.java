@@ -36,7 +36,7 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
-import org.springframework.graphql.web.GraphQlRSocketHandler;
+import org.springframework.graphql.server.GraphQlRSocketHandler;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.messaging.handler.annotation.MessageMapping;

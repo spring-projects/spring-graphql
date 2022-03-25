@@ -24,8 +24,8 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebGraphQlRequest;
+import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;

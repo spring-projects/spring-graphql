@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.graphql.server.WebGraphQlHandler;
 
 /**
  * Interface to be implemented to assist with the extraction of ThreadLocal
@@ -37,7 +38,7 @@ import org.springframework.beans.factory.ObjectProvider;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see org.springframework.graphql.web.WebGraphQlHandler.Builder#threadLocalAccessor(ThreadLocalAccessor...)
+ * @see WebGraphQlHandler.Builder#threadLocalAccessor(ThreadLocalAccessor...)
  */
 public interface ThreadLocalAccessor {
 

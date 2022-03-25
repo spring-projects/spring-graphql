@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.graphql.client;
+package org.springframework.graphql.server.webflux;
 
-import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
+
+import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -25,7 +27,6 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.graphql.server.support.GraphQlMessage;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -35,7 +36,8 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
- * Helper class for encoding and decoding GraphQL messages.
+ * Delegate that can be embedded in a class to help with encoding and decoding
+ * GraphQL over WebSocket messages.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -45,61 +47,31 @@ final class CodecDelegate {
 	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlMessage.class);
 
 
-	private final CodecConfigurer codecConfigurer;
-
 	private final Decoder<?> decoder;
 
 	private final Encoder<?> encoder;
 
 
-	CodecDelegate() {
-		this(ClientCodecConfigurer.create());
+	CodecDelegate(CodecConfigurer codecConfigurer) {
+		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
+		this.decoder = findJsonDecoder(codecConfigurer);
+		this.encoder = findJsonEncoder(codecConfigurer);
 	}
 
-	CodecDelegate(CodecConfigurer configurer) {
-		Assert.notNull(configurer, "CodecConfigurer is required");
-		this.codecConfigurer = configurer;
-		this.decoder = findJsonDecoder(configurer);
-		this.encoder = findJsonEncoder(configurer);
-	}
-
-	static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
-		return findJsonEncoder(configurer.getWriters().stream()
-				.filter(writer -> writer instanceof EncoderHttpMessageWriter)
-				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder()));
-	}
-
-	static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
-		return findJsonDecoder(configurer.getReaders().stream()
-				.filter(reader -> reader instanceof DecoderHttpMessageReader)
-				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder()));
-	}
-
-	static Encoder<?> findJsonEncoder(List<Encoder<?>> encoders) {
-		return findJsonEncoder(encoders.stream());
-	}
-
-	static Decoder<?> findJsonDecoder(List<Decoder<?>> decoders) {
-		return findJsonDecoder(decoders.stream());
-	}
-
-	private static Encoder<?> findJsonEncoder(Stream<Encoder<?>> stream) {
-		return stream
-				.filter(encoder -> encoder.canEncode(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
-	}
-
-	private static Decoder<?> findJsonDecoder(Stream<Decoder<?>> decoderStream) {
-		return decoderStream
-				.filter(decoder -> decoder.canDecode(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
+	private static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
+		return configurer.getReaders().stream()
+				.filter((reader) -> reader.canRead(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
+				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
 	}
 
-
-	public CodecConfigurer getCodecConfigurer() {
-		return this.codecConfigurer;
+	private static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
+		return configurer.getWriters().stream()
+				.filter((writer) -> writer.canWrite(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
+				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
 	}
 
 
@@ -117,5 +89,23 @@ final class CodecDelegate {
 		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
 		return (GraphQlMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}
+
+	public WebSocketMessage encodeConnectionAck(WebSocketSession session, Object ackPayload) {
+		return encode(session, GraphQlMessage.connectionAck(ackPayload));
+	}
+
+	public WebSocketMessage encodeNext(WebSocketSession session, String id, Map<String, Object> responseMap) {
+		return encode(session, GraphQlMessage.next(id, responseMap));
+	}
+
+	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
+		GraphQLError error = GraphqlErrorBuilder.newError().message(ex.getMessage()).build();
+		return encode(session, GraphQlMessage.error(id, error));
+	}
+
+	public WebSocketMessage encodeComplete(WebSocketSession session, String id) {
+		return encode(session, GraphQlMessage.complete(id));
+	}
+
 
 }
