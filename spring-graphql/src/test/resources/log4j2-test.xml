@@ -9,6 +9,7 @@
 		<Logger name="org.springframework" level="debug" />
 		<Logger name="org.springframework.graphql" level="trace" />
 		<Logger name="graphql" level="info" />
+		<Logger name="io.rsocket" level="info" />
 		<Root level="error">
 			<AppenderRef ref="Console" />
 		</Root>

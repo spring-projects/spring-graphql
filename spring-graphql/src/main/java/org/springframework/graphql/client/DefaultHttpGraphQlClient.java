@@ -130,6 +130,7 @@ final class DefaultHttpGraphQlClient extends AbstractDelegatingGraphQlClient imp
 		@Override
 		public HttpGraphQlClient build() {
 
+			// Pass the codecs to the parent for response decoding
 			this.webClientBuilder.codecs(configurer ->
 					setJsonCodecs(
 							CodecDelegate.findJsonEncoder(configurer),

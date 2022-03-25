@@ -11,6 +11,7 @@ dependencies {
 	compileOnly 'org.springframework:spring-webflux'
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
+	compileOnly 'org.springframework:spring-messaging'
 	compileOnly 'javax.servlet:javax.servlet-api'
 	compileOnly 'javax.validation:validation-api'
 
@@ -18,6 +19,9 @@ dependencies {
 
 	compileOnly 'com.querydsl:querydsl-core'
 	compileOnly 'org.springframework.data:spring-data-commons'
+
+	compileOnly 'io.rsocket:rsocket-core'
+	compileOnly 'io.rsocket:rsocket-transport-netty'
 
 	compileOnly 'com.google.code.findbugs:jsr305'
 	compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
@@ -29,10 +33,11 @@ dependencies {
 	testImplementation 'org.assertj:assertj-core'
 	testImplementation 'org.mockito:mockito-core'
 	testImplementation 'io.projectreactor:reactor-test'
+	testImplementation 'org.springframework:spring-messaging'
+	testImplementation 'org.springframework:spring-test'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework:spring-webmvc'
 	testImplementation 'org.springframework:spring-websocket'
-	testImplementation 'org.springframework:spring-test'
 	testImplementation 'org.springframework.data:spring-data-commons'
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
 	testImplementation 'org.springframework.data:spring-data-jpa'
@@ -49,6 +54,7 @@ dependencies {
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'javax.servlet:javax.servlet-api'
 	testImplementation 'com.squareup.okhttp3:mockwebserver:3.14.9'
+	testImplementation 'io.rsocket:rsocket-transport-local'
 	testImplementation 'javax.validation:validation-api'
 	testImplementation 'com.jayway.jsonpath:json-path'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'

@@ -24,49 +24,51 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.http.MediaType;
+import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.util.Assert;
-import org.springframework.web.reactive.function.client.WebClient;
 
 
 /**
- * Transport to execute GraphQL requests over HTTP via {@link WebClient}.
+ * Transport to execute GraphQL requests over RSocket via {@link RSocketRequester}.
  *
- * <p>Supports only single-response requests over HTTP POST. For subscriptions,
- * see {@link WebSocketGraphQlTransport} and {@link RSocketGraphQlTransport}.
+ * <p>Servers are expected to support the
+ * <a href="https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md">Routing</a>
+ * metadata extension.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class HttpGraphQlTransport implements GraphQlTransport {
+final class RSocketGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
 
-	private final WebClient webClient;
+	private final String route;
+
+	private final RSocketRequester rsocketRequester;
 
 
-	HttpGraphQlTransport(WebClient webClient) {
-		Assert.notNull(webClient, "WebClient is required");
-		this.webClient = webClient;
+	RSocketGraphQlTransport(String route, RSocketRequester requester) {
+		Assert.notNull(route, "'route' is required");
+		Assert.notNull(requester, "RSocketRequester is required");
+		this.route = route;
+		this.rsocketRequester = requester;
 	}
 
 
 	@Override
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
-		return this.webClient.post()
-				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_JSON)
-				.bodyValue(request.toMap())
-				.retrieve()
-				.bodyToMono(MAP_TYPE)
+		return this.rsocketRequester.route(this.route).data(request.toMap())
+				.retrieveMono(MAP_TYPE)
 				.map(ResponseMapGraphQlResponse::new);
 	}
 
 	@Override
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
+		return this.rsocketRequester.route(this.route).data(request.toMap())
+				.retrieveFlux(MAP_TYPE)
+				.map(ResponseMapGraphQlResponse::new);
 	}
 
 }

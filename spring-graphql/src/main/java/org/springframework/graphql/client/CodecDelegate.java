@@ -15,6 +15,9 @@
  */
 package org.springframework.graphql.client;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -32,8 +35,7 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
- * Delegate that can be embedded in a class to help with encoding and decoding
- * GraphQL over WebSocket messages.
+ * Helper class for encoding and decoding GraphQL messages.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -61,20 +63,38 @@ final class CodecDelegate {
 		this.encoder = findJsonEncoder(configurer);
 	}
 
-	static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
-		return configurer.getReaders().stream()
-				.filter((reader) -> reader.canRead(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
-				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
+	static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
+		return findJsonEncoder(configurer.getWriters().stream()
+				.filter(writer -> writer instanceof EncoderHttpMessageWriter)
+				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder()));
 	}
 
-	static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
-		return configurer.getWriters().stream()
-				.filter((writer) -> writer.canWrite(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
-				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
+	static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
+		return findJsonDecoder(configurer.getReaders().stream()
+				.filter(reader -> reader instanceof DecoderHttpMessageReader)
+				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder()));
+	}
+
+	static Encoder<?> findJsonEncoder(List<Encoder<?>> encoders) {
+		return findJsonEncoder(encoders.stream());
+	}
+
+	static Decoder<?> findJsonDecoder(List<Decoder<?>> decoders) {
+		return findJsonDecoder(decoders.stream());
+	}
+
+	private static Encoder<?> findJsonEncoder(Stream<Encoder<?>> stream) {
+		return stream
+				.filter(encoder -> encoder.canEncode(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
+	}
+
+	private static Decoder<?> findJsonDecoder(Stream<Decoder<?>> decoderStream) {
+		return decoderStream
+				.filter(decoder -> decoder.canDecode(MESSAGE_TYPE, MediaType.APPLICATION_JSON))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
 	}
 
 

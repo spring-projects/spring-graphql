@@ -50,7 +50,7 @@ import org.springframework.util.ClassUtils;
  */
 public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClientBuilder<B>> implements GraphQlClient.Builder<B> {
 
-	private static final boolean jackson2Present = ClassUtils.isPresent(
+	protected static final boolean jackson2Present = ClassUtils.isPresent(
 			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 
@@ -112,6 +112,20 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	}
 
 	/**
+	 * Variant of {@link #setJsonCodecs} for setting each codec individually.
+	 */
+	protected void setJsonEncoder(Encoder<?> encoder) {
+		this.jsonEncoder = encoder;
+	}
+
+	/**
+	 * Variant of {@link #setJsonCodecs} for setting each codec individually.
+	 */
+	protected void setJsonDecoder(Decoder<?> decoder) {
+		this.jsonDecoder = decoder;
+	}
+
+	/**
 	 * Return the configured interceptors. For subclasses that look for a
 	 * transport specific interceptor extensions.
 	 */
@@ -126,8 +140,8 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	protected GraphQlClient buildGraphQlClient(GraphQlTransport transport) {
 
 		if (jackson2Present) {
-			this.jsonEncoder = (this.jsonEncoder == null ? Jackson2Configurer.encoder() : this.jsonEncoder);
-			this.jsonDecoder = (this.jsonDecoder == null ? Jackson2Configurer.decoder() : this.jsonDecoder);
+			this.jsonEncoder = (this.jsonEncoder == null ? DefaultJackson2Codecs.encoder() : this.jsonEncoder);
+			this.jsonDecoder = (this.jsonDecoder == null ? DefaultJackson2Codecs.decoder() : this.jsonDecoder);
 		}
 
 		return new DefaultGraphQlClient(
@@ -178,7 +192,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	}
 
 
-	private static class Jackson2Configurer {
+	protected static class DefaultJackson2Codecs {
 
 		static Encoder<?> encoder() {
 			return new Jackson2JsonEncoder();
