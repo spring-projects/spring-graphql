@@ -43,10 +43,10 @@ public interface WebGraphQlHandler {
 
 	/**
 	 * Return the single interceptor of type
-	 * {@link WebSocketGraphQlHandlerInterceptor} among all the configured
+	 * {@link WebSocketGraphQlInterceptor} among all the configured
 	 * interceptors.
 	 */
-	WebSocketGraphQlHandlerInterceptor webSocketInterceptor();
+	WebSocketGraphQlInterceptor webSocketInterceptor();
 
 
 	/**
@@ -62,7 +62,7 @@ public interface WebGraphQlHandler {
 
 	/**
 	 * Builder for a {@link WebGraphQlHandler} that executes a
-	 * {@link WebGraphQlHandlerInterceptor} chain followed by a
+	 * {@link WebGraphQlInterceptor} chain followed by a
 	 * {@link ExecutionGraphQlService}.
 	 */
 	interface Builder {
@@ -71,22 +71,22 @@ public interface WebGraphQlHandler {
 		 * Configure interceptors to be invoked before the target
 		 * {@code GraphQlService}.
 		 * <p>One of the interceptors can be of type
-		 * {@link WebSocketGraphQlHandlerInterceptor} to handle data from the
+		 * {@link WebSocketGraphQlInterceptor} to handle data from the
 		 * first {@code ConnectionInit} message expected on a GraphQL over
 		 * WebSocket session, as well as the {@code Complete} message expected
 		 * at the end of a session.
 		 * @param interceptors the interceptors to add
 		 * @return this builder
 		 */
-		Builder interceptor(WebGraphQlHandlerInterceptor... interceptors);
+		Builder interceptor(WebGraphQlInterceptor... interceptors);
 
 		/**
-		 * Alternative to {@link #interceptor(WebGraphQlHandlerInterceptor...)}
+		 * Alternative to {@link #interceptor(WebGraphQlInterceptor...)}
 		 * with a List.
 		 * @param interceptors the list of interceptors to add
 		 * @return this builder
 		 */
-		Builder interceptors(List<WebGraphQlHandlerInterceptor> interceptors);
+		Builder interceptors(List<WebGraphQlInterceptor> interceptors);
 
 		/**
 		 * Configure accessors for ThreadLocal variables to use to extract

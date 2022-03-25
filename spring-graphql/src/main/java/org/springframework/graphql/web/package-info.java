@@ -19,7 +19,7 @@
  * WebSocket. Handlers are provided for use in ether
  * {@link org.springframework.graphql.web.webmvc Spring WebMvc} or
  * {@link org.springframework.graphql.web.webflux Spring WebFlux} with a common
- * {@link org.springframework.graphql.web.WebGraphQlHandlerInterceptor interception}
+ * {@link org.springframework.graphql.web.WebGraphQlInterceptor interception}
  * model that allows applications to customize the request and response.
  */
 @NonNullApi

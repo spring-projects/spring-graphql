@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.web.RSocketGraphQlHandlerInterceptor.Chain;
+import org.springframework.graphql.web.RSocketGraphQlInterceptor.Chain;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.IdGenerator;
 
@@ -78,13 +78,13 @@ public class GraphQlRSocketHandler {
 	 * followed by the given {@link ExecutionGraphQlService}.
 	 */
 	public GraphQlRSocketHandler(
-			ExecutionGraphQlService service, List<RSocketGraphQlHandlerInterceptor> interceptors) {
+			ExecutionGraphQlService service, List<RSocketGraphQlInterceptor> interceptors) {
 
 		Chain endOfChain = request -> service.execute(request).map(RSocketGraphQlResponse::new);
 
 		this.executionChain = (interceptors.isEmpty() ? endOfChain :
 				interceptors.stream()
-						.reduce(RSocketGraphQlHandlerInterceptor::andThen)
+						.reduce(RSocketGraphQlInterceptor::andThen)
 						.map(interceptor -> (Chain) request -> interceptor.intercept(request, endOfChain))
 						.orElse(endOfChain));
 	}

@@ -25,7 +25,7 @@ import org.springframework.graphql.execution.ThreadLocalAccessor;
  */
 public interface WebGraphQlSetup {
 
-	WebGraphQlSetup interceptor(WebGraphQlHandlerInterceptor... interceptors);
+	WebGraphQlSetup interceptor(WebGraphQlInterceptor... interceptors);
 
 	WebGraphQlSetup threadLocalAccessor(ThreadLocalAccessor... accessors);
 

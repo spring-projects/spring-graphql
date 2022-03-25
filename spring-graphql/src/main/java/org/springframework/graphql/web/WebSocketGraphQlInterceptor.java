@@ -21,15 +21,15 @@ import reactor.core.publisher.Mono;
 
 
 /**
- * An extension of {@link WebGraphQlHandlerInterceptor} with additional methods
+ * An extension of {@link WebGraphQlInterceptor} with additional methods
  * to handle the start and end of a WebSocket connection. Only a single
- * interceptor of type {@link WebSocketGraphQlHandlerInterceptor} may be
+ * interceptor of type {@link WebSocketGraphQlInterceptor} may be
  * declared.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface WebSocketGraphQlHandlerInterceptor extends WebGraphQlHandlerInterceptor {
+public interface WebSocketGraphQlInterceptor extends WebGraphQlInterceptor {
 
 	@Override
 	default Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {

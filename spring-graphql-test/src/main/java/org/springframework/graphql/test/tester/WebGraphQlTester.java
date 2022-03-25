@@ -26,7 +26,7 @@ import org.springframework.http.codec.CodecConfigurer;
 /**
  * Server-side tester, without a client, that executes requests through a
  * {@link WebGraphQlHandler}. Similar to {@link GraphQlServiceTester} but also
- * adding a web processing layer with a {@code WebGraphQlHandlerInterceptor}
+ * adding a web processing layer with a {@code WebGraphQlInterceptor}
  * chain.
  *
  * @author Rossen Stoyanchev

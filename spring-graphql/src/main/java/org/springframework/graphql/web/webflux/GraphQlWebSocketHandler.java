@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.web.WebGraphQlRequest;
 import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.graphql.web.WebGraphQlResponse;
-import org.springframework.graphql.web.WebSocketGraphQlHandlerInterceptor;
+import org.springframework.graphql.web.WebSocketGraphQlInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
@@ -63,7 +63,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	private final WebSocketGraphQlHandlerInterceptor webSocketInterceptor;
+	private final WebSocketGraphQlInterceptor webSocketInterceptor;
 
 	private final CodecDelegate codecDelegate;
 

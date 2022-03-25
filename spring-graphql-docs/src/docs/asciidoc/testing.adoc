@@ -197,7 +197,7 @@ a client. However, in some cases it's useful to involve server side transport
 handling with given mock transport input.
 
 The `WebGraphQlHandlerTester` extension lets you processes request through the
-`WebGraphQlHandlerInterceptor` chain before handing off to `ExecutionGraphQlService` for
+`WebGraphQlInterceptor` chain before handing off to `ExecutionGraphQlService` for
 request execution:
 
 [source,java,indent=0,subs="verbatim,quotes"]

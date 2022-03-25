@@ -118,16 +118,16 @@ The Spring for GraphQL repository contains a WebFlux
 
 <<web-http>> and <<web-websocket>> transport handlers delegate to a common Web
 interception chain for request execution. The chain consists of a sequence of
-`WebGraphQlHandlerInterceptor` components, followed by a `ExecutionGraphQlService` that
+`WebGraphQlInterceptor` components, followed by a `ExecutionGraphQlService` that
 invokes GraphQL Java.
 
-`WebGraphQlHandlerInterceptor` is as a common contract to use in both Spring MVC and
+`WebGraphQlInterceptor` is as a common contract to use in both Spring MVC and
 WebFlux applications. Use it to intercept requests, inspect HTTP request headers, or to
 register a transformation of the `graphql.ExecutionInput`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-class MyInterceptor implements WebGraphQlHandlerInterceptor {
+class MyInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
@@ -140,12 +140,12 @@ class MyInterceptor implements WebGraphQlHandlerInterceptor {
 }
 ----
 
-Use `WebGraphQlHandlerInterceptor` also to intercept responses, add HTTP response headers,
+Use `WebGraphQlInterceptor` also to intercept responses, add HTTP response headers,
 or transform the `graphql.ExecutionResult`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-class MyInterceptor implements WebGraphQlHandlerInterceptor {
+class MyInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
@@ -423,7 +423,7 @@ thread and Reactor `Context` from the WebFlux processing pipeline.
 
 A `DataFetcher` and other components invoked by GraphQL Java may not always execute on
 the same thread as the Spring MVC handler, for example if an asynchronous
-<<web-interception, `WebGraphQlHandlerInterceptor`>> or `DataFetcher` switches to a
+<<web-interception, `WebGraphQlInterceptor`>> or `DataFetcher` switches to a
 different thread.
 
 Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
@@ -468,7 +468,7 @@ Spring MVC application, see the
 
 A <<execution-reactive-datafetcher>> can rely on access to Reactor context that
 originates from the WebFlux request handling chain. This includes Reactor context
-added by <<web-interception, WebGraphQlHandlerInterceptor>> components.
+added by <<web-interception, WebGraphQlInterceptor>> components.
 
 
 

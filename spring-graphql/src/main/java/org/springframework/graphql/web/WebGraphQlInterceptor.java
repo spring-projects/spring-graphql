@@ -25,17 +25,21 @@ import org.springframework.graphql.ExecutionGraphQlService;
 
 
 /**
- * Interceptor for server handling of GraphQL over RSocket requests,
- * allowing customization of the {@link ExecutionInput} and
+ * Interceptor for server handling of GraphQL over HTTP or WebSocket requests,
+ * providing access to info about the underlying HTTP request or WebSocket
+ * handshake, and allowing customization of the {@link ExecutionInput} and
  * the {@link ExecutionResult}.
  *
  * <p>Interceptors are typically declared as beans in Spring configuration and
  * ordered as defined in {@link ObjectProvider#orderedStream()}.
  *
+ * <p>Supported for Spring MVC and WebFlux.
+ *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see WebSocketGraphQlInterceptor
  */
-public interface RSocketGraphQlHandlerInterceptor {
+public interface WebGraphQlInterceptor {
 
 	/**
 	 * Intercept a request and delegate to the rest of the chain including other
@@ -44,15 +48,15 @@ public interface RSocketGraphQlHandlerInterceptor {
 	 * @param chain the rest of the chain to execute the request
 	 * @return a {@link Mono} with the response
 	 */
-	Mono<RSocketGraphQlResponse> intercept(RSocketGraphQlRequest request, Chain chain);
+	Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain);
 
 	/**
-	 * Return a new {@link RSocketGraphQlHandlerInterceptor} that invokes the current
+	 * Return a new {@link WebGraphQlInterceptor} that invokes the current
 	 * interceptor first and then the one that is passed in.
 	 * @param nextInterceptor the interceptor to delegate to after the current
 	 * @return a new interceptor that chains the two
 	 */
-	default RSocketGraphQlHandlerInterceptor andThen(RSocketGraphQlHandlerInterceptor nextInterceptor) {
+	default WebGraphQlInterceptor andThen(WebGraphQlInterceptor nextInterceptor) {
 		return (request, chain) -> intercept(request, nextRequest -> nextInterceptor.intercept(nextRequest, chain));
 	}
 
@@ -68,7 +72,7 @@ public interface RSocketGraphQlHandlerInterceptor {
 		 * the {@link ExecutionInput} for {@link graphql.GraphQL}.
 		 * @return {@code Mono} with the response
 		 */
-		Mono<RSocketGraphQlResponse> next(RSocketGraphQlRequest request);
+		Mono<WebGraphQlResponse> next(WebGraphQlRequest request);
 
 	}
 

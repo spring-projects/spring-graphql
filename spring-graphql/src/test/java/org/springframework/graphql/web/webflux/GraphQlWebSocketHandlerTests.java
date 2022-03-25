@@ -39,9 +39,9 @@ import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.web.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.web.WebGraphQlHandler;
-import org.springframework.graphql.web.WebGraphQlHandlerInterceptor;
+import org.springframework.graphql.web.WebGraphQlInterceptor;
 import org.springframework.graphql.web.WebSocketHandlerTestSupport;
-import org.springframework.graphql.web.WebSocketGraphQlHandlerInterceptor;
+import org.springframework.graphql.web.WebSocketGraphQlInterceptor;
 import org.springframework.graphql.web.support.GraphQlMessage;
 import org.springframework.graphql.web.support.GraphQlMessageType;
 import org.springframework.http.codec.ServerCodecConfigurer;
@@ -149,7 +149,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	void connectionInitHandling() {
 		TestWebSocketSession session = handle(
 				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}")),
-				new WebSocketGraphQlHandlerInterceptor() {
+				new WebSocketGraphQlInterceptor() {
 
 					@Override
 					public Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> payload) {
@@ -189,7 +189,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		TestWebSocketSession session = handle(
 				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}")),
-				new WebSocketGraphQlHandlerInterceptor() {
+				new WebSocketGraphQlInterceptor() {
 
 					@Override
 					public void handleConnectionClosed(String sessionId, int status, Map<String, Object> payload) {
@@ -209,7 +209,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	void connectionInitRejected() {
 		TestWebSocketSession session = handle(
 				Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}")),
-				new WebSocketGraphQlHandlerInterceptor() {
+				new WebSocketGraphQlInterceptor() {
 
 					@Override
 					public Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> payload) {
@@ -363,7 +363,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.verify(TIMEOUT);
 	}
 
-	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebGraphQlHandlerInterceptor... interceptors) {
+	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebGraphQlInterceptor... interceptors) {
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
 				initHandler(interceptors),
 				ServerCodecConfigurer.create(),
