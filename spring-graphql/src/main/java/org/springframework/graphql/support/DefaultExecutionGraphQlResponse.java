@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import graphql.ErrorClassification;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
+import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 import graphql.language.SourceLocation;
 
@@ -150,6 +151,67 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 		public Map<String, Object> getExtensions() {
 			return (this.delegate.getExtensions() != null ? this.delegate.getExtensions() : Collections.emptyMap());
 		}
+
+	}
+
+
+	/**
+	 * Builder to transform the response's {@link ExecutionResult}.
+	 */
+	public static abstract class Builder<B extends Builder<B, R>, R extends ExecutionGraphQlResponse> {
+
+		private final R original;
+
+		private final ExecutionResultImpl.Builder executionResultBuilder;
+
+		protected Builder(R original) {
+			this.original = original;
+			this.executionResultBuilder = ExecutionResultImpl.newExecutionResult().from(original.getExecutionResult());
+		}
+
+		/**
+		 * Set the {@link ExecutionResult#getData() data} of the GraphQL execution result.
+		 * @param data the execution result data
+		 * @return the current builder
+		 */
+		public Builder<B, R> data(Object data) {
+			this.executionResultBuilder.data(data);
+			return this;
+		}
+
+		/**
+		 * Set the {@link ExecutionResult#getErrors() errors} of the GraphQL execution
+		 * result.
+		 * @param errors the execution result errors
+		 * @return the current builder
+		 */
+		public Builder<B, R> errors(@Nullable List<GraphQLError> errors) {
+			this.executionResultBuilder.errors(errors);
+			return this;
+		}
+
+		/**
+		 * Set the {@link ExecutionResult#getExtensions() extensions} of the GraphQL
+		 * execution result.
+		 * @param extensions the execution result extensions
+		 * @return the current builder
+		 */
+		public Builder<B, R> extensions(@Nullable Map<Object, Object> extensions) {
+			this.executionResultBuilder.extensions(extensions);
+			return this;
+		}
+
+		/**
+		 * Build the response with the transformed {@code ExecutionResult}.
+		 */
+		public R build() {
+			return build(this.original, this.executionResultBuilder.build());
+		}
+
+		/**
+		 * Subclasses to create the specific response instance.
+		 */
+		protected abstract R build(R original, ExecutionResult newResult);
 
 	}
 

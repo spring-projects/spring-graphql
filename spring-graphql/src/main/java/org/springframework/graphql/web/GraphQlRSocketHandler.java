@@ -17,6 +17,7 @@
 package org.springframework.graphql.web;
 
 
+import java.util.List;
 import java.util.Map;
 
 import graphql.ExecutionResult;
@@ -25,38 +26,39 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
+import org.springframework.graphql.web.RSocketGraphQlHandlerInterceptor.Chain;
+import org.springframework.util.AlternativeJdkIdGenerator;
+import org.springframework.util.IdGenerator;
 
 
 /**
  * Handler for GraphQL over RSocket requests.
  *
- * <p>This class can be extended from an {@code @Controller} that overrides
- * {@link #handle(Map)} and {@link #handleSubscription(Map)} in order to add
+ * <p>This class can be extended or wrapped from an {@code @Controller} in order
+ * to re-declare {@link #handle(Map)} and {@link #handleSubscription(Map)} with
  * {@link org.springframework.messaging.handler.annotation.MessageMapping @MessageMapping}
- * annotations with the route.
+ * annotations including the GraphQL endpoint route.
  *
  * <pre style="class">
  * &#064;Controller
- * private static class GraphQlRSocketController extends GraphQlRSocketHandler {
+ * private static class GraphQlRSocketController {
  *
- *    GraphQlRSocketController(ExecutionGraphQlService graphQlService) {
- *        super(graphQlService);
+ *    private final GraphQlRSocketHandler handler;
+ *
+ *    GraphQlRSocketController(GraphQlRSocketHandler handler) {
+ *        this.handler = handler;
  *    }
  *
- *    &#064;Override
  *    &#064;MessageMapping("graphql")
  *    public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
- *        return super.handle(payload);
+ *        return this.handler.handle(payload);
  *    }
  *
- *    &#064;Override
  *    &#064;MessageMapping("graphql")
  *    public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
- *        return super.handleSubscription(payload);
+ *        return this.handler.handleSubscription(payload);
  *    }
  * }
  * </pre>
@@ -66,11 +68,25 @@ import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
  */
 public class GraphQlRSocketHandler {
 
-	private final ExecutionGraphQlService service;
+	private final Chain executionChain;
+
+	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
 
-	public GraphQlRSocketHandler(ExecutionGraphQlService service) {
-		this.service = service;
+	/**
+	 * Create a new instance that handles requests through a chain of interceptors
+	 * followed by the given {@link ExecutionGraphQlService}.
+	 */
+	public GraphQlRSocketHandler(
+			ExecutionGraphQlService service, List<RSocketGraphQlHandlerInterceptor> interceptors) {
+
+		Chain endOfChain = request -> service.execute(request).map(RSocketGraphQlResponse::new);
+
+		this.executionChain = (interceptors.isEmpty() ? endOfChain :
+				interceptors.stream()
+						.reduce(RSocketGraphQlHandlerInterceptor::andThen)
+						.map(interceptor -> (Chain) request -> interceptor.intercept(request, endOfChain))
+						.orElse(endOfChain));
 	}
 
 
@@ -78,14 +94,14 @@ public class GraphQlRSocketHandler {
 	 * Handle a {@code Request-Response} interaction. For queries and mutations.
 	 */
 	public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
-		return this.service.execute(initRequest(payload)).map(ExecutionGraphQlResponse::toMap);
+		return handleInternal(payload).map(ExecutionGraphQlResponse::toMap);
 	}
 
 	/**
 	 * Handle a {@code Request-Stream} interaction. For subscriptions.
 	 */
 	public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
-		return this.service.execute(initRequest(payload))
+		return handleInternal(payload)
 				.flatMapMany(response -> {
 					if (response.getData() instanceof Publisher) {
 						Publisher<ExecutionResult> publisher = response.getData();
@@ -100,12 +116,9 @@ public class GraphQlRSocketHandler {
 				});
 	}
 
-	@SuppressWarnings("unchecked")
-	private ExecutionGraphQlRequest initRequest(Map<String, Object> payload) {
-		String query = (String) payload.get("query");
-		String operationName = (String) payload.get("operationName");
-		Map<String, Object> variables = (Map<String, Object>) payload.get("variables");
-		return new DefaultExecutionGraphQlRequest(query, operationName, variables, "1", null);
+	private Mono<RSocketGraphQlResponse> handleInternal(Map<String, Object> payload) {
+		String requestId = this.idGenerator.generateId().toString();
+		return this.executionChain.next(new RSocketGraphQlRequest(payload, requestId, null));
 	}
 
 }

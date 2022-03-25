@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.web.WebGraphQlHandlerInterceptor.Chain;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -88,12 +89,11 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		WebGraphQlHandlerInterceptor.Chain endOfChain =
-				request -> this.service.execute(request).map(WebGraphQlResponse::new);
+		Chain endOfChain = request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
-		WebGraphQlHandlerInterceptor.Chain chain = this.interceptors.stream()
+		Chain chain = this.interceptors.stream()
 				.reduce(WebGraphQlHandlerInterceptor::andThen)
-				.map(interceptor -> (WebGraphQlHandlerInterceptor.Chain) (request) -> interceptor.intercept(request, endOfChain))
+				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {
@@ -112,7 +112,8 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 			@Override
 			public WebSocketGraphQlHandlerInterceptor webSocketInterceptor() {
-				return (webSocketInterceptor != null ? webSocketInterceptor : new WebSocketGraphQlHandlerInterceptor() {});
+				return (webSocketInterceptor != null ?
+						webSocketInterceptor : new WebSocketGraphQlHandlerInterceptor() {});
 			}
 
 		};

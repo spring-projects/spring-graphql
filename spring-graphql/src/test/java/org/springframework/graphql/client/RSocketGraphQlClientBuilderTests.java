@@ -107,7 +107,8 @@ public class RSocketGraphQlClientBuilderTests {
 				return Mono.just(response);
 			};
 
-			GraphQlRSocketController controller = new GraphQlRSocketController(graphQlService);
+			GraphQlRSocketController controller = new GraphQlRSocketController(
+					new GraphQlRSocketHandler(graphQlService, Collections.emptyList()));
 
 			RSocketServer.create()
 					.acceptor(createSocketAcceptor(controller))
@@ -132,6 +133,7 @@ public class RSocketGraphQlClientBuilderTests {
 			return handler.responder();
 		}
 
+		@SuppressWarnings("unused")
 		public void setMockResponse(String document, ExecutionResult result) {
 			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
 			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
@@ -144,23 +146,24 @@ public class RSocketGraphQlClientBuilderTests {
 
 
 	@Controller
-	private static class GraphQlRSocketController extends GraphQlRSocketHandler {
+	private static class GraphQlRSocketController {
 
-		GraphQlRSocketController(ExecutionGraphQlService service) {
-			super(service);
+		private final GraphQlRSocketHandler handler;
+
+		GraphQlRSocketController(GraphQlRSocketHandler handler) {
+			this.handler = handler;
 		}
 
-		@Override
 		@MessageMapping("graphql")
 		public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
-			return super.handle(payload);
+			return this.handler.handle(payload);
 		}
 
-		@Override
 		@MessageMapping("graphql")
 		public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
-			return super.handleSubscription(payload);
+			return this.handler.handleSubscription(payload);
 		}
+
 	}
 
 }
