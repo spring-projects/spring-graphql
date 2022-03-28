@@ -57,11 +57,11 @@ import static org.mockito.Mockito.when;
  *
  * @author Rossen Stoyanchev
  */
-public class MockWebSocketGraphQlTransportTests {
+public class WebSocketGraphQlTransportTests {
 
 	private final static Duration TIMEOUT = Duration.ofSeconds(5);
 
-	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate();
+	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate(ClientCodecConfigurer.create());
 
 
 	private final MockGraphQlWebSocketServer mockServer = new MockGraphQlWebSocketServer();
@@ -351,7 +351,7 @@ public class MockWebSocketGraphQlTransportTests {
 
 		private final GraphQlResponse response;
 
-		private final CodecDelegate codecDelegate = new CodecDelegate();
+		private final CodecDelegate codecDelegate = new CodecDelegate(ClientCodecConfigurer.create());
 
 		private PingResponseHandler(GraphQlResponse response) {
 			this.response = response;
@@ -387,7 +387,7 @@ public class MockWebSocketGraphQlTransportTests {
 	 */
 	private static class UnexpectedResponseHandler implements WebSocketHandler {
 
-		private final CodecDelegate codecDelegate = new CodecDelegate();
+		private final CodecDelegate codecDelegate = new CodecDelegate(ClientCodecConfigurer.create());
 
 
 		@Override

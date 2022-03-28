@@ -17,19 +17,29 @@
 package org.springframework.graphql.server;
 
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import graphql.ExecutionResult;
+import graphql.GraphQLError;
+import io.rsocket.exceptions.InvalidException;
 import io.rsocket.exceptions.RejectedException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.Encoder;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.graphql.server.RSocketGraphQlInterceptor.Chain;
 import org.springframework.util.AlternativeJdkIdGenerator;
+import org.springframework.util.Assert;
 import org.springframework.util.IdGenerator;
+import org.springframework.util.MimeTypeUtils;
 
 
 /**
@@ -67,7 +77,12 @@ import org.springframework.util.IdGenerator;
  */
 public class GraphQlRSocketHandler {
 
-	private final RSocketGraphQlInterceptor.Chain executionChain;
+	private static final ResolvableType LIST_TYPE = ResolvableType.forClass(List.class);
+
+
+	private final Chain executionChain;
+
+	private final Encoder<?> jsonEncoder;
 
 	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
@@ -75,17 +90,33 @@ public class GraphQlRSocketHandler {
 	/**
 	 * Create a new instance that handles requests through a chain of interceptors
 	 * followed by the given {@link ExecutionGraphQlService}.
+	 * @param graphQlService the service that will execute the request
+	 * @param interceptors interceptors to form the processing chain
+	 * @param jsonEncoder a JSON encoder for serializing a
+	 * {@link graphql.GraphQLError} list for a failed subscription
 	 */
 	public GraphQlRSocketHandler(
-			ExecutionGraphQlService service, List<RSocketGraphQlInterceptor> interceptors) {
+			ExecutionGraphQlService graphQlService, List<RSocketGraphQlInterceptor> interceptors,
+			Encoder<?> jsonEncoder) {
 
-		RSocketGraphQlInterceptor.Chain endOfChain = request -> service.execute(request).map(RSocketGraphQlResponse::new);
+		Assert.notNull(graphQlService, "ExecutionGraphQlService is required");
+		Assert.notNull(jsonEncoder, "JSON Encoder is required");
 
-		this.executionChain = (interceptors.isEmpty() ? endOfChain :
+		this.executionChain = initExecutionChain(graphQlService, interceptors);
+		this.jsonEncoder = jsonEncoder;
+	}
+
+	private static Chain initExecutionChain(
+			ExecutionGraphQlService graphQlService, List<RSocketGraphQlInterceptor> interceptors) {
+
+		Chain endOfChain = request ->
+				graphQlService.execute(request).map(RSocketGraphQlResponse::new);
+
+		return interceptors.isEmpty() ? endOfChain :
 				interceptors.stream()
 						.reduce(RSocketGraphQlInterceptor::andThen)
-						.map(interceptor -> (RSocketGraphQlInterceptor.Chain) request -> interceptor.intercept(request, endOfChain))
-						.orElse(endOfChain));
+						.map(interceptor -> (Chain) request -> interceptor.intercept(request, endOfChain))
+						.orElse(endOfChain);
 	}
 
 
@@ -106,18 +137,26 @@ public class GraphQlRSocketHandler {
 						Publisher<ExecutionResult> publisher = response.getData();
 						return Flux.from(publisher).map(ExecutionResult::toSpecification);
 					}
-
-					String message = (!response.isValid() ?
-							response.toMap().get("errors").toString() :
-							"Response is not a stream, is the operation actually a subscription?");
-
-					return Flux.error(new RejectedException(message));
+					else if (response.isValid()) {
+						return Flux.error(new InvalidException(
+								"Expected a Publisher for a subscription operation. " +
+										"This is either a server error or the operation is not a subscription"));
+					}
+					String errorData = encodeErrors(response).toString(StandardCharsets.UTF_8);
+					return Flux.error(new RejectedException(errorData));
 				});
 	}
 
 	private Mono<RSocketGraphQlResponse> handleInternal(Map<String, Object> payload) {
 		String requestId = this.idGenerator.generateId().toString();
 		return this.executionChain.next(new RSocketGraphQlRequest(payload, requestId, null));
+	}
+
+	@SuppressWarnings("unchecked")
+	private DataBuffer encodeErrors(RSocketGraphQlResponse response) {
+		return ((Encoder<List<GraphQLError>>) this.jsonEncoder).encodeValue(
+				response.getExecutionResult().getErrors(),
+				DefaultDataBufferFactory.sharedInstance, LIST_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
 	}
 
 }

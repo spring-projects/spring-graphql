@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.server.WebGraphQlInterceptor.Chain;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -88,18 +89,18 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		WebGraphQlInterceptor.Chain endOfChain = request -> this.service.execute(request).map(WebGraphQlResponse::new);
+		Chain endOfChain = request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
-		WebGraphQlInterceptor.Chain chain = this.interceptors.stream()
+		Chain executionChain = this.interceptors.stream()
 				.reduce(WebGraphQlInterceptor::andThen)
-				.map(interceptor -> (WebGraphQlInterceptor.Chain) (request) -> interceptor.intercept(request, endOfChain))
+				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {
 
 			@Override
 			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
-				return chain.next(request)
+				return executionChain.next(request)
 						.contextWrite(context -> {
 							if (!CollectionUtils.isEmpty(accessors)) {
 								ThreadLocalAccessor accessor = ThreadLocalAccessor.composite(accessors);

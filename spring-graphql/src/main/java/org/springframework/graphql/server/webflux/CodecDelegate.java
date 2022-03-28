@@ -36,8 +36,7 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
- * Delegate that can be embedded in a class to help with encoding and decoding
- * GraphQL over WebSocket messages.
+ * Helper class for encoding and decoding GraphQL messages.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

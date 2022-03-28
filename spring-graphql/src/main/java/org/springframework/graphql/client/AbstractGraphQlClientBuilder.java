@@ -119,10 +119,26 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	}
 
 	/**
+	 * Access to the configured JSON encoder.
+	 */
+	protected Encoder<?> getJsonEncoder() {
+		Assert.notNull(this.jsonEncoder, "JSON Encoder not set");
+		return this.jsonEncoder;
+	}
+
+	/**
 	 * Variant of {@link #setJsonCodecs} for setting each codec individually.
 	 */
 	protected void setJsonDecoder(Decoder<?> decoder) {
 		this.jsonDecoder = decoder;
+	}
+
+	/**
+	 * Access to the configured JSON encoder.
+	 */
+	protected Decoder<?> getJsonDecoder() {
+		Assert.notNull(this.jsonDecoder, "JSON Encoder not set");
+		return this.jsonDecoder;
 	}
 
 	/**

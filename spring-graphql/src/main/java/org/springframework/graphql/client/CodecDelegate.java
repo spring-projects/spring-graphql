@@ -25,7 +25,6 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -51,10 +50,6 @@ final class CodecDelegate {
 
 	private final Encoder<?> encoder;
 
-
-	CodecDelegate() {
-		this(ClientCodecConfigurer.create());
-	}
 
 	CodecDelegate(CodecConfigurer configurer) {
 		Assert.notNull(configurer, "CodecConfigurer is required");

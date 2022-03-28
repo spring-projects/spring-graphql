@@ -31,6 +31,7 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -52,7 +53,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 
 	private final Map<Map<String, Object>, Exchange> expectedExchanges = new LinkedHashMap<>();
 
-	private final CodecDelegate codecDelegate = new CodecDelegate();
+	private final CodecDelegate codecDelegate = new CodecDelegate(ClientCodecConfigurer.create());
 
 
 	/**

@@ -136,10 +136,13 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
 		@SuppressWarnings("unchecked")
 		private static String initPath(Map<String, Object> errorMap) {
-			return ((List<Object>) errorMap.getOrDefault("path", Collections.emptyList())).stream()
-					.reduce("",
-							(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
-							(s, s2) -> null);
+			List<Object> path = (List<Object>) errorMap.get("path");
+			if (path == null) {
+				return "";
+			}
+			return path.stream().reduce("",
+					(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
+					(s, s2) -> null);
 		}
 
 		@Override

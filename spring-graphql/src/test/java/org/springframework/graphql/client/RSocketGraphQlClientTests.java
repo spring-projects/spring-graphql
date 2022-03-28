@@ -19,26 +19,34 @@ package org.springframework.graphql.client;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
+import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
+import io.rsocket.Closeable;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.local.LocalClientTransport;
 import io.rsocket.transport.local.LocalServerTransport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
@@ -47,11 +55,15 @@ import org.springframework.util.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+
 /**
+ * {@code RSocketGraphQlClient} tests using {@link LocalClientTransport} and
+ * {@link LocalServerTransport} for RSocket exchanges in memory, with stubbed
+ * GraphQL responses.
  *
  * @author Rossen Stoyanchev
  */
-public class RSocketGraphQlClientBuilderTests {
+public class RSocketGraphQlClientTests {
 
 	private static final String DOCUMENT = "{ Query }";
 
@@ -60,6 +72,11 @@ public class RSocketGraphQlClientBuilderTests {
 
 	private final BuilderSetup builderSetup = new BuilderSetup();
 
+
+	@AfterEach
+	void tearDown() {
+		this.builderSetup.shutDown();
+	}
 
 	@Test
 	void mutate() {
@@ -72,7 +89,7 @@ public class RSocketGraphQlClientBuilderTests {
 		GraphQlRequest request = this.builderSetup.getGraphQlRequest();
 		assertThat(request).isNotNull();
 
-		// Mutate
+		// Mutate: still works (carries over original default)
 		client = client.mutate().build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
@@ -80,6 +97,26 @@ public class RSocketGraphQlClientBuilderTests {
 		assertThat(request).isNotNull();
 	}
 
+	@Test
+	void subscriptionError() {
+
+		String document = "subscription { greetings }";
+		GraphQLError error = GraphqlErrorBuilder.newError().message("boo").build();
+		ExecutionResult result = ExecutionResultImpl.newExecutionResult().addError(error).build();
+		this.builderSetup.setMockResponse(document, result);
+
+		Flux<ClientGraphQlResponse> responseFlux = this.builderSetup.initBuilder().build()
+				.document(document).executeSubscription();
+
+		StepVerifier.create(responseFlux)
+				.expectErrorSatisfies(ex -> {
+					assertThat(ex).isInstanceOf(SubscriptionErrorException.class);
+					List<ResponseError> errors = ((SubscriptionErrorException) ex).getErrors();
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getMessage()).isEqualTo("boo");
+				})
+				.verify(TIMEOUT);
+	}
 
 
 	private static class BuilderSetup  {
@@ -87,6 +124,9 @@ public class RSocketGraphQlClientBuilderTests {
 		private GraphQlRequest graphQlRequest;
 
 		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
+
+		@Nullable
+		private Closeable server;
 
 		public BuilderSetup() {
 
@@ -108,9 +148,9 @@ public class RSocketGraphQlClientBuilderTests {
 			};
 
 			GraphQlRSocketController controller = new GraphQlRSocketController(
-					new GraphQlRSocketHandler(graphQlService, Collections.emptyList()));
+					new GraphQlRSocketHandler(graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
 
-			RSocketServer.create()
+			this.server = RSocketServer.create()
 					.acceptor(createSocketAcceptor(controller))
 					.bind(LocalServerTransport.create("local"))
 					.block();
@@ -141,6 +181,12 @@ public class RSocketGraphQlClientBuilderTests {
 
 		public GraphQlRequest getGraphQlRequest() {
 			return this.graphQlRequest;
+		}
+
+		public void shutDown() {
+			if (this.server != null) {
+				this.server.dispose();
+			}
 		}
 	}
 

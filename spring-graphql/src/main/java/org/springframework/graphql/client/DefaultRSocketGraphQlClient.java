@@ -147,15 +147,15 @@ final class DefaultRSocketGraphQlClient extends AbstractDelegatingGraphQlClient 
 		@Override
 		public RSocketGraphQlClient build() {
 
-			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
-			RSocketRequester requester = this.requesterBuilder.transport(this.clientTransport);
-			RSocketGraphQlTransport graphQlTransport = new RSocketGraphQlTransport(this.route, requester);
-
 			// Pass the codecs to the parent for response decoding
 			this.requesterBuilder.rsocketStrategies(builder -> {
 				builder.decoders(decoders -> setJsonDecoder(CodecDelegate.findJsonDecoder(decoders)));
 				builder.encoders(encoders -> setJsonEncoder(CodecDelegate.findJsonEncoder(encoders)));
 			});
+
+			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
+			RSocketRequester requester = this.requesterBuilder.transport(this.clientTransport);
+			RSocketGraphQlTransport graphQlTransport = new RSocketGraphQlTransport(this.route, requester, getJsonDecoder());
 
 			return new DefaultRSocketGraphQlClient(
 					super.buildGraphQlClient(graphQlTransport),
