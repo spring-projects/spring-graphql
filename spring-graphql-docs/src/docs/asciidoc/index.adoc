@@ -35,18 +35,18 @@ Spring for GraphQL requires the following as a baseline:
 
 
 
-[[web-transports]]
-== Web Transports
+[[server-transports]]
+== Server Transports
 
-Spring for GraphQL supports GraphQL requests over HTTP and over WebSocket.
+Spring for GraphQL supports server handling of GraphQL requests over HTTP, WebSocket, and
+RSocket.
 
 
-
-[[web-http]]
+[[server-http]]
 === HTTP
 
 `GraphQlHttpHandler` handles GraphQL over HTTP requests and delegates to the
-<<web-interception>> chain for request execution. There are two variants, one for
+<<server-interception>> chain for request execution. There are two variants, one for
 Spring MVC and one for Spring WebFlux. Both handle requests asynchronously and have
 equivalent functionality, but rely on blocking vs non-blocking I/O respectively for
 writing the HTTP response.
@@ -70,7 +70,7 @@ The Spring for GraphQL repository contains a Spring MVC
 
 
 
-[[web-websocket]]
+[[server-websocket]]
 === WebSocket
 
 `GraphQlWebSocketHandler` handles GraphQL over WebSocket requests based on the
@@ -78,7 +78,7 @@ https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[protocol] define
 https://github.com/enisdenjo/graphql-ws[graphql-ws] library. The main reason to use
 GraphQL over WebSocket is subscriptions which allow sending a stream of GraphQL
 responses, but it can also be used for regular queries with a single response.
-The handler delegates every request to the <<web-interception>> chain for further
+The handler delegates every request to the <<server-interception>> chain for further
 request execution.
 
 [TIP]
@@ -113,17 +113,52 @@ The Spring for GraphQL repository contains a WebFlux
 
 
 
-[[web-interception]]
-=== Web Interception
+[[server-rsocket]]
+=== RSocket
 
-<<web-http>> and <<web-websocket>> transport handlers delegate to a common Web
-interception chain for request execution. The chain consists of a sequence of
-`WebGraphQlInterceptor` components, followed by a `ExecutionGraphQlService` that
-invokes GraphQL Java.
+`GraphQlRSocketHandler` handles GraphQL over RSocket requests. Queries and mutations are
+expected and handled as an RSocket `request-response` interaction while subscriptions are
+handled as `request-stream`.
 
-`WebGraphQlInterceptor` is as a common contract to use in both Spring MVC and
-WebFlux applications. Use it to intercept requests, inspect HTTP request headers, or to
-register a transformation of the `graphql.ExecutionInput`:
+`GraphQlRSocketHandler` can be used a delegate from an `@Controller` that is mapped to
+the route for GraphQL requests. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class GraphQlRSocketController {
+
+	 private final GraphQlRSocketHandler handler;
+
+	 GraphQlRSocketController(GraphQlRSocketHandler handler) {
+			this.handler = handler;
+	 }
+
+	 @MessageMapping("graphql")
+	 public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
+			return this.handler.handle(payload);
+	 }
+
+	 @MessageMapping("graphql")
+	 public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
+			return this.handler.handleSubscription(payload);
+	 }
+}
+----
+
+
+
+
+
+[[server-interception]]
+=== Server Interception
+
+GraphQL <<server-http>> and <<server-websocket>> handlers for Spring MVC and WebFlux
+delegate to a common `WebGraphQlInterceptor` chain followed by an `ExecutionGraphQlService`
+that invokes the GraphQL Java engine.
+
+You can write an interceptor to check requests details or transform the
+`graphql.ExecutionInput` for GraphQL Java:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -140,8 +175,8 @@ class MyInterceptor implements WebGraphQlInterceptor {
 }
 ----
 
-Use `WebGraphQlInterceptor` also to intercept responses, add HTTP response headers,
-or transform the `graphql.ExecutionResult`:
+Interceptors can customize HTTP response headers, or inspect and/or transform the
+`graphql.ExecutionResult` from GraphQL Java:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -159,19 +194,22 @@ class MyInterceptor implements WebGraphQlInterceptor {
 }
 ----
 
-`WebGraphQlHandler` provides a builder to initialize the Web interception chain. After
-you build the chain, you can use the resulting `WebGraphQlHandler` to initialize the HTTP
-or WebSocket transport handlers. The Boot starter configures all this, see the
-{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
-details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
-it contains, for the actual config.
+`WebGraphQlHandler` has a builder to create the `WebGraphInterceptor` chain. The Boot
+starter uses this, see Boot's section on
+{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints].
+
+The <<server-rsocket>> handler delegates to a similar chain except
+the interceptor type is `GraphQlInterceptor`. To use, create `GraphQlRSocketHandler` with
+the list of interceptors to apply to requests.
+
+
 
 
 [[execution]]
 == Request Execution
 
 `ExecutionGraphQlService` is the main Spring abstraction to call GraphQL Java to execute
-requests. Underlying transports, such as the <<web-transports>>, delegate to
+requests. Underlying transports, such as the <<server-transports>>, delegate to
 `ExecutionGraphQlService` to handle requests.
 
 The main implementation, `DefaultExecutionGraphQlService`, is configured with a
@@ -212,10 +250,9 @@ class GraphQlConfig {
 
 	@Bean
 	public GraphQlSourceBuilderCustomizer sourceBuilderCustomizer() {
-		return (builder) -> {
-			builder.configureGraphQl(graphQlBuilder ->
-				graphQlBuilder.executionIdProvider(new CustomExecutionIdProvider()));
-		};
+		return (builder) ->
+				builder.configureGraphQl(graphQlBuilder ->
+						graphQlBuilder.executionIdProvider(new CustomExecutionIdProvider()));
 	}
 }
 ----
@@ -380,10 +417,10 @@ such beans, so you might have something like:
 @Configuration
 public class GraphQlConfig {
 
-    @Bean
-    public RuntimeWiringConfigurer runtimeWiringConfigurer() {
-        return builder -> builder.directiveWiring(new MySchemaDirectiveWiring());
-    }
+	 @Bean
+	 public RuntimeWiringConfigurer runtimeWiringConfigurer() {
+		  return builder -> builder.directiveWiring(new MySchemaDirectiveWiring());
+	 }
 
 }
 ----
@@ -413,7 +450,7 @@ transport layer, such as from a WebFlux request handling, see
 === Context Propagation
 
 Spring for GraphQL provides support to transparently propagate context from the
-<<web-transports>>, through GraphQL Java, and to `DataFetcher` and other components it
+<<server-transports>>, through GraphQL Java, and to `DataFetcher` and other components it
 invokes. This includes both `ThreadLocal` context from the Spring MVC request handling
 thread and Reactor `Context` from the WebFlux processing pipeline.
 
@@ -423,7 +460,7 @@ thread and Reactor `Context` from the WebFlux processing pipeline.
 
 A `DataFetcher` and other components invoked by GraphQL Java may not always execute on
 the same thread as the Spring MVC handler, for example if an asynchronous
-<<web-interception, `WebGraphQlInterceptor`>> or `DataFetcher` switches to a
+<<server-interception, `WebGraphQlInterceptor`>> or `DataFetcher` switches to a
 different thread.
 
 Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
@@ -457,7 +494,7 @@ public class RequestAttributesAccessor implements ThreadLocalAccessor {
 }
 ----
 
-A `ThreadLocalAccessor` can be registered in the <<web-interception,WebGraphHandler>>
+A `ThreadLocalAccessor` can be registered in the <<server-interception,WebGraphHandler>>
 builder. The Boot starter detects beans of this type and automatically registers them for
 Spring MVC application, see the
 {spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section.
@@ -468,7 +505,7 @@ Spring MVC application, see the
 
 A <<execution-reactive-datafetcher>> can rely on access to Reactor context that
 originates from the WebFlux request handling chain. This includes Reactor context
-added by <<web-interception, WebGraphQlInterceptor>> components.
+added by <<server-interception, WebGraphQlInterceptor>> components.
 
 
 
@@ -546,11 +583,11 @@ public class MyConfig {
 	public MyConfig(BatchLoaderRegistry registry) {
 
 		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
-            // return Mono<Map<Long, Author>
-        });
+				// return Mono<Map<Long, Author>
+		});
 
-        // more registrations ...
-    }
+		// more registrations ...
+	}
 
 }
 ----
@@ -679,12 +716,12 @@ dependencies {
 	//...
 
 	annotationProcessor "com.querydsl:querydsl-apt:$querydslVersion:jpa",
-            'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final',
-            'javax.annotation:javax.annotation-api:1.3.2'
+			'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final',
+			'javax.annotation:javax.annotation-api:1.3.2'
 }
 
 compileJava {
-    options.annotationProcessorPath = configurations.annotationProcessor
+	 options.annotationProcessorPath = configurations.annotationProcessor
 }
 ----
 [source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
@@ -1238,12 +1275,12 @@ Bean Validation lets you declare constraints on types, as the following example 
 ----
 public class BookInput {
 
-    @NotNull
-    private String title;
+	@NotNull
+	private String title;
 
 	@NotNull
-    @Size(max=13)
-    private String isbn;
+	@Size(max=13)
+	private String isbn;
 }
 ----
 
@@ -1502,7 +1539,7 @@ Batch mapping methods can return:
 [[security]]
 == Security
 
-The path to a <<web-transports, Web>> GraphQL endpoint can be secured with HTTP
+The path to a <<server-transports, Web>> GraphQL endpoint can be secured with HTTP
 URL security to ensure that only authenticated users can access it. This does not,
 however, differentiate among different GraphQL requests on such a shared endpoint on
 a single URL.

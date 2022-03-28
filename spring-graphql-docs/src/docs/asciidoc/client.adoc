@@ -6,8 +6,8 @@ include::attributes.adoc[]
 [[client]]
 = Client
 
-Spring for GraphQL includes client support for executing GraphQL requests over HTTP or
-over WebSocket.
+Spring for GraphQL includes client support for executing GraphQL requests over HTTP,
+WebSocket, and RSocket.
 
 
 
@@ -105,6 +105,26 @@ on an existing `WebSocketGraphQlClient` to create another with different configu
 	// Use anotherGraphQlClient...
 
 ----
+
+
+
+[[client-rsocketgraphqlclient]]
+=== RSocket
+
+`RSocketGraphQlClient` uses
+{spring-framework-ref-docs}/web-reactive.html#rsocket-requester[RSocketRequester]
+to execute GraphQL requests over RSocket requests.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	RSocketGraphQlClient graphQlClient =
+			RSocketGraphQlClient.builder()
+					.websocket(URI.create("http://localhost:8080/graphql"))
+					.build();
+----
+
+Once created, `RSocketGraphQlClient` exposes the same transport agnostic workflow for
+request execution as any `GrahQlClient`.
 
 
 
