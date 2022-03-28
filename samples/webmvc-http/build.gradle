@@ -6,7 +6,7 @@ group = 'com.example'
 description = "GraphQL over HTTP with Spring MVC Sample"
 sourceCompatibility = '1.8'
 
-ext['spring-graphql.version'] = version
+ext['spring-graphql.version'] = '1.0.0-M6'
 
 repositories {
 	mavenCentral()
@@ -24,8 +24,8 @@ dependencies {
 	implementation 'com.querydsl:querydsl-jpa'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.h2database:h2'
-	testImplementation project(':spring-graphql')
-	testImplementation project(':spring-graphql-test')
+	testImplementation 'org.springframework.graphql:spring-graphql'
+	testImplementation 'org.springframework.graphql:spring-graphql-test:1.0.0-M6'
 	testImplementation 'org.springframework:spring-webflux'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
