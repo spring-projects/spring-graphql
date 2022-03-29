@@ -203,7 +203,7 @@ client to send requests over a transport protocol. To test directly against a
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	GraphQlService service = ... ;
-	GraphQlServiceTester tester = GraphQlServiceTester.create(service);
+	ExecutionGraphQlServiceTester tester = ExecutionGraphQlServiceTester.create(service);
 ----
 
 
