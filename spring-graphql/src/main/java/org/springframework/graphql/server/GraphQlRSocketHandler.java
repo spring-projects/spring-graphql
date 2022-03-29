@@ -102,20 +102,16 @@ public class GraphQlRSocketHandler {
 		Assert.notNull(graphQlService, "ExecutionGraphQlService is required");
 		Assert.notNull(jsonEncoder, "JSON Encoder is required");
 
-		this.executionChain = initExecutionChain(graphQlService, interceptors);
+		this.executionChain = initChain(graphQlService, interceptors);
 		this.jsonEncoder = jsonEncoder;
 	}
 
-	private static Chain initExecutionChain(
-			ExecutionGraphQlService graphQlService, List<RSocketGraphQlInterceptor> interceptors) {
-
-		Chain endOfChain = request ->
-				graphQlService.execute(request).map(RSocketGraphQlResponse::new);
-
+	private static Chain initChain(ExecutionGraphQlService service, List<RSocketGraphQlInterceptor> interceptors) {
+		Chain endOfChain = request -> service.execute(request).map(RSocketGraphQlResponse::new);
 		return interceptors.isEmpty() ? endOfChain :
 				interceptors.stream()
 						.reduce(RSocketGraphQlInterceptor::andThen)
-						.map(interceptor -> (Chain) request -> interceptor.intercept(request, endOfChain))
+						.map(interceptor -> interceptor.apply(endOfChain))
 						.orElse(endOfChain);
 	}
 

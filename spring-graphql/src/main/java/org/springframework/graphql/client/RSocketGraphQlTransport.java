@@ -83,7 +83,6 @@ final class RSocketGraphQlTransport implements GraphQlTransport {
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		return this.rsocketRequester.route(this.route).data(request.toMap())
 				.retrieveFlux(MAP_TYPE)
-				.doOnError(ex -> System.out.println(ex))
 				.onErrorResume(RejectedException.class, ex -> Flux.error(decodeErrors(request, ex)))
 				.map(ResponseMapGraphQlResponse::new);
 	}

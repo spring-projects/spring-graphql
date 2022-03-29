@@ -19,14 +19,11 @@ package org.springframework.graphql.client;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
-import graphql.GraphQLError;
-import graphql.GraphqlErrorBuilder;
 import io.rsocket.Closeable;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
@@ -36,14 +33,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.ResponseError;
-import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
+import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.lang.Nullable;
@@ -63,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class RSocketGraphQlClientTests {
+public class RSocketGraphQlClientBuilderTests {
 
 	private static final String DOCUMENT = "{ Query }";
 
@@ -95,27 +90,6 @@ public class RSocketGraphQlClientTests {
 
 		request = this.builderSetup.getGraphQlRequest();
 		assertThat(request).isNotNull();
-	}
-
-	@Test
-	void subscriptionError() {
-
-		String document = "subscription { greetings }";
-		GraphQLError error = GraphqlErrorBuilder.newError().message("boo").build();
-		ExecutionResult result = ExecutionResultImpl.newExecutionResult().addError(error).build();
-		this.builderSetup.setMockResponse(document, result);
-
-		Flux<ClientGraphQlResponse> responseFlux = this.builderSetup.initBuilder().build()
-				.document(document).executeSubscription();
-
-		StepVerifier.create(responseFlux)
-				.expectErrorSatisfies(ex -> {
-					assertThat(ex).isInstanceOf(SubscriptionErrorException.class);
-					List<ResponseError> errors = ((SubscriptionErrorException) ex).getErrors();
-					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0).getMessage()).isEqualTo("boo");
-				})
-				.verify(TIMEOUT);
 	}
 
 

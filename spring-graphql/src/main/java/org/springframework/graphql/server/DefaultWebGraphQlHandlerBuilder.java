@@ -93,7 +93,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 		Chain executionChain = this.interceptors.stream()
 				.reduce(WebGraphQlInterceptor::andThen)
-				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, endOfChain))
+				.map(interceptor -> interceptor.apply(endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {

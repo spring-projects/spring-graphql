@@ -60,6 +60,15 @@ public interface WebGraphQlInterceptor {
 		return (request, chain) -> intercept(request, nextRequest -> nextInterceptor.intercept(nextRequest, chain));
 	}
 
+	/**
+	 * Apply this interceptor to the given {@code Chain} resulting in an intercepted chain.
+	 * @param chain the chain to add interception around
+	 * @return a new chain instance
+	 */
+	default Chain apply(Chain chain) {
+		return request -> intercept(request, chain);
+	}
+
 
 	/**
 	 * Contract for delegation to the rest of the chain.
