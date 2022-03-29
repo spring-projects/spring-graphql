@@ -6,8 +6,8 @@ include::attributes.adoc[]
 [[testing]]
 = Testing
 
-Spring for GraphQL provides dedicated support for testing GraphQL requests over HTTP or
-WebSocket, and for testing GraphQL requests executed directly against a server.
+Spring for GraphQL provides dedicated support for testing GraphQL requests over HTTP,
+WebSocket, and RSocket, as well as for testing directly against a server.
 
 To make use of this, add `spring-graphql-test` to your build:
 
@@ -43,14 +43,15 @@ dependencies {
 independent of and agnostic to the underlying transport. To create an instance, you'll
 need to choose a specific `GraphQlTester` extension as a starting point.
 
-To test with a client sending requests to a server over a transport, use the
-<<testing-httpgraphqltester>> or the <<testing-websocketgraphqltester>> `GraphQlTester`
-extensions. For server side tests, executed without any client, use the
-<<testing-graphqlservicetester>> or the <<testing-webgraphqlhandlertester>> extensions.
+To test with a client sending requests over a transport, use one of the
+<<testing-httpgraphqltester>>, <<testing-websocketgraphqltester>>, or
+<<testing-rsocketgraphqltester>> extensions. To test the server without client,
+use the<<testing-graphqlservicetester>> or <<testing-webgraphqlhandlertester>>
+extensions.
 
-The main purpose of a `GraphQlTester` extension is to provide a transport specific
-`Builder`. There is also a <<testing-graphqltester-builder>> in `GraphQlTester` with
-common configuration options that apply to any extension.
+Each `GraphQlTester` extension provides a transport specific `Builder`. There is also a
+shared, base <<testing-graphqltester-builder>> in `GraphQlTester` with common options
+for all extensions.
 
 
 
@@ -148,7 +149,7 @@ from Spring WebFlux to execute GraphQL requests over WebSocket:
 ----
 
 Once created, `WebSocketGraphQlTester` exposes the same transport agnostic workflow for
-request execution as any `GrahQlTeste`. To change any transport details, use `mutate()`
+request execution as any `GraphQlTester`. To change any transport details, use `mutate()`
 on an existing `WebSocketGraphQlTester` to create another with different configuration:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -171,6 +172,24 @@ on an existing `WebSocketGraphQlTester` to create another with different configu
 
 `WebSocketGraphQlTester` provides a `stop()` method that you can use to have the WebSocket
 connection closed, e.g. after a test runs.
+
+
+
+[[testing-rsocketgraphqltester]]
+=== RSocket
+
+`RSocketGraphQlTester` uses `RSocketRequester` from spring-messaging to execute GraphQL
+requests over RSocket:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	RSocketGraphQlTester tester = RSocketGraphQlTester.builder()
+			.webSocket(URI.create("http://localhost:8080/graphql"))
+			.build();
+----
+
+Once created, `RSocketGraphQlTester` exposes the same transport agnostic workflow for
+request execution as any `GraphQlTester`.
 
 
 

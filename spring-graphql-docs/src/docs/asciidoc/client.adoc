@@ -20,9 +20,9 @@ an instance, you'll need to start from either the <<client-httpgraphqlclient,
 HttpGraphQlClient>> or the <<client-websocketgraphqlclient,WebSocketGraphQlClient>>
 extensions.
 
-The main purpose of a `GraphQlClient` extension is to provide a transport specific
-`Builder`. There is also a common <<client-graphqlclient-builder>> in `GraphQlClient`
-with configuration options that apply to any extension.
+Each `GraphQlClient` extension provides a transport specific `Builder`. There is also a
+shared, base <<client-graphqlclient-builder>> in `GraphQlClient` with common options for
+all extensions.
 
 
 
