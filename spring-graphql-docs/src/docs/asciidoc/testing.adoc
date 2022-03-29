@@ -198,7 +198,7 @@ request execution as any `GraphQlTester`.
 
 Many times it's enough to test GraphQL requests on the server side, without the use of a
 client to send requests over a transport protocol. To test directly against a
-`ExecutionGraphQlService`, use the `GraphQlServiceTester` extension:
+`ExecutionGraphQlService`, use the `ExecutionGraphQlServiceTester` extension:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----

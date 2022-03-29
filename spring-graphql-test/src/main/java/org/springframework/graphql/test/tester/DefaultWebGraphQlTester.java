@@ -28,114 +28,111 @@ import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
+
 /**
- * Default {@link WebGraphQlTester} that uses {@link WebGraphQlHandler} for
- * request execution.
+ * Default implementation for {@link WebGraphQlTester} that initializes a
+ * {@link WebGraphQlHandler} for request execution.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
+final class DefaultWebGraphQlTesterBuilder
+		extends AbstractGraphQlTesterBuilder<DefaultWebGraphQlTesterBuilder>
+		implements WebGraphQlTester.Builder<DefaultWebGraphQlTesterBuilder> {
 
-	private final WebGraphQlHandlerGraphQlTransport transport;
+	private URI url = URI.create("");
 
-	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
+	private final HttpHeaders headers = new HttpHeaders();
+
+	private final WebGraphQlHandler handler;
+
+	private CodecConfigurer codecConfigurer = ClientCodecConfigurer.create();
 
 
-	private DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerGraphQlTransport transport,
-			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
+	DefaultWebGraphQlTesterBuilder(WebGraphQlHandler handler) {
+		Assert.notNull(handler, "WebGraphQlHandler is required");
+		this.handler = handler;
+	}
 
-		super(tester);
-		this.transport = transport;
-		this.builderInitializer = builderInitializer;
+	DefaultWebGraphQlTesterBuilder(WebGraphQlHandlerGraphQlTransport transport) {
+		this.url = transport.getUrl();
+		this.headers.putAll(transport.getHeaders());
+		this.handler = transport.getGraphQlHandler();
+		this.codecConfigurer = transport.getCodecConfigurer();
 	}
 
 
 	@Override
-	public Builder<?> mutate() {
-		Builder<?> builder = new Builder<>(this.transport);
-		this.builderInitializer.accept(builder);
-		return builder;
+	public DefaultWebGraphQlTesterBuilder url(String url) {
+		return url(new DefaultUriBuilderFactory().uriString(url).build());
+	}
+
+	@Override
+	public DefaultWebGraphQlTesterBuilder url(URI url) {
+		this.url = url;
+		return this;
+	}
+
+	@Override
+	public DefaultWebGraphQlTesterBuilder header(String name, String... values) {
+		this.headers.put(name, Arrays.asList(values));
+		return this;
+	}
+
+	@Override
+	public DefaultWebGraphQlTesterBuilder headers(Consumer<HttpHeaders> headersConsumer) {
+		headersConsumer.accept(this.headers);
+		return this;
+	}
+
+	@Override
+	public DefaultWebGraphQlTesterBuilder codecConfigurer(Consumer<CodecConfigurer> codecConfigurerConsumer) {
+		codecConfigurerConsumer.accept(this.codecConfigurer);
+		return this;
+	}
+
+	@Override
+	public WebGraphQlTester build() {
+
+		registerJsonPathMappingProvider();
+
+		WebGraphQlHandlerGraphQlTransport transport =
+				new WebGraphQlHandlerGraphQlTransport(this.url, this.headers, this.handler, this.codecConfigurer);
+
+		GraphQlTester tester = super.buildGraphQlTester(transport);
+		return new DefaultWebGraphQlTester(tester, transport, getBuilderInitializer());
+	}
+
+	private void registerJsonPathMappingProvider() {
+		configureJsonPathConfig(jsonPathConfig -> {
+			EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(this.codecConfigurer);
+			return jsonPathConfig.mappingProvider(provider);
+		});
 	}
 
 
 	/**
-	 * Base builder implementation for all Web transport extensions.
+	 * Default {@link WebGraphQlTester} implementation.
 	 */
-	static class Builder<B extends Builder<B>> extends AbstractGraphQlTesterBuilder<B>
-			implements WebGraphQlTester.Builder<B> {
+	private static class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
 
-		private URI url = URI.create("");
+		private final WebGraphQlHandlerGraphQlTransport transport;
 
-		private final HttpHeaders headers = new HttpHeaders();
+		private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
-		private final WebGraphQlHandler handler;
+		private DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerGraphQlTransport transport,
+				Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
-		private CodecConfigurer codecConfigurer = ClientCodecConfigurer.create();
-
-		Builder(WebGraphQlHandler handler) {
-			Assert.notNull(handler, "WebGraphQlHandler is required");
-			this.handler = handler;
-		}
-
-		Builder(WebGraphQlHandlerGraphQlTransport transport) {
-			this.url = transport.getUrl();
-			this.headers.putAll(transport.getHeaders());
-			this.handler = transport.getGraphQlHandler();
-			this.codecConfigurer = transport.getCodecConfigurer();
+			super(tester);
+			this.transport = transport;
+			this.builderInitializer = builderInitializer;
 		}
 
 		@Override
-		public B url(String url) {
-			return url(new DefaultUriBuilderFactory().uriString(url).build());
-		}
-
-		@Override
-		public B url(URI url) {
-			this.url = url;
-			return self();
-		}
-
-		@Override
-		public B header(String name, String... values) {
-			this.headers.put(name, Arrays.asList(values));
-			return self();
-		}
-
-		@Override
-		public B headers(Consumer<HttpHeaders> headersConsumer) {
-			headersConsumer.accept(this.headers);
-			return self();
-		}
-
-		@Override
-		public B codecConfigurer(Consumer<CodecConfigurer> codecConfigurerConsumer) {
-			codecConfigurerConsumer.accept(this.codecConfigurer);
-			return self();
-		}
-
-		@SuppressWarnings("unchecked")
-		protected <T extends B> T self() {
-			return (T) this;
-		}
-
-		@Override
-		public WebGraphQlTester build() {
-
-			registerJsonPathMappingProvider();
-
-			WebGraphQlHandlerGraphQlTransport transport =
-					new WebGraphQlHandlerGraphQlTransport(this.url, this.headers, this.handler, this.codecConfigurer);
-
-			GraphQlTester tester = super.buildGraphQlTester(transport);
-			return new DefaultWebGraphQlTester(tester, transport, getBuilderInitializer());
-		}
-
-		private void registerJsonPathMappingProvider() {
-			configureJsonPathConfig(jsonPathConfig -> {
-				EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(this.codecConfigurer);
-				return jsonPathConfig.mappingProvider(provider);
-			});
+		public DefaultWebGraphQlTesterBuilder mutate() {
+			DefaultWebGraphQlTesterBuilder builder = new DefaultWebGraphQlTesterBuilder(this.transport);
+			this.builderInitializer.accept(builder);
+			return builder;
 		}
 
 	}

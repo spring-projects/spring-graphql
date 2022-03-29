@@ -28,127 +28,130 @@ import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 
+
 /**
- * Default {@link WebSocketGraphQlTester} that builds and uses a
- * {@link WebSocketGraphQlClient} for request execution.
+ * Default {@link WebSocketGraphQlTester.Builder} implementation, wraps a
+ * {@link WebSocketGraphQlClient.Builder}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTester implements WebSocketGraphQlTester {
+final class DefaultWebSocketGraphQlTesterBuilder
+		extends AbstractGraphQlTesterBuilder<DefaultWebSocketGraphQlTesterBuilder>
+		implements WebSocketGraphQlTester.Builder<DefaultWebSocketGraphQlTesterBuilder> {
 
-	private final WebSocketGraphQlClient webSocketGraphQlClient;
-
-	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
+	private final WebSocketGraphQlClient.Builder<?> graphQlClientBuilder;
 
 
-	private DefaultWebSocketGraphQlTester(
-			GraphQlTester graphQlTester, WebSocketGraphQlClient webSocketGraphQlClient,
-			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
+	/**
+	 * Constructor to start via {@link WebSocketGraphQlTester#builder(String, WebSocketClient)}.
+	 */
+	DefaultWebSocketGraphQlTesterBuilder(String url, WebSocketClient webSocketClient) {
+		Assert.notNull(webSocketClient, "WebSocketClient is required");
+		this.graphQlClientBuilder = WebSocketGraphQlClient.builder(url, webSocketClient);
+	}
 
-		super(graphQlTester);
-		this.webSocketGraphQlClient = webSocketGraphQlClient;
-		this.builderInitializer = builderInitializer;
+	/**
+	 * Constructor to start via {@link WebSocketGraphQlTester#builder(URI, WebSocketClient)}.
+	 */
+	DefaultWebSocketGraphQlTesterBuilder(URI url, WebSocketClient webSocketClient) {
+		Assert.notNull(webSocketClient, "WebSocketClient is required");
+		this.graphQlClientBuilder = WebSocketGraphQlClient.builder(url, webSocketClient);
+	}
+
+	/**
+	 * Constructor to mutate.
+	 * @param client the underlying client with the current state
+	 */
+	DefaultWebSocketGraphQlTesterBuilder(WebSocketGraphQlClient client) {
+		Assert.notNull(client, "WebSocketGraphQlClient is required");
+		this.graphQlClientBuilder = client.mutate();
 	}
 
 
 	@Override
-	public Mono<Void> start() {
-		return this.webSocketGraphQlClient.start();
+	public DefaultWebSocketGraphQlTesterBuilder url(String url) {
+		this.graphQlClientBuilder.url(url);
+		return this;
 	}
 
 	@Override
-	public Mono<Void> stop() {
-		return this.webSocketGraphQlClient.stop();
+	public DefaultWebSocketGraphQlTesterBuilder url(URI url) {
+		this.graphQlClientBuilder.url(url);
+		return this;
 	}
 
 	@Override
-	public Builder mutate() {
-		Builder builder = new Builder(this.webSocketGraphQlClient);
-		this.builderInitializer.accept(builder);
-		return builder;
+	public DefaultWebSocketGraphQlTesterBuilder header(String name, String... values) {
+		this.graphQlClientBuilder.header(name, values);
+		return this;
+	}
+
+	@Override
+	public DefaultWebSocketGraphQlTesterBuilder headers(Consumer<HttpHeaders> headersConsumer) {
+		this.graphQlClientBuilder.headers(headersConsumer);
+		return this;
+	}
+
+	@Override
+	public DefaultWebSocketGraphQlTesterBuilder codecConfigurer(Consumer<CodecConfigurer> codecsConsumer) {
+		this.graphQlClientBuilder.codecConfigurer(codecsConsumer);
+		return this;
+	}
+
+	@Override
+	public WebSocketGraphQlTester build() {
+		registerJsonPathMappingProvider();
+		WebSocketGraphQlClient client = this.graphQlClientBuilder.build();
+		GraphQlTester graphQlTester = super.buildGraphQlTester(asTransport(client));
+		return new DefaultWebSocketGraphQlTester(graphQlTester, client, getBuilderInitializer());
+	}
+
+	private void registerJsonPathMappingProvider() {
+		this.graphQlClientBuilder.codecConfigurer(codecConfigurer -> {
+			configureJsonPathConfig(jsonPathConfig -> {
+				EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(codecConfigurer);
+				return jsonPathConfig.mappingProvider(provider);
+			});
+		});
 	}
 
 
 	/**
-	 * Default {@link WebSocketGraphQlTester.Builder} implementation.
+	 * Default {@link WebSocketGraphQlTester} implementation.
 	 */
-	static final class Builder extends AbstractGraphQlTesterBuilder<Builder> implements WebSocketGraphQlTester.Builder<Builder> {
+	private static class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTester implements WebSocketGraphQlTester {
 
-		private final WebSocketGraphQlClient.Builder<?> graphQlClientBuilder;
+		private final WebSocketGraphQlClient client;
 
-		/**
-		 * Constructor to start via {@link WebSocketGraphQlTester#builder(String, WebSocketClient)}.
-		 */
-		Builder(String url, WebSocketClient webSocketClient) {
-			Assert.notNull(webSocketClient, "WebSocketClient is required");
-			this.graphQlClientBuilder = WebSocketGraphQlClient.builder(url, webSocketClient);
-		}
+		private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
-		/**
-		 * Constructor to start via {@link WebSocketGraphQlTester#builder(URI, WebSocketClient)}.
-		 */
-		Builder(URI url, WebSocketClient webSocketClient) {
-			Assert.notNull(webSocketClient, "WebSocketClient is required");
-			this.graphQlClientBuilder = WebSocketGraphQlClient.builder(url, webSocketClient);
-		}
+		private DefaultWebSocketGraphQlTester(
+				GraphQlTester graphQlTester, WebSocketGraphQlClient client,
+				Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
-		/**
-		 * Constructor to mutate.
-		 * @param client the underlying client with the current state
-		 */
-		Builder(WebSocketGraphQlClient client) {
-			Assert.notNull(client, "WebSocketGraphQlClient is required");
-			this.graphQlClientBuilder = client.mutate();
-		}
-
-
-		@Override
-		public Builder url(String url) {
-			this.graphQlClientBuilder.url(url);
-			return this;
+			super(graphQlTester);
+			this.client = client;
+			this.builderInitializer = builderInitializer;
 		}
 
 		@Override
-		public Builder url(URI url) {
-			this.graphQlClientBuilder.url(url);
-			return this;
+		public Mono<Void> start() {
+			return this.client.start();
 		}
 
 		@Override
-		public Builder header(String name, String... values) {
-			this.graphQlClientBuilder.header(name, values);
-			return this;
+		public Mono<Void> stop() {
+			return this.client.stop();
 		}
 
 		@Override
-		public Builder headers(Consumer<HttpHeaders> headersConsumer) {
-			this.graphQlClientBuilder.headers(headersConsumer);
-			return this;
+		public DefaultWebSocketGraphQlTesterBuilder mutate() {
+			DefaultWebSocketGraphQlTesterBuilder builder = new DefaultWebSocketGraphQlTesterBuilder(this.client);
+			this.builderInitializer.accept(builder);
+			return builder;
 		}
 
-		@Override
-		public Builder codecConfigurer(Consumer<CodecConfigurer> codecsConsumer) {
-			this.graphQlClientBuilder.codecConfigurer(codecsConsumer);
-			return this;
-		}
-
-		@Override
-		public WebSocketGraphQlTester build() {
-			registerJsonPathMappingProvider();
-			WebSocketGraphQlClient client = this.graphQlClientBuilder.build();
-			GraphQlTester graphQlTester = super.buildGraphQlTester(asTransport(client));
-			return new DefaultWebSocketGraphQlTester(graphQlTester, client, getBuilderInitializer());
-		}
-
-		private void registerJsonPathMappingProvider() {
-			this.graphQlClientBuilder.codecConfigurer(codecConfigurer -> {
-				configureJsonPathConfig(jsonPathConfig -> {
-					EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(codecConfigurer);
-					return jsonPathConfig.mappingProvider(provider);
-				});
-			});
-		}
 	}
 
 }

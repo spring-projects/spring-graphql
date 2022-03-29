@@ -44,14 +44,14 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 	 * and adding JSON codecs.
 	 */
 	static Builder<?> builder() {
-		return new DefaultRSocketGraphQlClient.Builder();
+		return new DefaultRSocketGraphQlClientBuilder();
 	}
 
 	/**
 	 * Start with a given {@link #builder()}.
 	 */
 	static Builder<?> builder(RSocketRequester.Builder requesterBuilder) {
-		return new DefaultRSocketGraphQlClient.Builder(requesterBuilder);
+		return new DefaultRSocketGraphQlClientBuilder(requesterBuilder);
 	}
 
 

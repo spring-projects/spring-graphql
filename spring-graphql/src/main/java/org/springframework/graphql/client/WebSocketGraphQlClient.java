@@ -70,7 +70,7 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	 * @param webSocketClient the underlying transport client to use
 	 */
 	static Builder<?> builder(String url, WebSocketClient webSocketClient) {
-		return new DefaultWebSocketGraphQlClient.Builder(url, webSocketClient);
+		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient);
 	}
 
 	/**
@@ -79,7 +79,7 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	 * @param webSocketClient the underlying transport client to use
 	 */
 	static Builder<?> builder(URI url, WebSocketClient webSocketClient) {
-		return new DefaultWebSocketGraphQlClient.Builder(url, webSocketClient);
+		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient);
 	}
 
 

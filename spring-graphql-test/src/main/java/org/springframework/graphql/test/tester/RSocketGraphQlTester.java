@@ -44,14 +44,14 @@ public interface RSocketGraphQlTester extends GraphQlTester {
 	 * and adding JSON codecs.
 	 */
 	static RSocketGraphQlTester.Builder<?> builder() {
-		return new DefaultRSocketGraphQlTester.Builder();
+		return new DefaultRSocketGraphQlTesterBuilder();
 	}
 
 	/**
 	 * Start with a given {@link #builder()}.
 	 */
 	static RSocketGraphQlTester.Builder<?> builder(RSocketRequester.Builder requesterBuilder) {
-		return new DefaultRSocketGraphQlTester.Builder(requesterBuilder);
+		return new DefaultRSocketGraphQlTesterBuilder(requesterBuilder);
 	}
 
 

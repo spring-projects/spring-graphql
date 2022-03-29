@@ -47,7 +47,7 @@ public interface HttpGraphQlTester extends WebGraphQlTester {
 	 * the underlying {@link WebTestClient} through the given builder.
 	 */
 	static HttpGraphQlTester.Builder<?> builder(WebTestClient.Builder webTestClientBuilder) {
-		return new DefaultHttpGraphQlTester.Builder(webTestClientBuilder);
+		return new DefaultHttpGraphQlTesterBuilder(webTestClientBuilder);
 	}
 
 

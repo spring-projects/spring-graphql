@@ -43,7 +43,7 @@ import org.springframework.lang.Nullable;
  *
  * <p>To test on the server side, without a client, see the following:
  * <ul>
- * <li>{@link GraphQlServiceTester}
+ * <li>{@link ExecutionGraphQlServiceTester}
  * <li>{@link WebGraphQlTester}
  * </ul>
  *
@@ -88,7 +88,7 @@ public interface GraphQlTester {
 	 * @return the builder for further initialization
 	 */
 	static GraphQlTester.Builder<?> builder(GraphQlTransport transport) {
-		return new GenericGraphQlTester.Builder(transport);
+		return new DefaultTransportGraphQlTesterBuilder(transport);
 	}
 
 

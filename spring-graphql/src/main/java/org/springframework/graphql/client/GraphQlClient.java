@@ -81,7 +81,7 @@ public interface GraphQlClient {
 	 * @return the builder for further initialization
 	 */
 	static Builder<?> builder(GraphQlTransport transport) {
-		return new GenericGraphQlClient.Builder(transport);
+		return new DefaultTransportGraphQlClientBuilder(transport);
 	}
 
 

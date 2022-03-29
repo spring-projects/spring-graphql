@@ -62,7 +62,7 @@ public interface WebSocketGraphQlTester extends WebGraphQlTester {
 	 * @param webSocketClient the underlying transport client to use
 	 */
 	static WebSocketGraphQlTester.Builder<?> builder(String url, WebSocketClient webSocketClient) {
-		return new DefaultWebSocketGraphQlTester.Builder(url, webSocketClient);
+		return new DefaultWebSocketGraphQlTesterBuilder(url, webSocketClient);
 	}
 
 	/**
@@ -71,7 +71,7 @@ public interface WebSocketGraphQlTester extends WebGraphQlTester {
 	 * @param webSocketClient the underlying transport client to use
 	 */
 	static WebSocketGraphQlTester.Builder<?> builder(URI url, WebSocketClient webSocketClient) {
-		return new DefaultWebSocketGraphQlTester.Builder(url, webSocketClient);
+		return new DefaultWebSocketGraphQlTesterBuilder(url, webSocketClient);
 	}
 
 

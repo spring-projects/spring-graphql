@@ -45,7 +45,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 	 * Return a builder to initialize an {@link HttpGraphQlClient} with.
 	 */
 	static Builder<?> builder() {
-		return new DefaultHttpGraphQlClient.Builder();
+		return new DefaultHttpGraphQlClientBuilder();
 	}
 
 	/**
@@ -61,7 +61,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 	 * to mutate and customize further through the returned builder.
 	 */
 	static Builder<?> builder(WebClient.Builder webClientBuilder) {
-		return new DefaultHttpGraphQlClient.Builder(webClientBuilder);
+		return new DefaultHttpGraphQlClientBuilder(webClientBuilder);
 	}
 
 

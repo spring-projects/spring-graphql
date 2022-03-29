@@ -19,13 +19,13 @@ package org.springframework.graphql.test.tester;
 import org.springframework.graphql.ExecutionGraphQlService;
 
 /**
- * {@link GraphQlTester} that executes requests through a {@link ExecutionGraphQlService}
- * Use it for server-side tests, without a client.
+ * {@link GraphQlTester} that executes requests through an
+ * {@link ExecutionGraphQlService} on the server side, without a client.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public interface GraphQlServiceTester extends GraphQlTester {
+public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 
 
 	@Override
@@ -33,30 +33,30 @@ public interface GraphQlServiceTester extends GraphQlTester {
 
 
 	/**
-	 * Create a {@link GraphQlServiceTester} instance.
+	 * Create a {@link ExecutionGraphQlServiceTester} instance.
 	 */
-	static GraphQlServiceTester create(ExecutionGraphQlService service) {
+	static ExecutionGraphQlServiceTester create(ExecutionGraphQlService service) {
 		return builder(service).build();
 	}
 
 	/**
-	 * Return a builder for {@link GraphQlServiceTester}.
+	 * Return a builder for {@link ExecutionGraphQlServiceTester}.
 	 */
-	static GraphQlServiceTester.Builder<?> builder(ExecutionGraphQlService service) {
-		return new DefaultGraphQlServiceTester.Builder<>(service);
+	static ExecutionGraphQlServiceTester.Builder<?> builder(ExecutionGraphQlService service) {
+		return new DefaultExecutionGraphQlServiceTesterBuilder(service);
 	}
 
 
 	/**
-	 * Default {@link GraphQlServiceTester.Builder} implementation.
+	 * Default {@link ExecutionGraphQlServiceTester.Builder} implementation.
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlTester.Builder<B> {
 
 		/**
-		 * Build a {@link GraphQlServiceTester} instance.
+		 * Build a {@link ExecutionGraphQlServiceTester} instance.
 		 */
 		@Override
-		GraphQlServiceTester build();
+		ExecutionGraphQlServiceTester build();
 
 	}
 
