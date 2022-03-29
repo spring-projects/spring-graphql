@@ -42,7 +42,7 @@ final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester impl
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerGraphQlTransport transport,
+	private DefaultWebGraphQlTester(GraphQlTester tester, WebGraphQlHandlerGraphQlTransport transport,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(tester);

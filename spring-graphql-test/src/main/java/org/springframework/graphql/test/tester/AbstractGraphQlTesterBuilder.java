@@ -24,9 +24,14 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.AbstractGraphQlClientBuilder;
+import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
@@ -128,6 +133,36 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 			builder.documentSource(this.documentSource);
 			builder.configureJsonPathConfig(config -> this.jsonPathConfig);
 			builder.responseTimeout(this.responseTimeout);
+		};
+	}
+
+	/**
+	 * For cases where the Tester needs the {@link GraphQlTransport}, we can't use
+	 * transports directly since they are package private, but we can adapt the corresponding
+	 * {@link GraphQlClient} and adapt it to {@code GraphQlTransport}.
+	 */
+	protected static GraphQlTransport asTransport(GraphQlClient client) {
+		return new GraphQlTransport() {
+
+			@Override
+			public Mono<GraphQlResponse> execute(GraphQlRequest request) {
+				return client
+						.document(request.getDocument())
+						.operationName(request.getOperationName())
+						.variables(request.getVariables())
+						.execute()
+						.cast(GraphQlResponse.class);
+			}
+
+			@Override
+			public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
+				return client
+						.document(request.getDocument())
+						.operationName(request.getOperationName())
+						.variables(request.getVariables())
+						.executeSubscription()
+						.cast(GraphQlResponse.class);
+			}
 		};
 	}
 

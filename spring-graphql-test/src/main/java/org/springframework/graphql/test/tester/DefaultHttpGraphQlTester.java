@@ -41,7 +41,7 @@ final class DefaultHttpGraphQlTester extends AbstractDelegatingGraphQlTester imp
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	DefaultHttpGraphQlTester(GraphQlTester graphQlTester, WebTestClient webTestClient,
+	private DefaultHttpGraphQlTester(GraphQlTester graphQlTester, WebTestClient webTestClient,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
 		super(graphQlTester);

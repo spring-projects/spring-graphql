@@ -35,7 +35,7 @@ final class GenericGraphQlTester extends AbstractDelegatingGraphQlTester {
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	GenericGraphQlTester(
+	private GenericGraphQlTester(
 			GraphQlTester delegate, GraphQlTransport transport,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 

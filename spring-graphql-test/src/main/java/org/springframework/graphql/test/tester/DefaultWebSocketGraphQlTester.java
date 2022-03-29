@@ -20,13 +20,8 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.util.function.Consumer;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.client.GraphQlClient;
-import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.client.WebSocketGraphQlClient;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
@@ -47,7 +42,7 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 	private final Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer;
 
 
-	DefaultWebSocketGraphQlTester(
+	private DefaultWebSocketGraphQlTester(
 			GraphQlTester graphQlTester, WebSocketGraphQlClient webSocketGraphQlClient,
 			Consumer<AbstractGraphQlTesterBuilder<?>> builderInitializer) {
 
@@ -154,36 +149,6 @@ final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTeste
 				});
 			});
 		}
-
-		/**
-		 * GraphQlTransport implementations are private, but we can create the
-		 * GraphQlClient for it and adapt it.
-		 */
-		private static GraphQlTransport asTransport(GraphQlClient client) {
-			return new GraphQlTransport() {
-
-				@Override
-				public Mono<GraphQlResponse> execute(GraphQlRequest request) {
-					return client
-							.document(request.getDocument())
-							.operationName(request.getOperationName())
-							.variables(request.getVariables())
-							.execute()
-							.cast(GraphQlResponse.class);
-				}
-
-				@Override
-				public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-					return client
-							.document(request.getDocument())
-							.operationName(request.getOperationName())
-							.variables(request.getVariables())
-							.executeSubscription()
-							.cast(GraphQlResponse.class);
-				}
-			};
-		}
-
 	}
 
 }
