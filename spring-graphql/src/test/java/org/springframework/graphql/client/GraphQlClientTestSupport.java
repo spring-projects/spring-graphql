@@ -17,25 +17,9 @@
 package org.springframework.graphql.client;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import graphql.ExecutionResult;
-import graphql.ExecutionResultImpl;
-import graphql.GraphQLError;
-import org.mockito.ArgumentCaptor;
-import reactor.core.publisher.Mono;
-
-import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.lang.Nullable;
-import org.springframework.util.ObjectUtils;
-
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.springframework.graphql.execution.MockExecutionGraphQlService;
 
 /**
  * Base class for {@link GraphQlClient} tests.
@@ -46,67 +30,27 @@ public class GraphQlClientTestSupport {
 
 	protected static final Duration TIMEOUT = Duration.ofSeconds(5);
 
+	private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	private final GraphQlClient.Builder<?> clientBuilder = GraphQlClient.builder(this.graphQlService.asGraphQlTransport());
 
-
-	private final ArgumentCaptor<GraphQlRequest> requestCaptor = ArgumentCaptor.forClass(DefaultGraphQlRequest.class);
-
-	private final GraphQlTransport transport = mock(GraphQlTransport.class);
-
-	private final GraphQlClient.Builder<?> graphQlClientBuilder = GraphQlClient.builder(this.transport);
-
-	private final GraphQlClient graphQlClient = this.graphQlClientBuilder.build();
+	private final GraphQlClient client = this.clientBuilder.build();
 
 
 	protected GraphQlClient graphQlClient() {
-		return this.graphQlClient;
+		return this.client;
 	}
 
 	public GraphQlClient.Builder<?> graphQlClientBuilder() {
-		return this.graphQlClientBuilder;
+		return this.clientBuilder;
+	}
+
+	public MockExecutionGraphQlService getGraphQlService() {
+		return this.graphQlService;
 	}
 
 	protected GraphQlRequest request() {
-		return this.requestCaptor.getValue();
-	}
-
-
-	protected void initDataResponse(String document, String responseData) {
-		initResponse(new DefaultGraphQlRequest(document), responseData);
-	}
-
-	protected void initErrorResponse(String document, GraphQLError... errors) {
-		initResponse(new DefaultGraphQlRequest(document), null, errors);
-	}
-
-	protected void initResponse(String document, String responseData, GraphQLError... errors) {
-		initResponse(new DefaultGraphQlRequest(document), responseData, errors);
-	}
-
-	protected void initResponse(GraphQlRequest request, @Nullable String responseData, GraphQLError... errors) {
-		ExecutionResultImpl.Builder builder = new ExecutionResultImpl.Builder();
-		if (responseData != null) {
-			builder.data(decode(responseData));
-		}
-		if (!ObjectUtils.isEmpty(errors)) {
-			builder.errors(Arrays.asList(errors));
-		}
-		ExecutionResult executionResult = builder.build();
-		Map<String, Object> responseMap = executionResult.toSpecification();
-
-		when(this.transport.execute(eq(request)))
-				.thenReturn(Mono.just(new ResponseMapGraphQlResponse(responseMap)));
-	}
-
-	@SuppressWarnings("unchecked")
-	private <T> T decode(String data) {
-		try {
-			return (T) OBJECT_MAPPER.readValue(data, Map.class);
-		}
-		catch (JsonProcessingException ex) {
-			throw new IllegalStateException(ex);
-		}
+		return this.graphQlService.getGraphQlRequest();
 	}
 
 }

@@ -19,11 +19,9 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
@@ -34,21 +32,19 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
-import org.springframework.graphql.support.DocumentSource;
-import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.TestWebSocketClient;
-import org.springframework.graphql.server.TestWebSocketConnection;
+import org.springframework.graphql.client.TestWebSocketClient;
+import org.springframework.graphql.client.TestWebSocketConnection;
+import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
+import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
+import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -211,15 +207,10 @@ public class WebGraphQlTesterBuilderTests {
 
 		private WebGraphQlRequest request;
 
-		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
+		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		public WebBuilderSetup() {
-
-			ExecutionGraphQlResponse defaultResponse = new DefaultExecutionGraphQlResponse(
-					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
-					ExecutionResultImpl.newExecutionResult().build());
-
-			this.responses.put(DOCUMENT, defaultResponse);
+			this.graphQlService.setDefaultDataAsJson("{}");
 		}
 
 		@Override
@@ -228,12 +219,7 @@ public class WebGraphQlTesterBuilderTests {
 		}
 
 		protected WebGraphQlHandler webGraphQlHandler() {
-			return WebGraphQlHandler.builder(request -> {
-						String document = request.getDocument();
-						ExecutionGraphQlResponse response = this.responses.get(document);
-						Assert.notNull(response, "Unexpected request: " + document);
-						return Mono.just(response);
-					})
+			return WebGraphQlHandler.builder(this.graphQlService)
 					.interceptor((input, chain) -> {
 						this.request = input;
 						return chain.next(request);
@@ -243,8 +229,7 @@ public class WebGraphQlTesterBuilderTests {
 
 		@Override
 		public void setMockResponse(String document, ExecutionResult result) {
-			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
-			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
+			this.graphQlService.setResponse(document, result);
 		}
 
 		@Override

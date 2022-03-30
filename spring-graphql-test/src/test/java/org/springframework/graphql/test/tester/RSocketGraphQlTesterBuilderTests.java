@@ -17,11 +17,8 @@
 package org.springframework.graphql.test.tester;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
-import graphql.ExecutionInput;
-import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import io.rsocket.Closeable;
 import io.rsocket.SocketAcceptor;
@@ -36,11 +33,9 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
-import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.lang.Nullable;
@@ -48,7 +43,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,7 +100,7 @@ public class RSocketGraphQlTesterBuilderTests {
 
 		String document = "{me {name}}";
 		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
-		this.builderSetup.setMockResponse(document,
+		this.builderSetup.getGraphQlService().setResponse(document,
 				ExecutionResultImpl.newExecutionResult()
 						.data(Collections.singletonMap("me", character))
 						.build());
@@ -126,34 +120,19 @@ public class RSocketGraphQlTesterBuilderTests {
 	
 	private static class BuilderSetup  {
 
-		private GraphQlRequest graphQlRequest;
-
-		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
+		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		@Nullable
 		private Closeable server;
 
 		public BuilderSetup() {
-
-			ExecutionGraphQlResponse defaultResponse = new DefaultExecutionGraphQlResponse(
-					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
-					ExecutionResultImpl.newExecutionResult().build());
-
-			this.responses.put(DOCUMENT, defaultResponse);
+			this.graphQlService.setDefaultDataAsJson("{}");
 		}
 
 		public RSocketGraphQlTester.Builder<?> initBuilder() {
 
-			ExecutionGraphQlService graphQlService = request -> {
-				this.graphQlRequest = request;
-				String document = request.getDocument();
-				ExecutionGraphQlResponse response = this.responses.get(document);
-				Assert.notNull(response, "Unexpected request: " + document);
-				return Mono.just(response);
-			};
-
 			GraphQlRSocketController controller = new GraphQlRSocketController(
-					new GraphQlRSocketHandler(graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
+					new GraphQlRSocketHandler(this.graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
 
 			this.server = RSocketServer.create()
 					.acceptor(createSocketAcceptor(controller))
@@ -178,14 +157,12 @@ public class RSocketGraphQlTesterBuilderTests {
 			return handler.responder();
 		}
 
-		@SuppressWarnings("unused")
-		public void setMockResponse(String document, ExecutionResult result) {
-			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
-			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
+		public MockExecutionGraphQlService getGraphQlService() {
+			return this.graphQlService;
 		}
 
 		public GraphQlRequest getGraphQlRequest() {
-			return this.graphQlRequest;
+			return this.graphQlService.getGraphQlRequest();
 		}
 
 		public void shutDown() {

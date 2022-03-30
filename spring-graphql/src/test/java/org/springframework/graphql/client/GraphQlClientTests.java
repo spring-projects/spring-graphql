@@ -30,8 +30,8 @@ import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,7 +48,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void retrieveEntity() {
 
 		String document = "mockRequest1";
-		initDataResponse(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
 		MovieCharacter movieCharacter = graphQlClient().document(document)
 				.retrieve("me").toEntity(MovieCharacter.class)
@@ -61,7 +61,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void retrieveEntityList() {
 
 		String document = "mockRequest1";
-		initDataResponse(document, "{" +
+		getGraphQlService().setDataAsJson(document, "{" +
 				"  \"me\":{" +
 				"      \"name\":\"Luke Skywalker\","
 				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
@@ -81,7 +81,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void retrieveAndDecodeDataMap() {
 
 		String document = "mockRequest1";
-		initDataResponse(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
 		Map<String, MovieCharacter> map = graphQlClient().document(document)
 				.retrieve("").toEntity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
@@ -102,7 +102,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		vars.put("keyOnly", null);
 
 		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
-		initResponse(request, "{\"hero\": {\"name\":\"R2-D2\"}}");
+		getGraphQlService().setDataAsJson(request.getDocument(), "{\"hero\": {\"name\":\"R2-D2\"}}");
 
 		MovieCharacter character = graphQlClient().document(document)
 				.operationName(operationName)
@@ -119,12 +119,13 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void retrieveInvalidResponse() {
 
 		String document = "errorsOnlyResponse";
-		initErrorResponse(document, new ValidationError(ValidationErrorType.InvalidSyntax));
+		getGraphQlService().setErrors(document, new ValidationError(ValidationErrorType.InvalidSyntax));
 		testRetrieveFieldAccessException(document, "me");
 
 		document = "nullDataResponse";
 		GraphQLObjectType type = GraphQLObjectType.newObject().name("n").build();
-		initResponse(document, "null", new NonNullableValueCoercedAsNullException("f", new ArrayList<>(), type));
+		GraphQLError error = new NonNullableValueCoercedAsNullException("f", new ArrayList<>(), type);
+		getGraphQlService().setDataAsJsonAndErrors(document, "null", error);
 		testRetrieveFieldAccessException(document, "me");
 	}
 
@@ -132,7 +133,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void retrievePartialResponse() {
 
 		String document = "fieldErrorResponse";
-		initResponse(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
+		getGraphQlService().setDataAsJsonAndErrors(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
 
 		MovieCharacter character = graphQlClient().document(document).retrieve("me").toEntity(MovieCharacter.class).block();
 		assertThat(character).isNotNull().extracting(MovieCharacter::getName).isNull();
@@ -152,12 +153,13 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void executeInvalidResponse() {
 
 		String document = "errorsOnlyResponse";
-		initErrorResponse(document, new ValidationError(ValidationErrorType.InvalidSyntax));
+		getGraphQlService().setErrors(document, new ValidationError(ValidationErrorType.InvalidSyntax));
 		testExecuteFailedResponse(document);
 
 		document = "nullDataResponse";
 		GraphQLObjectType type = GraphQLObjectType.newObject().name("n").build();
-		initResponse(document, "null", new NonNullableValueCoercedAsNullException("f", new ArrayList<>(), type));
+		GraphQLError error = new NonNullableValueCoercedAsNullException("f", new ArrayList<>(), type);
+		getGraphQlService().setDataAsJsonAndErrors(document, "null", error);
 		testExecuteFailedResponse(document);
 	}
 
@@ -178,7 +180,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	void executePartialResponse() {
 
 		String document = "fieldErrorResponse";
-		initResponse(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
+		getGraphQlService().setDataAsJsonAndErrors(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
 		testRetrieveFieldAccessException(document, "me.name");
 
 		ClientGraphQlResponse response =

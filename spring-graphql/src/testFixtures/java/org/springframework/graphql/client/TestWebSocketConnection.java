@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.server;
+package org.springframework.graphql.client;
 
 import java.net.URI;
 import java.util.ArrayList;

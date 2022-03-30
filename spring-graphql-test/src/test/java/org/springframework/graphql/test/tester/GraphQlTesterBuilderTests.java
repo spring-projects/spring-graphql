@@ -41,20 +41,20 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 		DocumentSource documentSource = name -> name.equals("name") ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
-		setMockResponse("{}");
+		getGraphQlService().setDataAsJson(DOCUMENT, "{}");
 
 		// Original
 		GraphQlTester.Builder<?> builder = graphQlTesterBuilder().documentSource(documentSource);
 		GraphQlTester tester = builder.build();
 		tester.documentName("name").execute();
 
-		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(getActualRequestDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
 		tester = tester.mutate().build();
 		tester.documentName("name").execute();
 
-		assertThat(request().getDocument()).isEqualTo(DOCUMENT);
+		assertThat(getActualRequestDocument()).isEqualTo(DOCUMENT);
 	}
 
 	@Test
@@ -62,7 +62,8 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 
 		String document = "{me {name, friends}}";
 
-		setMockResponse(
+		getGraphQlService().setErrors(
+				document,
 				GraphqlErrorBuilder.newError().message("some error").build(),
 				GraphqlErrorBuilder.newError().message("some other error").build());
 
@@ -74,7 +75,7 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 				.errors().verify()
 				.path("me").pathDoesNotExist();
 
-		assertThat(request().getDocument()).contains(document);
+		assertThat(getActualRequestDocument()).contains(document);
 	}
 
 }

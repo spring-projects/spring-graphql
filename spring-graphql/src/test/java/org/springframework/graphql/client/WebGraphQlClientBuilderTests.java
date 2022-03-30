@@ -19,12 +19,9 @@ package org.springframework.graphql.client;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import graphql.ExecutionInput;
-import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,22 +31,18 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
-import org.springframework.graphql.support.DocumentSource;
-import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.TestWebSocketClient;
-import org.springframework.graphql.server.TestWebSocketConnection;
+import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
+import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
+import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
-import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.HandlerStrategies;
@@ -99,7 +92,7 @@ public class WebGraphQlClientBuilderTests {
 		WebGraphQlClient client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		WebGraphQlRequest request = builderSetup.getWebGraphQlRequest();
+		WebGraphQlRequest request = builderSetup.getActualRequest();
 		assertThat(request.getUri().toString()).isEqualTo(url);
 		assertThat(request.getHeaders().get("h")).containsExactly("one");
 
@@ -107,14 +100,14 @@ public class WebGraphQlClientBuilderTests {
 		builder = client.mutate().headers(headers -> headers.add("h", "two"));
 		client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(builderSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("one", "two");
+		assertThat(builderSetup.getActualRequest().getHeaders().get("h")).containsExactly("one", "two");
 
 		// Mutate to replace header
 		builder = client.mutate().header("h", "three", "four");
 		client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		request = builderSetup.getWebGraphQlRequest();
+		request = builderSetup.getActualRequest();
 		assertThat(request.getUri().toString()).isEqualTo(url);
 		assertThat(request.getHeaders().get("h")).containsExactly("three", "four");
 	}
@@ -129,7 +122,7 @@ public class WebGraphQlClientBuilderTests {
 
 		HttpGraphQlClient client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(clientSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("one");
+		assertThat(clientSetup.getActualRequest().getHeaders().get("h")).containsExactly("one");
 
 		// Mutate to add header value
 		HttpGraphQlClient.Builder<?> builder2 = client.mutate()
@@ -137,7 +130,7 @@ public class WebGraphQlClientBuilderTests {
 
 		client = builder2.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(clientSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("one", "two");
+		assertThat(clientSetup.getActualRequest().getHeaders().get("h")).containsExactly("one", "two");
 
 		// Mutate to replace header
 		HttpGraphQlClient.Builder<?> builder3 = client.mutate()
@@ -145,7 +138,7 @@ public class WebGraphQlClientBuilderTests {
 
 		client = builder3.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(clientSetup.getWebGraphQlRequest().getHeaders().get("h")).containsExactly("three");
+		assertThat(clientSetup.getActualRequest().getHeaders().get("h")).containsExactly("three");
 	}
 
 	@ParameterizedTest
@@ -160,14 +153,14 @@ public class WebGraphQlClientBuilderTests {
 		WebGraphQlClient client = builder.build();
 		client.documentName("name").execute().block(TIMEOUT);
 
-		WebGraphQlRequest request = builderSetup.getWebGraphQlRequest();
+		WebGraphQlRequest request = builderSetup.getActualRequest();
 		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
 		client = client.mutate().build();
 		client.documentName("name").execute().block(TIMEOUT);
 
-		request = builderSetup.getWebGraphQlRequest();
+		request = builderSetup.getActualRequest();
 		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 	}
 
@@ -178,7 +171,7 @@ public class WebGraphQlClientBuilderTests {
 		WebGraphQlClient client = builderSetup.initBuilder().url("/graphql one").build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		assertThat(builderSetup.getWebGraphQlRequest().getUri().toString()).isEqualTo("/graphql%20one");
+		assertThat(builderSetup.getActualRequest().getUri().toString()).isEqualTo("/graphql%20one");
 	}
 
 	@ParameterizedTest
@@ -192,7 +185,7 @@ public class WebGraphQlClientBuilderTests {
 
 		String document = "{me {name}}";
 		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
-		builderSetup.setMockResponse(document,
+		builderSetup.getGraphQlService().setResponse(document,
 				ExecutionResultImpl.newExecutionResult()
 						.data(Collections.singletonMap("me", character))
 						.build());
@@ -211,11 +204,11 @@ public class WebGraphQlClientBuilderTests {
 
 	private interface ClientBuilderSetup {
 
+		MockExecutionGraphQlService getGraphQlService();
+
+		WebGraphQlRequest getActualRequest();
+
 		WebGraphQlClient.Builder<?> initBuilder();
-
-		void setMockResponse(String document, ExecutionResult result);
-
-		WebGraphQlRequest getWebGraphQlRequest();
 
 	}
 
@@ -224,40 +217,29 @@ public class WebGraphQlClientBuilderTests {
 
 		private WebGraphQlRequest graphQlRequest;
 
-		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
+		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		public AbstractBuilderSetup() {
+			this.graphQlService.setDefaultDataAsJson("{}");
+		}
 
-			ExecutionGraphQlResponse defaultResponse = new DefaultExecutionGraphQlResponse(
-					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
-					ExecutionResultImpl.newExecutionResult().build());
+		@Override
+		public MockExecutionGraphQlService getGraphQlService() {
+			return this.graphQlService;
+		}
 
-			this.responses.put(DOCUMENT, defaultResponse);
+		@Override
+		public WebGraphQlRequest getActualRequest() {
+			return this.graphQlRequest;
 		}
 
 		protected WebGraphQlHandler webGraphQlHandler() {
-			return WebGraphQlHandler.builder(request -> {
-						String document = request.getDocument();
-						ExecutionGraphQlResponse response = this.responses.get(document);
-						Assert.notNull(response, "Unexpected request: " + document);
-						return Mono.just(response);
-					})
+			return WebGraphQlHandler.builder(this.graphQlService)
 					.interceptor((request, chain) -> {
 						this.graphQlRequest = request;
 						return chain.next(graphQlRequest);
 					})
 					.build();
-		}
-
-		@Override
-		public void setMockResponse(String document, ExecutionResult result) {
-			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
-			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
-		}
-
-		@Override
-		public WebGraphQlRequest getWebGraphQlRequest() {
-			return this.graphQlRequest;
 		}
 
 	}

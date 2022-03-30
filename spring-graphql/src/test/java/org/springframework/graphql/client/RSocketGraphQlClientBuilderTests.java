@@ -18,12 +18,8 @@ package org.springframework.graphql.client;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
-import graphql.ExecutionInput;
-import graphql.ExecutionResult;
-import graphql.ExecutionResultImpl;
 import io.rsocket.Closeable;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
@@ -34,11 +30,9 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
-import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.lang.Nullable;
@@ -46,7 +40,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -81,48 +74,41 @@ public class RSocketGraphQlClientBuilderTests {
 		RSocketGraphQlClient client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		GraphQlRequest request = this.builderSetup.getGraphQlRequest();
+		GraphQlRequest request = this.builderSetup.getActualRequest();
 		assertThat(request).isNotNull();
 
 		// Mutate: still works (carries over original default)
 		client = client.mutate().build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		request = this.builderSetup.getGraphQlRequest();
+		request = this.builderSetup.getActualRequest();
 		assertThat(request).isNotNull();
 	}
 
 
 	private static class BuilderSetup  {
 
-		private GraphQlRequest graphQlRequest;
-
-		private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
+		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		@Nullable
 		private Closeable server;
 
 		public BuilderSetup() {
+			this.graphQlService.setDefaultDataAsJson("{}");
+		}
 
-			ExecutionGraphQlResponse defaultResponse = new DefaultExecutionGraphQlResponse(
-					ExecutionInput.newExecutionInput().query(DOCUMENT).build(),
-					ExecutionResultImpl.newExecutionResult().build());
+		public MockExecutionGraphQlService getGraphQlService() {
+			return this.graphQlService;
+		}
 
-			this.responses.put(DOCUMENT, defaultResponse);
+		public GraphQlRequest getActualRequest() {
+			return this.graphQlService.getGraphQlRequest();
 		}
 
 		public RSocketGraphQlClient.Builder<?> initBuilder() {
 
-			ExecutionGraphQlService graphQlService = request -> {
-				this.graphQlRequest = request;
-				String document = request.getDocument();
-				ExecutionGraphQlResponse response = this.responses.get(document);
-				Assert.notNull(response, "Unexpected request: " + document);
-				return Mono.just(response);
-			};
-
 			GraphQlRSocketController controller = new GraphQlRSocketController(
-					new GraphQlRSocketHandler(graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
+					new GraphQlRSocketHandler(this.graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
 
 			this.server = RSocketServer.create()
 					.acceptor(createSocketAcceptor(controller))
@@ -145,16 +131,6 @@ public class RSocketGraphQlClientBuilderTests {
 			handler.afterPropertiesSet();
 
 			return handler.responder();
-		}
-
-		@SuppressWarnings("unused")
-		public void setMockResponse(String document, ExecutionResult result) {
-			ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(document).build();
-			this.responses.put(document, new DefaultExecutionGraphQlResponse(executionInput, result));
-		}
-
-		public GraphQlRequest getGraphQlRequest() {
-			return this.graphQlRequest;
 		}
 
 		public void shutDown() {

@@ -35,8 +35,6 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
-import org.springframework.graphql.server.TestWebSocketClient;
-import org.springframework.graphql.server.TestWebSocketConnection;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
