@@ -65,20 +65,22 @@ public class ResourceDocumentSource implements DocumentSource {
 	 * Constructor with given locations and extensions.
 	 */
 	public ResourceDocumentSource(List<Resource> locations, List<String> extensions) {
-		this.locations = new ArrayList<>(locations);
-		this.extensions = new ArrayList<>(extensions);
+		this.locations = Collections.unmodifiableList(new ArrayList<>(locations));
+		this.extensions = Collections.unmodifiableList(new ArrayList<>(extensions));
 	}
 
 
 	/**
-	 * Return the configured locations where to check for documents.
+	 * Return a read-only list with the configured locations where to check for
+	 * documents.
 	 */
 	public List<Resource> getLocations() {
 		return this.locations;
 	}
 
 	/**
-	 * Return the file extensions to try when checking for documents by name.
+	 * Return a read-only list with the file extensions to try when checking
+	 * for documents by name.
 	 */
 	public List<String> getExtensions() {
 		return this.extensions;

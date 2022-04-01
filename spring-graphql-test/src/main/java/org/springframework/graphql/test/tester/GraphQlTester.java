@@ -64,8 +64,8 @@ public interface GraphQlTester {
 
 	/**
 	 * Variant of {@link #document(String)} that uses the given key to resolve
-	 * the GraphQL document from a file, or in another way with the help of the
-	 * {@link DocumentSource} that the client is configured with.
+	 * the GraphQL document from a file with the help of the configured
+	 * {@link Builder#documentSource(DocumentSource) DocumentSource}.
 	 * @return spec for response assertions
 	 * @throws IllegalArgumentException if the documentName cannot be resolved
 	 * @throws AssertionError if the response status is not 200 (OK)
@@ -108,7 +108,9 @@ public interface GraphQlTester {
 		/**
 		 * Configure a {@link DocumentSource} for use with
 		 * {@link #documentName(String)} for resolving a document by name.
-		 * <p>By default, {@link ResourceDocumentSource} is used.
+		 * <p>By default, this is set to {@link ResourceDocumentSource} with
+		 * classpath location {@code "graphql-test/"} and
+		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
 		 */
 		B documentSource(DocumentSource contentLoader);
 

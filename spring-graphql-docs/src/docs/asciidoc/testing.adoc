@@ -281,8 +281,10 @@ project release versions from the response:
 The JsonPath is relative to the "data" section of the response.
 
 You can also create document files with extensions `.graphql` or `.gql` under
-`"graphql/"` on the classpath and refer to them by file name. For example, given a file
-called `projectReleases.graphql` in `src/main/resources/graphql`, with content:
+`"graphql-test/"` on the classpath and refer to them by file name.
+
+For example, given a file called `projectReleases.graphql` in
+`src/main/resources/graphql-test`, with content:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----

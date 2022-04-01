@@ -16,6 +16,7 @@
 package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -27,6 +28,7 @@ import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
@@ -64,11 +66,22 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	@Nullable
 	private Predicate<ResponseError> errorFilter;
 
-	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
+	private DocumentSource documentSource;
 
 	private Configuration jsonPathConfig = Configuration.builder().build();
 
 	private Duration responseTimeout = DEFAULT_RESPONSE_DURATION;
+
+
+	public AbstractGraphQlTesterBuilder() {
+		this.documentSource = initDocumentSource();
+	}
+
+	private static DocumentSource initDocumentSource() {
+		return new ResourceDocumentSource(
+				Collections.singletonList(new ClassPathResource("graphql-test/")),
+				ResourceDocumentSource.FILE_EXTENSIONS);
+	}
 
 
 	@Override

@@ -59,8 +59,8 @@ public interface GraphQlClient {
 
 	/**
 	 * Variant of {@link #document(String)} that uses the given key to resolve
-	 * the GraphQL document from a file, or in another way with the help of the
-	 * {@link DocumentSource} that the client is configured with.
+	 * the GraphQL document from a file with the help of the configured
+	 * {@link Builder#documentSource(DocumentSource) DocumentSource}.
 	 * @throws IllegalArgumentException if the content could not be loaded
 	 */
 	RequestSpec documentName(String name);
@@ -109,7 +109,9 @@ public interface GraphQlClient {
 		/**
 		 * Configure a {@link DocumentSource} for use with
 		 * {@link #documentName(String)} for resolving a document by name.
-		 * <p>By default, {@link ResourceDocumentSource} is used.
+		 * <p>By default, this is set to {@link ResourceDocumentSource} with
+		 * classpath location {@code "graphql-documents/"} and
+		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
 		 */
 		B documentSource(DocumentSource contentLoader);
 

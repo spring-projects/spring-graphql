@@ -295,9 +295,11 @@ For example:
 The document for a request is a `String` that may be defined in a local variable or
 constant, or it may be produced through a code generated request object.
 
-Alternatively, you can also keep documents in files with extensions `.graphql` or `
-.gql`, on the classpath or anywhere else, and refer to those by file name. For example,
-given:
+You can also create document files with extensions `.graphql` or `.gql` under
+`"graphql-documents/"` on the classpath and refer to them by file name.
+
+For example, given a file called `projectReleases.graphql` in
+`src/main/resources/graphql-documents`, with content:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 .src/main/resources/graphql/project.graphql
@@ -316,7 +318,7 @@ You can then:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	Mono<Project> projectMono = graphQlClient.documentName("project") <1>
+	Mono<Project> projectMono = graphQlClient.documentName("projectReleases") <1>
 			.variable("slug", "spring-framework") <2>
 			.retrieve()
 			.toEntity(Project.class);

@@ -18,11 +18,13 @@ package org.springframework.graphql.client;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.client.GraphQlClientInterceptor.Chain;
 import org.springframework.graphql.client.GraphQlClientInterceptor.SubscriptionChain;
 import org.springframework.graphql.support.CachingDocumentSource;
@@ -56,7 +58,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	private final List<GraphQlClientInterceptor> interceptors = new ArrayList<>();
 
-	private DocumentSource documentSource = new CachingDocumentSource(new ResourceDocumentSource());
+	private DocumentSource documentSource;
 
 	@Nullable
 	private Encoder<?> jsonEncoder;
@@ -71,6 +73,13 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	 * during, by overriding {@link #build()}.
 	 */
 	protected AbstractGraphQlClientBuilder() {
+		this.documentSource = initDocumentSource();
+	}
+
+	private static DocumentSource initDocumentSource() {
+		return new CachingDocumentSource(new ResourceDocumentSource(
+				Collections.singletonList(new ClassPathResource("graphql-documents/")),
+				ResourceDocumentSource.FILE_EXTENSIONS));
 	}
 
 

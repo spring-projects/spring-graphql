@@ -39,6 +39,14 @@ public class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
 
 
 	@Test
+	void defaultDocumentSource() {
+		String document = "{ greeting }";
+		getGraphQlService().setDataAsJson(document, "{}");
+		graphQlClient().documentName("greeting").execute().block();
+		assertThat(getGraphQlService().getGraphQlRequest().getDocument()).isEqualTo(document);
+	}
+
+	@Test
 	void mutateDocumentSource() {
 
 		DocumentSource documentSource = name -> name.equals("name") ?
