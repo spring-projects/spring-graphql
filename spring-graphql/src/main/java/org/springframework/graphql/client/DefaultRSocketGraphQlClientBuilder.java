@@ -28,6 +28,7 @@ import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 
 
 /**
@@ -60,8 +61,7 @@ final class DefaultRSocketGraphQlClientBuilder
 	}
 
 	private static RSocketRequester.Builder initRSocketRequestBuilder() {
-		MimeType mimeType = MimeType.valueOf("application/graphql+json");
-		RSocketRequester.Builder requesterBuilder = RSocketRequester.builder().dataMimeType(mimeType);
+		RSocketRequester.Builder requesterBuilder = RSocketRequester.builder().dataMimeType(MimeTypeUtils.APPLICATION_GRAPHQL);
 		if (jackson2Present) {
 			requesterBuilder.rsocketStrategies(
 					RSocketStrategies.builder()

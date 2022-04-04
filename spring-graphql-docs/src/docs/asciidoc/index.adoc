@@ -56,7 +56,9 @@ request body, as defined in the proposed
 https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md[GraphQL over HTTP]
 specification. Once the JSON body has been successfully decoded, the HTTP response
 status is always 200 (OK), and any errors from GraphQL request execution appear in the
-"errors" section of the GraphQL response.
+"errors" section of the GraphQL response. The default and preferred choice of media type is
+`"application/graphql+json"`, but `"application/json"` is also supported, as described in the
+specification.
 
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The

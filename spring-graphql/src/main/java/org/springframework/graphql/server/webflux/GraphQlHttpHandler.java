@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.server.webflux;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -25,6 +27,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -43,6 +46,8 @@ public class GraphQlHttpHandler {
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
 			new ParameterizedTypeReference<Map<String, Object>>() {
 			};
+
+	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
 
 	private final WebGraphQlHandler graphQlHandler;
 
@@ -78,8 +83,18 @@ public class GraphQlHttpHandler {
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.bodyValue(response.toMap());
 				});
+	}
+
+	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
+		for (MediaType accepted : serverRequest.headers().accept()) {
+			if (SUPPORTED_MEDIA_TYPES.contains(accepted)) {
+				return accepted;
+			}
+		}
+		return MediaType.APPLICATION_GRAPHQL;
 	}
 
 }

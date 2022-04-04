@@ -56,8 +56,8 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 	@Override
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.webClient.post()
-				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_GRAPHQL)
+				.accept(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON)
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)

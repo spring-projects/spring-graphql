@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -44,19 +45,43 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 /**
  * Tests for {@link GraphQlHttpHandler}.
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
 public class GraphQlHttpHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
 			Collections.singletonList(new MappingJackson2HttpMessageConverter());
 
+	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+			.queryFetcher("greeting", (env) -> "Hello").toHttpHandler();
+
+	@Test
+	void shouldProduceApplicationGraphQlByDefault() throws Exception {
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", "*/*");
+		MockHttpServletResponse servletResponse = handleRequest(servletRequest, this.greetingHandler);
+		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_VALUE);
+	}
+
+	@Test
+	void shouldProduceApplicationGraphQl() throws Exception {
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_VALUE);
+		MockHttpServletResponse servletResponse = handleRequest(servletRequest, this.greetingHandler);
+		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_VALUE);
+	}
+
+	@Test
+	void shouldProduceApplicationJson() throws Exception {
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", "application/json");
+		MockHttpServletResponse servletResponse = handleRequest(servletRequest, this.greetingHandler);
+		assertThat(servletResponse.getContentType()).isEqualTo("application/json");
+	}
 
 	@Test
 	void locale() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
 				.toHttpHandler();
-		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}");
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_VALUE);
 		LocaleContextHolder.setLocale(Locale.FRENCH);
 
 		try {
@@ -76,7 +101,7 @@ public class GraphQlHttpHandlerTests {
 				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
 				.toHttpHandler();
 
-		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ showId }\"}");
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ showId }\"}", MediaType.APPLICATION_GRAPHQL_VALUE);
 
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
 		DocumentContext document = JsonPath.parse(servletResponse.getContentAsString());
@@ -84,10 +109,11 @@ public class GraphQlHttpHandlerTests {
 		assertThatNoException().isThrownBy(() -> UUID.fromString(id));
 	}
 
-	private MockHttpServletRequest createServletRequest(String query) {
+	private MockHttpServletRequest createServletRequest(String query, String accept) {
 		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");
-		servletRequest.setContentType("application/json");
+		servletRequest.setContentType(MediaType.APPLICATION_GRAPHQL_VALUE);
 		servletRequest.setContent(query.getBytes(StandardCharsets.UTF_8));
+		servletRequest.addHeader("Accept", accept);
 		servletRequest.setAsyncSupported(true);
 		return servletRequest;
 	}

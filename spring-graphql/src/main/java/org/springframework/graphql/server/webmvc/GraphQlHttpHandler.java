@@ -17,6 +17,8 @@
 package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -29,6 +31,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.http.MediaType;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
 import org.springframework.util.IdGenerator;
@@ -50,7 +53,10 @@ public class GraphQlHttpHandler {
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<Map<String, Object>>() {
+			};
+
+	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
 
 	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
@@ -89,6 +95,7 @@ public class GraphQlHttpHandler {
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.body(response.toMap());
 				});
 
@@ -102,6 +109,15 @@ public class GraphQlHttpHandler {
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);
 		}
+	}
+
+	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
+		for (MediaType accepted : serverRequest.headers().accept()) {
+			if (SUPPORTED_MEDIA_TYPES.contains(accepted)) {
+				return accepted;
+			}
+		}
+		return MediaType.APPLICATION_GRAPHQL;
 	}
 
 }

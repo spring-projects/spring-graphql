@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -45,14 +46,51 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class GraphQlHttpHandlerTests {
 
+	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+			.queryFetcher("greeting", (env) -> "Hello").toHttpHandlerWebFlux();
+
+
+	@Test
+	void shouldProduceApplicationGraphQlByDefault() {
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.ALL).build();
+
+		MockServerHttpResponse httpResponse = handleRequest(
+				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
+
+		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+	}
+
+	@Test
+	void shouldProduceApplicationGraphQl() {
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_GRAPHQL).build();
+
+		MockServerHttpResponse httpResponse = handleRequest(
+				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
+
+		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+	}
+
+	@Test
+	void shouldProduceApplicationJson() {
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_JSON).build();
+
+		MockServerHttpResponse httpResponse = handleRequest(
+				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
+
+		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+	}
+
 	@Test
 	void locale() {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
 				.toHttpHandlerWebFlux();
 
-		MockServerHttpRequest httpRequest =
-				MockServerHttpRequest.post("/").acceptLanguageAsLocales(Locale.FRENCH).build();
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_GRAPHQL).acceptLanguageAsLocales(Locale.FRENCH).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, handler, Collections.singletonMap("query", "{greeting}"));
@@ -67,7 +105,8 @@ public class GraphQlHttpHandlerTests {
 				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
 				.toHttpHandlerWebFlux();
 
-		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/").build();
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_GRAPHQL).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, handler, Collections.singletonMap("query", "{showId}"));
