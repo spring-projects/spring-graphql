@@ -6,7 +6,7 @@ group = 'com.example'
 description = "GraphQL webflux security example"
 sourceCompatibility = '1.8'
 
-ext['spring-graphql.version'] = '1.0.0-M6'
+ext['spring-graphql.version'] = version
 
 repositories {
 	mavenCentral()
@@ -20,8 +20,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	testImplementation 'org.springframework.graphql:spring-graphql'
-	testImplementation 'org.springframework.graphql:spring-graphql-test:1.0.0-M6'
+	testImplementation project(':spring-graphql')
+	testImplementation project(':spring-graphql-test')
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 }
