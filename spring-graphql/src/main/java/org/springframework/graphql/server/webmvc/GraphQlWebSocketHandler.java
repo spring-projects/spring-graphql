@@ -365,12 +365,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		public Closeable restoreThreadLocalValue(WebSocketSession session) {
 			if (this.accessor != null) {
 				Map<String, Object> valuesMap = (Map<String, Object>) session.getAttributes().get(SAVED_CONTEXT_KEY);
-				// Uncomment when Boot is updated to use HandshakeInterceptor
-				// Assert.state(valuesMap != null, "No context");
-				if (valuesMap != null) {
-					this.accessor.restoreValues(valuesMap);
-					return () -> this.accessor.resetValues(valuesMap);
-				}
+				Assert.state(valuesMap != null, "No ThreadLocal context in WebSocketSession attributes");
+				this.accessor.restoreValues(valuesMap);
+				return () -> this.accessor.resetValues(valuesMap);
 			}
 			return () -> {};
 		}
