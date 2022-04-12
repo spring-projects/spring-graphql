@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.lang.Nullable;
 
 
 /**
@@ -33,6 +34,19 @@ import org.springframework.graphql.execution.ThreadLocalAccessor;
  */
 public interface WebGraphQlHandler {
 
+	/**
+	 * Return the single interceptor of type
+	 * {@link WebSocketGraphQlInterceptor} among all the configured
+	 * interceptors.
+	 */
+	WebSocketGraphQlInterceptor getWebSocketInterceptor();
+
+	/**
+	 * Return the composite {@link ThreadLocalAccessor} that the handler is
+	 * configured with.
+	 */
+	@Nullable
+	ThreadLocalAccessor getThreadLocalAccessor();
 
 	/**
 	 * Execute the given request and return the response.
@@ -40,13 +54,6 @@ public interface WebGraphQlHandler {
 	 * @return the response
 	 */
 	Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request);
-
-	/**
-	 * Return the single interceptor of type
-	 * {@link WebSocketGraphQlInterceptor} among all the configured
-	 * interceptors.
-	 */
-	WebSocketGraphQlInterceptor webSocketInterceptor();
 
 
 	/**

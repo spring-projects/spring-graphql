@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,10 +35,11 @@ import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
-import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlSetup;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
+import org.springframework.graphql.server.WebGraphQlSetup;
+import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
+import org.springframework.lang.Nullable;
 
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
@@ -141,8 +142,10 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	}
 
 	@Override
-	public WebGraphQlSetup threadLocalAccessor(ThreadLocalAccessor... accessors) {
-		this.accessors.addAll(Arrays.asList(accessors));
+	public WebGraphQlSetup threadLocalAccessor(@Nullable ThreadLocalAccessor accessor) {
+		if (accessor != null) {
+			this.accessors.add(accessor);
+		}
 		return this;
 	}
 

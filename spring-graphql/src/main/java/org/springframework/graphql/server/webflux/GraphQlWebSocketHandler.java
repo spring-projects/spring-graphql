@@ -83,7 +83,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 
 		this.graphQlHandler = graphQlHandler;
-		this.webSocketInterceptor = this.graphQlHandler.webSocketInterceptor();
+		this.webSocketInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.codecDelegate = new CodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
 	}

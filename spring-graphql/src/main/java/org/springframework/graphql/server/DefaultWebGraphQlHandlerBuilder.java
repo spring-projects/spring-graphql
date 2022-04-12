@@ -96,24 +96,32 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 				.map(interceptor -> interceptor.apply(endOfChain))
 				.orElse(endOfChain);
 
+		ThreadLocalAccessor accessor = (CollectionUtils.isEmpty(this.accessors) ? null :
+				ThreadLocalAccessor.composite(this.accessors));
+
 		return new WebGraphQlHandler() {
+
+			@Override
+			public WebSocketGraphQlInterceptor getWebSocketInterceptor() {
+				return (webSocketInterceptor != null ?
+						webSocketInterceptor : new WebSocketGraphQlInterceptor() {});
+			}
+
+			@Nullable
+			@Override
+			public ThreadLocalAccessor getThreadLocalAccessor() {
+				return accessor;
+			}
 
 			@Override
 			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
 				return executionChain.next(request)
 						.contextWrite(context -> {
-							if (!CollectionUtils.isEmpty(accessors)) {
-								ThreadLocalAccessor accessor = ThreadLocalAccessor.composite(accessors);
+							if (accessor != null) {
 								return ReactorContextManager.extractThreadLocalValues(accessor, context);
 							}
 							return context;
 						});
-			}
-
-			@Override
-			public WebSocketGraphQlInterceptor webSocketInterceptor() {
-				return (webSocketInterceptor != null ?
-						webSocketInterceptor : new WebSocketGraphQlInterceptor() {});
 			}
 
 		};

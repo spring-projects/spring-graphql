@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.springframework.graphql.server;
 
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
+import org.springframework.lang.Nullable;
 
 /**
  * Workflow that results in the creation of a {@link WebGraphQlHandler} or
@@ -28,7 +29,7 @@ public interface WebGraphQlSetup {
 
 	WebGraphQlSetup interceptor(WebGraphQlInterceptor... interceptors);
 
-	WebGraphQlSetup threadLocalAccessor(ThreadLocalAccessor... accessors);
+	WebGraphQlSetup threadLocalAccessor(@Nullable ThreadLocalAccessor accessor);
 
 	WebGraphQlHandler toWebGraphQlHandler();
 

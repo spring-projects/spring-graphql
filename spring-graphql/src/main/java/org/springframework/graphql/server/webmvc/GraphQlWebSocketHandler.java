@@ -18,6 +18,7 @@ package org.springframework.graphql.server.webmvc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,6 +26,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +45,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
@@ -53,15 +56,21 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.web.socket.server.HandshakeHandler;
+import org.springframework.web.socket.server.HandshakeInterceptor;
+import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler;
 
 /**
  * WebSocketHandler for GraphQL based on
@@ -81,7 +90,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	private final WebSocketGraphQlInterceptor webSocketInterceptor;
+	private final ContextHandshakeInterceptor contextHandshakeInterceptor;
+
+	private final WebSocketGraphQlInterceptor webSocketGraphQlInterceptor;
 
 	private final Duration initTimeoutDuration;
 
@@ -103,7 +114,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
 
 		this.graphQlHandler = graphQlHandler;
-		this.webSocketInterceptor = this.graphQlHandler.webSocketInterceptor();
+		this.contextHandshakeInterceptor = new ContextHandshakeInterceptor(graphQlHandler.getThreadLocalAccessor());
+		this.webSocketGraphQlInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
 	}
@@ -112,6 +124,18 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	public List<String> getSubProtocols() {
 		return SUB_PROTOCOL_LIST;
 	}
+
+	/**
+	 * Return a {@link WebSocketHttpRequestHandler} that uses this instance as
+	 * its {@link WebGraphQlHandler} and adds a {@link HandshakeInterceptor} to
+	 * propagate context.
+	 */
+	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
+		WebSocketHttpRequestHandler handler = new WebSocketHttpRequestHandler(this, handshakeHandler);
+		handler.setHandshakeInterceptors(Collections.singletonList(this.contextHandshakeInterceptor));
+		return handler;
+	}
+
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) {
@@ -137,8 +161,15 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	}
 
+	@SuppressWarnings({"unused", "try"})
 	@Override
 	protected void handleTextMessage(WebSocketSession session, TextMessage webSocketMessage) throws Exception {
+		try (Closeable closeable = this.contextHandshakeInterceptor.restoreThreadLocalValue(session)) {
+			handleInternal(session, webSocketMessage);
+		}
+	}
+
+	private void handleInternal(WebSocketSession session, TextMessage webSocketMessage) throws IOException {
 		GraphQlWebSocketMessage message = decode(webSocketMessage);
 		String id = message.getId();
 		Map<String, Object> payload = message.getPayload();
@@ -174,7 +205,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					if (subscription != null) {
 						subscription.cancel();
 					}
-					this.webSocketInterceptor.handleCancelledSubscription(session.getId(), id)
+					this.webSocketGraphQlInterceptor.handleCancelledSubscription(session.getId(), id)
 							.block(Duration.ofSeconds(10));
 				}
 				return;
@@ -183,7 +214,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					return;
 				}
-				this.webSocketInterceptor.handleConnectionInitialization(session.getId(), payload)
+				this.webSocketGraphQlInterceptor.handleConnectionInitialization(session.getId(), payload)
 						.defaultIfEmpty(Collections.emptyMap())
 						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
 						.doOnNext(ackPayload -> {
@@ -285,7 +316,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			info.dispose();
 			Map<String, Object> connectionInitPayload = info.getConnectionInitPayload();
 			if (connectionInitPayload != null) {
-				this.webSocketInterceptor.handleConnectionClosed(id, closeStatus.getCode(), connectionInitPayload);
+				this.webSocketGraphQlInterceptor.handleConnectionClosed(id, closeStatus.getCode(), connectionInitPayload);
 			}
 		}
 	}
@@ -293,6 +324,57 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	@Override
 	public boolean supportsPartialMessages() {
 		return false;
+	}
+
+
+	/**
+	 * {@code HandshakeInterceptor} that propagates ThreadLocal context through
+	 * the attributes map in {@code WebSocketSession}.
+	 */
+	private static class ContextHandshakeInterceptor implements HandshakeInterceptor {
+
+		private static final String SAVED_CONTEXT_KEY = ContextHandshakeInterceptor.class.getName();
+
+		@Nullable
+		private final ThreadLocalAccessor accessor;
+
+		ContextHandshakeInterceptor(@Nullable ThreadLocalAccessor accessor) {
+			this.accessor = accessor;
+		}
+
+		@Override
+		public boolean beforeHandshake(
+				ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
+				Map<String, Object> attributes) {
+
+			if (this.accessor != null) {
+				Map<String, Object> valuesMap = new LinkedHashMap<>();
+				this.accessor.extractValues(valuesMap);
+				attributes.put(SAVED_CONTEXT_KEY, valuesMap);
+			}
+			return true;
+		}
+
+		@Override
+		public void afterHandshake(
+				ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
+				@Nullable Exception exception) {
+		}
+
+		@SuppressWarnings("unchecked")
+		public Closeable restoreThreadLocalValue(WebSocketSession session) {
+			if (this.accessor != null) {
+				Map<String, Object> valuesMap = (Map<String, Object>) session.getAttributes().get(SAVED_CONTEXT_KEY);
+				// Uncomment when Boot is updated to use HandshakeInterceptor
+				// Assert.state(valuesMap != null, "No context");
+				if (valuesMap != null) {
+					this.accessor.restoreValues(valuesMap);
+					return () -> this.accessor.resetValues(valuesMap);
+				}
+			}
+			return () -> {};
+		}
+
 	}
 
 

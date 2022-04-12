@@ -35,18 +35,21 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.TestThreadLocalAccessor;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketHandlerTestSupport;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
-import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
-import org.springframework.graphql.server.WebSocketHandlerTestSupport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.lang.Nullable;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
@@ -371,6 +374,45 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.verify(TIMEOUT);
 	}
 
+	@Test
+	void contextPropagation() throws Exception {
+		ThreadLocal<String> threadLocal = new ThreadLocal<>();
+		threadLocal.set("foo");
+
+		WebGraphQlInterceptor threadLocalInterceptor = (request, chain) -> {
+			assertThat(threadLocal.get()).isEqualTo("foo");
+			return chain.next(request);
+		};
+
+		GraphQlWebSocketHandler handler = initWebSocketHandler(
+				new TestThreadLocalAccessor<>(threadLocal), threadLocalInterceptor);
+
+		// Use HandshakeInterceptor to capture ThreadLocal context
+		handler.asWebSocketHttpRequestHandler((request, response, wsHandler, attributes) -> false)
+				.getHandshakeInterceptors().get(0)
+				.beforeHandshake(null, null, null, this.session.getAttributes());
+
+		// Context should propagate, if message is handled on different thread
+		Thread thread = new Thread(() -> {
+			try {
+				handle(handler,
+						new TextMessage("{\"type\":\"connection_init\"}"),
+						new TextMessage(BOOK_QUERY));
+			}
+			catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+		});
+		thread.start();
+
+		StepVerifier.create(this.session.getOutput())
+				.expectNextCount(2)
+				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
+				.then(this.session::close) // Complete output Flux
+				.expectComplete()
+				.verify(TIMEOUT);
+	}
+
 	private void handle(GraphQlWebSocketHandler handler, TextMessage... textMessages) throws Exception {
 		handler.afterConnectionEstablished(this.session);
 		for (TextMessage message : textMessages) {
@@ -379,8 +421,15 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	}
 
 	private GraphQlWebSocketHandler initWebSocketHandler(WebGraphQlInterceptor... interceptors) {
+		return initWebSocketHandler(null, interceptors);
+	}
+
+	private GraphQlWebSocketHandler initWebSocketHandler(
+			@Nullable ThreadLocalAccessor accessor, WebGraphQlInterceptor... interceptors) {
+
 		try {
-			return new GraphQlWebSocketHandler(initHandler(interceptors), converter, Duration.ofSeconds(60));
+			return new GraphQlWebSocketHandler(
+					initHandler(accessor, interceptors), converter, Duration.ofSeconds(60));
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException(ex);

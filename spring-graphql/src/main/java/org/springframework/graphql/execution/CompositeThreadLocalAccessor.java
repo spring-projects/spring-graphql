@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,24 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * Default implementation of a composite accessor that is returned from
  * {@link ThreadLocalAccessor#composite(List)}.
  *
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 class CompositeThreadLocalAccessor implements ThreadLocalAccessor {
 
 	private final List<ThreadLocalAccessor> accessors;
 
 	CompositeThreadLocalAccessor(List<ThreadLocalAccessor> accessors) {
-		this.accessors = accessors;
+		this.accessors = new ArrayList<>(accessors);
 	}
 
 	@Override

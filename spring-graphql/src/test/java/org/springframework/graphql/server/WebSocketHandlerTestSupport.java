@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import reactor.core.publisher.Flux;
 
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.lang.Nullable;
 
 public abstract class WebSocketHandlerTestSupport {
 
@@ -65,6 +67,12 @@ public abstract class WebSocketHandlerTestSupport {
 
 
 	protected WebGraphQlHandler initHandler(WebGraphQlInterceptor... interceptors) {
+		return initHandler(null, interceptors);
+	}
+
+	protected WebGraphQlHandler initHandler(
+			@Nullable ThreadLocalAccessor accessor, WebGraphQlInterceptor... interceptors) {
+
 		return GraphQlSetup.schemaResource(BookSource.schema)
 				.queryFetcher("bookById", environment -> {
 					Long id = Long.parseLong(environment.getArgument("id"));
@@ -75,6 +83,7 @@ public abstract class WebSocketHandlerTestSupport {
 					return Flux.fromIterable(BookSource.books())
 							.filter((book) -> book.getAuthor().getFullName().contains(author));
 				})
+				.threadLocalAccessor(accessor)
 				.interceptor(interceptors)
 				.toWebGraphQlHandler();
 	}
