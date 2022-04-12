@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.test.tester;
 
+import org.springframework.core.codec.Decoder;
+import org.springframework.core.codec.Encoder;
 import org.springframework.graphql.ExecutionGraphQlService;
 
 /**
@@ -51,6 +53,18 @@ public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 	 * Default {@link ExecutionGraphQlServiceTester.Builder} implementation.
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlTester.Builder<B> {
+
+		/**
+		 * Configure the JSON encoder to use for mapping response data to
+		 * higher level objects.
+		 */
+		B encoder(Encoder<?> encoder);
+
+		/**
+		 * Configure the JSON decoder to use for mapping response data to
+		 * higher level objects.
+		 */
+		B decoder(Decoder<?> decoder);
 
 		/**
 		 * Build a {@link ExecutionGraphQlServiceTester} instance.

@@ -17,9 +17,13 @@
 package org.springframework.graphql.test.tester;
 
 
+import java.util.Collections;
 import java.util.function.Consumer;
 
+import org.springframework.core.codec.Decoder;
+import org.springframework.core.codec.Encoder;
 import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 
@@ -36,6 +40,12 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 
 	private final ExecutionGraphQlService service;
 
+	@Nullable
+	private Encoder<?> encoder;
+
+	@Nullable
+	private Decoder<?> decoder;
+
 
 	DefaultExecutionGraphQlServiceTesterBuilder(ExecutionGraphQlService service) {
 		Assert.notNull(service, "GraphQlService is required");
@@ -46,12 +56,34 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 		this.service = transport.getGraphQlService();
 	}
 
+	@Override
+	public DefaultExecutionGraphQlServiceTesterBuilder encoder(Encoder<?> encoder) {
+		this.encoder = encoder;
+		return this;
+	}
+
+	@Override
+	public DefaultExecutionGraphQlServiceTesterBuilder decoder(Decoder<?> decoder) {
+		this.decoder = decoder;
+		return this;
+	}
 
 	@Override
 	public ExecutionGraphQlServiceTester build() {
+		registerJsonPathMappingProvider();
 		GraphQlServiceGraphQlTransport transport = new GraphQlServiceGraphQlTransport(this.service);
 		GraphQlTester tester = super.buildGraphQlTester(transport);
 		return new DefaultExecutionGraphQlServiceTester(tester, transport, getBuilderInitializer());
+	}
+
+	private void registerJsonPathMappingProvider() {
+		if (this.encoder != null && this.decoder != null) {
+			configureJsonPathConfig(config -> {
+				EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(
+						Collections.singletonList(this.encoder), Collections.singletonList(this.decoder));
+				return config.mappingProvider(provider);
+			});
+		}
 	}
 
 
