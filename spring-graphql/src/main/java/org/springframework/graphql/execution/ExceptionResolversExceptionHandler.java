@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherExceptionHandler;
 import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
+import graphql.execution.ExecutionId;
 import graphql.schema.DataFetchingEnvironment;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -67,44 +68,59 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	@Override
 	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(DataFetcherExceptionHandlerParameters params) {
-		Throwable exception = getException(params);
-		DataFetchingEnvironment environment = params.getDataFetchingEnvironment();
+		Throwable exception = unwrapException(params);
+		DataFetchingEnvironment env = params.getDataFetchingEnvironment();
 		try {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Resolving exception", exception);
-			}
 			return Flux.fromIterable(this.resolvers)
-					.flatMap((resolver) -> resolver.resolveException(exception, environment))
+					.flatMap(resolver -> resolver.resolveException(exception, env))
+					.map(errors -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
 					.next()
-					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
-					.switchIfEmpty(Mono.fromCallable(() -> createInternalError(exception, environment)))
+					.doOnNext(result -> logResolvedException(exception, result))
+					.onErrorResume(resolverEx -> Mono.just(handleResolverError(resolverEx, exception, env)))
+					.switchIfEmpty(Mono.fromCallable(() -> createInternalError(exception, env)))
 					.contextWrite((context) -> {
-						ContextView contextView = ReactorContextManager.getReactorContext(environment);
+						ContextView contextView = ReactorContextManager.getReactorContext(env);
 						return (contextView.isEmpty() ? context : context.putAll(contextView));
 					})
 					.toFuture();
 		}
-		catch (Exception ex) {
-			if (logger.isWarnEnabled()) {
-				logger.warn("Failed to handle " + exception.getMessage(), ex);
-			}
-			return CompletableFuture.completedFuture(createInternalError(exception, environment));
+		catch (Exception resolverEx) {
+			return CompletableFuture.completedFuture(handleResolverError(resolverEx, exception, env));
 		}
 	}
 
-	private Throwable getException(DataFetcherExceptionHandlerParameters params) {
+	private DataFetcherExceptionHandlerResult handleResolverError(
+			Throwable resolverException, Throwable originalException, DataFetchingEnvironment environment) {
+
+		if (logger.isWarnEnabled()) {
+			logger.warn("Failure while resolving " + originalException.getMessage(), resolverException);
+		}
+		return createInternalError(originalException, environment);
+	}
+
+	private Throwable unwrapException(DataFetcherExceptionHandlerParameters params) {
 		Throwable ex = params.getException();
 		return ((ex instanceof CompletionException) ? ex.getCause() : ex);
 	}
 
-	private DataFetcherExceptionHandlerResult createInternalError(Throwable ex, DataFetchingEnvironment env) {
+	private void logResolvedException(Throwable ex, DataFetcherExceptionHandlerResult result) {
+		if (logger.isDebugEnabled()) {
+			logger.debug("Resolved " + ex.getClass().getSimpleName() +
+					" to GraphQL error(s): " + result.getErrors(), ex);
+		}
+	}
 
-		GraphQLError error = GraphqlErrorBuilder.newError(env)
-				.errorType(ErrorType.INTERNAL_ERROR)
-				.message((StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : ex.getClass().getSimpleName()))
+	private DataFetcherExceptionHandlerResult createInternalError(Throwable ex, DataFetchingEnvironment environment) {
+		if (logger.isErrorEnabled()) {
+			ExecutionId id = environment.getExecutionId();
+			logger.error("Unresolved " + ex.getClass().getSimpleName() + ", executionId= " + id, ex);
+		}
+		return DataFetcherExceptionHandlerResult
+				.newResult(GraphqlErrorBuilder.newError(environment)
+						.errorType(ErrorType.INTERNAL_ERROR)
+						.message((StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : ex.getClass().getSimpleName()))
+						.build())
 				.build();
-
-		return DataFetcherExceptionHandlerResult.newResult(error).build();
 	}
 
 }
