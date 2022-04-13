@@ -514,21 +514,23 @@ added by <<server-interception, WebGraphQlInterceptor>> components.
 [[execution-exceptions]]
 === Exception Resolution
 
-GraphQL Java applications can register a `DataFetcherExceptionHandler` to decide how to
+A GraphQL Java application can register a `DataFetcherExceptionHandler` to decide how to
 represent exceptions from the data layer in the "errors" section of the GraphQL response.
 
 Spring for GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
-by the <<execution-graphqlsource>> builder. It enables applications to register one or
-more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
-until one resolves the `Exception` to a list of `graphql.GraphQLError` objects.
+by the default <<execution-graphqlsource>> builder. It allows applications to register
+one or more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
+until one resolves the `Exception` to a (possibly empty) list of `graphql.GraphQLError`
+objects.
 
 `DataFetcherExceptionResolver` is an asynchronous contract. For most implementations, it
 would be sufficient to extend `DataFetcherExceptionResolverAdapter` and override
 one of its `resolveToSingleError` or `resolveToMultipleErrors` methods that
 resolve exceptions synchronously.
 
-A `GraphQLError` can be assigned an `graphql.ErrorClassification`. Spring for GraphQL
-defines an `ErrorType` enum with common, error classification categories:
+A `GraphQLError` can be assigned to a category via `graphql.ErrorClassification`.
+In Spring GraphQL, you can also assign via `ErrorType` which has the following common
+classifications that applications can use to categorize errors:
 
 - `BAD_REQUEST`
 - `UNAUTHORIZED`
@@ -536,8 +538,14 @@ defines an `ErrorType` enum with common, error classification categories:
 - `NOT_FOUND`
 - `INTERNAL_ERROR`
 
-Applications can use this to classify errors. If an error remains unresolved, by
-default it is marked as `INTERNAL_ERROR`.
+If an exception remains unresolved, by default it is categorized as an `INTERNAL_ERROR`
+with a generic message that includes the category name and the `executionId` from
+`DataFetchingEnvironment`. The message is intentionally opaque to avoid leaking
+implementation details. Applications can use a `DataFetcherExceptionResolver` to customize
+error details.
+
+Unresolved exception are logged at ERROR level along with the `executionId` to correlate
+to the error sent to the client. Resolved exceptions are logged at DEBUG level.
 
 
 

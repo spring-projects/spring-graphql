@@ -27,8 +27,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
-import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -126,7 +126,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 		ResponseHelper response = ResponseHelper.forResult(result);
 		assertThat(response.errorCount()).isEqualTo(1);
-		assertThat(response.error(0).message()).isEqualTo("Invalid greeting");
+		assertThat(response.error(0).message()).startsWith("INTERNAL_ERROR for ");
 		assertThat(response.error(0).errorType()).isEqualTo("INTERNAL_ERROR");
 
 		String greeting = response.rawValue("greeting");

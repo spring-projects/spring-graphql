@@ -35,7 +35,6 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * {@link DataFetcherExceptionHandler} that invokes {@link DataFetcherExceptionResolver}'s
@@ -111,14 +110,14 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	}
 
 	private DataFetcherExceptionHandlerResult createInternalError(Throwable ex, DataFetchingEnvironment environment) {
+		ExecutionId executionId = environment.getExecutionId();
 		if (logger.isErrorEnabled()) {
-			ExecutionId id = environment.getExecutionId();
-			logger.error("Unresolved " + ex.getClass().getSimpleName() + ", executionId= " + id, ex);
+			logger.error("Unresolved " + ex.getClass().getSimpleName() + " for executionId " + executionId, ex);
 		}
 		return DataFetcherExceptionHandlerResult
 				.newResult(GraphqlErrorBuilder.newError(environment)
 						.errorType(ErrorType.INTERNAL_ERROR)
-						.message((StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : ex.getClass().getSimpleName()))
+						.message(ErrorType.INTERNAL_ERROR + " for " + executionId)
 						.build())
 				.build();
 	}
