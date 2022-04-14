@@ -1259,6 +1259,7 @@ You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argum
 values. The name attribute on `@Argument` must not be set.
 
 
+
 [[controllers-schema-mapping-arguments]]
 ==== `@Arguments`
 
@@ -1269,53 +1270,6 @@ For example, `@Argument BookInput bookInput` uses the value of the argument "boo
 to initialize `BookInput`, while `@Arguments` uses the full arguments map and in that
 case, top-level arguments are bound to `BookInput` properties.
 
-
-
-[[controllers-schema-mapping-validation]]
-==== `@Argument(s)` Validation
-
-If a {spring-framework-ref-docs}/core.html#validation-beanvalidation-overview[Bean Validation]
-`Validator` (or typically, a `LocalValidatorFactoryBean`) bean is present in the application context,
-the `AnnotatedControllerConfigurer` will auto-detect it and configure support for validation.
-Controller arguments annotated with `@Valid` and `@Validated` are then validated before method invocation.
-
-Bean Validation lets you declare constraints on types, as the following example shows:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-public class BookInput {
-
-	@NotNull
-	private String title;
-
-	@NotNull
-	@Size(max=13)
-	private String isbn;
-}
-----
-
-We can then mark our argument for validation with `@Valid`:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@MutationMapping
-		public Book addBook(@Argument @Valid BookInput bookInput) {
-			// ...
-		}
-	}
-----
-
-If an error occurs during validation, a `ConstraintViolationException` is thrown and can be
-later <<execution-exceptions,resolved with a custom `DataFetcherExceptionResolver`>>.
-
-[TIP]
-====
-Unlike Spring MVC, handler method signatures do not support the injection of `BindingResult`
-for reacting to validation errors: those are globally dealt with as exceptions.
-====
 
 
 [[controllers-schema-mapping-projectedpayload-argument]]
@@ -1366,6 +1320,7 @@ For example:
 		String getAuthorAndName();
 	}
 ----
+
 
 
 [[controllers-schema-mapping-source]]
@@ -1434,6 +1389,56 @@ be necessary.
 Note that for many cases with loading related entities, where the `@SchemaMapping` simply
 delegates to a `DataLoader`, you can reduce boilerplate by using a
 <<controllers-batch-mapping,@BatchMapping>> method as described in the next section.
+
+
+[[controllers-schema-mapping-validation]]
+==== Validation
+
+When a `javax.validation.Validator` bean is found, `AnnotatedControllerConfigurer` enables support for
+{spring-framework-ref-docs}/core.html#validation-beanvalidation-overview[Bean Validation]
+on annotated controller methods. Typically, the bean is of type `LocalValidatorFactoryBean`.
+
+Bean validation lets you declare constraints on types:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public class BookInput {
+
+	@NotNull
+	private String title;
+
+	@NotNull
+	@Size(max=13)
+	private String isbn;
+}
+----
+
+You can then annotate a controller method parameter with `@Valid` to validate it before
+method invocation:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@MutationMapping
+		public Book addBook(@Argument @Valid BookInput bookInput) {
+			// ...
+		}
+	}
+----
+
+If an error occurs during validation, a `ConstraintViolationException` is raised.
+You can use the <<execution-exceptions>> chain to decide how to present that to clients
+by turning it into an error to include in the GraphQL response.
+
+TIP: In addition to `@Valid`, you can also use Spring's `@Validated` that allows
+specifying validation groups.
+
+Bean validation is useful for <<controllers-schema-mapping-argument>>,
+<<controllers-schema-mapping-arguments>>, and
+<<controllers-schema-mapping-projectedpayload-argument,@ProjectedPayload>>
+method parameters, but applies more generally to any method parameter.
 
 
 
