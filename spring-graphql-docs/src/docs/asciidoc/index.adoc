@@ -1440,6 +1440,15 @@ Bean validation is useful for <<controllers-schema-mapping-argument>>,
 <<controllers-schema-mapping-projectedpayload-argument,@ProjectedPayload>>
 method parameters, but applies more generally to any method parameter.
 
+[WARNING]
+.Validation and Kotlin Coroutines
+====
+Hibernate Validator is not compatible with Kotlin Coroutine methods and fails when
+introspecting their method parameters. Please see
+https://github.com/spring-projects/spring-graphql/issues/344#issuecomment-1082814093[spring-projects/spring-graphql#344 (comment)]
+for links to relevant issues and a suggested workaround.
+====
+
 
 
 [[controllers-batch-mapping]]
