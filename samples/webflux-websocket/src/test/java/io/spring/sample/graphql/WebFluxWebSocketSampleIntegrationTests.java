@@ -15,25 +15,58 @@
  */
 package io.spring.sample.graphql;
 
+import java.net.URI;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.graphql.test.tester.WebSocketGraphQlTester;
+import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
 
 /**
- * GraphQL over WebSocket subscription tests.
+ * GraphQL over WebSocket integration tests.
  */
-@GraphQlTest(SampleController.class)
-@Import(DataRepository.class)
-public class WebFluxWebSocketSampleSubscriptionTests {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class WebFluxWebSocketSampleIntegrationTests {
 
-	@Autowired
+	@LocalServerPort
+	private int port;
+
+	@Value("http://localhost:${local.server.port}${spring.graphql.websocket.path}")
+	private String baseUrl;
+
 	private GraphQlTester graphQlTester;
 
+
+	@BeforeEach
+	void setUp() {
+		URI url = URI.create(baseUrl);
+		this.graphQlTester = WebSocketGraphQlTester.builder(url, new ReactorNettyWebSocketClient()).build();
+	}
+
+	@Test
+	void greetingMono() {
+		this.graphQlTester.document("{greetingMono}")
+				.execute()
+				.path("greetingMono")
+				.entity(String.class)
+				.isEqualTo("Hello!");
+	}
+
+	@Test
+	void greetingsFlux() {
+		this.graphQlTester.document("{greetingsFlux}")
+				.execute()
+				.path("greetingsFlux")
+				.entityList(String.class)
+				.containsExactly("Hi!", "Bonjour!", "Hola!", "Ciao!", "Zdravo!");
+	}
 
 	@Test
 	void subscriptionWithEntityPath() {
