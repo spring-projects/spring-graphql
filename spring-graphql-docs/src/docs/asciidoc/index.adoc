@@ -153,31 +153,49 @@ public class GraphQlRSocketController {
 
 
 [[server-interception]]
-=== Server Interception
+=== Interception
 
-GraphQL <<server-http>> and <<server-websocket>> handlers for Spring MVC and WebFlux
-delegate to a common `WebGraphQlInterceptor` chain followed by an `ExecutionGraphQlService`
-that invokes the GraphQL Java engine.
+Spring MVC and Spring WebFlux transport handlers, for both <<server-http>> and
+<<server-websocket>>, all delegate to the same `WebGraphQlInterceptor` chain, followed by
+the `ExecutionGraphQlService` that invokes the GraphQL Java engine. You can use this to
+intercept GraphQL requests over any Web transport.
 
-You can write an interceptor to check requests details or transform the
-`graphql.ExecutionInput` for GraphQL Java:
+A `WebGraphQlInterceptor` exposes the details of the underlying transport (HTTP or
+WebSocket handshake) request and allows customizing the `graphql.ExecutionInput`
+that is prepared for GraphQL Java. For example, to extract an HTTP header and make it
+available to data fetchers through the `GraphQLContext`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-class MyInterceptor implements WebGraphQlInterceptor {
+class HeaderInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		request.configureExecutionInput((executionInput, builder) -> {
-			Map<String, Object> map = ... ;
-			return builder.extensions(map).build();
-		});
+		List<String> headerValue = request.getHeaders().get("myHeader");
+		request.configureExecutionInput((executionInput, builder) ->
+				builder.graphQLContext(Collections.singletonMap("myHeader", headerValue)).build());
 		return chain.next(request);
 	}
 }
 ----
 
-Interceptors can customize HTTP response headers, or inspect and/or transform the
+A `DataFetcher` can then access this value, e.g. from an
+<<controllers,annotated controller>> method:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+class MyController {
+
+	@QueryMapping
+	Person person(@ContextValue String myHeader) {
+			// ...
+	}
+}
+----
+
+
+Interceptors can also customize HTTP response headers, or inspect and/or transform the
 `graphql.ExecutionResult` from GraphQL Java:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -200,9 +218,8 @@ class MyInterceptor implements WebGraphQlInterceptor {
 starter uses this, see Boot's section on
 {spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints].
 
-The <<server-rsocket>> handler delegates to a similar chain except
-the interceptor type is `GraphQlInterceptor`. To use, create `GraphQlRSocketHandler` with
-the list of interceptors to apply to requests.
+The <<server-rsocket>> transport handler delegates to a similar `GraphQlInterceptor`
+chain that you can use to intercept GraphQL over RSocket requests.
 
 
 
