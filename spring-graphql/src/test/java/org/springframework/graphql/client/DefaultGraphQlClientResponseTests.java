@@ -57,7 +57,7 @@ public class DefaultGraphQlClientResponseTests {
 	}
 
 	private void testParsePath(String path, Object... expected) throws Exception {
-		assertThat(getField(path, "{}").getParsedPath()).containsExactly(expected);
+		assertThat(getFieldOnDataResponse(path, "{}").getParsedPath()).containsExactly(expected);
 	}
 
 	@Test
@@ -73,7 +73,7 @@ public class DefaultGraphQlClientResponseTests {
 	}
 
 	private void testParseInvalidPath(String path) {
-		assertThatIllegalArgumentException().isThrownBy(() -> getField(path, "{}")).withMessage("Invalid path: '" + path + "'");
+		assertThatIllegalArgumentException().isThrownBy(() -> getFieldOnDataResponse(path, "{}")).withMessage("Invalid path: '" + path + "'");
 	}
 
 	@Test
@@ -87,6 +87,7 @@ public class DefaultGraphQlClientResponseTests {
 		testFieldValue("me", "{}", null); // "data" not null but no such key
 		testFieldValue("me.friends", "{\"me\":{}}", null);
 		testFieldValue("me.friends[0]", "{\"me\": {\"friends\": []}}", null);
+		testFieldValue("me.friends[0]", "{\"me\": {\"friends\": []}}", null);
 
 		// nest within map or list
 		testFieldValue("me.name", "{\"me\":{\"name\":\"Luke\"}}", "Luke");
@@ -94,7 +95,7 @@ public class DefaultGraphQlClientResponseTests {
 	}
 
 	private void testFieldValue(String path, String dataJson, @Nullable Object expected) throws Exception {
-		Object value = getField(path, dataJson).getValue();
+		Object value = getFieldOnDataResponse(path, dataJson).getValue();
 		if (expected == null) {
 			assertThat(value).isNull();
 		}
@@ -112,7 +113,7 @@ public class DefaultGraphQlClientResponseTests {
 	}
 
 	private void testFieldValueInvalidPath(String path, String json) {
-		assertThatIllegalArgumentException().isThrownBy(() -> getField(path, json))
+		assertThatIllegalArgumentException().isThrownBy(() -> getFieldOnDataResponse(path, json))
 				.withMessageStartingWith("Invalid path");
 	}
 
@@ -126,7 +127,7 @@ public class DefaultGraphQlClientResponseTests {
 		GraphQLError error2 = createError("/me/friends", "fail-me-friends");
 		GraphQLError error3 = createError("/me/friends[0]/name", "fail-me-friends-name");
 
-		ClientResponseField field = getField(path, error0, error1, error2, error3);
+		ClientResponseField field = getFieldOnErrorResponse(path, error0, error1, error2, error3);
 		List<ResponseError> errors = field.getErrors();
 
 		assertThat(errors).hasSize(3);
@@ -143,13 +144,13 @@ public class DefaultGraphQlClientResponseTests {
 		return builder.build();
 	}
 
-	private ClientResponseField getField(String path, String dataJson) throws Exception {
+	private ClientResponseField getFieldOnDataResponse(String path, String dataJson) throws Exception {
 		Map<?, ?> dataMap = mapper.readValue(dataJson, Map.class);
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("data", dataMap));
 		return response.field(path);
 	}
 
-	private ClientResponseField getField(String path, GraphQLError... errors) {
+	private ClientResponseField getFieldOnErrorResponse(String path, GraphQLError... errors) {
 		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).collect(Collectors.toList());
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("errors", list));
 		return response.field(path);
