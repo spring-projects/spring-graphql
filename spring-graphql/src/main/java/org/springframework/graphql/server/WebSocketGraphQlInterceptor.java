@@ -40,12 +40,12 @@ public interface WebSocketGraphQlInterceptor extends WebGraphQlInterceptor {
 	 * Handle the {@code "connection_init"} message at the start of a GraphQL over
 	 * WebSocket session and return an optional payload for the
 	 * {@code "connection_ack"} message to send back.
-	 * @param sessionId the id of the WebSocket session
+	 * @param sessionInfo information about the underlying WebSocket session
 	 * @param connectionInitPayload the payload from the {@code "connection_init"} message
 	 * @return the payload for the {@code "connection_ack"}, or empty
 	 */
 	default Mono<Object> handleConnectionInitialization(
-			String sessionId, Map<String, Object> connectionInitPayload) {
+			WebSocketSessionInfo sessionInfo, Map<String, Object> connectionInitPayload) {
 
 		return Mono.empty();
 	}
@@ -55,25 +55,25 @@ public interface WebSocketGraphQlInterceptor extends WebGraphQlInterceptor {
 	 * subscription stream. The underlying {@link org.reactivestreams.Publisher}
 	 * for the subscription is automatically cancelled. This callback is for any
 	 * additional, or more centralized handling across subscriptions.
-	 * @param sessionId the id of the WebSocket session
+	 * @param sessionInfo information about the underlying WebSocket session
 	 * @param subscriptionId the unique id for the subscription; correlates to the
 	 * {@link WebGraphQlRequest#getId() requestId} from the original {@code "subscribe"}
 	 * message that started the subscription
 	 * @return {@code Mono} for the completion of handling
 	 */
-	default Mono<Void> handleCancelledSubscription(String sessionId, String subscriptionId) {
+	default Mono<Void> handleCancelledSubscription(WebSocketSessionInfo sessionInfo, String subscriptionId) {
 		return Mono.empty();
 	}
 
 	/**
 	 * Invoked when the WebSocket session is closed, from either side.
-	 * @param sessionId the id of the WebSocket session
+	 * @param sessionInfo information about the underlying WebSocket session
 	 * @param statusCode the WebSocket "close" status code
 	 * @param connectionInitPayload the payload from the {@code "connect_init"}
 	 * message received at the start of the connection
 	 */
 	default void handleConnectionClosed(
-			String sessionId, int statusCode, Map<String, Object> connectionInitPayload) {
+			WebSocketSessionInfo sessionInfo, int statusCode, Map<String, Object> connectionInitPayload) {
 	}
 
 }

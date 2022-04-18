@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.util.Assert;
 
 
 /**
@@ -44,7 +45,8 @@ public interface WebGraphQlInterceptor {
 	/**
 	 * Intercept a request and delegate to the rest of the chain including other
 	 * interceptors and a {@link ExecutionGraphQlService}.
-	 * @param request the request to execute
+	 * @param request the request which may be a {@link WebSocketGraphQlRequest}
+	 * when intercepting a GraphQL request over WebSocket
 	 * @param chain the rest of the chain to execute the request
 	 * @return a {@link Mono} with the response
 	 */
@@ -57,7 +59,13 @@ public interface WebGraphQlInterceptor {
 	 * @return a new interceptor that chains the two
 	 */
 	default WebGraphQlInterceptor andThen(WebGraphQlInterceptor nextInterceptor) {
-		return (request, chain) -> intercept(request, nextRequest -> nextInterceptor.intercept(nextRequest, chain));
+		return (request, chain) -> intercept(request, nextRequest -> {
+			if (request instanceof WebSocketGraphQlRequest) {
+				Assert.isTrue(nextRequest instanceof WebSocketGraphQlRequest,
+						"Expected WebSocketGraphQlRequest but was: " + nextRequest.getClass().getName());
+			}
+			return nextInterceptor.intercept(nextRequest, chain);
+		});
 	}
 
 	/**

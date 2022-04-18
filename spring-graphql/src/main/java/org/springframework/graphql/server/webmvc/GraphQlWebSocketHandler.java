@@ -22,7 +22,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.URI;
+import java.security.Principal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,9 +49,10 @@ import reactor.core.scheduler.Schedulers;
 
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketGraphQlRequest;
+import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -148,7 +151,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			return;
 		}
 
-		SessionState sessionState = new SessionState(session.getId());
+		SessionState sessionState = new SessionState(session.getId(), new WebMvcSessionInfo(session));
 		this.sessionInfoMap.put(session.getId(), sessionState);
 
 		Mono.delay(this.initTimeoutDuration)
@@ -173,10 +176,10 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		GraphQlWebSocketMessage message = decode(webSocketMessage);
 		String id = message.getId();
 		Map<String, Object> payload = message.getPayload();
-		SessionState sessionState = getSessionInfo(session);
+		SessionState state = getSessionInfo(session);
 		switch (message.resolvedType()) {
 			case SUBSCRIBE:
-				if (sessionState.getConnectionInitPayload() == null) {
+				if (state.getConnectionInitPayload() == null) {
 					GraphQlStatus.closeSession(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 					return;
 				}
@@ -187,36 +190,37 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				URI uri = session.getUri();
 				Assert.notNull(uri, "Expected handshake url");
 				HttpHeaders headers = session.getHandshakeHeaders();
-				WebGraphQlRequest request = new WebGraphQlRequest(uri, headers, payload, id, null);
+				WebSocketGraphQlRequest request =
+						new WebSocketGraphQlRequest(uri, headers, payload, id, null, state.getSessionInfo());
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + request);
 				}
 				this.graphQlHandler.handleRequest(request)
 						.flatMapMany((response) -> handleResponse(session, request.getId(), response))
-						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
-						.subscribe(new SendMessageSubscriber(id, session, sessionState));
+						.publishOn(state.getScheduler()) // Serial blocking send via single thread
+						.subscribe(new SendMessageSubscriber(id, session, state));
 				return;
 			case PING:
 				session.sendMessage(encode(GraphQlWebSocketMessage.pong(null)));
 				return;
 			case COMPLETE:
 				if (id != null) {
-					Subscription subscription = sessionState.getSubscriptions().remove(id);
+					Subscription subscription = state.getSubscriptions().remove(id);
 					if (subscription != null) {
 						subscription.cancel();
 					}
-					this.webSocketGraphQlInterceptor.handleCancelledSubscription(session.getId(), id)
+					this.webSocketGraphQlInterceptor.handleCancelledSubscription(state.getSessionInfo(), id)
 							.block(Duration.ofSeconds(10));
 				}
 				return;
 			case CONNECTION_INIT:
-				if (!sessionState.setConnectionInitPayload(payload)) {
+				if (!state.setConnectionInitPayload(payload)) {
 					GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					return;
 				}
-				this.webSocketGraphQlInterceptor.handleConnectionInitialization(session.getId(), payload)
+				this.webSocketGraphQlInterceptor.handleConnectionInitialization(state.getSessionInfo(), payload)
 						.defaultIfEmpty(Collections.emptyMap())
-						.publishOn(sessionState.getScheduler()) // Serial blocking send via single thread
+						.publishOn(state.getScheduler()) // Serial blocking send via single thread
 						.doOnNext(ackPayload -> {
 							TextMessage outputMessage = encode(GraphQlWebSocketMessage.connectionAck(ackPayload));
 							try {
@@ -311,12 +315,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
 		String id = session.getId();
-		SessionState info = this.sessionInfoMap.remove(id);
-		if (info != null) {
-			info.dispose();
-			Map<String, Object> connectionInitPayload = info.getConnectionInitPayload();
+		SessionState state = this.sessionInfoMap.remove(id);
+		if (state != null) {
+			state.dispose();
+			Map<String, Object> connectionInitPayload = state.getConnectionInitPayload();
 			if (connectionInitPayload != null) {
-				this.webSocketGraphQlInterceptor.handleConnectionClosed(id, closeStatus.getCode(), connectionInitPayload);
+				this.webSocketGraphQlInterceptor.handleConnectionClosed(
+						state.getSessionInfo(), closeStatus.getCode(), connectionInitPayload);
 			}
 		}
 	}
@@ -434,14 +439,21 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private static class SessionState {
 
+		private final WebSocketSessionInfo sessionInfo;
+
 		private final AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 
 		private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 		private final Scheduler scheduler;
 
-		SessionState(String sessionId) {
-			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + sessionId);
+		SessionState(String graphQlSessionId, WebSocketSessionInfo sessionInfo) {
+			this.sessionInfo = sessionInfo;
+			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + graphQlSessionId);
+		}
+
+		public WebSocketSessionInfo getSessionInfo() {
+			return this.sessionInfo;
 		}
 
 		@Nullable
@@ -476,6 +488,48 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		}
 
 	}
+
+
+	private static class WebMvcSessionInfo implements WebSocketSessionInfo {
+
+		private final WebSocketSession session;
+
+		private WebMvcSessionInfo(WebSocketSession session) {
+			this.session = session;
+		}
+
+		@Override
+		public String getId() {
+			return this.session.getId();
+		}
+
+		@Override
+		public Map<String, Object> getAttributes() {
+			return this.session.getAttributes();
+		}
+
+		@Override
+		public URI getUri() {
+			Assert.notNull(this.session.getUri(), "Expected URI");
+			return this.session.getUri();
+		}
+
+		@Override
+		public HttpHeaders getHeaders() {
+			return this.session.getHandshakeHeaders();
+		}
+
+		@Override
+		public Mono<Principal> getPrincipal() {
+			return Mono.justOrEmpty(this.session.getPrincipal());
+		}
+
+		@Override
+		public InetSocketAddress getRemoteAddress() {
+			return this.session.getRemoteAddress();
+		}
+	}
+
 
 	private static class SendMessageSubscriber extends BaseSubscriber<TextMessage> {
 

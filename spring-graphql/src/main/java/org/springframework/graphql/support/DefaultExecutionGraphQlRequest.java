@@ -124,7 +124,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 
 	@Override
 	public String toString() {
-		return super.toString() + (getLocale() != null ? ", Locale=" + getLocale() : "");
+		return super.toString() + ", id=" + getId() + (getLocale() != null ? ", Locale=" + getLocale() : "");
 	}
 
 }

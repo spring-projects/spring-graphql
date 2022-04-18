@@ -16,6 +16,9 @@
 
 package org.springframework.graphql.server.webflux;
 
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.security.Principal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,10 +36,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketGraphQlRequest;
+import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -106,6 +111,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 
 		// Session state
+		WebSocketSessionInfo sessionInfo = new WebFluxSessionInfo(session);
 		AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
@@ -123,7 +129,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 						return;
 					}
 					int statusCode = (closeStatus != null ? closeStatus.getCode() : 1005);
-					this.webSocketInterceptor.handleConnectionClosed(session.getId(), statusCode, connectionInitPayload);
+					this.webSocketInterceptor.handleConnectionClosed(sessionInfo, statusCode, connectionInitPayload);
 				})
 				.subscribe();
 
@@ -139,8 +145,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					if (id == null) {
 						return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 					}
-					WebGraphQlRequest request = new WebGraphQlRequest(
-							handshakeInfo.getUri(), handshakeInfo.getHeaders(), payload, id, null);
+					WebSocketGraphQlRequest request = new WebSocketGraphQlRequest(
+							handshakeInfo.getUri(), handshakeInfo.getHeaders(), payload, id, null, sessionInfo);
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + request);
 					}
@@ -155,7 +161,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 						if (subscription != null) {
 							subscription.cancel();
 						}
-						return this.webSocketInterceptor.handleCancelledSubscription(session.getId(), id)
+						return this.webSocketInterceptor.handleCancelledSubscription(sessionInfo, id)
 								.thenMany(Flux.empty());
 					}
 					return Flux.empty();
@@ -163,7 +169,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					if (!connectionInitPayloadRef.compareAndSet(null, payload)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					}
-					return this.webSocketInterceptor.handleConnectionInitialization(session.getId(), payload)
+					return this.webSocketInterceptor.handleConnectionInitialization(sessionInfo, payload)
 							.defaultIfEmpty(Collections.emptyMap())
 							.map(ackPayload -> this.codecDelegate.encodeConnectionAck(session, ackPayload))
 							.flux()
@@ -229,6 +235,46 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 			return session.close(status).thenMany(Mono.empty());
 		}
 
+	}
+
+
+	private static class WebFluxSessionInfo implements WebSocketSessionInfo {
+
+		private final WebSocketSession session;
+
+		private WebFluxSessionInfo(WebSocketSession session) {
+			this.session = session;
+		}
+
+		@Override
+		public String getId() {
+			return this.session.getId();
+		}
+
+		@Override
+		public Map<String, Object> getAttributes() {
+			return this.session.getAttributes();
+		}
+
+		@Override
+		public URI getUri() {
+			return this.session.getHandshakeInfo().getUri();
+		}
+
+		@Override
+		public HttpHeaders getHeaders() {
+			return this.session.getHandshakeInfo().getHeaders();
+		}
+
+		@Override
+		public Mono<Principal> getPrincipal() {
+			return this.session.getHandshakeInfo().getPrincipal();
+		}
+
+		@Override
+		public InetSocketAddress getRemoteAddress() {
+			return this.session.getHandshakeInfo().getRemoteAddress();
+		}
 	}
 
 

@@ -42,6 +42,7 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
 import org.springframework.graphql.server.WebSocketHandlerTestSupport;
+import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
@@ -154,7 +155,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		WebSocketGraphQlInterceptor interceptor = new WebSocketGraphQlInterceptor() {
 
 			@Override
-			public Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> payload) {
+			public Mono<Object> handleConnectionInitialization(WebSocketSessionInfo info, Map<String, Object> payload) {
 				Object value = payload.get("key");
 				return Mono.just(Collections.singletonMap("key", value + " acknowledged"));
 			}
@@ -198,9 +199,9 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		WebSocketGraphQlInterceptor interceptor = new WebSocketGraphQlInterceptor() {
 
 			@Override
-			public void handleConnectionClosed(String sessionId, int status, Map<String, Object> payload) {
+			public void handleConnectionClosed(WebSocketSessionInfo info, int status, Map<String, Object> payload) {
 				called.set(true);
-				assertThat(sessionId).isEqualTo("1");
+				assertThat(info.getId()).isEqualTo("1");
 				assertThat(status).isEqualTo(closeStatus.getCode());
 				assertThat(payload).hasSize(1).containsEntry("key", "A");
 			}
@@ -225,7 +226,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		WebSocketGraphQlInterceptor interceptor = new WebSocketGraphQlInterceptor() {
 
 			@Override
-			public Mono<Object> handleConnectionInitialization(String sessionId, Map<String, Object> payload) {
+			public Mono<Object> handleConnectionInitialization(WebSocketSessionInfo info, Map<String, Object> payload) {
 				return Mono.error(new IllegalStateException());
 			}
 		};
