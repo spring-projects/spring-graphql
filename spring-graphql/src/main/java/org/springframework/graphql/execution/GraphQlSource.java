@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package org.springframework.graphql.execution;
 
-import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -31,8 +31,9 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.core.io.Resource;
 
+
 /**
- * Strategy to resolve the {@link GraphQL} instance to use.
+ * Strategy to resolve a {@link GraphQL} and a {@link GraphQLSchema}.
  *
  * <p>
  * This contract also includes a {@link GraphQlSource} builder encapsulating the
@@ -44,78 +45,51 @@ import org.springframework.core.io.Resource;
  */
 public interface GraphQlSource {
 
+
 	/**
-	 * Return the {@link GraphQL} to use. This can be a cached instance or a different one
-	 * from time to time (e.g. based on a reloaded schema).
-	 * @return the GraphQL instance to use
+	 * Return the {@link GraphQL} to use. This can be a cached instance or a
+	 * different one from time to time (e.g. based on a reloaded schema).
 	 */
 	GraphQL graphQl();
 
 	/**
 	 * Return the {@link GraphQLSchema} used by the current {@link GraphQL}.
-	 * @return the current GraphQL schema
 	 */
 	GraphQLSchema schema();
 
+
 	/**
-	 * Return a builder for a {@link GraphQlSource} given input for the initialization of
-	 * {@link GraphQL} and {@link graphql.schema.GraphQLSchema}.
-	 * @return a builder for a GraphQlSource
+	 * Return a {@link GraphQlSource} builder that parses GraphQL Schema
+	 * resources and uses {@link RuntimeWiring} to create the
+	 * {@link graphql.schema.GraphQLSchema}.
 	 */
-	static Builder builder() {
-		return new DefaultGraphQlSourceBuilder();
+	static SchemaResourceBuilder schemaResourceBuilder() {
+		return new DefaultSchemaResourceGraphQlSourceBuilder();
 	}
 
 	/**
-	 * Builder for a {@link GraphQlSource}.
+	 * Return a {@link GraphQlSource} builder that uses an externally prepared
+	 * {@link GraphQLSchema}.
 	 */
-	interface Builder {
+	static Builder<?> builder(GraphQLSchema schema) {
+		return new ExternalSchemaGraphQlSourceBuilder(schema);
+	}
+
+
+
+	/**
+	 * Common configuration options for all {@link GraphQlSource} builders,
+	 * independent of how {@link GraphQLSchema} is created.
+	 */
+	interface Builder<B extends Builder<B>> {
 
 		/**
-		 * Add {@literal ".graphqls"} schema resources to be
-		 * {@link TypeDefinitionRegistry#merge(TypeDefinitionRegistry) merged} into the type registry.
-		 * @param resources resources for the GraphQL schema
-		 * @return the current builder
-		 * @see graphql.schema.idl.SchemaParser#parse(File)
-		 */
-		Builder schemaResources(Resource... resources);
-
-		/**
-		 * Add a component that is given access to the {@link RuntimeWiring.Builder}
-		 * used to register {@link graphql.schema.DataFetcher}s, custom scalar
-		 * types, type resolvers, and more.
-		 * @param configurer the configurer to apply
-		 * @return the current builder
-		 * @see graphql.schema.idl.SchemaGenerator#makeExecutableSchema(TypeDefinitionRegistry, RuntimeWiring)
-		 */
-		Builder configureRuntimeWiring(RuntimeWiringConfigurer configurer);
-
-		/**
-		 * Configure the default {@link TypeResolver} to use for GraphQL Interface
-		 * and Union types that don't already have such a registration after all
-		 * {@link #configureRuntimeWiring(RuntimeWiringConfigurer) RuntimeWiringConfigurer's}
-		 * have been applied.
-		 * <p>A GraphQL {@code TypeResolver} is used to determine the GraphQL Object
-		 * type of values returned from DataFetcher's of GraphQL Interface or
-		 * Union fields.
-		 * <p>By default this is set to {@link ClassNameTypeResolver}, which
-		 * tries to match the simple class name of the Object value to a GraphQL
-		 * Object type, and it also tries the same for supertypes (base classes
-		 * and interfaces). See the Javadoc of {@code ClassNameTypeResolver} for
-		 * further ways to customize matching a Java class to a GraphQL Object type.
-		 * @param typeResolver the {@code TypeResolver} to use
-		 * @return the current builder
-		 * @see ClassNameTypeResolver
-		 */
-		Builder defaultTypeResolver(TypeResolver typeResolver);
-
-		/**
-		 * Add {@link DataFetcherExceptionResolver}'s to use for resolving exceptions from
-		 * {@link graphql.schema.DataFetcher}'s.
+		 * Add {@link DataFetcherExceptionResolver}s for resolving exceptions
+		 * from {@link graphql.schema.DataFetcher}s.
 		 * @param resolvers the resolvers to add
 		 * @return the current builder
 		 */
-		Builder exceptionResolvers(List<DataFetcherExceptionResolver> resolvers);
+		B exceptionResolvers(List<DataFetcherExceptionResolver> resolvers);
 
 		/**
 		 * Add {@link GraphQLTypeVisitor}s to visit all element of the created
@@ -124,44 +98,80 @@ public interface GraphQlSource {
 		 * {@link graphql.schema.SchemaTraverser} and cannot change the schema.
 		 * @param typeVisitors the type visitors
 		 * @return the current builder
-		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema,
-		 * GraphQLTypeVisitor)
+		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
 		 */
-		Builder typeVisitors(List<GraphQLTypeVisitor> typeVisitors);
+		B typeVisitors(List<GraphQLTypeVisitor> typeVisitors);
 
 		/**
-		 * Provide {@link Instrumentation} components to instrument the execution of
-		 * GraphQL queries.
+		 * Provide {@link Instrumentation} components to instrument the
+		 * execution of GraphQL queries.
 		 * @param instrumentations the instrumentation components
 		 * @return the current builder
 		 * @see graphql.GraphQL.Builder#instrumentation(Instrumentation)
 		 */
-		Builder instrumentation(List<Instrumentation> instrumentations);
+		B instrumentation(List<Instrumentation> instrumentations);
 
 		/**
-		 * Configure a function to create the {@link GraphQLSchema} instance from the
-		 * given {@link TypeDefinitionRegistry} and {@link RuntimeWiring}. This may
-		 * be useful for federation to create a combined schema.
+		 * Configure consumers to be given access to the {@link GraphQL.Builder}
+		 * used to build {@link GraphQL}.
+		 * @param configurer the configurer
+		 * @return the current builder
+		 */
+		B configureGraphQl(Consumer<GraphQL.Builder> configurer);
+
+		/**
+		 * Build the {@link GraphQlSource} instance.
+		 */
+		GraphQlSource build();
+
+	}
+
+
+	/**
+	 * {@link GraphQlSource} builder that relies on parsing schema definition
+	 * files and uses a {@link RuntimeWiring} to create the underlying
+	 * {@link GraphQLSchema}.
+	 */
+	interface SchemaResourceBuilder extends Builder<SchemaResourceBuilder> {
+
+		/**
+		 * Add schema definition resources, typically {@literal ".graphqls"} files, to be
+		 * {@link graphql.schema.idl.SchemaParser#parse(InputStream) parsed} and
+		 * {@link TypeDefinitionRegistry#merge(TypeDefinitionRegistry) merged}.
+		 * @param resources resources with GraphQL schema definitions
+		 * @return the current builder
+		 */
+		SchemaResourceBuilder schemaResources(Resource... resources);
+
+		/**
+		 * Configure the underlying {@link RuntimeWiring.Builder} to register
+		 * data fetchers, custom scalar types, type resolvers, and more.
+		 * @param configurer the configurer to apply
+		 * @return the current builder
+		 */
+		SchemaResourceBuilder configureRuntimeWiring(RuntimeWiringConfigurer configurer);
+
+		/**
+		 * Configure the default {@link TypeResolver} to use for GraphQL interface
+		 * and union types that don't have such a registration after
+		 * {@link #configureRuntimeWiring(RuntimeWiringConfigurer) applying}
+		 * {@code RuntimeWiringConfigurer}s.
+		 * <p>By default this is set to {@link ClassNameTypeResolver}.
+		 * @param typeResolver the {@code TypeResolver} to use
+		 * @return the current builder
+		 */
+		SchemaResourceBuilder defaultTypeResolver(TypeResolver typeResolver);
+
+		/**
+		 * Configure a function to create the {@link GraphQLSchema} from the
+		 * given {@link TypeDefinitionRegistry} and {@link RuntimeWiring}.
+		 * This may be used for federation to create a combined schema.
 		 * <p>By default, the schema is created with
 		 * {@link graphql.schema.idl.SchemaGenerator#makeExecutableSchema}.
 		 * @param schemaFactory the function to create the schema
 		 * @return the current builder
 		 */
-		Builder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
-
-		/**
-		 * Configure consumers to be given access to the {@link GraphQL.Builder} used to
-		 * build {@link GraphQL}.
-		 * @param configurer the configurer
-		 * @return the current builder
-		 */
-		Builder configureGraphQl(Consumer<GraphQL.Builder> configurer);
-
-		/**
-		 * Build the {@link GraphQlSource}.
-		 * @return the built GraphQlSource
-		 */
-		GraphQlSource build();
+		SchemaResourceBuilder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
 
 	}
 

@@ -33,11 +33,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
- * Unit tests for {@link DefaultGraphQlSourceBuilder}.
+ * Unit tests for {@link DefaultSchemaResourceGraphQlSourceBuilder}.
  *
  * @author Rossen Stoyanchev
  */
-public class DefaultGraphQlSourceBuilderTests {
+public class DefaultSchemaResourceGraphQlSourceBuilderTests {
 
 	@Test // gh-230
 	void duplicateResourcesAreIgnored() {

@@ -243,9 +243,9 @@ The main implementation, `DefaultExecutionGraphQlService`, is configured with a
 `graphql.GraphQL` instance to use for request execution. It provides a builder API to
 initialize GraphQL Java and build a `GraphQlSource`.
 
-The default `GraphQlSource` builder, accessible via `GraphQlSource.builder()`, enables
-support for <<execution-reactive-datafetcher>>, <<execution-context>>, and
-<<execution-exceptions>>.
+The default `GraphQlSource` builder, accessible via
+`GraphQlSource.schemaResourceBuilder()`, enables support for
+<<execution-reactive-datafetcher>>, <<execution-context>>, and <<execution-exceptions>>.
 
 The Spring Boot {spring-boot-ref-docs}/web.html#web.graphql[starter] initializes a
 `GraphQlSource` instance through the default `GraphQlSource.Builder` and also enables

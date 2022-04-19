@@ -51,7 +51,7 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("unused")
 public class GraphQlSetup implements GraphQlServiceSetup {
 
-	private final GraphQlSource.Builder graphQlSourceBuilder;
+	private final GraphQlSource.SchemaResourceBuilder graphQlSourceBuilder;
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
@@ -61,7 +61,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 
 	private GraphQlSetup(Resource... schemaResources) {
-		this.graphQlSourceBuilder = GraphQlSource.builder().schemaResources(schemaResources);
+		this.graphQlSourceBuilder = GraphQlSource.schemaResourceBuilder().schemaResources(schemaResources);
 	}
 
 
