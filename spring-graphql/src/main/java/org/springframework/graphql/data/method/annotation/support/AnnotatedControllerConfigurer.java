@@ -32,6 +32,7 @@ import javax.validation.Validator;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -71,6 +72,10 @@ import org.springframework.util.StringUtils;
  * {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
  * annotated handler methods in {@link Controller @Controller} classes and
  * registers them as {@link DataFetcher}s.
+ *
+ * <p>In addition to initializing a {@link RuntimeWiring.Builder}, this class, also
+ * provides an option to {@link #configure(GraphQLCodeRegistry.Builder) configure}
+ * data fetchers on a {@link GraphQLCodeRegistry.Builder}.
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
@@ -185,7 +190,7 @@ public class AnnotatedControllerConfigurer
 	}
 
 	@Override
-	public void configure(RuntimeWiring.Builder builder) {
+	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
 		Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
 
 		findHandlerMethods().forEach((info) -> {
@@ -197,7 +202,7 @@ public class AnnotatedControllerConfigurer
 				String dataLoaderKey = registerBatchLoader(info);
 				dataFetcher = new BatchMappingDataFetcher(dataLoaderKey);
 			}
-			builder.type(info.getCoordinates().getTypeName(), typeBuilder ->
+			runtimeWiringBuilder.type(info.getCoordinates().getTypeName(), typeBuilder ->
 					typeBuilder.dataFetcher(info.getCoordinates().getFieldName(), dataFetcher));
 		});
 	}
@@ -370,6 +375,26 @@ public class AnnotatedControllerConfigurer
 		}
 
 		return dataLoaderKey;
+	}
+
+	/**
+	 * Alternative to {@link #configure(RuntimeWiring.Builder)} that registers
+	 * data fetchers in a {@link GraphQLCodeRegistry.Builder}. This could be
+	 * used with programmatic creation of {@link graphql.schema.GraphQLSchema}.
+	 */
+	@SuppressWarnings("rawtypes")
+	public void configure(GraphQLCodeRegistry.Builder codeRegistryBuilder) {
+
+		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();
+		configure(wiringBuilder);
+		RuntimeWiring runtimeWiring = wiringBuilder.build();
+
+		runtimeWiring.getDataFetchers().forEach((typeName, dataFetcherMap) -> {
+			dataFetcherMap.forEach((key, value) -> {
+				FieldCoordinates coordinates = FieldCoordinates.coordinates(typeName, key);
+				codeRegistryBuilder.dataFetcher(coordinates, (DataFetcher<?>) value);
+			});
+		});
 	}
 
 
