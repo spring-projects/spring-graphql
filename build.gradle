@@ -110,5 +110,8 @@ configure(moduleProjects) {
 			"https://javadoc.io/doc/com.graphql-java/graphql-java/18.0/"
 	] as String[]
 
+	components.java.withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
+	components.java.withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
+	
 	apply from: "${rootDir}/gradle/publishing.gradle"
 }
