@@ -14,6 +14,11 @@ anchors:
     registry-mirror-host: ((registry-mirror-host))
     registry-mirror-username: ((registry-mirror-username))
     registry-mirror-password: ((registry-mirror-password))
+  sonatype-task-params: &sonatype-task-params
+    SONATYPE_USERNAME: ((sonatype-username))
+    SONATYPE_PASSWORD: ((sonatype-password))
+    SONATYPE_URL: ((sonatype-url))
+    SONATYPE_STAGING_PROFILE: ((sonatype-staging-profile))
     
 resource_types:
 - name: registry-image
@@ -73,6 +78,14 @@ resources:
     access_token: ((github-ci-release-token))
     pre_release: true
     release: false
+- name: github-release
+  type: github-release
+  icon: briefcase-download-outline
+  source:
+    owner: spring-projects
+    repository: spring-graphql
+    access_token: ((github-ci-release-token))
+    pre_release: false
 
 jobs:
 - name: build-ci-images
@@ -224,11 +237,72 @@ jobs:
         name: generated-changelog/tag
         tag: generated-changelog/tag
         body: generated-changelog/changelog.md
+- name: stage-release
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+      trigger: false
+    - task: stage
+      image: ci-image
+      file: git-repo/ci/tasks/stage-version.yml
+      params:
+        RELEASE_TYPE: RELEASE
+        <<: *gradle-enterprise-task-params
+    - put: artifactory-repo
+      params:
+        <<: *artifactory-params
+        repo: libs-staging-local
+    - put: git-repo
+      params:
+        repository: stage-git-repo
+- name: promote-release
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+      trigger: false
+    - get: artifactory-repo
+      trigger: false
+      passed: [stage-release]
+      params:
+        download_artifacts: true
+        save_build_info: true
+    - task: promote
+      image: ci-image
+      file: git-repo/ci/tasks/promote-version.yml
+      params:
+        RELEASE_TYPE: RELEASE
+        <<: *artifactory-task-params
+        <<: *sonatype-task-params
+- name: create-github-release
+  serial: true
+  plan:
+    - get: ci-image
+    - get: git-repo
+    - get: artifactory-repo
+      trigger: true
+      passed: [promote-release]
+      params:
+        download_artifacts: false
+        save_build_info: true
+    - task: generate-changelog
+      file: git-repo/ci/tasks/generate-changelog.yml
+      params:
+        RELEASE_TYPE: RELEASE
+        GITHUB_USERNAME: ((github-username))
+        GITHUB_TOKEN: ((github-ci-release-token))
+    - put: github-release
+      params:
+        name: generated-changelog/tag
+        tag: generated-changelog/tag
+        body: generated-changelog/changelog.md
+
 
 groups:
 - name: "builds"
   jobs: ["build"]
 - name: "releases"
-  jobs: [ "stage-milestone", "promote-milestone", "stage-rc", "promote-rc" ]
+  jobs: [ "stage-milestone", "promote-milestone", "stage-rc", "promote-rc", "stage-release", "promote-release", "create-github-release" ]
 - name: "ci-images"
   jobs: ["build-ci-images"]

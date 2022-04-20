@@ -11,3 +11,4 @@ task-timeout: 45m
 registry-mirror-host: docker.repo.spring.io
 registry-mirror-username: ((artifactory-username))
 registry-mirror-password: ((artifactory-password))
+sonatype-staging-profile: "org.springframework"
