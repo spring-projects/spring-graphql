@@ -30,7 +30,7 @@ Spring for GraphQL requires the following as a baseline:
 
 * JDK8
 * Spring Framework 5.3
-* GraphQL Java 17
+* GraphQL Java 18
 * Spring Data 2021.1.0 or later for QueryDSL or Query by Example
 
 
