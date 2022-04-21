@@ -215,14 +215,14 @@ The <<testing-graphqlservicetester>> extension lets you test on the server side,
 a client. However, in some cases it's useful to involve server side transport
 handling with given mock transport input.
 
-The `WebGraphQlHandlerTester` extension lets you processes request through the
+The `WebGraphQlTester` extension lets you processes request through the
 `WebGraphQlInterceptor` chain before handing off to `ExecutionGraphQlService` for
 request execution:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	WebGraphQlHandler handler = ... ;
-	WebGraphQlHandlerTester tester = WebGraphQlHandlerTester.create(handler);
+	WebGraphQlTester tester = WebGraphQlTester.create(handler);
 ----
 
 The builder for this extension allows you to define HTTP request details:
@@ -231,7 +231,7 @@ The builder for this extension allows you to define HTTP request details:
 ----
 	WebGraphQlHandler handler = ... ;
 
-	WebGraphQlHandlerTester tester = WebGraphQlHandlerTester.builder(handler)
+	WebGraphQlTester tester = WebGraphQlTester.builder(handler)
 			.headers(headers -> headers.setBasicAuth("joe", "..."))
 			.build();
 ----
