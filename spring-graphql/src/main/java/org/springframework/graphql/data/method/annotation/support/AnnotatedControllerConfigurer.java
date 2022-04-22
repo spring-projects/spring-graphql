@@ -132,20 +132,53 @@ public class AnnotatedControllerConfigurer
 		registrar.registerFormatters(this.conversionService);
 	}
 
-	/**
-	 * Configure the {@link ConversionService} used for binding handler arguments.
-	 * @deprecated in favor of using {@link #addFormatterRegistrar(FormatterRegistrar)}
-	 * to customize the built-in ConversionService instance.
-	 */
-	@Deprecated
-	public void setConversionService(ConversionService conversionService) {
-		Assert.isInstanceOf(FormattingConversionService.class, conversionService);
-		this.conversionService = (FormattingConversionService) conversionService;
-	}
-
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
+	}
+
+
+	@Override
+	public void afterPropertiesSet() {
+
+		this.argumentResolvers = initArgumentResolvers();
+
+		if (beanValidationPresent) {
+			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
+		}
+	}
+
+	private HandlerMethodArgumentResolverComposite initArgumentResolvers() {
+
+		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
+
+		// Annotation based
+		if (springDataPresent) {
+			// Must be ahead of ArgumentMethodArgumentResolver
+			resolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
+		}
+		resolvers.addResolver(new ArgumentMapMethodArgumentResolver());
+		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
+		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
+		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
+		resolvers.addResolver(new ContextValueMethodArgumentResolver());
+
+		// Type based
+		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
+		resolvers.addResolver(new DataLoaderMethodArgumentResolver());
+		if (springSecurityPresent) {
+			resolvers.addResolver(new PrincipalMethodArgumentResolver());
+			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
+			resolvers.addResolver(new AuthenticationPrincipalArgumentResolver(beanResolver));
+		}
+		if (KotlinDetector.isKotlinPresent()) {
+			resolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
+		}
+
+		// This works as a fallback, after all other resolvers
+		resolvers.addResolver(new SourceMethodArgumentResolver());
+
+		return resolvers;
 	}
 
 	protected final ApplicationContext obtainApplicationContext() {
@@ -153,41 +186,6 @@ public class AnnotatedControllerConfigurer
 		return this.applicationContext;
 	}
 
-
-	@Override
-	public void afterPropertiesSet() {
-		this.argumentResolvers = new HandlerMethodArgumentResolverComposite();
-
-		// Annotation based
-		if (springDataPresent) {
-			// Must be ahead of ArgumentMethodArgumentResolver
-			this.argumentResolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
-		}
-		this.argumentResolvers.addResolver(new ArgumentMapMethodArgumentResolver());
-		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
-		this.argumentResolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
-		this.argumentResolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
-		this.argumentResolvers.addResolver(new ContextValueMethodArgumentResolver());
-
-		// Type based
-		this.argumentResolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
-		this.argumentResolvers.addResolver(new DataLoaderMethodArgumentResolver());
-		if (springSecurityPresent) {
-			this.argumentResolvers.addResolver(new PrincipalMethodArgumentResolver());
-			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
-			this.argumentResolvers.addResolver(new AuthenticationPrincipalArgumentResolver(beanResolver));
-		}
-		if (KotlinDetector.isKotlinPresent()) {
-			this.argumentResolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
-		}
-
-		// This works as a fallback, after other resolvers
-		this.argumentResolvers.addResolver(new SourceMethodArgumentResolver());
-
-		if (beanValidationPresent) {
-			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
-		}
-	}
 
 	@Override
 	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
@@ -251,8 +249,8 @@ public class AnnotatedControllerConfigurer
 		}
 
 		Class<?> userClass = ClassUtils.getUserClass(handlerClass);
-		Map<Method, MappingInfo> map =
-				MethodIntrospector.selectMethods(userClass, (Method method) -> getMappingInfo(method, handler, userClass));
+		Map<Method, MappingInfo> map = MethodIntrospector.selectMethods(
+				userClass, (Method method) -> getMappingInfo(method, handler, userClass));
 
 		Collection<MappingInfo> mappingInfos = map.values();
 
@@ -330,10 +328,10 @@ public class AnnotatedControllerConfigurer
 	}
 
 	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {
-		Method invocableMethod = AopUtils.selectInvocableMethod(method, handlerType);
+		Method theMethod = AopUtils.selectInvocableMethod(method, handlerType);
 		return (handler instanceof String ?
-				new HandlerMethod((String) handler, obtainApplicationContext().getAutowireCapableBeanFactory(), invocableMethod) :
-				new HandlerMethod(handler, invocableMethod));
+				new HandlerMethod((String) handler, obtainApplicationContext().getAutowireCapableBeanFactory(), theMethod) :
+				new HandlerMethod(handler, theMethod));
 	}
 
 	private String formatMappings(Class<?> handlerType, Collection<MappingInfo> infos) {
@@ -389,12 +387,11 @@ public class AnnotatedControllerConfigurer
 		configure(wiringBuilder);
 		RuntimeWiring runtimeWiring = wiringBuilder.build();
 
-		runtimeWiring.getDataFetchers().forEach((typeName, dataFetcherMap) -> {
-			dataFetcherMap.forEach((key, value) -> {
-				FieldCoordinates coordinates = FieldCoordinates.coordinates(typeName, key);
-				codeRegistryBuilder.dataFetcher(coordinates, (DataFetcher<?>) value);
-			});
-		});
+		runtimeWiring.getDataFetchers().forEach((typeName, dataFetcherMap) ->
+				dataFetcherMap.forEach((key, value) -> {
+					FieldCoordinates coordinates = FieldCoordinates.coordinates(typeName, key);
+					codeRegistryBuilder.dataFetcher(coordinates, (DataFetcher<?>) value);
+				}));
 	}
 
 
@@ -416,6 +413,7 @@ public class AnnotatedControllerConfigurer
 			return this.coordinates;
 		}
 
+		@SuppressWarnings("BooleanMethodIsAlwaysInverted")
 		public boolean isBatchMapping() {
 			return this.batchMapping;
 		}
@@ -445,8 +443,10 @@ public class AnnotatedControllerConfigurer
 
 		private final boolean subscription;
 
-		public SchemaMappingDataFetcher(MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
+		public SchemaMappingDataFetcher(
+				MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
 				@Nullable HandlerMethodInputValidator validator) {
+
 			this.info = info;
 			this.argumentResolvers = resolvers;
 			this.validator = validator;
@@ -471,7 +471,11 @@ public class AnnotatedControllerConfigurer
 		@Override
 		@SuppressWarnings("ConstantConditions")
 		public Object get(DataFetchingEnvironment environment) throws Exception {
-			return new DataFetcherHandlerMethod(getHandlerMethod(), this.argumentResolvers, this.validator, this.subscription).invoke(environment);
+
+			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
+					getHandlerMethod(), this.argumentResolvers, this.validator, this.subscription);
+
+			return handlerMethod.invoke(environment);
 		}
 	}
 

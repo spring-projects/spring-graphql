@@ -53,10 +53,10 @@ public class GraphQlHttpHandler {
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {
-			};
+			new ParameterizedTypeReference<Map<String, Object>>() {};
 
-	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
+	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
+			Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
 
 	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
