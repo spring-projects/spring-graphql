@@ -152,6 +152,10 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 			return (this.delegate.getExtensions() != null ? this.delegate.getExtensions() : Collections.emptyMap());
 		}
 
+		@Override
+		public String toString() {
+			return delegate.toString();
+		}
 	}
 
 
