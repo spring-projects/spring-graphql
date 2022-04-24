@@ -19,7 +19,7 @@ package org.springframework.graphql;
 import reactor.core.publisher.Mono;
 
 /**
- * Strategy to execute a GraphQL request by inoking GraphQL Java.
+ * Strategy to execute a GraphQL request by invoking GraphQL Java.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
