@@ -46,7 +46,7 @@ need to choose a specific `GraphQlTester` extension as a starting point.
 To test with a client sending requests over a transport, use one of the
 <<testing-httpgraphqltester>>, <<testing-websocketgraphqltester>>, or
 <<testing-rsocketgraphqltester>> extensions. To test the server without client,
-use the<<testing-graphqlservicetester>> or <<testing-webgraphqlhandlertester>>
+use the<<testing-graphqlservicetester>> or <<testing-webgraphqltester>>
 extensions.
 
 Each `GraphQlTester` extension provides a transport specific `Builder`. There is also a
@@ -208,7 +208,7 @@ client to send requests over a transport protocol. To test directly against a
 
 
 
-[[testing-webgraphqlhandlertester]]
+[[testing-webgraphqltester]]
 === `WebGraphQlHandler`
 
 The <<testing-graphqlservicetester>> extension lets you test on the server side, without
@@ -350,7 +350,7 @@ of responses and then use `StepVerifier` from Project Reactor to inspect the str
 
 Subscriptions are supported only with <<testing-websocketgraphqltester,
 WebSocketGraphQlTester>>, or with the server side
-<<testing-graphqlservicetester>> and <<testing-webgraphqlhandlertester>> extensions.
+<<testing-graphqlservicetester>> and <<testing-webgraphqltester>> extensions.
 
 
 
