@@ -43,13 +43,14 @@ public class FieldAccessException extends GraphQlClientException {
 	public FieldAccessException(
 			ClientGraphQlRequest request, ClientGraphQlResponse response, ClientResponseField field) {
 
-		super(initDefaultMessage(field), null, request);
+		super(initDefaultMessage(field, response), null, request);
 		this.response = response;
 		this.field = field;
 	}
 
-	private static String initDefaultMessage(ClientResponseField field) {
-		return "Invalid field '" + field.getPath() + "', errors: " + field.getErrors();
+	private static String initDefaultMessage(ClientResponseField field, ClientGraphQlResponse response) {
+		return "Invalid field '" + field.getPath() + "', errors: " +
+				(!field.getErrors().isEmpty() ? field.getErrors() : response.getErrors());
 	}
 
 
