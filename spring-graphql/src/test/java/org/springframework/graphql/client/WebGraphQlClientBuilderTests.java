@@ -38,6 +38,8 @@ import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.support.DocumentSource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
@@ -172,6 +174,28 @@ public class WebGraphQlClientBuilderTests {
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
 		assertThat(builderSetup.getActualRequest().getUri().toString()).isEqualTo("/graphql%20one");
+	}
+
+	@Test
+	void contentTypeDefault() {
+
+		HttpBuilderSetup setup = new HttpBuilderSetup();
+		setup.initBuilder().build().document(DOCUMENT).execute().block(TIMEOUT);
+
+		WebGraphQlRequest request = setup.getActualRequest();
+		assertThat(request.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+	}
+
+	@Test
+	void contentTypeOverride() {
+
+		HttpBuilderSetup setup = new HttpBuilderSetup();
+		setup.initBuilder().header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build()
+				.document(DOCUMENT).execute().block(TIMEOUT);
+
+		WebGraphQlRequest request = setup.getActualRequest();
+		assertThat(request.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+
 	}
 
 	@ParameterizedTest
