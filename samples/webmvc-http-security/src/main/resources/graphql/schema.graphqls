@@ -14,7 +14,7 @@ type Employee {
 
 input UpdateSalaryInput {
     employeeId: ID!
-    salary: String!
+    newSalary: String!
 }
 type UpdateSalaryPayload {
     success: Boolean!

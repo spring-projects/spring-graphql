@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -64,6 +66,21 @@ class WebMvcHttpSecuritySampleTests {
 	@Test
 	void canNotQuerySalary() {
 		this.graphQlTester.documentName("employeesNamesAndSalaries")
+				.execute()
+				.errors()
+				.satisfy(errors -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.UNAUTHORIZED);
+				});
+	}
+
+	@Test
+	void canNotMutationUpdateSalary() {
+		WebGraphQlTester tester = this.graphQlTester.mutate().build();
+		SalaryInput salaryInput = new SalaryInput("1", BigDecimal.valueOf(44));
+
+		tester.documentName("updateSalary")
+				.variable("salaryInput", salaryInput)
 				.execute()
 				.errors()
 				.satisfy(errors -> {
