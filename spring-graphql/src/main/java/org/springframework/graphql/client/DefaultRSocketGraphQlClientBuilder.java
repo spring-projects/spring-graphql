@@ -61,7 +61,7 @@ final class DefaultRSocketGraphQlClientBuilder
 	}
 
 	private static RSocketRequester.Builder initRSocketRequestBuilder() {
-		RSocketRequester.Builder requesterBuilder = RSocketRequester.builder().dataMimeType(MimeTypeUtils.APPLICATION_GRAPHQL);
+		RSocketRequester.Builder requesterBuilder = RSocketRequester.builder().dataMimeType(MimeTypeUtils.APPLICATION_JSON);
 		if (jackson2Present) {
 			requesterBuilder.rsocketStrategies(
 					RSocketStrategies.builder()

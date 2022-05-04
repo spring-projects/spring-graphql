@@ -55,12 +55,12 @@ final class WebTestClientTransport implements GraphQlTransport {
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 
 		Map<String, Object> responseMap = this.webTestClient.post()
-				.contentType(MediaType.APPLICATION_GRAPHQL)
-				.accept(MediaType.APPLICATION_GRAPHQL)
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON)
 				.bodyValue(request.toMap())
 				.exchange()
 				.expectStatus().isOk()
-				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_GRAPHQL)
+				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
 				.expectBody(MAP_TYPE)
 				.returnResult()
 				.getResponseBody();

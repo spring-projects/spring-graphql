@@ -60,7 +60,7 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 		HttpHeaders headers = new HttpHeaders();
 		webClient.mutate().defaultHeaders(headers::putAll);
 		MediaType contentType = headers.getContentType();
-		return (contentType != null ? contentType : MediaType.APPLICATION_GRAPHQL);
+		return (contentType != null ? contentType : MediaType.APPLICATION_JSON);
 	}
 
 
@@ -68,7 +68,7 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.webClient.post()
 				.contentType(this.contentType)
-				.accept(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL)
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)

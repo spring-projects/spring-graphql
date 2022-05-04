@@ -117,7 +117,7 @@ public class GraphQlHttpHandler {
 				return accepted;
 			}
 		}
-		return MediaType.APPLICATION_GRAPHQL;
+		return MediaType.APPLICATION_JSON;
 	}
 
 }
