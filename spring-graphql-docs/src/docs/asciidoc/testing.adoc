@@ -39,19 +39,26 @@ dependencies {
 [[testing-graphqltester]]
 == `GraphQlTester`
 
-`GraphQlTester` defines a common workflow for testing GraphQL requests. It is
-independent of and agnostic to the underlying transport. To create an instance, you'll
-need to choose a specific `GraphQlTester` extension as a starting point.
+`GraphQlTester` is a contract that declares a common workflow for testing GraphQL
+requests that is independent of the underlying transport. That means requests are tested
+with the same API no matter what the underlying transport, and anything transport
+specific is configured at build time.
 
-To test with a client sending requests over a transport, use one of the
-<<testing-httpgraphqltester>>, <<testing-websocketgraphqltester>>, or
-<<testing-rsocketgraphqltester>> extensions. To test the server without client,
-use the<<testing-graphqlservicetester>> or <<testing-webgraphqltester>>
-extensions.
+To create a `GraphQlTester` that performs requests through a client, you need one of the
+following extensions:
 
-Each `GraphQlTester` extension provides a transport specific `Builder`. There is also a
-shared, base <<testing-graphqltester-builder>> in `GraphQlTester` with common options
-for all extensions.
+- <<testing-httpgraphqltester, HttpGraphQlTester>>
+- <<testing-websocketgraphqltester, WebSocketGraphQlTester>>
+- <<testing-rsocketgraphqltester, RSocketGraphQlTester>>
+
+To create a `GraphQlTester` that performs tests on the server side, without a client:
+
+- <<testing-graphqlservicetester, ExecutionGraphQlServiceTester>>
+- <<testing-webgraphqltester, WebGraphQlServiceTester>>
+
+Each defines a `Builder` with options relevant to the transport. All builders extend
+from a common, base GraphQlTester <<testing-graphqltester-builder, `Builder`>> with
+options relevant to all extensions.
 
 
 
@@ -106,14 +113,10 @@ Or to test against a live server running on a port:
 	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
 ----
 
-The `HttpGraphQlTester` extension is nothing but a `GraphQlTester` with a specialized
-builder. Once created, it exposes the same workflow for testing requests that is
-independent of the underlying transport.
-
-This means you can only configure HTTP request details at build time, and
-those apply to all requests through that Tester instance. To change HTTP request
-details, use `mutate()` on an existing `HttpGraphQlTester` to create another
-instance with different configuration:
+Once `HttpGraphQlTester` is created, you can begin to
+<<testing-requests, execute requests>> using the same API, independent of the underlying
+transport. If you need to change any transport specific details, use `mutate()` on an
+existing `HttpSocketGraphQlTester` to create a new instance with customized settings:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -148,9 +151,11 @@ from Spring WebFlux to execute GraphQL requests over WebSocket:
 	WebSocketGraphQlTester tester = WebSocketGraphQlTester.builder(url, client).build();
 ----
 
-Once created, `WebSocketGraphQlTester` exposes the same transport agnostic workflow for
-request execution as any `GraphQlTester`. To change any transport details, use `mutate()`
-on an existing `WebSocketGraphQlTester` to create another with different configuration:
+Once `WebSocketGraphQlTester` is created, you can begin to
+<<testing-requests, execute requests>> using the same API, independent of the underlying
+transport. If you need to change any transport specific details, use `mutate()` on an
+existing `WebSocketGraphQlTester` to create a new instance with customized settings:
+
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -188,9 +193,9 @@ requests over RSocket:
 			.build();
 ----
 
-Once created, `RSocketGraphQlTester` exposes the same transport agnostic workflow for
-request execution as any `GraphQlTester`.
-
+Once `RSocketGraphQlTester` is created, you can begin to
+<<testing-requests, execute requests>> using the same API, independent of the underlying
+transport.
 
 
 [[testing-graphqlservicetester]]
@@ -206,6 +211,9 @@ client to send requests over a transport protocol. To test directly against a
 	ExecutionGraphQlServiceTester tester = ExecutionGraphQlServiceTester.create(service);
 ----
 
+Once `ExecutionGraphQlServiceTester` is created, you can begin to
+<<testing-requests, execute requests>> using the same API, independent of the underlying
+transport.
 
 
 [[testing-webgraphqltester]]
@@ -235,6 +243,10 @@ The builder for this extension allows you to define HTTP request details:
 			.headers(headers -> headers.setBasicAuth("joe", "..."))
 			.build();
 ----
+
+Once `WebGraphQlServiceTester` is created, you can begin to
+<<testing-requests, execute requests>> using the same API, independent of the underlying
+transport.
 
 
 
