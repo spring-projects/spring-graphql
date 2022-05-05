@@ -139,9 +139,10 @@ existing `HttpSocketGraphQlTester` to create a new instance with customized sett
 [[testing-websocketgraphqltester]]
 === WebSocket
 
-`WebSocketGraphQlTester` uses
+`WebSocketGraphQlTester` executes GraphQL requests over a shared WebSocket connection.
+It is built using the
 {spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
-from Spring WebFlux to execute GraphQL requests over WebSocket:
+from Spring WebFlux and you can create it as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -150,6 +151,10 @@ from Spring WebFlux to execute GraphQL requests over WebSocket:
 
 	WebSocketGraphQlTester tester = WebSocketGraphQlTester.builder(url, client).build();
 ----
+
+`WebSocketGraphQlTester` is connection oriented and multiplexed. Each instance establishes
+its own single, shared connection for all requests. Typically, you'll want to use a single
+instance only per server.
 
 Once `WebSocketGraphQlTester` is created, you can begin to
 <<testing-requests, execute requests>> using the same API, independent of the underlying
@@ -188,10 +193,18 @@ requests over RSocket:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	RSocketGraphQlTester tester = RSocketGraphQlTester.builder()
-			.webSocket(URI.create("http://localhost:8080/graphql"))
+	URI uri = URI.create("wss://localhost:8080/rsocket");
+	WebsocketClientTransport transport = WebsocketClientTransport.create(url);
+
+	RSocketGraphQlTester client = RSocketGraphQlTester.builder()
+			.clientTransport(transport)
 			.build();
 ----
+
+`RSocketGraphQlTester` is connection oriented and multiplexed. Each instance establishes
+its own single, shared connection for all requests. Typically, you'll want to use a single
+instance only per server. You can use the `dispose()` method on the underlying
+`RSocketRequester` to close the connection explicitly.
 
 Once `RSocketGraphQlTester` is created, you can begin to
 <<testing-requests, execute requests>> using the same API, independent of the underlying

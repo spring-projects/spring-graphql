@@ -73,17 +73,33 @@ existing `HttpGraphQlClient` to create a new instance with customized settings:
 [[client-websocketgraphqlclient]]
 === WebSocket
 
-`WebSocketGraphQlClient` uses
+`WebSocketGraphQlClient` executes GraphQL requests over a shared WebSocket connection.
+It is built using the
 {spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
-from Spring WebFlux to execute GraphQL requests over WebSocket:
+from Spring WebFlux and you can create it as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	String url = "http://localhost:8080/graphql";
+	String url = "wss://localhost:8080/graphql";
 	WebSocketClient client = new ReactorNettyWebSocketClient();
 
 	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client).build();
 ----
+
+In contrast to `HttpGraphQlClient`, the `WebSocketGraphQlClient` is connection oriented,
+which means it needs to establish a connection before making any requests. As you begin
+to make requests, the connection is established transparently. Alternatively, use the
+client's `start()` method to establish the connection explicitly before any requests.
+
+In addition to being connection-oriented, `WebSocketGraphQlClient` is also multiplexed.
+It maintains a single, shared connection for all requests. If the connection is lost,
+it is re-established on the next request or if `start()` is called again. You can also
+use the client's `stop()` method which cancels in-progress requests, closes the
+connection, and rejects new requests.
+
+TIP: Use a single `WebSocketGraphQlClient` instance for each server in order to have a
+single, shared connection for all requests to that server. Each client instance
+establishes its own connection and that is typically not the intent for a single server.
 
 Once `WebSocketGraphQlClient` is created, you can begin to
 <<client-requests, execute requests>> using the same API, independent of the underlying
@@ -108,22 +124,6 @@ existing `WebSocketGraphQlClient` to create a new instance with customized setti
 	// Use anotherGraphQlClient...
 
 ----
-
-
-[[client-websocketgraphqlclient-connection]]
-==== Connection
-
-A connection is established transparently when requests are made. There is only one
-shared, active connection at a time. If the connection is lost, it is re-established on
-the next request.
-
-`WebSocketGraphQlClient` also exposes lifecycle methods:
-
-- `start()` - connect the WebSocket and initialize the GraphQL session. This can be used
-on startup up to be ready for requests, but it is not required.
-- `stop()` - cancels ongoing requests and subscriptions, and closes the connection. A
-stopped client rejects new requests. Use `start()` to re-establish the connection and
-allow requests again.
 
 
 [[client-websocketgraphqlclient-interceptor]]
@@ -169,11 +169,26 @@ to execute GraphQL requests over RSocket requests.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	RSocketGraphQlClient graphQlClient =
-			RSocketGraphQlClient.builder()
-					.websocket(URI.create("http://localhost:8080/graphql"))
-					.build();
+	URI uri = URI.create("wss://localhost:8080/rsocket");
+	WebsocketClientTransport transport = WebsocketClientTransport.create(url);
+
+	RSocketGraphQlClient client = RSocketGraphQlClient.builder()
+			.clientTransport(transport)
+			.build();
 ----
+
+In contrast to `HttpGraphQlClient`, the `RSocketGraphQlClient` is connection oriented,
+which means it needs to establish a connection before making any requests. As you begin
+to make requests, the connection is established transparently.
+
+`RSocketGraphQlClient` is also multiplexed. It maintains a single, shared connection for
+all requests. If the connection is lost, it is re-established on the next request. You
+can use the `dispose()` method on the underlying `RSocketRequester` to close the
+connection explicitly.
+
+TIP: Use a single `RSocketGraphQlClient` instance for each server in order to have a
+single, shared connection for all requests to that server. Each client instance
+establishes its own connection and that is typically not the intent for a single server.
 
 Once `RSocketGraphQlClient` is created, you can begin to
 <<client-requests, execute requests>> using the same API, independent of the underlying
