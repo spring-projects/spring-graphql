@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
@@ -23,11 +24,14 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.method.HandlerMethod;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
@@ -101,10 +105,41 @@ public class ContextValueMethodArgumentResolverTests {
 	@Test
 	@SuppressWarnings({"unchecked", "ConstantConditions", "OptionalGetWithoutIsPresent"})
 	void resolveOptional() {
-		GraphQLContext context = GraphQLContext.newContext().of("optionalBook", this.book).build();
-		Optional<Book> actual = (Optional<Book>) resolveValue(context, context, 3);
+		GraphQLContext context = GraphQLContext.newContext().build();
 
+		context.put("optionalBook", this.book);
+		Optional<Book> actual = (Optional<Book>) resolveValue(context, context, 3);
 		assertThat(actual.get()).isSameAs(this.book);
+
+		context.delete("optionalBook");
+		actual = (Optional<Book>) resolveValue(context, context, 3);
+		assertThat(actual).isNotPresent();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test // gh-355
+	void resolveMono() throws Exception {
+
+		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
+		resolvers.addResolver(new ContextValueMethodArgumentResolver());
+
+		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
+				new HandlerMethod(new TestController(), TestController.class.getMethod("handleMono", Mono.class)),
+				resolvers, null, false);
+
+		GraphQLContext graphQLContext = new GraphQLContext.Builder().build();
+
+		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+				.graphQLContext(graphQLContext)
+				.build();
+
+		graphQLContext.put("stringMono", Mono.just("value A"));
+		String actual = ((Mono<String>) handlerMethod.invoke(environment)).block();
+		assertThat(actual).isEqualTo("value A");
+
+		graphQLContext.delete("stringMono");
+		actual = ((Mono<String>) handlerMethod.invoke(environment)).block();
+		assertThat(actual).isNull();
 	}
 
 	@Nullable
@@ -133,6 +168,16 @@ public class ContextValueMethodArgumentResolverTests {
 			@ContextValue(required = false) Book notRequiredBook,
 			@ContextValue Optional<Book> optionalBook,
 			Book otherBook) {
+	}
+
+
+	private static class TestController {
+
+		@Nullable
+		public String handleMono(@ContextValue Mono<String> stringMono) {
+			return stringMono.block(Duration.ofSeconds(1));
+		}
+
 	}
 
 }

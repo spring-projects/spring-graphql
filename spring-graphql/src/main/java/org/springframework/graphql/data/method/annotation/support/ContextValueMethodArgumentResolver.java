@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import reactor.core.publisher.Mono;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -66,16 +67,32 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 			value = ((GraphQLContext) localContext).get(name);
 		}
 
-		if (value != null) {
-			return wrapAsOptionalIfNecessary(value, parameterType);
+		if (value == null) {
+			value = graphQlContext.get(name);
 		}
 
-		value = graphQlContext.get(name);
-		if (value == null && annotation.required() && !parameterType.equals(Optional.class)) {
+		boolean isOptional = parameterType.equals(Optional.class);
+		boolean isMono = parameterType.equals(Mono.class);
+
+		if (value == null && annotation.required() && !isOptional && !isMono) {
 			throw new IllegalStateException("Missing required context value for " + parameter);
 		}
 
-		return wrapAsOptionalIfNecessary(value, parameterType);
+		if (isMono) {
+			if (value == null) {
+				value = Mono.empty();
+			}
+			else if (!( value instanceof Mono)) {
+				value = Mono.just(value);
+			}
+			return Mono.just(value);
+		}
+
+		if (isOptional) {
+			return (value instanceof Optional ? value : Optional.ofNullable(value));
+		}
+
+		return value;
 	}
 
 	private static String getValueName(MethodParameter parameter, ContextValue annotation) {
