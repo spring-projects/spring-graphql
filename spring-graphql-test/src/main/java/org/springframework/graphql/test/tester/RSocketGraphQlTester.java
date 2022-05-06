@@ -21,7 +21,9 @@ import java.net.URI;
 import java.util.function.Consumer;
 
 import io.rsocket.transport.ClientTransport;
+import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.client.RSocketGraphQlClient;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.util.MimeType;
 
@@ -33,6 +35,19 @@ import org.springframework.util.MimeType;
  */
 public interface RSocketGraphQlTester extends GraphQlTester {
 
+	/**
+	 * Start the RSocket session.
+	 * @return {@code Mono} that completes when the underlying session is started
+	 */
+	Mono<Void> start();
+
+	/**
+	 * Stop the RSocket session.
+	 * @return {@code Mono} that completes when the underlying session is closed
+	 * <p>Note that currently this method not differed and does not wait,
+	 * see {@link RSocketGraphQlClient#stop()}
+	 */
+	Mono<Void> stop();
 
 	@Override
 	RSocketGraphQlTester.Builder<?> mutate();

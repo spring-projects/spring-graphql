@@ -178,16 +178,17 @@ to execute GraphQL requests over RSocket requests.
 ----
 
 In contrast to `HttpGraphQlClient`, the `RSocketGraphQlClient` is connection oriented,
-which means it needs to establish a connection before making any requests. As you begin
-to make requests, the connection is established transparently.
+which means it needs to establish a session before making any requests. As you begin
+to make requests, the session is established transparently. Alternatively, use the
+client's `start()` method to establish the session explicitly before any requests.
 
-`RSocketGraphQlClient` is also multiplexed. It maintains a single, shared connection for
-all requests. If the connection is lost, it is re-established on the next request. You
-can use the `dispose()` method on the underlying `RSocketRequester` to close the
-connection explicitly.
+`RSocketGraphQlClient` is also multiplexed. It maintains a single, shared session for
+all requests.  If the session is lost, it is re-established on the next request or if
+`start()` is called again. You can also use the client's `stop()` method which cancels
+in-progress requests, closes the session, and rejects new requests.
 
 TIP: Use a single `RSocketGraphQlClient` instance for each server in order to have a
-single, shared connection for all requests to that server. Each client instance
+single, shared session for all requests to that server. Each client instance
 establishes its own connection and that is typically not the intent for a single server.
 
 Once `RSocketGraphQlClient` is created, you can begin to

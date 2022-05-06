@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import reactor.core.publisher.Mono;
 
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -124,7 +125,7 @@ final class DefaultRSocketGraphQlClientBuilder
 		RSocketGraphQlTransport graphQlTransport = new RSocketGraphQlTransport(this.route, requester, getJsonDecoder());
 
 		return new DefaultRSocketGraphQlClient(
-				super.buildGraphQlClient(graphQlTransport),
+				super.buildGraphQlClient(graphQlTransport), requester,
 				this.requesterBuilder, this.clientTransport, this.route, getBuilderInitializer());
 	}
 
@@ -133,6 +134,8 @@ final class DefaultRSocketGraphQlClientBuilder
 	 * Default {@link RSocketGraphQlClient} implementation.
 	 */
 	private static class DefaultRSocketGraphQlClient extends AbstractDelegatingGraphQlClient implements RSocketGraphQlClient {
+
+		private final RSocketRequester requester;
 
 		private final RSocketRequester.Builder requesterBuilder;
 
@@ -143,15 +146,28 @@ final class DefaultRSocketGraphQlClientBuilder
 		private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 		DefaultRSocketGraphQlClient(
-				GraphQlClient graphQlClient, RSocketRequester.Builder requesterBuilder,
+				GraphQlClient graphQlClient, RSocketRequester requester, RSocketRequester.Builder requesterBuilder,
 				ClientTransport clientTransport, String route, Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
 			super(graphQlClient);
 
+			this.requester = requester;
 			this.requesterBuilder = requesterBuilder;
 			this.clientTransport = clientTransport;
 			this.route = route;
 			this.builderInitializer = builderInitializer;
+		}
+
+		@Override
+		public Mono<Void> start() {
+			return this.requester.rsocketClient().source().then();
+		}
+
+		@Override
+		public Mono<Void> stop() {
+			// Currently, no option to close and wait (see Javadoc)
+			this.requester.dispose();
+			return Mono.empty();
 		}
 
 		@Override
