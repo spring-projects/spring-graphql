@@ -162,6 +162,7 @@ public class AnnotatedControllerConfigurer
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());
+		resolvers.addResolver(new LocalContextValueMethodArgumentResolver());
 
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());

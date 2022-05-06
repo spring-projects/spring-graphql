@@ -1202,8 +1202,10 @@ See <<controllers-schema-mapping-source>>.
 See <<controllers-schema-mapping-data-loader>>.
 
 | `@ContextValue`
-| For access to a value from the localContext, if it is an instance of `GraphQLContext`,
-  or from the `GraphQLContext` of `DataFetchingEnvironment`.
+| For access to an attribute from the main `GraphQLContext` in `DataFetchingEnvironment`.
+
+| `@LocalContextValue`
+| For access to an attribute from the local `GraphQLContext` in `DataFetchingEnvironment`.
 
 | `GraphQLContext`
 | For access to the context from the `DataFetchingEnvironment`.

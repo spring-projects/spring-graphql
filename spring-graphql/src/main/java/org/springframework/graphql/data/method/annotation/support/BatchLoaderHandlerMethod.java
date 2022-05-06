@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -122,7 +123,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			return collection;
 		}
 		else if (parameter.hasParameterAnnotation(ContextValue.class)) {
-			return ContextValueMethodArgumentResolver.resolveContextValue(parameter, null, environment.getContext());
+			return resolveContextValueArgument(parameter, environment);
 		}
 		else if (parameterType.equals(GraphQLContext.class)) {
 			return environment.getContext();
@@ -139,6 +140,17 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		else {
 			throw new IllegalStateException(formatArgumentError(parameter, "Unexpected argument type."));
 		}
+	}
+
+	@Nullable
+	private Object resolveContextValueArgument(MethodParameter parameter, BatchLoaderEnvironment environment) {
+
+		ContextValue annotation = parameter.getParameterAnnotation(ContextValue.class);
+		Assert.state(annotation != null, "Expected @ContextValue annotation");
+		String name = ContextValueMethodArgumentResolver.getContextValueName(parameter, annotation.name(), annotation);
+
+		return ContextValueMethodArgumentResolver.resolveContextValue(
+				name, annotation.required(), parameter, environment.getContext());
 	}
 
 	private boolean doesNotHaveAsyncArgs(Object[] args) {

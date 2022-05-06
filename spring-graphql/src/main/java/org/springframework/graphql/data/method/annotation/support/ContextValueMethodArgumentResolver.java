@@ -15,6 +15,7 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.lang.annotation.Annotation;
 import java.util.Optional;
 
 import graphql.GraphQLContext;
@@ -28,14 +29,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+
 /**
- * Resolver for {@link ContextValue @ContextValue} annotated method parameters.
- * Values are resolved through one of the following:
- * <ul>
- * <li>{@link DataFetchingEnvironment#getLocalContext()} -- if it is an
- * instance of {@link GraphQLContext}.
- * <li>{@link DataFetchingEnvironment#getGraphQlContext()}
- * </ul>
+ * Resolver for a {@link ContextValue @ContextValue} annotated method parameter.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -49,32 +45,39 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
-		return resolveContextValue(parameter, environment.getLocalContext(), environment.getGraphQlContext());
+
+		ContextValue annotation = parameter.getParameterAnnotation(ContextValue.class);
+		Assert.state(annotation != null, "Expected @ContextValue annotation");
+		String name = getContextValueName(parameter, annotation.name(), annotation);
+
+		return resolveContextValue(name, annotation.required(), parameter, environment.getGraphQlContext());
+	}
+
+	static String getContextValueName(MethodParameter parameter, String nameFromAnnotation, Annotation annotation) {
+		if (StringUtils.hasText(nameFromAnnotation)) {
+			return nameFromAnnotation;
+		}
+		String parameterName = parameter.getParameterName();
+		if (parameterName != null) {
+			return parameterName;
+		}
+		throw new IllegalArgumentException("Name for " + annotation.getClass().getSimpleName() + " argument " +
+				"of type [" + parameter.getNestedParameterType().getName() + "] not specified, " +
+				"and parameter name information not found in class file either.");
 	}
 
 	@Nullable
 	static Object resolveContextValue(
-			MethodParameter parameter, @Nullable Object localContext, GraphQLContext graphQlContext) {
-
-		ContextValue annotation = parameter.getParameterAnnotation(ContextValue.class);
-		Assert.state(annotation != null, "Expected @ContextValue annotation");
-		String name = getValueName(parameter, annotation);
+			String contextValueName, boolean required, MethodParameter parameter,
+			@Nullable GraphQLContext graphQlContext) {
 
 		Class<?> parameterType = parameter.getParameterType();
-		Object value = null;
-
-		if (localContext instanceof GraphQLContext) {
-			value = ((GraphQLContext) localContext).get(name);
-		}
-
-		if (value == null) {
-			value = graphQlContext.get(name);
-		}
+		Object value = (graphQlContext != null ? graphQlContext.get(contextValueName) : null);
 
 		boolean isOptional = parameterType.equals(Optional.class);
 		boolean isMono = parameterType.equals(Mono.class);
 
-		if (value == null && annotation.required() && !isOptional && !isMono) {
+		if (value == null && required && !isOptional && !isMono) {
 			throw new IllegalStateException("Missing required context value for " + parameter);
 		}
 
@@ -93,24 +96,6 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 		}
 
 		return value;
-	}
-
-	private static String getValueName(MethodParameter parameter, ContextValue annotation) {
-		if (StringUtils.hasText(annotation.name())) {
-			return annotation.name();
-		}
-		String parameterName = parameter.getParameterName();
-		if (parameterName != null) {
-			return parameterName;
-		}
-		throw new IllegalArgumentException("Name for @ContextValue argument " +
-				"of type [" + parameter.getNestedParameterType().getName() + "] not specified, " +
-				"and parameter name information not found in class file either.");
-	}
-
-	@Nullable
-	private static Object wrapAsOptionalIfNecessary(@Nullable Object value, Class<?> type) {
-		return (type.equals(Optional.class) ? Optional.ofNullable(value) : value);
 	}
 
 }

@@ -25,6 +25,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
@@ -33,6 +34,7 @@ import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.ContextValue;
+import org.springframework.graphql.data.method.annotation.LocalContextValue;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
@@ -55,11 +57,14 @@ public class ContextValueMethodArgumentResolverTests {
 
 	@Test
 	void supportsParameter() {
+
 		assertThat(this.resolver.supportsParameter(methodParam(0))).isTrue();
 		assertThat(this.resolver.supportsParameter(methodParam(1))).isTrue();
 		assertThat(this.resolver.supportsParameter(methodParam(2))).isTrue();
 		assertThat(this.resolver.supportsParameter(methodParam(3))).isTrue();
+
 		assertThat(this.resolver.supportsParameter(methodParam(4))).isFalse();
+		assertThat(this.resolver.supportsParameter(methodParam(5))).isFalse();
 	}
 
 	@Test
@@ -67,17 +72,6 @@ public class ContextValueMethodArgumentResolverTests {
 		BiConsumer<String, Integer> tester = (key, index) -> {
 			GraphQLContext context = GraphQLContext.newContext().of(key, this.book).build();
 			Object actual = resolveValue(null, context, index);
-			assertThat(actual).isSameAs(this.book);
-		};
-		tester.accept("book", 0);
-		tester.accept("customKey", 1);
-	}
-
-	@Test
-	void resolveFromLocalContext() {
-		BiConsumer<String, Integer> tester = (key, index) -> {
-			GraphQLContext context = GraphQLContext.newContext().of(key, this.book).build();
-			Object actual = resolveValue(context, null, index);
 			assertThat(actual).isSameAs(this.book);
 		};
 		tester.accept("book", 0);
@@ -116,7 +110,7 @@ public class ContextValueMethodArgumentResolverTests {
 		assertThat(actual).isNotPresent();
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "ConstantConditions", "ReactiveStreamsUnusedPublisher"})
 	@Test // gh-355
 	void resolveMono() throws Exception {
 
@@ -134,12 +128,10 @@ public class ContextValueMethodArgumentResolverTests {
 				.build();
 
 		graphQLContext.put("stringMono", Mono.just("value A"));
-		String actual = ((Mono<String>) handlerMethod.invoke(environment)).block();
-		assertThat(actual).isEqualTo("value A");
+		StepVerifier.create((Mono<String>) handlerMethod.invoke(environment)).expectNext("value A").verifyComplete();
 
 		graphQLContext.delete("stringMono");
-		actual = ((Mono<String>) handlerMethod.invoke(environment)).block();
-		assertThat(actual).isNull();
+		StepVerifier.create((Mono<String>) handlerMethod.invoke(environment)).verifyComplete();
 	}
 
 	@Nullable
@@ -161,12 +153,13 @@ public class ContextValueMethodArgumentResolverTests {
 	}
 
 
-	@SuppressWarnings({"unused", "rawtypes", "OptionalUsedAsFieldOrParameterType"})
+	@SuppressWarnings({"unused", "OptionalUsedAsFieldOrParameterType"})
 	public void handle(
 			@ContextValue Book book,
 			@ContextValue("customKey") Book customKeyBook,
 			@ContextValue(required = false) Book notRequiredBook,
 			@ContextValue Optional<Book> optionalBook,
+			@LocalContextValue Book localBook,
 			Book otherBook) {
 	}
 
