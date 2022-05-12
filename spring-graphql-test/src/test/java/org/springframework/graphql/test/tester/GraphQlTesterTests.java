@@ -48,9 +48,10 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 		response.path("me.name").hasValue();
 		response.path("me.friends").hasValue();
+		response.path("me[?(@.name == 'Luke Skywalker')].name").hasValue(); // gh-377
 
 		assertThatThrownBy(() -> response.path("hero").hasValue())
-				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
+				.hasMessageContaining("No value at JSON path \"$.data.hero\"");
 
 		assertThat(getActualRequestDocument()).contains(document);
 	}
@@ -152,7 +153,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				"{" +
 				"  \"me\":{" +
 				"      \"name\":\"Luke Skywalker\","
-				+ "      \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
 				"  }" +
 				"}");
 

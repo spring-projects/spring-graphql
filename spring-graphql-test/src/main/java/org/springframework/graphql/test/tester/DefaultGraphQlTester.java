@@ -330,24 +330,25 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private final JsonPathExpectationsHelper pathHelper;
 
 		private DefaultPath(String path, ResponseDelegate delegate) {
-
 			Assert.notNull(path, "`path` is required");
 			Assert.notNull(delegate, "ResponseContainer is required");
 
+			String fullPath = initFullPath(path);
+
 			this.path = path;
 			this.delegate = delegate;
-			this.jsonPath = initJsonPath(path);
-			this.pathHelper = new JsonPathExpectationsHelper(this.jsonPath.getPath());
+			this.jsonPath = JsonPath.compile(fullPath);
+			this.pathHelper = new JsonPathExpectationsHelper(fullPath);
 		}
 
-		private static JsonPath initJsonPath(String path) {
+		private static String initFullPath(String path) {
 			if (!StringUtils.hasText(path)) {
 				path = "$.data";
 			}
 			else if (!path.startsWith("$") && !path.startsWith("data.")) {
 				path = "$.data." + path;
 			}
-			return JsonPath.compile(path);
+			return path;
 		}
 
 		@Override
