@@ -5,7 +5,7 @@ plugins {
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
-	graphQlJavaVersion = "18.0"
+	graphQlJavaVersion = "18.1"
 	bootVersion = "2.7.0-SNAPSHOT"
 }
 
@@ -59,8 +59,8 @@ configure(moduleProjects) {
 		imports {
 			mavenBom "com.fasterxml.jackson:jackson-bom:2.13.2.1"
 			mavenBom "io.projectreactor:reactor-bom:2020.0.18"
-			mavenBom "org.springframework:spring-framework-bom:5.3.19"
-			mavenBom "org.springframework.data:spring-data-bom:2021.2.0-M4"
+			mavenBom "org.springframework:spring-framework-bom:5.3.20"
+			mavenBom "org.springframework.data:spring-data-bom:2021.2.0-RC1"
 			mavenBom "org.springframework.security:spring-security-bom:5.7.0-RC1"
 			mavenBom "com.querydsl:querydsl-bom:5.0.0"
 			mavenBom "io.rsocket:rsocket-bom:1.1.2"
@@ -107,7 +107,7 @@ configure(moduleProjects) {
 	ext.javadocLinks = [
 			"https://docs.oracle.com/javase/8/docs/api/",
 			"https://docs.spring.io/spring-framework/docs/5.3.x/javadoc-api/",
-			"https://javadoc.io/doc/com.graphql-java/graphql-java/18.0/"
+			"https://javadoc.io/doc/com.graphql-java/graphql-java/18.1/"
 	] as String[]
 
 	components.java.withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
