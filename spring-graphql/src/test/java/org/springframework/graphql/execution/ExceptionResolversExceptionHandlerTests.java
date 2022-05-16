@@ -76,7 +76,7 @@ public class ExceptionResolversExceptionHandlerTests {
 								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 								.errorType(ErrorType.BAD_REQUEST).build())));
 
-		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input.getGraphQLContext());
 
 		ExecutionResult result = this.graphQlSetup.exceptionResolver(resolver).toGraphQl()
 				.executeAsync(this.input).get();
@@ -102,7 +102,7 @@ public class ExceptionResolversExceptionHandlerTests {
 			resolver.setThreadLocalContextAware(true);
 
 			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
-			ReactorContextManager.setReactorContext(view, input);
+			ReactorContextManager.setReactorContext(view, input.getGraphQLContext());
 
 			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap((aLong) ->
 					Mono.fromFuture(this.graphQlSetup.exceptionResolver(resolver).toGraphQl().executeAsync(this.input)));

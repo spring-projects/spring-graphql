@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,7 @@ package org.springframework.graphql.execution;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import graphql.ExecutionInput;
 import graphql.GraphQLContext;
-import graphql.schema.DataFetchingEnvironment;
-import org.dataloader.BatchLoaderEnvironment;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
@@ -30,9 +27,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Provides helper methods to save Reactor context in the {@link ExecutionInput}
- * so it can be subsequently obtained from {@link DataFetchingEnvironment} and
- * propagated to data fetchers or exception handlers.
+ * Provides helper methods to save Reactor context in the {@link GraphQLContext}
+ * so it can be subsequently obtained and propagated to data fetchers, exception
+ * handlers, and others.
  *
  * <p>The Reactor context is also used to carry ThreadLocal values that are also
  * restored around the execution of data fetchers and exceptions handlers.
@@ -51,34 +48,22 @@ public abstract class ReactorContextManager {
 	private static final String THREAD_LOCAL_ACCESSOR_KEY = ReactorContextManager.class.getName() + ".THREAD_LOCAL_ACCESSOR";
 
 	/**
-	 * Save the given Reactor {@link ContextView} in the an {@link ExecutionInput} for
-	 * later access through the {@link DataFetchingEnvironment}.
-	 * @param contextView the reactor context view
-	 * @param input the input prepared from the GraphQL request
+	 * Save the given Reactor {@link ContextView} in the given {@link GraphQLContext}.
+	 * @param contextView the reactor {@code ContextView} to save
+	 * @param graphQLContext the {@code GraphQLContext} where to save
 	 */
-	static void setReactorContext(ContextView contextView, ExecutionInput input) {
-		input.getGraphQLContext().put(CONTEXT_VIEW_KEY, contextView);
+	static void setReactorContext(ContextView contextView, GraphQLContext graphQLContext) {
+		graphQLContext.put(CONTEXT_VIEW_KEY, contextView);
 	}
 
 	/**
-	 * Return the Reactor {@link ContextView} saved in the given DataFetchingEnvironment.
-	 * @param environment the DataFetchingEnvironment
+	 * Return the Reactor {@link ContextView} saved in the given {@link GraphQLContext}.
+	 * @param graphQlContext the DataFetchingEnvironment
 	 * @return the reactor {@link ContextView}
 	 */
-	static ContextView getReactorContext(DataFetchingEnvironment environment) {
-		GraphQLContext graphQlContext = environment.getGraphQlContext();
+	static ContextView getReactorContext(GraphQLContext graphQlContext) {
+		Assert.notNull(graphQlContext, "GraphQLContext is required");
 		return graphQlContext.getOrDefault(CONTEXT_VIEW_KEY, Context.empty());
-	}
-
-	/**
-	 * Return the Reactor {@link ContextView} saved in the given BatchLoaderEnvironment.
-	 * @param environment the BatchLoaderEnvironment
-	 * @return the reactor {@link ContextView}
-	 */
-	static ContextView getReactorContext(BatchLoaderEnvironment environment) {
-		Object context = environment.getContext();
-		Assert.isTrue(context instanceof GraphQLContext, "Expected GraphQLContext in BatchLoaderEnvironment");
-		return ((GraphQLContext) context).getOrDefault(CONTEXT_VIEW_KEY, Context.empty());
 	}
 
 	/**

@@ -78,7 +78,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 					.onErrorResume(resolverEx -> Mono.just(handleResolverError(resolverEx, exception, env)))
 					.switchIfEmpty(Mono.fromCallable(() -> createInternalError(exception, env)))
 					.contextWrite((context) -> {
-						ContextView contextView = ReactorContextManager.getReactorContext(env);
+						ContextView contextView = ReactorContextManager.getReactorContext(env.getGraphQlContext());
 						return (contextView.isEmpty() ? context : context.putAll(contextView));
 					})
 					.toFuture();
