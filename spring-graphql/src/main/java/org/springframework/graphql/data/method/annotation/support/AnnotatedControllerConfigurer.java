@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import javax.validation.Validator;
@@ -110,6 +112,12 @@ public class AnnotatedControllerConfigurer
 			"javax.validation.executable.ExecutableValidator",
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
+
+	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
+
+	@Nullable
+	private Executor executor;
+
 	@Nullable
 	private ApplicationContext applicationContext;
 
@@ -118,8 +126,6 @@ public class AnnotatedControllerConfigurer
 
 	@Nullable
 	private HandlerMethodInputValidator validator;
-
-	private FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
 
 	/**
@@ -130,6 +136,17 @@ public class AnnotatedControllerConfigurer
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
+	}
+
+	/**
+	 * Configure an {@link Executor} to use for asynchronous handling of
+	 * {@link Callable} return values from controller methods.
+	 * <p>By default, this is not set in which case controller methods with a
+	 * {@code Callable} return value cannot be registered.
+	 * @param executor the executor to use
+	 */
+	public void setExecutor(Executor executor) {
+		this.executor = executor;
 	}
 
 	@Override
@@ -195,7 +212,7 @@ public class AnnotatedControllerConfigurer
 		findHandlerMethods().forEach((info) -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
-				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers, this.validator);
+				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers, this.validator, this.executor);
 			}
 			else {
 				String dataLoaderKey = registerBatchLoader(info);
@@ -359,13 +376,16 @@ public class AnnotatedControllerConfigurer
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
-		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod);
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, this.executor);
 
-		Class<?> clazz = handlerMethod.getReturnType().getParameterType();
-		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz)) {
+		MethodParameter returnType = handlerMethod.getReturnType();
+		Class<?> clazz = returnType.getParameterType();
+		Class<?> nestedClass = (clazz.equals(Callable.class) ? returnType.nested().getNestedParameterType() : clazz);
+
+		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(nestedClass)) {
 			registry.forName(dataLoaderKey).registerBatchLoader(invocable::invokeForIterable);
 		}
-		else if (clazz.equals(Mono.class) || clazz.equals(Map.class)) {
+		else if (clazz.equals(Mono.class) || nestedClass.equals(Map.class)) {
 			registry.forName(dataLoaderKey).registerMappedBatchLoader(invocable::invokeForMap);
 		}
 		else {
@@ -425,7 +445,7 @@ public class AnnotatedControllerConfigurer
 
 		@Override
 		public String toString() {
-			return this.coordinates + " -> " + this.handlerMethod.toString();
+			return this.coordinates + " -> " + this.handlerMethod;
 		}
 	}
 
@@ -442,23 +462,21 @@ public class AnnotatedControllerConfigurer
 		@Nullable
 		private final HandlerMethodInputValidator validator;
 
+		@Nullable
+		private final Executor executor;
+
 		private final boolean subscription;
 
 		public SchemaMappingDataFetcher(
 				MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
-				@Nullable HandlerMethodInputValidator validator) {
+				@Nullable HandlerMethodInputValidator validator,
+				@Nullable Executor executor) {
 
 			this.info = info;
 			this.argumentResolvers = resolvers;
 			this.validator = validator;
+			this.executor = executor;
 			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
-		}
-
-		/**
-		 * Return the {@link FieldCoordinates} the HandlerMethod is mapped to.
-		 */
-		public FieldCoordinates getCoordinates() {
-			return this.info.getCoordinates();
 		}
 
 		/**
@@ -474,7 +492,7 @@ public class AnnotatedControllerConfigurer
 		public Object get(DataFetchingEnvironment environment) throws Exception {
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-					getHandlerMethod(), this.argumentResolvers, this.validator, this.subscription);
+					getHandlerMethod(), this.argumentResolvers, this.validator, this.executor, this.subscription);
 
 			return handlerMethod.invoke(environment);
 		}

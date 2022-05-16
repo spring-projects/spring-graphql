@@ -18,6 +18,7 @@ package org.springframework.graphql.execution;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import graphql.GraphQLContext;
 import reactor.util.context.Context;
@@ -70,7 +71,7 @@ public abstract class ReactorContextManager {
 	 * Use the given accessor to extract ThreadLocal values and save them in a
 	 * sub-map in the given {@link Context}, so those can be restored later
 	 * around the execution of data fetchers and exception resolvers. The accessor
-	 * instance is also saved in the Reactor Context so it can be used to
+	 * instance is also saved in the Reactor Context, so it can be used to
 	 * actually restore and reset ThreadLocal values.
 	 * @param accessor the accessor to use
 	 * @param context the context to write to if there are ThreadLocal values
@@ -87,6 +88,24 @@ public abstract class ReactorContextManager {
 				THREAD_LOCAL_VALUES_KEY, valuesMap,
 				THREAD_LOCAL_ACCESSOR_KEY, accessor,
 				THREAD_ID, Thread.currentThread().getId()));
+	}
+
+	/**
+	 * Restore {@code ThreadLocal} values, invoke the given {@code Callable},
+	 * and reset the {@code ThreadLocal} values.
+	 * @param callable the callable to invoke
+	 * @param graphQlContext the current {@code GraphQLContext}
+	 * @return the return value from the invocation
+	 */
+	public static <T> T invokeCallable(Callable<T> callable, GraphQLContext graphQlContext) throws Exception {
+		ContextView contextView = getReactorContext(graphQlContext);
+		try {
+			ReactorContextManager.restoreThreadLocalValues(contextView);
+			return callable.call();
+		}
+		finally {
+			ReactorContextManager.resetThreadLocalValues(contextView);
+		}
 	}
 
 	/**

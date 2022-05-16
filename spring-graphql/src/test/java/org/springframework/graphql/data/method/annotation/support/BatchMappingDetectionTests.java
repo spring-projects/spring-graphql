@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
@@ -28,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
@@ -59,13 +61,14 @@ public class BatchMappingDetectionTests {
 
 		assertThat(dataFetcherMap).containsOnlyKeys("Book");
 		assertThat(dataFetcherMap.get("Book")).containsOnlyKeys(
-				"authorFlux", "authorList", "authorMonoMap", "authorMap", "authorEnvironment");
+				"authorFlux", "authorList", "authorMonoMap", "authorMap", "authorCallableMap", "authorEnvironment");
 
 		DataLoaderRegistry registry = new DataLoaderRegistry();
 		this.batchLoaderRegistry.registerDataLoaders(registry, GraphQLContext.newContext().build());
 
 		assertThat(registry.getDataLoadersMap()).containsOnlyKeys(
-				"Book.authorFlux", "Book.authorList", "Book.authorMonoMap", "Book.authorMap", "Book.authorEnvironment");
+				"Book.authorFlux", "Book.authorList", "Book.authorMonoMap", "Book.authorMap",
+				"Book.authorCallableMap", "Book.authorEnvironment");
 	}
 
 	@Test
@@ -87,6 +90,7 @@ public class BatchMappingDetectionTests {
 		context.refresh();
 
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+		configurer.setExecutor(new SimpleAsyncTaskExecutor());
 		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 
@@ -117,6 +121,11 @@ public class BatchMappingDetectionTests {
 
 		@BatchMapping
 		public Map<Book, Author> authorMap(List<Book> books) {
+			return null;
+		}
+
+		@BatchMapping
+		public Callable<Map<Book, Author>> authorCallableMap(List<Book> books) {
 			return null;
 		}
 

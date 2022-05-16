@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,7 +52,8 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				arguments(named("Returning Mono<Map<K,V>>", new BatchMonoMapController())),
 				arguments(named("Returning Map<K,V>", new BatchMapController())),
 				arguments(named("Returning Flux<V>", new BatchFluxController())),
-				arguments(named("Returning List<V>", new BatchListController()))
+				arguments(named("Returning List<V>", new BatchListController())),
+				arguments(named("Returning Callable<Map<K,V>>", new BatchCallableMapController()))
 		);
 	}
 
@@ -141,6 +143,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 		}
 	}
 
+
 	@Controller
 	private static class BatchMapController extends CourseController {
 
@@ -153,7 +156,9 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 		public Map<Course, List<Person>> students(List<Course> courses) {
 			return courses.stream().collect(Collectors.toMap(Function.identity(), Course::students));
 		}
+
 	}
+
 
 	@Controller
 	private static class BatchFluxController extends CourseController {
@@ -169,6 +174,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 		}
 	}
 
+
 	@Controller
 	private static class BatchListController extends CourseController {
 
@@ -182,5 +188,22 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 			return courses.stream().map(Course::students).collect(Collectors.toList());
 		}
 	}
+
+
+	@Controller
+	private static class BatchCallableMapController extends CourseController {
+
+		@BatchMapping
+		public Callable<Map<Course, Person>> instructor(List<Course> courses) {
+			return () -> courses.stream().collect(Collectors.toMap(Function.identity(), Course::instructor));
+		}
+
+		@BatchMapping
+		public Callable<Map<Course, List<Person>>> students(List<Course> courses) {
+			return () -> courses.stream().collect(Collectors.toMap(Function.identity(), Course::students));
+		}
+
+	}
+
 
 }

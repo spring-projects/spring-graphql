@@ -19,6 +19,9 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import graphql.GraphQLContext;
 import org.dataloader.BatchLoaderEnvironment;
@@ -50,8 +53,8 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
 
-	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod) {
-		super(handlerMethod);
+	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, @Nullable Executor executor) {
+		super(handlerMethod, executor);
 	}
 
 
@@ -69,11 +72,11 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	public <K, V> Mono<Map<K, V>> invokeForMap(Collection<K> keys, BatchLoaderEnvironment environment) {
 		Object[] args = getMethodArgumentValues(keys, environment);
 		if (doesNotHaveAsyncArgs(args)) {
-			Object result = doInvoke(args);
+			Object result = doInvoke(environment.getContext(), args);
 			return toMonoMap(result);
 		}
 		return toArgsMono(args).flatMap(argValues -> {
-			Object result = doInvoke(argValues);
+			Object result = doInvoke(environment.getContext(), argValues);
 			return toMonoMap(result);
 		});
 	}
@@ -90,11 +93,11 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	public <V> Flux<V> invokeForIterable(Collection<?> keys, BatchLoaderEnvironment environment) {
 		Object[] args = getMethodArgumentValues(keys, environment);
 		if (doesNotHaveAsyncArgs(args)) {
-			Object result = doInvoke(args);
+			Object result = doInvoke(environment.getContext(), args);
 			return toFlux(result);
 		}
 		return toArgsMono(args).flatMapMany(resolvedArgs -> {
-			Object result = doInvoke(resolvedArgs);
+			Object result = doInvoke(environment.getContext(), resolvedArgs);
 			return toFlux(result);
 		});
 	}
@@ -165,6 +168,9 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		else if (result instanceof Mono) {
 			return (Mono<Map<K, V>>) result;
 		}
+		else if (result instanceof CompletableFuture) {
+			return Mono.fromFuture((CompletableFuture<? extends Map<K,V>>) result);
+		}
 		return Mono.error(new IllegalStateException("Unexpected return value: " + result));
 	}
 
@@ -175,6 +181,10 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		}
 		else if (result instanceof Flux) {
 			return (Flux<V>) result;
+		}
+		else if (result instanceof CompletableFuture) {
+			return Mono.fromFuture((CompletableFuture<? extends Collection<V>>) result)
+					.flatMapIterable(Function.identity());
 		}
 		return Flux.error(new IllegalStateException("Unexpected return value: " + result));
 	}

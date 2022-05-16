@@ -59,16 +59,11 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
-		ContextView contextView = ReactorContextManager.getReactorContext(environment.getGraphQlContext());
 
-		Object value;
-		try {
-			ReactorContextManager.restoreThreadLocalValues(contextView);
-			value = this.delegate.get(environment);
-		}
-		finally {
-			ReactorContextManager.resetThreadLocalValues(contextView);
-		}
+		Object value = ReactorContextManager.invokeCallable(() ->
+				this.delegate.get(environment), environment.getGraphQlContext());
+
+		ContextView contextView = ReactorContextManager.getReactorContext(environment.getGraphQlContext());
 
 		if (this.subscription) {
 			return (!contextView.isEmpty() ? Flux.from((Publisher<?>) value).contextWrite(contextView) : value);

@@ -119,7 +119,7 @@ public class ContextValueMethodArgumentResolverTests {
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				new HandlerMethod(new TestController(), TestController.class.getMethod("handleMono", Mono.class)),
-				resolvers, null, false);
+				resolvers, null, null, false);
 
 		GraphQLContext graphQLContext = new GraphQLContext.Builder().build();
 

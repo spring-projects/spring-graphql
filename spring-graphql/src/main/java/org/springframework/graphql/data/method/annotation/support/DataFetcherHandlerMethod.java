@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
+import java.util.concurrent.Executor;
 
 import graphql.schema.DataFetchingEnvironment;
 import org.reactivestreams.Publisher;
@@ -65,9 +66,9 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 */
 	public DataFetcherHandlerMethod(HandlerMethod handlerMethod,
 			HandlerMethodArgumentResolverComposite resolvers, @Nullable HandlerMethodInputValidator validator,
-			boolean subscription) {
+			@Nullable Executor executor, boolean subscription) {
 
-		super(handlerMethod);
+		super(handlerMethod, executor);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
 		this.validator = validator;
@@ -118,17 +119,17 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 		}
 
 		if (Arrays.stream(args).noneMatch(arg -> arg instanceof Mono)) {
-			return validateAndInvoke(args);
+			return validateAndInvoke(args, environment);
 		}
 
 		return this.subscription ?
 				toArgsMono(args).flatMapMany(argValues -> {
-					Object result = validateAndInvoke(argValues);
+					Object result = validateAndInvoke(argValues, environment);
 					Assert.state(result instanceof Publisher, "Expected a Publisher from a Subscription response");
 					return Flux.from((Publisher<?>) result);
 				}) :
 				toArgsMono(args).flatMap(argValues -> {
-					Object result = validateAndInvoke(argValues);
+					Object result = validateAndInvoke(argValues, environment);
 					if (result instanceof Mono) {
 						return (Mono<?>) result;
 					}
@@ -183,11 +184,11 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	}
 
 	@Nullable
-	private Object validateAndInvoke(Object[] args) {
+	private Object validateAndInvoke(Object[] args, DataFetchingEnvironment environment) {
 		if (this.validator != null) {
 			this.validator.validate(this, args);
 		}
-		return doInvoke(args);
+		return doInvoke(environment.getGraphQlContext(), args);
 	}
 
 }

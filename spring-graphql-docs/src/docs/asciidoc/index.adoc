@@ -1227,8 +1227,13 @@ See <<controllers-schema-mapping-data-loader>>.
 
 |===
 
-Schema mapping handler methods can return any value, including Reactor `Mono` and
-`Flux` as described in <<execution-reactive-datafetcher>>.
+Schema mapping handler methods can return:
+
+- A resolved value of any type.
+- `Mono` and `Flux` for asynchronous value(s). Supported for controller methods and for
+  any `DataFetcher` as described in <<execution-reactive-datafetcher>>.
+- `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
+  For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
 
 
@@ -1573,6 +1578,10 @@ Batch mapping methods can return:
 
 | `Map<K,V>`, `Collection<V>`
 | Imperative variants, e.g. without remote calls to make.
+
+| `Callable<Map<K,V>>`, `Callable<Collection<V>>`
+| Imperative variants to be invoked asynchronously. For this to work,
+  `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
 |===
 

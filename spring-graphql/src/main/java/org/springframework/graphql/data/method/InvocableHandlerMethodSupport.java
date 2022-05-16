@@ -19,14 +19,20 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import graphql.GraphQLContext;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
+import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Extension of {@link HandlerMethod} that adds support for invoking the
@@ -40,8 +46,24 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	private static final Object NO_VALUE = new Object();
 
 
-	protected InvocableHandlerMethodSupport(HandlerMethod handlerMethod) {
+	private final boolean hasCallableReturnValue;
+
+	@Nullable
+	private final Executor executor;
+
+
+	/**
+	 * Create an instance.
+	 * @param handlerMethod the controller method
+	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 */
+	protected InvocableHandlerMethodSupport(HandlerMethod handlerMethod, @Nullable Executor executor) {
 		super(handlerMethod.createWithResolvedBean());
+		this.hasCallableReturnValue = getReturnType().getParameterType().equals(Callable.class);
+		this.executor = executor;
+		Assert.isTrue(!this.hasCallableReturnValue || this.executor != null,
+				"Controller method declared with Callable return value, but no Executor configured: " +
+						handlerMethod.getBridgedMethod().toGenericString());
 	}
 
 
@@ -51,8 +73,9 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 * @return the value returned from the method or a {@code Mono<Throwable>}
 	 * if the invocation fails.
 	 */
+	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 	@Nullable
-	protected Object doInvoke(Object... argValues) {
+	protected Object doInvoke(GraphQLContext graphQLContext, Object... argValues) {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Arguments: " + Arrays.toString(argValues));
 		}
@@ -61,7 +84,8 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			if (KotlinDetector.isSuspendingFunction(method)) {
 				return CoroutinesUtils.invokeSuspendingFunction(method, getBean(), argValues);
 			}
-			return method.invoke(getBean(), argValues);
+			Object result = method.invoke(getBean(), argValues);
+			return handleReturnValue(graphQLContext, result);
 		}
 		catch (IllegalArgumentException ex) {
 			assertTargetBean(method, getBean(), argValues);
@@ -82,6 +106,24 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		catch (Throwable ex) {
 			return Mono.error(ex);
 		}
+	}
+
+	@Nullable
+	private Object handleReturnValue(GraphQLContext graphQLContext, @Nullable Object result) {
+		if (this.hasCallableReturnValue && result != null) {
+			return CompletableFuture.supplyAsync(
+					() -> {
+						try {
+							return ReactorContextManager.invokeCallable((Callable<?>) result, graphQLContext);
+						}
+						catch (Exception ex) {
+							throw new IllegalStateException(
+									"Failure in Callable returned from " + getBridgedMethod().toGenericString(), ex);
+						}
+					},
+					this.executor);
+		}
+		return result;
 	}
 
 	/**

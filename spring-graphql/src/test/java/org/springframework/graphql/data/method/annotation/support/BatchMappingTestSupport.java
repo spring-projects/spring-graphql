@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -87,8 +88,13 @@ public class BatchMappingTestSupport {
 		context.registerBean(BatchLoaderRegistry.class, () -> registry);
 		context.refresh();
 
+		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+		configurer.setExecutor(new SimpleAsyncTaskExecutor());
+		configurer.setApplicationContext(context);
+		configurer.afterPropertiesSet();
+
 		return GraphQlSetup.schemaContent(schema)
-				.runtimeWiringForAnnotatedControllers(context)
+				.runtimeWiring(configurer)
 				.dataLoaders(registry)
 				.toGraphQlService();
 	}
