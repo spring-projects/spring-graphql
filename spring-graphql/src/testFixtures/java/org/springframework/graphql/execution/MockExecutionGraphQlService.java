@@ -145,7 +145,7 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private ExecutionGraphQlRequest toExecutionRequest(GraphQlRequest request) {
 		return new DefaultExecutionGraphQlRequest(
-				request.getDocument(), request.getOperationName(), request.getVariables(), "1", null);
+				request.getDocument(), request.getOperationName(), request.getVariables(), request.getExtensions(), "1", null);
 	}
 
 }

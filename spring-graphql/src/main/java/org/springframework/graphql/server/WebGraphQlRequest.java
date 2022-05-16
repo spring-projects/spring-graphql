@@ -58,7 +58,8 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	public WebGraphQlRequest(
 			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
 
-		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), id, locale);
+		super(getKey("query", body), getKey("operationName", body), getKey("variables", body),
+				getKey("extensions", body), id, locale);
 
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");

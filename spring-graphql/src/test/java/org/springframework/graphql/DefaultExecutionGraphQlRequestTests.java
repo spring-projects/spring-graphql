@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DefaultExecutionGraphQlRequestTests {
 
 	private final DefaultExecutionGraphQlRequest request =
-			new DefaultExecutionGraphQlRequest("greeting", "Greeting", null, "id", null);
+			new DefaultExecutionGraphQlRequest("greeting", "Greeting", null, null, "id", null);
 
 
 	@Test

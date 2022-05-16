@@ -43,7 +43,8 @@ public class RSocketGraphQlRequest extends DefaultExecutionGraphQlRequest implem
 	 * @param locale the locale from the HTTP request, if any
 	 */
 	public RSocketGraphQlRequest(Map<String, Object> body, String id, @Nullable Locale locale) {
-		super(getKey("query", body), getKey("operationName", body), getKey("variables", body), id, locale);
+		super(getKey("query", body), getKey("operationName", body), getKey("variables", body),
+				getKey("extensions", body), id, locale);
 	}
 
 	@SuppressWarnings("unchecked")

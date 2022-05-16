@@ -54,6 +54,11 @@ public interface GraphQlRequest {
 	Map<String, Object> getVariables();
 
 	/**
+	 * Return implementor specific, protocol extensions, if any.
+	 */
+	Map<String, Object> getExtensions();
+
+	/**
 	 * Convert the request to a {@link Map} as defined in
 	 * <a href="https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md">GraphQL over HTTP</a> and
 	 * <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket</a>:

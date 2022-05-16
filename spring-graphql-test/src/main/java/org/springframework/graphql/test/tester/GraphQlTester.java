@@ -150,6 +150,15 @@ public interface GraphQlTester {
 		T variable(String name, @Nullable Object value);
 
 		/**
+		 * Add a variable.
+		 * @param name the variable name
+		 * @param value the variable value, possibly {@code null} since GraphQL
+		 * supports providing null value vs not providing a value at all.
+		 * @return this request spec
+		 */
+		T extension(String name, @Nullable Object value);
+
+		/**
 		 * Execute the GraphQL request and return a spec for further inspection of
 		 * response data and errors.
 		 * @return options for asserting the response

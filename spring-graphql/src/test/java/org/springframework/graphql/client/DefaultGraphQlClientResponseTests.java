@@ -158,7 +158,7 @@ public class DefaultGraphQlClientResponseTests {
 
 	private ClientGraphQlResponse creatResponse(Map<String, Object> responseMap) {
 		return new DefaultClientGraphQlResponse(
-				new DefaultClientGraphQlRequest("{test}", null, Collections.emptyMap(), Collections.emptyMap()),
+				new DefaultClientGraphQlRequest("{test}", null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap()),
 				new ResponseMapGraphQlResponse(responseMap),
 				new Jackson2JsonEncoder(), new Jackson2JsonDecoder());
 	}

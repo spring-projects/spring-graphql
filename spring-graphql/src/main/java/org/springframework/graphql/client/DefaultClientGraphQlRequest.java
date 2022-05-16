@@ -35,10 +35,11 @@ final class DefaultClientGraphQlRequest extends DefaultGraphQlRequest implements
 
 
 	DefaultClientGraphQlRequest(
-			String document, @Nullable String operationName, Map<String, Object> variables,
+			String document, @Nullable String operationName,
+			Map<String, Object> variables, Map<String, Object> extensions,
 			Map<String, Object> attributes) {
 
-		super(document, operationName, variables);
+		super(document, operationName, variables, extensions);
 		this.attributes.putAll(attributes);
 	}
 

@@ -218,6 +218,23 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 	}
 
 	@Test
+	void protocolExtensions() {
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		graphQlTester().document(document)
+				.extension("firstExt", Collections.singletonMap("key", "value"))
+				.extension("secondExt", "value")
+				.execute();
+
+		ExecutionGraphQlRequest request = getGraphQlService().getGraphQlRequest();
+		assertThat(request.getDocument()).contains(document);
+		assertThat(request.getExtensions()).hasSize(2);
+		assertThat(request.getExtensions()).containsEntry("firstExt", Collections.singletonMap("key", "value"))
+				.containsEntry("secondExt", "value");
+	}
+
+	@Test
 	void errorsEmptyOnExecuteAndVerify() {
 
 		String document = "{me {name, friends}}";

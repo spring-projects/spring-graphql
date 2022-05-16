@@ -101,7 +101,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		vars.put("foo", "bar");
 		vars.put("keyOnly", null);
 
-		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
+		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars, null);
 		getGraphQlService().setDataAsJson(request.getDocument(), "{\"hero\": {\"name\":\"R2-D2\"}}");
 
 		MovieCharacter character = graphQlClient().document(document)

@@ -75,7 +75,7 @@ abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 
 	private ExecutionGraphQlRequest toExecutionRequest(GraphQlRequest request) {
 		return new DefaultExecutionGraphQlRequest(
-				request.getDocument(), request.getOperationName(), request.getVariables(),
+				request.getDocument(), request.getOperationName(), request.getVariables(), request.getExtensions(),
 				idGenerator.generateId().toString(), null);
 	}
 

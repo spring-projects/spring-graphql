@@ -152,6 +152,21 @@ public interface GraphQlClient {
 		RequestSpec variables(Map<String, Object> variables);
 
 		/**
+		 * Add a value for a protocol extension.
+		 * @param name the protocol extension name
+		 * @param value the extension value
+		 * @return this request spec
+		 */
+		RequestSpec extension(String name, @Nullable Object value);
+
+		/**
+		 * Add all given protocol extensions.
+		 * @param extensions the protocol extensions
+		 * @return this request spec
+		 */
+		RequestSpec extensions(Map<String, Object> extensions);
+
+		/**
 		 * Set a client request attribute.
 		 * <p>This is purely for client side request processing, i.e. available
 		 * throughout the {@link GraphQlClientInterceptor} chain but not sent.
