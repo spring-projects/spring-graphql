@@ -45,6 +45,7 @@ import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
+import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.HandlerStrategies;
@@ -239,12 +240,13 @@ public class WebGraphQlClientBuilderTests {
 
 	private abstract static class AbstractBuilderSetup implements ClientBuilderSetup {
 
+		@Nullable
 		private WebGraphQlRequest graphQlRequest;
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		public AbstractBuilderSetup() {
-			this.graphQlService.setDefaultDataAsJson("{}");
+			this.graphQlService.setDefaultResponse("{}");
 		}
 
 		@Override
@@ -254,6 +256,7 @@ public class WebGraphQlClientBuilderTests {
 
 		@Override
 		public WebGraphQlRequest getActualRequest() {
+			Assert.state(this.graphQlRequest != null, "No saved WebGraphQlRequest");
 			return this.graphQlRequest;
 		}
 

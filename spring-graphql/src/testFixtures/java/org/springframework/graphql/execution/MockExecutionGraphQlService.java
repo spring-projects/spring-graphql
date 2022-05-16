@@ -28,24 +28,18 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.GraphQlRequest;
-import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.client.GraphQlTransport;
-import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
-
 /**
- *
+ * {@link ExecutionGraphQlService} with mock responses.
  *
  * @author Rossen Stoyanchev
  */
@@ -54,6 +48,7 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 
+	@Nullable
 	private ExecutionGraphQlRequest graphQlRequest;
 
 	private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
@@ -62,30 +57,57 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 	private ExecutionGraphQlResponse defaultResponse;
 
 
-	public void setDefaultDataAsJson(String dataJson) {
+	/**
+	 * Get the last, saved request.
+	 */
+	public ExecutionGraphQlRequest getGraphQlRequest() {
+		Assert.state(this.graphQlRequest != null, "No saved GraphQlRequest");
+		return this.graphQlRequest;
+	}
+
+
+	/**
+	 * Set the default response to fall back on as a "data"-only response.
+	 */
+	public void setDefaultResponse(String dataJson) {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("").build();
 		ExecutionResult result = ExecutionResultImpl.newExecutionResult().data(decode(dataJson)).build();
 		this.defaultResponse = new DefaultExecutionGraphQlResponse(input, result);
 	}
 
+	/**
+	 * Set a "data"-only response for the given document.
+	 */
 	public void setDataAsJson(String document, String dataJson) {
 		setResponse(document, decode(dataJson));
 	}
 
+	/**
+	 * Set an "errors" response for the given document.
+	 */
 	public void setErrors(String document, GraphQLError... errors) {
 		setResponse(document, null, errors);
 	}
 
+	/**
+	 * Set an "errors" response for the given document.
+	 */
 	public void setError(String document, Consumer<GraphqlErrorBuilder<?>> errorBuilderConsumer) {
 		GraphqlErrorBuilder<?> errorBuilder = GraphqlErrorBuilder.newError();
 		errorBuilderConsumer.accept(errorBuilder);
 		setResponse(document, null, errorBuilder.build());
 	}
 
+	/**
+	 * Set a "data" and "errors" response for the given document.
+	 */
 	public void setDataAsJsonAndErrors(String document, String dataJson, GraphQLError... errors) {
 		setResponse(document, decode(dataJson), errors);
 	}
 
+	/**
+	 * Set a "data" and "errors" response for the given document.
+	 */
 	private void setResponse(String document, @Nullable Map<String, Object> data, GraphQLError... errors) {
 		ExecutionResultImpl.Builder builder = new ExecutionResultImpl.Builder();
 		if (data != null) {
@@ -97,6 +119,9 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 		setResponse(document, builder.build());
 	}
 
+	/**
+	 * Set a response for the given document.
+	 */
 	@SuppressWarnings("unused")
 	public void setResponse(String document, ExecutionResult result) {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query(document).build();
@@ -113,11 +138,6 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 		}
 	}
 
-	public ExecutionGraphQlRequest getGraphQlRequest() {
-		return this.graphQlRequest;
-	}
-
-
 	@Override
 	public Mono<ExecutionGraphQlResponse> execute(ExecutionGraphQlRequest request) {
 		this.graphQlRequest = request;
@@ -125,27 +145,6 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 		ExecutionGraphQlResponse response = this.responses.getOrDefault(document, this.defaultResponse);
 		Assert.notNull(response, "Unexpected request: " + document);
 		return Mono.just(response);
-	}
-
-	public GraphQlTransport asGraphQlTransport() {
-		return new GraphQlTransport() {
-
-			@Override
-			public Mono<GraphQlResponse> execute(GraphQlRequest request) {
-				ExecutionGraphQlRequest executionRequest = toExecutionRequest(request);
-				return MockExecutionGraphQlService.this.execute(executionRequest).cast(GraphQlResponse.class);
-			}
-
-			@Override
-			public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-				return Flux.error(new UnsupportedOperationException());
-			}
-		};
-	}
-
-	private ExecutionGraphQlRequest toExecutionRequest(GraphQlRequest request) {
-		return new DefaultExecutionGraphQlRequest(
-				request.getDocument(), request.getOperationName(), request.getVariables(), request.getExtensions(), "1", null);
 	}
 
 }
