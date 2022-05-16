@@ -43,7 +43,7 @@ configure(moduleProjects) {
 				jvmTarget = "1.8"
 				languageVersion = "1.3"
 				apiVersion = "1.3"
-				freeCompilerArgs = ["-Xjsr305=strict", "-Xsuppress-version-warnings", "-Xopt-in=kotlin.RequiresOptIn"]
+				freeCompilerArgs = ["-Xjsr305=strict", "-Xsuppress-version-warnings", "-opt-in=kotlin.RequiresOptIn"]
 				allWarningsAsErrors = true
 			}
 		}
