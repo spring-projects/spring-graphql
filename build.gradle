@@ -57,14 +57,14 @@ configure(moduleProjects) {
 
 	dependencyManagement {
 		imports {
-			mavenBom "com.fasterxml.jackson:jackson-bom:2.13.2.1"
-			mavenBom "io.projectreactor:reactor-bom:2020.0.18"
+			mavenBom "com.fasterxml.jackson:jackson-bom:2.13.3"
+			mavenBom "io.projectreactor:reactor-bom:2020.0.19"
 			mavenBom "org.springframework:spring-framework-bom:5.3.20"
-			mavenBom "org.springframework.data:spring-data-bom:2021.2.0-RC1"
-			mavenBom "org.springframework.security:spring-security-bom:5.7.0-RC1"
+			mavenBom "org.springframework.data:spring-data-bom:2021.2.0"
+			mavenBom "org.springframework.security:spring-security-bom:5.7.0"
 			mavenBom "com.querydsl:querydsl-bom:5.0.0"
 			mavenBom "io.rsocket:rsocket-bom:1.1.2"
-			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.6.20"
+			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.6.21"
 			mavenBom "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.1"
 			mavenBom "org.junit:junit-bom:5.8.2"
 			mavenBom "org.testcontainers:testcontainers-bom:1.17.1"
@@ -81,7 +81,7 @@ configure(moduleProjects) {
 			dependency "javax.validation:validation-api:2.0.1.Final"
 			dependency "org.hibernate:hibernate-core:5.6.8.Final"
 			dependency "org.hibernate.validator:hibernate-validator:6.2.3.Final"
-			dependencySet(group: 'org.mongodb', version: '4.5.1') {
+			dependencySet(group: 'org.mongodb', version: '4.6.0') {
 				entry 'bson'
 				entry 'mongodb-driver-core'
 				entry 'mongodb-driver-reactivestreams'
@@ -93,7 +93,7 @@ configure(moduleProjects) {
 				entry 'log4j-jul'
 				entry 'log4j-slf4j-impl'
 			}
-			dependencySet(group: 'org.mockito', version: '4.4.0') {
+			dependencySet(group: 'org.mockito', version: '4.5.1') {
 				entry 'mockito-core'
 				entry 'mockito-inline'
 				entry 'mockito-junit-jupiter'
