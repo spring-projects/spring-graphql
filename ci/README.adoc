@@ -46,7 +46,7 @@ The pipeline can be deployed using the following command:
 
 [source]
 ----
-$ fly -t spring-graphql set-pipeline -p spring-graphql -c ci/pipeline.yml -l ci/parameters.yml
+$ fly -t spring-graphql set-pipeline -p spring-graphql-1.0.x -c ci/pipeline.yml -l ci/parameters.yml
 ----
 
 NOTE: This assumes that you have Vault configured with the appropriate secrets.
