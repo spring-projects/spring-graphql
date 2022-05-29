@@ -16,33 +16,16 @@
 
 package org.springframework.graphql.server.webmvc;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
+import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
+import org.springframework.graphql.execution.DelegatingSubscriptionExceptionResolver;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
-import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
-import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlInterceptor;
-import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
-import org.springframework.graphql.server.WebSocketHandlerTestSupport;
-import org.springframework.graphql.server.WebSocketSessionInfo;
+import org.springframework.graphql.server.*;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
@@ -54,6 +37,21 @@ import org.springframework.lang.Nullable;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -263,7 +261,11 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 	@Test
 	void connectionInitTimeout() {
-		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(initHandler(), converter, Duration.ofMillis(50));
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
+				initHandler(),
+				converter,
+				Duration.ofMillis(50),
+				new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
 		handler.afterConnectionEstablished(this.session);
 
 		StepVerifier.create(this.session.closeStatus())
@@ -340,7 +342,11 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.interceptor()
 				.toWebGraphQlHandler();
 
-		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(initHandler, converter, Duration.ofSeconds(60));
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
+				initHandler,
+				converter,
+				Duration.ofSeconds(60),
+				new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
 
 		handle(handler,
 				new TextMessage("{\"type\":\"connection_init\"}"),
@@ -366,9 +372,91 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
 									.hasSize(3)
 									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
-									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("null"))
+									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("Unknown error"))
 									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 									.containsEntry("classification", "DataFetchingException"));
+				})
+				.then(this.session::close)
+				.expectComplete()
+				.verify(TIMEOUT);
+	}
+
+	@Test
+	void errorMessagePayloadMapping() throws Exception {
+		final String GREETING_QUERY = "{" +
+				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
+				"\"type\":\"subscribe\"," +
+				"\"payload\":{\"query\": \"" +
+				"  subscription TestTypenameSubscription {" +
+				"    greeting" +
+				"  }\"}" +
+				"}";
+
+		String schema = "type Subscription { greeting: String! }type Query { greetingUnused: String! }";
+
+		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
+				.subscriptionFetcher("greeting", env -> Flux.create(sink -> {
+					sink.next("a");
+					sink.error(new RuntimeException());
+					sink.next("b");
+				}))
+				.interceptor()
+				.toWebGraphQlHandler();
+
+		List<GraphQLError> errors = new ArrayList<>();
+		errors.add(GraphqlErrorBuilder.newError()
+				.message("CustomMessage1")
+				.errorType(ErrorType.INTERNAL_ERROR)
+				.extensions(Collections.singletonMap("custom_key_1", "custom_value_1"))
+				.build());
+		errors.add(GraphqlErrorBuilder.newError()
+				.message("CustomMessage2")
+				.errorType(ErrorType.NOT_FOUND)
+				.extensions(Collections.singletonMap("custom_key_2", "custom_value_2"))
+				.build());
+
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
+				initHandler,
+				converter,
+				Duration.ofSeconds(60),
+				ex -> Mono.just(errors));
+
+		handle(handler,
+				new TextMessage("{\"type\":\"connection_init\"}"),
+				new TextMessage(GREETING_QUERY));
+
+		StepVerifier.create(this.session.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith((message) -> {
+					GraphQlWebSocketMessage actual = decode(message);
+					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
+					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
+					assertThat(actual.<Map<String, Object>>getPayload())
+							.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+							.containsEntry("greeting", "a");
+				})
+				.consumeNextWith((message) -> {
+					GraphQlWebSocketMessage actual = decode(message);
+					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
+					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.ERROR);
+					assertThat(actual.<List<Map<String, Object>>>getPayload())
+							.asList().hasSize(2)
+							.satisfiesExactlyInAnyOrder(theError -> assertThat(theError)
+									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+									.hasSize(3)
+									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
+									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("CustomMessage1"))
+									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+									.containsEntry("classification", "INTERNAL_ERROR")
+									.containsEntry("custom_key_1", "custom_value_1"),
+									theError -> assertThat(theError)
+									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+									.hasSize(3)
+									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
+									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("CustomMessage2"))
+									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+									.containsEntry("classification", "NOT_FOUND")
+									.containsEntry("custom_key_2", "custom_value_2"));
 				})
 				.then(this.session::close)
 				.expectComplete()
@@ -430,7 +518,10 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		try {
 			return new GraphQlWebSocketHandler(
-					initHandler(accessor, interceptors), converter, Duration.ofSeconds(60));
+					initHandler(accessor, interceptors),
+					converter,
+					Duration.ofSeconds(60),
+					new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException(ex);

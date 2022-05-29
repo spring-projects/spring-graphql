@@ -16,21 +16,14 @@
 
 package org.springframework.graphql.client;
 
-import java.net.URI;
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Stream;
-
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.Mono;
-
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.graphql.execution.DelegatingSubscriptionExceptionResolver;
 import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
@@ -53,6 +46,13 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.socket.WebSocketHandler;
+import reactor.core.publisher.Mono;
+
+import java.net.URI;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
@@ -291,7 +291,11 @@ public class WebGraphQlClientBuilderTests {
 		@Override
 		public WebSocketGraphQlClient.Builder<?> initBuilder() {
 			ClientCodecConfigurer configurer = ClientCodecConfigurer.create();
-			WebSocketHandler handler = new GraphQlWebSocketHandler(webGraphQlHandler(), configurer, Duration.ofSeconds(5));
+			WebSocketHandler handler = new GraphQlWebSocketHandler(
+					webGraphQlHandler(),
+					configurer,
+					Duration.ofSeconds(5),
+					new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
 			return WebSocketGraphQlClient.builder(URI.create(""), new TestWebSocketClient(handler));
 		}
 

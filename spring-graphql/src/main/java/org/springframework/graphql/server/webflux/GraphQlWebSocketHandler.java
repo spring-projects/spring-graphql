@@ -16,6 +16,22 @@
 
 package org.springframework.graphql.server.webflux;
 
+import graphql.ExecutionResult;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
+import org.springframework.graphql.execution.SubscriptionExceptionResolver;
+import org.springframework.graphql.server.*;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.codec.CodecConfigurer;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.reactive.socket.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.Principal;
@@ -26,30 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-
-import graphql.ExecutionResult;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscription;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlResponse;
-import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
-import org.springframework.graphql.server.WebSocketGraphQlRequest;
-import org.springframework.graphql.server.WebSocketSessionInfo;
-import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
-import org.springframework.web.reactive.socket.CloseStatus;
-import org.springframework.web.reactive.socket.HandshakeInfo;
-import org.springframework.web.reactive.socket.WebSocketHandler;
-import org.springframework.web.reactive.socket.WebSocketMessage;
-import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
  * WebSocketHandler for GraphQL based on
@@ -74,6 +66,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final Duration initTimeoutDuration;
 
+	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
 
 	/**
 	 * Create a new instance.
@@ -81,9 +74,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	 * @param codecConfigurer codec configurer for JSON encoding and decoding
 	 * @param connectionInitTimeout how long to wait after the establishment of
 	 * the WebSocket for the {@code "connection_ini"} message from the client.
+	 * @param subscriptionExceptionResolver exceptions handler to map exceptions into GraphQL error
 	 */
 	public GraphQlWebSocketHandler(
-			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer, Duration connectionInitTimeout) {
+			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer,
+			Duration connectionInitTimeout, SubscriptionExceptionResolver subscriptionExceptionResolver) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 
@@ -91,6 +86,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		this.webSocketInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.codecDelegate = new CodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
+		this.subscriptionExceptionResolver = subscriptionExceptionResolver;
 	}
 
 
@@ -216,7 +212,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
 							return GraphQlStatus.close(session, status);
 						}
-						return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
+						return this.subscriptionExceptionResolver.resolveException(ex)
+								.map(errors -> this.codecDelegate.encodeError(session, id, errors));
 				});
 	}
 
