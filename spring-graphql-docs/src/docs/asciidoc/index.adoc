@@ -214,7 +214,7 @@ class MyInterceptor implements WebGraphQlInterceptor {
 }
 ----
 
-`WebGraphQlHandler` has a builder to create the `WebGraphInterceptor` chain. The Boot
+`WebGraphQlHandler` has a builder to create the `WebGraphQlInterceptor` chain. The Boot
 starter uses this, see Boot's section on
 {spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints].
 
