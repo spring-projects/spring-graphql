@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;

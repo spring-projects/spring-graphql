@@ -29,7 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
-import javax.validation.Validator;
+import jakarta.validation.Validator;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -109,7 +109,7 @@ public class AnnotatedControllerConfigurer
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
 	private final static boolean beanValidationPresent = ClassUtils.isPresent(
-			"javax.validation.executable.ExecutableValidator",
+			"jakarta.validation.executable.ExecutableValidator",
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
 

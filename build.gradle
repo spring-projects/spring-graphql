@@ -1,12 +1,12 @@
 plugins {
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-	id 'org.jetbrains.kotlin.jvm' version '1.6.20' apply false
+	id 'org.jetbrains.kotlin.jvm' version '1.7.0' apply false
 }
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
 	graphQlJavaVersion = "18.1"
-	bootVersion = "2.7.0-SNAPSHOT"
+	bootVersion = "3.0.0-SNAPSHOT"
 }
 
 description = "Spring for GraphQL"
@@ -33,23 +33,23 @@ configure(moduleProjects) {
 	apply plugin: 'org.springframework.graphql.compiler'
 
 	java {
-		sourceCompatibility = JavaVersion.VERSION_1_8
-		targetCompatibility = JavaVersion.VERSION_1_8
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
 	}
 
 	pluginManager.withPlugin("kotlin") {
 		compileKotlin {
 			kotlinOptions {
-				jvmTarget = "1.8"
-				languageVersion = "1.3"
-				apiVersion = "1.3"
+				jvmTarget = "17"
+				languageVersion = "1.7"
+				apiVersion = "1.7"
 				freeCompilerArgs = ["-Xjsr305=strict", "-Xsuppress-version-warnings", "-opt-in=kotlin.RequiresOptIn"]
 				allWarningsAsErrors = true
 			}
 		}
 		compileTestKotlin {
 			kotlinOptions {
-				jvmTarget = "1.8"
+				jvmTarget = "17"
 				freeCompilerArgs = ["-Xjsr305=strict"]
 			}
 		}
@@ -58,29 +58,30 @@ configure(moduleProjects) {
 	dependencyManagement {
 		imports {
 			mavenBom "com.fasterxml.jackson:jackson-bom:2.13.3"
-			mavenBom "io.projectreactor:reactor-bom:2020.0.19"
-			mavenBom "org.springframework:spring-framework-bom:5.3.20"
-			mavenBom "org.springframework.data:spring-data-bom:2021.2.0"
-			mavenBom "org.springframework.security:spring-security-bom:5.7.0"
+			mavenBom "io.projectreactor:reactor-bom:2022.0.0-M2"
+			mavenBom "org.springframework:spring-framework-bom:6.0.0-SNAPSHOT"
+			mavenBom "org.springframework.data:spring-data-bom:2022.0.0-M4"
+			mavenBom "org.springframework.security:spring-security-bom:6.0.0-M5"
 			mavenBom "com.querydsl:querydsl-bom:5.0.0"
 			mavenBom "io.rsocket:rsocket-bom:1.1.2"
-			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.6.21"
+			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.7.0"
 			mavenBom "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.1"
 			mavenBom "org.junit:junit-bom:5.8.2"
 			mavenBom "org.testcontainers:testcontainers-bom:1.17.1"
 		}
 		dependencies {
 			dependency "com.graphql-java:graphql-java:${graphQlJavaVersion}"
-			dependency "javax.annotation:javax.annotation-api:1.3.2"
-			dependency "javax.servlet:javax.servlet-api:4.0.1"
+			dependency "jakarta.annotation:jakarta.annotation-api:2.0.0"
+			dependency "jakarta.persistence:jakarta.persistence-api:3.0.0"
+			dependency "jakarta.servlet:jakarta.servlet-api:5.0.0"
 			dependency "com.google.code.findbugs:jsr305:3.0.2"
-			dependency "org.assertj:assertj-core:3.22.0"
+			dependency "org.assertj:assertj-core:3.23.1"
 			dependency "com.jayway.jsonpath:json-path:2.7.0"
 			dependency "org.skyscreamer:jsonassert:1.5.0"
 			dependency "com.h2database:h2:2.1.212"
-			dependency "javax.validation:validation-api:2.0.1.Final"
-			dependency "org.hibernate:hibernate-core:5.6.8.Final"
-			dependency "org.hibernate.validator:hibernate-validator:6.2.3.Final"
+			dependency "jakarta.validation:jakarta.validation-api:3.0.1"
+			dependency "org.hibernate:hibernate-core-jakarta:5.6.9.Final"
+			dependency "org.hibernate.validator:hibernate-validator:7.0.4.Final"
 			dependencySet(group: 'org.mongodb', version: '4.6.0') {
 				entry 'bson'
 				entry 'mongodb-driver-core'
@@ -93,7 +94,7 @@ configure(moduleProjects) {
 				entry 'log4j-jul'
 				entry 'log4j-slf4j-impl'
 			}
-			dependencySet(group: 'org.mockito', version: '4.5.1') {
+			dependencySet(group: 'org.mockito', version: '4.6.1') {
 				entry 'mockito-core'
 				entry 'mockito-inline'
 				entry 'mockito-junit-jupiter'
@@ -105,8 +106,8 @@ configure(moduleProjects) {
 	}
 
 	ext.javadocLinks = [
-			"https://docs.oracle.com/javase/8/docs/api/",
-			"https://docs.spring.io/spring-framework/docs/5.3.x/javadoc-api/",
+			"https://docs.oracle.com/en/java/javase/17/docs/api/",
+			"https://docs.spring.io/spring-framework/docs/6.0.x/javadoc-api/",
 			"https://javadoc.io/doc/com.graphql-java/graphql-java/18.1/"
 	] as String[]
 
