@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,6 +29,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
@@ -213,8 +215,13 @@ public class SchemaMappingInvocationTests {
 		context.registerBean(BatchLoaderRegistry.class, () -> registry);
 		context.refresh();
 
+		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+		configurer.setExecutor(new SimpleAsyncTaskExecutor());
+		configurer.setApplicationContext(context);
+		configurer.afterPropertiesSet();
+
 		return GraphQlSetup.schemaResource(BookSource.schema)
-				.runtimeWiringForAnnotatedControllers(context)
+				.runtimeWiring(configurer)
 				.dataLoaders(registry)
 				.toGraphQlService();
 	}
@@ -255,10 +262,12 @@ public class SchemaMappingInvocationTests {
 		}
 
 		@QueryMapping
-		public Author authorById(DataFetchingEnvironment environment, GraphQLContext context) {
-			context.put("key", "value");
-			String id = environment.getArgument("id");
-			return BookSource.getAuthor(Long.parseLong(id));
+		public Callable<Author> authorById(DataFetchingEnvironment environment, GraphQLContext context) {
+			return () -> {
+				context.put("key", "value");
+				String id = environment.getArgument("id");
+				return BookSource.getAuthor(Long.parseLong(id));
+			};
 		}
 
 		@MutationMapping

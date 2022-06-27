@@ -19,7 +19,9 @@ package org.springframework.graphql.client;
 import java.net.URI;
 import java.util.function.Consumer;
 
+import io.rsocket.core.RSocketClient;
 import io.rsocket.transport.ClientTransport;
+import reactor.core.publisher.Mono;
 
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.util.MimeType;
@@ -33,6 +35,21 @@ import org.springframework.util.MimeType;
  */
 public interface RSocketGraphQlClient extends GraphQlClient {
 
+	/**
+	 * Start the RSocket session.
+	 * @return {@code Mono} that completes when the underlying session is started
+	 */
+	Mono<Void> start();
+
+	/**
+	 * Stop the RSocket session.
+	 * @return {@code Mono} that completes when the underlying session is stopped.
+	 * <p>Note that currently this method calls {@link RSocketClient#dispose()}
+	 * which is not differed and does not wait, i.e. it triggers stopping
+	 * immediately and returns immediately.
+	 * See <a href="https://github.com/rsocket/rsocket-java/issues/1048">rsocket-java#1048</a>
+	 */
+	Mono<Void> stop();
 
 	@Override
 	Builder<?> mutate();

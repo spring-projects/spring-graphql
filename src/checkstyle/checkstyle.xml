@@ -14,7 +14,7 @@
 			<property name="id" value="mainCodeIllegalImportCheck"/>
 			<property name="regexp" value="true" />
 			<property name="illegalClasses"
-					  value="^javax.annotation.PostConstruct"/>
+					  value="^jakarta.annotation.PostConstruct"/>
 		</module>
 		<module
 				name="com.puppycrawl.tools.checkstyle.checks.imports.ImportControlCheck">

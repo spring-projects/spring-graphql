@@ -7,21 +7,20 @@ include::attributes.adoc[]
 == Overview
 
 Spring for GraphQL provides support for Spring applications built on
-https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between both
-teams. Our shared philosophy is to be less opinionated and more focused on
-comprehensive and wide-ranging support.
+https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between the
+GraphQL Java team and Spring engineering. Our shared philosophy is to provide as little
+opinion as we can while focusing on comprehensive support for a wide range of use cases.
 
 Spring for GraphQL is the successor of the
 https://github.com/graphql-java/graphql-java-spring[GraphQL Java Spring] project from
 the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL applications.
 
-The project is in a milestone phase towards a 1.0 release, currently, and looking for
-feedback. Please, use our
+The project reached version 1.0 in May 2022. Please, use our
 https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report a
-problem, discuss a design issue, or request a feature.
+problem, discuss a design issue, or to request a feature.
 
 To get started, check the Spring GraphQL starter on https://start.spring.io and the
-<<samples>> sections.
+<<samples>> in this repository.
 
 [[requirements]]
 == Requirements
@@ -214,7 +213,7 @@ class MyInterceptor implements WebGraphQlInterceptor {
 }
 ----
 
-`WebGraphQlHandler` has a builder to create the `WebGraphInterceptor` chain. The Boot
+`WebGraphQlHandler` has a builder to create the `WebGraphQlInterceptor` chain. The Boot
 starter uses this, see Boot's section on
 {spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints].
 
@@ -1202,8 +1201,10 @@ See <<controllers-schema-mapping-source>>.
 See <<controllers-schema-mapping-data-loader>>.
 
 | `@ContextValue`
-| For access to a value from the localContext, if it is an instance of `GraphQLContext`,
-  or from the `GraphQLContext` of `DataFetchingEnvironment`.
+| For access to an attribute from the main `GraphQLContext` in `DataFetchingEnvironment`.
+
+| `@LocalContextValue`
+| For access to an attribute from the local `GraphQLContext` in `DataFetchingEnvironment`.
 
 | `GraphQLContext`
 | For access to the context from the `DataFetchingEnvironment`.
@@ -1225,8 +1226,13 @@ See <<controllers-schema-mapping-data-loader>>.
 
 |===
 
-Schema mapping handler methods can return any value, including Reactor `Mono` and
-`Flux` as described in <<execution-reactive-datafetcher>>.
+Schema mapping handler methods can return:
+
+- A resolved value of any type.
+- `Mono` and `Flux` for asynchronous value(s). Supported for controller methods and for
+  any `DataFetcher` as described in <<execution-reactive-datafetcher>>.
+- `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
+  For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
 
 
@@ -1569,8 +1575,12 @@ Batch mapping methods can return:
 | A sequence of batch loaded objects that must be in the same order as the source/parent
   objects passed into the method.
 
-| `Map<K,V>`, `List<V>`
+| `Map<K,V>`, `Collection<V>`
 | Imperative variants, e.g. without remote calls to make.
+
+| `Callable<Map<K,V>>`, `Callable<Collection<V>>`
+| Imperative variants to be invoked asynchronously. For this to work,
+  `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
 |===
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.graphql.server.WebGraphQlHandler;
 
 /**
  * Interface to be implemented to assist with the extraction of ThreadLocal
@@ -38,7 +37,7 @@ import org.springframework.graphql.server.WebGraphQlHandler;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see WebGraphQlHandler.Builder#threadLocalAccessor(ThreadLocalAccessor...)
+ * @see org.springframework.graphql.server.WebGraphQlHandler.Builder#threadLocalAccessor(ThreadLocalAccessor...)
  */
 public interface ThreadLocalAccessor {
 

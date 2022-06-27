@@ -51,14 +51,14 @@ public class GraphQlHttpHandlerTests {
 
 
 	@Test
-	void shouldProduceApplicationGraphQlByDefault() {
+	void shouldProduceApplicationJsonByDefault() {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.ALL).build();
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.ALL).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
 
-		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
 	}
 
 	@Test
@@ -75,7 +75,7 @@ public class GraphQlHttpHandlerTests {
 	@Test
 	void shouldProduceApplicationJson() {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_JSON).build();
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));

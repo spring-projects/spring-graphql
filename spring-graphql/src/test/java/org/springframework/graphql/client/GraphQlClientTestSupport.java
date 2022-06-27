@@ -18,8 +18,14 @@ package org.springframework.graphql.client;
 
 import java.time.Duration;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.execution.MockExecutionGraphQlService;
+import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 
 /**
  * Base class for {@link GraphQlClient} tests.
@@ -32,7 +38,7 @@ public class GraphQlClientTestSupport {
 
 	private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
-	private final GraphQlClient.Builder<?> clientBuilder = GraphQlClient.builder(this.graphQlService.asGraphQlTransport());
+	private final GraphQlClient.Builder<?> clientBuilder = GraphQlClient.builder(new MockTransport(this.graphQlService));
 
 	private final GraphQlClient client = this.clientBuilder.build();
 
@@ -51,6 +57,35 @@ public class GraphQlClientTestSupport {
 
 	protected GraphQlRequest request() {
 		return this.graphQlService.getGraphQlRequest();
+	}
+
+
+	private static class MockTransport implements GraphQlTransport {
+
+		private final ExecutionGraphQlService graphQlService;
+
+		private MockTransport(ExecutionGraphQlService graphQlService) {
+			this.graphQlService = graphQlService;
+		}
+
+		@Override
+		public Mono<GraphQlResponse> execute(GraphQlRequest request) {
+			return graphQlService.execute(
+							new DefaultExecutionGraphQlRequest(
+									request.getDocument(),
+									request.getOperationName(),
+									request.getVariables(),
+									request.getExtensions(),
+									"1",
+									null))
+					.cast(GraphQlResponse.class);
+		}
+
+		@Override
+		public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
+			return Flux.error(new UnsupportedOperationException());
+		}
+
 	}
 
 }

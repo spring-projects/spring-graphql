@@ -30,6 +30,7 @@ import org.springframework.util.ObjectUtils;
  * Default implementation of {@link GraphQlRequest}.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.0.0
  */
 public class DefaultGraphQlRequest implements GraphQlRequest {
@@ -41,13 +42,15 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 
 	private final Map<String, Object> variables;
 
+	private final Map<String, Object> extensions;
+
 
 	/**
 	 * Create a request.
 	 * @param document textual representation of the operation(s)
 	 */
 	public DefaultGraphQlRequest(String document) {
-		this(document, null, null);
+		this(document, null, null, null);
 	}
 
 	/**
@@ -55,14 +58,17 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 	 * @param document textual representation of the operation(s)
 	 * @param operationName optionally, the name of the operation to execute
 	 * @param variables variables by which the operation is parameterized
+	 * @param extensions implementor specific, protocol extensions
 	 */
 	public DefaultGraphQlRequest(
-			String document, @Nullable String operationName, @Nullable Map<String, Object> variables) {
+			String document, @Nullable String operationName,
+			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions) {
 
 		Assert.notNull(document, "'document' is required");
 		this.document = document;
 		this.operationName = operationName;
 		this.variables = (variables != null ? variables : Collections.emptyMap());
+		this.extensions = (extensions != null ? extensions : Collections.emptyMap());
 	}
 
 
@@ -83,6 +89,11 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 	}
 
 	@Override
+	public Map<String, Object> getExtensions() {
+		return this.extensions;
+	}
+
+	@Override
 	public Map<String, Object> toMap() {
 		Map<String, Object> map = new LinkedHashMap<>(3);
 		map.put("query", getDocument());
@@ -91,6 +102,9 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 		}
 		if (!CollectionUtils.isEmpty(getVariables())) {
 			map.put("variables", new LinkedHashMap<>(getVariables()));
+		}
+		if (!CollectionUtils.isEmpty(getExtensions())) {
+			map.put("extensions", new LinkedHashMap<>(getExtensions()));
 		}
 		return map;
 	}
@@ -104,21 +118,24 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 		DefaultGraphQlRequest other = (DefaultGraphQlRequest) o;
 		return (getDocument().equals(other.getDocument()) &&
 				ObjectUtils.nullSafeEquals(getOperationName(), other.getOperationName()) &&
-				ObjectUtils.nullSafeEquals(getVariables(), other.getVariables()));
+				ObjectUtils.nullSafeEquals(getVariables(), other.getVariables()) &&
+				ObjectUtils.nullSafeEquals(getExtensions(), other.getExtensions()));
 	}
 
 	@Override
 	public int hashCode() {
 		return this.document.hashCode() +
 				31 * ObjectUtils.nullSafeHashCode(this.operationName) +
-				31 * this.variables.hashCode();
+				31 * this.variables.hashCode() +
+				31 * this.extensions.hashCode();
 	}
 
 	@Override
 	public String toString() {
 		return "document='" + getDocument() + "'" +
 				((getOperationName() != null) ? ", operationName='" + getOperationName() + "'" : "") +
-				(!CollectionUtils.isEmpty(getVariables()) ? ", variables=" + getVariables() : "");
+				(!CollectionUtils.isEmpty(getVariables()) ? ", variables=" + getVariables() : "" +
+				(!CollectionUtils.isEmpty(getExtensions()) ? ", extensions=" + getExtensions() : ""));
 	}
 
 }

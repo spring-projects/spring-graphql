@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import io.rsocket.transport.ClientTransport;
+import reactor.core.publisher.Mono;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -139,6 +140,16 @@ public class DefaultRSocketGraphQlTesterBuilder
 			super(delegate);
 			this.rsocketGraphQlClient = rsocketGraphQlClient;
 			this.builderInitializer = builderInitializer;
+		}
+
+		@Override
+		public Mono<Void> start() {
+			return this.rsocketGraphQlClient.start();
+		}
+
+		@Override
+		public Mono<Void> stop() {
+			return this.rsocketGraphQlClient.stop();
 		}
 
 		@Override

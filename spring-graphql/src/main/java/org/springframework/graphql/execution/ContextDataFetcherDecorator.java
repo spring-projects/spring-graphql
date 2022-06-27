@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,16 +59,11 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
-		ContextView contextView = ReactorContextManager.getReactorContext(environment);
 
-		Object value;
-		try {
-			ReactorContextManager.restoreThreadLocalValues(contextView);
-			value = this.delegate.get(environment);
-		}
-		finally {
-			ReactorContextManager.resetThreadLocalValues(contextView);
-		}
+		Object value = ReactorContextManager.invokeCallable(() ->
+				this.delegate.get(environment), environment.getGraphQlContext());
+
+		ContextView contextView = ReactorContextManager.getReactorContext(environment.getGraphQlContext());
 
 		if (this.subscription) {
 			return (!contextView.isEmpty() ? Flux.from((Publisher<?>) value).contextWrite(contextView) : value);

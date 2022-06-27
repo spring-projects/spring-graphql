@@ -15,22 +15,29 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.net.URI;
+import java.net.URL;
+import java.time.temporal.Temporal;
 import java.util.Collection;
+import java.util.Date;
+import java.util.Locale;
 
 import graphql.schema.DataFetchingEnvironment;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 
 /**
  * Resolver for the source/parent of a field, obtained via
  * {@link DataFetchingEnvironment#getSource()}.
  *
- * <p>This resolver supports any non-simple value type, also excluding arrays
- * and collections, and therefore must be ordered last, in a fallback mode,
- * allowing other resolvers to resolve the argument first.
+ * <p>This resolver supports any type excluding enums, dates, arrays,
+ *
+ * wide range of types, including any non-simple
+ * type, along with any CharSequence, or Number. Hence, it must come last in
+ * the order or resolvers, as a fallback after all others.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -40,7 +47,20 @@ public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolv
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (!BeanUtils.isSimpleValueType(type) && !type.isArray() && !Collection.class.isAssignableFrom(type));
+		return (!isExcludedSimpleValueType(type) && !type.isArray() && !Collection.class.isAssignableFrom(type));
+	}
+
+	private static boolean isExcludedSimpleValueType(Class<?> type) {
+		// Same as BeanUtils.isSimpleValueType except for CharSequence and Number
+		return (Void.class != type && void.class != type &&
+				(ClassUtils.isPrimitiveOrWrapper(type) ||
+						Enum.class.isAssignableFrom(type) ||
+						Date.class.isAssignableFrom(type) ||
+						Temporal.class.isAssignableFrom(type) ||
+						URI.class == type ||
+						URL.class == type ||
+						Locale.class == type ||
+						Class.class == type));
 	}
 
 	@Override

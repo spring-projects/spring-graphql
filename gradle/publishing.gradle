@@ -20,6 +20,14 @@ plugins.withType(JavaPlugin) {
 		logging.captureStandardOutput LogLevel.INFO  // suppress "## warnings" message
 	}
 
+	jar {
+		manifest.attributes["Implementation-Title"] = project.name
+		manifest.attributes["Implementation-Version"] = project.version
+		manifest.attributes["Automatic-Module-Name"] = project.name.replace('-', '.')  // for Jigsaw
+		manifest.attributes["Created-By"] =
+				"${System.getProperty("java.version")} (${System.getProperty("java.specification.vendor")})"
+	}
+
 	task sourcesJar(type: Jar, dependsOn: classes) {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		archiveClassifier.set("sources")

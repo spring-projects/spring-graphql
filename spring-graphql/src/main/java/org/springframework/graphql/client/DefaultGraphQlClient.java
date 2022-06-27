@@ -94,6 +94,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Map<String, Object> attributes = new LinkedHashMap<>();
 
+		private final Map<String, Object> extensions = new LinkedHashMap<>();
+
 		DefaultRequestSpec(Mono<String> documentMono) {
 			Assert.notNull(documentMono, "'document' is required");
 			this.documentMono = documentMono;
@@ -114,6 +116,18 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		@Override
 		public RequestSpec variables(Map<String, Object> variables) {
 			this.variables.putAll(variables);
+			return this;
+		}
+
+		@Override
+		public RequestSpec extension(String name, Object value) {
+			this.extensions.put(name, value);
+			return this;
+		}
+
+		@Override
+		public RequestSpec extensions(Map<String, Object> extensions) {
+			this.extensions.putAll(extensions);
 			return this;
 		}
 
@@ -157,7 +171,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private Mono<ClientGraphQlRequest> initRequest() {
 			return this.documentMono.map(document ->
-					new DefaultClientGraphQlRequest(document, this.operationName, this.variables, this.attributes));
+					new DefaultClientGraphQlRequest(document, this.operationName, this.variables, this.extensions, this.attributes));
 		}
 
 	}

@@ -40,7 +40,8 @@
         React.createElement(GraphiQL, {
             fetcher: gqlFetcher,
             defaultVariableEditorOpen: true,
-            headerEditorEnabled: true
+            headerEditorEnabled: true,
+            shouldPersistHeaders: true
         }),
         document.getElementById('graphiql'),
     );

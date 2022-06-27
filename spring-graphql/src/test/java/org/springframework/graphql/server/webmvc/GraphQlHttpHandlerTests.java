@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
@@ -56,10 +56,10 @@ public class GraphQlHttpHandlerTests {
 			.queryFetcher("greeting", (env) -> "Hello").toHttpHandler();
 
 	@Test
-	void shouldProduceApplicationGraphQlByDefault() throws Exception {
+	void shouldProduceApplicationJsonByDefault() throws Exception {
 		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", "*/*");
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, this.greetingHandler);
-		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_VALUE);
+		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
 	}
 
 	@Test
@@ -111,7 +111,7 @@ public class GraphQlHttpHandlerTests {
 
 	private MockHttpServletRequest createServletRequest(String query, String accept) {
 		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");
-		servletRequest.setContentType(MediaType.APPLICATION_GRAPHQL_VALUE);
+		servletRequest.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		servletRequest.setContent(query.getBytes(StandardCharsets.UTF_8));
 		servletRequest.addHeader("Accept", accept);
 		servletRequest.setAsyncSupported(true);

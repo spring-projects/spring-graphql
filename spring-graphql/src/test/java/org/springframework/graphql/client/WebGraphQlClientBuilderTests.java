@@ -38,11 +38,14 @@ import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.support.DocumentSource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
+import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.HandlerStrategies;
@@ -174,6 +177,28 @@ public class WebGraphQlClientBuilderTests {
 		assertThat(builderSetup.getActualRequest().getUri().toString()).isEqualTo("/graphql%20one");
 	}
 
+	@Test
+	void contentTypeDefault() {
+
+		HttpBuilderSetup setup = new HttpBuilderSetup();
+		setup.initBuilder().build().document(DOCUMENT).execute().block(TIMEOUT);
+
+		WebGraphQlRequest request = setup.getActualRequest();
+		assertThat(request.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+	}
+
+	@Test
+	void contentTypeOverride() {
+
+		HttpBuilderSetup setup = new HttpBuilderSetup();
+		setup.initBuilder().header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_GRAPHQL_VALUE).build()
+				.document(DOCUMENT).execute().block(TIMEOUT);
+
+		WebGraphQlRequest request = setup.getActualRequest();
+		assertThat(request.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+
+	}
+
 	@ParameterizedTest
 	@MethodSource("argumentSource")
 	void codecConfigurerRegistersJsonPathMappingProvider(ClientBuilderSetup builderSetup) {
@@ -215,12 +240,13 @@ public class WebGraphQlClientBuilderTests {
 
 	private abstract static class AbstractBuilderSetup implements ClientBuilderSetup {
 
+		@Nullable
 		private WebGraphQlRequest graphQlRequest;
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		public AbstractBuilderSetup() {
-			this.graphQlService.setDefaultDataAsJson("{}");
+			this.graphQlService.setDefaultResponse("{}");
 		}
 
 		@Override
@@ -230,6 +256,7 @@ public class WebGraphQlClientBuilderTests {
 
 		@Override
 		public WebGraphQlRequest getActualRequest() {
+			Assert.state(this.graphQlRequest != null, "No saved WebGraphQlRequest");
 			return this.graphQlRequest;
 		}
 

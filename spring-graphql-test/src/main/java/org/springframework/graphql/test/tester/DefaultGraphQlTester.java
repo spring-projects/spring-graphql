@@ -125,6 +125,8 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
+		private final Map<String, Object> extensions = new LinkedHashMap<>();
+
 		private DefaultRequest(String document) {
 			Assert.notNull(document, "`document` is required");
 			this.document = document;
@@ -139,6 +141,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public DefaultRequest variable(String name, @Nullable Object value) {
 			this.variables.put(name, value);
+			return this;
+		}
+
+		@Override
+		public DefaultRequest extension(String name, Object value) {
+			this.extensions.put(name, value);
 			return this;
 		}
 
@@ -159,7 +167,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private GraphQlRequest request() {
-			return new DefaultGraphQlRequest(this.document, this.operationName, this.variables);
+			return new DefaultGraphQlRequest(this.document, this.operationName, this.variables, this.extensions);
 		}
 
 		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {
@@ -330,24 +338,25 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private final JsonPathExpectationsHelper pathHelper;
 
 		private DefaultPath(String path, ResponseDelegate delegate) {
-
 			Assert.notNull(path, "`path` is required");
 			Assert.notNull(delegate, "ResponseContainer is required");
 
+			String fullPath = initFullPath(path);
+
 			this.path = path;
 			this.delegate = delegate;
-			this.jsonPath = initJsonPath(path);
-			this.pathHelper = new JsonPathExpectationsHelper(this.jsonPath.getPath());
+			this.jsonPath = JsonPath.compile(fullPath);
+			this.pathHelper = new JsonPathExpectationsHelper(fullPath);
 		}
 
-		private static JsonPath initJsonPath(String path) {
+		private static String initFullPath(String path) {
 			if (!StringUtils.hasText(path)) {
 				path = "$.data";
 			}
 			else if (!path.startsWith("$") && !path.startsWith("data.")) {
 				path = "$.data." + path;
 			}
-			return JsonPath.compile(path);
+			return path;
 		}
 
 		@Override

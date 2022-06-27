@@ -4,3 +4,7 @@ logging:
 spring:
   main:
     banner-mode: off
+sonatype:
+  exclude:
+    - 'build-info\.json'
+    - '.*spring-graphql-docs.*'

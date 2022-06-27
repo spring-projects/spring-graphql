@@ -32,7 +32,7 @@ public class TestExecutionRequest extends DefaultExecutionGraphQlRequest {
 
 
 	private TestExecutionRequest(String document) {
-		super(document, null, null, String.valueOf(idIndex.incrementAndGet()), null);
+		super(document, null, null, null, String.valueOf(idIndex.incrementAndGet()), null);
 	}
 
 

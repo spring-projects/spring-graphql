@@ -188,7 +188,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
-			ContextView contextView = ReactorContextManager.getReactorContext(environment);
+			ContextView contextView = ReactorContextManager.getReactorContext(environment.getContext());
 			try {
 				ReactorContextManager.restoreThreadLocalValues(contextView);
 				return this.loader.apply(keys, environment).collectList().contextWrite(contextView).toFuture();
@@ -239,7 +239,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
-			ContextView contextView = ReactorContextManager.getReactorContext(environment);
+			ContextView contextView = ReactorContextManager.getReactorContext(environment.getContext());
 			try {
 				ReactorContextManager.restoreThreadLocalValues(contextView);
 				return this.loader.apply(keys, environment).contextWrite(contextView).toFuture();

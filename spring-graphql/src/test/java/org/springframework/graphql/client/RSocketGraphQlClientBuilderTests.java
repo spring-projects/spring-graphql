@@ -94,7 +94,7 @@ public class RSocketGraphQlClientBuilderTests {
 		private Closeable server;
 
 		public BuilderSetup() {
-			this.graphQlService.setDefaultDataAsJson("{}");
+			this.graphQlService.setDefaultResponse("{}");
 		}
 
 		public MockExecutionGraphQlService getGraphQlService() {

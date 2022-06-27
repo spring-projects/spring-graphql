@@ -61,14 +61,16 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 	 * @param document textual representation of the operation(s)
 	 * @param operationName optionally, the name of the operation to execute
 	 * @param variables variables by which the query is parameterized
+	 * @param extensions implementor specific, protocol extensions
 	 * @param id the request id, to be used as the {@link ExecutionId}
 	 * @param locale the locale associated with the request
 	 */
 	public DefaultExecutionGraphQlRequest(
-			String document, @Nullable String operationName, @Nullable Map<String, Object> variables,
+			String document, @Nullable String operationName,
+			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions,
 			String id, @Nullable Locale locale) {
 
-		super(document, operationName, variables);
+		super(document, operationName, variables, extensions);
 		Assert.notNull(id, "'id' is required");
 		this.id = id;
 		this.locale = locale;
@@ -109,6 +111,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 				.query(getDocument())
 				.operationName(getOperationName())
 				.variables(getVariables())
+				.extensions(getExtensions())
 				.locale(this.locale)
 				.executionId(this.executionId != null ? this.executionId : ExecutionId.from(this.id));
 

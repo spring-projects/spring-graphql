@@ -14,16 +14,22 @@ WebSocket, and RSocket.
 [[client-graphqlclient]]
 == `GraphQlClient`
 
-`GraphQlClient` defines a common workflow for executing GraphQL requests and
-subscriptions that is independent of and agnostic to the underlying transport. To create
-an instance, you'll need to start from either the <<client-httpgraphqlclient,
-HttpGraphQlClient>> or the <<client-websocketgraphqlclient,WebSocketGraphQlClient>>
-extensions.
+`GraphQlClient` is a contract that declares a common workflow for GraphQL requests that is
+independent of the underlying transport. That means requests are executed with the same API
+no matter what the underlying transport, and anything transport specific is configured at
+build time.
 
-Each `GraphQlClient` extension provides a transport specific `Builder`. There is also a
-shared, base <<client-graphqlclient-builder>> in `GraphQlClient` with common options for
-all extensions.
+To create a `GraphQlClient` you need one of the following extensions:
 
+- <<client-httpgraphqlclient, HttpGraphQlClient>>
+- <<client-websocketgraphqlclient, WebSocketGraphQlClient>>
+- <<client-rsocketgraphqlclient, RSocketGraphQlClient>>
+
+Each defines a `Builder` with options relevant to the transport. All builders extend
+from a common, base GraphQlClient <<client-graphqlclient-builder, `Builder`>> with options
+relevant to all extensions.
+
+Once you have a `GraphQlClient` you can begin to make <<client-requests, requests>>.
 
 
 [[client-httpgraphqlclient]]
@@ -39,14 +45,10 @@ WebClient webClient = ... ;
 HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
 ----
 
-The `HttpGraphQlClient` extension is nothing but a `GraphQlClient` with a specialized
-builder. Once created, it exposes the same workflow for request execution that is
-independent of the underlying transport.
-
-This means you can only configure HTTP request details at build time, and
-those apply to all requests through that client instance. To change HTTP request
-details, use `mutate()` on an existing `HttpGraphQlClient` to create another
-instance with different configuration:
+Once `HttpGraphQlClient` is created, you can begin to
+<<client-requests, execute requests>> using the same API, independent of the underlying
+transport. If you need to change any transport specific details, use `mutate()` on an
+existing `HttpGraphQlClient` to create a new instance with customized settings:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -71,21 +73,38 @@ instance with different configuration:
 [[client-websocketgraphqlclient]]
 === WebSocket
 
-`WebSocketGraphQlClient` uses
+`WebSocketGraphQlClient` executes GraphQL requests over a shared WebSocket connection.
+It is built using the
 {spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
-from Spring WebFlux to execute GraphQL requests over WebSocket:
+from Spring WebFlux and you can create it as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	String url = "http://localhost:8080/graphql";
+	String url = "wss://localhost:8080/graphql";
 	WebSocketClient client = new ReactorNettyWebSocketClient();
 
 	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client).build();
 ----
 
-Once created, `WebSocketGraphQlClient` exposes the same transport agnostic workflow for
-request execution as any `GrahQlClient`. To change any transport details, use `mutate()`
-on an existing `WebSocketGraphQlClient` to create another with different configuration:
+In contrast to `HttpGraphQlClient`, the `WebSocketGraphQlClient` is connection oriented,
+which means it needs to establish a connection before making any requests. As you begin
+to make requests, the connection is established transparently. Alternatively, use the
+client's `start()` method to establish the connection explicitly before any requests.
+
+In addition to being connection-oriented, `WebSocketGraphQlClient` is also multiplexed.
+It maintains a single, shared connection for all requests. If the connection is lost,
+it is re-established on the next request or if `start()` is called again. You can also
+use the client's `stop()` method which cancels in-progress requests, closes the
+connection, and rejects new requests.
+
+TIP: Use a single `WebSocketGraphQlClient` instance for each server in order to have a
+single, shared connection for all requests to that server. Each client instance
+establishes its own connection and that is typically not the intent for a single server.
+
+Once `WebSocketGraphQlClient` is created, you can begin to
+<<client-requests, execute requests>> using the same API, independent of the underlying
+transport. If you need to change any transport specific details, use `mutate()` on an
+existing `WebSocketGraphQlClient` to create a new instance with customized settings:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -105,44 +124,6 @@ on an existing `WebSocketGraphQlClient` to create another with different configu
 	// Use anotherGraphQlClient...
 
 ----
-
-
-
-[[client-rsocketgraphqlclient]]
-=== RSocket
-
-`RSocketGraphQlClient` uses
-{spring-framework-ref-docs}/web-reactive.html#rsocket-requester[RSocketRequester]
-to execute GraphQL requests over RSocket requests.
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	RSocketGraphQlClient graphQlClient =
-			RSocketGraphQlClient.builder()
-					.websocket(URI.create("http://localhost:8080/graphql"))
-					.build();
-----
-
-Once created, `RSocketGraphQlClient` exposes the same transport agnostic workflow for
-request execution as any `GrahQlClient`.
-
-
-
-[[client-websocketgraphqlclient-connection]]
-==== Connection
-
-A connection is established transparently when requests are made. There is only one
-shared, active connection at a time. If the connection is lost, it is re-established on
-the next request.
-
-`WebSocketGraphQlClient` also exposes lifecycle methods:
-
-- `start()` - connect the WebSocket and initialize the GraphQL session. This can be used
-on startup up to be ready for requests, but it is not required.
-- `stop()` - cancels ongoing requests and subscriptions, and closes the connection. A
-stopped client rejects new requests. Use `start()` to re-establish the connection and
-allow requests again.
-
 
 
 [[client-websocketgraphqlclient-interceptor]]
@@ -176,6 +157,43 @@ For WebSocket transport specific interception, you can create a
 <<client-interception,Register>> the above interceptor as any other
 `GraphQlClientInterceptor` and use it also to intercept GraphQL requests, but note there
 can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
+
+
+
+[[client-rsocketgraphqlclient]]
+=== RSocket
+
+`RSocketGraphQlClient` uses
+{spring-framework-ref-docs}/web-reactive.html#rsocket-requester[RSocketRequester]
+to execute GraphQL requests over RSocket requests.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	URI uri = URI.create("wss://localhost:8080/rsocket");
+	WebsocketClientTransport transport = WebsocketClientTransport.create(url);
+
+	RSocketGraphQlClient client = RSocketGraphQlClient.builder()
+			.clientTransport(transport)
+			.build();
+----
+
+In contrast to `HttpGraphQlClient`, the `RSocketGraphQlClient` is connection oriented,
+which means it needs to establish a session before making any requests. As you begin
+to make requests, the session is established transparently. Alternatively, use the
+client's `start()` method to establish the session explicitly before any requests.
+
+`RSocketGraphQlClient` is also multiplexed. It maintains a single, shared session for
+all requests.  If the session is lost, it is re-established on the next request or if
+`start()` is called again. You can also use the client's `stop()` method which cancels
+in-progress requests, closes the session, and rejects new requests.
+
+TIP: Use a single `RSocketGraphQlClient` instance for each server in order to have a
+single, shared session for all requests to that server. Each client instance
+establishes its own connection and that is typically not the intent for a single server.
+
+Once `RSocketGraphQlClient` is created, you can begin to
+<<client-requests, execute requests>> using the same API, independent of the underlying
+transport.
 
 
 

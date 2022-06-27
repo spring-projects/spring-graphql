@@ -24,6 +24,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -46,18 +47,28 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 
 	private final WebClient webClient;
 
+	private final MediaType contentType;
+
 
 	HttpGraphQlTransport(WebClient webClient) {
 		Assert.notNull(webClient, "WebClient is required");
 		this.webClient = webClient;
+		this.contentType = initContentType(webClient);
+	}
+
+	private static MediaType initContentType(WebClient webClient) {
+		HttpHeaders headers = new HttpHeaders();
+		webClient.mutate().defaultHeaders(headers::putAll);
+		MediaType contentType = headers.getContentType();
+		return (contentType != null ? contentType : MediaType.APPLICATION_JSON);
 	}
 
 
 	@Override
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.webClient.post()
-				.contentType(MediaType.APPLICATION_GRAPHQL)
-				.accept(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON)
+				.contentType(this.contentType)
+				.accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL)
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ public class ContextDataFetcherDecoratorTests {
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input.getGraphQLContext());
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
@@ -72,7 +72,7 @@ public class ContextDataFetcherDecoratorTests {
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greetings }").build();
-		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input.getGraphQLContext());
 
 		ExecutionResult result = graphQl.executeAsync(input).get();
 
@@ -92,7 +92,7 @@ public class ContextDataFetcherDecoratorTests {
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
-		ReactorContextManager.setReactorContext(Context.of("name", "007"), input);
+		ReactorContextManager.setReactorContext(Context.of("name", "007"), input.getGraphQLContext());
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
@@ -116,7 +116,7 @@ public class ContextDataFetcherDecoratorTests {
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
-			ReactorContextManager.setReactorContext(view, input);
+			ReactorContextManager.setReactorContext(view, input.getGraphQLContext());
 
 			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
 					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));

@@ -123,6 +123,8 @@ jobs:
         <<: *gradle-enterprise-task-params
   - put: artifactory-repo
     params: &artifactory-params
+      signing_key: ((signing-key))
+      signing_passphrase: ((signing-passphrase))
       repo: libs-snapshot-local
       folder: distribution-repository
       build_uri: "https://ci.spring.io/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"
@@ -269,7 +271,6 @@ jobs:
         download_artifacts: true
         save_build_info: true
     - task: promote
-      image: ci-image
       file: git-repo/ci/tasks/promote-version.yml
       params:
         RELEASE_TYPE: RELEASE
@@ -292,6 +293,8 @@ jobs:
         RELEASE_TYPE: RELEASE
         GITHUB_USERNAME: ((github-username))
         GITHUB_TOKEN: ((github-ci-release-token))
+      vars:
+        <<: *registry-mirror-vars
     - put: github-release
       params:
         name: generated-changelog/tag

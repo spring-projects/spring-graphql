@@ -48,9 +48,10 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 		response.path("me.name").hasValue();
 		response.path("me.friends").hasValue();
+		response.path("me[?(@.name == 'Luke Skywalker')].name").hasValue(); // gh-377
 
 		assertThatThrownBy(() -> response.path("hero").hasValue())
-				.hasMessageContaining("No value at JSON path \"$['data']['hero']");
+				.hasMessageContaining("No value at JSON path \"$.data.hero\"");
 
 		assertThat(getActualRequestDocument()).contains(document);
 	}
@@ -152,7 +153,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				"{" +
 				"  \"me\":{" +
 				"      \"name\":\"Luke Skywalker\","
-				+ "      \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
 				"  }" +
 				"}");
 
@@ -214,6 +215,23 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThat(request.getVariables()).containsEntry("episode", "JEDI");
 		assertThat(request.getVariables()).containsEntry("foo", "bar");
 		assertThat(request.getVariables()).containsEntry("keyOnly", null);
+	}
+
+	@Test
+	void protocolExtensions() {
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		graphQlTester().document(document)
+				.extension("firstExt", Collections.singletonMap("key", "value"))
+				.extension("secondExt", "value")
+				.execute();
+
+		ExecutionGraphQlRequest request = getGraphQlService().getGraphQlRequest();
+		assertThat(request.getDocument()).contains(document);
+		assertThat(request.getExtensions()).hasSize(2);
+		assertThat(request.getExtensions()).containsEntry("firstExt", Collections.singletonMap("key", "value"))
+				.containsEntry("secondExt", "value");
 	}
 
 	@Test

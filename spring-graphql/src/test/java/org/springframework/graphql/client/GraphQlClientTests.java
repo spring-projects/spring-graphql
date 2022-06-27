@@ -101,7 +101,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		vars.put("foo", "bar");
 		vars.put("keyOnly", null);
 
-		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars);
+		GraphQlRequest request = new DefaultGraphQlRequest("mockRequest1", "HeroNameAndFriends", vars, null);
 		getGraphQlService().setDataAsJson(request.getDocument(), "{\"hero\": {\"name\":\"R2-D2\"}}");
 
 		MovieCharacter character = graphQlClient().document(document)
@@ -205,7 +205,8 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
 		assertThatThrownBy(() -> nameField.toEntity(String.class))
 				.as("Decoding field null with direct field error should be rejected")
-				.isInstanceOf(FieldAccessException.class);
+				.isInstanceOf(FieldAccessException.class)
+				.hasMessageContaining("Test error");
 
 		ClientResponseField nonExistingField = response.field("me.name.other");
 		assertThat(nonExistingField.hasValue()).isFalse();

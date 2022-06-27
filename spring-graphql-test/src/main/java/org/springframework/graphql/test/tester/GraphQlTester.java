@@ -150,6 +150,14 @@ public interface GraphQlTester {
 		T variable(String name, @Nullable Object value);
 
 		/**
+		 * Add a value for a protocol extension.
+		 * @param name the protocol extension name
+		 * @param value the extension value
+		 * @return this request spec
+		 */
+		T extension(String name, @Nullable Object value);
+
+		/**
 		 * Execute the GraphQL request and return a spec for further inspection of
 		 * response data and errors.
 		 * @return options for asserting the response

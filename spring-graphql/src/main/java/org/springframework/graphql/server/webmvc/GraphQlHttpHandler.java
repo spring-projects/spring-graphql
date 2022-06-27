@@ -21,8 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletException;
 
+import jakarta.servlet.ServletException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
@@ -53,10 +53,10 @@ public class GraphQlHttpHandler {
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {
-			};
+			new ParameterizedTypeReference<Map<String, Object>>() {};
 
-	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
+	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
+			Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
 
 	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
@@ -117,7 +117,7 @@ public class GraphQlHttpHandler {
 				return accepted;
 			}
 		}
-		return MediaType.APPLICATION_GRAPHQL;
+		return MediaType.APPLICATION_JSON;
 	}
 
 }
