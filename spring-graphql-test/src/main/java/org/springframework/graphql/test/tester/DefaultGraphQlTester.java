@@ -18,11 +18,7 @@ package org.springframework.graphql.test.tester;
 
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -38,6 +34,7 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
+import org.springframework.graphql.client.MultipartClientGraphQlRequest;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
@@ -127,7 +124,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final Map<String, Object> extensions = new LinkedHashMap<>();
 
-		private DefaultRequest(String document) {
+        private final Map<String, Object> fileVariables = new LinkedHashMap<>();
+
+        private DefaultRequest(String document) {
 			Assert.notNull(document, "`document` is required");
 			this.document = document;
 		}
@@ -144,7 +143,19 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			return this;
 		}
 
-		@Override
+        @Override
+        public DefaultRequest fileVariable(String name, Object value) {
+            this.fileVariables.put(name, value);
+            return this;
+        }
+
+        @Override
+        public DefaultRequest fileVariables(Map<String, Object> variables) {
+            this.fileVariables.putAll(variables);
+            return this;
+        }
+
+        @Override
 		public DefaultRequest extension(String name, Object value) {
 			this.extensions.put(name, value);
 			return this;
@@ -155,6 +166,16 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		public Response execute() {
 			return transport.execute(request()).map(response -> mapResponse(response, request())).block(responseTimeout);
 		}
+
+        @Override
+        public Response executeFileUpload() {
+            return transport.executeFileUpload(requestFileUpload()).map(response -> mapResponse(response, requestFileUpload())).block(responseTimeout);
+        }
+
+        @Override
+        public void executeFileUploadAndVerify() {
+            executeFileUpload().path("$.errors").pathDoesNotExist();
+        }
 
 		@Override
 		public void executeAndVerify() {
@@ -169,6 +190,10 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private GraphQlRequest request() {
 			return new DefaultGraphQlRequest(this.document, this.operationName, this.variables, this.extensions);
 		}
+
+        private GraphQlRequest requestFileUpload() {
+            return new MultipartClientGraphQlRequest(this.document, this.operationName, this.variables, this.extensions, new HashMap<>(), this.fileVariables);
+        }
 
 		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {
 			return new DefaultResponse(response, errorFilter, assertDecorator(request), jsonPathConfig);

@@ -42,20 +42,25 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final GraphQlClientInterceptor.Chain executeChain;
 
-	private final GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain;
+    private final GraphQlClientInterceptor.Chain fileUploadChain;
+
+    private final GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain;
 
 
 	DefaultGraphQlClient(
 			DocumentSource documentSource, GraphQlClientInterceptor.Chain executeChain,
+            GraphQlClientInterceptor.Chain fileUploadChain,
 			GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain) {
 
 		Assert.notNull(documentSource, "DocumentSource is required");
 		Assert.notNull(executeChain, "GraphQlClientInterceptor.Chain is required");
-		Assert.notNull(executeSubscriptionChain, "GraphQlClientInterceptor.SubscriptionChain is required");
+        Assert.notNull(fileUploadChain, "GraphQlClientInterceptor.Chain is required");
+        Assert.notNull(executeSubscriptionChain, "GraphQlClientInterceptor.SubscriptionChain is required");
 
 		this.documentSource = documentSource;
 		this.executeChain = executeChain;
-		this.executeSubscriptionChain = executeSubscriptionChain;
+        this.fileUploadChain = fileUploadChain;
+        this.executeSubscriptionChain = executeSubscriptionChain;
 	}
 
 
@@ -96,7 +101,9 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Map<String, Object> extensions = new LinkedHashMap<>();
 
-		DefaultRequestSpec(Mono<String> documentMono) {
+        private final Map<String, Object> fileVariables = new LinkedHashMap<>();
+
+        DefaultRequestSpec(Mono<String> documentMono) {
 			Assert.notNull(documentMono, "'document' is required");
 			this.documentMono = documentMono;
 		}
@@ -118,6 +125,20 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			this.variables.putAll(variables);
 			return this;
 		}
+
+        @Override
+        public DefaultRequestSpec fileVariable(String name, Object value) {
+            Assert.notNull(name, "'name' is required");
+            Assert.notNull(value, "'value' is required");
+            this.fileVariables.put(name, value);
+            return this;
+        }
+
+        @Override
+        public RequestSpec fileVariables(Map<String, Object> files) {
+            this.fileVariables.putAll(files);
+            return this;
+        }
 
 		@Override
 		public RequestSpec extension(String name, Object value) {
@@ -161,6 +182,14 @@ final class DefaultGraphQlClient implements GraphQlClient {
 							ex -> Mono.error(new GraphQlTransportException(ex, request))));
 		}
 
+        @Override
+        public Mono<ClientGraphQlResponse> executeFileUpload() {
+            return initFileUploadRequest().flatMap(request -> fileUploadChain.next(request)
+                    .onErrorResume(
+                            ex -> !(ex instanceof GraphQlClientException),
+                            ex -> Mono.error(new GraphQlTransportException(ex, request))));
+        }
+
 		@Override
 		public Flux<ClientGraphQlResponse> executeSubscription() {
 			return initRequest().flatMapMany(request -> executeSubscriptionChain.next(request)
@@ -173,6 +202,11 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			return this.documentMono.map(document ->
 					new DefaultClientGraphQlRequest(document, this.operationName, this.variables, this.extensions, this.attributes));
 		}
+
+        private Mono<ClientGraphQlRequest> initFileUploadRequest() {
+            return this.documentMono.map(document ->
+                    new MultipartClientGraphQlRequest(document, this.operationName, this.variables, this.extensions, this.attributes, this.fileVariables));
+        }
 
 	}
 

@@ -154,6 +154,11 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
 	}
 
+    @Override
+    public Mono<GraphQlResponse> executeFileUpload(GraphQlRequest request) {
+        throw new UnsupportedOperationException("File upload is not supported");
+    }
+
 
 	/**
 	 * Client {@code WebSocketHandler} for GraphQL that deals with WebSocket

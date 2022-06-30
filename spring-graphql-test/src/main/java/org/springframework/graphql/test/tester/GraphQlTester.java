@@ -18,9 +18,11 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.springframework.graphql.client.GraphQlClient;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -149,6 +151,10 @@ public interface GraphQlTester {
 		 */
 		T variable(String name, @Nullable Object value);
 
+        T fileVariable(String name, Object value);
+
+        T fileVariables(Map<String, Object> variables);
+
 		/**
 		 * Add a value for a protocol extension.
 		 * @param name the protocol extension name
@@ -166,7 +172,9 @@ public interface GraphQlTester {
 		 */
 		Response execute();
 
-		/**
+        void executeFileUploadAndVerify();
+
+        /**
 		 * Execute the GraphQL request and verify the response contains no errors.
 		 */
 		void executeAndVerify();
@@ -179,6 +187,8 @@ public interface GraphQlTester {
 		 * status is not 200 (OK).
 		 */
 		Subscription executeSubscription();
+
+        Response executeFileUpload();
 
 	}
 

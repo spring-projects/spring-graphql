@@ -59,6 +59,7 @@ public interface GraphQlTransport {
 	 */
 	Flux<GraphQlResponse> executeSubscription(GraphQlRequest request);
 
+    Mono<GraphQlResponse> executeFileUpload(GraphQlRequest request);
 
 	/**
 	 * Factory method to create {@link GraphQlResponse} from a GraphQL response

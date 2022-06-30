@@ -86,6 +86,11 @@ public class GraphQlClientTestSupport {
 			return Flux.error(new UnsupportedOperationException());
 		}
 
+        @Override
+        public Mono<GraphQlResponse> executeFileUpload(GraphQlRequest request) {
+            throw new UnsupportedOperationException("File upload is not supported");
+        }
+
 	}
 
 }

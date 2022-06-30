@@ -204,7 +204,7 @@ public class WebGraphQlTesterBuilderTests {
 	}
 
 
-	private static class WebBuilderSetup implements TesterBuilderSetup {
+	static class WebBuilderSetup implements TesterBuilderSetup {
 
 		@Nullable
 		private WebGraphQlRequest request;

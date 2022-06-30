@@ -170,7 +170,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 		}
 
 		return new DefaultGraphQlClient(
-				this.documentSource, createExecuteChain(transport), createExecuteSubscriptionChain(transport));
+				this.documentSource, createExecuteChain(transport), createFileUploadChain(transport), createExecuteSubscriptionChain(transport));
 	}
 
 	/**
@@ -195,7 +195,18 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 				.orElse(chain);
 	}
 
-	private SubscriptionChain createExecuteSubscriptionChain(GraphQlTransport transport) {
+    private Chain createFileUploadChain(GraphQlTransport transport) {
+
+        Chain chain = request -> transport.executeFileUpload(request).map(response ->
+                new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
+
+        return this.interceptors.stream()
+                .reduce(GraphQlClientInterceptor::andThen)
+                .map(interceptor -> (Chain) (request) -> interceptor.intercept(request, chain))
+                .orElse(chain);
+    }
+
+    private SubscriptionChain createExecuteSubscriptionChain(GraphQlTransport transport) {
 
 		SubscriptionChain chain = request -> transport.executeSubscription(request)
 				.map(response -> new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));

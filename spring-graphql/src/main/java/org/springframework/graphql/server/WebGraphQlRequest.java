@@ -68,6 +68,34 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 		this.headers = headers;
 	}
 
+	/**
+	 * Create an instance.
+	 * @param uri the URL for the HTTP request
+	 * @param headers the HTTP request headers
+	 * @param query GraphQL's query
+	 * @param operationName GraphQL's operation name
+	 * @param variables GraphQL's variables map
+	 * @param extensions GraphQL's extensions map
+	 * @param id an identifier for the GraphQL request
+	 * @param locale the locale from the HTTP request, if any
+	 */
+	public WebGraphQlRequest(
+		URI uri, HttpHeaders headers,
+		String query,
+		String operationName,
+		Map<String, Object> variables,
+		Map<String, Object> extensions,
+		String id, @Nullable Locale locale) {
+
+		super(query, operationName, variables, extensions, id, locale);
+
+		Assert.notNull(uri, "URI is required'");
+		Assert.notNull(headers, "HttpHeaders is required'");
+
+		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
+		this.headers = headers;
+	}
+
 	@SuppressWarnings("unchecked")
 	private static <T> T getKey(String key, Map<String, Object> body) {
 		if (key.equals("query") && !StringUtils.hasText((String) body.get(key))) {

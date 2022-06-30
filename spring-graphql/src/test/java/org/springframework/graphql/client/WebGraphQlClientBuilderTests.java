@@ -238,7 +238,7 @@ public class WebGraphQlClientBuilderTests {
 	}
 
 
-	private abstract static class AbstractBuilderSetup implements ClientBuilderSetup {
+	abstract static class AbstractBuilderSetup implements ClientBuilderSetup {
 
 		@Nullable
 		private WebGraphQlRequest graphQlRequest;

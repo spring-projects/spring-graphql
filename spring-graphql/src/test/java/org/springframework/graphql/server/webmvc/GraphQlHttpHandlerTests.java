@@ -16,31 +16,37 @@
 package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import graphql.schema.GraphQLScalarType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.coercing.webmvc.UploadCoercing;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.function.AsyncServerResponse;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.springframework.graphql.client.MultipartBodyCreator.createFilePartsAndMapping;
 
 /**
  * Tests for {@link GraphQlHttpHandler}.
@@ -54,6 +60,8 @@ public class GraphQlHttpHandlerTests {
 
 	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 			.queryFetcher("greeting", (env) -> "Hello").toHttpHandler();
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Test
 	void shouldProduceApplicationJsonByDefault() throws Exception {
@@ -95,6 +103,65 @@ public class GraphQlHttpHandlerTests {
 		}
 	}
 
+    @Test
+    void shouldPassFile() throws Exception {
+        GraphQlHttpHandler handler = GraphQlSetup.schemaContent(
+                        "type Query { ping: String } \n" +
+                        "scalar Upload\n" +
+                        "type Mutation {\n" +
+                        "    fileUpload(fileInput: Upload!): String!\n" +
+                        "}")
+                .mutationFetcher("fileUpload", (env) -> ((MultipartFile) env.getVariables().get("fileInput")).getOriginalFilename())
+                .runtimeWiring(builder -> builder.scalar(GraphQLScalarType.newScalar()
+                        .name("Upload")
+                        .coercing(new UploadCoercing())
+                        .build()))
+                .toHttpHandler();
+        MockHttpServletRequest servletRequest = createMultipartServletRequest(
+                "mutation FileUpload($fileInput: Upload!) " +
+                "{fileUpload(fileInput: $fileInput) }",
+                MediaType.APPLICATION_GRAPHQL_VALUE,
+                Collections.singletonMap("fileInput", new ClassPathResource("/foo.txt"))
+        );
+
+        MockHttpServletResponse servletResponse = handleMultipartRequest(servletRequest, handler);
+
+        assertThat(servletResponse.getContentAsString())
+                .isEqualTo("{\"data\":{\"fileUpload\":\"foo.txt\"}}");
+    }
+
+    @Test
+    void shouldPassListOfFiles() throws Exception {
+        GraphQlHttpHandler handler = GraphQlSetup.schemaContent(
+                        "type Query { ping: String } \n" +
+                                "scalar Upload\n" +
+                                "type Mutation {\n" +
+                                "    multipleFilesUpload(multipleFileInputs: [Upload!]!): [String!]!\n" +
+                                "}")
+                .mutationFetcher("multipleFilesUpload", (env) -> ((Collection<MultipartFile>) env.getVariables().get("multipleFileInputs")).stream().map(multipartFile -> multipartFile.getOriginalFilename()).collect(Collectors.toList()))
+                .runtimeWiring(builder -> builder.scalar(GraphQLScalarType.newScalar()
+                        .name("Upload")
+                        .coercing(new UploadCoercing())
+                        .build()))
+                .toHttpHandler();
+
+        Collection<Resource> resources = new ArrayList<>();
+        resources.add(new ClassPathResource("/foo.txt"));
+        resources.add(new ClassPathResource("/bar.txt"));
+
+        MockHttpServletRequest servletRequest = createMultipartServletRequest(
+                "mutation MultipleFilesUpload($multipleFileInputs: [Upload!]!) " +
+                        "{multipleFilesUpload(multipleFileInputs: $multipleFileInputs) }",
+                MediaType.APPLICATION_GRAPHQL_VALUE,
+                Collections.singletonMap("multipleFileInputs", resources)
+        );
+
+        MockHttpServletResponse servletResponse = handleMultipartRequest(servletRequest, handler);
+
+        assertThat(servletResponse.getContentAsString())
+                .isEqualTo("{\"data\":{\"multipleFilesUpload\":[\"foo.txt\",\"bar.txt\"]}}");
+    }
+
 	@Test
 	void shouldSetExecutionId() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { showId: ID! }")
@@ -118,7 +185,58 @@ public class GraphQlHttpHandlerTests {
 		return servletRequest;
 	}
 
-	private MockHttpServletResponse handleRequest(
+    private MockHttpServletRequest createMultipartServletRequest(String query, String accept, Map<String, Object> files) {
+        MockMultipartHttpServletRequest servletRequest = new MockMultipartHttpServletRequest();
+        servletRequest.addHeader("Accept", accept);
+        servletRequest.setAsyncSupported(true);
+
+        Map<String, List<String>> partMappings = new HashMap<>();
+        Map<String, Object> operations = new HashMap<>();
+        operations.put("query", query);
+        Map<String, Object> variables = new HashMap<>();
+        createFilePartsAndMapping(files, variables, partMappings,
+                (partName, objectResource) -> servletRequest.addFile(getMultipartFile(partName, objectResource))
+        );
+        operations.put("variables", variables);
+
+        servletRequest.addPart(new MockPart("operations", getJsonArray(operations)));
+        servletRequest.addPart(new MockPart("map", getJsonArray(partMappings)));
+
+        return servletRequest;
+    }
+
+    private MockMultipartFile getMultipartFile(String partName, Object objectResource) {
+        Resource resource = (Resource) objectResource;
+        try {
+            return new MockMultipartFile(partName, resource.getFilename(), null, resource.getInputStream());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] getFileByteArray(Resource resource) {
+        try {
+            byte[] targetArray = new byte[(int)resource.getFile().length()];
+            try(InputStream inputStream = resource.getInputStream()) {
+                inputStream.read(targetArray);
+                return targetArray;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] getJsonArray(Object o) {
+        try {
+            return objectMapper.writeValueAsBytes(o);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private MockHttpServletResponse handleRequest(
 			MockHttpServletRequest servletRequest, GraphQlHttpHandler handler) throws ServletException, IOException {
 
 		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
@@ -129,6 +247,16 @@ public class GraphQlHttpHandlerTests {
 		return servletResponse;
 	}
 
+    private MockHttpServletResponse handleMultipartRequest(
+            MockHttpServletRequest servletRequest, GraphQlHttpHandler handler) throws ServletException, IOException {
+
+        ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+        ServerResponse response = ((AsyncServerResponse) handler.handleMultipartRequest(request)).block();
+
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+        response.writeTo(servletRequest, servletResponse, new DefaultContext());
+        return servletResponse;
+    }
 
 	private static class DefaultContext implements ServerResponse.Context {
 

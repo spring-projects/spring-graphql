@@ -16,8 +16,14 @@
 
 package org.springframework.graphql.client;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +34,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import static org.springframework.graphql.client.MultipartBodyCreator.convertRequestToMultipartData;
 
 
 /**
@@ -75,7 +83,19 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 				.map(ResponseMapGraphQlResponse::new);
 	}
 
-	@Override
+    @Override
+    public Mono<GraphQlResponse> executeFileUpload(GraphQlRequest request) {
+        return this.webClient.post()
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL)
+                .body(BodyInserters.fromMultipartData(convertRequestToMultipartData(request)))
+                .retrieve()
+                .bodyToMono(MAP_TYPE)
+                .map(ResponseMapGraphQlResponse::new);
+    }
+
+
+    @Override
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
 	}

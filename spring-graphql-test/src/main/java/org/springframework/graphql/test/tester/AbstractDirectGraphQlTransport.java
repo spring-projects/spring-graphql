@@ -73,6 +73,11 @@ abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 		});
 	}
 
+    @Override
+    public Mono<GraphQlResponse> executeFileUpload(GraphQlRequest request) {
+        throw new UnsupportedOperationException("File upload is not supported");
+    }
+
 	private ExecutionGraphQlRequest toExecutionRequest(GraphQlRequest request) {
 		return new DefaultExecutionGraphQlRequest(
 				request.getDocument(), request.getOperationName(), request.getVariables(), request.getExtensions(),

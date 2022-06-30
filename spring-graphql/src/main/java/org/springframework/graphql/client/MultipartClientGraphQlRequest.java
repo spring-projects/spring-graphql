@@ -17,36 +17,33 @@
 package org.springframework.graphql.client;
 
 
+import org.springframework.lang.Nullable;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.graphql.support.DefaultGraphQlRequest;
-import org.springframework.lang.Nullable;
-
 /**
- * Default implementation of {@link ClientGraphQlRequest}.
+ * Multipart implementation of {@link ClientGraphQlRequest}.
  *
- * @author Rossen Stoyanchev
+ * @author Nikita Konev
  * @since 1.0.0
  */
-class DefaultClientGraphQlRequest extends DefaultGraphQlRequest implements ClientGraphQlRequest {
+public final class MultipartClientGraphQlRequest extends DefaultClientGraphQlRequest implements ClientGraphQlRequest {
 
-	private final Map<String, Object> attributes = new ConcurrentHashMap<>();
+    private final Map<String, Object> fileVariables = new ConcurrentHashMap<>();
 
-
-	DefaultClientGraphQlRequest(
+    public MultipartClientGraphQlRequest(
 			String document, @Nullable String operationName,
 			Map<String, Object> variables, Map<String, Object> extensions,
-			Map<String, Object> attributes) {
+			Map<String, Object> attributes,
+            Map<String, Object> fileVariables) {
 
-		super(document, operationName, variables, extensions);
-		this.attributes.putAll(attributes);
+		super(document, operationName, variables, extensions, attributes);
+        this.fileVariables.putAll(fileVariables);
 	}
 
-
-	@Override
-	public Map<String, Object> getAttributes() {
-		return this.attributes;
-	}
+    public Map<String, Object> getFileVariables() {
+        return this.fileVariables;
+    }
 
 }

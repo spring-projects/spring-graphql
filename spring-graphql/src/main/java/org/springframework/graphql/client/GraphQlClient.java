@@ -151,6 +151,10 @@ public interface GraphQlClient {
 		 */
 		RequestSpec variables(Map<String, Object> variables);
 
+        RequestSpec fileVariable(String name, Object value);
+
+        RequestSpec fileVariables(Map<String, Object> variables);
+
 		/**
 		 * Add a value for a protocol extension.
 		 * @param name the protocol extension name
@@ -207,7 +211,9 @@ public interface GraphQlClient {
 		 */
 		Mono<ClientGraphQlResponse> execute();
 
-		/**
+        Mono<ClientGraphQlResponse> executeFileUpload();
+
+        /**
 		 * Execute a "subscription" request and return a stream of responses.
 		 * @return a {@code Flux} with responses that provide further options for
 		 * decoding of each response. The {@code Flux} may terminate as follows:
