@@ -155,6 +155,48 @@ public class ContextDataFetcherDecoratorTests {
 	}
 
 	@Test
+	void monoDataFetcherSubscriptionThrowException() throws Exception {
+		SubscriptionExceptionResolver subscriptionSingleExceptionResolverAdapter = Mockito.spy(
+				new SubscriptionSingleExceptionResolverAdapter() {
+					@Override
+					protected GraphQLError resolveToSingleError(Throwable exception) {
+						return GraphqlErrorBuilder.newError()
+								.message("Error: " + exception.getMessage())
+								.errorType(ErrorType.INTERNAL_ERROR)
+								.extensions(Collections.singletonMap("a", "b"))
+								.build();
+					}
+				}
+		);
+
+		GraphQL graphQl = GraphQlSetup.schemaContent("type Query { greeting: String } type Subscription { greetings: String }")
+				.subscriptionExceptionResolvers(subscriptionSingleExceptionResolverAdapter)
+				.subscriptionFetcher("greetings", (env) ->
+						Mono.delay(Duration.ofMillis(50))
+								.then(Mono.error(new RuntimeException("Example Error"))))
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
+
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
+
+		Flux<ResponseHelper> greetingsFlux = ResponseHelper.forSubscription(executionResult);
+
+		StepVerifier.create(greetingsFlux)
+				.assertNext(message -> {
+					assertThat(message.errorCount()).isOne();
+
+					ResponseHelper.Error error = message.error(0);
+					assertThat(error.message()).isEqualTo("Error: Example Error");
+					assertThat(error.errorType()).isEqualTo(ErrorType.INTERNAL_ERROR.name());
+					assertThat(error.extensions()).hasSize(1).containsEntry("a", "b");
+				})
+				.verifyComplete();
+
+		verify(subscriptionSingleExceptionResolverAdapter).resolveException(any(RuntimeException.class));
+	}
+
+	@Test
 	void dataFetcherWithThreadLocalContext() {
 		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
 		nameThreadLocal.set("007");
