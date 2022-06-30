@@ -16,24 +16,25 @@
 
 package org.springframework.graphql.execution;
 
-import java.time.Duration;
-import java.util.List;
-
-import graphql.ExecutionInput;
-import graphql.ExecutionResult;
-import graphql.GraphQL;
+import graphql.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.TestThreadLocalAccessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
-import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.TestThreadLocalAccessor;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link ContextDataFetcherDecorator}.
@@ -102,6 +103,55 @@ public class ContextDataFetcherDecoratorTests {
 		StepVerifier.create(greetingsFlux)
 				.expectNext("Hi 007", "Bonjour 007", "Hola 007")
 				.verifyComplete();
+	}
+
+	@Test
+	void fluxDataFetcherSubscriptionThrowException() throws Exception {
+		SubscriptionExceptionResolver subscriptionSingleExceptionResolverAdapter = Mockito.spy(
+				new SubscriptionSingleExceptionResolverAdapter() {
+					@Override
+					protected GraphQLError resolveToSingleError(Throwable exception) {
+						return GraphqlErrorBuilder.newError()
+								.message("Error: " + exception.getMessage())
+								.errorType(ErrorType.INTERNAL_ERROR)
+								.extensions(Collections.singletonMap("a", "b"))
+								.build();
+					}
+				}
+		);
+
+		GraphQL graphQl = GraphQlSetup.schemaContent("type Query { greeting: String } type Subscription { greetings: String }")
+				.subscriptionExceptionResolvers(subscriptionSingleExceptionResolverAdapter)
+				.subscriptionFetcher("greetings", (env) ->
+						Mono.delay(Duration.ofMillis(50))
+								.flatMapMany((aLong) -> Flux.create(sink -> {
+									sink.next("Hi!");
+									sink.error(new RuntimeException("Example Error"));
+								})))
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
+
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
+
+		Flux<ResponseHelper> greetingsFlux = ResponseHelper.forSubscription(executionResult);
+
+		StepVerifier.create(greetingsFlux)
+				.assertNext(message -> {
+					assertThat(message.errorCount()).isZero();
+					assertThat(message.toEntity("greetings", String.class)).isEqualTo("Hi!");
+				})
+				.assertNext(message -> {
+					assertThat(message.errorCount()).isOne();
+
+					ResponseHelper.Error error = message.error(0);
+					assertThat(error.message()).isEqualTo("Error: Example Error");
+					assertThat(error.errorType()).isEqualTo(ErrorType.INTERNAL_ERROR.name());
+					assertThat(error.extensions()).hasSize(1).containsEntry("a", "b");
+				})
+				.verifyComplete();
+
+		verify(subscriptionSingleExceptionResolverAdapter).resolveException(any(RuntimeException.class));
 	}
 
 	@Test

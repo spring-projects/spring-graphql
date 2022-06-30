@@ -16,6 +16,7 @@
 package org.springframework.graphql.server.webflux;
 
 import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -31,7 +32,6 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -96,8 +96,9 @@ final class CodecDelegate {
 		return encode(session, GraphQlWebSocketMessage.next(id, responseMap));
 	}
 
-	public WebSocketMessage encodeError(WebSocketSession session, String id, Collection<GraphQLError> errors) {
-		return encode(session, GraphQlWebSocketMessage.error(id, errors));
+	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
+		GraphQLError error = GraphqlErrorBuilder.newError().message(ex.getMessage()).build();
+		return encode(session, GraphQlWebSocketMessage.error(id, error));
 	}
 
 	public WebSocketMessage encodeComplete(WebSocketSession session, String id) {

@@ -21,7 +21,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
-import org.springframework.graphql.execution.SubscriptionExceptionResolver;
 import org.springframework.graphql.server.*;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
@@ -66,7 +65,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final Duration initTimeoutDuration;
 
-	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
 
 	/**
 	 * Create a new instance.
@@ -74,11 +72,9 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	 * @param codecConfigurer codec configurer for JSON encoding and decoding
 	 * @param connectionInitTimeout how long to wait after the establishment of
 	 * the WebSocket for the {@code "connection_ini"} message from the client.
-	 * @param subscriptionExceptionResolver exceptions handler to map exceptions into GraphQL error
 	 */
 	public GraphQlWebSocketHandler(
-			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer,
-			Duration connectionInitTimeout, SubscriptionExceptionResolver subscriptionExceptionResolver) {
+			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer, Duration connectionInitTimeout) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 
@@ -86,7 +82,6 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		this.webSocketInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.codecDelegate = new CodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
-		this.subscriptionExceptionResolver = subscriptionExceptionResolver;
 	}
 
 
@@ -212,8 +207,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
 							return GraphQlStatus.close(session, status);
 						}
-						return this.subscriptionExceptionResolver.resolveException(ex)
-								.map(errors -> this.codecDelegate.encodeError(session, id, errors));
+						return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
 				});
 	}
 

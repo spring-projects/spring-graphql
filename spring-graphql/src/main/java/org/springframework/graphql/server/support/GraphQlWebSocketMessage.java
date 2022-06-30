@@ -22,11 +22,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 
 /**
@@ -187,14 +185,12 @@ public class GraphQlWebSocketMessage {
 	/**
 	 * Create an {@code "error"} server message.
 	 * @param id unique request id
-	 * @param errors the collection of errors to add as the message payload
+	 * @param error the error to add as the message payload
 	 */
-	public static GraphQlWebSocketMessage error(String id, Collection<GraphQLError> errors) {
-		Assert.notNull(errors, "GraphQlErrors collection is required");
-		List<Map<String, Object>> mappedErrors = errors.stream()
-				.map(GraphQLError::toSpecification)
-				.collect(Collectors.toList());
-		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR, mappedErrors);
+	public static GraphQlWebSocketMessage error(String id, GraphQLError error) {
+		Assert.notNull(error, "GraphQlError is required");
+		List<Map<String, Object>> errors = Collections.singletonList(error.toSpecification());
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR, errors);
 	}
 
 	/**

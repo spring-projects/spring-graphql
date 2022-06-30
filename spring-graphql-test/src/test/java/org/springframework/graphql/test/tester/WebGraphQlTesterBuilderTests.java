@@ -26,7 +26,6 @@ import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.graphql.client.TestWebSocketClient;
 import org.springframework.graphql.client.TestWebSocketConnection;
-import org.springframework.graphql.execution.DelegatingSubscriptionExceptionResolver;
 import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
@@ -260,11 +259,7 @@ public class WebGraphQlTesterBuilderTests {
 		@Override
 		public WebSocketGraphQlTester.Builder<?> initBuilder() {
 			ClientCodecConfigurer configurer = ClientCodecConfigurer.create();
-			WebSocketHandler handler = new GraphQlWebSocketHandler(
-					webGraphQlHandler(),
-					configurer,
-					Duration.ofSeconds(5),
-					new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
+			WebSocketHandler handler = new GraphQlWebSocketHandler(webGraphQlHandler(), configurer, Duration.ofSeconds(5));
 			return WebSocketGraphQlTester.builder(URI.create(""), new TestWebSocketClient(handler));
 		}
 

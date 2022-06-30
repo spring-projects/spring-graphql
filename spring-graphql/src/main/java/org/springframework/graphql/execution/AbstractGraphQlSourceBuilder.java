@@ -16,12 +16,6 @@
 
 package org.springframework.graphql.execution;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
@@ -29,6 +23,12 @@ import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTraverser;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 
 /**
@@ -43,6 +43,8 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
+	private final List<SubscriptionExceptionResolver> subscriptionExceptionResolvers = new ArrayList<>();
+
 	private final List<GraphQLTypeVisitor> typeVisitors = new ArrayList<>();
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
@@ -54,6 +56,12 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	@Override
 	public B exceptionResolvers(List<DataFetcherExceptionResolver> resolvers) {
 		this.exceptionResolvers.addAll(resolvers);
+		return self();
+	}
+
+	@Override
+	public B subscriptionExceptionResolvers(List<SubscriptionExceptionResolver> subscriptionExceptionResolvers) {
+		this.subscriptionExceptionResolvers.addAll(subscriptionExceptionResolvers);
 		return self();
 	}
 
@@ -109,7 +117,12 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 		visitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
 
 		GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
-		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, codeRegistry);
+		SubscriptionExceptionResolver subscriptionExceptionResolver = new DelegatingSubscriptionExceptionResolver(
+				subscriptionExceptionResolvers);
+
+		Map<Class<?>, Object> vars = new HashMap<>();
+		vars.put(GraphQLCodeRegistry.Builder.class, codeRegistry);
+		vars.put(SubscriptionExceptionResolver.class, subscriptionExceptionResolver);
 
 		SchemaTraverser traverser = new SchemaTraverser();
 		traverser.depthFirstFullSchema(visitors, schema, vars);

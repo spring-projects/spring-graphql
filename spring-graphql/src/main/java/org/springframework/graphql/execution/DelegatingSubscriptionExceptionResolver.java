@@ -21,6 +21,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -44,6 +45,8 @@ public class DelegatingSubscriptionExceptionResolver implements SubscriptionExce
 
     public DelegatingSubscriptionExceptionResolver(
             List<SubscriptionExceptionResolver> resolvers, List<GraphQLError> defaultErrors) {
+        Assert.notNull(resolvers, "'resolvers' list must be not null.");
+        Assert.notNull(defaultErrors, "'defaultErrors' list must be not null.");
         this.resolvers = resolvers;
         this.defaultErrors = defaultErrors;
     }

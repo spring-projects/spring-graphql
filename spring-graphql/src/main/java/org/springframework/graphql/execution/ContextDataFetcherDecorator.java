@@ -17,22 +17,17 @@
 package org.springframework.graphql.execution;
 
 import graphql.ExecutionInput;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLCodeRegistry;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLFieldsContainer;
-import graphql.schema.GraphQLSchemaElement;
-import graphql.schema.GraphQLTypeVisitor;
-import graphql.schema.GraphQLTypeVisitorStub;
+import graphql.execution.DataFetcherResult;
+import graphql.schema.*;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import org.reactivestreams.Publisher;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
-import org.springframework.util.Assert;
+import java.util.function.Function;
 
 /**
  * Wrap a {@link DataFetcher} to enable the following:
@@ -51,10 +46,16 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final boolean subscription;
 
-	private ContextDataFetcherDecorator(DataFetcher<?> delegate, boolean subscription) {
+	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
+
+	private ContextDataFetcherDecorator(
+			DataFetcher<?> delegate, boolean subscription,
+			SubscriptionExceptionResolver subscriptionExceptionResolver) {
 		Assert.notNull(delegate, "'delegate' DataFetcher is required");
+		Assert.notNull(subscriptionExceptionResolver, "'subscriptionExceptionResolver' is required");
 		this.delegate = delegate;
 		this.subscription = subscription;
+		this.subscriptionExceptionResolver = subscriptionExceptionResolver;
 	}
 
 	@Override
@@ -66,7 +67,8 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		ContextView contextView = ReactorContextManager.getReactorContext(environment.getGraphQlContext());
 
 		if (this.subscription) {
-			return (!contextView.isEmpty() ? Flux.from((Publisher<?>) value).contextWrite(contextView) : value);
+			Publisher<?> publisher = interceptSubscriptionPublisherWithExceptionHandler((Publisher<?>) value);
+			return (!contextView.isEmpty() ? Flux.from(publisher).contextWrite(contextView) : publisher);
 		}
 
 		if (value instanceof Flux) {
@@ -82,6 +84,24 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		}
 
 		return value;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Publisher<?> interceptSubscriptionPublisherWithExceptionHandler(Publisher<?> publisher) {
+		Function<? super Throwable, Mono<DataFetcherResult<?>>> onErrorResumeFunction = e ->
+				subscriptionExceptionResolver.resolveException(e)
+						.map(errors -> DataFetcherResult.newResult().errors(errors).build());
+
+		if (publisher instanceof Flux) {
+			return ((Flux<Object>) publisher).onErrorResume(onErrorResumeFunction);
+		}
+
+		if (publisher instanceof Mono) {
+			return ((Mono<Object>) publisher).onErrorResume(onErrorResumeFunction);
+		}
+
+		throw new IllegalArgumentException("Unknown publisher type: '" + publisher.getClass().getName() +"'. " +
+				"Expected reactor.core.publisher.Mono or reactor.core.publisher.Flux");
 	}
 
 	/**
@@ -102,8 +122,11 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 				return TraversalControl.CONTINUE;
 			}
 
+			SubscriptionExceptionResolver subscriptionExceptionResolver =
+					context.getVarFromParents(SubscriptionExceptionResolver.class);
+
 			boolean handlesSubscription = parent.getName().equals("Subscription");
-			dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription);
+			dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, subscriptionExceptionResolver);
 			codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 			return TraversalControl.CONTINUE;
 		}

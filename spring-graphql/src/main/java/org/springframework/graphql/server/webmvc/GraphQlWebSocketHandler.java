@@ -17,11 +17,12 @@
 package org.springframework.graphql.server.webmvc;
 
 import graphql.ExecutionResult;
+import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
-import org.springframework.graphql.execution.SubscriptionExceptionResolver;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.*;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
@@ -82,8 +83,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final HttpMessageConverter<?> converter;
 
-	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
-
 	private final Map<String, SessionState> sessionInfoMap = new ConcurrentHashMap<>();
 
 	/**
@@ -92,11 +91,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * @param converter for JSON encoding and decoding
 	 * @param connectionInitTimeout how long to wait after the establishment of
 	 * the WebSocket for the {@code "connection_ini"} message from the client.
-	 * @param subscriptionExceptionResolver exceptions handler to map exceptions into GraphQL error
 	 */
 	public GraphQlWebSocketHandler(
-			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter,
-			Duration connectionInitTimeout, SubscriptionExceptionResolver subscriptionExceptionResolver) {
+			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter, Duration connectionInitTimeout) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
@@ -106,7 +103,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		this.webSocketGraphQlInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
-		this.subscriptionExceptionResolver = subscriptionExceptionResolver;
 	}
 
 	@Override
@@ -272,8 +268,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 							GraphQlStatus.closeSession(session, status);
 							return Flux.empty();
 						}
-						return subscriptionExceptionResolver.resolveException(ex)
-								.map(errors -> encode(GraphQlWebSocketMessage.error(id, errors)));
+						String message = ex.getMessage();
+						GraphQLError error = GraphqlErrorBuilder.newError().message(message).build();
+						return Mono.just(encode(GraphQlWebSocketMessage.error(id, error)));
 				});
 	}
 

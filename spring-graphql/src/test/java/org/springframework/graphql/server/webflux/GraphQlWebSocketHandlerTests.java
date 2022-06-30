@@ -16,8 +16,6 @@
 
 package org.springframework.graphql.server.webflux;
 
-import graphql.GraphQLError;
-import graphql.GraphqlErrorBuilder;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.ResolvableType;
@@ -25,9 +23,6 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.execution.DelegatingSubscriptionExceptionResolver;
-import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.execution.SubscriptionExceptionResolver;
 import org.springframework.graphql.server.*;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
@@ -252,10 +247,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	@Test
 	void connectionInitTimeout() {
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
-				initHandler(),
-				ServerCodecConfigurer.create(),
-				Duration.ofMillis(50),
-				new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
+				initHandler(), ServerCodecConfigurer.create(), Duration.ofMillis(50));
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.empty());
 		handler.handle(session).block(TIMEOUT);
@@ -331,8 +323,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
 				initHandler,
 				ServerCodecConfigurer.create(),
-				Duration.ofSeconds(60),
-				new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
+				Duration.ofSeconds(60));
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
@@ -359,99 +350,9 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
 									.hasSize(3)
 									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
-									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("Unknown error"))
+									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("null"))
 									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 									.containsEntry("classification", "DataFetchingException"));
-				})
-				.expectComplete()
-				.verify(TIMEOUT);
-	}
-
-	@Test
-	void errorMessagePayloadMapping() {
-		final String GREETING_QUERY = "{" +
-				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
-				"\"type\":\"subscribe\"," +
-				"\"payload\":{\"query\": \"" +
-				"  subscription TestTypenameSubscription {" +
-				"    greeting" +
-				"  }\"}" +
-				"}";
-
-		String schema = "type Subscription { greeting: String! } type Query { greetingUnused: String! }";
-
-		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
-				.subscriptionFetcher("greeting", env -> Flux.create(sink -> {
-					sink.next("a");
-					sink.error(new RuntimeException());
-					sink.next("b");
-				}))
-				.interceptor()
-				.toWebGraphQlHandler();
-
-		SubscriptionExceptionResolver subscriptionExceptionResolver = exception -> {
-			List<GraphQLError> errors = new ArrayList<>();
-
-			errors.add(GraphqlErrorBuilder.newError()
-					.message("CustomMessage")
-					.errorType(ErrorType.INTERNAL_ERROR)
-					.extensions(Collections.singletonMap("custom_key", "custom_value"))
-					.build());
-
-			errors.add(GraphqlErrorBuilder.newError()
-					.message("CustomMessage2")
-					.errorType(ErrorType.NOT_FOUND)
-					.extensions(Collections.singletonMap("custom_key_2", "custom_value_2"))
-					.build());
-
-			return Mono.just(errors);
-		};
-
-		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
-				initHandler,
-				ServerCodecConfigurer.create(),
-				Duration.ofSeconds(60),
-				subscriptionExceptionResolver
-		);
-
-		TestWebSocketSession session = new TestWebSocketSession(Flux.just(
-				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(GREETING_QUERY)));
-		handler.handle(session).block(TIMEOUT);
-
-		StepVerifier.create(session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
-				.consumeNextWith((message) -> {
-					GraphQlWebSocketMessage actual = decode(message);
-					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
-					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
-					assertThat(actual.<Map<String, Object>>getPayload())
-							.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-							.containsEntry("greeting", "a");
-				})
-				.consumeNextWith((message) -> {
-					GraphQlWebSocketMessage actual = decode(message);
-					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
-					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.ERROR);
-					assertThat(actual.<List<Map<String, Object>>>getPayload())
-							.asList().hasSize(2)
-							.satisfiesExactlyInAnyOrder(
-									theError -> assertThat(theError)
-									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-									.hasSize(3)
-									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
-									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("CustomMessage"))
-									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-									.containsEntry("custom_key", "custom_value")
-									.containsEntry("classification", "INTERNAL_ERROR"),
-									theError -> assertThat(theError)
-									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-									.hasSize(3)
-									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
-									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("CustomMessage2"))
-									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-									.containsEntry("custom_key_2", "custom_value_2")
-									.containsEntry("classification", "NOT_FOUND"));
 				})
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -461,8 +362,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
 				initHandler(interceptors),
 				ServerCodecConfigurer.create(),
-				Duration.ofSeconds(60),
-				new DelegatingSubscriptionExceptionResolver(Collections.emptyList()));
+				Duration.ofSeconds(60));
 
 		TestWebSocketSession session = new TestWebSocketSession(input);
 		handler.handle(session).block(TIMEOUT);
