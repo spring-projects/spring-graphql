@@ -15,8 +15,11 @@
  */
 package org.springframework.graphql.server.webflux;
 
+import java.util.Map;
+
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -31,8 +34,6 @@ import org.springframework.util.Assert;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
-
-import java.util.Map;
 
 /**
  * Helper class for encoding and decoding GraphQL messages.

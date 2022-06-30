@@ -16,15 +16,16 @@
 
 package org.springframework.graphql.server.support;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import graphql.GraphQLError;
+
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 
 /**

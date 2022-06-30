@@ -16,10 +16,18 @@
 
 package org.springframework.graphql.client;
 
+import java.net.URI;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Stream;
+
 import graphql.ExecutionResultImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Mono;
+
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -45,13 +53,6 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.socket.WebSocketHandler;
-import reactor.core.publisher.Mono;
-
-import java.net.URI;
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;

@@ -16,21 +16,6 @@
 
 package org.springframework.graphql.server.webflux;
 
-import graphql.ExecutionResult;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscription;
-import org.springframework.graphql.server.*;
-import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
-import org.springframework.web.reactive.socket.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.Principal;
@@ -41,6 +26,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+
+import graphql.ExecutionResult;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlResponse;
+import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketGraphQlRequest;
+import org.springframework.graphql.server.WebSocketSessionInfo;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.codec.CodecConfigurer;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.reactive.socket.CloseStatus;
+import org.springframework.web.reactive.socket.HandshakeInfo;
+import org.springframework.web.reactive.socket.WebSocketHandler;
+import org.springframework.web.reactive.socket.WebSocketMessage;
+import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
  * WebSocketHandler for GraphQL based on

@@ -16,25 +16,6 @@
 
 package org.springframework.graphql.server.webflux;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.Test;
-import org.springframework.core.ResolvableType;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.server.*;
-import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
-import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
-import org.springframework.http.codec.ServerCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.web.reactive.socket.CloseStatus;
-import org.springframework.web.reactive.socket.WebSocketMessage;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
-import reactor.test.StepVerifier;
-
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -43,6 +24,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.test.StepVerifier;
+
+import org.springframework.core.ResolvableType;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
+import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketHandlerTestSupport;
+import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketSessionInfo;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
+import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.web.reactive.socket.CloseStatus;
+import org.springframework.web.reactive.socket.WebSocketMessage;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;

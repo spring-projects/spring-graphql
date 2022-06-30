@@ -16,6 +16,24 @@
 
 package org.springframework.graphql.server.webmvc;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.security.Principal;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
@@ -23,8 +41,18 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
+import reactor.core.publisher.BaseSubscriber;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+
 import org.springframework.graphql.execution.ThreadLocalAccessor;
-import org.springframework.graphql.server.*;
+import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlResponse;
+import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketGraphQlRequest;
+import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -36,26 +64,16 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.SubProtocolCapable;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.socket.server.HandshakeHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler;
-import reactor.core.publisher.BaseSubscriber;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
-
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.security.Principal;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * WebSocketHandler for GraphQL based on

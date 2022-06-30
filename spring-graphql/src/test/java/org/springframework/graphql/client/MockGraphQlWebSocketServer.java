@@ -16,24 +16,25 @@
 
 package org.springframework.graphql.client;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
+
 import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
-import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
+import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * GraphQL over WebSocket {@link WebSocketHandler} to use as a server-side
