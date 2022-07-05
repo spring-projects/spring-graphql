@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.method.annotation.support;
+package org.springframework.graphql.data;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,14 +47,13 @@ class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final ThreadLocal<GraphQlArgumentBinder> initializer =
-			ThreadLocal.withInitial(() -> new GraphQlArgumentBinder(null));
+	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder(null);
 
 
 	@Test
 	void defaultConstructor() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment("{\"key\":{\"name\":\"test\"}}"), "key",
 				ResolvableType.forClass(SimpleBean.class));
 
@@ -63,7 +64,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void defaultConstructorWithNestedBeanProperty() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment(
 						"{\"key\":{" +
 								"\"name\":\"test name\"," +
@@ -84,7 +85,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void defaultConstructorWithNestedBeanListProperty() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
 				ResolvableType.forClass(ItemListHolder.class));
 
@@ -96,7 +97,7 @@ class GraphQlArgumentBinderTests {
 	@Test // gh-301
 	void defaultConstructorWithNestedBeanListEmpty() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment("{\"key\":{\"items\": []}}"), "key",
 				ResolvableType.forClass(ItemListHolder.class));
 
@@ -108,7 +109,7 @@ class GraphQlArgumentBinderTests {
 	void defaultConstructorBindingError() {
 
 		assertThatThrownBy(
-				() -> initializer.get().bind(
+				() -> this.binder.bind(
 						environment("{\"key\":{\"name\":\"test\",\"age\":\"invalid\"}}"), "key",
 						ResolvableType.forClass(SimpleBean.class)))
 				.extracting(ex -> ((BindException) ex).getFieldErrors())
@@ -123,7 +124,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructor() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment("{\"key\":{\"name\":\"test\"}}"), "key",
 				ResolvableType.forClass(PrimaryConstructorBean.class));
 
@@ -134,7 +135,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructorWithBeanArgument() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment(
 						"{\"key\":{" +
 								"\"item\":{\"name\":\"Item name\"}," +
@@ -152,7 +153,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructorWithNestedBeanList() throws Exception {
 
-		Object result = initializer.get().bind(
+		Object result = this.binder.bind(
 				environment(
 						"{\"key\":{\"items\":[" +
 								"{\"name\":\"first\"}," +
@@ -168,7 +169,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructorNotFound() {
 		assertThatThrownBy(
-				() -> initializer.get().bind(
+				() -> this.binder.bind(
 						environment("{\"key\":{\"name\":\"test\"}}"), "key",
 						ResolvableType.forClass(NoPrimaryConstructorBean.class)))
 				.isInstanceOf(IllegalStateException.class)
@@ -179,7 +180,7 @@ class GraphQlArgumentBinderTests {
 	void primaryConstructorBindingError() {
 
 		assertThatThrownBy(
-				() -> initializer.get().bind(
+				() -> this.binder.bind(
 						environment(
 								"{\"key\":{" +
 										"\"name\":\"Hello\"," +
@@ -205,7 +206,7 @@ class GraphQlArgumentBinderTests {
 	void primaryConstructorBindingErrorWithNestedBeanList() {
 
 		assertThatThrownBy(
-				() -> initializer.get().bind(
+				() -> this.binder.bind(
 						environment(
 								"{\"key\":{\"items\":[" +
 										"{\"name\":\"first\", \"age\":\"invalid\"}," +
@@ -224,6 +225,31 @@ class GraphQlArgumentBinderTests {
 					}
 				});
 	}
+
+	@Test // gh-410
+	void coercionWithSingletonList() throws Exception {
+
+		Map<String, String> itemMap = new HashMap<>();
+		itemMap.put("name", "Joe");
+		itemMap.put("age", "37");
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("key", Collections.singletonList(itemMap));
+
+		DataFetchingEnvironment environment =
+				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
+
+		Object result = this.binder.bind(environment, "key",
+				ResolvableType.forClassWithGenerics(List.class, Item.class));
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		List<Item> items = (List<Item>) result;
+
+		assertThat(items).hasSize(1);
+		assertThat(items.get(0).getName()).isEqualTo("Joe");
+		assertThat(items.get(0).getAge()).isEqualTo(37);
+	}
+
 
 	@SuppressWarnings("unchecked")
 	private DataFetchingEnvironment environment(String jsonPayload) throws JsonProcessingException {

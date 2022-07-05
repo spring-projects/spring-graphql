@@ -128,7 +128,7 @@ public class GraphQlArgumentBinder {
 		try {
 			// From Collection
 
-			if (CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
+			if (isApproximableCollectionType(rawValue)) {
 				segments.push(argumentName);
 				return createCollection((Collection<Object>) rawValue, targetType, bindingResult, segments);
 			}
@@ -162,6 +162,11 @@ public class GraphQlArgumentBinder {
 	@Nullable
 	private Object wrapAsOptionalIfNecessary(@Nullable Object value, ResolvableType type) {
 		return (type.resolve(Object.class).equals(Optional.class) ? Optional.ofNullable(value) : value);
+	}
+
+	private boolean isApproximableCollectionType(Object rawValue) {
+		return (CollectionFactory.isApproximableCollectionType(rawValue.getClass()) ||
+				rawValue instanceof List);  // it may be SingletonList
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
@@ -253,7 +258,7 @@ public class GraphQlArgumentBinder {
 			if (rawValue == null && methodParam.isOptional()) {
 				args[i] = (paramTypes[i] == Optional.class ? Optional.empty() : null);
 			}
-			else if (rawValue != null && CollectionFactory.isApproximableCollectionType(rawValue.getClass())) {
+			else if (rawValue != null && isApproximableCollectionType(rawValue)) {
 				ResolvableType elementType = ResolvableType.forMethodParameter(methodParam);
 				args[i] = createCollection((Collection<Object>) rawValue, elementType, bindingResult, segments);
 			}
