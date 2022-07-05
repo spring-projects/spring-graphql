@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
-import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Resolver for the source/parent of a field, obtained via
@@ -66,10 +66,21 @@ public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolv
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
 		Object source = environment.getSource();
-		Assert.isInstanceOf(parameter.getParameterType(), source,
-				"The declared parameter of type '" + parameter.getParameterType() + "' " +
-						"does not match the type of the source Object '" + source.getClass() + "'.");
+		if (source == null) {
+			throw new IllegalStateException(formatArgumentError(parameter,
+					" was not recognized by any resolver and there is no source/parent either. " +
+							"Please, refer to the documentation for the full list of supported parameters."));
+		}
+		if (!parameter.getParameterType().isInstance(source)) {
+			throw new IllegalStateException(formatArgumentError(parameter,
+					" does not match the source Object type '" + source.getClass() + "'."));
+		}
 		return source;
+	}
+
+	private static String formatArgumentError(MethodParameter param, String message) {
+		return "Parameter [" + param.getParameterIndex() + "] in " +
+				param.getExecutable().toGenericString() + (StringUtils.hasText(message) ? ": " + message : "");
 	}
 
 }

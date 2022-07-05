@@ -154,15 +154,12 @@ public class GraphQlRSocketController {
 [[server-interception]]
 === Interception
 
-Spring MVC and Spring WebFlux transport handlers, for both <<server-http>> and
-<<server-websocket>>, all delegate to the same `WebGraphQlInterceptor` chain, followed by
-the `ExecutionGraphQlService` that invokes the GraphQL Java engine. You can use this to
-intercept GraphQL requests over any Web transport.
+Transport handlers for <<server-http>> and <<server-websocket>> delegate to a
+`WebGraphQlInterceptor` chain with an `ExecutionGraphQlService` at the end which calls
+the GraphQL Java engine. Use this to access HTTP request details and customize the
+`ExecutionInput` for GraphQL Java.
 
-A `WebGraphQlInterceptor` exposes the details of the underlying transport (HTTP or
-WebSocket handshake) request and allows customizing the `graphql.ExecutionInput`
-that is prepared for GraphQL Java. For example, to extract an HTTP header and make it
-available to data fetchers through the `GraphQLContext`:
+For example, to extract HTTP request values and pass them to data fetchers:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -170,16 +167,26 @@ class HeaderInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		List<String> headerValue = request.getHeaders().get("myHeader");
+		List<String> values = request.getHeaders().get("headerName");
 		request.configureExecutionInput((executionInput, builder) ->
-				builder.graphQLContext(Collections.singletonMap("myHeader", headerValue)).build());
+				builder.graphQLContext(Collections.singletonMap("headerName", values)).build());
 		return chain.next(request);
+	}
+}
+
+// Subsequent access from a controller
+
+@Controller
+class MyController {
+
+	@QueryMapping
+	Person person(@ContextValue String myHeader) {
+		// ...
 	}
 }
 ----
 
-A `DataFetcher` can then access this value, e.g. from an
-<<controllers,annotated controller>> method:
+Or reversely, add values to the `GraphQLContext` and use them to update the HTTP response:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -187,34 +194,28 @@ A `DataFetcher` can then access this value, e.g. from an
 class MyController {
 
 	@QueryMapping
-	Person person(@ContextValue String myHeader) {
-			// ...
+	Person person(GraphQLContext context) {
+		context.put("cookieName", "123");
 	}
 }
-----
 
+// Subsequent access from a WebGraphQlInterceptor
 
-Interceptors can also customize HTTP response headers, or inspect and/or transform the
-`graphql.ExecutionResult` from GraphQL Java:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-class MyInterceptor implements WebGraphQlInterceptor {
+class HeaderInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		return chain.next(request)
-				.map(response -> {
-					Object data = response.getData();
-					Object updatedData = ... ;
-					return response.transform(builder -> builder.data(updatedData));
-				});
+		return chain.next(request).doOnNext(response -> {
+			String value = response.getExecutionInput().getGraphQLContext().get("cookieName");
+			ResponseCookie cookie = ResponseCookie.from("cookieName", value).build();
+			response.getResponseHeaders().add(HttpHeaders.SET_COOKIE, cookie.toString());
+		});
 	}
 }
 ----
 
-`WebGraphQlHandler` has a builder to create the `WebGraphQlInterceptor` chain. The Boot
-starter uses this, see Boot's section on
+The `WebGraphQlInterceptor` chain can be updated through the `WebGraphQlHandler` builder,
+and the Boot starter uses this, see Boot's section on
 {spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints].
 
 The <<server-rsocket>> transport handler delegates to a similar `GraphQlInterceptor`
