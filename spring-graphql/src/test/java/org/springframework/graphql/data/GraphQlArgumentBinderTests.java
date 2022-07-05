@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.method.annotation.support;
+package org.springframework.graphql.data;
 
 import java.util.List;
 import java.util.Map;
