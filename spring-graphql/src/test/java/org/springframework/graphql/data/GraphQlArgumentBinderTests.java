@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.data;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -223,6 +225,31 @@ class GraphQlArgumentBinderTests {
 					}
 				});
 	}
+
+	@Test // gh-410
+	void coercionWithSingletonList() throws Exception {
+
+		Map<String, String> itemMap = new HashMap<>();
+		itemMap.put("name", "Joe");
+		itemMap.put("age", "37");
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("key", Collections.singletonList(itemMap));
+
+		DataFetchingEnvironment environment =
+				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
+
+		Object result = this.binder.bind(environment, "key",
+				ResolvableType.forClassWithGenerics(List.class, Item.class));
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		List<Item> items = (List<Item>) result;
+
+		assertThat(items).hasSize(1);
+		assertThat(items.get(0).getName()).isEqualTo("Joe");
+		assertThat(items.get(0).getAge()).isEqualTo(37);
+	}
+
 
 	@SuppressWarnings("unchecked")
 	private DataFetchingEnvironment environment(String jsonPayload) throws JsonProcessingException {
