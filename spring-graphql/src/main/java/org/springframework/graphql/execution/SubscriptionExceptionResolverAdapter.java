@@ -24,22 +24,22 @@ import java.util.List;
 
 /**
  * Abstract class for {@link SubscriptionExceptionResolver} implementations.
- * This class provide an easy way to map an exception as single GraphQL error.
+ * This class provide an easy way to map an exception as GraphQL error synchronously.
  * <br/>
- * To use this class, you need to override either {@link SubscriptionSingleExceptionResolverAdapter#resolveToSingleError(Throwable)}
- * or {@link SubscriptionSingleExceptionResolverAdapter#resolveToSingleErrorMono(Throwable)}, if you want to return a {@code Mono}.
+ * To use this class, you need to override either {@link SubscriptionExceptionResolverAdapter#resolveToSingleError(Throwable)}
+ * or {@link SubscriptionExceptionResolverAdapter#resolveToMultipleErrors(Throwable)}.
  *
  * @author Mykyta Ivchenko
  * @see SubscriptionExceptionResolver
  */
-public abstract class SubscriptionSingleExceptionResolverAdapter implements SubscriptionExceptionResolver {
+public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
     @Override
     public Mono<List<GraphQLError>> resolveException(Throwable exception) {
-        return resolveToSingleErrorMono(exception).map(Collections::singletonList);
+        return Mono.just(resolveToMultipleErrors(exception));
     }
 
-    protected Mono<GraphQLError> resolveToSingleErrorMono(Throwable exception) {
-        return Mono.justOrEmpty(resolveToSingleError(exception));
+    protected List<GraphQLError> resolveToMultipleErrors(Throwable exception) {
+        return Collections.singletonList(resolveToSingleError(exception));
     }
 
     protected GraphQLError resolveToSingleError(Throwable exception) {

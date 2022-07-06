@@ -26,12 +26,12 @@ import java.util.List;
  * Implementations are typically declared as beans in Spring configuration and
  * are invoked sequentially until one emits a List of {@link GraphQLError}s.
  * <br/>
- * Usually, it is enough to implement this interface by extending {@link SubscriptionSingleExceptionResolverAdapter}
- * and overriding one of its {@link SubscriptionSingleExceptionResolverAdapter#resolveToSingleError(Throwable)}
- * or {@link SubscriptionSingleExceptionResolverAdapter#resolveToSingleErrorMono(Throwable)}
+ * Usually, it is enough to implement this interface by extending {@link SubscriptionExceptionResolverAdapter}
+ * and overriding one of its {@link SubscriptionExceptionResolverAdapter#resolveToSingleError(Throwable)}
+ * or {@link SubscriptionExceptionResolverAdapter#resolveToMultipleErrors(Throwable)}
  *
  * @author Mykyta Ivchenko
- * @see SubscriptionSingleExceptionResolverAdapter
+ * @see SubscriptionExceptionResolverAdapter
  * @see DelegatingSubscriptionExceptionResolver
  * @see org.springframework.graphql.server.webflux.GraphQlWebSocketHandler
  */

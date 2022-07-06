@@ -108,7 +108,7 @@ public class ContextDataFetcherDecoratorTests {
 	@Test
 	void fluxDataFetcherSubscriptionThrowException() throws Exception {
 		SubscriptionExceptionResolver subscriptionSingleExceptionResolverAdapter = Mockito.spy(
-				new SubscriptionSingleExceptionResolverAdapter() {
+				new SubscriptionExceptionResolverAdapter() {
 					@Override
 					protected GraphQLError resolveToSingleError(Throwable exception) {
 						return GraphqlErrorBuilder.newError()
@@ -157,7 +157,7 @@ public class ContextDataFetcherDecoratorTests {
 	@Test
 	void monoDataFetcherSubscriptionThrowException() throws Exception {
 		SubscriptionExceptionResolver subscriptionSingleExceptionResolverAdapter = Mockito.spy(
-				new SubscriptionSingleExceptionResolverAdapter() {
+				new SubscriptionExceptionResolverAdapter() {
 					@Override
 					protected GraphQLError resolveToSingleError(Throwable exception) {
 						return GraphqlErrorBuilder.newError()
