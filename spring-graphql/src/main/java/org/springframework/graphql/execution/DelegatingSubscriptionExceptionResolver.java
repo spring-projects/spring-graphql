@@ -41,21 +41,10 @@ import java.util.List;
 public class DelegatingSubscriptionExceptionResolver implements SubscriptionExceptionResolver {
     private static final Log logger = LogFactory.getLog(DelegatingSubscriptionExceptionResolver.class);
     private final List<SubscriptionExceptionResolver> resolvers;
-    private final List<GraphQLError> defaultErrors;
-
-    public DelegatingSubscriptionExceptionResolver(
-            List<SubscriptionExceptionResolver> resolvers, List<GraphQLError> defaultErrors) {
-        Assert.notNull(resolvers, "'resolvers' list must be not null.");
-        Assert.notNull(defaultErrors, "'defaultErrors' list must be not null.");
-        this.resolvers = resolvers;
-        this.defaultErrors = defaultErrors;
-    }
 
     public DelegatingSubscriptionExceptionResolver(List<SubscriptionExceptionResolver> resolvers) {
-        this(resolvers, Collections.singletonList(GraphqlErrorBuilder.newError()
-                .message("Unknown error")
-                .errorType(ErrorType.DataFetchingException)
-                .build()));
+        Assert.notNull(resolvers, "'resolvers' list must be not null.");
+        this.resolvers = resolvers;
     }
 
     @Override
@@ -64,13 +53,22 @@ public class DelegatingSubscriptionExceptionResolver implements SubscriptionExce
                 .flatMap(resolver -> resolver.resolveException(exception))
                 .next()
                 .onErrorResume(error -> Mono.just(handleMappingException(error, exception)))
-                .switchIfEmpty(Mono.just(defaultErrors));
+                .defaultIfEmpty(createDefaultErrors());
     }
 
     private List<GraphQLError> handleMappingException(Throwable resolverException, Throwable originalException) {
         if (logger.isWarnEnabled()) {
             logger.warn("Failure while resolving " + originalException.getClass().getName(), resolverException);
         }
-        return defaultErrors;
+        return createDefaultErrors();
+    }
+
+    private List<GraphQLError> createDefaultErrors() {
+        GraphQLError error = GraphqlErrorBuilder.newError()
+                .message("Unknown error")
+                .errorType(ErrorType.DataFetchingException)
+                .build();
+
+        return Collections.singletonList(error);
     }
 }
