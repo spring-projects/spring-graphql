@@ -107,6 +107,12 @@ public class ContextDataFetcherDecoratorTests {
 
 	@Test
 	void fluxDataFetcherSubscriptionThrowException() throws Exception {
+		GraphQLError expectedError = GraphqlErrorBuilder.newError()
+				.message("Error: Example Error")
+				.errorType(ErrorType.INTERNAL_ERROR)
+				.extensions(Collections.singletonMap("a", "b"))
+				.build();
+
 		SubscriptionExceptionResolver subscriptionSingleExceptionResolverAdapter = Mockito.spy(
 				new SubscriptionExceptionResolverAdapter() {
 					@Override
@@ -134,28 +140,27 @@ public class ContextDataFetcherDecoratorTests {
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 
-		Flux<ResponseHelper> greetingsFlux = ResponseHelper.forSubscription(executionResult);
+		Flux<String> greetingsFlux = ResponseHelper.forSubscription(executionResult)
+						.map(message -> message.toEntity("greetings", String.class));
 
 		StepVerifier.create(greetingsFlux)
-				.assertNext(message -> {
-					assertThat(message.errorCount()).isZero();
-					assertThat(message.toEntity("greetings", String.class)).isEqualTo("Hi!");
-				})
-				.assertNext(message -> {
-					assertThat(message.errorCount()).isOne();
-
-					ResponseHelper.Error error = message.error(0);
-					assertThat(error.message()).isEqualTo("Error: Example Error");
-					assertThat(error.errorType()).isEqualTo(ErrorType.INTERNAL_ERROR.name());
-					assertThat(error.extensions()).hasSize(1).containsEntry("a", "b");
-				})
-				.verifyComplete();
+				.expectNext("Hi!")
+				.expectErrorSatisfies(error -> assertThat(error)
+						.usingRecursiveComparison()
+						.isEqualTo(new SubscriptionStreamException(Collections.singletonList(expectedError))))
+				.verify();
 
 		verify(subscriptionSingleExceptionResolverAdapter).resolveException(any(RuntimeException.class));
 	}
 
 	@Test
 	void monoDataFetcherSubscriptionThrowException() throws Exception {
+		GraphQLError expectedError = GraphqlErrorBuilder.newError()
+				.message("Error: Example Error")
+				.errorType(ErrorType.INTERNAL_ERROR)
+				.extensions(Collections.singletonMap("a", "b"))
+				.build();
+
 		SubscriptionExceptionResolver subscriptionSingleExceptionResolverAdapter = Mockito.spy(
 				new SubscriptionExceptionResolverAdapter() {
 					@Override
@@ -183,15 +188,10 @@ public class ContextDataFetcherDecoratorTests {
 		Flux<ResponseHelper> greetingsFlux = ResponseHelper.forSubscription(executionResult);
 
 		StepVerifier.create(greetingsFlux)
-				.assertNext(message -> {
-					assertThat(message.errorCount()).isOne();
-
-					ResponseHelper.Error error = message.error(0);
-					assertThat(error.message()).isEqualTo("Error: Example Error");
-					assertThat(error.errorType()).isEqualTo(ErrorType.INTERNAL_ERROR.name());
-					assertThat(error.extensions()).hasSize(1).containsEntry("a", "b");
-				})
-				.verifyComplete();
+				.expectErrorSatisfies(error -> assertThat(error)
+						.usingRecursiveComparison()
+						.isEqualTo(new SubscriptionStreamException(Collections.singletonList(expectedError))))
+				.verify();
 
 		verify(subscriptionSingleExceptionResolverAdapter).resolveException(any(RuntimeException.class));
 	}

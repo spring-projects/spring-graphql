@@ -17,7 +17,6 @@
 package org.springframework.graphql.execution;
 
 import graphql.ExecutionInput;
-import graphql.execution.DataFetcherResult;
 import graphql.schema.*;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
@@ -88,9 +87,9 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	@SuppressWarnings("unchecked")
 	private Publisher<?> interceptSubscriptionPublisherWithExceptionHandler(Publisher<?> publisher) {
-		Function<? super Throwable, Mono<DataFetcherResult<?>>> onErrorResumeFunction = e ->
+		Function<? super Throwable, Mono<?>> onErrorResumeFunction = e ->
 				subscriptionExceptionResolver.resolveException(e)
-						.map(errors -> DataFetcherResult.newResult().errors(errors).build());
+						.flatMap(errors -> Mono.error(new SubscriptionStreamException(errors)));
 
 		if (publisher instanceof Flux) {
 			return ((Flux<Object>) publisher).onErrorResume(onErrorResumeFunction);

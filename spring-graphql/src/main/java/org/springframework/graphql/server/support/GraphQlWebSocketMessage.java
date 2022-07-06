@@ -19,6 +19,7 @@ package org.springframework.graphql.server.support;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import graphql.GraphQLError;
 
@@ -188,10 +189,13 @@ public class GraphQlWebSocketMessage {
 	 * @param id unique request id
 	 * @param error the error to add as the message payload
 	 */
-	public static GraphQlWebSocketMessage error(String id, GraphQLError error) {
-		Assert.notNull(error, "GraphQlError is required");
-		List<Map<String, Object>> errors = Collections.singletonList(error.toSpecification());
-		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR, errors);
+	public static GraphQlWebSocketMessage error(String id, List<GraphQLError> errors) {
+		Assert.notNull(errors, "GraphQlErrors list is required");
+		List<Map<String, Object>> errorsMap = errors.stream()
+				.map(GraphQLError::toSpecification)
+				.collect(Collectors.toList());
+
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR, errorsMap);
 	}
 
 	/**

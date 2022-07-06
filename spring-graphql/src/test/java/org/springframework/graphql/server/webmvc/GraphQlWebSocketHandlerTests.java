@@ -28,8 +28,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.SubscriptionExceptionResolverAdapter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -366,9 +370,77 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
 									.hasSize(3)
 									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
-									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("null"))
+									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("Unknown error"))
 									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 									.containsEntry("classification", "DataFetchingException"));
+				})
+				.then(this.session::close)
+				.expectComplete()
+				.verify(TIMEOUT);
+	}
+
+	@Test
+	void subscriptionStreamException() throws Exception {
+		final String GREETING_QUERY = "{" +
+				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
+				"\"type\":\"subscribe\"," +
+				"\"payload\":{\"query\": \"" +
+				"  subscription TestTypenameSubscription {" +
+				"    greeting" +
+				"  }\"}" +
+				"}";
+
+		String schema = "type Subscription { greeting: String! }type Query { greetingUnused: String! }";
+
+		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
+				.subscriptionFetcher("greeting", env -> Flux.create(emitter -> {
+					emitter.next("a");
+					emitter.error(new RuntimeException("Test Exception"));
+					emitter.next("b");
+				}))
+				.subscriptionExceptionResolvers(new SubscriptionExceptionResolverAdapter() {
+					@Override
+					protected GraphQLError resolveToSingleError(Throwable exception) {
+						return GraphqlErrorBuilder.newError()
+								.message("Error: " + exception.getMessage())
+								.errorType(ErrorType.INTERNAL_ERROR)
+								.extensions(Collections.singletonMap("key", "value"))
+								.build();
+					}
+				})
+				.interceptor()
+				.toWebGraphQlHandler();
+
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(initHandler, converter, Duration.ofSeconds(60));
+
+		handle(handler,
+				new TextMessage("{\"type\":\"connection_init\"}"),
+				new TextMessage(GREETING_QUERY));
+
+		StepVerifier.create(this.session.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith((message) -> {
+					GraphQlWebSocketMessage actual = decode(message);
+					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
+					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
+					assertThat(actual.<Map<String, Object>>getPayload())
+							.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+							.containsEntry("greeting", "a");
+				})
+				.consumeNextWith((message) -> {
+					GraphQlWebSocketMessage actual = decode(message);
+					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
+					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.ERROR);
+					assertThat(actual.<List<Map<String, Object>>>getPayload())
+							.asList().hasSize(1)
+							.allSatisfy(theError -> assertThat(theError)
+									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+									.hasSize(3)
+									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
+									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("Error: Test Exception"))
+									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+									.containsEntry("classification", "INTERNAL_ERROR")
+									.containsEntry("key", "value"));
 				})
 				.then(this.session::close)
 				.expectComplete()
