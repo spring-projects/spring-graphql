@@ -24,10 +24,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTraverser;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 
@@ -113,16 +110,15 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	protected abstract GraphQLSchema initGraphQlSchema();
 
 	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
-		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
-		visitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
-
-		GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
 		SubscriptionExceptionResolver subscriptionExceptionResolver = new DelegatingSubscriptionExceptionResolver(
 				subscriptionExceptionResolvers);
+		GraphQLTypeVisitor visitor = ContextDataFetcherDecorator.createVisitor(subscriptionExceptionResolver);
 
-		Map<Class<?>, Object> vars = new HashMap<>();
-		vars.put(GraphQLCodeRegistry.Builder.class, codeRegistry);
-		vars.put(SubscriptionExceptionResolver.class, subscriptionExceptionResolver);
+		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
+		visitors.add(visitor);
+
+		GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
+		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, codeRegistry);
 
 		SchemaTraverser traverser = new SchemaTraverser();
 		traverser.depthFirstFullSchema(visitors, schema, vars);

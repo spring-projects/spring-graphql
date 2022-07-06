@@ -108,28 +108,26 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	 * {@link GraphQLTypeVisitor} that wraps non-GraphQL data fetchers and adapts them if
 	 * they return {@link Flux} or {@link Mono}.
 	 */
-	static GraphQLTypeVisitor TYPE_VISITOR = new GraphQLTypeVisitorStub() {
+	static GraphQLTypeVisitor createVisitor(SubscriptionExceptionResolver subscriptionExceptionResolver) {
+		return new GraphQLTypeVisitorStub() {
+			@Override
+			public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition fieldDefinition,
+																TraverserContext<GraphQLSchemaElement> context) {
 
-		@Override
-		public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition fieldDefinition,
-				TraverserContext<GraphQLSchemaElement> context) {
+				GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
+				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
+				DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
-			GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
-			GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
-			DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
+				if (dataFetcher.getClass().getPackage().getName().startsWith("graphql.")) {
+					return TraversalControl.CONTINUE;
+				}
 
-			if (dataFetcher.getClass().getPackage().getName().startsWith("graphql.")) {
+				boolean handlesSubscription = parent.getName().equals("Subscription");
+				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, subscriptionExceptionResolver);
+				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				return TraversalControl.CONTINUE;
 			}
-
-			SubscriptionExceptionResolver subscriptionExceptionResolver =
-					context.getVarFromParents(SubscriptionExceptionResolver.class);
-
-			boolean handlesSubscription = parent.getName().equals("Subscription");
-			dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, subscriptionExceptionResolver);
-			codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
-			return TraversalControl.CONTINUE;
-		}
-	};
+		};
+	}
 
 }
