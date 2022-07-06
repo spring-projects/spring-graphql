@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.client;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -105,7 +106,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 						.map(response -> GraphQlWebSocketMessage.next(id, response.toMap()))
 						.concatWithValues(
 								request.getError() != null ?
-										GraphQlWebSocketMessage.error(id, request.getError()) :
+										GraphQlWebSocketMessage.error(id, Collections.singletonList(request.getError())) :
 										GraphQlWebSocketMessage.complete(id));
 			case COMPLETE:
 				return Flux.empty();

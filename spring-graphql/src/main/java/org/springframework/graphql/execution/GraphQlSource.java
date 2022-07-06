@@ -16,11 +16,6 @@
 
 package org.springframework.graphql.execution;
 
-import java.io.InputStream;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.GraphQLSchema;
@@ -28,8 +23,12 @@ import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
-
 import org.springframework.core.io.Resource;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 
 /**
@@ -90,6 +89,14 @@ public interface GraphQlSource {
 		 * @return the current builder
 		 */
 		B exceptionResolvers(List<DataFetcherExceptionResolver> resolvers);
+
+		/**
+		 * Add {@link SubscriptionExceptionResolver}s to map exceptions, thrown by
+		 * GraphQL Subscription publisher.
+		 * @param subscriptionExceptionResolver the subscription exception resolver
+		 * @return the current builder
+		 */
+		B subscriptionExceptionResolvers(List<SubscriptionExceptionResolver> subscriptionExceptionResolvers);
 
 		/**
 		 * Add {@link GraphQLTypeVisitor}s to visit all element of the created

@@ -15,31 +15,25 @@
  */
 package org.springframework.graphql;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import graphql.GraphQL;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
-import org.springframework.graphql.execution.DataFetcherExceptionResolver;
-import org.springframework.graphql.execution.DataLoaderRegistrar;
-import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
-import org.springframework.graphql.execution.RuntimeWiringConfigurer;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
+import org.springframework.graphql.execution.*;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
 import org.springframework.graphql.server.WebGraphQlSetup;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.lang.Nullable;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
@@ -96,6 +90,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public GraphQlSetup exceptionResolver(DataFetcherExceptionResolver... resolvers) {
 		this.graphQlSourceBuilder.exceptionResolvers(Arrays.asList(resolvers));
+		return this;
+	}
+
+	public GraphQlSetup subscriptionExceptionResolvers(SubscriptionExceptionResolver... resolvers) {
+		this.graphQlSourceBuilder.subscriptionExceptionResolvers(Arrays.asList(resolvers));
 		return this;
 	}
 

@@ -28,10 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import graphql.ExecutionResult;
+import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
+import org.springframework.graphql.execution.SubscriptionStreamException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -216,7 +218,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
 							return GraphQlStatus.close(session, status);
 						}
-						return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
+						if (ex instanceof SubscriptionStreamException) {
+							List<GraphQLError> errors = ((SubscriptionStreamException) ex).getErrors();
+							return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, errors));
+						}
+						return Mono.fromCallable(() -> this.codecDelegate.encodeUnknownError(session, id, ex));
 				});
 	}
 

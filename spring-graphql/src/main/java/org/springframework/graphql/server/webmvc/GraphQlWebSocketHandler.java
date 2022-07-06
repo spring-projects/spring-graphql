@@ -41,6 +41,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
+import org.springframework.graphql.execution.SubscriptionStreamException;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -286,9 +287,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 							GraphQlStatus.closeSession(session, status);
 							return Flux.empty();
 						}
+						if (ex instanceof SubscriptionStreamException) {
+							List<GraphQLError> errors = ((SubscriptionStreamException) ex).getErrors();
+							return Mono.just(encode(GraphQlWebSocketMessage.error(id, errors)));
+						}
 						String message = ex.getMessage();
 						GraphQLError error = GraphqlErrorBuilder.newError().message(message).build();
-						return Mono.just(encode(GraphQlWebSocketMessage.error(id, error)));
+						return Mono.just(encode(GraphQlWebSocketMessage.error(id, Collections.singletonList(error))));
 				});
 	}
 
