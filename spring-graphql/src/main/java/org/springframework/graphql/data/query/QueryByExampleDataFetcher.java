@@ -27,6 +27,8 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLTypeVisitor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -89,6 +91,9 @@ import org.springframework.validation.BindException;
  * Spring Data Query By Example extension</a>
  */
 public abstract class QueryByExampleDataFetcher<T> {
+
+	private final static Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
+
 
 	private final TypeInformation<T> domainType;
 
@@ -183,6 +188,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 			if (typeName != null) {
 				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
 			}
+		}
+
+		if (logger.isTraceEnabled()) {
+			logger.trace("Auto-registration candidate typeNames " + factories.keySet());
 		}
 
 		return new AutoRegistrationRuntimeWiringConfigurer(factories);
