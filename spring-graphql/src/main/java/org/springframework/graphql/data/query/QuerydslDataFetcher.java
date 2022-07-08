@@ -29,6 +29,8 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLTypeVisitor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -96,6 +98,8 @@ import org.springframework.util.MultiValueMap;
  * Spring Data Querydsl extension</a>
  */
 public abstract class QuerydslDataFetcher<T> {
+
+	private final static Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
 
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
@@ -213,6 +217,10 @@ public abstract class QuerydslDataFetcher<T> {
 				ReactiveBuilder builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
 				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
+		}
+
+		if (logger.isTraceEnabled()) {
+			logger.trace("Auto-registration candidate typeNames " + factories.keySet());
 		}
 
 		return new AutoRegistrationRuntimeWiringConfigurer(factories);
