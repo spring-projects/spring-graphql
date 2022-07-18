@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import jakarta.validation.Validator;
@@ -69,6 +70,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.DataBinder;
 
 /**
  * {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
@@ -127,6 +129,9 @@ public class AnnotatedControllerConfigurer
 	@Nullable
 	private HandlerMethodInputValidator validator;
 
+	@Nullable
+	private Consumer<DataBinder> dataBinderInitializer;
+
 
 	/**
 	 * Add a {@code FormatterRegistrar} to customize the {@link ConversionService}
@@ -147,6 +152,15 @@ public class AnnotatedControllerConfigurer
 	 */
 	public void setExecutor(Executor executor) {
 		this.executor = executor;
+	}
+
+	/**
+	 * Configure an initializer that configures the {@link DataBinder} before the binding process.
+	 * @param dataBinderInitializer the data binder initializer
+	 * @since 1.0.1
+	 */
+	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> dataBinderInitializer) {
+		this.dataBinderInitializer = dataBinderInitializer;
 	}
 
 	@Override
@@ -176,6 +190,9 @@ public class AnnotatedControllerConfigurer
 		}
 		resolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
+		if (this.dataBinderInitializer != null) {
+			argumentBinder.addDataBinderInitializer(this.dataBinderInitializer);
+		}
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());
