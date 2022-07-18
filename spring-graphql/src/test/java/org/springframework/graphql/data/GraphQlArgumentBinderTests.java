@@ -16,10 +16,14 @@
 
 package org.springframework.graphql.data;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
+import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 
@@ -227,6 +233,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test // gh-410
+	@SuppressWarnings("unchecked")
 	void coercionWithSingletonList() throws Exception {
 
 		Map<String, String> itemMap = new HashMap<>();
@@ -248,6 +255,17 @@ class GraphQlArgumentBinderTests {
 		assertThat(items).hasSize(1);
 		assertThat(items.get(0).getName()).isEqualTo("Joe");
 		assertThat(items.get(0).getAge()).isEqualTo(37);
+	}
+
+	@Test // gh-392
+	@SuppressWarnings("unchecked")
+	void shouldHaveHigherDefaultAutoGrowLimit() throws Exception {
+		String items = IntStream.range(0, 260).mapToObj(value -> "{\"name\":\"test\"}").collect(Collectors.joining(","));
+		Object result = this.binder.bind(
+				environment("{\"key\":{\"items\":[" + items + "]}}"), "key",
+				ResolvableType.forClass(ItemListHolder.class));
+		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
+		assertThat(((ItemListHolder) result).getItems()).hasSize(260);
 	}
 
 

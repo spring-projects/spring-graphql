@@ -17,12 +17,14 @@
 package org.springframework.graphql.data;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
+import java.util.function.Consumer;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -59,10 +61,17 @@ import org.springframework.validation.FieldError;
  */
 public class GraphQlArgumentBinder {
 
+	/**
+	 * Use a larger {@link DataBinder#DEFAULT_AUTO_GROW_COLLECTION_LIMIT} for GraphQL use cases
+	 */
+	private static final int DEFAULT_AUTO_GROW_COLLECTION_LIMIT = 1024;
+
 	@Nullable
 	private final SimpleTypeConverter typeConverter;
 
 	private final BindingErrorProcessor bindingErrorProcessor = new DefaultBindingErrorProcessor();
+
+	private List<Consumer<DataBinder>> dataBinderInitializers = new ArrayList<>();
 
 
 	public GraphQlArgumentBinder() {
@@ -88,6 +97,15 @@ public class GraphQlArgumentBinder {
 	@Nullable
 	private ConversionService getConversionService() {
 		return (this.typeConverter != null ? this.typeConverter.getConversionService() : null);
+	}
+
+	/**
+	 * Add a {@link DataBinder} consumer that initializes the binder instance before the binding process.
+	 * @param dataBinderInitializer the data binder initializer
+	 * @since 1.0.1
+	 */
+	public void addDataBinderInitializer(Consumer<DataBinder> dataBinderInitializer) {
+		this.dataBinderInitializers.add(dataBinderInitializer);
 	}
 
 
@@ -122,6 +140,7 @@ public class GraphQlArgumentBinder {
 		Assert.notNull(targetClass, "Could not determine target type from " + targetType);
 
 		DataBinder binder = new DataBinder(null, argumentName != null ? argumentName : "arguments");
+		initDataBinder(binder);
 		BindingResult bindingResult = binder.getBindingResult();
 		Stack<String> segments = new Stack<>();
 
@@ -157,6 +176,11 @@ public class GraphQlArgumentBinder {
 		finally {
 			checkBindingResult(bindingResult);
 		}
+	}
+
+	private void initDataBinder(DataBinder binder) {
+		binder.setAutoGrowCollectionLimit(DEFAULT_AUTO_GROW_COLLECTION_LIMIT);
+		this.dataBinderInitializers.forEach(initializer -> initializer.accept(binder));
 	}
 
 	@Nullable
@@ -228,6 +252,7 @@ public class GraphQlArgumentBinder {
 		if (ctor.getParameterCount() == 0) {
 			target = BeanUtils.instantiateClass(ctor);
 			DataBinder dataBinder = new DataBinder(target);
+			initDataBinder(dataBinder);
 			dataBinder.getBindingResult().setNestedPath(toArgumentPath(segments));
 			dataBinder.setConversionService(getConversionService());
 			dataBinder.bind(initBindValues(rawMap));
