@@ -16,17 +16,25 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.List;
+
 import graphql.ExecutionInput;
-import graphql.schema.*;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLFieldsContainer;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import org.reactivestreams.Publisher;
-import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
-import java.util.function.Function;
+import org.springframework.util.Assert;
 
 /**
  * Wrap a {@link DataFetcher} to enable the following:
@@ -35,6 +43,7 @@ import java.util.function.Function;
  * <li>Support {@link Flux} return value as a shortcut to {@link Flux#collectList()}.
  * <li>Re-establish Reactor Context passed via {@link ExecutionInput}.
  * <li>Re-establish ThreadLocal context passed via {@link ExecutionInput}.
+ * <li>Resolve exceptions from a GraphQL subscription {@link Publisher}.
  * </ul>
  *
  * @author Rossen Stoyanchev
@@ -50,6 +59,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	private ContextDataFetcherDecorator(
 			DataFetcher<?> delegate, boolean subscription,
 			SubscriptionExceptionResolver subscriptionExceptionResolver) {
+
 		Assert.notNull(delegate, "'delegate' DataFetcher is required");
 		Assert.notNull(subscriptionExceptionResolver, "'subscriptionExceptionResolver' is required");
 		this.delegate = delegate;
@@ -66,8 +76,11 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		ContextView contextView = ReactorContextManager.getReactorContext(environment.getGraphQlContext());
 
 		if (this.subscription) {
-			Publisher<?> publisher = interceptSubscriptionPublisherWithExceptionHandler((Publisher<?>) value);
-			return (!contextView.isEmpty() ? Flux.from(publisher).contextWrite(contextView) : publisher);
+			Assert.state(value instanceof Publisher, "Expected Publisher for a subscription");
+			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume(exception ->
+					this.subscriptionExceptionResolver.resolveException(exception)
+							.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, exception))));
+			return (!contextView.isEmpty() ? flux.contextWrite(contextView) : flux);
 		}
 
 		if (value instanceof Flux) {
@@ -85,29 +98,15 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		return value;
 	}
 
-	@SuppressWarnings("unchecked")
-	private Publisher<?> interceptSubscriptionPublisherWithExceptionHandler(Publisher<?> publisher) {
-		Function<? super Throwable, Mono<?>> onErrorResumeFunction = e ->
-				subscriptionExceptionResolver.resolveException(e)
-						.flatMap(errors -> Mono.error(new SubscriptionStreamException(errors)));
-
-		if (publisher instanceof Flux) {
-			return ((Flux<Object>) publisher).onErrorResume(onErrorResumeFunction);
-		}
-
-		if (publisher instanceof Mono) {
-			return ((Mono<Object>) publisher).onErrorResume(onErrorResumeFunction);
-		}
-
-		throw new IllegalArgumentException("Unknown publisher type: '" + publisher.getClass().getName() +"'. " +
-				"Expected reactor.core.publisher.Mono or reactor.core.publisher.Flux");
-	}
 
 	/**
-	 * {@link GraphQLTypeVisitor} that wraps non-GraphQL data fetchers and adapts them if
-	 * they return {@link Flux} or {@link Mono}.
+	 * Static factory method to create {@link GraphQLTypeVisitor} that wraps
+	 * data fetchers with the {@link ContextDataFetcherDecorator}.
 	 */
-	static GraphQLTypeVisitor createVisitor(SubscriptionExceptionResolver subscriptionExceptionResolver) {
+	static GraphQLTypeVisitor createVisitor(List<SubscriptionExceptionResolver> resolvers) {
+
+		SubscriptionExceptionResolver compositeResolver = new CompositeSubscriptionExceptionResolver(resolvers);
+
 		return new GraphQLTypeVisitorStub() {
 			@Override
 			public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition fieldDefinition,
@@ -122,7 +121,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 				}
 
 				boolean handlesSubscription = parent.getName().equals("Subscription");
-				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, subscriptionExceptionResolver);
+				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
 				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				return TraversalControl.CONTINUE;
 			}

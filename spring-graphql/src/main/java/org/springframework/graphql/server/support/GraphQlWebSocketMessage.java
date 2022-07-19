@@ -187,15 +187,12 @@ public class GraphQlWebSocketMessage {
 	/**
 	 * Create an {@code "error"} server message.
 	 * @param id unique request id
-	 * @param error the error to add as the message payload
+	 * @param errors the error to add as the message payload
 	 */
 	public static GraphQlWebSocketMessage error(String id, List<GraphQLError> errors) {
-		Assert.notNull(errors, "GraphQlErrors list is required");
-		List<Map<String, Object>> errorsMap = errors.stream()
-				.map(GraphQLError::toSpecification)
-				.collect(Collectors.toList());
-
-		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR, errorsMap);
+		Assert.notNull(errors, "GraphQlError's are required");
+		return new GraphQlWebSocketMessage(id, GraphQlWebSocketMessageType.ERROR,
+				errors.stream().map(GraphQLError::toSpecification).collect(Collectors.toList()));
 	}
 
 	/**

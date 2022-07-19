@@ -16,35 +16,63 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.List;
+import java.util.function.Function;
+
 import graphql.GraphQLError;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-
 /**
- * Contract to resolve exceptions, that are thrown by subscription publisher.
- * Implementations are typically declared as beans in Spring configuration and
- * are invoked sequentially until one emits a List of {@link GraphQLError}s.
- * <br/>
- * Usually, it is enough to implement this interface by extending {@link SubscriptionExceptionResolverAdapter}
- * and overriding one of its {@link SubscriptionExceptionResolverAdapter#resolveToSingleError(Throwable)}
- * or {@link SubscriptionExceptionResolverAdapter#resolveToMultipleErrors(Throwable)}
+ * Contract for a component that is invoked when a GraphQL subscription
+ * {@link org.reactivestreams.Publisher} ends with an error.
+ *
+ * <p>Resolver implementations can extend the convenience base class
+ * {@link SubscriptionExceptionResolverAdapter} and override one of its methods
+ * {@link SubscriptionExceptionResolverAdapter#resolveToSingleError resolveToSingleError} or
+ * {@link SubscriptionExceptionResolverAdapter#resolveToMultipleErrors resolveToMultipleErrors}
+ * that resolve the exception synchronously.
+ *
+ * <p>Resolved errors are wrapped in a {@link SubscriptionPublisherException}
+ * and propagated further to the underlying transport which access the errors
+ * and prepare a final error message to send to the client.
  *
  * @author Mykyta Ivchenko
+ * @author Rossen Stoyanchev
+ * @since 1.0.1
  * @see SubscriptionExceptionResolverAdapter
- * @see DelegatingSubscriptionExceptionResolver
- * @see org.springframework.graphql.server.webflux.GraphQlWebSocketHandler
  */
 @FunctionalInterface
 public interface SubscriptionExceptionResolver {
+
     /**
-     * Resolve given exception as list of {@link GraphQLError}s and send them as WebSocket message.
-     * @param exception the exception to resolve
-     * @return a {@code Mono} with errors to send in a WebSocket message;
+     * Resolve the given exception to a list of {@link GraphQLError}'s to be
+     * sent in an error message to the client.
+     * @param exception the exception from the Publisher
+     * @return a {@code Mono} with the GraphQL errors to send to the client;
      * if the {@code Mono} completes with an empty List, the exception is resolved
-     * without any errors added to the response; if the {@code Mono} completes
-     * empty, without emitting a List, the exception remains unresolved and gives
-     * other resolvers a chance.
+     * without any errors to send; if the {@code Mono} completes empty, without
+     * emitting a List, the exception remains unresolved, and that allows other
+     * resolvers to resolve it.
      */
     Mono<List<GraphQLError>> resolveException(Throwable exception);
+
+
+    /**
+     * Factory method to create a {@link SubscriptionExceptionResolver} to
+     * resolve an exception to a single GraphQL error. Effectively, a shortcut
+     * for creating {@link SubscriptionExceptionResolverAdapter} and overriding
+     * its {@code resolveToSingleError} method.
+     * @param resolver the resolver function to map the exception
+     * @return the created instance
+     */
+    static SubscriptionExceptionResolverAdapter forSingleError(Function<Throwable, GraphQLError> resolver) {
+        return new SubscriptionExceptionResolverAdapter() {
+
+            @Override
+            protected GraphQLError resolveToSingleError(Throwable ex) {
+                return resolver.apply(ex);
+            }
+        };
+    }
+
 }

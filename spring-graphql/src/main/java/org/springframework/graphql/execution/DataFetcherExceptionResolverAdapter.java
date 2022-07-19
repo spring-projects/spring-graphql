@@ -34,14 +34,16 @@ import org.springframework.lang.Nullable;
  * <li>{@link #resolveToMultipleErrors}
  * </ul>
  *
- * <p>Use {@link #from(BiFunction)} to create an instance or extend this class
- * and override one of its resolve methods.
+ * <p>Applications may also use
+ * {@link DataFetcherExceptionResolver#forSingleError(BiFunction)} as a shortcut
+ * for {@link #resolveToSingleError(Throwable, DataFetchingEnvironment)}.
  *
  * <p>Implementations can also express interest in ThreadLocal context
  * propagation, from the underlying transport thread, via
  * {@link #setThreadLocalContextAware(boolean)}.
  *
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public abstract class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
 
@@ -57,7 +59,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 
 
 	/**
-	 * Sub-classes can set this to indicate that ThreadLocal context from the
+	 * Subclasses can set this to indicate that ThreadLocal context from the
 	 * transport handler (e.g. HTTP handler) should be restored when resolving
 	 * exceptions.
 	 * <p><strong>Note:</strong> This property is applicable only if transports
@@ -129,7 +131,9 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	 * resolves exceptions with the given {@code BiFunction}.
 	 * @param resolver the resolver function to use
 	 * @return the created instance
+	 * @deprecated as of 1.0.1, please use {@link DataFetcherExceptionResolver#forSingleError(BiFunction)}
 	 */
+	@Deprecated
 	public static DataFetcherExceptionResolverAdapter from(
 			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
 

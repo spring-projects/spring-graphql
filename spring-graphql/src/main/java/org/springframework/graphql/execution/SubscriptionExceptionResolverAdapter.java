@@ -16,33 +16,58 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+
 import graphql.GraphQLError;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
-import java.util.List;
+import org.springframework.lang.Nullable;
 
 /**
- * Abstract class for {@link SubscriptionExceptionResolver} implementations.
- * This class provide an easy way to map an exception as GraphQL error synchronously.
- * <br/>
- * To use this class, you need to override either {@link SubscriptionExceptionResolverAdapter#resolveToSingleError(Throwable)}
- * or {@link SubscriptionExceptionResolverAdapter#resolveToMultipleErrors(Throwable)}.
+ * Adapter for {@link SubscriptionExceptionResolver} that pre-implements the
+ * asynchronous contract and exposes the following synchronous protected methods:
+ * <ul>
+ * <li>{@link #resolveToSingleError}
+ * <li>{@link #resolveToMultipleErrors}
+ * </ul>
+ *
+ * <p>Applications may also use
+ * {@link SubscriptionExceptionResolver#forSingleError(Function)} as a shortcut
+ * for {@link #resolveToSingleError(Throwable)}.
  *
  * @author Mykyta Ivchenko
+ * @author Rossen Stoyanchev
+ * @since 1.0.1
  * @see SubscriptionExceptionResolver
  */
 public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
+
     @Override
-    public Mono<List<GraphQLError>> resolveException(Throwable exception) {
-        return Mono.just(resolveToMultipleErrors(exception));
+    public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
+        return Mono.justOrEmpty(resolveToMultipleErrors(exception));
     }
 
+    /**
+     * Override this method to resolve the Exception to multiple GraphQL errors.
+     * @param exception the exception to resolve
+     * @return the resolved errors or {@code null} if unresolved
+     */
+    @Nullable
     protected List<GraphQLError> resolveToMultipleErrors(Throwable exception) {
-        return Collections.singletonList(resolveToSingleError(exception));
+        GraphQLError error = resolveToSingleError(exception);
+        return (error != null ? Collections.singletonList(error) : null);
     }
 
+    /**
+     * Override this method to resolve the Exception to a single GraphQL error.
+     * @param exception the exception to resolve
+     * @return the resolved error or {@code null} if unresolved
+     */
+    @Nullable
     protected GraphQLError resolveToSingleError(Throwable exception) {
         return null;
     }
+
 }

@@ -16,6 +16,12 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
@@ -23,9 +29,6 @@ import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTraverser;
-
-import java.util.*;
-import java.util.function.Consumer;
 
 
 /**
@@ -57,8 +60,8 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	}
 
 	@Override
-	public B subscriptionExceptionResolvers(List<SubscriptionExceptionResolver> subscriptionExceptionResolvers) {
-		this.subscriptionExceptionResolvers.addAll(subscriptionExceptionResolvers);
+	public B subscriptionExceptionResolvers(List<SubscriptionExceptionResolver> resolvers) {
+		this.subscriptionExceptionResolvers.addAll(resolvers);
 		return self();
 	}
 
@@ -110,10 +113,7 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	protected abstract GraphQLSchema initGraphQlSchema();
 
 	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
-		SubscriptionExceptionResolver subscriptionExceptionResolver = new DelegatingSubscriptionExceptionResolver(
-				subscriptionExceptionResolvers);
-		GraphQLTypeVisitor visitor = ContextDataFetcherDecorator.createVisitor(subscriptionExceptionResolver);
-
+		GraphQLTypeVisitor visitor = ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers);
 		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
 		visitors.add(visitor);
 

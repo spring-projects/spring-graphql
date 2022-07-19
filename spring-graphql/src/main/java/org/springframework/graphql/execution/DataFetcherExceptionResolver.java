@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
@@ -55,9 +56,31 @@ public interface DataFetcherExceptionResolver {
 	 * @return a {@code Mono} with errors to add to the GraphQL response;
 	 * if the {@code Mono} completes with an empty List, the exception is resolved
 	 * without any errors added to the response; if the {@code Mono} completes
-	 * empty, without emitting a List, the exception remains unresolved and gives
-	 * other resolvers a chance.
+	 * empty, without emitting a List, the exception remains unresolved and that
+	 * allows other resolvers to resolve it.
 	 */
 	Mono<List<GraphQLError>> resolveException(Throwable exception, DataFetchingEnvironment environment);
+
+
+	/**
+	 * Factory method to create a {@link DataFetcherExceptionResolver} to resolve
+	 * an exception to a single GraphQL error. Effectively, a shortcut
+	 * for creating {@link DataFetcherExceptionResolverAdapter} and overriding
+	 * its {@code resolveToSingleError} method.
+	 * @param resolver the resolver function to use
+	 * @return the created instance
+	 * @since 1.0.1
+	 */
+	static DataFetcherExceptionResolverAdapter forSingleError(
+			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
+
+		return new DataFetcherExceptionResolverAdapter() {
+
+			@Override
+			protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
+				return resolver.apply(ex, env);
+			}
+		};
+	}
 
 }
