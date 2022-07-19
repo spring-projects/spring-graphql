@@ -258,6 +258,7 @@ the following:
 - Detect https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
   {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics].
 - Detect `DataFetcherExceptionResolver` beans for <<execution-exceptions, exception resolution>>.
+- Detect `SubscriptionExceptionResolver` beans for <<execution-exceptions-subsctiption, subscription exception resolution>>.
 
 For further customizations, you can declare your own `GraphQlSourceBuilderCustomizer` beans;
 for example, for configuring your own `ExecutionIdProvider`:
@@ -563,6 +564,22 @@ error details.
 
 Unresolved exception are logged at ERROR level along with the `executionId` to correlate
 to the error sent to the client. Resolved exceptions are logged at DEBUG level.
+
+
+[[execution-exceptions-subsctiption]]
+==== Subscription Exceptions
+
+The `Publisher` for a subscription request may complete with an error signal in which case
+the underlying transport (e.g. WebSocket) sends a final "error" type message with a list
+of GraphQL errors.
+
+`DataFetcherExceptionResolver` cannot resolve errors from a subscription `Publisher`,
+since the data `DataFetcher` only creates the `Publisher` initially. After that, the
+transport subscribes to the `Publisher` that may then complete with an error.
+
+An application can register a `SubscriptionExceptionResolver` in order to resolve
+exceptions from a subscription `Publisher` in order to resolve those to GraphQL errors
+to send to the client.
 
 
 
