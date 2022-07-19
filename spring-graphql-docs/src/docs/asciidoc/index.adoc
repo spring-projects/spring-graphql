@@ -62,7 +62,7 @@ specification.
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
 Boot starter does this, see the
-{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints] section for
 details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
 it contains, for the actual config.
 
@@ -103,11 +103,12 @@ The `graphql-ws` project lists a number of
 https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 
 `GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
-`SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. The Boot
-starter has options to enable this, see the
-{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section for
-details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
-it contains, for the actual config.
+`SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. By default,
+the Boot starter does not expose a GraphQL over WebSocket endpoint, but it's easy to
+enable it by adding a property for the endpoint path. Please, see the
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints]
+section for details, or check the `GraphQlWebMvcAutoConfiguration` or the
+`GraphQlWebFluxAutoConfiguration` for the actual Boot starter config.
 
 The Spring for GraphQL repository contains a WebFlux
 {github-main-branch}/samples/webflux-websocket[WebSocket sample] application.
@@ -216,7 +217,7 @@ class HeaderInterceptor implements WebGraphQlInterceptor {
 
 The `WebGraphQlInterceptor` chain can be updated through the `WebGraphQlHandler` builder,
 and the Boot starter uses this, see Boot's section on
-{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints].
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
 
 The <<server-rsocket>> transport handler delegates to a similar `GraphQlInterceptor`
 chain that you can use to intercept GraphQL over RSocket requests.
@@ -517,7 +518,7 @@ public class RequestAttributesAccessor implements ThreadLocalAccessor {
 A `ThreadLocalAccessor` can be registered in the <<server-interception,WebGraphHandler>>
 builder. The Boot starter detects beans of this type and automatically registers them for
 Spring MVC application, see the
-{spring-boot-ref-docs}/web.html#web.graphql.web-endpoints[Web Endpoints] section.
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints] section.
 
 
 [[execution-context-webflux]]

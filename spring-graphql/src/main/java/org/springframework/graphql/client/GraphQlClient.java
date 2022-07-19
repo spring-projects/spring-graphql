@@ -185,7 +185,11 @@ public interface GraphQlClient {
 		RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer);
 
 		/**
-		 * Shortcut for {@link #execute()} with a single field path to decode from.
+		 * Shortcut for {@link #execute()} with a field path to decode from.
+		 * <p>If you want to decode the full data instead, use {@link #execute()}:
+		 * <pre>
+		 * client.document("..").execute().map(response -> response.toEntity(..))
+		 * </pre>
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the target field has any errors,
 		 * including nested errors.
@@ -193,7 +197,12 @@ public interface GraphQlClient {
 		RetrieveSpec retrieve(String path);
 
 		/**
-		 * Shortcut for {@link #executeSubscription()} with a single field path to decode from.
+		 * Shortcut for {@link #executeSubscription()} with a field path to
+		 * decode from for each result.
+		 * <p>If you want to decode the full data, use {@link #executeSubscription()}:
+		 * <pre>
+		 * client.document("..").executeSubscription().map(response -> response.toEntity(..))
+		 * </pre>
 		 * @return a spec with decoding options
 		 */
 		RetrieveSubscriptionSpec retrieveSubscription(String path);
