@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.MappingMatch;
 
 import org.junit.jupiter.api.Test;
 
@@ -31,10 +32,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.ResourceHttpMessageConverter;
+import org.springframework.mock.web.MockHttpServletMapping;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
+import org.springframework.web.util.ServletRequestPathUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -94,6 +97,21 @@ class GraphiQlHandlerTests {
 		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
 		assertThat(response.headers().getLocation()).isNotNull();
 		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("http://localhost/context/graphiql?path=/context/graphql&wsPath=/context/graphql");
+	}
+
+	@Test
+	void shouldConsiderServletPathWhenRedirecting() {
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", "/context/servlet/graphiql");
+		servletRequest.setContextPath("/context");
+		servletRequest.setServletPath("/servlet");
+		servletRequest.setHttpServletMapping(new MockHttpServletMapping(
+				"/graphiql", "/context", "myServlet", MappingMatch.PATH));
+		ServletRequestPathUtils.parseAndCache(servletRequest);
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
+		assertThat(response.headers().getLocation()).isNotNull();
+		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("http://localhost/context/servlet/graphiql?path=/context/servlet/graphql");
 	}
 
 	private String getResponseContent(MockHttpServletRequest servletRequest, ServerResponse response) throws ServletException, IOException {

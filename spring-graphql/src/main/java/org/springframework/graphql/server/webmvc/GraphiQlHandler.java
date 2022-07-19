@@ -78,23 +78,21 @@ public class GraphiQlHandler {
 	}
 
 	private URI getRedirectUrl(ServerRequest request) {
-		String contextPath = request.requestPath().contextPath().toString();
-		String path = request.requestPath().pathWithinApplication().toString();
-		UriBuilder builder = request.uriBuilder().replacePath(contextPath).path(path);
-
-		String pathQueryParam = applyContextPath(request, this.graphQlPath);
+		UriBuilder builder = request.uriBuilder();
+		String pathQueryParam = applyPathPrefix(request, this.graphQlPath);
 		builder.queryParam("path", pathQueryParam);
-
 		if (StringUtils.hasText(this.graphQlWsPath)) {
-			String wsPathQueryParam = applyContextPath(request, this.graphQlWsPath);
+			String wsPathQueryParam = applyPathPrefix(request, this.graphQlWsPath);
 			builder.queryParam("wsPath", wsPathQueryParam);
 		}
 		return builder.build();
 	}
 
-	private String applyContextPath(ServerRequest request, String path) {
-		String contextPath = request.requestPath().contextPath().toString();
-		return StringUtils.hasText(contextPath) ? contextPath + path : path;
+	private String applyPathPrefix(ServerRequest request, String path) {
+		String fullPath = request.requestPath().value();
+		String pathWithinApplication = request.requestPath().pathWithinApplication().toString();
+		int pathWithinApplicationIndex = fullPath.indexOf(pathWithinApplication);
+		return (pathWithinApplicationIndex != -1) ? fullPath.substring(0, pathWithinApplicationIndex) + path : path;
 	}
 
 }
