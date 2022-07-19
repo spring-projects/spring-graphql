@@ -212,11 +212,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				.map(responseMap -> this.codecDelegate.encodeNext(session, id, responseMap))
 				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeComplete(session, id)))
 				.onErrorResume(ex -> {
-						if (ex instanceof SubscriptionExistsException) {
-							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
-							return GraphQlStatus.close(session, status);
-						}
-						return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
+					if (ex instanceof SubscriptionExistsException) {
+						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
+						return GraphQlStatus.close(session, status);
+					}
+					return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
 				});
 	}
 

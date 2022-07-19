@@ -37,11 +37,12 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
-import org.springframework.graphql.server.WebSocketHandlerTestSupport;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
+import org.springframework.graphql.server.WebSocketHandlerTestSupport;
 import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
@@ -309,32 +310,25 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	}
 
 	@Test
-	void errorMessagePayloadIsArray() {
-		final String GREETING_QUERY = "{" +
+	void subscriptionErrorPayloadIsArray() {
+		String query = "{" +
 				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
 				"\"type\":\"subscribe\"," +
-				"\"payload\":{\"query\": \"" +
-				"  subscription TestTypenameSubscription {" +
-				"    greeting" +
-				"  }\"}" +
+				"\"payload\":{\"query\": \"subscription { greetings }\"}" +
 				"}";
 
-		String schema = "type Subscription { greeting: String! } type Query { greetingUnused: String! }";
-
-		WebGraphQlHandler initHandler = GraphQlSetup.schemaContent(schema)
-				.subscriptionFetcher("greeting", env -> Flux.just("a", null, "b"))
-				.interceptor()
-				.toWebGraphQlHandler();
-
-		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
-				initHandler,
-				ServerCodecConfigurer.create(),
-				Duration.ofSeconds(60));
+		String schema = "type Subscription { greetings: String! } type Query { greeting: String! }";
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(GREETING_QUERY)));
-		handler.handle(session).block(TIMEOUT);
+				toWebSocketMessage(query)));
+
+		WebGraphQlHandler webHandler = GraphQlSetup.schemaContent(schema)
+				.subscriptionFetcher("greetings", env -> Flux.just("a", null, "b"))
+				.toWebGraphQlHandler();
+
+		new GraphQlWebSocketHandler(webHandler, ServerCodecConfigurer.create(), TIMEOUT)
+				.handle(session).block(TIMEOUT);
 
 		StepVerifier.create(session.getOutput())
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
@@ -343,22 +337,17 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
 					assertThat(actual.<Map<String, Object>>getPayload())
-							.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-							.containsEntry("greeting", "a");
+							.containsEntry("data", Collections.singletonMap("greetings", "a"));
 				})
 				.consumeNextWith((message) -> {
 					GraphQlWebSocketMessage actual = decode(message);
 					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.ERROR);
-					assertThat(actual.<List<Map<String, Object>>>getPayload())
-							.asList().hasSize(1)
-							.allSatisfy(theError -> assertThat(theError)
-									.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-									.hasSize(3)
-									.hasEntrySatisfying("locations", loc -> assertThat(loc).asList().isEmpty())
-									.hasEntrySatisfying("message", msg -> assertThat(msg).asString().contains("null"))
-									.extractingByKey("extensions", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-									.containsEntry("classification", "DataFetchingException"));
+					List<Map<String, Object>> errors = actual.getPayload();
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0)).containsEntry("message", "Subscription error");
+					assertThat(errors.get(0)).containsEntry("extensions",
+							Collections.singletonMap("classification", ErrorType.INTERNAL_ERROR.name()));
 				})
 				.expectComplete()
 				.verify(TIMEOUT);

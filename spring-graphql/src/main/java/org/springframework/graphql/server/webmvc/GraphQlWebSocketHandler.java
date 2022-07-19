@@ -47,6 +47,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
@@ -281,14 +283,18 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				.map(responseMap -> encode(GraphQlWebSocketMessage.next(id, responseMap)))
 				.concatWith(Mono.fromCallable(() -> encode(GraphQlWebSocketMessage.complete(id))))
 				.onErrorResume((ex) -> {
-						if (ex instanceof SubscriptionExistsException) {
-							CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
-							GraphQlStatus.closeSession(session, status);
-							return Flux.empty();
-						}
-						String message = ex.getMessage();
-						GraphQLError error = GraphqlErrorBuilder.newError().message(message).build();
-						return Mono.just(encode(GraphQlWebSocketMessage.error(id, error)));
+					if (ex instanceof SubscriptionExistsException) {
+						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
+						GraphQlStatus.closeSession(session, status);
+						return Flux.empty();
+					}
+					List<GraphQLError> errors = ((ex instanceof SubscriptionPublisherException) ?
+							((SubscriptionPublisherException) ex).getErrors() :
+							Collections.singletonList(GraphqlErrorBuilder.newError()
+									.message("Subscription error")
+									.errorType(ErrorType.INTERNAL_ERROR)
+									.build()));
+					return Mono.just(encode(GraphQlWebSocketMessage.error(id, errors)));
 				});
 	}
 

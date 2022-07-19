@@ -118,10 +118,11 @@ public class WebGraphQlHandlerTests {
 		nameThreadLocal.set("007");
 		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
-			DataFetcherExceptionResolverAdapter exceptionResolver = DataFetcherExceptionResolverAdapter.from((ex, env) ->
-					GraphqlErrorBuilder.newError(env)
-							.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
-							.errorType(ErrorType.BAD_REQUEST).build());
+			DataFetcherExceptionResolverAdapter exceptionResolver =
+					DataFetcherExceptionResolver.forSingleError((ex, env) ->
+							GraphqlErrorBuilder.newError(env)
+									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+									.errorType(ErrorType.BAD_REQUEST).build());
 			exceptionResolver.setThreadLocalContextAware(true);
 
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup.queryFetcher("greeting", this.errorDataFetcher)

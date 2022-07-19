@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.execution;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -84,12 +83,25 @@ public interface GraphQlSource {
 	interface Builder<B extends Builder<B>> {
 
 		/**
-		 * Add {@link DataFetcherExceptionResolver}s for resolving exceptions
-		 * from {@link graphql.schema.DataFetcher}s.
+		 * Add {@link DataFetcherExceptionResolver}'s that are invoked when a
+		 * {@link graphql.schema.DataFetcher} raises an exception. Resolvers
+		 * are invoked in sequence until one emits a list.
 		 * @param resolvers the resolvers to add
 		 * @return the current builder
 		 */
 		B exceptionResolvers(List<DataFetcherExceptionResolver> resolvers);
+
+		/**
+		 * Add {@link SubscriptionExceptionResolver}s that are invoked when a
+		 * GraphQL subscription {@link org.reactivestreams.Publisher} ends with
+		 * error, and given a chance to resolve the exception to one or more
+		 * GraphQL errors to be sent to the client. Resolvers are invoked in
+		 * sequence until one emits a list.
+		 * @param resolvers the subscription exception resolver
+		 * @return the current builder
+		 * @since 1.0.1
+		 */
+		B subscriptionExceptionResolvers(List<SubscriptionExceptionResolver> resolvers);
 
 		/**
 		 * Add {@link GraphQLTypeVisitor}s to visit all element of the created
@@ -136,7 +148,7 @@ public interface GraphQlSource {
 
 		/**
 		 * Add schema definition resources, typically {@literal ".graphqls"} files, to be
-		 * {@link graphql.schema.idl.SchemaParser#parse(InputStream) parsed} and
+		 * {@link graphql.schema.idl.SchemaParser#parse(java.io.InputStream) parsed} and
 		 * {@link TypeDefinitionRegistry#merge(TypeDefinitionRegistry) merged}.
 		 * @param resources resources with GraphQL schema definitions
 		 * @return the current builder

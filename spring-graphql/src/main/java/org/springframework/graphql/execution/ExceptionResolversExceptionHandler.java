@@ -41,6 +41,7 @@ import org.springframework.util.Assert;
  * in a sequence until one returns a list of {@link GraphQLError}'s.
  *
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 

@@ -15,6 +15,8 @@
  */
 package org.springframework.graphql.server.webflux;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import graphql.GraphQLError;
@@ -25,6 +27,8 @@ import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
@@ -98,13 +102,17 @@ final class CodecDelegate {
 	}
 
 	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
-		GraphQLError error = GraphqlErrorBuilder.newError().message(ex.getMessage()).build();
-		return encode(session, GraphQlWebSocketMessage.error(id, error));
+		List<GraphQLError> errors = ((ex instanceof SubscriptionPublisherException) ?
+				((SubscriptionPublisherException) ex).getErrors() :
+				Collections.singletonList(GraphqlErrorBuilder.newError()
+						.message("Subscription error")
+						.errorType(ErrorType.INTERNAL_ERROR)
+						.build()));
+		return encode(session, GraphQlWebSocketMessage.error(id, errors));
 	}
 
 	public WebSocketMessage encodeComplete(WebSocketSession session, String id) {
 		return encode(session, GraphQlWebSocketMessage.complete(id));
 	}
-
 
 }

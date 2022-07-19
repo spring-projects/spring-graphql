@@ -150,6 +150,9 @@ public class ResponseHelper {
 
 	public static Flux<ResponseHelper> forSubscription(ExecutionResult result) {
 		assertThat(result.getErrors()).as("Errors present in GraphQL response").isEmpty();
+		Object data = result.getData();
+		assertThat(data).as("Expected Publisher from subscription").isNotNull();
+		assertThat(data).as("Expected Publisher from subscription").isInstanceOf(Publisher.class);
 		Publisher<ExecutionResult> publisher = result.getData();
 		return Flux.from(publisher).map(ResponseHelper::forResult);
 	}

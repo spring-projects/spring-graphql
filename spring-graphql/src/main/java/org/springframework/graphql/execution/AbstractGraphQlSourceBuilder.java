@@ -43,6 +43,8 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
+	private final List<SubscriptionExceptionResolver> subscriptionExceptionResolvers = new ArrayList<>();
+
 	private final List<GraphQLTypeVisitor> typeVisitors = new ArrayList<>();
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
@@ -54,6 +56,12 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	@Override
 	public B exceptionResolvers(List<DataFetcherExceptionResolver> resolvers) {
 		this.exceptionResolvers.addAll(resolvers);
+		return self();
+	}
+
+	@Override
+	public B subscriptionExceptionResolvers(List<SubscriptionExceptionResolver> resolvers) {
+		this.subscriptionExceptionResolvers.addAll(resolvers);
 		return self();
 	}
 
@@ -105,8 +113,9 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	protected abstract GraphQLSchema initGraphQlSchema();
 
 	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
+		GraphQLTypeVisitor visitor = ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers);
 		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
-		visitors.add(ContextDataFetcherDecorator.TYPE_VISITOR);
+		visitors.add(visitor);
 
 		GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
 		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, codeRegistry);

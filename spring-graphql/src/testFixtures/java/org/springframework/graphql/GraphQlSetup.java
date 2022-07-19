@@ -34,6 +34,7 @@ import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
+import org.springframework.graphql.execution.SubscriptionExceptionResolver;
 import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
@@ -96,6 +97,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public GraphQlSetup exceptionResolver(DataFetcherExceptionResolver... resolvers) {
 		this.graphQlSourceBuilder.exceptionResolvers(Arrays.asList(resolvers));
+		return this;
+	}
+
+	public GraphQlSetup subscriptionExceptionResolvers(SubscriptionExceptionResolver... resolvers) {
+		this.graphQlSourceBuilder.subscriptionExceptionResolvers(Arrays.asList(resolvers));
 		return this;
 	}
 

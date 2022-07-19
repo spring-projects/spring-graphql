@@ -51,7 +51,7 @@ public class ExceptionResolversExceptionHandlerTests {
 	@Test
 	void resolveException() throws Exception {
 		DataFetcherExceptionResolver resolver =
-				DataFetcherExceptionResolverAdapter.from((ex, env) ->
+				DataFetcherExceptionResolver.forSingleError((ex, env) ->
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage())
 								.errorType(ErrorType.BAD_REQUEST).build());
@@ -93,7 +93,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
 		try {
 			DataFetcherExceptionResolverAdapter resolver =
-					DataFetcherExceptionResolverAdapter.from((ex, env) ->
+					DataFetcherExceptionResolver.forSingleError((ex, env) ->
 							GraphqlErrorBuilder.newError(env)
 									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
 									.errorType(ErrorType.BAD_REQUEST)
@@ -119,7 +119,7 @@ public class ExceptionResolversExceptionHandlerTests {
 	@Test
 	void unresolvedException() throws Exception {
 		DataFetcherExceptionResolverAdapter resolver =
-				DataFetcherExceptionResolverAdapter.from((ex, env) -> null);
+				DataFetcherExceptionResolver.forSingleError((ex, env) -> null);
 
 		ExecutionResult result = this.graphQlSetup.exceptionResolver(resolver).toGraphQl()
 				.executeAsync(this.input).get();
