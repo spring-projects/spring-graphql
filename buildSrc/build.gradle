@@ -9,9 +9,6 @@ repositories {
 	maven { url "https://repo.spring.io/release" }
 }
 
-sourceCompatibility = 17
-targetCompatibility = 17
-
 dependencies {
 	checkstyle "io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}"
 	implementation("io.spring.javaformat:spring-javaformat-gradle-plugin:${javaFormatVersion}")
