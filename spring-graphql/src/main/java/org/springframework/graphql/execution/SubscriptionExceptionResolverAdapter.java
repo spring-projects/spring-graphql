@@ -44,9 +44,50 @@ import org.springframework.lang.Nullable;
  */
 public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
 
+    private boolean threadLocalContextAware;
+
+
+    /**
+     * Subclasses can set this to indicate that ThreadLocal context from the
+     * transport handler (e.g. HTTP handler) should be restored when resolving
+     * exceptions.
+     * <p><strong>Note:</strong> This property is applicable only if transports
+     * use ThreadLocal's' (e.g. Spring MVC) and if a {@link ThreadLocalAccessor}
+     * is registered to extract ThreadLocal values of interest. There is no
+     * impact from setting this property otherwise.
+     * <p>By default this is set to "false" in which case there is no attempt
+     * to propagate ThreadLocal context.
+     * @param threadLocalContextAware whether this resolver needs access to
+     * ThreadLocal context or not.
+     */
+    public void setThreadLocalContextAware(boolean threadLocalContextAware) {
+        this.threadLocalContextAware = threadLocalContextAware;
+    }
+
+    /**
+     * Whether ThreadLocal context needs to be restored for this resolver.
+     */
+    public boolean isThreadLocalContextAware() {
+        return this.threadLocalContextAware;
+    }
+
+
     @Override
     public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
-        return Mono.justOrEmpty(resolveToMultipleErrors(exception));
+        if (!this.threadLocalContextAware) {
+            return Mono.justOrEmpty(resolveToMultipleErrors(exception));
+        }
+        return Mono.deferContextual(contextView -> {
+            List<GraphQLError> errors;
+            try {
+                ReactorContextManager.restoreThreadLocalValues(contextView);
+                errors = resolveToMultipleErrors(exception);
+            }
+            finally {
+                ReactorContextManager.resetThreadLocalValues(contextView);
+            }
+            return Mono.justOrEmpty(errors);
+        });
     }
 
     /**

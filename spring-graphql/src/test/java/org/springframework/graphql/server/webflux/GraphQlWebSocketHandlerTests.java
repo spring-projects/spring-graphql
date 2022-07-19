@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
-import graphql.GraphqlErrorBuilder;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -39,7 +38,6 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.execution.SubscriptionExceptionResolver;
 import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
@@ -313,23 +311,20 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 	@Test
 	void subscriptionErrorPayloadIsArray() {
-		final String GREETING_QUERY = "{" +
+		String query = "{" +
 				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
 				"\"type\":\"subscribe\"," +
-				"\"payload\":{\"query\": \"" +
-				"  subscription TestTypenameSubscription {" +
-				"    greeting" +
-				"  }\"}" +
+				"\"payload\":{\"query\": \"subscription { greetings }\"}" +
 				"}";
 
-		String schema = "type Subscription { greeting: String! } type Query { greetingUnused: String! }";
+		String schema = "type Subscription { greetings: String! } type Query { greeting: String! }";
 
 		TestWebSocketSession session = new TestWebSocketSession(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(GREETING_QUERY)));
+				toWebSocketMessage(query)));
 
 		WebGraphQlHandler webHandler = GraphQlSetup.schemaContent(schema)
-				.subscriptionFetcher("greeting", env -> Flux.just("a", null, "b"))
+				.subscriptionFetcher("greetings", env -> Flux.just("a", null, "b"))
 				.toWebGraphQlHandler();
 
 		new GraphQlWebSocketHandler(webHandler, ServerCodecConfigurer.create(), TIMEOUT)
@@ -342,7 +337,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
 					assertThat(actual.<Map<String, Object>>getPayload())
-							.containsEntry("data", Collections.singletonMap("greeting", "a"));
+							.containsEntry("data", Collections.singletonMap("greetings", "a"));
 				})
 				.consumeNextWith((message) -> {
 					GraphQlWebSocketMessage actual = decode(message);
@@ -353,63 +348,6 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 					assertThat(errors.get(0)).containsEntry("message", "Subscription error");
 					assertThat(errors.get(0)).containsEntry("extensions",
 							Collections.singletonMap("classification", ErrorType.INTERNAL_ERROR.name()));
-				})
-				.expectComplete()
-				.verify(TIMEOUT);
-	}
-
-	@Test
-	void subscriptionPublisherExceptionResolved() {
-		final String GREETING_QUERY = "{" +
-				"\"id\":\"" + SUBSCRIPTION_ID + "\"," +
-				"\"type\":\"subscribe\"," +
-				"\"payload\":{\"query\": \"" +
-				"  subscription TestTypenameSubscription {" +
-				"    greeting" +
-				"  }\"}" +
-				"}";
-
-		String schema = "type Subscription { greeting: String! } type Query { greetingUnused: String! }";
-
-		TestWebSocketSession session = new TestWebSocketSession(Flux.just(
-				toWebSocketMessage("{\"type\":\"connection_init\"}"),
-				toWebSocketMessage(GREETING_QUERY)));
-
-		WebGraphQlHandler webHandler = GraphQlSetup.schemaContent(schema)
-				.subscriptionFetcher("greeting", env ->
-						Flux.create(emitter -> {
-							emitter.next("a");
-							emitter.error(new RuntimeException("Test Exception"));
-							emitter.next("b");
-						}))
-				.subscriptionExceptionResolvers(SubscriptionExceptionResolver.forSingleError(exception ->
-						GraphqlErrorBuilder.newError()
-								.message("Error: " + exception.getMessage())
-								.errorType(ErrorType.BAD_REQUEST)
-								.build()))
-				.toWebGraphQlHandler();
-
-		new GraphQlWebSocketHandler(webHandler, ServerCodecConfigurer.create(), TIMEOUT)
-				.handle(session).block(TIMEOUT);
-
-		StepVerifier.create(session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
-				.consumeNextWith((message) -> {
-					GraphQlWebSocketMessage actual = decode(message);
-					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
-					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
-					assertThat(actual.<Map<String, Object>>getPayload())
-							.containsEntry("data", Collections.singletonMap("greeting", "a"));
-				})
-				.consumeNextWith((message) -> {
-					GraphQlWebSocketMessage actual = decode(message);
-					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
-					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.ERROR);
-					List<Map<String, Object>> errors = actual.getPayload();
-					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0)).containsEntry("message", "Error: Test Exception");
-					assertThat(errors.get(0)).containsEntry("extensions",
-							Collections.singletonMap("classification", ErrorType.BAD_REQUEST.name()));
 				})
 				.expectComplete()
 				.verify(TIMEOUT);
