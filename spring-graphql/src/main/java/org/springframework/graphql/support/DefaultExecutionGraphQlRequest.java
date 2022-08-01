@@ -50,7 +50,6 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 	@Nullable
 	private ExecutionId executionId;
 
-	@Nullable
 	private final Locale locale;
 
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers = new ArrayList<>();
@@ -73,7 +72,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 		super(document, operationName, variables, extensions);
 		Assert.notNull(id, "'id' is required");
 		this.id = id;
-		this.locale = locale;
+		this.locale = (locale != null) ? locale : Locale.getDefault();
 	}
 
 
@@ -95,7 +94,6 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 	}
 
 	@Override
-	@Nullable
 	public Locale getLocale() {
 		return this.locale;
 	}

@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -294,7 +295,7 @@ class QuerydslDataFetcherTests {
 
 	private WebGraphQlRequest request(String query) {
 		return new WebGraphQlRequest(
-				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
+				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", Locale.ENGLISH);
 	}
 
 

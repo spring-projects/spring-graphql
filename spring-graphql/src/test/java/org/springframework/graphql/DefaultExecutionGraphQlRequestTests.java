@@ -16,6 +16,8 @@
 
 package org.springframework.graphql;
 
+import java.util.Locale;
+
 import graphql.execution.ExecutionId;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +46,11 @@ class DefaultExecutionGraphQlRequestTests {
 		ExecutionId customId = ExecutionId.from("customId");
 		this.request.executionId(customId);
 		assertThat(this.request.toExecutionInput().getExecutionId()).isEqualTo(customId);
+	}
+
+	@Test
+	void shouldHaveDefaultLocale() {
+		assertThat(this.request.getLocale()).isEqualTo(Locale.getDefault());
 	}
 
 }
