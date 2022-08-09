@@ -44,7 +44,6 @@ import org.springframework.data.querydsl.binding.QuerydslBindings;
 import org.springframework.data.querydsl.binding.QuerydslPredicateBuilder;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
-import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -289,7 +288,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
-		private final ClassTypeInformation<T> domainType;
+		private final TypeInformation<T> domainType;
 
 		private final Class<R> resultType;
 
@@ -300,13 +299,13 @@ public abstract class QuerydslDataFetcher<T> {
 		@SuppressWarnings("unchecked")
 		Builder(QuerydslPredicateExecutor<T> executor, Class<R> domainType) {
 			this(executor,
-					ClassTypeInformation.from((Class<T>) domainType),
+					TypeInformation.of((Class<T>) domainType),
 					domainType,
 					Sort.unsorted(),
 					NO_OP_BINDER_CUSTOMIZER);
 		}
 
-		Builder(QuerydslPredicateExecutor<T> executor, ClassTypeInformation<T> domainType,
+		Builder(QuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			this.executor = executor;
@@ -400,7 +399,7 @@ public abstract class QuerydslDataFetcher<T> {
 		@SuppressWarnings("unchecked")
 		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor, Class<R> domainType) {
 			this(executor,
-					ClassTypeInformation.from((Class<T>) domainType),
+					TypeInformation.of((Class<T>) domainType),
 					domainType,
 					Sort.unsorted(),
 					NO_OP_BINDER_CUSTOMIZER);

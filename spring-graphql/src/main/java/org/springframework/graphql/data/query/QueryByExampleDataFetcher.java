@@ -38,7 +38,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
-import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
@@ -246,7 +245,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final QueryByExampleExecutor<T> executor;
 
-		private final ClassTypeInformation<T> domainType;
+		private final TypeInformation<T> domainType;
 
 		private final Class<R> resultType;
 
@@ -254,10 +253,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@SuppressWarnings("unchecked")
 		Builder(QueryByExampleExecutor<T> executor, Class<R> domainType) {
-			this(executor, ClassTypeInformation.from((Class<T>) domainType), domainType, Sort.unsorted());
+			this(executor, TypeInformation.of((Class<T>) domainType), domainType, Sort.unsorted());
 		}
 
-		Builder(QueryByExampleExecutor<T> executor, ClassTypeInformation<T> domainType, Class<R> resultType, Sort sort) {
+		Builder(QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType, Sort sort) {
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
@@ -326,7 +325,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@SuppressWarnings("unchecked")
 		ReactiveBuilder(ReactiveQueryByExampleExecutor<T> executor, Class<R> domainType) {
-			this(executor, ClassTypeInformation.from((Class<T>) domainType), domainType, Sort.unsorted());
+			this(executor, TypeInformation.of((Class<T>) domainType), domainType, Sort.unsorted());
 		}
 
 		ReactiveBuilder(
