@@ -59,10 +59,10 @@ configure(moduleProjects) {
 	dependencyManagement {
 		imports {
 			mavenBom "com.fasterxml.jackson:jackson-bom:2.13.3"
-			mavenBom "io.projectreactor:reactor-bom:2022.0.0-M2"
-			mavenBom "org.springframework:spring-framework-bom:6.0.0-SNAPSHOT"
-			mavenBom "org.springframework.data:spring-data-bom:2022.0.0-M4"
-			mavenBom "org.springframework.security:spring-security-bom:6.0.0-M5"
+			mavenBom "io.projectreactor:reactor-bom:2022.0.0-M4"
+			mavenBom "org.springframework:spring-framework-bom:6.0.0-M5"
+			mavenBom "org.springframework.data:spring-data-bom:2022.0.0-M5"
+			mavenBom "org.springframework.security:spring-security-bom:6.0.0-M6"
 			mavenBom "com.querydsl:querydsl-bom:5.0.0"
 			mavenBom "io.rsocket:rsocket-bom:1.1.2"
 			mavenBom "org.jetbrains.kotlin:kotlin-bom:1.7.0"
