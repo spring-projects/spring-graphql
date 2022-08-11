@@ -213,7 +213,7 @@ public class GraphQlArgumentBinder {
 		int i = 0;
 		for (Object rawValue : rawCollection) {
 			segments.push("[" + i++ + "]");
-			if (elementClass.isAssignableFrom(rawValue.getClass())) {
+			if (rawValue == null || elementClass.isAssignableFrom(rawValue.getClass())) {
 				collection.add((T) rawValue);
 			}
 			else if (rawValue instanceof Map) {
