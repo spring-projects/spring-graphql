@@ -320,7 +320,7 @@ For example, given a file called `projectReleases.graphql` in
 `src/main/resources/graphql-documents`, with content:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
-.src/main/resources/graphql/project.graphql
+.src/main/resources/graphql-documents/projectReleases.graphql
 ----
 	query projectReleases($slug: ID!) {
 		project(slug: $slug) {
@@ -341,7 +341,7 @@ You can then:
 			.retrieve()
 			.toEntity(Project.class);
 ----
-<1> Load the document from "project.graphql"
+<1> Load the document from "projectReleases.graphql"
 <2> Provide variable values.
 
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
