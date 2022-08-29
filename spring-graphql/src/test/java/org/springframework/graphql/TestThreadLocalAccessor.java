@@ -16,72 +16,58 @@
 
 package org.springframework.graphql;
 
-import java.util.Map;
+import io.micrometer.context.ThreadLocalAccessor;
 
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link ThreadLocalAccessor} that operates on the ThreadLocal it is given.
  */
-public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor {
+public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor<T> {
 
 	private final ThreadLocal<T> threadLocal;
 
 	@Nullable
 	private Long threadId;
 
-	private final boolean suppressThreadIdCheck;
 
 	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal) {
-		this(threadLocal, false);
-	}
-
-	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal, boolean suppressThreadIdCheck) {
 		this.threadLocal = threadLocal;
-		this.suppressThreadIdCheck = suppressThreadIdCheck;
+	}
+
+
+	@Override
+	public Object key() {
+		return getClass().getName();
 	}
 
 	@Override
-	public void extractValues(Map<String, Object> container) {
-		saveThreadId();
-		T name = this.threadLocal.get();
-		Assert.notNull(name, "No ThreadLocal value");
-		container.put("name", name);
+	public T getValue() {
+		T value = this.threadLocal.get();
+
+		// Only save thread id on initial call (restore looks up previous value) and if there is a value.
+		if (value != null && this.threadId == null) {
+			this.threadId = Thread.currentThread().getId();
+		}
+
+		return value;
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	public void restoreValues(Map<String, Object> values) {
-		checkThreadId();
-		T name = (T) values.get("name");
-		Assert.notNull(name, "No value to set");
-		this.threadLocal.set(name);
+	public void setValue(T value) {
+		if (this.threadId != null) {
+			assertThat(Thread.currentThread().getId() != this.threadId)
+					.as("ThreadLocal restored on the same thread. Propagation not tested effectively.")
+					.isTrue();
+		}
+		this.threadLocal.set(value);
 	}
 
 	@Override
-	public void resetValues(Map<String, Object> values) {
+	public void reset() {
 		this.threadLocal.remove();
-	}
-
-	private void saveThreadId() {
-		if (this.suppressThreadIdCheck) {
-			return;
-		}
-		this.threadId = Thread.currentThread().getId();
-	}
-
-	private void checkThreadId() {
-		if (this.suppressThreadIdCheck) {
-			return;
-		}
-		assertThat(this.threadId).as("No threadId to check. Was extractValues not called?").isNotNull();
-		assertThat(Thread.currentThread().getId() != this.threadId)
-				.as("ThreadLocal value extracted and restored on the same thread. Propagation not tested effectively.")
-				.isTrue();
 	}
 
 }

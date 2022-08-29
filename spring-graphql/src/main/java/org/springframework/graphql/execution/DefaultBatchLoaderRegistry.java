@@ -19,11 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import graphql.GraphQLContext;
+import io.micrometer.context.ContextSnapshot;
 import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.BatchLoaderEnvironment;
 import org.dataloader.BatchLoaderWithContext;
@@ -34,7 +36,6 @@ import org.dataloader.DataLoaderRegistry;
 import org.dataloader.MappedBatchLoaderWithContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -188,16 +189,20 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
-			ContextView contextView = ReactorContextManager.getReactorContext(environment.getContext());
+			GraphQLContext graphQLContext = environment.getContext();
+			ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
 			try {
-				ReactorContextManager.restoreThreadLocalValues(contextView);
-				return this.loader.apply(keys, environment).collectList().contextWrite(contextView).toFuture();
+				return snapshot.wrap(() ->
+								this.loader.apply(keys, environment)
+										.collectList()
+										.contextWrite(snapshot::updateContext)
+										.toFuture())
+						.call();
 			}
-			finally {
-				ReactorContextManager.resetThreadLocalValues(contextView);
+			catch (Exception ex) {
+				return CompletableFuture.failedFuture(ex);
 			}
 		}
-
 	}
 
 
@@ -239,13 +244,17 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
-			ContextView contextView = ReactorContextManager.getReactorContext(environment.getContext());
+			GraphQLContext graphQLContext = environment.getContext();
+			ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
 			try {
-				ReactorContextManager.restoreThreadLocalValues(contextView);
-				return this.loader.apply(keys, environment).contextWrite(contextView).toFuture();
+				return snapshot.wrap(() ->
+								this.loader.apply(keys, environment)
+										.contextWrite(snapshot::updateContext)
+										.toFuture())
+						.call();
 			}
-			finally {
-				ReactorContextManager.resetThreadLocalValues(contextView);
+			catch (Exception ex) {
+				return CompletableFuture.failedFuture(ex);
 			}
 		}
 

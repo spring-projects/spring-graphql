@@ -21,8 +21,11 @@ import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
+import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ThreadLocalAccessor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 
 import org.springframework.lang.Nullable;
 
@@ -46,6 +49,8 @@ import org.springframework.lang.Nullable;
  * @since 1.0.0
  */
 public abstract class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
+
+	protected final Log logger = LogFactory.getLog(getClass());
 
 	private boolean threadLocalContextAware;
 
@@ -88,17 +93,18 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	}
 
 	@Nullable
-	private List<GraphQLError> resolveInternal(Throwable ex, DataFetchingEnvironment env) {
+	private List<GraphQLError> resolveInternal(Throwable exception, DataFetchingEnvironment env) {
 		if (!this.threadLocalContextAware) {
-			return resolveToMultipleErrors(ex, env);
+			return resolveToMultipleErrors(exception, env);
 		}
-		ContextView contextView = ReactorContextManager.getReactorContext(env.getGraphQlContext());
 		try {
-			ReactorContextManager.restoreThreadLocalValues(contextView);
-			return resolveToMultipleErrors(ex, env);
+			return ContextSnapshot.captureFrom(env.getGraphQlContext())
+					.wrap(() -> resolveToMultipleErrors(exception, env))
+					.call();
 		}
-		finally {
-			ReactorContextManager.resetThreadLocalValues(contextView);
+		catch (Exception ex2) {
+			logger.warn("Failed to resolve " + exception, ex2);
+			return null;
 		}
 	}
 

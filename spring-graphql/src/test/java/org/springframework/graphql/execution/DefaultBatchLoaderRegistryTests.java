@@ -28,8 +28,6 @@ import org.dataloader.stats.StatisticsCollector;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
-import reactor.util.context.ContextView;
 
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
@@ -59,7 +57,10 @@ public class DefaultBatchLoaderRegistryTests {
 							return Flux.fromIterable(ids).map(BookSource::getBook);
 						}));
 
-		GraphQLContext graphQLContext = initGraphQLContext(Context.of("key", "value"));
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("").build();
+
+		GraphQLContext graphQLContext = input.getGraphQLContext();
+		graphQLContext.put("key", "value");
 		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry, graphQLContext);
 
 		Map<String, DataLoader<?, ?>> map = this.dataLoaderRegistry.getDataLoadersMap();
@@ -82,7 +83,10 @@ public class DefaultBatchLoaderRegistryTests {
 							return Flux.fromIterable(ids).map(BookSource::getBook).collectMap(Book::getId, Function.identity());
 						}));
 
-		GraphQLContext graphQLContext = initGraphQLContext(Context.of("key", "value"));
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("").build();
+
+		GraphQLContext graphQLContext = input.getGraphQLContext();
+		graphQLContext.put("key", "value");
 		this.batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry, graphQLContext);
 
 		Map<String, DataLoader<?, ?>> map = this.dataLoaderRegistry.getDataLoadersMap();
@@ -107,12 +111,6 @@ public class DefaultBatchLoaderRegistryTests {
 		Map<String, DataLoader<?, ?>> map = dataLoaderRegistry.getDataLoadersMap();
 		assertThat(map).hasSize(1).containsKey(name);
 		assertThat(map.get(name).getStatistics()).isSameAs(collector.getStatistics());
-	}
-
-	private GraphQLContext initGraphQLContext(ContextView context) {
-		ExecutionInput executionInput = ExecutionInput.newExecutionInput().query("").build();
-		ReactorContextManager.setReactorContext(context, executionInput.getGraphQLContext());
-		return executionInput.getGraphQLContext();
 	}
 
 }

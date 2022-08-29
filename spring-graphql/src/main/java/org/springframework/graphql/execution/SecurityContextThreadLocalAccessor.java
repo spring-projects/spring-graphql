@@ -17,36 +17,136 @@ package org.springframework.graphql.execution;
 
 import java.util.Map;
 
+import io.micrometer.context.ThreadLocalAccessor;
+
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.ClassUtils;
 
 /**
  * {@link ThreadLocalAccessor} to extract and restore security context through
- * {@link SecurityContextHolder}.
+ * {@link SecurityContextHolder}. This accessor is automatically registered via
+ * {@link java.util.ServiceLoader} but applies if Spring Security is present on
+ * the classpath.
  *
  * @author Rob Winch
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor {
+@SuppressWarnings("deprecation")
+public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<Object>,
+		org.springframework.graphql.execution.ThreadLocalAccessor {
 
-	private static final String KEY = SecurityContext.class.getName();
+	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+			"org.springframework.security.core.context.SecurityContext",
+			SecurityContextThreadLocalAccessor.class.getClassLoader());
+
+
+	private final ThreadLocalAccessor<?> delegate;
+
+
+	public SecurityContextThreadLocalAccessor() {
+		if (springSecurityPresent) {
+			this.delegate = new DelegateAccessor();
+		}
+		else {
+			this.delegate = new NoOpAccessor();
+		}
+	}
+
+
+	@Override
+	public Object key() {
+		return this.delegate.key();
+	}
+
+	@Override
+	public Object getValue() {
+		return this.delegate.getValue();
+	}
+
+	@Override
+	public void setValue(Object value) {
+		setValueInternal(value);
+	}
+
+	@SuppressWarnings("unchecked")
+	private <V> void setValueInternal(Object value) {
+		((ThreadLocalAccessor<V>) this.delegate).setValue((V) value);
+	}
+
+	@Override
+	public void reset() {
+		this.delegate.reset();
+	}
+
+
+	// Temporary implementation of deprecated ThreadLocalAccessor while it is still used
+	// in the Boot starter. If registered as such, it is ignored.
 
 	@Override
 	public void extractValues(Map<String, Object> container) {
-		container.put(KEY, SecurityContextHolder.getContext());
+		container.put((String) key(), SecurityContextHolder.getContext());
 	}
 
 	@Override
 	public void restoreValues(Map<String, Object> values) {
-		if (values.containsKey(KEY)) {
-			SecurityContextHolder.setContext((SecurityContext) values.get(KEY));
+		if (values.containsKey((String) key())) {
+			SecurityContextHolder.setContext((SecurityContext) values.get((String) key()));
 		}
 	}
 
 	@Override
 	public void resetValues(Map<String, Object> values) {
 		SecurityContextHolder.clearContext();
+	}
+
+
+	private static class DelegateAccessor implements ThreadLocalAccessor<Object> {
+
+		@Override
+		public Object key() {
+			return SecurityContext.class.getName();
+		}
+
+		@Override
+		public Object getValue() {
+			return SecurityContextHolder.getContext();
+		}
+
+		@Override
+		public void setValue(Object value) {
+			SecurityContextHolder.setContext((SecurityContext) value);
+		}
+
+		@Override
+		public void reset() {
+			SecurityContextHolder.clearContext();
+		}
+
+	}
+
+
+	private static class NoOpAccessor implements ThreadLocalAccessor<Object> {
+
+		@Override
+		public Object key() {
+			return getClass().getName();
+		}
+
+		@Override
+		public Object getValue() {
+			return null;
+		}
+
+		@Override
+		public void setValue(Object value) {
+		}
+
+		@Override
+		public void reset() {
+		}
+
 	}
 
 }

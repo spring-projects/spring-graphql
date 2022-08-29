@@ -29,10 +29,10 @@ import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
+import io.micrometer.context.ContextSnapshot;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
 
@@ -70,29 +70,23 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
 
-		Object value = ReactorContextManager.invokeCallable(() ->
-				this.delegate.get(environment), environment.getGraphQlContext());
-
-		ContextView contextView = ReactorContextManager.getReactorContext(environment.getGraphQlContext());
+		ContextSnapshot snapshot = ContextSnapshot.captureFrom(environment.getGraphQlContext());
+		Object value = snapshot.wrap(() -> this.delegate.get(environment)).call();
 
 		if (this.subscription) {
 			Assert.state(value instanceof Publisher, "Expected Publisher for a subscription");
 			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume(exception ->
 					this.subscriptionExceptionResolver.resolveException(exception)
 							.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, exception))));
-			return (!contextView.isEmpty() ? flux.contextWrite(contextView) : flux);
+			return flux.contextWrite(snapshot::updateContext);
 		}
 
 		if (value instanceof Flux) {
 			value = ((Flux<?>) value).collectList();
 		}
 
-		if (value instanceof Mono) {
-			Mono<?> valueMono = (Mono<?>) value;
-			if (!contextView.isEmpty()) {
-				valueMono = valueMono.contextWrite(contextView);
-			}
-			value = valueMono.toFuture();
+		if (value instanceof Mono<?> valueMono) {
+			value = valueMono.contextWrite(snapshot::updateContext).toFuture();
 		}
 
 		return value;

@@ -12,6 +12,7 @@ dependencies {
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'org.springframework:spring-messaging'
+	compileOnly 'io.micrometer:context-propagation'
 	compileOnly 'jakarta.servlet:jakarta.servlet-api'
 	compileOnly 'jakarta.validation:jakarta.validation-api'
 
@@ -41,6 +42,7 @@ dependencies {
 	testImplementation 'org.springframework.data:spring-data-commons'
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
 	testImplementation 'org.springframework.data:spring-data-jpa'
+	testImplementation 'io.micrometer:context-propagation'
 	testImplementation 'com.h2database:h2'
 	testImplementation 'org.hibernate:hibernate-core-jakarta'
 	testImplementation 'org.hibernate.validator:hibernate-validator'

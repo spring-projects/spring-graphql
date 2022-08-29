@@ -26,11 +26,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import graphql.GraphQLContext;
+import io.micrometer.context.ContextSnapshot;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
-import org.springframework.graphql.execution.ReactorContextManager;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -114,7 +114,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			return CompletableFuture.supplyAsync(
 					() -> {
 						try {
-							return ReactorContextManager.invokeCallable((Callable<?>) result, graphQLContext);
+							return ContextSnapshot.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
 						}
 						catch (Exception ex) {
 							throw new IllegalStateException(

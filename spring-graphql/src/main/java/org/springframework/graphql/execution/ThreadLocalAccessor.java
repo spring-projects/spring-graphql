@@ -37,8 +37,12 @@ import org.springframework.beans.factory.ObjectProvider;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @deprecated as of 1.1.0 in favor of using
+ * {@link io.micrometer.context.ThreadLocalAccessor} from the
+ * {@code "io.micrometer:context-propagation"} library.
  * @see org.springframework.graphql.server.WebGraphQlHandler.Builder#threadLocalAccessor(ThreadLocalAccessor...)
  */
+@Deprecated
 public interface ThreadLocalAccessor {
 
 	/**

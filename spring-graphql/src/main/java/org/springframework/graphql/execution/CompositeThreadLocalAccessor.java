@@ -28,6 +28,7 @@ import java.util.Map;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
+@SuppressWarnings("deprecation")
 class CompositeThreadLocalAccessor implements ThreadLocalAccessor {
 
 	private final List<ThreadLocalAccessor> accessors;

@@ -24,6 +24,7 @@ import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
 import graphql.execution.ExecutionIdProvider;
+import io.micrometer.context.ContextSnapshot;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
 
@@ -76,7 +77,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 				request.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
 			}
 			ExecutionInput executionInput = request.toExecutionInput();
-			ReactorContextManager.setReactorContext(contextView, executionInput.getGraphQLContext());
+			ContextSnapshot.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
 			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
 					.map(result -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));

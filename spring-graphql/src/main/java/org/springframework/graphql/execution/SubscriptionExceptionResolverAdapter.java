@@ -21,6 +21,10 @@ import java.util.List;
 import java.util.function.Function;
 
 import graphql.GraphQLError;
+import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ThreadLocalAccessor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.lang.Nullable;
@@ -43,6 +47,8 @@ import org.springframework.lang.Nullable;
  * @see SubscriptionExceptionResolver
  */
 public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
+
+    protected final Log logger = LogFactory.getLog(getClass());
 
     private boolean threadLocalContextAware;
 
@@ -72,22 +78,25 @@ public abstract class SubscriptionExceptionResolverAdapter implements Subscripti
     }
 
 
+    @SuppressWarnings({"unused", "try"})
     @Override
     public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
-        if (!this.threadLocalContextAware) {
+        if (this.threadLocalContextAware) {
+            return Mono.deferContextual(contextView -> {
+                ContextSnapshot snapshot = ContextSnapshot.captureFrom(contextView);
+                try {
+                    List<GraphQLError> errors = snapshot.wrap(() -> resolveToMultipleErrors(exception)).call();
+                    return Mono.justOrEmpty(errors);
+                }
+                catch (Exception ex2) {
+                    logger.warn("Failed to resolve " + exception, ex2);
+                    return Mono.empty();
+                }
+            });
+        }
+        else {
             return Mono.justOrEmpty(resolveToMultipleErrors(exception));
         }
-        return Mono.deferContextual(contextView -> {
-            List<GraphQLError> errors;
-            try {
-                ReactorContextManager.restoreThreadLocalValues(contextView);
-                errors = resolveToMultipleErrors(exception);
-            }
-            finally {
-                ReactorContextManager.resetThreadLocalValues(contextView);
-            }
-            return Mono.justOrEmpty(errors);
-        });
     }
 
     /**

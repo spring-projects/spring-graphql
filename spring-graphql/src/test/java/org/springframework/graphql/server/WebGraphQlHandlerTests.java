@@ -22,6 +22,7 @@ import java.util.Collections;
 
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetcher;
+import io.micrometer.context.ContextRegistry;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -92,15 +93,13 @@ public class WebGraphQlHandlerTests {
 
 	@Test
 	void threadLocalContextPropagation() {
-		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
-		nameThreadLocal.set("007");
-		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
+		ThreadLocal<String> threadLocal = new ThreadLocal<>();
+		threadLocal.set("007");
+		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
 		try {
-
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup
-					.queryFetcher("greeting", env -> "Hello " + nameThreadLocal.get())
+					.queryFetcher("greeting", env -> "Hello " + threadLocal.get())
 					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
-					.threadLocalAccessor(threadLocalAccessor)
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
 
@@ -108,27 +107,26 @@ public class WebGraphQlHandlerTests {
 			assertThat(greeting).isEqualTo("Hello 007");
 		}
 		finally {
-			nameThreadLocal.remove();
+			threadLocal.remove();
 		}
 	}
 
 	@Test
 	void threadLocalContextPropagationToExceptionResolver() {
-		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
-		nameThreadLocal.set("007");
-		TestThreadLocalAccessor<String> threadLocalAccessor = new TestThreadLocalAccessor<>(nameThreadLocal);
+		ThreadLocal<String> threadLocal = new ThreadLocal<>();
+		threadLocal.set("007");
+		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
 		try {
 			DataFetcherExceptionResolverAdapter exceptionResolver =
 					DataFetcherExceptionResolver.forSingleError((ex, env) ->
 							GraphqlErrorBuilder.newError(env)
-									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+									.message("Resolved error: " + ex.getMessage() + ", name=" + threadLocal.get())
 									.errorType(ErrorType.BAD_REQUEST).build());
 			exceptionResolver.setThreadLocalContextAware(true);
 
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup.queryFetcher("greeting", this.errorDataFetcher)
 					.exceptionResolver(exceptionResolver)
 					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
-					.threadLocalAccessor(threadLocalAccessor)
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
 
@@ -137,7 +135,7 @@ public class WebGraphQlHandlerTests {
 			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}
 		finally {
-			nameThreadLocal.remove();
+			threadLocal.remove();
 		}
 	}
 

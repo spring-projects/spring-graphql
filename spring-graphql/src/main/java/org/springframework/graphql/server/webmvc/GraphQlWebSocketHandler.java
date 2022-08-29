@@ -18,7 +18,6 @@ package org.springframework.graphql.server.webmvc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,7 +27,6 @@ import java.security.Principal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import io.micrometer.context.ContextSnapshot;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
@@ -49,7 +48,6 @@ import reactor.core.scheduler.Schedulers;
 
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
@@ -119,7 +117,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
 
 		this.graphQlHandler = graphQlHandler;
-		this.contextHandshakeInterceptor = new ContextHandshakeInterceptor(graphQlHandler.getThreadLocalAccessor());
+		this.contextHandshakeInterceptor = new ContextHandshakeInterceptor();
 		this.webSocketGraphQlInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
@@ -134,7 +132,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * Return a {@link WebSocketHttpRequestHandler} that uses this instance as
 	 * its {@link WebGraphQlHandler} and adds a {@link HandshakeInterceptor} to
 	 * propagate context.
+	 * @deprecated as of 1.1.0 without a replacement, there should be no need for it
 	 */
+	@Deprecated
 	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
 		WebSocketHttpRequestHandler handler = new WebSocketHttpRequestHandler(this, handshakeHandler);
 		handler.setHandshakeInterceptors(Collections.singletonList(this.contextHandshakeInterceptor));
@@ -169,7 +169,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	@SuppressWarnings({"unused", "try"})
 	@Override
 	protected void handleTextMessage(WebSocketSession session, TextMessage webSocketMessage) throws Exception {
-		try (Closeable closeable = this.contextHandshakeInterceptor.restoreThreadLocalValue(session)) {
+		ContextSnapshot snapshot = this.contextHandshakeInterceptor.getContextSnapshot(session);
+		try (AutoCloseable closeable = snapshot.setThreadLocalValues()) {
 			handleInternal(session, webSocketMessage);
 		}
 	}
@@ -344,25 +345,12 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 */
 	private static class ContextHandshakeInterceptor implements HandshakeInterceptor {
 
-		private static final String SAVED_CONTEXT_KEY = ContextHandshakeInterceptor.class.getName();
-
-		@Nullable
-		private final ThreadLocalAccessor accessor;
-
-		ContextHandshakeInterceptor(@Nullable ThreadLocalAccessor accessor) {
-			this.accessor = accessor;
-		}
-
 		@Override
 		public boolean beforeHandshake(
 				ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
 				Map<String, Object> attributes) {
 
-			if (this.accessor != null) {
-				Map<String, Object> valuesMap = new LinkedHashMap<>();
-				this.accessor.extractValues(valuesMap);
-				attributes.put(SAVED_CONTEXT_KEY, valuesMap);
-			}
+			attributes.put(ContextSnapshot.class.getName(), ContextSnapshot.capture());
 			return true;
 		}
 
@@ -372,17 +360,11 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				@Nullable Exception exception) {
 		}
 
-		@SuppressWarnings("unchecked")
-		public Closeable restoreThreadLocalValue(WebSocketSession session) {
-			if (this.accessor != null) {
-				Map<String, Object> valuesMap = (Map<String, Object>) session.getAttributes().get(SAVED_CONTEXT_KEY);
-				Assert.state(valuesMap != null, "No ThreadLocal context in WebSocketSession attributes");
-				this.accessor.restoreValues(valuesMap);
-				return () -> this.accessor.resetValues(valuesMap);
-			}
-			return () -> {};
+		public ContextSnapshot getContextSnapshot(WebSocketSession session) {
+			ContextSnapshot snapshot = (ContextSnapshot) session.getAttributes().get(ContextSnapshot.class.getName());
+			Assert.notNull(snapshot, "No ContextSnapshot in WebSocketSession attributes");
+			return snapshot;
 		}
-
 	}
 
 

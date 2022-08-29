@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import io.micrometer.context.ContextRegistry;
+import io.micrometer.context.ContextSnapshot;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -37,7 +39,6 @@ import reactor.test.StepVerifier;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.ConsumeOneAndNeverCompleteInterceptor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
@@ -51,7 +52,6 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.lang.Nullable;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
@@ -369,58 +369,59 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	void contextPropagation() throws Exception {
 		ThreadLocal<String> threadLocal = new ThreadLocal<>();
 		threadLocal.set("foo");
+		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
+		try {
+			WebGraphQlInterceptor threadLocalInterceptor = (request, chain) -> {
+				assertThat(threadLocal.get()).isEqualTo("foo");
+				return chain.next(request);
+			};
 
-		WebGraphQlInterceptor threadLocalInterceptor = (request, chain) -> {
-			assertThat(threadLocal.get()).isEqualTo("foo");
-			return chain.next(request);
-		};
+			GraphQlWebSocketHandler handler = initWebSocketHandler(threadLocalInterceptor);
 
-		GraphQlWebSocketHandler handler = initWebSocketHandler(
-				new TestThreadLocalAccessor<>(threadLocal), threadLocalInterceptor);
+			// Ensure ContextSnapshot is present in WebSocketSession attributes
+			this.session.getAttributes().put(ContextSnapshot.class.getName(), ContextSnapshot.capture());
 
-		// Use HandshakeInterceptor to capture ThreadLocal context
-		handler.asWebSocketHttpRequestHandler((request, response, wsHandler, attributes) -> false)
-				.getHandshakeInterceptors().get(0)
-				.beforeHandshake(null, null, null, this.session.getAttributes());
+			// Context should propagate, if message is handled on different thread
+			Thread thread = new Thread(() -> {
+				try {
+					handle(handler,
+							new TextMessage("{\"type\":\"connection_init\"}"),
+							new TextMessage(BOOK_QUERY));
+				}
+				catch (Exception ex) {
+					throw new IllegalStateException(ex);
+				}
+			});
+			thread.start();
 
-		// Context should propagate, if message is handled on different thread
-		Thread thread = new Thread(() -> {
-			try {
-				handle(handler,
-						new TextMessage("{\"type\":\"connection_init\"}"),
-						new TextMessage(BOOK_QUERY));
-			}
-			catch (Exception ex) {
-				throw new IllegalStateException(ex);
-			}
-		});
-		thread.start();
-
-		StepVerifier.create(this.session.getOutput())
-				.expectNextCount(2)
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
-				.then(this.session::close) // Complete output Flux
-				.expectComplete()
-				.verify(TIMEOUT);
+			StepVerifier.create(this.session.getOutput())
+					.expectNextCount(2)
+					.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
+					.then(this.session::close) // Complete output Flux
+					.expectComplete()
+					.verify(TIMEOUT);
+		}
+		finally {
+			threadLocal.remove();
+		}
 	}
 
 	private void handle(GraphQlWebSocketHandler handler, TextMessage... textMessages) throws Exception {
 		handler.afterConnectionEstablished(this.session);
+
+		if (!this.session.getAttributes().containsKey(ContextSnapshot.class.getName())) {
+			// Ensure ContextSnapshot is present in WebSocketSession attributes
+			this.session.getAttributes().put(ContextSnapshot.class.getName(), ContextSnapshot.capture());
+		}
+
 		for (TextMessage message : textMessages) {
 			handler.handleTextMessage(this.session, message);
 		}
 	}
 
 	private GraphQlWebSocketHandler initWebSocketHandler(WebGraphQlInterceptor... interceptors) {
-		return initWebSocketHandler(null, interceptors);
-	}
-
-	private GraphQlWebSocketHandler initWebSocketHandler(
-			@Nullable ThreadLocalAccessor accessor, WebGraphQlInterceptor... interceptors) {
-
 		try {
-			return new GraphQlWebSocketHandler(
-					initHandler(accessor, interceptors), converter, Duration.ofSeconds(60));
+			return new GraphQlWebSocketHandler(initHandler(interceptors), converter, Duration.ofSeconds(60));
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException(ex);

@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.time.Duration;
 import java.util.function.Function;
 
+import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,13 +34,11 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.graphql.execution.ReactorContextManager;
-import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -66,7 +65,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 			ReactiveSecurityContextHolder.withAuthentication(this.authentication);
 
 	private final Function<Context, Context> threadLocalContextWriter = context ->
-			ReactorContextManager.extractThreadLocalValues(new SecurityContextThreadLocalAccessor(), context);
+			ContextSnapshot.capture().updateContext(context);
 
 	private final GreetingController greetingController = new GreetingController();
 

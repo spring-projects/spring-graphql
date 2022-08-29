@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -34,8 +35,6 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
-import org.springframework.graphql.execution.ReactorContextManager;
-import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -61,7 +60,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 			ReactiveSecurityContextHolder.withAuthentication(this.authentication);
 
 	private final Function<Context, Context> threadLocalContextWriter = context ->
-			ReactorContextManager.extractThreadLocalValues(new SecurityContextThreadLocalAccessor(), context);
+			ContextSnapshot.capture().updateContext(context);
 
 
 	private static Stream<Arguments> controllers() {

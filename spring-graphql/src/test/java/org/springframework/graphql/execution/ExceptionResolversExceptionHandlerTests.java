@@ -22,10 +22,11 @@ import java.util.Collections;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphqlErrorBuilder;
+import io.micrometer.context.ContextRegistry;
+import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
-import reactor.util.context.ContextView;
 
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
@@ -76,7 +77,7 @@ public class ExceptionResolversExceptionHandlerTests {
 								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 								.errorType(ErrorType.BAD_REQUEST).build())));
 
-		ReactorContextManager.setReactorContext(Context.of("name", "007"), input.getGraphQLContext());
+		this.input.getGraphQLContext().put("name", "007");
 
 		ExecutionResult result = this.graphQlSetup.exceptionResolver(resolver).toGraphQl()
 				.executeAsync(this.input).get();
@@ -88,21 +89,19 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	@Test
 	void resolveExceptionWithThreadLocal() {
-		ThreadLocal<String> nameThreadLocal = new ThreadLocal<>();
-		nameThreadLocal.set("007");
-		TestThreadLocalAccessor<String> accessor = new TestThreadLocalAccessor<>(nameThreadLocal);
+		ThreadLocal<String> threadLocal = new ThreadLocal<>();
+		threadLocal.set("007");
+		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
 		try {
 			DataFetcherExceptionResolverAdapter resolver =
 					DataFetcherExceptionResolver.forSingleError((ex, env) ->
 							GraphqlErrorBuilder.newError(env)
-									.message("Resolved error: " + ex.getMessage() + ", name=" + nameThreadLocal.get())
+									.message("Resolved error: " + ex.getMessage() + ", name=" + threadLocal.get())
 									.errorType(ErrorType.BAD_REQUEST)
 									.build());
 
 			resolver.setThreadLocalContextAware(true);
-
-			ContextView view = ReactorContextManager.extractThreadLocalValues(accessor, Context.empty());
-			ReactorContextManager.setReactorContext(view, input.getGraphQLContext());
+			ContextSnapshot.capture().updateContext(this.input.getGraphQLContext());
 
 			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap((aLong) ->
 					Mono.fromFuture(this.graphQlSetup.exceptionResolver(resolver).toGraphQl().executeAsync(this.input)));
@@ -112,7 +111,7 @@ public class ExceptionResolversExceptionHandlerTests {
 			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
 		}
 		finally {
-			nameThreadLocal.remove();
+			threadLocal.remove();
 		}
 	}
 

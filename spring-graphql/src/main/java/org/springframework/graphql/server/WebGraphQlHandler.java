@@ -44,7 +44,9 @@ public interface WebGraphQlHandler {
 	/**
 	 * Return the composite {@link ThreadLocalAccessor} that the handler is
 	 * configured with.
+	 * @deprecated as of 1.1.0, together with {@link ThreadLocalAccessor}.
 	 */
+	@Deprecated
 	@Nullable
 	ThreadLocalAccessor getThreadLocalAccessor();
 
@@ -102,7 +104,9 @@ public interface WebGraphQlHandler {
 		 * fetchers and exception resolvers.
 		 * @param accessors the accessors to add
 		 * @return this builder
+		 * @deprecated as of 1.1.0 together with {@link ThreadLocalAccessor}.
 		 */
+		@Deprecated
 		Builder threadLocalAccessor(ThreadLocalAccessor... accessors);
 
 		/**
@@ -110,7 +114,9 @@ public interface WebGraphQlHandler {
 		 * List.
 		 * @param accessors the list of accessors to add
 		 * @return this builder
+		 * @deprecated as of 1.1.0 together with {@link ThreadLocalAccessor}.
 		 */
+		@Deprecated
 		Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors);
 
 		/**

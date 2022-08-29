@@ -28,11 +28,11 @@ import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
 import graphql.execution.ExecutionId;
 import graphql.schema.DataFetchingEnvironment;
+import io.micrometer.context.ContextSnapshot;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 
 import org.springframework.util.Assert;
 
@@ -70,6 +70,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(DataFetcherExceptionHandlerParameters params) {
 		Throwable exception = unwrapException(params);
 		DataFetchingEnvironment env = params.getDataFetchingEnvironment();
+		ContextSnapshot snapshot = ContextSnapshot.captureFrom(env.getGraphQlContext());
 		try {
 			return Flux.fromIterable(this.resolvers)
 					.flatMap(resolver -> resolver.resolveException(exception, env))
@@ -78,10 +79,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 					.doOnNext(result -> logResolvedException(exception, result))
 					.onErrorResume(resolverEx -> Mono.just(handleResolverError(resolverEx, exception, env)))
 					.switchIfEmpty(Mono.fromCallable(() -> createInternalError(exception, env)))
-					.contextWrite((context) -> {
-						ContextView contextView = ReactorContextManager.getReactorContext(env.getGraphQlContext());
-						return (contextView.isEmpty() ? context : context.putAll(contextView));
-					})
+					.contextWrite(snapshot::updateContext)
 					.toFuture();
 		}
 		catch (Exception resolverEx) {
