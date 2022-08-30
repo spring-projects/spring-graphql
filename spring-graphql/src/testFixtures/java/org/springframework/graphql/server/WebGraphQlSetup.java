@@ -15,9 +15,7 @@
  */
 package org.springframework.graphql.server;
 
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
-import org.springframework.lang.Nullable;
 
 /**
  * Workflow that results in the creation of a {@link WebGraphQlHandler} or
@@ -28,8 +26,6 @@ import org.springframework.lang.Nullable;
 public interface WebGraphQlSetup {
 
 	WebGraphQlSetup interceptor(WebGraphQlInterceptor... interceptors);
-
-	WebGraphQlSetup threadLocalAccessor(@Nullable ThreadLocalAccessor accessor);
 
 	WebGraphQlHandler toWebGraphQlHandler();
 

@@ -15,8 +15,6 @@
  */
 package org.springframework.graphql.execution;
 
-import java.util.Map;
-
 import io.micrometer.context.ThreadLocalAccessor;
 
 import org.springframework.security.core.context.SecurityContext;
@@ -33,9 +31,7 @@ import org.springframework.util.ClassUtils;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-@SuppressWarnings("deprecation")
-public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<Object>,
-		org.springframework.graphql.execution.ThreadLocalAccessor {
+public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<Object> {
 
 	private final static boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
@@ -78,27 +74,6 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 	@Override
 	public void reset() {
 		this.delegate.reset();
-	}
-
-
-	// Temporary implementation of deprecated ThreadLocalAccessor while it is still used
-	// in the Boot starter. If registered as such, it is ignored.
-
-	@Override
-	public void extractValues(Map<String, Object> container) {
-		container.put((String) key(), SecurityContextHolder.getContext());
-	}
-
-	@Override
-	public void restoreValues(Map<String, Object> values) {
-		if (values.containsKey((String) key())) {
-			SecurityContextHolder.setContext((SecurityContext) values.get((String) key()));
-		}
-	}
-
-	@Override
-	public void resetValues(Map<String, Object> values) {
-		SecurityContextHolder.clearContext();
 	}
 
 

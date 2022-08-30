@@ -21,16 +21,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.micrometer.context.ContextSnapshot;
-
-import org.springframework.graphql.execution.SecurityContextThreadLocalAccessor;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.server.WebGraphQlInterceptor.Chain;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 
 
 /**
@@ -38,7 +34,6 @@ import org.springframework.util.CollectionUtils;
  *
  * @author Rossen Stoyanchev
  */
-@SuppressWarnings("deprecation")
 class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	private final ExecutionGraphQlService service;
@@ -47,9 +42,6 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	@Nullable
 	private WebSocketGraphQlInterceptor webSocketInterceptor;
-
-	@Nullable
-	private List<ThreadLocalAccessor> accessors;
 
 
 	DefaultWebGraphQlHandlerBuilder(ExecutionGraphQlService service) {
@@ -75,30 +67,6 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 		return this;
 	}
 
-	@SuppressWarnings("deprecation")
-	@Override
-	public WebGraphQlHandler.Builder threadLocalAccessor(ThreadLocalAccessor... accessors) {
-		return threadLocalAccessors(Arrays.asList(accessors));
-	}
-
-	@SuppressWarnings("deprecation")
-	@Override
-	public WebGraphQlHandler.Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors) {
-
-		// Filter out SecurityContextThreadLocalAccessor which is registered as a ThreadLocalAccessor
-		// from the micrometer-metrics/context-propagatation library. This code can be removed when
-		// SecurityContextThreadLocalAccessor no longer implements the deprecated ThreadLocalAccessor.
-		accessors = accessors.stream()
-				.filter(a -> !(a instanceof SecurityContextThreadLocalAccessor))
-				.toList();
-
-		if (!CollectionUtils.isEmpty(accessors)) {
-			this.accessors = (this.accessors != null) ? this.accessors : new ArrayList<>();
-			this.accessors.addAll(accessors);
-		}
-		return this;
-	}
-
 	@Override
 	public WebGraphQlHandler build() {
 
@@ -115,12 +83,6 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			public WebSocketGraphQlInterceptor getWebSocketInterceptor() {
 				return (webSocketInterceptor != null ?
 						webSocketInterceptor : new WebSocketGraphQlInterceptor() {});
-			}
-
-			@Nullable
-			@Override
-			public ThreadLocalAccessor getThreadLocalAccessor() {
-				return (CollectionUtils.isEmpty(accessors) ? null : ThreadLocalAccessor.composite(accessors));
 			}
 
 			@Override

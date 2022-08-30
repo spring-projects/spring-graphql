@@ -35,12 +35,10 @@ import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SubscriptionExceptionResolver;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
 import org.springframework.graphql.server.WebGraphQlSetup;
 import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
-import org.springframework.lang.Nullable;
 
 /**
  * Workflow for GraphQL tests setup that starts with {@link GraphQlSource.Builder}
@@ -57,8 +55,6 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
 	private final List<WebGraphQlInterceptor> interceptors = new ArrayList<>();
-
-	private final List<ThreadLocalAccessor> accessors = new ArrayList<>();
 
 
 	private GraphQlSetup(Resource... schemaResources) {
@@ -147,19 +143,10 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 		return this;
 	}
 
-	@Override
-	public WebGraphQlSetup threadLocalAccessor(@Nullable ThreadLocalAccessor accessor) {
-		if (accessor != null) {
-			this.accessors.add(accessor);
-		}
-		return this;
-	}
-
 	public WebGraphQlHandler toWebGraphQlHandler() {
 		ExecutionGraphQlService service = toGraphQlService();
 		return WebGraphQlHandler.builder(service)
 				.interceptors(this.interceptors)
-				.threadLocalAccessors(this.accessors)
 				.build();
 	}
 

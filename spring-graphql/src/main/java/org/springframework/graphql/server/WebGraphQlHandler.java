@@ -21,8 +21,6 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.execution.ThreadLocalAccessor;
-import org.springframework.lang.Nullable;
 
 
 /**
@@ -40,15 +38,6 @@ public interface WebGraphQlHandler {
 	 * interceptors.
 	 */
 	WebSocketGraphQlInterceptor getWebSocketInterceptor();
-
-	/**
-	 * Return the composite {@link ThreadLocalAccessor} that the handler is
-	 * configured with.
-	 * @deprecated as of 1.1.0, together with {@link ThreadLocalAccessor}.
-	 */
-	@Deprecated
-	@Nullable
-	ThreadLocalAccessor getThreadLocalAccessor();
 
 	/**
 	 * Execute the given request and return the response.
@@ -96,28 +85,6 @@ public interface WebGraphQlHandler {
 		 * @return this builder
 		 */
 		Builder interceptors(List<WebGraphQlInterceptor> interceptors);
-
-		/**
-		 * Configure accessors for ThreadLocal variables to use to extract
-		 * ThreadLocal values at the start of GraphQL execution in the web layer,
-		 * and have those saved, and restored around the invocation of data
-		 * fetchers and exception resolvers.
-		 * @param accessors the accessors to add
-		 * @return this builder
-		 * @deprecated as of 1.1.0 together with {@link ThreadLocalAccessor}.
-		 */
-		@Deprecated
-		Builder threadLocalAccessor(ThreadLocalAccessor... accessors);
-
-		/**
-		 * Alternative to {@link #threadLocalAccessor(ThreadLocalAccessor...)} with a
-		 * List.
-		 * @param accessors the list of accessors to add
-		 * @return this builder
-		 * @deprecated as of 1.1.0 together with {@link ThreadLocalAccessor}.
-		 */
-		@Deprecated
-		Builder threadLocalAccessors(List<ThreadLocalAccessor> accessors);
 
 		/**
 		 * Build the {@link WebGraphQlHandler} instance.
