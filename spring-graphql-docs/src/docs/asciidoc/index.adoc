@@ -486,39 +486,40 @@ different thread.
 
 Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
 thread to the thread a `DataFetcher` and other components invoked by GraphQL Java to
-execute on. To do this, an application needs to create a `ThreadLocalAccessor` to extract
-`ThreadLocal` values of interest:
+execute on. To do this, an application needs to implement
+`io.micrometer.context.ThreadLocalAccessor` for a `ThreadLocal` values of interest:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-public class RequestAttributesAccessor implements ThreadLocalAccessor {
+public class RequestAttributesAccessor implements ThreadLocalAccessor<RequestAttributes> {
 
-	private static final String KEY = RequestAttributesAccessor.class.getName();
+    @Override
+    public Object key() {
+        return RequestAttributesAccessor.class.getName();
+    }
 
-	@Override
-	public void extractValues(Map<String, Object> container) {
-		container.put(KEY, RequestContextHolder.getRequestAttributes());
-	}
+    @Override
+    public RequestAttributes getValue() {
+        return RequestContextHolder.getRequestAttributes();
+    }
 
-	@Override
-	public void restoreValues(Map<String, Object> values) {
-		if (values.containsKey(KEY)) {
-			RequestContextHolder.setRequestAttributes((RequestAttributes) values.get(KEY));
-		}
-	}
+    @Override
+    public void setValue(RequestAttributes attributes) {
+        RequestContextHolder.setRequestAttributes(attributes);
+    }
 
-	@Override
-	public void resetValues(Map<String, Object> values) {
-		RequestContextHolder.resetRequestAttributes();
-	}
+    @Override
+    public void reset() {
+        RequestContextHolder.resetRequestAttributes();
+    }
 
 }
 ----
 
-A `ThreadLocalAccessor` can be registered in the <<server-interception,WebGraphHandler>>
-builder. The Boot starter detects beans of this type and automatically registers them for
-Spring MVC application, see the
-{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints] section.
+You can register a `ThreadLocalAccessor` manually on startup with the global
+`ContextRegistry` instance, which is accessible via
+`io.micrometer.context.ContextRegistry#getInstance()`. You can also register it
+automatically through the `java.util.ServiceLoader` mechanism.
 
 
 [[execution-context-webflux]]
