@@ -76,7 +76,7 @@ configure(moduleProjects) {
 			dependency "jakarta.persistence:jakarta.persistence-api:3.0.0"
 			dependency "jakarta.servlet:jakarta.servlet-api:5.0.0"
 			dependency "com.google.code.findbugs:jsr305:3.0.2"
-			dependency "io.micrometer:context-propagation:1.0.0-SNAPSHOT"
+			dependency "io.micrometer:context-propagation:1.0.0-M4"
 			dependency "org.assertj:assertj-core:3.23.1"
 			dependency "com.jayway.jsonpath:json-path:2.7.0"
 			dependency "org.skyscreamer:jsonassert:1.5.0"

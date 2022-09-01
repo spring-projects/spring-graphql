@@ -98,7 +98,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 			return resolveToMultipleErrors(exception, env);
 		}
 		try {
-			return ContextSnapshot.captureFrom(env.getGraphQlContext())
+			return ContextSnapshot.capture(env.getGraphQlContext())
 					.wrap(() -> resolveToMultipleErrors(exception, env))
 					.call();
 		}

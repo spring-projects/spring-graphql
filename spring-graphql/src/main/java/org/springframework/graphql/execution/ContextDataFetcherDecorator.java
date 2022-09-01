@@ -70,7 +70,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
 
-		ContextSnapshot snapshot = ContextSnapshot.captureFrom(environment.getGraphQlContext());
+		ContextSnapshot snapshot = ContextSnapshot.capture(environment.getGraphQlContext());
 		Object value = snapshot.wrap(() -> this.delegate.get(environment)).call();
 
 		if (this.subscription) {

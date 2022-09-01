@@ -77,7 +77,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 				request.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
 			}
 			ExecutionInput executionInput = request.toExecutionInput();
-			ContextSnapshot.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
+			ContextSnapshot.capture(contextView).updateContext(executionInput.getGraphQLContext());
 			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
 					.map(result -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
