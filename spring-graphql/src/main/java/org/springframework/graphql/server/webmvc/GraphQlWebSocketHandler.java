@@ -175,11 +175,10 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	}
 
-	@SuppressWarnings({"unused", "try"})
+	@SuppressWarnings("try")
 	@Override
 	protected void handleTextMessage(WebSocketSession session, TextMessage webSocketMessage) throws Exception {
-		ContextSnapshot snapshot = this.contextHandshakeInterceptor.getContextSnapshot(session);
-		try (AutoCloseable closeable = snapshot.setThreadLocalValues()) {
+		try (AutoCloseable closeable = ContextHandshakeInterceptor.setThreadLocals(session)) {
 			handleInternal(session, webSocketMessage);
 		}
 	}
@@ -354,12 +353,14 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 */
 	private static class ContextHandshakeInterceptor implements HandshakeInterceptor {
 
+		private static final String KEY = ContextSnapshot.class.getName();
+
 		@Override
 		public boolean beforeHandshake(
 				ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
 				Map<String, Object> attributes) {
 
-			attributes.put(ContextSnapshot.class.getName(), ContextSnapshot.capture());
+			attributes.put(KEY, ContextSnapshot.capture());
 			return true;
 		}
 
@@ -369,10 +370,10 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				@Nullable Exception exception) {
 		}
 
-		public ContextSnapshot getContextSnapshot(WebSocketSession session) {
-			ContextSnapshot snapshot = (ContextSnapshot) session.getAttributes().get(ContextSnapshot.class.getName());
-			Assert.notNull(snapshot, "No ContextSnapshot in WebSocketSession attributes");
-			return snapshot;
+		public static AutoCloseable setThreadLocals(WebSocketSession session) {
+			ContextSnapshot snapshot = (ContextSnapshot) session.getAttributes().get(KEY);
+			Assert.notNull(snapshot, "Expected ContextSnapshot in WebSocketSession attributes");
+			return snapshot.setThreadLocalValues();
 		}
 	}
 
