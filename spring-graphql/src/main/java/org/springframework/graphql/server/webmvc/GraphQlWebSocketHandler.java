@@ -129,16 +129,25 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 	/**
-	 * Return a {@link WebSocketHttpRequestHandler} that uses this instance as
-	 * its {@link WebGraphQlHandler} and adds a {@link HandshakeInterceptor} to
-	 * propagate context.
-	 * @deprecated as of 1.1.0 without a replacement, there should be no need for it
+	 * Initialize a {@link WebSocketHttpRequestHandler} that wraps this instance
+	 * and also inserts a {@link HandshakeInterceptor} for context propagation.
+	 * @since 1.1.0
 	 */
-	@Deprecated
-	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
+	public WebSocketHttpRequestHandler initWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
 		WebSocketHttpRequestHandler handler = new WebSocketHttpRequestHandler(this, handshakeHandler);
 		handler.setHandshakeInterceptors(Collections.singletonList(this.contextHandshakeInterceptor));
 		return handler;
+	}
+
+	/**
+	 * Return a {@link WebSocketHttpRequestHandler} that uses this instance as
+	 * its {@link WebGraphQlHandler} and adds a {@link HandshakeInterceptor} to
+	 * propagate context.
+	 * @deprecated as of 1.1.0 in favor of {@link #initWebSocketHttpRequestHandler(HandshakeHandler)}
+	 */
+	@Deprecated
+	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
+		return initWebSocketHttpRequestHandler(handshakeHandler);
 	}
 
 
