@@ -24,7 +24,8 @@ plugins {
 }
 
 rootProject.name = 'spring-graphql'
-include 'spring-graphql',
+include 'platform',
+	'spring-graphql',
 	'spring-graphql-test',
 	'spring-graphql-docs'
 

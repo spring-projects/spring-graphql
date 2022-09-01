@@ -1,0 +1,48 @@
+plugins {
+	id 'java-platform'
+}
+
+javaPlatform {
+	allowDependencies()
+}
+
+dependencies {
+	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.13.3"))
+	api(platform("io.projectreactor:reactor-bom:2022.0.0-M5"))
+	api(platform("org.springframework.data:spring-data-bom:2022.0.0-M5"))
+	api(platform("org.springframework.security:spring-security-bom:6.0.0-M6"))
+	api(platform("com.querydsl:querydsl-bom:5.0.0"))
+	api(platform("io.rsocket:rsocket-bom:1.1.2"))
+	api(platform("org.jetbrains.kotlin:kotlin-bom:1.7.0"))
+	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
+	api(platform("org.junit:junit-bom:5.8.2"))
+	api(platform("org.mockito:mockito-bom:4.5.1"))
+	api(platform("org.testcontainers:testcontainers-bom:1.17.3"))
+	api(platform("org.apache.logging.log4j:log4j-bom:2.17.2"))
+
+	constraints {
+		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
+		api("io.micrometer:context-propagation:1.0.0-M4")
+
+		api("jakarta.annotation:jakarta.annotation-api:2.0.0")
+		api("jakarta.servlet:jakarta.servlet-api:5.0.0")
+		api("jakarta.validation:jakarta.validation-api:3.0.1")
+		api("jakarta.persistence:jakarta.persistence-api:3.0.0")
+
+		api("com.google.code.findbugs:jsr305:3.0.2")
+
+		api("org.assertj:assertj-core:3.23.1")
+		api("com.jayway.jsonpath:json-path:2.7.0")
+		api("org.skyscreamer:jsonassert:1.5.1")
+
+		api("com.h2database:h2:2.1.214")
+		api("org.hibernate:hibernate-core-jakarta:5.6.11.Final")
+		api("org.hibernate.validator:hibernate-validator:7.0.4.Final")
+		api("org.mongodb:bson:4.6.1")
+		api("org.mongodb:mongodb-driver-core:4.6.1")
+		api("org.mongodb:mongodb-driver-reactivestreams:4.6.1")
+		api("org.mongodb:mongodb-driver-sync:4.6.1")
+	}
+
+}
