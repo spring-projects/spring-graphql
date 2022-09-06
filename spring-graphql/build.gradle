@@ -6,13 +6,13 @@ dependencies {
 	api 'com.graphql-java:graphql-java'
 	api 'io.projectreactor:reactor-core'
 	api 'org.springframework:spring-context'
+	implementation 'io.micrometer:context-propagation'
 
 	compileOnly 'jakarta.annotation:jakarta.annotation-api'
 	compileOnly 'org.springframework:spring-webflux'
 	compileOnly 'org.springframework:spring-webmvc'
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'org.springframework:spring-messaging'
-	compileOnly 'io.micrometer:context-propagation'
 	compileOnly 'jakarta.servlet:jakarta.servlet-api'
 	compileOnly 'jakarta.validation:jakarta.validation-api'
 
