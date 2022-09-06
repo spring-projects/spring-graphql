@@ -60,7 +60,7 @@ public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappi
 			ReactiveSecurityContextHolder.withAuthentication(this.authentication);
 
 	private final Function<Context, Context> threadLocalContextWriter = context ->
-			ContextSnapshot.capture().updateContext(context);
+			ContextSnapshot.captureAll().updateContext(context);
 
 
 	private static Stream<Arguments> controllers() {

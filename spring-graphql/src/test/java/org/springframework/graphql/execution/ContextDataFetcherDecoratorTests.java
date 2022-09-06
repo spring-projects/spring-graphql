@@ -163,7 +163,7 @@ public class ContextDataFetcherDecoratorTests {
 					.toGraphQl();
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextSnapshot.capture().updateContext(input.getGraphQLContext());
+			ContextSnapshot.captureAll().updateContext(input.getGraphQLContext());
 
 			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
 					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));

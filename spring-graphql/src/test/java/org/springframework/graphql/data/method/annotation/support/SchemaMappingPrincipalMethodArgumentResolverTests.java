@@ -65,7 +65,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 			ReactiveSecurityContextHolder.withAuthentication(this.authentication);
 
 	private final Function<Context, Context> threadLocalContextWriter = context ->
-			ContextSnapshot.capture().updateContext(context);
+			ContextSnapshot.captureAll().updateContext(context);
 
 	private final GreetingController greetingController = new GreetingController();
 

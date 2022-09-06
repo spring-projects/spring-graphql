@@ -379,7 +379,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 			GraphQlWebSocketHandler handler = initWebSocketHandler(threadLocalInterceptor);
 
 			// Ensure ContextSnapshot is present in WebSocketSession attributes
-			this.session.getAttributes().put(ContextSnapshot.class.getName(), ContextSnapshot.capture());
+			this.session.getAttributes().put(ContextSnapshot.class.getName(), ContextSnapshot.captureAll());
 
 			// Context should propagate, if message is handled on different thread
 			Thread thread = new Thread(() -> {
@@ -411,7 +411,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		if (!this.session.getAttributes().containsKey(ContextSnapshot.class.getName())) {
 			// Ensure ContextSnapshot is present in WebSocketSession attributes
-			this.session.getAttributes().put(ContextSnapshot.class.getName(), ContextSnapshot.capture());
+			this.session.getAttributes().put(ContextSnapshot.class.getName(), ContextSnapshot.captureAll());
 		}
 
 		for (TextMessage message : textMessages) {

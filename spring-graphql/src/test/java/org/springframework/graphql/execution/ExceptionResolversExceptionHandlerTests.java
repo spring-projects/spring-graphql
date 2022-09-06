@@ -101,7 +101,7 @@ public class ExceptionResolversExceptionHandlerTests {
 									.build());
 
 			resolver.setThreadLocalContextAware(true);
-			ContextSnapshot.capture().updateContext(this.input.getGraphQLContext());
+			ContextSnapshot.captureAll().updateContext(this.input.getGraphQLContext());
 
 			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap((aLong) ->
 					Mono.fromFuture(this.graphQlSetup.exceptionResolver(resolver).toGraphQl().executeAsync(this.input)));

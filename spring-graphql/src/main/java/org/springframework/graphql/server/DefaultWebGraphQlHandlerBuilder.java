@@ -87,7 +87,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 			@Override
 			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
-				ContextSnapshot snapshot = ContextSnapshot.capture();
+				ContextSnapshot snapshot = ContextSnapshot.captureAll();
 				return executionChain.next(request).contextWrite(snapshot::updateContext);
 			}
 		};

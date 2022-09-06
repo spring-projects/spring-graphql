@@ -114,7 +114,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			return CompletableFuture.supplyAsync(
 					() -> {
 						try {
-							return ContextSnapshot.capture(graphQLContext).wrap((Callable<?>) result).call();
+							return ContextSnapshot.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
 						}
 						catch (Exception ex) {
 							throw new IllegalStateException(

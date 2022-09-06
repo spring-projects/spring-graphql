@@ -360,7 +360,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
 				Map<String, Object> attributes) {
 
-			attributes.put(KEY, ContextSnapshot.capture());
+			attributes.put(KEY, ContextSnapshot.captureAll());
 			return true;
 		}
 
@@ -373,7 +373,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		public static AutoCloseable setThreadLocals(WebSocketSession session) {
 			ContextSnapshot snapshot = (ContextSnapshot) session.getAttributes().get(KEY);
 			Assert.notNull(snapshot, "Expected ContextSnapshot in WebSocketSession attributes");
-			return snapshot.setThreadLocalValues();
+			return snapshot.setThreadLocals();
 		}
 	}
 

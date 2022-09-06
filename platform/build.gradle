@@ -23,7 +23,7 @@ dependencies {
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
-		api("io.micrometer:context-propagation:1.0.0-M4")
+		api("io.micrometer:context-propagation:1.0.0-SNAPSHOT")
 
 		api("jakarta.annotation:jakarta.annotation-api:2.0.0")
 		api("jakarta.servlet:jakarta.servlet-api:5.0.0")

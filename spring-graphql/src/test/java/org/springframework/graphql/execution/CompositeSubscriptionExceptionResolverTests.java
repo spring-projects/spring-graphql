@@ -108,7 +108,7 @@ public class CompositeSubscriptionExceptionResolverTests {
 					.toGraphQl();
 
 			ExecutionInput input = ExecutionInput.newExecutionInput(query).build();
-			ContextSnapshot.capture().updateContext(input.getGraphQLContext());
+			ContextSnapshot.captureAll().updateContext(input.getGraphQLContext());
 
 			Flux<ResponseHelper> flux = Mono.defer(() -> Mono.fromFuture(graphQL.executeAsync(input)))
 					.map(ResponseHelper::forSubscription)
