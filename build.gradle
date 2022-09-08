@@ -5,7 +5,7 @@ plugins {
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
 	springFrameworkVersion = "6.0.0-M5"
-	graphQlJavaVersion = "19.0"
+	graphQlJavaVersion = "19.2"
 	bootVersion = "3.0.0-SNAPSHOT"
 }
 
