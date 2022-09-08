@@ -19,8 +19,11 @@ package org.springframework.graphql.data;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -268,6 +271,16 @@ class GraphQlArgumentBinderTests {
 		assertThat(((ItemListHolder) result).getItems()).hasSize(260);
 	}
 
+	@Test
+	void shouldUseTargetCollectionType() throws Exception {
+		String items = IntStream.range(0, 5).mapToObj(value -> "{\"name\":\"test" + value + "\"}").collect(Collectors.joining(","));
+		Object result = this.binder.bind(
+				environment("{\"key\":{\"items\":[" + items + "]}}"), "key",
+				ResolvableType.forClass(ItemSetHolder.class));
+		assertThat(result).isNotNull().isInstanceOf(ItemSetHolder.class);
+		assertThat(((ItemSetHolder) result).getItems()).hasSize(5);
+	}
+
 
 	@SuppressWarnings("unchecked")
 	private DataFetchingEnvironment environment(String jsonPayload) throws JsonProcessingException {
@@ -400,6 +413,36 @@ class GraphQlArgumentBinderTests {
 
 		public void setAge(int age) {
 			this.age = age;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			Item item = (Item) o;
+			return name.equals(item.name);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(name);
+		}
+	}
+
+	static class ItemSetHolder {
+
+		private Set<Item> items;
+
+		public ItemSetHolder(Set<Item> items) {
+			this.items = items;
+		}
+
+		public Set<Item> getItems() {
+			return items;
+		}
+
+		public void setItems(Set<Item> items) {
+			this.items = items;
 		}
 	}
 
