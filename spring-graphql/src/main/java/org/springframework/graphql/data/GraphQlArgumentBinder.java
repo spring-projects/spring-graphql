@@ -209,7 +209,7 @@ public class GraphQlArgumentBinder {
 			return Collections.emptyList();
 		}
 
-		Collection<T> collection = CollectionFactory.createApproximateCollection(rawCollection, rawCollection.size());
+		Collection<T> collection = CollectionFactory.createCollection(collectionType.getRawClass(), elementClass, rawCollection.size());
 		int i = 0;
 		for (Object rawValue : rawCollection) {
 			segments.push("[" + i++ + "]");
