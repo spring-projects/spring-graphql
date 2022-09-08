@@ -32,6 +32,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import org.assertj.core.api.CollectionAssert;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ResolvableType;
@@ -281,6 +282,44 @@ class GraphQlArgumentBinderTests {
 		assertThat(((ItemSetHolder) result).getItems()).hasSize(5);
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	void list() throws Exception {
+		Object result = this.binder.bind(
+				environment("{\"key\": [\"1\", \"2\", \"3\"]}"),
+				"key",
+				ResolvableType.forClassWithGenerics(List.class, String.class)
+		);
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		new CollectionAssert<>((List<String>) result).containsExactly("1", "2", "3");
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void listWithNullItem() throws Exception {
+		Object result = this.binder.bind(
+				environment("{\"key\": [\"1\", null, \"3\"]}"),
+				"key",
+				ResolvableType.forClassWithGenerics(List.class, String.class)
+		);
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		new CollectionAssert<>((List<String>) result).containsExactly("1", null, "3");
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void emptyList() throws Exception {
+		Object result = this.binder.bind(
+				environment("{\"key\": []}"),
+				"key",
+				ResolvableType.forClassWithGenerics(List.class, String.class)
+		);
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		new CollectionAssert<>((List<String>) result).isEmpty();
+	}
 
 	@SuppressWarnings("unchecked")
 	private DataFetchingEnvironment environment(String jsonPayload) throws JsonProcessingException {
