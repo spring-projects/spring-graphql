@@ -16,30 +16,23 @@
 
 package org.springframework.graphql.data;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
-import org.assertj.core.api.CollectionAssert;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.data.GraphQlArgumentBinder;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 
@@ -61,7 +54,7 @@ class GraphQlArgumentBinderTests {
 
 
 	@Test
-	void defaultConstructor() throws Exception {
+	void dataBinding() throws Exception {
 
 		Object result = this.binder.bind(
 				environment("{\"key\":{\"name\":\"test\"}}"), "key",
@@ -72,7 +65,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test
-	void defaultConstructorWithNestedBeanProperty() throws Exception {
+	void dataBindingWithNestedBeanProperty() throws Exception {
 
 		Object result = this.binder.bind(
 				environment(
@@ -93,7 +86,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test
-	void defaultConstructorWithNestedBeanListProperty() throws Exception {
+	void dataBindingWithNestedBeanListProperty() throws Exception {
 
 		Object result = this.binder.bind(
 				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
@@ -105,7 +98,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test // gh-301
-	void defaultConstructorWithNestedBeanListEmpty() throws Exception {
+	void dataBindingWithNestedBeanListEmpty() throws Exception {
 
 		Object result = this.binder.bind(
 				environment("{\"key\":{\"items\": []}}"), "key",
@@ -116,7 +109,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test // gh-280
-	void defaultConstructorBindingError() {
+	void dataBindingBindingError() {
 
 		assertThatThrownBy(
 				() -> this.binder.bind(
@@ -129,6 +122,35 @@ class GraphQlArgumentBinderTests {
 					assertThat(errors.get(0).getField()).isEqualTo("age");
 					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
 				});
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void dataBindingToList() throws Exception {
+
+		Object result = this.binder.bind(
+				environment("{\"key\": [\"1\", \"2\", \"3\"]}"), "key",
+				ResolvableType.forClassWithGenerics(List.class, String.class));
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		assertThat((List<String>) result).containsExactly("1", "2", "3");
+
+		// gh-486: List with null element
+		result = this.binder.bind(
+				environment("{\"key\": [\"1\", null, \"3\"]}"), "key",
+				ResolvableType.forClassWithGenerics(List.class, String.class));
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		assertThat((List<String>) result).containsExactly("1", null, "3");
+
+		// Empty list
+
+		result = this.binder.bind(
+				environment("{\"key\": []}"), "key",
+				ResolvableType.forClassWithGenerics(List.class, String.class));
+
+		assertThat(result).isNotNull().isInstanceOf(List.class);
+		assertThat((List<String>) result).isEmpty();
 	}
 
 	@Test
@@ -262,7 +284,6 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test // gh-392
-	@SuppressWarnings("unchecked")
 	void shouldHaveHigherDefaultAutoGrowLimit() throws Exception {
 		String items = IntStream.range(0, 260).mapToObj(value -> "{\"name\":\"test\"}").collect(Collectors.joining(","));
 		Object result = this.binder.bind(
@@ -280,45 +301,6 @@ class GraphQlArgumentBinderTests {
 				ResolvableType.forClass(ItemSetHolder.class));
 		assertThat(result).isNotNull().isInstanceOf(ItemSetHolder.class);
 		assertThat(((ItemSetHolder) result).getItems()).hasSize(5);
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
-	void list() throws Exception {
-		Object result = this.binder.bind(
-				environment("{\"key\": [\"1\", \"2\", \"3\"]}"),
-				"key",
-				ResolvableType.forClassWithGenerics(List.class, String.class)
-		);
-
-		assertThat(result).isNotNull().isInstanceOf(List.class);
-		new CollectionAssert<>((List<String>) result).containsExactly("1", "2", "3");
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
-	void listWithNullItem() throws Exception {
-		Object result = this.binder.bind(
-				environment("{\"key\": [\"1\", null, \"3\"]}"),
-				"key",
-				ResolvableType.forClassWithGenerics(List.class, String.class)
-		);
-
-		assertThat(result).isNotNull().isInstanceOf(List.class);
-		new CollectionAssert<>((List<String>) result).containsExactly("1", null, "3");
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
-	void emptyList() throws Exception {
-		Object result = this.binder.bind(
-				environment("{\"key\": []}"),
-				"key",
-				ResolvableType.forClassWithGenerics(List.class, String.class)
-		);
-
-		assertThat(result).isNotNull().isInstanceOf(List.class);
-		new CollectionAssert<>((List<String>) result).isEmpty();
 	}
 
 	@SuppressWarnings("unchecked")
