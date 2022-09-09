@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.MappingMatch;
@@ -35,9 +36,11 @@ import org.springframework.http.converter.ResourceHttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletMapping;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.web.util.ServletRequestPathUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,8 +53,13 @@ class GraphiQlHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS = Collections.emptyList();
 
-	private GraphiQlHandler handler = new GraphiQlHandler("/graphql", null,
-			new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+	private final GraphiQlHandler handler = initHandler("/graphql");
+
+
+	private static GraphiQlHandler initHandler(String path) {
+		return new GraphiQlHandler(path, null, new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+	}
+
 
 	@Test
 	void shouldRedirectWithPathQueryParameter() {
@@ -60,7 +68,8 @@ class GraphiQlHandlerTests {
 		ServerResponse response = this.handler.handleRequest(request);
 		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
 		assertThat(response.headers().getLocation()).isNotNull();
-		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("http://localhost/graphiql?path=/graphql");
+		assertThat(response.headers().getLocation().toASCIIString())
+				.isEqualTo("http://localhost/graphiql?path=/graphql");
 	}
 
 	@Test
@@ -72,7 +81,27 @@ class GraphiQlHandlerTests {
 		ServerResponse response = wsHandler.handleRequest(request);
 		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
 		assertThat(response.headers().getLocation()).isNotNull();
-		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("http://localhost/graphiql?path=/graphql&wsPath=/graphql");
+		assertThat(response.headers().getLocation().toASCIIString())
+				.isEqualTo("http://localhost/graphiql?path=/graphql&wsPath=/graphql");
+	}
+
+	@Test // gh-478
+	void shouldRedirectWithPathVariables() {
+		Map<String, Object> pathVariables = Collections.singletonMap("envId", "123");
+		UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("/env/{envId}/graphiql");
+		String path = uriBuilder.build(pathVariables).toString();
+
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", path);
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		servletRequest.setAttribute(RouterFunctions.URI_TEMPLATE_VARIABLES_ATTRIBUTE, pathVariables);
+
+		GraphiQlHandler graphiQlHandler = initHandler(uriBuilder.build().toString());
+		ServerResponse response = graphiQlHandler.handleRequest(request);
+
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
+		assertThat(response.headers().getLocation()).isNotNull();
+		assertThat(response.headers().getLocation().toASCIIString())
+				.isEqualTo("http://localhost" + path + "?path=" + path);
 	}
 
 	@Test

@@ -19,6 +19,7 @@ package org.springframework.graphql.server.webflux;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -31,9 +32,11 @@ import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.ViewResolver;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,9 +48,12 @@ class GraphiQlHandlerTests {
 
 	private static final List<HttpMessageReader<?>> MESSAGE_READERS = Collections.emptyList();
 
-	private final GraphiQlHandler handler = new GraphiQlHandler("/graphql", null,
-			new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+	private final GraphiQlHandler handler = initHandler("/graphql");
 
+
+	private static GraphiQlHandler initHandler(String path) {
+		return new GraphiQlHandler(path, null, new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+	}
 
 	@Test
 	void shouldRedirectWithPathQueryParameter() {
@@ -71,6 +77,25 @@ class GraphiQlHandlerTests {
 		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
 		assertThat(response.headers().getLocation()).isNotNull();
 		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo("/graphiql?path=/graphql&wsPath=/graphql");
+	}
+
+	@Test // gh-478
+	void shouldRedirectWithPathVariables() {
+		Map<String, Object> pathVariables = Collections.singletonMap("envId", "123");
+		UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("/env/{envId}/graphiql");
+		String path = uriBuilder.build(pathVariables).toString();
+
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.get(path).build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		exchange.getAttributes().put(RouterFunctions.URI_TEMPLATE_VARIABLES_ATTRIBUTE, pathVariables);
+		ServerRequest request = ServerRequest.create(exchange, MESSAGE_READERS);
+
+		GraphiQlHandler graphiQlHandler = initHandler(uriBuilder.build().toString());
+		ServerResponse response = graphiQlHandler.handleRequest(request).block();
+
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.TEMPORARY_REDIRECT);
+		assertThat(response.headers().getLocation()).isNotNull();
+		assertThat(response.headers().getLocation().toASCIIString()).isEqualTo(path + "?path=" + path);
 	}
 
 	@Test
