@@ -109,14 +109,14 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		return new GraphQLTypeVisitorStub() {
 			@Override
-			public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition fieldDefinition,
-																TraverserContext<GraphQLSchemaElement> context) {
+			public TraversalControl visitGraphQLFieldDefinition(
+					GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
 
 				GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 				DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
-				if (dataFetcher.getClass().getPackage().getName().startsWith("graphql.")) {
+				if (skipDataFetcher(dataFetcher)) {
 					return TraversalControl.CONTINUE;
 				}
 
@@ -124,6 +124,14 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
 				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				return TraversalControl.CONTINUE;
+			}
+
+			private boolean skipDataFetcher(DataFetcher<?> dataFetcher) {
+				Class<?> type = dataFetcher.getClass();
+				if (type.getPackage().getName().startsWith("graphql.")) {
+					return !type.getSimpleName().startsWith("DataFetcherFactories");
+				}
+				return false;
 			}
 		};
 	}
