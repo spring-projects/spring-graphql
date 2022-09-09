@@ -116,22 +116,23 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 				DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
-				if (skipDataFetcher(dataFetcher)) {
-					return TraversalControl.CONTINUE;
+				if (applyDecorator(dataFetcher)) {
+					boolean handlesSubscription = parent.getName().equals("Subscription");
+					dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
+					codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				}
 
-				boolean handlesSubscription = parent.getName().equals("Subscription");
-				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
-				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				return TraversalControl.CONTINUE;
 			}
 
-			private boolean skipDataFetcher(DataFetcher<?> dataFetcher) {
+			private boolean applyDecorator(DataFetcher<?> dataFetcher) {
 				Class<?> type = dataFetcher.getClass();
-				if (type.getPackage().getName().startsWith("graphql.")) {
-					return !type.getSimpleName().startsWith("DataFetcherFactories");
+				String packageName = type.getPackage().getName();
+				if (packageName.startsWith("graphql.")) {
+					return (type.getSimpleName().startsWith("DataFetcherFactories") ||
+							packageName.startsWith("graphql.validation"));
 				}
-				return false;
+				return true;
 			}
 		};
 	}
