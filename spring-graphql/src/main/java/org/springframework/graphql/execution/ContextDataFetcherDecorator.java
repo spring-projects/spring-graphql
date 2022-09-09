@@ -103,21 +103,30 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		return new GraphQLTypeVisitorStub() {
 			@Override
-			public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition fieldDefinition,
-																TraverserContext<GraphQLSchemaElement> context) {
+			public TraversalControl visitGraphQLFieldDefinition(
+					GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
 
 				GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 				DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
-				if (dataFetcher.getClass().getPackage().getName().startsWith("graphql.")) {
-					return TraversalControl.CONTINUE;
+				if (applyDecorator(dataFetcher)) {
+					boolean handlesSubscription = parent.getName().equals("Subscription");
+					dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
+					codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				}
 
-				boolean handlesSubscription = parent.getName().equals("Subscription");
-				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
-				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				return TraversalControl.CONTINUE;
+			}
+
+			private boolean applyDecorator(DataFetcher<?> dataFetcher) {
+				Class<?> type = dataFetcher.getClass();
+				String packageName = type.getPackage().getName();
+				if (packageName.startsWith("graphql.")) {
+					return (type.getSimpleName().startsWith("DataFetcherFactories") ||
+							packageName.startsWith("graphql.validation"));
+				}
+				return true;
 			}
 		};
 	}

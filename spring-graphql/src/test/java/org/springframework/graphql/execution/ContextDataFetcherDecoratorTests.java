@@ -19,12 +19,19 @@ package org.springframework.graphql.execution;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetcherFactories;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.idl.SchemaDirectiveWiring;
+import graphql.schema.idl.SchemaDirectiveWiringEnvironment;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.api.Test;
@@ -42,10 +49,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link ContextDataFetcherDecorator}.
  * @author Rossen Stoyanchev
  */
+@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 public class ContextDataFetcherDecoratorTests {
 
-	private static final String SCHEMA_CONTENT =
-			"type Query { greeting: String, greetings: [String] } type Subscription { greetings: String }";
+	private static final String SCHEMA_CONTENT = "" +
+			"directive @UpperCase on FIELD_DEFINITION " +
+			"type Query { " +
+			"  greeting: String @UpperCase, " +
+			"  greetings: [String] " +
+			"} " +
+			"type Subscription { " +
+			"  greetings: String " +
+			"}";
 
 
 	@Test
@@ -112,7 +127,7 @@ public class ContextDataFetcherDecoratorTests {
 	}
 
 	@Test
-	void fluxDataFetcherSubscriptionThrowException() throws Exception {
+	void fluxDataFetcherSubscriptionThrowingException() throws Exception {
 
 		SubscriptionExceptionResolver resolver =
 				SubscriptionExceptionResolver.forSingleError(exception ->
@@ -174,6 +189,53 @@ public class ContextDataFetcherDecoratorTests {
 		finally {
 			threadLocal.remove();
 		}
+	}
+
+	@Test // gh-440
+	void dataFetcherDecoratedWithDataFetcherFactories() {
+
+		SchemaDirectiveWiring directiveWiring = new SchemaDirectiveWiring() {
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public GraphQLFieldDefinition onField(SchemaDirectiveWiringEnvironment<GraphQLFieldDefinition> env) {
+				if (env.getDirective("UpperCase") != null) {
+					return env.setFieldDataFetcher(DataFetcherFactories.wrapDataFetcher(
+							env.getFieldDataFetcher(),
+							((dataFetchingEnv, value) -> {
+								if (value instanceof String) {
+									return ((String) value).toUpperCase();
+								}
+								else if (value instanceof Mono) {
+									return ((Mono<String>) value).map(String::toUpperCase);
+								}
+								else {
+									throw new IllegalArgumentException();
+								}
+							})));
+				}
+				else {
+					return env.getElement();
+				}
+			}
+		};
+
+		BiConsumer<SchemaDirectiveWiring, DataFetcher<?>> tester = (schemaDirectiveWiring, dataFetcher) -> {
+
+			GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+					.queryFetcher("greeting", dataFetcher)
+					.runtimeWiring(builder -> builder.directiveWiring(directiveWiring))
+					.toGraphQl();
+
+			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+			Mono<ExecutionResult> resultMono = Mono.fromFuture(graphQl.executeAsync(input));
+
+			String greeting = ResponseHelper.forResult(resultMono).toEntity("greeting", String.class);
+			assertThat(greeting).isEqualTo("HELLO");
+		};
+
+		tester.accept(directiveWiring, env -> CompletableFuture.completedFuture("hello"));
+		tester.accept(directiveWiring, env -> Mono.just("hello"));
 	}
 
 }

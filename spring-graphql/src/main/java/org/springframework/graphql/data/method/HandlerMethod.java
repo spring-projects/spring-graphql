@@ -17,6 +17,9 @@ package org.springframework.graphql.data.method;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -26,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.core.BridgeMethodResolver;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.lang.Nullable;
@@ -66,6 +70,9 @@ public class HandlerMethod {
 	private final Method bridgedMethod;
 
 	private final MethodParameter[] parameters;
+
+	@Nullable
+	private volatile List<Annotation[][]> interfaceParameterAnnotations;
 
 
 	/**
@@ -241,6 +248,40 @@ public class HandlerMethod {
 		return getBeanType().getSimpleName() + "#" + this.method.getName() + "[" + args + " args]";
 	}
 
+	private List<Annotation[][]> getInterfaceParameterAnnotations() {
+		List<Annotation[][]> parameterAnnotations = this.interfaceParameterAnnotations;
+		if (parameterAnnotations == null) {
+			parameterAnnotations = new ArrayList<>();
+			for (Class<?> ifc : ClassUtils.getAllInterfacesForClassAsSet(this.method.getDeclaringClass())) {
+				for (Method candidate : ifc.getMethods()) {
+					if (isOverrideFor(candidate)) {
+						parameterAnnotations.add(candidate.getParameterAnnotations());
+					}
+				}
+			}
+			this.interfaceParameterAnnotations = parameterAnnotations;
+		}
+		return parameterAnnotations;
+	}
+
+	private boolean isOverrideFor(Method candidate) {
+		if (!candidate.getName().equals(this.method.getName()) ||
+				candidate.getParameterCount() != this.method.getParameterCount()) {
+			return false;
+		}
+		Class<?>[] paramTypes = this.method.getParameterTypes();
+		if (Arrays.equals(candidate.getParameterTypes(), paramTypes)) {
+			return true;
+		}
+		for (int i = 0; i < paramTypes.length; i++) {
+			if (paramTypes[i] !=
+					ResolvableType.forMethodParameter(candidate, i, this.method.getDeclaringClass()).resolve()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 
 	@Override
 	public boolean equals(@Nullable Object other) {
@@ -323,6 +364,9 @@ public class HandlerMethod {
 	 */
 	protected class HandlerMethodParameter extends SynthesizingMethodParameter {
 
+		@Nullable
+		private volatile Annotation[] combinedAnnotations;
+
 		public HandlerMethodParameter(int index) {
 			super(HandlerMethod.this.bridgedMethod, index);
 		}
@@ -347,8 +391,38 @@ public class HandlerMethod {
 		}
 
 		@Override
-		public HandlerMethodParameter clone() {
-			return new HandlerMethodParameter(this);
+		public Annotation[] getParameterAnnotations() {
+			Annotation[] anns = this.combinedAnnotations;
+			if (anns == null) {
+				anns = super.getParameterAnnotations();
+				int index = getParameterIndex();
+				if (index >= 0) {
+					for (Annotation[][] ifcAnns : getInterfaceParameterAnnotations()) {
+						if (index < ifcAnns.length) {
+							Annotation[] paramAnns = ifcAnns[index];
+							if (paramAnns.length > 0) {
+								List<Annotation> merged = new ArrayList<>(anns.length + paramAnns.length);
+								merged.addAll(Arrays.asList(anns));
+								for (Annotation paramAnn : paramAnns) {
+									boolean existingType = false;
+									for (Annotation ann : anns) {
+										if (ann.annotationType() == paramAnn.annotationType()) {
+											existingType = true;
+											break;
+										}
+									}
+									if (!existingType) {
+										merged.add(adaptAnnotation(paramAnn));
+									}
+								}
+								anns = merged.toArray(new Annotation[0]);
+							}
+						}
+					}
+				}
+				this.combinedAnnotations = anns;
+			}
+			return anns;
 		}
 	}
 
