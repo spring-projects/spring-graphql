@@ -229,8 +229,40 @@ class HeaderInterceptor implements WebGraphQlInterceptor {
 <1> Controller adds value to the `GraphQLContext`
 <2> Interceptor uses the value to add an HTTP response header
 
-You can add a `WebGraphQlInterceptor` through `WebGraphQlHandler` builder. The Boot starter
-supports this, see
+`WebGraphQlHandler` can modify the `ExecutionResult`, for example, to inspect and modify
+request validation errors that are raised before execution begins and which cannot be
+handled with a `DataFetcherExceptionResolver`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+static class RequestErrorInterceptor implements WebGraphQlInterceptor {
+
+	@Override
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
+		return chain.next(request).map(response -> {
+			if (response.isValid()) {
+				return response; <1>
+			}
+
+			List<GraphQLError> errors = response.getErrors().stream() <2>
+					.map(error -> {
+						GraphqlErrorBuilder<?> builder = GraphqlErrorBuilder.newError();
+						// ...
+						return builder.build();
+					})
+					.collect(Collectors.toList());
+
+			return response.transform(builder -> builder.errors(errors).build()); <3>
+		});
+	}
+}
+----
+<1> Return the same if `ExecutionResult` has a "data" key with non-null value
+<2> Check and transform the GraphQL errors
+<3> Update the `ExecutionResult` with the modified errors
+
+Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
+by the Boot starter, see
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
 
 
@@ -584,6 +616,19 @@ error details.
 
 Unresolved exception are logged at ERROR level along with the `executionId` to correlate
 to the error sent to the client. Resolved exceptions are logged at DEBUG level.
+
+[[execution-exceptions-request]]
+==== Request Exceptions
+
+The GraphQL Java engine may run into validation or other errors when parsing the request
+and that in turn prevent request execution. In such cases, the response contains a
+"data" key with `null` and one or more request-level "errors" that are global, i.e. not
+having a field path.
+
+`DataFetcherExceptionResolver` cannot handle such global errors because they are raised
+before execution begins and before any `DataFetcher` is invoked. An application can use
+transport level interceptors to inspect and transform errors in the `ExecutionResult`.
+See examples under <<server-interception-web>>.
 
 
 [[execution-exceptions-subsctiption]]
