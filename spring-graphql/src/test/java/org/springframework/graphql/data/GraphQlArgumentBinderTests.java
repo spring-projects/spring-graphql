@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -32,6 +33,7 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ResolvableType;
+import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -180,6 +182,26 @@ class GraphQlArgumentBinderTests {
 		assertThat(((PrimaryConstructorItemBean) result).getItem().getName()).isEqualTo("Item name");
 		assertThat(((PrimaryConstructorItemBean) result).getName()).isEqualTo("Hello");
 		assertThat(((PrimaryConstructorItemBean) result).getAge()).isEqualTo(30);
+	}
+
+	@Test
+	void primaryConstructorWithOptionalBeanArgument() throws Exception {
+
+		GraphQlArgumentBinder argumentBinder =
+				new GraphQlArgumentBinder(new DefaultFormattingConversionService());
+
+		Object result = argumentBinder.bind(
+				environment(
+						"{\"key\":{" +
+								"\"item\":{\"name\":\"Item name\"}," +
+								"\"name\":\"Hello\"," +
+								"\"age\":\"30\"}}"),
+				"key",
+				ResolvableType.forClass(PrimaryConstructorOptionalItemBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorOptionalItemBean.class);
+		assertThat(((PrimaryConstructorOptionalItemBean) result).getItem().get().getName()).isEqualTo("Item name");
+		assertThat(((PrimaryConstructorOptionalItemBean) result).getName().get()).isEqualTo("Hello");
 	}
 
 	@Test
@@ -386,6 +408,28 @@ class GraphQlArgumentBinderTests {
 
 		public List<Item> getItems() {
 			return items;
+		}
+	}
+
+
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+	static class PrimaryConstructorOptionalItemBean {
+
+		private final Optional<String> name;
+
+		private final Optional<Item> item;
+
+		public PrimaryConstructorOptionalItemBean(Optional<String> name, Optional<Item> item) {
+			this.name = name;
+			this.item = item;
+		}
+
+		public Optional<String> getName() {
+			return this.name;
+		}
+
+		public Optional<Item> getItem() {
+			return item;
 		}
 	}
 

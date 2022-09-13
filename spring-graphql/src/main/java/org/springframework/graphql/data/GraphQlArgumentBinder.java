@@ -188,9 +188,10 @@ public class GraphQlArgumentBinder {
 		return (type.resolve(Object.class).equals(Optional.class) ? Optional.ofNullable(value) : value);
 	}
 
-	private boolean isApproximableCollectionType(Object rawValue) {
-		return (CollectionFactory.isApproximableCollectionType(rawValue.getClass()) ||
-				rawValue instanceof List);  // it may be SingletonList
+	private boolean isApproximableCollectionType(@Nullable Object rawValue) {
+		return (rawValue != null &&
+				(CollectionFactory.isApproximableCollectionType(rawValue.getClass()) ||
+						rawValue instanceof List));  // it may be SingletonList
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
@@ -283,12 +284,15 @@ public class GraphQlArgumentBinder {
 			if (rawValue == null && methodParam.isOptional()) {
 				args[i] = (paramTypes[i] == Optional.class ? Optional.empty() : null);
 			}
-			else if (rawValue != null && isApproximableCollectionType(rawValue)) {
+			else if (isApproximableCollectionType(rawValue)) {
 				ResolvableType elementType = ResolvableType.forMethodParameter(methodParam);
 				args[i] = createCollection((Collection<Object>) rawValue, elementType, bindingResult, segments);
 			}
 			else if (rawValue instanceof Map) {
-				args[i] = createValueOrNull((Map<String, Object>) rawValue, paramTypes[i], bindingResult, segments);
+				boolean isOptional = (paramTypes[i] == Optional.class);
+				Class<?> type = (isOptional ? methodParam.nestedIfOptional().getNestedParameterType() : paramTypes[i]);
+				Object value = createValueOrNull((Map<String, Object>) rawValue, type, bindingResult, segments);
+				args[i] = (isOptional ? Optional.ofNullable(value) : value);
 			}
 			else {
 				args[i] = convertValue(rawValue, paramTypes[i], new TypeDescriptor(methodParam), bindingResult, segments);
