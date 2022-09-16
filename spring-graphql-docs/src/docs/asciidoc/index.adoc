@@ -155,30 +155,40 @@ public class GraphQlRSocketController {
 [[server-interception]]
 === Interception
 
-Transport handlers for <<server-http>> and <<server-websocket>> delegate to a
-`WebGraphQlInterceptor` chain with an `ExecutionGraphQlService` at the end which calls
-the GraphQL Java engine. Use this to access HTTP request details and customize the
-`ExecutionInput` for GraphQL Java.
+Server transports allow intercepting requests before and after the GraphQL Java engine is
+called to process a request.
 
-For example, to extract HTTP request values and pass them to data fetchers:
+
+[[server-interception-web]]
+==== `WebGraphQlInterceptor`
+
+<<server-http>> and <<server-websocket>> transports invoke a chain of
+0 or more `WebGraphQlInterceptor`, followed by an `ExecutionGraphQlService` that calls
+the GraphQL Java engine. `WebGraphQlInterceptor` allows an application to intercept
+incoming requests and do one of the following:
+
+- Check HTTP request details
+- Customize the `graphql.ExecutionInput`
+- Add HTTP response headers
+- Customize the `graphql.ExecutionResult`
+
+For example, an interceptor can pass an HTTP request header to a `DataFetcher`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-class HeaderInterceptor implements WebGraphQlInterceptor {
+class HeaderInterceptor implements WebGraphQlInterceptor { <1>
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		List<String> values = request.getHeaders().get("headerName");
+		String value = request.getHeaders().getFirst("myHeader");
 		request.configureExecutionInput((executionInput, builder) ->
-				builder.graphQLContext(Collections.singletonMap("headerName", values)).build());
+				builder.graphQLContext(Collections.singletonMap("myHeader", value)).build());
 		return chain.next(request);
 	}
 }
 
-// Subsequent access from a controller
-
 @Controller
-class MyController {
+class MyController { <2>
 
 	@QueryMapping
 	Person person(@ContextValue String myHeader) {
@@ -186,8 +196,10 @@ class MyController {
 	}
 }
 ----
+<1> Interceptor adds HTTP request header value into GraphQLContext
+<2> Data controller method accesses the value
 
-Or reversely, add values to the `GraphQLContext` and use them to update the HTTP response:
+Reversely, an interceptor can access values added to the `GraphQLContext` by a controller:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -195,7 +207,7 @@ Or reversely, add values to the `GraphQLContext` and use them to update the HTTP
 class MyController {
 
 	@QueryMapping
-	Person person(GraphQLContext context) {
+	Person person(GraphQLContext context) { <1>
 		context.put("cookieName", "123");
 	}
 }
@@ -205,7 +217,7 @@ class MyController {
 class HeaderInterceptor implements WebGraphQlInterceptor {
 
 	@Override
-	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) { <2>
 		return chain.next(request).doOnNext(response -> {
 			String value = response.getExecutionInput().getGraphQLContext().get("cookieName");
 			ResponseCookie cookie = ResponseCookie.from("cookieName", value).build();
@@ -214,13 +226,52 @@ class HeaderInterceptor implements WebGraphQlInterceptor {
 	}
 }
 ----
+<1> Controller adds value to the `GraphQLContext`
+<2> Interceptor uses the value to add an HTTP response header
 
-The `WebGraphQlInterceptor` chain can be updated through the `WebGraphQlHandler` builder,
-and the Boot starter uses this, see Boot's section on
+`WebGraphQlHandler` can modify the `ExecutionResult`, for example, to inspect and modify
+request validation errors that are raised before execution begins and which cannot be
+handled with a `DataFetcherExceptionResolver`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+static class RequestErrorInterceptor implements WebGraphQlInterceptor {
+
+	@Override
+	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
+		return chain.next(request).map(response -> {
+			if (response.isValid()) {
+				return response; <1>
+			}
+
+			List<GraphQLError> errors = response.getErrors().stream() <2>
+					.map(error -> {
+						GraphqlErrorBuilder<?> builder = GraphqlErrorBuilder.newError();
+						// ...
+						return builder.build();
+					})
+					.collect(Collectors.toList());
+
+			return response.transform(builder -> builder.errors(errors).build()); <3>
+		});
+	}
+}
+----
+<1> Return the same if `ExecutionResult` has a "data" key with non-null value
+<2> Check and transform the GraphQL errors
+<3> Update the `ExecutionResult` with the modified errors
+
+Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
+by the Boot starter, see
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
 
-The <<server-rsocket>> transport handler delegates to a similar `GraphQlInterceptor`
-chain that you can use to intercept GraphQL over RSocket requests.
+
+[[server-interception-rsocket]]
+==== `RSocketQlInterceptor`
+
+Similar to <<server-interception-web>>, an `RSocketQlInterceptor` allows intercepting
+GraphQL over RSocket requests before and after GraphQL Java engine execution. You can use
+this to customize the `graphql.ExecutionInput` and the `graphql.ExecutionResult`.
 
 
 
@@ -566,6 +617,19 @@ error details.
 
 Unresolved exception are logged at ERROR level along with the `executionId` to correlate
 to the error sent to the client. Resolved exceptions are logged at DEBUG level.
+
+[[execution-exceptions-request]]
+==== Request Exceptions
+
+The GraphQL Java engine may run into validation or other errors when parsing the request
+and that in turn prevent request execution. In such cases, the response contains a
+"data" key with `null` and one or more request-level "errors" that are global, i.e. not
+having a field path.
+
+`DataFetcherExceptionResolver` cannot handle such global errors because they are raised
+before execution begins and before any `DataFetcher` is invoked. An application can use
+transport level interceptors to inspect and transform errors in the `ExecutionResult`.
+See examples under <<server-interception-web>>.
 
 
 [[execution-exceptions-subsctiption]]
