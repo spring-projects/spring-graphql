@@ -20,9 +20,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Optional;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
+import javax.validation.Valid;
 import javax.validation.Validation;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
@@ -36,6 +38,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.validation.annotation.Validated;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -78,6 +81,27 @@ class HandlerMethodValidationHelperTests {
 		HandlerMethod myValidMethodWithGroupOnType = findHandlerMethod(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
 		assertViolations(() -> validator.validate(myValidMethodWithGroupOnType, new Object[] {null}))
 				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethodWithGroupOnType.arg0"));
+	}
+
+	@Test
+	void shouldRecognizeMethodsThatRequireValidation() {
+		HandlerMethod method = findHandlerMethod(RequiresValidationBean.class, "processConstrainedValue");
+		assertThat(validator.requiresValidation(method)).isTrue();
+
+		method = findHandlerMethod(RequiresValidationBean.class, "processValidInput");
+		assertThat(validator.requiresValidation(method)).isTrue();
+
+		method = findHandlerMethod(RequiresValidationBean.class, "processValidatedInput");
+		assertThat(validator.requiresValidation(method)).isTrue();
+
+		method = findHandlerMethod(RequiresValidationBean.class, "processInputWithConstrainedValue");
+		assertThat(validator.requiresValidation(method)).isTrue();
+
+		method = findHandlerMethod(RequiresValidationBean.class, "processOptionalInputWithConstrainedValue");
+		assertThat(validator.requiresValidation(method)).isTrue();
+
+		method = findHandlerMethod(RequiresValidationBean.class, "processValue");
+		assertThat(validator.requiresValidation(method)).isFalse();
 	}
 
 
@@ -143,6 +167,49 @@ class HandlerMethodValidationHelperTests {
 
 		public Object myValidMethodWithGroupOnType(@NotNull(groups = {SecondGroup.class}) String arg0) {
 			return null;
+		}
+
+	}
+
+
+	@SuppressWarnings("unused")
+	private static class RequiresValidationBean {
+
+		public void processConstrainedValue(@Max(99) int i) {
+		}
+
+		public void processValidInput(@Valid MyInput input) {
+		}
+
+		public void processValidatedInput(@Validated MyInput input) {
+		}
+
+		public void processInputWithConstrainedValue(MyConstrainedInput input) {
+		}
+
+		public void processOptionalInputWithConstrainedValue(Optional<MyConstrainedInput> input) {
+		}
+
+		public void processValue(int i) {
+		}
+
+	}
+
+
+	private static class MyInput {
+	}
+
+	private static class MyConstrainedInput {
+
+		@Max(99)
+		private int i;
+
+		public int getI() {
+			return this.i;
+		}
+
+		public void setI(int i) {
+			this.i = i;
 		}
 
 	}

@@ -19,12 +19,17 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.annotation.Annotation;
 import java.util.Set;
 
+import javax.validation.Constraint;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
+import javax.validation.Valid;
 import javax.validation.Validator;
+import javax.validation.metadata.BeanDescriptor;
 
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -95,6 +100,34 @@ final class HandlerMethodValidationHelper {
 			annotation = AnnotationUtils.findAnnotation(method.getBeanType(), annotationType);
 		}
 		return annotation;
+	}
+
+	/**
+	 * Whether the given method requires standard bean validation. This is the
+	 * case if the method or one of its parameters are annotated with
+	 * {@link Valid} or {@link Validated}, or if any method parameter is declared
+	 * with a {@link Constraint constraint}, or the method parameter type is
+	 * itself {@link BeanDescriptor#isBeanConstrained() constrained}.
+	 * @param method the handler method to check
+	 * @return {@code true} if validation is required, {@code false} otherwise
+	 */
+	public boolean requiresValidation(HandlerMethod method) {
+		if (findAnnotation(method, Validated.class) != null || findAnnotation(method, Valid.class) != null) {
+			return true;
+		}
+		for (MethodParameter parameter : method.getMethodParameters()) {
+			for (Annotation annotation : parameter.getParameterAnnotations()) {
+				MergedAnnotations merged = MergedAnnotations.from(annotation);
+				if (merged.isPresent(Valid.class) || merged.isPresent(Constraint.class) || merged.isPresent(Validated.class)) {
+					return true;
+				}
+			}
+			Class<?> paramType = parameter.nestedIfOptional().getNestedParameterType();
+			if (this.validator.getConstraintsForClass(paramType).isBeanConstrained()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 

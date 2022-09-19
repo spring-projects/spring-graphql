@@ -71,7 +71,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 		super(handlerMethod, executor);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
-		this.validator = validator;
+		this.validator = (validator != null && validator.requiresValidation(handlerMethod) ? validator : null);
 		this.subscription = subscription;
 	}
 
