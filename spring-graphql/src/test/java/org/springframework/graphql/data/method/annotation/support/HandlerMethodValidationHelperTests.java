@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.Arrays;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
+import javax.validation.Validation;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 
@@ -39,27 +40,29 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Tests for {@link HandlerMethodInputValidator}
+ * Unit tests for {@link HandlerMethodValidationHelper}.
  * @author Brian Clozel
  */
-class HandlerMethodInputValidatorTests {
+class HandlerMethodValidationHelperTests {
 
-	private final HandlerMethodInputValidator validator = new HandlerMethodInputValidator();
+	private final HandlerMethodValidationHelper validator =
+			new HandlerMethodValidationHelper(Validation.buildDefaultValidatorFactory().getValidator());
+
 
 	@Test
 	void shouldFailWithNullValidator() {
-		assertThatThrownBy(() -> new HandlerMethodInputValidator(null)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> new HandlerMethodValidationHelper(null)).isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test
-	void shouldIgnoreMethodsWithoutAnnotations() throws Exception {
-		HandlerMethod method = findHandlerMethod(MyValidBean.class, "notValidatedMethod");
+	void shouldIgnoreMethodsWithoutAnnotations() {
+		HandlerMethod method = findHandlerMethod(MyBean.class, "notValidatedMethod");
 		assertThatNoException().isThrownBy(() -> validator.validate(method, new Object[] {"test", 12}));
 	}
 
 	@Test
-	void shouldRaiseValidationErrorForAnnotatedParams() throws Exception {
-		HandlerMethod method = findHandlerMethod(MyValidBean.class, "myValidMethod");
+	void shouldRaiseValidationErrorForAnnotatedParams() {
+		HandlerMethod method = findHandlerMethod(MyBean.class, "myValidMethod");
 		assertViolations(() -> validator.validate(method, new Object[] {null, 2}))
 				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethod.arg0"));
 		assertViolations(() -> validator.validate(method, new Object[] {"test", 12}))
@@ -67,11 +70,12 @@ class HandlerMethodInputValidatorTests {
 	}
 
 	@Test
-	void shouldRaiseValidationErrorForAnnotatedParamsWithGroups() throws Exception {
-		HandlerMethod myValidMethodWithGroup = findHandlerMethod(MyValidBeanWithGroup.class, "myValidMethodWithGroup");
+	void shouldRaiseValidationErrorForAnnotatedParamsWithGroups() {
+		HandlerMethod myValidMethodWithGroup = findHandlerMethod(MyValidationGroupsBean.class, "myValidMethodWithGroup");
 		assertViolations(() -> validator.validate(myValidMethodWithGroup, new Object[] {null}))
 				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethodWithGroup.arg0"));
-		HandlerMethod myValidMethodWithGroupOnType = findHandlerMethod(MyValidBeanWithGroup.class, "myValidMethodWithGroupOnType");
+
+		HandlerMethod myValidMethodWithGroupOnType = findHandlerMethod(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
 		assertViolations(() -> validator.validate(myValidMethodWithGroupOnType, new Object[] {null}))
 				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethodWithGroupOnType.arg0"));
 	}
@@ -93,7 +97,9 @@ class HandlerMethodInputValidatorTests {
 				.asInstanceOf(InstanceOfAssertFactories.iterable(ConstraintViolation.class));
 	}
 
-	public static class MyValidBean {
+
+	@SuppressWarnings("unused")
+	private static class MyBean {
 
 		public String notValidatedMethod(String arg0, int arg1) {
 			return "";
@@ -105,27 +111,32 @@ class HandlerMethodInputValidatorTests {
 
 	}
 
-	public interface FirstGroup {
+
+	interface FirstGroup {
 	}
 
 
-	public interface SecondGroup {
+	interface SecondGroup {
 	}
+
 
 	@Validated(FirstGroup.class)
 	@Retention(RetentionPolicy.RUNTIME)
-	public @interface GroupOnParam {
+	@interface MethodLevelGroup {
 	}
+
 
 	@Validated(SecondGroup.class)
 	@Retention(RetentionPolicy.RUNTIME)
-	public @interface GroupOnType {
+	@interface TypeLevelGroup {
 	}
 
-	@GroupOnType
-	public static class MyValidBeanWithGroup {
 
-		@GroupOnParam
+	@TypeLevelGroup
+	@SuppressWarnings("unused")
+	private static class MyValidationGroupsBean {
+
+		@MethodLevelGroup
 		public Object myValidMethodWithGroup(@NotNull(groups = {FirstGroup.class}) String arg0) {
 			return null;
 		}

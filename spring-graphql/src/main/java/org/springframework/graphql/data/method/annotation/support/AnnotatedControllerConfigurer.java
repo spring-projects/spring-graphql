@@ -30,8 +30,6 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.validation.Validator;
-
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -127,7 +125,7 @@ public class AnnotatedControllerConfigurer
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
 	@Nullable
-	private HandlerMethodInputValidator validator;
+	private HandlerMethodValidationHelper validationHelper;
 
 	@Nullable
 	private Consumer<DataBinder> dataBinderInitializer;
@@ -175,7 +173,8 @@ public class AnnotatedControllerConfigurer
 		this.argumentResolvers = initArgumentResolvers();
 
 		if (beanValidationPresent) {
-			this.validator = HandlerMethodInputValidatorFactory.create(obtainApplicationContext());
+			this.validationHelper =
+					HandlerMethodValidationHelper.createIfValidatorAvailable(obtainApplicationContext());
 		}
 	}
 
@@ -229,7 +228,7 @@ public class AnnotatedControllerConfigurer
 		findHandlerMethods().forEach((info) -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
-				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers, this.validator, this.executor);
+				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers, this.validationHelper, this.executor);
 			}
 			else {
 				String dataLoaderKey = registerBatchLoader(info);
@@ -477,21 +476,21 @@ public class AnnotatedControllerConfigurer
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
 		@Nullable
-		private final HandlerMethodInputValidator validator;
+		private final HandlerMethodValidationHelper validatorHelper;
 
 		@Nullable
 		private final Executor executor;
 
 		private final boolean subscription;
 
-		public SchemaMappingDataFetcher(
+		SchemaMappingDataFetcher(
 				MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
-				@Nullable HandlerMethodInputValidator validator,
+				@Nullable HandlerMethodValidationHelper validatorHelper,
 				@Nullable Executor executor) {
 
 			this.info = info;
 			this.argumentResolvers = resolvers;
-			this.validator = validator;
+			this.validatorHelper = validatorHelper;
 			this.executor = executor;
 			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
@@ -509,7 +508,7 @@ public class AnnotatedControllerConfigurer
 		public Object get(DataFetchingEnvironment environment) throws Exception {
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-					getHandlerMethod(), this.argumentResolvers, this.validator, this.executor, this.subscription);
+					getHandlerMethod(), this.argumentResolvers, this.validatorHelper, this.executor, this.subscription);
 
 			return handlerMethod.invoke(environment);
 		}
@@ -520,7 +519,7 @@ public class AnnotatedControllerConfigurer
 
 		private final String dataLoaderKey;
 
-		public BatchMappingDataFetcher(String dataLoaderKey) {
+		BatchMappingDataFetcher(String dataLoaderKey) {
 			this.dataLoaderKey = dataLoaderKey;
 		}
 
@@ -531,18 +530,6 @@ public class AnnotatedControllerConfigurer
 				throw new IllegalStateException("No DataLoader for key '" + this.dataLoaderKey + "'");
 			}
 			return dataLoader.load(env.getSource());
-		}
-	}
-
-	/**
-	 * Look for a Validator bean in the context and configure validation support
-	 */
-	static class HandlerMethodInputValidatorFactory {
-
-		@Nullable
-		static HandlerMethodInputValidator create(ApplicationContext context) {
-			Validator validator = context.getBeanProvider(Validator.class).getIfAvailable();
-			return validator != null ? new HandlerMethodInputValidator(validator) : null;
 		}
 	}
 

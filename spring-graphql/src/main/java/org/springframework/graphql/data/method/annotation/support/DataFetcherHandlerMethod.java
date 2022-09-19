@@ -50,7 +50,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	private final HandlerMethodArgumentResolverComposite resolvers;
 
 	@Nullable
-	private final HandlerMethodInputValidator validator;
+	private final HandlerMethodValidationHelper validator;
 	
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
@@ -65,7 +65,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 * @param subscription whether the field being fetched is of subscription type
 	 */
 	public DataFetcherHandlerMethod(HandlerMethod handlerMethod,
-			HandlerMethodArgumentResolverComposite resolvers, @Nullable HandlerMethodInputValidator validator,
+			HandlerMethodArgumentResolverComposite resolvers, @Nullable HandlerMethodValidationHelper validator,
 			@Nullable Executor executor, boolean subscription) {
 
 		super(handlerMethod, executor);
@@ -85,11 +85,14 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	/**
 	 * Return the configured input validator.
+	 * @deprecated as of 1.1 without a replacement
 	 */
+	@Deprecated
 	@Nullable
-	public HandlerMethodInputValidator getValidator() {
+	public HandlerMethodValidationHelper getValidator() {
 		return this.validator;
 	}
+
 
 	/**
 	 * Invoke the method after resolving its argument values in the context of
