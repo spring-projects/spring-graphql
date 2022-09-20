@@ -23,13 +23,18 @@ import graphql.schema.DataFetchingEnvironment;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.Arguments;
 import org.springframework.util.StringUtils;
 
 
 /**
- * Resolves a {@link Map} method parameter annotated with an
- * {@link Argument @Argument} by returning the GraphQL
- * {@link DataFetchingEnvironment#getArguments() arguments} map.
+ * Resolves a {@link Map} method parameter for access to the raw arguments map.
+ * Supported with the following:
+ * <ul>
+ * <li>{@link Map} argument annotated with {@link Argument @Argument} where the
+ * annotation does not explicitly specify a name.
+ * <li>{@link Map} argument annotated with {@link Arguments @Arguments}.
+ * </ul>
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -38,10 +43,19 @@ public class ArgumentMapMethodArgumentResolver implements HandlerMethodArgumentR
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
+		return (checkArgumentMap(parameter) || checkArgumentsMap(parameter));
+	}
+
+	private static boolean checkArgumentMap(MethodParameter parameter) {
 		Argument argument = parameter.getParameterAnnotation(Argument.class);
 		return (argument != null &&
 				Map.class.isAssignableFrom(parameter.getParameterType()) &&
 				!StringUtils.hasText(argument.name()));
+	}
+
+	private static boolean checkArgumentsMap(MethodParameter parameter) {
+		Arguments argument = parameter.getParameterAnnotation(Arguments.class);
+		return (argument != null && Map.class.isAssignableFrom(parameter.getParameterType()));
 	}
 
 	@Override

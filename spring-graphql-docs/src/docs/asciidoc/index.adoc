@@ -1275,11 +1275,18 @@ See <<controllers-schema-mapping-argument>>.
 | For access to all field arguments bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-arguments>>.
 
+| `@Argument Map<String, Object>`
+| For access to the raw map of arguments, where `@Argument` does not have a
+`name` attribute.
+
+| `@Arguments Map<String, Object>`
+| For access to the raw map of arguments.
+
 | `@ProjectedPayload` Interface
 | For access to field arguments through a project interface.
 See <<controllers-schema-mapping-projectedpayload-argument>>.
 
-| Source
+| "Source"
 | For access to the source (i.e. parent/container) instance of the field.
 See <<controllers-schema-mapping-source>>.
 
@@ -1365,8 +1372,8 @@ are enforced by GraphQL Java.
 If binding fails, a `BindException` is raised with binding issues accumulated as field
 errors where the `field` of each error is the argument path where the issue occurred.
 
-You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
-values. The name attribute on `@Argument` must not be set.
+You can use `@Argument` with a `Map<String, Object>` argument, to obtain the raw map of
+all argument values. The name attribute on `@Argument` must not be set.
 
 
 
@@ -1380,6 +1387,8 @@ For example, `@Argument BookInput bookInput` uses the value of the argument "boo
 to initialize `BookInput`, while `@Arguments` uses the full arguments map and in that
 case, top-level arguments are bound to `BookInput` properties.
 
+You can use `@Arguments` with a `Map<String, Object>` argument, to obtain the raw map of
+all argument values.
 
 
 [[controllers-schema-mapping-projectedpayload-argument]]
