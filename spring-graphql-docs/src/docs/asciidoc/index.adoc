@@ -339,10 +339,14 @@ parsed and merged together. That means schema files can be loaded from just abou
 location.
 
 By default, the Spring Boot starter
-{spring-boot-ref-docs}/web.html#web.graphql.schema[finds schema files] from a
-well-known classpath location, but you can change that to a location on the file system
-via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a custom
-`Resource` that loads schema files from a remote location or storage.
+{spring-boot-ref-docs}/web.html#web.graphql.schema[looks for schema files] with extensions
+".graphqls" or ".gqls" under the location `classpath:graphql/**`, which is typically
+`src/main/resources/graphql`. You can also use a file system location, or any location
+supported by the Spring `Resource` hierarchy, including a custom implementation that
+loads schema files from remote locations, from storage, or from memory.
+
+TIP: Use `classpath*:graphql/**/` to find schema files across multiple classpath
+locations, e.g. across multiple modules.
 
 
 [[execution-graphqlsource-schema-creation]]
