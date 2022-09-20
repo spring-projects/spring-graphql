@@ -280,6 +280,21 @@ class GraphQlArgumentBinderTests {
 				});
 	}
 
+	@Test // gh-447
+	@SuppressWarnings("unchecked")
+	void primaryConstructorWithGenericObject() throws Exception {
+
+		Object result = this.binder.bind(
+				environment("{\"key\":{\"value\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
+				ResolvableType.forClass(ObjectHolder.class));
+
+		assertThat(result).isNotNull().isInstanceOf(ObjectHolder.class);
+		List<Map<Object, Object>> list = (List<Map<Object, Object>>) ((ObjectHolder) result).getValue();
+		assertThat(list).hasSize(2).containsExactly(
+				Collections.singletonMap("name", "first"),
+				Collections.singletonMap("name", "second"));
+	}
+
 	@Test // gh-410
 	@SuppressWarnings("unchecked")
 	void coercionWithSingletonList() throws Exception {
@@ -332,6 +347,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 
+	@SuppressWarnings("unused")
 	static class SimpleBean {
 
 		private String name;
@@ -434,6 +450,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 
+	@SuppressWarnings("unused")
 	static class NoPrimaryConstructorBean {
 
 		NoPrimaryConstructorBean(String name) {
@@ -444,6 +461,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 
+	@SuppressWarnings("unused")
 	static class ItemListHolder {
 
 		private List<Item> items;
@@ -458,6 +476,40 @@ class GraphQlArgumentBinderTests {
 	}
 
 
+	@SuppressWarnings("unused")
+	static class ItemSetHolder {
+
+		private Set<Item> items;
+
+		public ItemSetHolder(Set<Item> items) {
+			this.items = items;
+		}
+
+		public Set<Item> getItems() {
+			return items;
+		}
+
+		public void setItems(Set<Item> items) {
+			this.items = items;
+		}
+	}
+
+
+	static class ObjectHolder {
+
+		private final Object value;
+
+		ObjectHolder(Object value) {
+			this.value = value;
+		}
+
+		public Object getValue() {
+			return value;
+		}
+	}
+
+
+	@SuppressWarnings("unused")
 	static class Item {
 
 		private String name;
@@ -491,23 +543,6 @@ class GraphQlArgumentBinderTests {
 		@Override
 		public int hashCode() {
 			return Objects.hash(name);
-		}
-	}
-
-	static class ItemSetHolder {
-
-		private Set<Item> items;
-
-		public ItemSetHolder(Set<Item> items) {
-			this.items = items;
-		}
-
-		public Set<Item> getItems() {
-			return items;
-		}
-
-		public void setItems(Set<Item> items) {
-			this.items = items;
 		}
 	}
 
