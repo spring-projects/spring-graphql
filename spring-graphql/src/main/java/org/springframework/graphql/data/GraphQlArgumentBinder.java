@@ -248,7 +248,7 @@ public class GraphQlArgumentBinder {
 		Object target;
 		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
 
-		// Default constructor with data binding
+		// Default constructor + data binding via properties
 
 		if (ctor.getParameterCount() == 0) {
 			target = BeanUtils.instantiateClass(ctor);
@@ -283,6 +283,9 @@ public class GraphQlArgumentBinder {
 			MethodParameter methodParam = new MethodParameter(ctor, i);
 			if (rawValue == null && methodParam.isOptional()) {
 				args[i] = (paramTypes[i] == Optional.class ? Optional.empty() : null);
+			}
+			else if (paramTypes[i] == Object.class) {
+				args[i] = rawValue;
 			}
 			else if (isApproximableCollectionType(rawValue)) {
 				ResolvableType elementType = ResolvableType.forMethodParameter(methodParam);

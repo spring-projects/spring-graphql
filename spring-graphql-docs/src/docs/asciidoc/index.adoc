@@ -339,10 +339,14 @@ parsed and merged together. That means schema files can be loaded from just abou
 location.
 
 By default, the Spring Boot starter
-{spring-boot-ref-docs}/web.html#web.graphql.schema[finds schema files] from a
-well-known classpath location, but you can change that to a location on the file system
-via `FileSystemResource`, to byte content via `ByteArrayResource`, or implement a custom
-`Resource` that loads schema files from a remote location or storage.
+{spring-boot-ref-docs}/web.html#web.graphql.schema[looks for schema files] with extensions
+".graphqls" or ".gqls" under the location `classpath:graphql/**`, which is typically
+`src/main/resources/graphql`. You can also use a file system location, or any location
+supported by the Spring `Resource` hierarchy, including a custom implementation that
+loads schema files from remote locations, from storage, or from memory.
+
+TIP: Use `classpath*:graphql/**/` to find schema files across multiple classpath
+locations, e.g. across multiple modules.
 
 
 [[execution-graphqlsource-schema-creation]]
@@ -1272,11 +1276,18 @@ See <<controllers-schema-mapping-argument>>.
 | For access to all field arguments bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-arguments>>.
 
+| `@Argument Map<String, Object>`
+| For access to the raw map of arguments, where `@Argument` does not have a
+`name` attribute.
+
+| `@Arguments Map<String, Object>`
+| For access to the raw map of arguments.
+
 | `@ProjectedPayload` Interface
 | For access to field arguments through a project interface.
 See <<controllers-schema-mapping-projectedpayload-argument>>.
 
-| Source
+| "Source"
 | For access to the source (i.e. parent/container) instance of the field.
 See <<controllers-schema-mapping-source>>.
 
@@ -1362,8 +1373,8 @@ are enforced by GraphQL Java.
 If binding fails, a `BindException` is raised with binding issues accumulated as field
 errors where the `field` of each error is the argument path where the issue occurred.
 
-You can use `@Argument` on a `Map<String, Object>` argument, to obtain all argument
-values. The name attribute on `@Argument` must not be set.
+You can use `@Argument` with a `Map<String, Object>` argument, to obtain the raw map of
+all argument values. The name attribute on `@Argument` must not be set.
 
 
 
@@ -1377,6 +1388,8 @@ For example, `@Argument BookInput bookInput` uses the value of the argument "boo
 to initialize `BookInput`, while `@Arguments` uses the full arguments map and in that
 case, top-level arguments are bound to `BookInput` properties.
 
+You can use `@Arguments` with a `Map<String, Object>` argument, to obtain the raw map of
+all argument values.
 
 
 [[controllers-schema-mapping-projectedpayload-argument]]
