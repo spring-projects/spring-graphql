@@ -130,8 +130,10 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		RSocketRequester requester;
 
-		if(this.rSocketRequester != null){
+		if (this.rSocketRequester != null) {
 			requester = this.rSocketRequester;
+			// Sets decoder for subscription error handling
+			setJsonDecoder(DefaultJackson2Codecs.decoder());
 		} else {
 			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
 			requester = this.requesterBuilder.transport(this.clientTransport);
