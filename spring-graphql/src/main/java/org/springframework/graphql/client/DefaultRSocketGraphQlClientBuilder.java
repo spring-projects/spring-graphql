@@ -45,6 +45,8 @@ final class DefaultRSocketGraphQlClientBuilder
 
 	private final RSocketRequester.Builder requesterBuilder;
 
+	private RSocketRequester rSocketRequester;
+
 	@Nullable
 	private ClientTransport clientTransport;
 
@@ -112,6 +114,12 @@ final class DefaultRSocketGraphQlClientBuilder
 	}
 
 	@Override
+	public DefaultRSocketGraphQlClientBuilder rsocketRequester(RSocketRequester rSocketRequester) {
+		this.rSocketRequester = rSocketRequester;
+		return this;
+	}
+
+	@Override
 	public RSocketGraphQlClient build() {
 
 		// Pass the codecs to the parent for response decoding
@@ -120,8 +128,14 @@ final class DefaultRSocketGraphQlClientBuilder
 			builder.encoders(encoders -> setJsonEncoder(CodecDelegate.findJsonEncoder(encoders)));
 		});
 
-		Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
-		RSocketRequester requester = this.requesterBuilder.transport(this.clientTransport);
+		RSocketRequester requester;
+
+		if(this.rSocketRequester != null){
+			requester = this.rSocketRequester;
+		} else {
+			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
+			requester = this.requesterBuilder.transport(this.clientTransport);
+		}
 		RSocketGraphQlTransport graphQlTransport = new RSocketGraphQlTransport(this.route, requester, getJsonDecoder());
 
 		return new DefaultRSocketGraphQlClient(

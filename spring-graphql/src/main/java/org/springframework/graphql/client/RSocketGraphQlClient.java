@@ -130,6 +130,12 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 		B rsocketRequester(Consumer<RSocketRequester.Builder> requester);
 
 		/**
+		 * Assigns a {@code RSocketRequester} to use.
+		 * @return the same builder instance
+		 */
+		B rsocketRequester(RSocketRequester rSocketRequester);
+
+		/**
 		 * Build the {@code RSocketGraphQlClient} instance.
 		 */
 		@Override
