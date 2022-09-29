@@ -52,6 +52,7 @@ final class DefaultRSocketGraphQlClientBuilder
 	private Publisher<List<LoadbalanceTarget>> targetPublisher;
 
 	private LoadbalanceStrategy loadbalanceStrategy;
+
 	@Nullable
 	private ClientTransport clientTransport;
 
