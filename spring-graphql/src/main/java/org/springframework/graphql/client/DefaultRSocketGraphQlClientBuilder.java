@@ -17,11 +17,15 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
+import java.util.List;
 import java.util.function.Consumer;
 
+import io.rsocket.loadbalance.LoadbalanceStrategy;
+import io.rsocket.loadbalance.LoadbalanceTarget;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import org.springframework.lang.Nullable;
@@ -45,8 +49,9 @@ final class DefaultRSocketGraphQlClientBuilder
 
 	private final RSocketRequester.Builder requesterBuilder;
 
-	private RSocketRequester rSocketRequester;
+	private Publisher<List<LoadbalanceTarget>> targetPublisher;
 
+	private LoadbalanceStrategy loadbalanceStrategy;
 	@Nullable
 	private ClientTransport clientTransport;
 
@@ -114,8 +119,9 @@ final class DefaultRSocketGraphQlClientBuilder
 	}
 
 	@Override
-	public DefaultRSocketGraphQlClientBuilder rsocketRequester(RSocketRequester rSocketRequester) {
-		this.rSocketRequester = rSocketRequester;
+	public DefaultRSocketGraphQlClientBuilder transports(Publisher<List<LoadbalanceTarget>> targetPublisher, LoadbalanceStrategy loadbalanceStrategy) {
+		this.targetPublisher = targetPublisher;
+		this.loadbalanceStrategy = loadbalanceStrategy;
 		return this;
 	}
 
@@ -130,10 +136,8 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		RSocketRequester requester;
 
-		if (this.rSocketRequester != null) {
-			requester = this.rSocketRequester;
-			// Sets decoder for subscription error handling
-			setJsonDecoder(DefaultJackson2Codecs.decoder());
+		if (this.targetPublisher != null && this.loadbalanceStrategy!= null) {
+			requester = this.requesterBuilder.transports(this.targetPublisher, this.loadbalanceStrategy);
 		} else {
 			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
 			requester = this.requesterBuilder.transport(this.clientTransport);
