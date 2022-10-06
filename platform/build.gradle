@@ -9,7 +9,7 @@ javaPlatform {
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
 	api(platform("com.fasterxml.jackson:jackson-bom:2.13.4"))
-	api(platform("io.projectreactor:reactor-bom:2022.0.0-M6"))
+	api(platform("io.projectreactor:reactor-bom:2022.0.0-SNAPSHOT"))
 	api(platform("org.springframework.data:spring-data-bom:2022.0.0-M6"))
 	api(platform("org.springframework.security:spring-security-bom:6.0.0-M7"))
 	api(platform("com.querydsl:querydsl-bom:5.0.0"))
@@ -23,7 +23,7 @@ dependencies {
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
-		api("io.micrometer:context-propagation:1.0.0-M5")
+		api("io.micrometer:context-propagation:1.0.0-SNAPSHOT")
 
 		api("jakarta.annotation:jakarta.annotation-api:2.0.0")
 		api("jakarta.servlet:jakarta.servlet-api:5.0.0")

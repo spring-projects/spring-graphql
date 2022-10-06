@@ -33,8 +33,8 @@ import io.micrometer.context.ContextAccessor;
 public class GraphQlContextAccessor implements ContextAccessor<GraphQLContext, GraphQLContext> {
 
 	@Override
-	public boolean canReadFrom(Class<?> contextType) {
-		return GraphQLContext.class.equals(contextType);
+	public Class<? extends GraphQLContext> readableType() {
+		return GraphQLContext.class;
 	}
 
 	@Override
@@ -52,8 +52,8 @@ public class GraphQlContextAccessor implements ContextAccessor<GraphQLContext, G
 	}
 
 	@Override
-	public boolean canWriteTo(Class<?> contextType) {
-		return GraphQLContext.class.equals(contextType);
+	public Class<? extends GraphQLContext> writeableType() {
+		return GraphQLContext.class;
 	}
 
 	@Override
