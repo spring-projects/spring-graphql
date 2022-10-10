@@ -153,9 +153,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) {
-		if ("graphql-ws".equalsIgnoreCase(session.getAcceptedProtocol())) {
+		if ("graphql-transport-ws".equalsIgnoreCase(session.getAcceptedProtocol())) {
 			if (logger.isDebugEnabled()) {
-				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. "
+				logger.debug("apollographql/graphql-transport-ws is not supported, nor maintained. "
 						+ "Please, use https://github.com/enisdenjo/graphql-ws.");
 			}
 			GraphQlStatus.closeSession(session, GraphQlStatus.INVALID_MESSAGE_STATUS);

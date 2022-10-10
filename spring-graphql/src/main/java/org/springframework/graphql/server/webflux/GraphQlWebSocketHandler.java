@@ -102,9 +102,9 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
 		HandshakeInfo handshakeInfo = session.getHandshakeInfo();
-		if ("graphql-ws".equalsIgnoreCase(handshakeInfo.getSubProtocol())) {
+		if ("graphql-transport-ws".equalsIgnoreCase(handshakeInfo.getSubProtocol())) {
 			if (logger.isDebugEnabled()) {
-				logger.debug("apollographql/subscriptions-transport-ws is not supported, nor maintained. "
+				logger.debug("apollographql/graphql-transport-ws is not supported, nor maintained. "
 						+ "Please, use https://github.com/enisdenjo/graphql-ws.");
 			}
 			return session.close(GraphQlStatus.INVALID_MESSAGE_STATUS);
