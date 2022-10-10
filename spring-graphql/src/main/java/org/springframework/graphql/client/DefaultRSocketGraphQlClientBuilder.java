@@ -137,7 +137,7 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		RSocketRequester requester;
 
-		if (this.targetPublisher != null && this.loadbalanceStrategy!= null) {
+		if (this.targetPublisher != null && this.loadbalanceStrategy != null) {
 			requester = this.requesterBuilder.transports(this.targetPublisher, this.loadbalanceStrategy);
 		} else {
 			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
@@ -147,7 +147,8 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		return new DefaultRSocketGraphQlClient(
 				super.buildGraphQlClient(graphQlTransport), requester,
-				this.requesterBuilder, this.clientTransport, this.route, getBuilderInitializer());
+				this.requesterBuilder, this.clientTransport, this.targetPublisher, this.loadbalanceStrategy,
+				this.route, getBuilderInitializer());
 	}
 
 
@@ -162,19 +163,26 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		private final ClientTransport clientTransport;
 
+		private final Publisher<List<LoadbalanceTarget>> targetPublisher;
+
+		private final LoadbalanceStrategy loadbalanceStrategy;
+
 		private final String route;
 
 		private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 		DefaultRSocketGraphQlClient(
 				GraphQlClient graphQlClient, RSocketRequester requester, RSocketRequester.Builder requesterBuilder,
-				ClientTransport clientTransport, String route, Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
+				ClientTransport clientTransport, Publisher<List<LoadbalanceTarget>> targetPublisher, LoadbalanceStrategy loadbalanceStrategy,
+				String route, Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
 			super(graphQlClient);
 
 			this.requester = requester;
 			this.requesterBuilder = requesterBuilder;
 			this.clientTransport = clientTransport;
+			this.targetPublisher = targetPublisher;
+			this.loadbalanceStrategy = loadbalanceStrategy;
 			this.route = route;
 			this.builderInitializer = builderInitializer;
 		}
@@ -195,6 +203,7 @@ final class DefaultRSocketGraphQlClientBuilder
 		public RSocketGraphQlClient.Builder<?> mutate() {
 			DefaultRSocketGraphQlClientBuilder builder = new DefaultRSocketGraphQlClientBuilder(this.requesterBuilder);
 			builder.clientTransport(this.clientTransport);
+			builder.transports(this.targetPublisher, this.loadbalanceStrategy);
 			builder.route(this.route);
 			this.builderInitializer.accept(builder);
 			return builder;
