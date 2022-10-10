@@ -17,11 +17,15 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
+import java.util.List;
 import java.util.function.Consumer;
 
+import io.rsocket.loadbalance.LoadbalanceStrategy;
+import io.rsocket.loadbalance.LoadbalanceTarget;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import org.springframework.lang.Nullable;
@@ -44,6 +48,10 @@ final class DefaultRSocketGraphQlClientBuilder
 		implements RSocketGraphQlClient.Builder<DefaultRSocketGraphQlClientBuilder> {
 
 	private final RSocketRequester.Builder requesterBuilder;
+
+	private Publisher<List<LoadbalanceTarget>> targetPublisher;
+
+	private LoadbalanceStrategy loadbalanceStrategy;
 
 	@Nullable
 	private ClientTransport clientTransport;
@@ -112,6 +120,13 @@ final class DefaultRSocketGraphQlClientBuilder
 	}
 
 	@Override
+	public DefaultRSocketGraphQlClientBuilder transports(Publisher<List<LoadbalanceTarget>> targetPublisher, LoadbalanceStrategy loadbalanceStrategy) {
+		this.targetPublisher = targetPublisher;
+		this.loadbalanceStrategy = loadbalanceStrategy;
+		return this;
+	}
+
+	@Override
 	public RSocketGraphQlClient build() {
 
 		// Pass the codecs to the parent for response decoding
@@ -120,13 +135,20 @@ final class DefaultRSocketGraphQlClientBuilder
 			builder.encoders(encoders -> setJsonEncoder(CodecDelegate.findJsonEncoder(encoders)));
 		});
 
-		Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
-		RSocketRequester requester = this.requesterBuilder.transport(this.clientTransport);
+		RSocketRequester requester;
+
+		if (this.targetPublisher != null && this.loadbalanceStrategy != null) {
+			requester = this.requesterBuilder.transports(this.targetPublisher, this.loadbalanceStrategy);
+		} else {
+			Assert.state(this.clientTransport != null, "Neither WebSocket nor TCP networking configured");
+			requester = this.requesterBuilder.transport(this.clientTransport);
+		}
 		RSocketGraphQlTransport graphQlTransport = new RSocketGraphQlTransport(this.route, requester, getJsonDecoder());
 
 		return new DefaultRSocketGraphQlClient(
 				super.buildGraphQlClient(graphQlTransport), requester,
-				this.requesterBuilder, this.clientTransport, this.route, getBuilderInitializer());
+				this.requesterBuilder, this.clientTransport, this.targetPublisher, this.loadbalanceStrategy,
+				this.route, getBuilderInitializer());
 	}
 
 
@@ -141,19 +163,26 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		private final ClientTransport clientTransport;
 
+		private final Publisher<List<LoadbalanceTarget>> targetPublisher;
+
+		private final LoadbalanceStrategy loadbalanceStrategy;
+
 		private final String route;
 
 		private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
 
 		DefaultRSocketGraphQlClient(
 				GraphQlClient graphQlClient, RSocketRequester requester, RSocketRequester.Builder requesterBuilder,
-				ClientTransport clientTransport, String route, Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
+				ClientTransport clientTransport, Publisher<List<LoadbalanceTarget>> targetPublisher, LoadbalanceStrategy loadbalanceStrategy,
+				String route, Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
 
 			super(graphQlClient);
 
 			this.requester = requester;
 			this.requesterBuilder = requesterBuilder;
 			this.clientTransport = clientTransport;
+			this.targetPublisher = targetPublisher;
+			this.loadbalanceStrategy = loadbalanceStrategy;
 			this.route = route;
 			this.builderInitializer = builderInitializer;
 		}
@@ -174,6 +203,7 @@ final class DefaultRSocketGraphQlClientBuilder
 		public RSocketGraphQlClient.Builder<?> mutate() {
 			DefaultRSocketGraphQlClientBuilder builder = new DefaultRSocketGraphQlClientBuilder(this.requesterBuilder);
 			builder.clientTransport(this.clientTransport);
+			builder.transports(this.targetPublisher, this.loadbalanceStrategy);
 			builder.route(this.route);
 			this.builderInitializer.accept(builder);
 			return builder;

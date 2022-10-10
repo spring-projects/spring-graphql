@@ -17,10 +17,14 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
+import java.util.List;
 import java.util.function.Consumer;
 
 import io.rsocket.core.RSocketClient;
+import io.rsocket.loadbalance.LoadbalanceStrategy;
+import io.rsocket.loadbalance.LoadbalanceTarget;
 import io.rsocket.transport.ClientTransport;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -128,6 +132,20 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 		 * @return the same builder instance
 		 */
 		B rsocketRequester(Consumer<RSocketRequester.Builder> requester);
+
+		/**
+		 * Build an {@link RSocketRequester} with an
+		 * {@link io.rsocket.loadbalance.LoadbalanceRSocketClient} that will
+		 * connect to one of the given targets selected through the given
+		 * {@link io.rsocket.loadbalance.LoadbalanceRSocketClient}.
+		 * @param targetPublisher a {@code Publisher} that supplies a list of
+		 * target transports to loadbalance against; the given list may be
+		 * periodically updated by the {@code Publisher}.
+		 * @param loadbalanceStrategy the strategy to use for selecting from
+		 * the list of loadbalance targets.
+		 * @return the same builder instance
+		 */
+		B transports(Publisher<List<LoadbalanceTarget>> targetPublisher, LoadbalanceStrategy loadbalanceStrategy);
 
 		/**
 		 * Build the {@code RSocketGraphQlClient} instance.
