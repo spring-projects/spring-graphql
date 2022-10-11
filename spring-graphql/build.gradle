@@ -44,7 +44,7 @@ dependencies {
 	testImplementation 'org.springframework.data:spring-data-jpa'
 	testImplementation 'io.micrometer:context-propagation'
 	testImplementation 'com.h2database:h2'
-	testImplementation 'org.hibernate:hibernate-core-jakarta'
+	testImplementation 'org.hibernate:hibernate-core'
 	testImplementation 'org.hibernate.validator:hibernate-validator'
 	testImplementation 'org.springframework.data:spring-data-mongodb'
 	testImplementation 'org.mongodb:mongodb-driver-sync'
