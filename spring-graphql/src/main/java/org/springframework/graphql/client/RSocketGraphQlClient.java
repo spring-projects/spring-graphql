@@ -17,10 +17,14 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
+import java.util.List;
 import java.util.function.Consumer;
 
 import io.rsocket.core.RSocketClient;
+import io.rsocket.loadbalance.LoadbalanceStrategy;
+import io.rsocket.loadbalance.LoadbalanceTarget;
 import io.rsocket.transport.ClientTransport;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -78,7 +82,9 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 	interface Builder<B extends Builder<B>> extends GraphQlClient.Builder<B> {
 
 		/**
-		 * Select TCP as the underlying network protocol.
+		 * Select TCP as the underlying network protocol. This delegates to
+		 * {@link RSocketRequester.Builder#tcp(String, int)}  to create the
+		 * {@code RSocketRequester} instance.
 		 * @param host the remote host to connect to
 		 * @param port the remote port to connect to
 		 * @return the same builder instance
@@ -86,18 +92,37 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 		B tcp(String host, int port);
 
 		/**
-		 * Select WebSocket as the underlying network protocol.
+		 * Select WebSocket as the underlying network protocol. This delegates to
+		 * {@link RSocketRequester.Builder#websocket(URI)} to create the
+		 * {@code RSocketRequester} instance.
 		 * @param uri the URL for the WebSocket handshake
 		 * @return the same builder instance
 		 */
 		B webSocket(URI uri);
 
 		/**
-		 * Use a given {@link ClientTransport} to communicate with the remote server.
+		 * Use a given {@link ClientTransport} to communicate with the remote
+		 * server. This delegates to
+		 * {@link RSocketRequester.Builder#transport(ClientTransport)} to create
+		 * the {@code RSocketRequester} instance.
 		 * @param clientTransport the transport to use
 		 * @return the same builder instance
 		 */
 		B clientTransport(ClientTransport clientTransport);
+
+		/**
+		 * Use a {@link Publisher} of {@link LoadbalanceTarget}s, each of which
+		 * contains a {@link ClientTransport}. This delegates to
+		 * {@link RSocketRequester.Builder#transports(Publisher, LoadbalanceStrategy)}
+		 * to create the {@code RSocketRequester} instance.
+		 * @param targetPublisher supplies list of targets to loadbalance against;
+		 * the targets are replaced when the given {@code Publisher} emits again.
+		 * @param loadbalanceStrategy the strategy to use for selecting from
+		 * the list of targets.
+		 * @return the same builder instance
+		 * @since 1.0.3
+		 */
+		B clientTransports(Publisher<List<LoadbalanceTarget>> targetPublisher, LoadbalanceStrategy loadbalanceStrategy);
 
 		/**
 		 * Customize the format of data payloads for the connection.
