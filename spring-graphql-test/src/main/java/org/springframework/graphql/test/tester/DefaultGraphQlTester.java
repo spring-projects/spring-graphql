@@ -540,7 +540,8 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		public EntityList<E> contains(E... values) {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(values);
-				AssertionErrors.assertTrue("List at path '" + getPath() + "' does not contain " + expected,
+				AssertionErrors.assertTrue(
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain " + expected,
 						getEntity().containsAll(expected));
 			});
 			return this;
@@ -552,7 +553,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue(
-						"List at path '" + getPath() + "' should not have contained " + expected,
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to not contain " + expected,
 						!getEntity().containsAll(expected));
 			});
 			return this;
@@ -563,18 +564,17 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		public EntityList<E> containsExactly(E... values) {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(values);
-				List<E> actual = getEntity();
 				AssertionErrors.assertTrue(
-						"List at path '" + getPath() + "' should have contained exactly " + expected + ", " +
-								"but did contain " + actual,
-						actual.equals(expected));
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain exactly " + expected,
+						getEntity().equals(expected));
 			});
 			return this;
 		}
 
 		@Override
 		public EntityList<E> hasSize(int size) {
-			doAssert(() -> AssertionErrors.assertTrue("List at path '" + getPath() + "' should have size " + size,
+			doAssert(() -> AssertionErrors.assertTrue(
+					"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size == " + size,
 					getEntity().size() == size));
 			return this;
 		}
@@ -582,7 +582,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public EntityList<E> hasSizeLessThan(int size) {
 			doAssert(() -> AssertionErrors.assertTrue(
-					"List at path '" + getPath() + "' should have size less than " + size,
+					"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size < " + size,
 					getEntity().size() < size));
 			return this;
 		}
@@ -590,7 +590,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public EntityList<E> hasSizeGreaterThan(int size) {
 			doAssert(() -> AssertionErrors.assertTrue(
-					"List at path '" + getPath() + "' should have size greater than " + size,
+					"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size > " + size,
 					getEntity().size() > size));
 			return this;
 		}
