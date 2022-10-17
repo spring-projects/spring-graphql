@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+
+import java.util.Optional;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -77,24 +79,33 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		Class<?> type = parameter.getParameterType();
-
-		if (!type.isInterface()) {
-			return false;
-		}
-
-		return AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null;
+		Class<?> type = parameter.nestedIfOptional().getNestedParameterType();
+		return (type.isInterface() &&
+				AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null);
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
+
 		String name = (parameter.hasParameterAnnotation(Argument.class) ?
 				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null);
+
+		Class<?> projectionType = parameter.getParameterType();
+
+		boolean isOptional = parameter.isOptional();
+		if (isOptional) {
+			projectionType = parameter.nestedIfOptional().getNestedParameterType();
+		}
 
 		Object projectionSource = (name != null ?
 				environment.getArgument(name) : environment.getArguments());
 
-		return project(parameter.getParameterType(), projectionSource);
+		Object value = null;
+		if (!isOptional || projectionSource != null) {
+			value = project(projectionType, projectionSource);
+		}
+
+		return (isOptional ? Optional.ofNullable(value) : value);
 	}
 
 	protected Object project(Class<?> projectionType, Object projectionSource){
