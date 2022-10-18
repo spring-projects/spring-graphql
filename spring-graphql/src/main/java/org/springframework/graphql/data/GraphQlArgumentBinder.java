@@ -149,7 +149,7 @@ public class GraphQlArgumentBinder {
 
 			if (isApproximableCollectionType(rawValue)) {
 				segments.push(argumentName);
-				return createCollection((Collection<Object>) rawValue, targetType, bindingResult, segments);
+				return bindCollection((Collection<Object>) rawValue, targetType, bindingResult, segments);
 			}
 
 			if (targetClass == Optional.class) {
@@ -160,7 +160,7 @@ public class GraphQlArgumentBinder {
 			// From Map
 
 			if (rawValue instanceof Map) {
-				Object target = createValue((Map<String, Object>) rawValue, targetType, bindingResult, segments);
+				Object target = bindMap((Map<String, Object>) rawValue, targetType, bindingResult, segments);
 				return wrapAsOptionalIfNecessary(target, targetType);
 			}
 
@@ -195,7 +195,7 @@ public class GraphQlArgumentBinder {
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
-	private <T> Collection<T> createCollection(
+	private <T> Collection<T> bindCollection(
 			Collection<Object> rawCollection, ResolvableType collectionType,
 			BindingResult bindingResult, Stack<String> segments) {
 
@@ -219,7 +219,7 @@ public class GraphQlArgumentBinder {
 				collection.add((T) rawValue);
 			}
 			else if (rawValue instanceof Map) {
-				collection.add((T) createValueOrNull((Map<String, Object>) rawValue, elementType, bindingResult, segments));
+				collection.add((T) bindMap((Map<String, Object>) rawValue, elementType, bindingResult, segments));
 			}
 			else {
 				collection.add((T) convertValue(rawValue, elementClass, bindingResult, segments));
@@ -230,134 +230,128 @@ public class GraphQlArgumentBinder {
 	}
 
 	@Nullable
-	private Object createValueOrNull(
-			Map<String, Object> rawMap, ResolvableType targetType, BindingResult result, Stack<String> segments) {
+	@SuppressWarnings("unchecked")
+	private Object bindMap(
+			Map<String, Object> rawMap, ResolvableType targetType, BindingResult bindingResult,
+			Stack<String> segments) {
 
 		try {
-			return createValue(rawMap, targetType, result, segments);
+			Class<?> targetClass = targetType.resolve();
+			Assert.notNull(targetClass, "Unknown target class");
+
+			if (Map.class.isAssignableFrom(targetClass)) {
+				ResolvableType valueType = targetType.asMap().getGeneric(1);
+				Class<?> valueClass = valueType.resolve();
+				if (valueClass == null) {
+					bindingResult.rejectValue(toArgumentPath(segments), "unknownMapValueType", "Unknown Map value type");
+					return Collections.emptyMap();
+				}
+				Map<String, Object> map = CollectionFactory.createMap(targetClass, rawMap.size());
+				for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+					Object rawValue = entry.getValue();
+					segments.push("[" + entry.getKey() + "]");
+					if (rawValue == null || valueType.isAssignableFrom(rawValue.getClass())) {
+						map.put(entry.getKey(), entry.getValue());
+					}
+					else if (rawValue instanceof Map) {
+						map.put(entry.getKey(), bindMap(
+								(Map<String, Object>) rawValue, valueType, bindingResult, segments));
+					}
+					else {
+						map.put(entry.getKey(), convertValue(rawValue, valueClass, bindingResult, segments));
+					}
+					segments.pop();
+				}
+				return map;
+			}
+
+			Object target;
+			Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetClass);
+
+			// Default constructor + data binding via properties
+
+			if (ctor.getParameterCount() == 0) {
+				target = BeanUtils.instantiateClass(ctor);
+				DataBinder dataBinder = new DataBinder(target);
+				initDataBinder(dataBinder);
+				dataBinder.getBindingResult().setNestedPath(toArgumentPath(segments));
+				dataBinder.setConversionService(getConversionService());
+				dataBinder.bind(toPropertyValues(rawMap));
+
+				if (dataBinder.getBindingResult().hasErrors()) {
+					addDataBinderErrors(dataBinder, bindingResult, segments);
+					throw new BindException(bindingResult);
+				}
+
+				return target;
+			}
+
+			// Data class constructor
+
+			if (!segments.isEmpty()) {
+				segments.push(".");
+			}
+
+			String[] paramNames = BeanUtils.getParameterNames(ctor);
+			Class<?>[] paramTypes = ctor.getParameterTypes();
+			Object[] args = new Object[paramTypes.length];
+
+			for (int i = 0; i < paramNames.length; i++) {
+				String paramName = paramNames[i];
+				Object rawValue = rawMap.get(paramName);
+				segments.push(paramName);
+				MethodParameter methodParam = new MethodParameter(ctor, i);
+				if (rawValue == null && methodParam.isOptional()) {
+					args[i] = (paramTypes[i] == Optional.class ? Optional.empty() : null);
+				}
+				else if (paramTypes[i] == Object.class) {
+					args[i] = rawValue;
+				}
+				else if (isApproximableCollectionType(rawValue)) {
+					ResolvableType elementType = ResolvableType.forMethodParameter(methodParam);
+					args[i] = bindCollection((Collection<Object>) rawValue, elementType, bindingResult, segments);
+				}
+				else if (rawValue instanceof Map) {
+					boolean isOptional = (paramTypes[i] == Optional.class);
+					ResolvableType type = ResolvableType.forMethodParameter(methodParam.nestedIfOptional());
+					Object value = bindMap((Map<String, Object>) rawValue, type, bindingResult, segments);
+					args[i] = (isOptional ? Optional.ofNullable(value) : value);
+				}
+				else {
+					args[i] = convertValue(rawValue, paramTypes[i], new TypeDescriptor(methodParam), bindingResult, segments);
+				}
+				segments.pop();
+			}
+
+			if (segments.size() > 1) {
+				segments.pop();
+			}
+
+			try {
+				return BeanUtils.instantiateClass(ctor, args);
+			}
+			catch (BeanInstantiationException ex) {
+				// Swallow if we had binding errors, it's as far as we could go
+				checkBindingResult(bindingResult);
+				throw ex;
+			}
 		}
 		catch (BindException ex) {
 			return null;
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private Object createValue(
-			Map<String, Object> rawMap, ResolvableType targetType, BindingResult bindingResult,
-			Stack<String> segments) throws BindException {
-
-		Class<?> targetClass = targetType.resolve();
-		Assert.notNull(targetClass, "Unknown target class");
-
-		if (Map.class.isAssignableFrom(targetClass)) {
-			ResolvableType valueType = targetType.asMap().getGeneric(1);
-			Class<?> valueClass = valueType.resolve();
-			if (valueClass == null) {
-				bindingResult.rejectValue(toArgumentPath(segments), "unknownMapValueType", "Unknown Map value type");
-				return Collections.emptyMap();
-			}
-			Map<String, Object> map = CollectionFactory.createMap(targetClass, rawMap.size());
-			for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
-				Object rawValue = entry.getValue();
-				segments.push("[" + entry.getKey() + "]");
-				if (rawValue == null || valueType.isAssignableFrom(rawValue.getClass())) {
-					map.put(entry.getKey(), entry.getValue());
-				}
-				else if (rawValue instanceof Map) {
-					map.put(entry.getKey(), createValueOrNull(
-							(Map<String, Object>) rawValue, valueType, bindingResult, segments));
-				}
-				else {
-					map.put(entry.getKey(), convertValue(rawValue, valueClass, bindingResult, segments));
-				}
-				segments.pop();
-			}
-			return map;
-		}
-
-		Object target;
-		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetClass);
-
-		// Default constructor + data binding via properties
-
-		if (ctor.getParameterCount() == 0) {
-			target = BeanUtils.instantiateClass(ctor);
-			DataBinder dataBinder = new DataBinder(target);
-			initDataBinder(dataBinder);
-			dataBinder.getBindingResult().setNestedPath(toArgumentPath(segments));
-			dataBinder.setConversionService(getConversionService());
-			dataBinder.bind(initBindValues(rawMap));
-
-			if (dataBinder.getBindingResult().hasErrors()) {
-				addErrors(dataBinder, bindingResult, segments);
-				throw new BindException(bindingResult);
-			}
-
-			return target;
-		}
-
-		// Data class constructor
-
-		if (!segments.isEmpty()) {
-			segments.push(".");
-		}
-
-		String[] paramNames = BeanUtils.getParameterNames(ctor);
-		Class<?>[] paramTypes = ctor.getParameterTypes();
-		Object[] args = new Object[paramTypes.length];
-
-		for (int i = 0; i < paramNames.length; i++) {
-			String paramName = paramNames[i];
-			Object rawValue = rawMap.get(paramName);
-			segments.push(paramName);
-			MethodParameter methodParam = new MethodParameter(ctor, i);
-			if (rawValue == null && methodParam.isOptional()) {
-				args[i] = (paramTypes[i] == Optional.class ? Optional.empty() : null);
-			}
-			else if (paramTypes[i] == Object.class) {
-				args[i] = rawValue;
-			}
-			else if (isApproximableCollectionType(rawValue)) {
-				ResolvableType elementType = ResolvableType.forMethodParameter(methodParam);
-				args[i] = createCollection((Collection<Object>) rawValue, elementType, bindingResult, segments);
-			}
-			else if (rawValue instanceof Map) {
-				boolean isOptional = (paramTypes[i] == Optional.class);
-				ResolvableType type = ResolvableType.forMethodParameter(methodParam.nestedIfOptional());
-				Object value = createValueOrNull((Map<String, Object>) rawValue, type, bindingResult, segments);
-				args[i] = (isOptional ? Optional.ofNullable(value) : value);
-			}
-			else {
-				args[i] = convertValue(rawValue, paramTypes[i], new TypeDescriptor(methodParam), bindingResult, segments);
-			}
-			segments.pop();
-		}
-
-		if (segments.size() > 1) {
-			segments.pop();
-		}
-
-		try {
-			return BeanUtils.instantiateClass(ctor, args);
-		}
-		catch (BeanInstantiationException ex) {
-			// Swallow if we had binding errors, it's as far as we could go
-			checkBindingResult(bindingResult);
-			throw ex;
-		}
-	}
-
-	private MutablePropertyValues initBindValues(Map<String, Object> rawMap) {
+	private static MutablePropertyValues toPropertyValues(Map<String, Object> rawMap) {
 		MutablePropertyValues mpvs = new MutablePropertyValues();
 		Stack<String> segments = new Stack<>();
 		for (String key : rawMap.keySet()) {
-			addBindValues(mpvs, key, rawMap.get(key), segments);
+			addPropertyValue(mpvs, key, rawMap.get(key), segments);
 		}
 		return mpvs;
 	}
 
 	@SuppressWarnings("unchecked")
-	private void addBindValues(MutablePropertyValues mpvs, String name, Object value, Stack<String> segments) {
+	private static void addPropertyValue(MutablePropertyValues mpvs, String name, Object value, Stack<String> segments) {
 		if (value instanceof List) {
 			List<Object> items = (List<Object>) value;
 			if (items.isEmpty()) {
@@ -367,7 +361,7 @@ public class GraphQlArgumentBinder {
 			}
 			else {
 				for (int i = 0; i < items.size(); i++) {
-					addBindValues(mpvs, name + "[" + i + "]", items.get(i), segments);
+					addPropertyValue(mpvs, name + "[" + i + "]", items.get(i), segments);
 				}
 			}
 		}
@@ -375,7 +369,7 @@ public class GraphQlArgumentBinder {
 			segments.push(name + ".");
 			Map<String, Object> map = (Map<String, Object>) value;
 			for (String key : map.keySet()) {
-				addBindValues(mpvs, key, map.get(key), segments);
+				addPropertyValue(mpvs, key, map.get(key), segments);
 			}
 			segments.pop();
 		}
@@ -386,7 +380,7 @@ public class GraphQlArgumentBinder {
 		}
 	}
 
-	private String toArgumentPath(Stack<String> path) {
+	private static String toArgumentPath(Stack<String> path) {
 		StringBuilder sb = new StringBuilder();
 		path.forEach(sb::append);
 		return sb.toString();
@@ -415,7 +409,7 @@ public class GraphQlArgumentBinder {
 		return null;
 	}
 
-	private void addErrors(DataBinder binder, BindingResult bindingResult, Stack<String> segments) {
+	private static void addDataBinderErrors(DataBinder binder, BindingResult bindingResult, Stack<String> segments) {
 		String path = (!segments.isEmpty() ? toArgumentPath(segments) + "." : "");
 		binder.getBindingResult().getFieldErrors().forEach(error -> bindingResult.addError(
 				new FieldError(bindingResult.getObjectName(), path + error.getField(),
