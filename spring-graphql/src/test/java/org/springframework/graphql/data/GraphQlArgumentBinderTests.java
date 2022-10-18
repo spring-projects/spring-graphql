@@ -280,6 +280,37 @@ class GraphQlArgumentBinderTests {
 				});
 	}
 
+	@Test
+	void primaryConstructorWithMapArgument() throws Exception {
+
+		Object result = this.binder.bind(
+				environment(
+						"{\"key\":{" +
+								"\"map\":{" +
+								"\"item1\":{" +
+								"\"name\":\"Jason\"," +
+								"\"age\":\"21\"" +
+								"}," +
+								"\"item2\":{" +
+								"\"name\":\"James\"," +
+								"\"age\":\"22\"" +
+								"}" +
+								"}}}"),
+				"key",
+				ResolvableType.forClass(PrimaryConstructorItemMapBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemMapBean.class);
+		Map<String, Item> map = ((PrimaryConstructorItemMapBean) result).getMap();
+
+		Item item1 = map.get("item1");
+		assertThat(item1.getName()).isEqualTo("Jason");
+		assertThat(item1.getAge()).isEqualTo(21);
+
+		Item item2 = map.get("item2");
+		assertThat(item2.getName()).isEqualTo("James");
+		assertThat(item2.getAge()).isEqualTo(22);
+	}
+
 	@Test // gh-447
 	@SuppressWarnings("unchecked")
 	void primaryConstructorWithGenericObject() throws Exception {
@@ -424,6 +455,20 @@ class GraphQlArgumentBinderTests {
 
 		public List<Item> getItems() {
 			return items;
+		}
+	}
+
+
+	static class PrimaryConstructorItemMapBean {
+
+		private final Map<String, Item> map;
+
+		public PrimaryConstructorItemMapBean(Map<String, Item> map) {
+			this.map = map;
+		}
+
+		public Map<String, Item> getMap() {
+			return this.map;
 		}
 	}
 

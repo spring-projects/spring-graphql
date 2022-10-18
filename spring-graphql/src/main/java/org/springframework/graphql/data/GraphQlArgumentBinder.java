@@ -71,7 +71,7 @@ public class GraphQlArgumentBinder {
 
 	private final BindingErrorProcessor bindingErrorProcessor = new DefaultBindingErrorProcessor();
 
-	private List<Consumer<DataBinder>> dataBinderInitializers = new ArrayList<>();
+	private final List<Consumer<DataBinder>> dataBinderInitializers = new ArrayList<>();
 
 
 	public GraphQlArgumentBinder() {
@@ -160,7 +160,7 @@ public class GraphQlArgumentBinder {
 			// From Map
 
 			if (rawValue instanceof Map) {
-				Object target = createValue((Map<String, Object>) rawValue, targetClass, bindingResult, segments);
+				Object target = createValue((Map<String, Object>) rawValue, targetType, bindingResult, segments);
 				return wrapAsOptionalIfNecessary(target, targetType);
 			}
 
@@ -204,6 +204,7 @@ public class GraphQlArgumentBinder {
 			return Collections.emptyList();
 		}
 
+		ResolvableType elementType = collectionType.asCollection().getGeneric(0);
 		Class<?> elementClass = collectionType.asCollection().getGeneric(0).resolve();
 		if (elementClass == null) {
 			bindingResult.rejectValue(toArgumentPath(segments), "unknownElementType", "Unknown element type");
@@ -218,7 +219,7 @@ public class GraphQlArgumentBinder {
 				collection.add((T) rawValue);
 			}
 			else if (rawValue instanceof Map) {
-				collection.add((T) createValueOrNull((Map<String, Object>) rawValue, elementClass, bindingResult, segments));
+				collection.add((T) createValueOrNull((Map<String, Object>) rawValue, elementType, bindingResult, segments));
 			}
 			else {
 				collection.add((T) convertValue(rawValue, elementClass, bindingResult, segments));
@@ -230,7 +231,7 @@ public class GraphQlArgumentBinder {
 
 	@Nullable
 	private Object createValueOrNull(
-			Map<String, Object> rawMap, Class<?> targetType, BindingResult result, Stack<String> segments) {
+			Map<String, Object> rawMap, ResolvableType targetType, BindingResult result, Stack<String> segments) {
 
 		try {
 			return createValue(rawMap, targetType, result, segments);
@@ -242,11 +243,40 @@ public class GraphQlArgumentBinder {
 
 	@SuppressWarnings("unchecked")
 	private Object createValue(
-			Map<String, Object> rawMap, Class<?> targetType, BindingResult bindingResult,
+			Map<String, Object> rawMap, ResolvableType targetType, BindingResult bindingResult,
 			Stack<String> segments) throws BindException {
 
+		Class<?> targetClass = targetType.resolve();
+		Assert.notNull(targetClass, "Unknown target class");
+
+		if (Map.class.isAssignableFrom(targetClass)) {
+			ResolvableType valueType = targetType.asMap().getGeneric(1);
+			Class<?> valueClass = valueType.resolve();
+			if (valueClass == null) {
+				bindingResult.rejectValue(toArgumentPath(segments), "unknownMapValueType", "Unknown Map value type");
+				return Collections.emptyMap();
+			}
+			Map<String, Object> map = CollectionFactory.createMap(targetClass, rawMap.size());
+			for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+				Object rawValue = entry.getValue();
+				segments.push("[" + entry.getKey() + "]");
+				if (rawValue == null || valueType.isAssignableFrom(rawValue.getClass())) {
+					map.put(entry.getKey(), entry.getValue());
+				}
+				else if (rawValue instanceof Map) {
+					map.put(entry.getKey(), createValueOrNull(
+							(Map<String, Object>) rawValue, valueType, bindingResult, segments));
+				}
+				else {
+					map.put(entry.getKey(), convertValue(rawValue, valueClass, bindingResult, segments));
+				}
+				segments.pop();
+			}
+			return map;
+		}
+
 		Object target;
-		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetType);
+		Constructor<?> ctor = BeanUtils.getResolvableConstructor(targetClass);
 
 		// Default constructor + data binding via properties
 
@@ -293,7 +323,7 @@ public class GraphQlArgumentBinder {
 			}
 			else if (rawValue instanceof Map) {
 				boolean isOptional = (paramTypes[i] == Optional.class);
-				Class<?> type = (isOptional ? methodParam.nestedIfOptional().getNestedParameterType() : paramTypes[i]);
+				ResolvableType type = ResolvableType.forMethodParameter(methodParam.nestedIfOptional());
 				Object value = createValueOrNull((Map<String, Object>) rawValue, type, bindingResult, segments);
 				args[i] = (isOptional ? Optional.ofNullable(value) : value);
 			}
