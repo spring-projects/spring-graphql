@@ -8,6 +8,7 @@ dependencies {
 	api 'org.springframework:spring-context'
 	implementation 'io.micrometer:context-propagation'
 
+	compileOnly 'io.micrometer:micrometer-observation'
 	compileOnly 'jakarta.annotation:jakarta.annotation-api'
 	compileOnly 'org.springframework:spring-webflux'
 	compileOnly 'org.springframework:spring-webmvc'
@@ -42,7 +43,7 @@ dependencies {
 	testImplementation 'org.springframework.data:spring-data-commons'
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
 	testImplementation 'org.springframework.data:spring-data-jpa'
-	testImplementation 'io.micrometer:context-propagation'
+	testImplementation 'io.micrometer:micrometer-observation-test'
 	testImplementation 'com.h2database:h2'
 	testImplementation 'org.hibernate:hibernate-core'
 	testImplementation 'org.hibernate.validator:hibernate-validator'

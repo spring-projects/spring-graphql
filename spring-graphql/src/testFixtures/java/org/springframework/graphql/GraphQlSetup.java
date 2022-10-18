@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import graphql.GraphQL;
+import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
@@ -93,6 +94,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public GraphQlSetup exceptionResolver(DataFetcherExceptionResolver... resolvers) {
 		this.graphQlSourceBuilder.exceptionResolvers(Arrays.asList(resolvers));
+		return this;
+	}
+
+	public GraphQlSetup instrumentation(Instrumentation... instrumentations) {
+		this.graphQlSourceBuilder.instrumentation(Arrays.asList(instrumentations));
 		return this;
 	}
 
