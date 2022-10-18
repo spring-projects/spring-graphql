@@ -8,7 +8,7 @@ javaPlatform {
 
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	api(platform("com.fasterxml.jackson:jackson-bom:2.13.4"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.13.4.20221013"))
 	api(platform("io.projectreactor:reactor-bom:2022.0.0-SNAPSHOT"))
 	api(platform("io.micrometer:micrometer-bom:1.10.0-SNAPSHOT"))
 	api(platform("org.springframework.data:spring-data-bom:2022.0.0-M6"))
