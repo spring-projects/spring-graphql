@@ -120,8 +120,8 @@ class GraphQlArgumentBinderTests {
 				.extracting(ex -> ((BindException) ex).getFieldErrors())
 				.satisfies(errors -> {
 					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0).getObjectName()).isEqualTo("key");
-					assertThat(errors.get(0).getField()).isEqualTo("age");
+					assertThat(errors.get(0).getObjectName()).isEqualTo("Arguments[key]");
+					assertThat(errors.get(0).getField()).isEqualTo("key.age");
 					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
 				});
 	}
@@ -246,12 +246,12 @@ class GraphQlArgumentBinderTests {
 				.satisfies(errors -> {
 					assertThat(errors).hasSize(2);
 
-					assertThat(errors.get(0).getObjectName()).isEqualTo("key");
-					assertThat(errors.get(0).getField()).isEqualTo("age");
+					assertThat(errors.get(0).getObjectName()).isEqualTo("Arguments[key]");
+					assertThat(errors.get(0).getField()).isEqualTo("key.age");
 					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
 
-					assertThat(errors.get(1).getObjectName()).isEqualTo("key");
-					assertThat(errors.get(1).getField()).isEqualTo("item.age");
+					assertThat(errors.get(0).getObjectName()).isEqualTo("Arguments[key]");
+					assertThat(errors.get(1).getField()).isEqualTo("key.item.age");
 					assertThat(errors.get(1).getRejectedValue()).isEqualTo("invalid");
 				});
 	}
@@ -272,12 +272,43 @@ class GraphQlArgumentBinderTests {
 					assertThat(errors).hasSize(2);
 					for (int i = 0; i < errors.size(); i++) {
 						FieldError error = errors.get(i);
-						assertThat(error.getObjectName()).isEqualTo("key");
-						assertThat(error.getField()).isEqualTo("items[" + i + "].age");
+						assertThat(error.getObjectName()).isEqualTo("Arguments[key]");
+						assertThat(error.getField()).isEqualTo("key.items[" + i + "].age");
 						assertThat(error.getRejectedValue()).isEqualTo("invalid");
 						assertThat(error.getDefaultMessage()).startsWith("Failed to convert property value");
 					}
 				});
+	}
+
+	@Test
+	void primaryConstructorWithMapArgument() throws Exception {
+
+		Object result = this.binder.bind(
+				environment(
+						"{\"key\":{" +
+								"\"map\":{" +
+								"\"item1\":{" +
+								"\"name\":\"Jason\"," +
+								"\"age\":\"21\"" +
+								"}," +
+								"\"item2\":{" +
+								"\"name\":\"James\"," +
+								"\"age\":\"22\"" +
+								"}" +
+								"}}}"),
+				"key",
+				ResolvableType.forClass(PrimaryConstructorItemMapBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemMapBean.class);
+		Map<String, Item> map = ((PrimaryConstructorItemMapBean) result).getMap();
+
+		Item item1 = map.get("item1");
+		assertThat(item1.getName()).isEqualTo("Jason");
+		assertThat(item1.getAge()).isEqualTo(21);
+
+		Item item2 = map.get("item2");
+		assertThat(item2.getName()).isEqualTo("James");
+		assertThat(item2.getAge()).isEqualTo(22);
 	}
 
 	@Test // gh-447
@@ -424,6 +455,20 @@ class GraphQlArgumentBinderTests {
 
 		public List<Item> getItems() {
 			return items;
+		}
+	}
+
+
+	static class PrimaryConstructorItemMapBean {
+
+		private final Map<String, Item> map;
+
+		public PrimaryConstructorItemMapBean(Map<String, Item> map) {
+			this.map = map;
+		}
+
+		public Map<String, Item> getMap() {
+			return this.map;
 		}
 	}
 
