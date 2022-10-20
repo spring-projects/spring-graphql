@@ -127,9 +127,6 @@ public class AnnotatedControllerConfigurer
 	@Nullable
 	private HandlerMethodValidationHelper validationHelper;
 
-	@Nullable
-	private Consumer<DataBinder> dataBinderInitializer;
-
 
 	/**
 	 * Add a {@code FormatterRegistrar} to customize the {@link ConversionService}
@@ -154,11 +151,13 @@ public class AnnotatedControllerConfigurer
 
 	/**
 	 * Configure an initializer that configures the {@link DataBinder} before the binding process.
-	 * @param dataBinderInitializer the data binder initializer
+	 * @param consumer the data binder initializer
 	 * @since 1.0.1
+	 * @deprecated this property is deprecated, ignored, and should not be
+	 * necessary as a {@link DataBinder} is no longer used to bind arguments
 	 */
-	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> dataBinderInitializer) {
-		this.dataBinderInitializer = dataBinderInitializer;
+	@Deprecated(since = "1.1.0", forRemoval = true)
+	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> consumer) {
 	}
 
 	@Override
@@ -189,9 +188,6 @@ public class AnnotatedControllerConfigurer
 		}
 		resolvers.addResolver(new ArgumentMapMethodArgumentResolver());
 		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
-		if (this.dataBinderInitializer != null) {
-			argumentBinder.addDataBinderInitializer(this.dataBinderInitializer);
-		}
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());

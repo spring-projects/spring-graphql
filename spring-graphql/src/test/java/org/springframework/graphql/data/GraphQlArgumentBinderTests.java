@@ -117,11 +117,11 @@ class GraphQlArgumentBinderTests {
 				() -> this.binder.bind(
 						environment("{\"key\":{\"name\":\"test\",\"age\":\"invalid\"}}"), "key",
 						ResolvableType.forClass(SimpleBean.class)))
-				.extracting(ex -> ((BindException) ex).getFieldErrors())
-				.satisfies(errors -> {
+				.satisfies(ex -> {
+					List<FieldError> errors = ((BindException) ex).getFieldErrors();
 					assertThat(errors).hasSize(1);
-					assertThat(errors.get(0).getObjectName()).isEqualTo("Arguments[key]");
-					assertThat(errors.get(0).getField()).isEqualTo("key.age");
+					assertThat(errors.get(0).getObjectName()).isEqualTo("simpleBean");
+					assertThat(errors.get(0).getField()).isEqualTo("$.age");
 					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
 				});
 	}
@@ -242,17 +242,17 @@ class GraphQlArgumentBinderTests {
 										"\"item\":{\"name\":\"Item name\",\"age\":\"invalid\"}}}"),
 						"key",
 						ResolvableType.forClass(PrimaryConstructorItemBean.class)))
-				.extracting(ex -> ((BindException) ex).getFieldErrors())
-				.satisfies(errors -> {
-					assertThat(errors).hasSize(2);
+				.satisfies(ex -> {
+					List<FieldError> fieldErrors = ((BindException) ex).getFieldErrors();
+					assertThat(fieldErrors).hasSize(2);
 
-					assertThat(errors.get(0).getObjectName()).isEqualTo("Arguments[key]");
-					assertThat(errors.get(0).getField()).isEqualTo("key.age");
-					assertThat(errors.get(0).getRejectedValue()).isEqualTo("invalid");
+					assertThat(fieldErrors.get(0).getObjectName()).isEqualTo("primaryConstructorItemBean");
+					assertThat(fieldErrors.get(0).getField()).isEqualTo("$.age");
+					assertThat(fieldErrors.get(0).getRejectedValue()).isEqualTo("invalid");
 
-					assertThat(errors.get(0).getObjectName()).isEqualTo("Arguments[key]");
-					assertThat(errors.get(1).getField()).isEqualTo("key.item.age");
-					assertThat(errors.get(1).getRejectedValue()).isEqualTo("invalid");
+					assertThat(fieldErrors.get(1).getObjectName()).isEqualTo("primaryConstructorItemBean");
+					assertThat(fieldErrors.get(1).getField()).isEqualTo("$.item.age");
+					assertThat(fieldErrors.get(1).getRejectedValue()).isEqualTo("invalid");
 				});
 	}
 
@@ -267,15 +267,15 @@ class GraphQlArgumentBinderTests {
 										"{\"name\":\"second\", \"age\":\"invalid\"}]}}"),
 						"key",
 						ResolvableType.forClass(PrimaryConstructorItemListBean.class)))
-				.extracting(ex -> ((BindException) ex).getFieldErrors())
-				.satisfies(errors -> {
+				.satisfies(ex -> {
+					List<FieldError> errors = ((BindException) ex).getFieldErrors();
 					assertThat(errors).hasSize(2);
 					for (int i = 0; i < errors.size(); i++) {
 						FieldError error = errors.get(i);
-						assertThat(error.getObjectName()).isEqualTo("Arguments[key]");
-						assertThat(error.getField()).isEqualTo("key.items[" + i + "].age");
+						assertThat(error.getObjectName()).isEqualTo("primaryConstructorItemListBean");
+						assertThat(error.getField()).isEqualTo("$.items[" + i + "].age");
 						assertThat(error.getRejectedValue()).isEqualTo("invalid");
-						assertThat(error.getDefaultMessage()).startsWith("Failed to convert property value");
+						assertThat(error.getDefaultMessage()).startsWith("Failed to convert argument value");
 					}
 				});
 	}
