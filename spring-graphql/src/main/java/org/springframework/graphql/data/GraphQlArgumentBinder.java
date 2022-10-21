@@ -178,8 +178,8 @@ public class GraphQlArgumentBinder {
 			value = bindMap(name, (Map<String, Object>) rawValue, targetType, targetClass, bindingResult);
 		}
 		else {
-			value = (targetClass.isAssignableFrom(rawValue.getClass()) ?
-					rawValue : convertValue(name, rawValue, targetClass, bindingResult));
+			value = (!targetClass.isAssignableFrom(rawValue.getClass()) ?
+					convertValue(name, rawValue, targetType, targetClass, bindingResult) : rawValue);
 		}
 
 		if (isOptional) {
@@ -229,8 +229,8 @@ public class GraphQlArgumentBinder {
 		Constructor<?> constructor = BeanUtils.getResolvableConstructor(targetClass);
 
 		Object value = constructor.getParameterCount() > 0 ?
-				bindMapToObjectViaConstructor(rawMap, constructor, bindingResult) :
-				bindMapToObjectViaSetters(rawMap, constructor, bindingResult);
+				bindMapToObjectViaConstructor(rawMap, constructor, targetType, bindingResult) :
+				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult);
 
 		bindingResult.popNestedPath();
 
@@ -261,7 +261,8 @@ public class GraphQlArgumentBinder {
 
 	@Nullable
 	private Object bindMapToObjectViaConstructor(
-			Map<String, Object> rawMap, Constructor<?> constructor, ArgumentsBindingResult bindingResult) {
+			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType parentType,
+			ArgumentsBindingResult bindingResult) {
 
 		String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
@@ -270,8 +271,11 @@ public class GraphQlArgumentBinder {
 		for (int i = 0; i < paramNames.length; i++) {
 			String name = paramNames[i];
 			boolean isOmitted = !rawMap.containsKey(name);
-			ResolvableType paramType = ResolvableType.forConstructorParameter(constructor, i);
-			args[i] = bindRawValue(name, rawMap.get(name), isOmitted, paramType, paramTypes[i], bindingResult);
+
+			ResolvableType targetType = ResolvableType.forType(
+					ResolvableType.forConstructorParameter(constructor, i).getType(), parentType);
+
+			args[i] = bindRawValue(name, rawMap.get(name), isOmitted, targetType, paramTypes[i], bindingResult);
 		}
 
 		try {
@@ -287,20 +291,26 @@ public class GraphQlArgumentBinder {
 	}
 
 	private Object bindMapToObjectViaSetters(
-			Map<String, Object> rawMap, Constructor<?> constructor, ArgumentsBindingResult bindingResult) {
+			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType parentType,
+			ArgumentsBindingResult bindingResult) {
 
 		Object target = BeanUtils.instantiateClass(constructor);
 		BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(target);
 
 		for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
 			String key = entry.getKey();
-			TypeDescriptor type = beanWrapper.getPropertyTypeDescriptor(key);
-			if (type == null) {
+			TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(key);
+			if (typeDescriptor == null) {
 				// Ignore unknown property
 				continue;
 			}
+
+			ResolvableType targetType =
+					ResolvableType.forType(typeDescriptor.getResolvableType().getType(), parentType);
+
 			Object value = bindRawValue(
-					key, entry.getValue(), false, type.getResolvableType(), type.getType(), bindingResult);
+					key, entry.getValue(), false, targetType, typeDescriptor.getType(), bindingResult);
+
 			try {
 				if (value != null) {
 					beanWrapper.setPropertyValue(key, value);
@@ -320,18 +330,24 @@ public class GraphQlArgumentBinder {
 	@SuppressWarnings("unchecked")
 	@Nullable
 	private <T> T convertValue(
-			String name, @Nullable Object rawValue, Class<T> type, ArgumentsBindingResult bindingResult) {
+			String name, @Nullable Object rawValue, ResolvableType type, Class<T> clazz,
+			ArgumentsBindingResult bindingResult) {
 
 		Object value = null;
 		try {
-			TypeConverter converter = (this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
-			value = converter.convertIfNecessary(rawValue, (Class<?>) type);
+			TypeConverter converter =
+					(this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
+
+			value = converter.convertIfNecessary(
+					rawValue, (Class<?>) clazz,
+					(type.getSource() instanceof MethodParameter param ? new TypeDescriptor(param) : null));
 		}
 		catch (TypeMismatchException ex) {
 			bindingResult.pushNestedPath(name);
 			bindingResult.rejectValue(rawValue, ex.getErrorCode(), "Failed to convert argument value");
 			bindingResult.popNestedPath();
 		}
+
 		return (T) value;
 	}
 

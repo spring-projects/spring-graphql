@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.data;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,8 +33,11 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
+import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.lang.Nullable;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -51,7 +56,7 @@ class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder();
+	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder(new DefaultFormattingConversionService());
 
 
 	@Test
@@ -111,6 +116,24 @@ class GraphQlArgumentBinderTests {
 
 		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
 		assertThat(((ItemListHolder) result).getItems()).hasSize(0);
+	}
+
+	@Test // gh-349
+	void dataBindingToBeanWithEnumGenericType() throws Exception {
+
+		Map<String, Object> argumentMap =
+				Collections.singletonMap("filter", Collections.singletonMap("enums", Arrays.asList("ONE", "TWO")));
+
+		Method method = EnumController.class.getMethod("enums", EnumInput.class);
+		ResolvableType targetType = ResolvableType.forMethodParameter(new MethodParameter(method, 0));
+
+		Object result = this.binder.bind(
+				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(argumentMap).build(),
+				"filter", targetType);
+
+		assertThat(result).isNotNull().isInstanceOf(EnumInput.class);
+		EnumInput<FancyEnum> input = (EnumInput<FancyEnum>) result;
+		assertThat(input.getEnums()).hasSize(2).containsExactly(FancyEnum.ONE, FancyEnum.TWO);
 	}
 
 	@Test // gh-280
@@ -327,6 +350,24 @@ class GraphQlArgumentBinderTests {
 				.hasSize(2).containsExactly(
 						Collections.singletonMap("name", "first"),
 						Collections.singletonMap("name", "second"));
+	}
+
+	@Test // gh-349
+	void primaryConstructorWithEnumGenericType() throws Exception {
+
+		Map<String, Object> argumentMap =
+				Collections.singletonMap("filter", Collections.singletonMap("enums", Arrays.asList("ONE", "TWO")));
+
+		Method method = EnumController.class.getMethod("enums", ConstructorEnumInput.class);
+		ResolvableType targetType = ResolvableType.forMethodParameter(new MethodParameter(method, 0));
+
+		Object result = this.binder.bind(
+				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(argumentMap).build(),
+				"filter", targetType);
+
+		assertThat(result).isNotNull().isInstanceOf(ConstructorEnumInput.class);
+		ConstructorEnumInput<FancyEnum> input = (ConstructorEnumInput<FancyEnum>) result;
+		assertThat(input.enums()).hasSize(2).containsExactly(FancyEnum.ONE, FancyEnum.TWO);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -568,6 +609,41 @@ class GraphQlArgumentBinderTests {
 		public int hashCode() {
 			return Objects.hash(name);
 		}
+	}
+
+
+	static class EnumController {
+
+		public List<FancyEnum> enums(@Argument EnumInput<FancyEnum> filter) {
+			return filter.getEnums();
+		}
+
+		public List<FancyEnum> enums(@Argument ConstructorEnumInput<FancyEnum> filter) {
+			return filter.enums();
+		}
+	}
+
+
+	enum FancyEnum {
+		ONE, TWO, THREE
+	}
+
+
+	static class EnumInput<E extends Enum<E>> {
+
+		private List<E> enums;
+
+		public List<E> getEnums() {
+			return enums;
+		}
+
+		public void setEnums(List<E> enums) {
+			this.enums = enums;
+		}
+	}
+
+
+	record ConstructorEnumInput<E extends Enum<E>>(List<E> enums) {
 	}
 
 }
