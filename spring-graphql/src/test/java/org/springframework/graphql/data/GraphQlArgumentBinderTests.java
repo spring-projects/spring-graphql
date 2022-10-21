@@ -99,6 +99,21 @@ class GraphQlArgumentBinderTests {
 				.hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
+	@Test // gh-394
+	void dataBindingWithNestedBeanSetProperty() throws Exception {
+
+		String items = IntStream.range(0, 5)
+				.mapToObj(value -> "{\"name\":\"test" + value + "\"}")
+				.collect(Collectors.joining(","));
+
+		Object result = this.binder.bind(
+				environment("{\"key\":{\"items\":[" + items + "]}}"), "key",
+				ResolvableType.forClass(ItemSetHolder.class));
+
+		assertThat(result).isNotNull().isInstanceOf(ItemSetHolder.class);
+		assertThat(((ItemSetHolder) result).getItems()).hasSize(5);
+	}
+
 	@Test // gh-301
 	void dataBindingWithNestedBeanListEmpty() throws Exception {
 
@@ -247,6 +262,28 @@ class GraphQlArgumentBinderTests {
 				.hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
+	@Test // gh-410
+	void primaryConstructorWithNestedBeanSingletonList() throws Exception {
+
+		Map<String, String> itemMap = new HashMap<>();
+		itemMap.put("name", "Joe");
+		itemMap.put("age", "37");
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("key", Collections.singletonMap("items", Collections.singletonList(itemMap)));
+
+		Object result = this.binder.bind(
+				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build(), "key",
+				ResolvableType.forClass(PrimaryConstructorItemListBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemListBean.class);
+		List<Item> items = ((PrimaryConstructorItemListBean) result).getItems();
+
+		assertThat(items).hasSize(1);
+		assertThat(items.get(0).getName()).isEqualTo("Joe");
+		assertThat(items.get(0).getAge()).isEqualTo(37);
+	}
+
 	@Test
 	void primaryConstructorNotFound() {
 		assertThatThrownBy(
@@ -351,51 +388,6 @@ class GraphQlArgumentBinderTests {
 		assertThat(list).hasSize(2).containsExactly(
 				Collections.singletonMap("name", "first"),
 				Collections.singletonMap("name", "second"));
-	}
-
-	@Test // gh-410
-	@SuppressWarnings("unchecked")
-	void coercionWithSingletonList() throws Exception {
-
-		Map<String, String> itemMap = new HashMap<>();
-		itemMap.put("name", "Joe");
-		itemMap.put("age", "37");
-
-		Map<String, Object> arguments = new HashMap<>();
-		arguments.put("key", Collections.singletonList(itemMap));
-
-		DataFetchingEnvironment environment =
-				DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
-
-		Object result = this.binder.bind(environment, "key",
-				ResolvableType.forClassWithGenerics(List.class, Item.class));
-
-		assertThat(result).isNotNull().isInstanceOf(List.class);
-		List<Item> items = (List<Item>) result;
-
-		assertThat(items).hasSize(1);
-		assertThat(items.get(0).getName()).isEqualTo("Joe");
-		assertThat(items.get(0).getAge()).isEqualTo(37);
-	}
-
-	@Test // gh-392
-	void shouldHaveHigherDefaultAutoGrowLimit() throws Exception {
-		String items = IntStream.range(0, 260).mapToObj(value -> "{\"name\":\"test\"}").collect(Collectors.joining(","));
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"items\":[" + items + "]}}"), "key",
-				ResolvableType.forClass(ItemListHolder.class));
-		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
-		assertThat(((ItemListHolder) result).getItems()).hasSize(260);
-	}
-
-	@Test
-	void shouldUseTargetCollectionType() throws Exception {
-		String items = IntStream.range(0, 5).mapToObj(value -> "{\"name\":\"test" + value + "\"}").collect(Collectors.joining(","));
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"items\":[" + items + "]}}"), "key",
-				ResolvableType.forClass(ItemSetHolder.class));
-		assertThat(result).isNotNull().isInstanceOf(ItemSetHolder.class);
-		assertThat(((ItemSetHolder) result).getItems()).hasSize(5);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -573,10 +565,6 @@ class GraphQlArgumentBinderTests {
 	static class ItemSetHolder {
 
 		private Set<Item> items;
-
-		public ItemSetHolder(Set<Item> items) {
-			this.items = items;
-		}
 
 		public Set<Item> getItems() {
 			return items;
