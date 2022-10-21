@@ -121,12 +121,13 @@ public class GraphQlArgumentBinder {
 			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType)
 			throws BindException {
 
-		Object rawValue = (name != null ?
-				environment.getArgument(name) : environment.getArguments());
+		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+		boolean isOmitted = (name != null && !environment.getArguments().containsKey(name));
 
 		ArgumentsBindingResult bindingResult = new ArgumentsBindingResult(targetType);
 
-		Object value = bindRawValue("$", rawValue, targetType, targetType.resolve(Object.class), bindingResult);
+		Object value = bindRawValue(
+				"$", rawValue, isOmitted, targetType, targetType.resolve(Object.class), bindingResult);
 
 		if (bindingResult.hasErrors()) {
 			throw new BindException(bindingResult);
@@ -142,6 +143,8 @@ public class GraphQlArgumentBinder {
 	 * {@code "$"} if binding the top level Object; possibly indexed if binding
 	 * to a Collection element or to a Map value.
 	 * @param rawValue the raw argument value (Collection, Map, or scalar)
+	 * @param isOmitted whether the value with the given name was not provided
+	 * at all, as opposed to provided but set to the {@literal "null"} literal
 	 * @param targetType the type of Object to create
 	 * @param targetClass the resolved class from the targetType
 	 * @param bindingResult for keeping track of the nested path and errors
@@ -153,12 +156,13 @@ public class GraphQlArgumentBinder {
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	@Nullable
 	private Object bindRawValue(
-			String name, @Nullable Object rawValue, ResolvableType targetType, Class<?> targetClass,
-			ArgumentsBindingResult bindingResult) {
+			String name, @Nullable Object rawValue, boolean isOmitted,
+			ResolvableType targetType, Class<?> targetClass, ArgumentsBindingResult bindingResult) {
 
 		boolean isOptional = (targetClass == Optional.class);
+		boolean isArgumentValue = (targetClass == ArgumentValue.class);
 
-		if (isOptional) {
+		if (isOptional || isArgumentValue) {
 			targetType = targetType.getNested(2);
 			targetClass = targetType.resolve();
 		}
@@ -178,7 +182,14 @@ public class GraphQlArgumentBinder {
 					rawValue : convertValue(name, rawValue, targetClass, bindingResult));
 		}
 
-		return (isOptional ? Optional.ofNullable(value) : value);
+		if (isOptional) {
+			value = Optional.ofNullable(value);
+		}
+		else if (isArgumentValue) {
+			value = (isOmitted ? ArgumentValue.omitted() : ArgumentValue.ofNullable(value));
+		}
+
+		return value;
 	}
 
 	private Collection<?> bindCollection(
@@ -198,7 +209,7 @@ public class GraphQlArgumentBinder {
 		int index = 0;
 		for (Object rawValue : rawCollection) {
 			String indexedName = name + "[" + index++ + "]";
-			collection.add(bindRawValue(indexedName, rawValue, elementType, elementClass, bindingResult));
+			collection.add(bindRawValue(indexedName, rawValue, false, elementType, elementClass, bindingResult));
 		}
 
 		return collection;
@@ -242,7 +253,7 @@ public class GraphQlArgumentBinder {
 		for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
 			String key = entry.getKey();
 			String indexedName = name + "[" + key + "]";
-			map.put(key, bindRawValue(indexedName, entry.getValue(), valueType, valueClass, bindingResult));
+			map.put(key, bindRawValue(indexedName, entry.getValue(), false, valueType, valueClass, bindingResult));
 		}
 
 		return map;
@@ -258,8 +269,9 @@ public class GraphQlArgumentBinder {
 
 		for (int i = 0; i < paramNames.length; i++) {
 			String name = paramNames[i];
+			boolean isOmitted = !rawMap.containsKey(name);
 			ResolvableType paramType = ResolvableType.forConstructorParameter(constructor, i);
-			args[i] = bindRawValue(name, rawMap.get(name), paramType, paramTypes[i], bindingResult);
+			args[i] = bindRawValue(name, rawMap.get(name), isOmitted, paramType, paramTypes[i], bindingResult);
 		}
 
 		try {
@@ -288,7 +300,7 @@ public class GraphQlArgumentBinder {
 				continue;
 			}
 			Object value = bindRawValue(
-					key, entry.getValue(), type.getResolvableType(), type.getType(), bindingResult);
+					key, entry.getValue(), false, type.getResolvableType(), type.getType(), bindingResult);
 			try {
 				if (value != null) {
 					beanWrapper.setPropertyValue(key, value);
@@ -313,7 +325,7 @@ public class GraphQlArgumentBinder {
 		Object value = null;
 		try {
 			TypeConverter converter = (this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
-			value = converter.convertIfNecessary(rawValue, (Class<?>) type, TypeDescriptor.valueOf(type));
+			value = converter.convertIfNecessary(rawValue, (Class<?>) type);
 		}
 		catch (TypeMismatchException ex) {
 			bindingResult.pushNestedPath(name);

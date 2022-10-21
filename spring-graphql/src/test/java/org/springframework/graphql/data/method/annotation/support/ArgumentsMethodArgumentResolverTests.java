@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Arguments;
@@ -58,9 +59,16 @@ class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 				methodParam(BookController.class, "addBook", BookInput.class),
 				environment("{\"name\":\"test name\", \"authorId\":42}"));
 
-		assertThat(result).isNotNull().isInstanceOf(BookInput.class)
-				.hasFieldOrPropertyWithValue("name", "test name")
-				.hasFieldOrPropertyWithValue("authorId", 42L);
+		assertThat(result)
+				.isNotNull()
+				.isInstanceOf(BookInput.class)
+				.satisfies(value -> {
+					BookInput input = (BookInput) value;
+					assertThat(input.getName().isPresent()).isTrue();
+					assertThat(input.getName().isOmitted()).isFalse();
+					assertThat(input.getName().value()).isEqualTo("test name");
+					assertThat(input.getAuthorId()).isEqualTo(42L);
+				});
 	}
 
 
@@ -81,15 +89,15 @@ class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 	@SuppressWarnings({"NotNullFieldNotInitialized", "unused"})
 	static class BookInput {
 
-		String name;
+		ArgumentValue<String> name;
 
 		Long authorId;
 
-		public String getName() {
+		public ArgumentValue<String> getName() {
 			return this.name;
 		}
 
-		public void setName(String name) {
+		public void setName(ArgumentValue<String> name) {
 			this.name = name;
 		}
 

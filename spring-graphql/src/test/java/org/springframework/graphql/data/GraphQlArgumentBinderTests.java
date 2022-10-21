@@ -52,7 +52,7 @@ class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder(null);
+	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder();
 
 
 	@Test
@@ -202,6 +202,33 @@ class GraphQlArgumentBinderTests {
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorOptionalItemBean.class);
 		assertThat(((PrimaryConstructorOptionalItemBean) result).getItem().get().getName()).isEqualTo("Item name");
 		assertThat(((PrimaryConstructorOptionalItemBean) result).getName().get()).isEqualTo("Hello");
+	}
+
+	@Test
+	void primaryConstructorWithOptionalArgumentBeanArgument() throws Exception {
+
+		ResolvableType targetType =
+				ResolvableType.forClass(PrimaryConstructorOptionalArgumentItemBean.class);
+
+		PrimaryConstructorOptionalArgumentItemBean result =
+				(PrimaryConstructorOptionalArgumentItemBean) this.binder.bind(
+						environment(
+								"{\"key\":{" +
+										"\"item\":{\"name\":\"Item name\",\"age\":\"30\"}," +
+										"\"name\":\"Hello\"}}"),
+						"key", targetType);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getItem().value().getName()).isEqualTo("Item name");
+		assertThat(result.getItem().value().getAge()).isEqualTo(30);
+		assertThat(result.getName().value()).isEqualTo("Hello");
+
+		result = (PrimaryConstructorOptionalArgumentItemBean)
+				this.binder.bind(environment("{\"key\":{}}"), "key", targetType);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getItem().isOmitted()).isFalse();
+		assertThat(result.getName().isOmitted()).isFalse();
 	}
 
 	@Test
@@ -490,6 +517,27 @@ class GraphQlArgumentBinderTests {
 		}
 
 		public Optional<Item> getItem() {
+			return item;
+		}
+	}
+
+
+	static class PrimaryConstructorOptionalArgumentItemBean {
+
+		private final ArgumentValue<String> name;
+
+		private final ArgumentValue<Item> item;
+
+		public PrimaryConstructorOptionalArgumentItemBean(ArgumentValue<String> name, ArgumentValue<Item> item) {
+			this.name = name;
+			this.item = item;
+		}
+
+		public ArgumentValue<String> getName() {
+			return this.name;
+		}
+
+		public ArgumentValue<Item> getItem() {
 			return item;
 		}
 	}

@@ -25,12 +25,18 @@ import org.springframework.graphql.data.method.annotation.Arguments;
 import org.springframework.util.Assert;
 
 /**
- * Analogous to {@link ArgumentMethodArgumentResolver} but resolving method
- * parameters annotated with {@link Arguments @Arguments} and binding with the
- * full {@link DataFetchingEnvironment#getArgument(String) arguments} map.
+ * Resolver for a method parameter that is annotated with
+ * {@link Arguments @Arguments}, similar to what
+ * {@link ArgumentMethodArgumentResolver} does but using the full
+ * full {@link DataFetchingEnvironment#getArgument(String) GraphQL arguments}
+ * map as the source for binding to the target Object rather than a specific
+ * argument value within it.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see org.springframework.graphql.data.method.annotation.Arguments
+ * @see org.springframework.graphql.data.method.annotation.Argument
+ * @see org.springframework.graphql.data.GraphQlArgumentBinder
  */
 public class ArgumentsMethodArgumentResolver implements HandlerMethodArgumentResolver {
 

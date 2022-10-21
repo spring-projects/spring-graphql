@@ -1272,13 +1272,18 @@ Schema mapping handler methods can have any of the following method arguments:
 | For access to a named field argument bound to a higher-level, typed Object.
 See <<controllers-schema-mapping-argument>>.
 
-| `@Arguments`
-| For access to all field arguments bound to a higher-level, typed Object.
-See <<controllers-schema-mapping-arguments>>.
-
 | `@Argument Map<String, Object>`
 | For access to the raw map of arguments, where `@Argument` does not have a
 `name` attribute.
+
+| `ArgumentValue`
+| For access to a named field argument bound to a higher-level, typed Object along
+with a flag to indicate if the input argument was omitted vs set to `null`.
+See <<controllers-schema-mapping-argument-value>>.
+
+| `@Arguments`
+| For access to all field arguments bound to a higher-level, typed Object.
+See <<controllers-schema-mapping-arguments>>.
 
 | `@Arguments Map<String, Object>`
 | For access to the raw map of arguments.
@@ -1330,7 +1335,6 @@ Schema mapping handler methods can return:
   For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
 
-
 [[controllers-schema-mapping-argument]]
 ==== `@Argument`
 
@@ -1376,6 +1380,43 @@ errors where the `field` of each error is the argument path where the issue occu
 You can use `@Argument` with a `Map<String, Object>` argument, to obtain the raw map of
 all argument values. The name attribute on `@Argument` must not be set.
 
+
+[[controllers-schema-mapping-argument-value]]
+==== `ArgumentValue`
+
+By default, input arguments in GraphQL are nullable and optional, which means an argument
+can be set to the `null` literal, or not provided at all. This distinction is useful for
+partial updates with a mutation where the underlying data may also be, either set to
+`null` or not changed at all accordingly. When using <<controllers-schema-mapping-argument>>
+there is no way to make such a distinction, because you would get `null` or an empty
+`Optional` in both cases.
+
+If you want to know not whether a value was not provided at all, you can declare an
+`ArgumentValue` method parameter, which is a simple container for the resulting value,
+along with a flag to indicate whether the input argument was omitted altogether. You
+can use this instead of `@Argument`, in which case the argument name is determined from
+the method parameter name, or together with `@Argument` to specify the argument name.
+
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@MutationMapping
+		public void addBook(ArgumentValue<BookInput> bookInput) {
+			if (!bookInput.isOmitted) {
+				BookInput value = bookInput.value();
+				// ...
+			}
+		}
+	}
+----
+
+`ArgumentValue` is also supported as a field within the object structure of an `@Argument`
+method parameter, either initialized via a constructor argument or via a setter, including
+as a field of an object nested at any level below the top level object.
 
 
 [[controllers-schema-mapping-arguments]]

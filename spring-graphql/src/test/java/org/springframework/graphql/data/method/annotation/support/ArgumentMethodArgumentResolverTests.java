@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -44,15 +45,15 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 
 	@Test
-	void shouldSupportAnnotatedParameters() {
-		MethodParameter methodParameter = methodParam(BookController.class, "bookById", Long.class);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isTrue();
-	}
+	void supportsParameter() {
+		MethodParameter param = methodParam(BookController.class, "bookById", Long.class);
+		assertThat(this.resolver.supportsParameter(param)).isTrue();
 
-	@Test
-	void shouldNotSupportParametersWithoutAnnotation() {
-		MethodParameter methodParameter = methodParam(BookController.class, "notSupported", String.class);
-		assertThat(this.resolver.supportsParameter(methodParameter)).isFalse();
+		param = methodParam(BookController.class, "addBook", ArgumentValue.class);
+		assertThat(this.resolver.supportsParameter(param)).isTrue();
+
+		param = methodParam(BookController.class, "notSupported", String.class);
+		assertThat(this.resolver.supportsParameter(param)).isFalse();
 	}
 
 	@Test
@@ -71,6 +72,20 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 				environment("{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }"));
 
 		assertThat(result).isNotNull().isInstanceOf(BookInput.class)
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L);
+	}
+
+	@Test
+	void shouldResolveJavaBeanArgumentWithWrapper() throws Exception {
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "addBook", ArgumentValue.class),
+				environment("{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }"));
+
+		assertThat(result)
+				.isNotNull()
+				.isInstanceOf(ArgumentValue.class)
+				.extracting(value -> ((ArgumentValue<?>) value).value())
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L);
 	}
@@ -114,6 +129,11 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 		@MutationMapping
 		public Book addBook(@Argument BookInput bookInput) {
+			return null;
+		}
+
+		@MutationMapping
+		public Book addBook(ArgumentValue<BookInput> bookInput) {
 			return null;
 		}
 
