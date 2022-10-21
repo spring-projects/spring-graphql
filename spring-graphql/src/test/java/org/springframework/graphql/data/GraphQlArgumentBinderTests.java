@@ -26,15 +26,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ResolvableType;
-import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 
@@ -58,45 +57,38 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void dataBinding() throws Exception {
 
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"name\":\"test\"}}"), "key",
-				ResolvableType.forClass(SimpleBean.class));
+		Object result = bind("{\"name\":\"test\"}", ResolvableType.forClass(SimpleBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(SimpleBean.class);
-		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
+		assertThat(((SimpleBean) result).getName()).isEqualTo("test");
 	}
 
 	@Test
 	void dataBindingWithNestedBeanProperty() throws Exception {
 
-		Object result = this.binder.bind(
-				environment(
-						"{\"key\":{" +
-								"\"name\":\"test name\"," +
-								"\"author\":{" +
-								"  \"firstName\":\"Jane\"," +
-								"  \"lastName\":\"Spring\"" +
-								"}}}"),
-				"key",
+		Object result = bind(
+				"{\"name\":\"test name\",\"author\":{\"firstName\":\"Jane\",\"lastName\":\"Spring\"}}",
 				ResolvableType.forClass(Book.class));
 
 		assertThat(result).isNotNull().isInstanceOf(Book.class);
-		assertThat(result).hasFieldOrPropertyWithValue("name", "test name");
-		assertThat(((Book) result).getAuthor()).isNotNull()
-				.hasFieldOrPropertyWithValue("firstName", "Jane")
-				.hasFieldOrPropertyWithValue("lastName", "Spring");
+		Book book = (Book) result;
+
+		assertThat(book.getName()).isEqualTo("test name");
+		assertThat(book.getAuthor()).isNotNull();
+		assertThat(book.getAuthor().getFirstName()).isEqualTo("Jane");
+		assertThat(book.getAuthor().getLastName()).isEqualTo("Spring");
 	}
 
 	@Test
 	void dataBindingWithNestedBeanListProperty() throws Exception {
 
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
+		Object result = bind(
+				"{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}",
 				ResolvableType.forClass(ItemListHolder.class));
 
 		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
-		assertThat(((ItemListHolder) result).getItems())
-				.hasSize(2).extracting("name").containsExactly("first", "second");
+		ItemListHolder holder = (ItemListHolder) result;
+		assertThat(holder.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
 	@Test // gh-394
@@ -106,9 +98,7 @@ class GraphQlArgumentBinderTests {
 				.mapToObj(value -> "{\"name\":\"test" + value + "\"}")
 				.collect(Collectors.joining(","));
 
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"items\":[" + items + "]}}"), "key",
-				ResolvableType.forClass(ItemSetHolder.class));
+		Object result = bind("{\"items\":[" + items + "]}", ResolvableType.forClass(ItemSetHolder.class));
 
 		assertThat(result).isNotNull().isInstanceOf(ItemSetHolder.class);
 		assertThat(((ItemSetHolder) result).getItems()).hasSize(5);
@@ -117,9 +107,7 @@ class GraphQlArgumentBinderTests {
 	@Test // gh-301
 	void dataBindingWithNestedBeanListEmpty() throws Exception {
 
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"items\": []}}"), "key",
-				ResolvableType.forClass(ItemListHolder.class));
+		Object result = bind("{\"items\":[]}", ResolvableType.forClass(ItemListHolder.class));
 
 		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
 		assertThat(((ItemListHolder) result).getItems()).hasSize(0);
@@ -127,11 +115,8 @@ class GraphQlArgumentBinderTests {
 
 	@Test // gh-280
 	void dataBindingBindingError() {
-
 		assertThatThrownBy(
-				() -> this.binder.bind(
-						environment("{\"key\":{\"name\":\"test\",\"age\":\"invalid\"}}"), "key",
-						ResolvableType.forClass(SimpleBean.class)))
+				() -> bind("{\"name\":\"test\",\"age\":\"invalid\"}", ResolvableType.forClass(SimpleBean.class)))
 				.satisfies(ex -> {
 					List<FieldError> errors = ((BindException) ex).getFieldErrors();
 					assertThat(errors).hasSize(1);
@@ -145,26 +130,20 @@ class GraphQlArgumentBinderTests {
 	@SuppressWarnings("unchecked")
 	void dataBindingToList() throws Exception {
 
-		Object result = this.binder.bind(
-				environment("{\"key\": [\"1\", \"2\", \"3\"]}"), "key",
-				ResolvableType.forClassWithGenerics(List.class, String.class));
+		Object result = bind("[\"1\",\"2\",\"3\"]", ResolvableType.forClassWithGenerics(List.class, String.class));
 
 		assertThat(result).isNotNull().isInstanceOf(List.class);
 		assertThat((List<String>) result).containsExactly("1", "2", "3");
 
 		// gh-486: List with null element
-		result = this.binder.bind(
-				environment("{\"key\": [\"1\", null, \"3\"]}"), "key",
-				ResolvableType.forClassWithGenerics(List.class, String.class));
+		result = bind("[\"1\",null,\"3\"]", ResolvableType.forClassWithGenerics(List.class, String.class));
 
 		assertThat(result).isNotNull().isInstanceOf(List.class);
 		assertThat((List<String>) result).containsExactly("1", null, "3");
 
 		// Empty list
 
-		result = this.binder.bind(
-				environment("{\"key\": []}"), "key",
-				ResolvableType.forClassWithGenerics(List.class, String.class));
+		result = bind("[]", ResolvableType.forClassWithGenerics(List.class, String.class));
 
 		assertThat(result).isNotNull().isInstanceOf(List.class);
 		assertThat((List<String>) result).isEmpty();
@@ -173,9 +152,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructor() throws Exception {
 
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"name\":\"test\"}}"), "key",
-				ResolvableType.forClass(PrimaryConstructorBean.class));
+		Object result = bind("{\"name\":\"test\"}", ResolvableType.forClass(PrimaryConstructorBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
@@ -184,39 +161,30 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructorWithBeanArgument() throws Exception {
 
-		Object result = this.binder.bind(
-				environment(
-						"{\"key\":{" +
-								"\"item\":{\"name\":\"Item name\"}," +
-								"\"name\":\"Hello\"," +
-								"\"age\":\"30\"}}"),
-				"key",
+		Object result = bind(
+				"{\"item\":{\"name\":\"Item name\"},\"name\":\"Hello\",\"age\":\"30\"}",
 				ResolvableType.forClass(PrimaryConstructorItemBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemBean.class);
-		assertThat(((PrimaryConstructorItemBean) result).getItem().getName()).isEqualTo("Item name");
-		assertThat(((PrimaryConstructorItemBean) result).getName()).isEqualTo("Hello");
-		assertThat(((PrimaryConstructorItemBean) result).getAge()).isEqualTo(30);
+		PrimaryConstructorItemBean itemBean = (PrimaryConstructorItemBean) result;
+
+		assertThat(itemBean.getItem().getName()).isEqualTo("Item name");
+		assertThat(itemBean.getName()).isEqualTo("Hello");
+		assertThat(itemBean.getAge()).isEqualTo(30);
 	}
 
 	@Test
 	void primaryConstructorWithOptionalBeanArgument() throws Exception {
 
-		GraphQlArgumentBinder argumentBinder =
-				new GraphQlArgumentBinder(new DefaultFormattingConversionService());
-
-		Object result = argumentBinder.bind(
-				environment(
-						"{\"key\":{" +
-								"\"item\":{\"name\":\"Item name\"}," +
-								"\"name\":\"Hello\"," +
-								"\"age\":\"30\"}}"),
-				"key",
+		Object result = bind(
+				"{\"item\":{\"name\":\"Item name\"},\"name\":\"Hello\",\"age\":\"30\"}",
 				ResolvableType.forClass(PrimaryConstructorOptionalItemBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorOptionalItemBean.class);
-		assertThat(((PrimaryConstructorOptionalItemBean) result).getItem().get().getName()).isEqualTo("Item name");
-		assertThat(((PrimaryConstructorOptionalItemBean) result).getName().get()).isEqualTo("Hello");
+		PrimaryConstructorOptionalItemBean itemBean = (PrimaryConstructorOptionalItemBean) result;
+
+		assertThat(itemBean.getItem().get().getName()).isEqualTo("Item name");
+		assertThat(itemBean.getName().get()).isEqualTo("Hello");
 	}
 
 	@Test
@@ -225,41 +193,34 @@ class GraphQlArgumentBinderTests {
 		ResolvableType targetType =
 				ResolvableType.forClass(PrimaryConstructorOptionalArgumentItemBean.class);
 
-		PrimaryConstructorOptionalArgumentItemBean result =
-				(PrimaryConstructorOptionalArgumentItemBean) this.binder.bind(
-						environment(
-								"{\"key\":{" +
-										"\"item\":{\"name\":\"Item name\",\"age\":\"30\"}," +
-										"\"name\":\"Hello\"}}"),
-						"key", targetType);
+		Object result = bind(
+				"{\"item\":{\"name\":\"Item name\",\"age\":\"30\"},\"name\":\"Hello\"}", targetType);
 
-		assertThat(result).isNotNull();
-		assertThat(result.getItem().value().getName()).isEqualTo("Item name");
-		assertThat(result.getItem().value().getAge()).isEqualTo(30);
-		assertThat(result.getName().value()).isEqualTo("Hello");
+		assertThat(result).isInstanceOf(PrimaryConstructorOptionalArgumentItemBean.class).isNotNull();
+		PrimaryConstructorOptionalArgumentItemBean itemBean = (PrimaryConstructorOptionalArgumentItemBean) result;
 
-		result = (PrimaryConstructorOptionalArgumentItemBean)
-				this.binder.bind(environment("{\"key\":{}}"), "key", targetType);
+		assertThat(itemBean.getItem().value().getName()).isEqualTo("Item name");
+		assertThat(itemBean.getItem().value().getAge()).isEqualTo(30);
+		assertThat(itemBean.getName().value()).isEqualTo("Hello");
 
-		assertThat(result).isNotNull();
-		assertThat(result.getItem().isOmitted()).isFalse();
-		assertThat(result.getName().isOmitted()).isFalse();
+		result = bind("{\"key\":{}}", targetType);
+		itemBean = (PrimaryConstructorOptionalArgumentItemBean) result;
+
+		assertThat(itemBean).isNotNull();
+		assertThat(itemBean.getItem().isOmitted()).isFalse();
+		assertThat(itemBean.getName().isOmitted()).isFalse();
 	}
 
 	@Test
 	void primaryConstructorWithNestedBeanList() throws Exception {
 
-		Object result = this.binder.bind(
-				environment(
-						"{\"key\":{\"items\":[" +
-								"{\"name\":\"first\"}," +
-								"{\"name\":\"second\"}]}}"),
-				"key",
+		Object result = bind(
+				"{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}",
 				ResolvableType.forClass(PrimaryConstructorItemListBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemListBean.class);
-		assertThat(((PrimaryConstructorItemListBean) result).getItems())
-				.hasSize(2).extracting("name").containsExactly("first", "second");
+		PrimaryConstructorItemListBean bean = (PrimaryConstructorItemListBean) result;
+		assertThat(bean.getItems()).hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
 	@Test // gh-410
@@ -287,9 +248,7 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructorNotFound() {
 		assertThatThrownBy(
-				() -> this.binder.bind(
-						environment("{\"key\":{\"name\":\"test\"}}"), "key",
-						ResolvableType.forClass(NoPrimaryConstructorBean.class)))
+				() -> bind("{\"name\":\"test\"}", ResolvableType.forClass(NoPrimaryConstructorBean.class)))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("No primary or single unique constructor found");
 	}
@@ -298,13 +257,8 @@ class GraphQlArgumentBinderTests {
 	void primaryConstructorBindingError() {
 
 		assertThatThrownBy(
-				() -> this.binder.bind(
-						environment(
-								"{\"key\":{" +
-										"\"name\":\"Hello\"," +
-										"\"age\":\"invalid\"," +
-										"\"item\":{\"name\":\"Item name\",\"age\":\"invalid\"}}}"),
-						"key",
+				() -> bind(
+						"{\"name\":\"Hello\",\"age\":\"invalid\",\"item\":{\"name\":\"Item name\",\"age\":\"invalid\"}}",
 						ResolvableType.forClass(PrimaryConstructorItemBean.class)))
 				.satisfies(ex -> {
 					List<FieldError> fieldErrors = ((BindException) ex).getFieldErrors();
@@ -324,12 +278,8 @@ class GraphQlArgumentBinderTests {
 	void primaryConstructorBindingErrorWithNestedBeanList() {
 
 		assertThatThrownBy(
-				() -> this.binder.bind(
-						environment(
-								"{\"key\":{\"items\":[" +
-										"{\"name\":\"first\", \"age\":\"invalid\"}," +
-										"{\"name\":\"second\", \"age\":\"invalid\"}]}}"),
-						"key",
+				() -> bind(
+						"{\"items\":[{\"name\":\"first\", \"age\":\"invalid\"},{\"name\":\"second\", \"age\":\"invalid\"}]}",
 						ResolvableType.forClass(PrimaryConstructorItemListBean.class)))
 				.satisfies(ex -> {
 					List<FieldError> errors = ((BindException) ex).getFieldErrors();
@@ -347,20 +297,8 @@ class GraphQlArgumentBinderTests {
 	@Test
 	void primaryConstructorWithMapArgument() throws Exception {
 
-		Object result = this.binder.bind(
-				environment(
-						"{\"key\":{" +
-								"\"map\":{" +
-								"\"item1\":{" +
-								"\"name\":\"Jason\"," +
-								"\"age\":\"21\"" +
-								"}," +
-								"\"item2\":{" +
-								"\"name\":\"James\"," +
-								"\"age\":\"22\"" +
-								"}" +
-								"}}}"),
-				"key",
+		Object result = bind(
+				"{\"map\":{\"item1\":{\"name\":\"Jason\",\"age\":\"21\"},\"item2\":{\"name\":\"James\",\"age\":\"22\"}}}",
 				ResolvableType.forClass(PrimaryConstructorItemMapBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemMapBean.class);
@@ -379,21 +317,26 @@ class GraphQlArgumentBinderTests {
 	@SuppressWarnings("unchecked")
 	void primaryConstructorWithGenericObject() throws Exception {
 
-		Object result = this.binder.bind(
-				environment("{\"key\":{\"value\":[{\"name\":\"first\"},{\"name\":\"second\"}]}}"), "key",
+		Object result = bind(
+				"{\"value\":[{\"name\":\"first\"},{\"name\":\"second\"}]}",
 				ResolvableType.forClass(ObjectHolder.class));
 
 		assertThat(result).isNotNull().isInstanceOf(ObjectHolder.class);
-		List<Map<Object, Object>> list = (List<Map<Object, Object>>) ((ObjectHolder) result).getValue();
-		assertThat(list).hasSize(2).containsExactly(
-				Collections.singletonMap("name", "first"),
-				Collections.singletonMap("name", "second"));
+		ObjectHolder holder = (ObjectHolder) result;
+		assertThat((List<Map<Object, Object>>) holder.getValue())
+				.hasSize(2).containsExactly(
+						Collections.singletonMap("name", "first"),
+						Collections.singletonMap("name", "second"));
 	}
 
 	@SuppressWarnings("unchecked")
-	private DataFetchingEnvironment environment(String jsonPayload) throws JsonProcessingException {
-		Map<String, Object> arguments = this.mapper.readValue(jsonPayload, Map.class);
-		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
+	@Nullable
+	private Object bind(String json, ResolvableType targetType) throws Exception {
+		DataFetchingEnvironment environment =
+				DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+						.arguments(this.mapper.readValue("{\"key\":" + json + "}", Map.class))
+						.build();
+		return this.binder.bind(environment, "key", targetType);
 	}
 
 
