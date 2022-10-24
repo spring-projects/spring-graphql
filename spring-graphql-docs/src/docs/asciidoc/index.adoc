@@ -1406,7 +1406,7 @@ For example:
 
 		@MutationMapping
 		public void addBook(ArgumentValue<BookInput> bookInput) {
-			if (!bookInput.isOmitted) {
+			if (!bookInput.isOmitted()) {
 				BookInput value = bookInput.value();
 				// ...
 			}

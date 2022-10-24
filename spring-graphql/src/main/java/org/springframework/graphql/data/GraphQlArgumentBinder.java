@@ -48,20 +48,26 @@ import org.springframework.validation.FieldError;
 
 
 /**
- * Bind a GraphQL argument, or the full arguments map, onto a target object.
+ * Binder that instantiates and populates a target Object to reflect the
+ * complete structure of the {@link DataFetchingEnvironment#getArguments()
+ * GraphQL arguments} input map.
  *
- * <p>Complex objects (non-scalar) are initialized either through the primary
- * data constructor where arguments are matched to constructor parameters, or
- * through the default constructor where arguments are matched to setter
- * property methods. In case objects are related to other objects, binding is
- * applied recursively to create nested objects.
+ * <p>The input map is navigated recursively to create the full structure of
+ * the target type. Objects in the target type are created either through a
+ * primary, data constructor, in which case arguments are matched to constructor
+ * parameters by name, or through the default constructor, in which case
+ * arguments are matched to properties. Scalar values are converted, if
+ * necessary, through a {@link ConversionService}.
  *
- * <p>Scalar values are converted to the expected target type through a
- * {@link ConversionService}, if provided.
+ * <p>The binder does not stop at the first error, but rather accumulates as
+ * many errors as it can in a {@link org.springframework.validation.BindingResult}.
+ * At the end it raises a {@link BindException} that contains all recorded
+ * errors along with the path at which each error occurred.
  *
- * <p>In case of any errors, when creating objects or converting scalar values,
- * a {@link BindException} is raised that contains all errors recorded along
- * with the path at which the errors occurred.
+ * <p>The binder supports {@link Optional} as a wrapper around any Object or
+ * scalar value in the target Object structure. In addition, it also supports
+ * {@link ArgumentValue} as a wrapper that indicates whether a given input
+ * argument was omitted rather than set to the {@literal "null"} literal.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
@@ -103,18 +109,15 @@ public class GraphQlArgumentBinder {
 
 
 	/**
-	 * Bind a single argument, or the full arguments map, onto an object of the
-	 * given target type.
+	 * Create and populate an Object of the given target type, from a single
+	 * GraphQL argument, or from the full GraphQL arguments map.
 	 * @param environment for access to the arguments
-	 * @param name the name of the argument to bind, or {@code null} to
-	 * use the full arguments map
+	 * @param name the name of an argument, or {@code null} to use the full map
 	 * @param targetType the type of Object to create
-	 * @return the created Object, possibly {@code null}
-	 * @throws BindException in case of binding issues such as conversion errors,
-	 * mismatches between the source and the target object structure, and so on.
-	 * Binding issues are accumulated as {@link BindException#getFieldErrors()
-	 * field errors} where the {@link FieldError#getField() field} of each error
-	 * is the argument path where the issue occurred.
+	 * @return the created Object, possibly wrapped in {@link Optional} or in
+	 * {@link ArgumentValue}, or {@code null} if there is no value
+	 * @throws BindException containing one or more accumulated errors from
+	 * matching and/or converting arguments to the target Object
 	 */
 	@Nullable
 	public Object bind(
@@ -137,21 +140,21 @@ public class GraphQlArgumentBinder {
 	}
 
 	/**
-	 * Bind the raw GraphQL argument value to an Object of the specified type.
-	 * @param name the name of a constructor parameter or a bean property of the
-	 * target Object that is to be initialized from the given raw value;
-	 * {@code "$"} if binding the top level Object; possibly indexed if binding
-	 * to a Collection element or to a Map value.
+	 * Create an Object from the given raw GraphQL argument value.
+	 * @param name the name of the constructor parameter or the property that
+	 * will be set from the returned value, possibly {@code "$"} for the top
+	 * Object, or an indexed property for a Collection element or Map value;
+	 * mainly for error recording, to keep track of the nested path
 	 * @param rawValue the raw argument value (Collection, Map, or scalar)
-	 * @param isOmitted whether the value with the given name was not provided
-	 * at all, as opposed to provided but set to the {@literal "null"} literal
+	 * @param isOmitted {@code true} if the argument was omitted from the input
+	 * and {@code false} if it was provided, but possibly {@code null}
 	 * @param targetType the type of Object to create
-	 * @param targetClass the resolved class from the targetType
-	 * @param bindingResult for keeping track of the nested path and errors
+	 * @param targetClass the target class, resolved from the targetType
+	 * @param bindingResult to accumulate errors
 	 * @return the target Object instance, possibly {@code null} if the source
-	 * value is {@code null} or if binding failed in which case the result will
-	 * contain errors; nevertheless we keep going to record as many errors as
-	 * we can accumulate
+	 * value is {@code null}, or if binding failed in which case the result will
+	 * contain errors; generally we keep going as far as we can and only raise
+	 * a {@link BindException} at the end to record as many errors as possible
 	 */
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	@Nullable
@@ -199,8 +202,8 @@ public class GraphQlArgumentBinder {
 		ResolvableType elementType = collectionType.asCollection().getGeneric(0);
 		Class<?> elementClass = collectionType.asCollection().getGeneric(0).resolve();
 		if (elementClass == null) {
-			bindingResult.rejectValue(null, "unknownType", "Unknown Collection element type");
-			return Collections.emptyList(); // Keep going, report as many errors as we can
+			bindingResult.rejectArgumentValue(name, null, "unknownType", "Unknown Collection element type");
+			return Collections.emptyList(); // Keep going, to record more errors
 		}
 
 		Collection<Object> collection =
@@ -228,9 +231,9 @@ public class GraphQlArgumentBinder {
 
 		Constructor<?> constructor = BeanUtils.getResolvableConstructor(targetClass);
 
-		Object value = constructor.getParameterCount() > 0 ?
+		Object value = (constructor.getParameterCount() > 0 ?
 				bindMapToObjectViaConstructor(rawMap, constructor, targetType, bindingResult) :
-				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult);
+				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult));
 
 		bindingResult.popNestedPath();
 
@@ -244,8 +247,8 @@ public class GraphQlArgumentBinder {
 		ResolvableType valueType = targetType.asMap().getGeneric(1);
 		Class<?> valueClass = valueType.resolve();
 		if (valueClass == null) {
-			bindingResult.rejectValue(null, "unknownType", "Unknown Map value type");
-			return Collections.emptyMap(); // Keep going, report as many errors as we can
+			bindingResult.rejectArgumentValue(name, null, "unknownType", "Unknown Map value type");
+			return Collections.emptyMap(); // Keep going, to record more errors
 		}
 
 		Map<String, Object> map = CollectionFactory.createMap(targetClass, rawMap.size());
@@ -261,28 +264,28 @@ public class GraphQlArgumentBinder {
 
 	@Nullable
 	private Object bindMapToObjectViaConstructor(
-			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType parentType,
+			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType ownerType,
 			ArgumentsBindingResult bindingResult) {
 
 		String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
-		Object[] args = new Object[paramTypes.length];
+		Object[] constructorArguments = new Object[paramTypes.length];
 
 		for (int i = 0; i < paramNames.length; i++) {
 			String name = paramNames[i];
-			boolean isOmitted = !rawMap.containsKey(name);
 
 			ResolvableType targetType = ResolvableType.forType(
-					ResolvableType.forConstructorParameter(constructor, i).getType(), parentType);
+					ResolvableType.forConstructorParameter(constructor, i).getType(), ownerType);
 
-			args[i] = bindRawValue(name, rawMap.get(name), isOmitted, targetType, paramTypes[i], bindingResult);
+			constructorArguments[i] = bindRawValue(
+					name, rawMap.get(name), !rawMap.containsKey(name), targetType, paramTypes[i], bindingResult);
 		}
 
 		try {
-			return BeanUtils.instantiateClass(constructor, args);
+			return BeanUtils.instantiateClass(constructor, constructorArguments);
 		}
 		catch (BeanInstantiationException ex) {
-			// Ignore: we had binding errors to begin with
+			// Ignore, if we had binding errors to begin with
 			if (bindingResult.hasErrors()) {
 				return null;
 			}
@@ -291,7 +294,7 @@ public class GraphQlArgumentBinder {
 	}
 
 	private Object bindMapToObjectViaSetters(
-			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType parentType,
+			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType ownerType,
 			ArgumentsBindingResult bindingResult) {
 
 		Object target = BeanUtils.instantiateClass(constructor);
@@ -306,7 +309,7 @@ public class GraphQlArgumentBinder {
 			}
 
 			ResolvableType targetType =
-					ResolvableType.forType(typeDescriptor.getResolvableType().getType(), parentType);
+					ResolvableType.forType(typeDescriptor.getResolvableType().getType(), ownerType);
 
 			Object value = bindRawValue(
 					key, entry.getValue(), false, targetType, typeDescriptor.getType(), bindingResult);
@@ -320,7 +323,7 @@ public class GraphQlArgumentBinder {
 				// Ignore unknown property
 			}
 			catch (Exception ex) {
-				bindingResult.rejectValue(value, "invalidPropertyValue", "Failed to set property value");
+				bindingResult.rejectArgumentValue(key, value, "invalidPropertyValue", "Failed to set property value");
 			}
 		}
 
@@ -339,13 +342,10 @@ public class GraphQlArgumentBinder {
 					(this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
 
 			value = converter.convertIfNecessary(
-					rawValue, (Class<?>) clazz,
-					(type.getSource() instanceof MethodParameter param ? new TypeDescriptor(param) : null));
+					rawValue, (Class<?>) clazz, new TypeDescriptor(type, null, null));
 		}
 		catch (TypeMismatchException ex) {
-			bindingResult.pushNestedPath(name);
-			bindingResult.rejectValue(rawValue, ex.getErrorCode(), "Failed to convert argument value");
-			bindingResult.popNestedPath();
+			bindingResult.rejectArgumentValue(name, rawValue, ex.getErrorCode(), "Failed to convert argument value");
 		}
 
 		return (T) value;
@@ -353,8 +353,8 @@ public class GraphQlArgumentBinder {
 
 
 	/**
-	 * BindingResult without a target Object, only for keeping track of errors
-	 * and their associated, nested paths.
+	 * Subclass of {@link AbstractBindingResult} that doesn't have a target Object,
+	 * and takes the raw value as input when recording errors.
 	 */
 	@SuppressWarnings("serial")
 	private static class ArgumentsBindingResult extends AbstractBindingResult {
@@ -379,9 +379,11 @@ public class GraphQlArgumentBinder {
 			return null;
 		}
 
-		public void rejectValue(@Nullable Object rawValue, String code, String defaultMessage) {
+		public void rejectArgumentValue(
+				String field, @Nullable Object rawValue, String code, String defaultMessage) {
+
 			addError(new FieldError(
-					getObjectName(), fixedField(null), rawValue, true, resolveMessageCodes(code),
+					getObjectName(), fixedField(field), rawValue, true, resolveMessageCodes(code),
 					null, defaultMessage));
 		}
 	}
