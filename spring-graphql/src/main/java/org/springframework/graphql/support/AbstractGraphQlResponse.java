@@ -133,7 +133,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 		}
 
 		/**
-		 * Return field errors whose path starts with the given field path.
+		 * Return errors whose path is at, above, or below the given path.
 		 * @param path the field path to match
 		 * @return errors whose path starts with the dataPath
 		 */
@@ -144,7 +144,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 			return response.getErrors().stream()
 					.filter(error -> {
 						String errorPath = error.getPath();
-						return !errorPath.isEmpty() && (errorPath.startsWith(path) || path.startsWith(errorPath));
+						return (!errorPath.isEmpty() && (errorPath.startsWith(path) || path.startsWith(errorPath)));
 					})
 					.collect(Collectors.toList());
 		}

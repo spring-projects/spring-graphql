@@ -130,14 +130,23 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	}
 
 	@Test
-	void retrievePartialResponse() {
+	void retrieveFieldErrorAt() {
+		String document = "fieldErrorResponse";
+		getGraphQlService().setDataAsJsonAndErrors(document, "{\"me\": null}", errorForPath("/me"));
+		testRetrieveFieldAccessException(document, "me");
+	}
 
+	@Test // gh-499
+	void retrieveFieldErrorBelow() {
 		String document = "fieldErrorResponse";
 		getGraphQlService().setDataAsJsonAndErrors(document, "{\"me\": {\"name\":null}}", errorForPath("/me/name"));
+		testRetrieveFieldAccessException(document, "me");
+	}
 
-		MovieCharacter character = graphQlClient().document(document).retrieve("me").toEntity(MovieCharacter.class).block();
-		assertThat(character).isNotNull().extracting(MovieCharacter::getName).isNull();
-
+	@Test
+	void retrieveFieldErrorAbove() {
+		String document = "fieldErrorResponse";
+		getGraphQlService().setDataAsJsonAndErrors(document, "{\"me\": null}", errorForPath("/me"));
 		testRetrieveFieldAccessException(document, "me.name");
 	}
 
