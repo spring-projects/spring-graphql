@@ -445,7 +445,7 @@ public interface GraphQlTester {
 		Errors expect(Predicate<ResponseError> errorPredicate);
 
 		/**
-		 * Verify there are either no errors or that there no unexpected errors that have
+		 * Verify there are either no errors or that there are no unexpected errors that have
 		 * not been {@link #filter(Predicate) filtered out}.
 		 * @return a spec to switch to a data path
 		 */
