@@ -186,13 +186,16 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		/**
-		 * Return the field if valid, or {@code null} if {@code null} without errors.
-		 * @throws FieldAccessException for invalid response or failed field
+		 * Return the field or {@code null}, but only if the response is valid
+		 * and there are no field errors, or raise {@link FieldAccessException}
+		 * otherwise.
+		 * @throws FieldAccessException in case of an invalid response or any
+		 * field error at, above or below the field path
 		 */
 		@Nullable
 		protected ClientResponseField getValidField(ClientGraphQlResponse response) {
 			ClientResponseField field = response.field(this.path);
-			if (!response.isValid() || field.getError() != null) {
+			if (!response.isValid() || !field.getErrors().isEmpty()) {
 				throw new FieldAccessException(
 						((DefaultClientGraphQlResponse) response).getRequest(), response, field);
 			}

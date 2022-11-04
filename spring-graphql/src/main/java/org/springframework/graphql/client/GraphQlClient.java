@@ -191,8 +191,8 @@ public interface GraphQlClient {
 		 * client.document("..").execute().map(response -> response.toEntity(..))
 		 * </pre>
 		 * @return a spec with decoding options
-		 * @throws FieldAccessException if the target field has any errors,
-		 * including nested errors.
+		 * @throws FieldAccessException if the field has any field errors,
+		 * including errors at, above or below the field path.
 		 */
 		RetrieveSpec retrieve(String path);
 
