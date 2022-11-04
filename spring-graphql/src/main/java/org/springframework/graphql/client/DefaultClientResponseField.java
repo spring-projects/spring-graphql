@@ -29,6 +29,7 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.ResponseField;
+import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
@@ -98,17 +99,23 @@ final class DefaultClientResponseField implements ClientResponseField {
 
 	@Override
 	public <D> List<D> toEntityList(Class<D> elementType) {
-		return toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
+		List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
+		return (list != null ? list : Collections.emptyList());
 	}
 
 	@Override
 	public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
-		return toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
+		List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
+		return (list != null ? list : Collections.emptyList());
 	}
 
-	@SuppressWarnings({"unchecked", "ConstantConditions"})
+		@SuppressWarnings("unchecked")
+		@Nullable
 	private <T> T toEntity(ResolvableType targetType) {
 		if (getValue() == null) {
+			if (this.response.isValid() && getErrors().isEmpty()) {
+				return null;
+			}
 			throw new FieldAccessException(this.response.getRequest(), this.response, this);
 		}
 

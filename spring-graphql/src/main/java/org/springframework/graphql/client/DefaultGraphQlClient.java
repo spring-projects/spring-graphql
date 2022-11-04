@@ -186,9 +186,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		/**
-		 * Return the field or {@code null}, but only if the response is valid
-		 * and there are no field errors, or raise {@link FieldAccessException}
-		 * otherwise.
+		 * Return the field or {@code null}, but only if the response is valid and
+		 * there are no field errors. Raise {@link FieldAccessException} otherwise.
 		 * @throws FieldAccessException in case of an invalid response or any
 		 * field error at, above or below the field path
 		 */
@@ -216,12 +215,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public <D> Mono<D> toEntity(Class<D> entityType) {
-			return this.responseMono.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+			return this.responseMono.mapNotNull(this::getValidField).mapNotNull(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType) {
-			return this.responseMono.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+			return this.responseMono.mapNotNull(this::getValidField).mapNotNull(field -> field.toEntity(entityType));
 		}
 
 		@Override
@@ -254,12 +253,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public <D> Flux<D> toEntity(Class<D> entityType) {
-			return this.responseFlux.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+			return this.responseFlux.mapNotNull(this::getValidField).mapNotNull(field -> field.toEntity(entityType));
 		}
 
 		@Override
 		public <D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType) {
-			return this.responseFlux.mapNotNull(this::getValidField).map(field -> field.toEntity(entityType));
+			return this.responseFlux.mapNotNull(this::getValidField).mapNotNull(field -> field.toEntity(entityType));
 		}
 
 		@Override

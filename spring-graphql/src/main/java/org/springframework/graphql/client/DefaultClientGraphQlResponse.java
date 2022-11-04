@@ -68,12 +68,28 @@ final class DefaultClientGraphQlResponse extends ResponseMapGraphQlResponse impl
 
 	@Override
 	public <D> D toEntity(Class<D> type) {
-		return field("").toEntity(type);
+		ClientResponseField field = field("");
+		D entity = field.toEntity(type);
+
+		// should never happen because toEntity checks response.isValid
+		if (entity == null) {
+			throw new FieldAccessException(getRequest(), this, field);
+		}
+
+		return entity;
 	}
 
 	@Override
 	public <D> D toEntity(ParameterizedTypeReference<D> type) {
-		return field("").toEntity(type);
+		ClientResponseField field = field("");
+		D entity = field.toEntity(type);
+
+		// should never happen because toEntity checks response.isValid
+		if (entity == null) {
+			throw new FieldAccessException(getRequest(), this, field);
+		}
+
+		return entity;
 	}
 
 }
