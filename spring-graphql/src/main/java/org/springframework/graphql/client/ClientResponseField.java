@@ -34,8 +34,8 @@ public interface ClientResponseField extends ResponseField {
 	 * Decode the field to an entity of the given type.
 	 * @param entityType the type to convert to
 	 * @return the decoded entity, never {@code null}
-	 * @throws FieldAccessException if the target field is not present or
-	 * has no value, checked via {@link #hasValue()}.
+	 * @throws FieldAccessException if the target field is {@code null} and has
+	 * {@link ResponseField#getErrors() errors}.
 	 */
 	<D> D toEntity(Class<D> entityType);
 
@@ -45,16 +45,14 @@ public interface ClientResponseField extends ResponseField {
 	<D> D toEntity(ParameterizedTypeReference<D> entityType);
 
 	/**
-	 * Decode the field to a list of entities with the given type.
+	 * Variant of {@link #toEntity(Class)} to decode to a list of entities.
 	 * @param elementType the type of elements in the list
-	 * @return the decoded list of entities, possibly empty
-	 * @throws FieldAccessException if the target field is not present or
-	 * has no value, checked via {@link #hasValue()}.
 	 */
 	<D> List<D> toEntityList(Class<D> elementType);
 
 	/**
-	 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
+	 * Variant of {@link #toEntity(Class)} to decode to a list of entities.
+	 * @param elementType the type of elements in the list
 	 */
 	<D> List<D> toEntityList(ParameterizedTypeReference<D> elementType);
 

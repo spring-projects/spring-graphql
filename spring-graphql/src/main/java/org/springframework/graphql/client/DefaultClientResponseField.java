@@ -54,9 +54,10 @@ final class DefaultClientResponseField implements ClientResponseField {
 	}
 
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public boolean hasValue() {
-		return this.field.hasValue();
+		return (this.field.getValue() != null);
 	}
 
 	@Override
@@ -74,6 +75,7 @@ final class DefaultClientResponseField implements ClientResponseField {
 		return this.field.getValue();
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public ResponseError getError() {
 		return this.field.getError();
@@ -106,7 +108,7 @@ final class DefaultClientResponseField implements ClientResponseField {
 
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	private <T> T toEntity(ResolvableType targetType) {
-		if (!hasValue()) {
+		if (getValue() == null) {
 			throw new FieldAccessException(this.response.getRequest(), this.response, this);
 		}
 

@@ -160,6 +160,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 			return this.parsedPath;
 		}
 
+		@SuppressWarnings("deprecation")
 		@Override
 		public boolean hasValue() {
 			return (this.value != null);
@@ -171,9 +172,10 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 			return (T) this.value;
 		}
 
+		@SuppressWarnings("deprecation")
 		@Override
 		public ResponseError getError() {
-			if (!hasValue()) {
+			if (getValue() != null) {
 				if (!this.fieldErrors.isEmpty()) {
 					return this.fieldErrors.get(0);
 				}

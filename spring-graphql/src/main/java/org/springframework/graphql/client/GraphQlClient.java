@@ -243,11 +243,11 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} with the decoded entity. Completes empty when
-		 * the field is {@code null} without errors, or ends with
-		 * {@link FieldAccessException} for an invalid response or a failed field
-		 * @see GraphQlResponse#isValid()
-		 * @see ResponseField#getError()
+		 * @return {@code Mono} with the decoded entity; completes with
+		 * {@link FieldAccessException} in case of {@link ResponseField field
+		 * errors} or an {@link GraphQlResponse#isValid() invalid} response;
+		 * completes empty if the field is {@code null} but has no errors.
+		 * @see ResponseField#getErrors()
 		 */
 		<D> Mono<D> toEntity(Class<D> entityType);
 
@@ -257,18 +257,14 @@ public interface GraphQlClient {
 		<D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType);
 
 		/**
-		 * Decode the field to a list of entities with the given type.
+		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
 		 * @param elementType the type of elements in the list
-		 * @return {@code Mono} with a list of decoded entities, possibly an
-		 * empty list, or ends with {@link FieldAccessException} if the target
-		 * field is not present or has no value.
-		 * @see GraphQlResponse#isValid()
-		 * @see ResponseField#getError()
 		 */
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
 		/**
-		 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
+		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
+		 * @param elementType the type of elements in the list
 		 */
 		<D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
 
@@ -283,12 +279,11 @@ public interface GraphQlClient {
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return a stream of decoded entities, one for each response, excluding
-		 * responses in which the field is {@code null} without errors. Ends with
-		 * {@link FieldAccessException} for an invalid response or a failed field.
-		 * May also end with a {@link GraphQlTransportException}.
-		 * @see GraphQlResponse#isValid()
-		 * @see ResponseField#getError()
+		 * @return {@code Mono} with the decoded entity; completes with
+		 * {@link FieldAccessException} in case of {@link ResponseField field
+		 * errors} or an {@link GraphQlResponse#isValid() invalid} response;
+		 * completes empty if the field is {@code null} but has no errors.
+		 * @see ResponseField#getErrors()
 		 */
 		<D> Flux<D> toEntity(Class<D> entityType);
 
@@ -298,19 +293,13 @@ public interface GraphQlClient {
 		<D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType);
 
 		/**
-		 * Decode the field to a list of entities with the given type.
+		 * Variant of {@link #toEntity(Class)} to decode each response to a List of entities.
 		 * @param elementType the type of elements in the list
-		 * @return lists of decoded entities, one for each response, excluding
-		 * responses in which the field is {@code null} without errors. Ends with
-		 * {@link FieldAccessException} for an invalid response or a failed field.
-		 * May also end with a {@link GraphQlTransportException}.
-		 * @see GraphQlResponse#isValid()
-		 * @see ResponseField#getError()
 		 */
 		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 
 		/**
-		 * Variant of {@link #toEntityList(Class)} with {@link ParameterizedTypeReference}.
+		 * Variant of {@link #toEntity(Class)} to decode each response to a List of entities.
 		 */
 		<D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
 

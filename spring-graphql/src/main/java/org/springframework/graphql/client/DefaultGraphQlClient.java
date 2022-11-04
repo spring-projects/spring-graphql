@@ -199,7 +199,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 				throw new FieldAccessException(
 						((DefaultClientGraphQlResponse) response).getRequest(), response, field);
 			}
-			return (field.hasValue() ? field : null);
+			return (field.getValue() != null ? field : null);
 		}
 
 	}
