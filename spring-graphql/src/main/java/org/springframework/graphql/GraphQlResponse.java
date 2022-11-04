@@ -78,8 +78,8 @@ public interface GraphQlResponse {
 	 * </pre>
 	 * @param path relative to the "data" key
 	 * @return representation for the field with further options to inspect or
-	 * decode its value; use {@link ResponseField#hasValue()} to check if
-	 * the field actually exists and has a value.
+	 * decode its value; use {@link ResponseField#getValue()} to check if
+	 * the field actually has a value.
 	 */
 	ResponseField field(String path);
 

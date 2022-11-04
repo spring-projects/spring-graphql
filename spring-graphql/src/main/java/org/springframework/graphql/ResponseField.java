@@ -37,9 +37,13 @@ public interface ResponseField {
 	 * <li>{@code "true"} means the field is not {@code null}, and therefore valid,
 	 * although it may be partial with nested field {@link #getErrors() errors}.
 	 * <li>{@code "false"} means the field is {@code null} or doesn't exist; use
-	 * {@link #getError()} to check if the field is {@code null} due to an error.
+	 * {@link #getErrors()} to check for field errors, and
+	 * {@link GraphQlResponse#isValid()} to check if the entire response is
+	 * valid or not.
 	 * </ul>
+	 * @deprecated as of 1.0.3 in favor of checking via {@link #getValue()}
 	 */
+	@Deprecated
 	boolean hasValue();
 
 	/**
@@ -65,10 +69,10 @@ public interface ResponseField {
 
 	/**
 	 * Return the error that provides the reason for a failed field.
-	 * <p>When the field <strong>does not</strong> {@link #hasValue() have} a
-	 * value, this method looks for the first field error. According to the
-	 * GraphQL spec, section 6.4.4, "Handling Field Errors", there should be
-	 * only one error per field. The returned field error may be:
+	 * <p>When the field is {@code null}, this method looks for the first field
+	 * error. According to the GraphQL spec, section 6.4.4, "Handling Field
+	 * Errors", there should be only one error per field. The returned field
+	 * error may be:
 	 * <ul>
 	 * <li>on the field
 	 * <li>on a parent field, when the field is not present
@@ -83,16 +87,51 @@ public interface ResponseField {
 	 * partial and contain {@link #getErrors() errors} on nested fields.
 	 * @return return the error for this field, or {@code null} if there is no
 	 * error with the same path as the field path
+	 * @deprecated since 1.0.3 in favor of {@link #getErrors()}
 	 */
 	@Nullable
+	@Deprecated
 	ResponseError getError();
 
 	/**
-	 * Return all field errors including errors above, at, and below this field.
-	 * <p>In practice, when the field <strong>does have</strong> a value, it is
-	 * considered valid but possibly partial with nested field errors. When the
-	 * field <strong>does not have</strong> a value, there should be only one
-	 * field error, and in that case it is better to use {@link #getError()}.
+	 * Return all errors that have a path, and it is at above, or below the field path.
+	 * <p>According to the GraphQL spec, section 6.4.4, "Handling Field Errors"
+	 * if a field has an error it is set to {@code null}. That means a field
+	 * has either a value or an error, and there is only one error per field.
+	 * <p>Errors may also occur at paths above or below the field path. Consider
+	 * the following cases:
+	 * <table>
+	 * <tr>
+	 * <th>Value</th>
+	 * <th>Errors</th>
+	 * <th>Case</th>
+	 * </tr>
+	 * <tr>
+	 * <td>Non-{@code null}</td>
+	 * <td>Empty</td>
+	 * <td>Success</td>
+	 * </tr>
+	 * <tr>
+	 * <td>Non-{@code null}</td>
+	 * <td>Errors below</td>
+	 * <td>Partial with errors on nested fields</td>
+	 * </tr>
+	 * <tr>
+	 * <td>{@code null}</td>
+	 * <td>Error at field</td>
+	 * <td>Field failure</td>
+	 * </tr>
+	 * <tr>
+	 * <td>{@code null}</td>
+	 * <td>Error above field</td>
+	 * <td>Parent field failure</td>
+	 * </tr>
+	 * <tr>
+	 * <td>{@code null}</td>
+	 * <td>Error below field</td>
+	 * <td>Nested field failure bubbles up because field is required</td>
+	 * </tr>
+	 * </table>
 	 */
 	List<ResponseError> getErrors();
 

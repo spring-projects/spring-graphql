@@ -179,7 +179,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 
 		assertThat(response).isNotNull();
 		assertThat(response.isValid()).isFalse();
-		assertThat(response.field("me").hasValue()).isFalse();
+		assertThat(response.field("me")).isNotNull();
 
 		assertThatThrownBy(() -> response.field("me").toEntity(MovieCharacter.class))
 				.isInstanceOf(FieldAccessException.class);
@@ -201,26 +201,27 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.isTrue();
 
 		ClientResponseField field = response.field("me");
-		assertThat(field.hasValue()).isTrue();
+		assertThat((Object) field.getValue()).isNotNull();
 		assertThat(field.getErrors()).hasSize(1);
 		assertThat(field.getErrors().get(0).getParsedPath()).containsExactly("me", "name");
 		assertThat(field.toEntity(MovieCharacter.class))
 				.as("Decoding with nested field error should not be precluded")
 				.isNotNull();
 
-		ClientResponseField nameField = response.field("me.name");
-		assertThat(nameField.hasValue()).isFalse();
-		assertThat(nameField.getError()).isNotNull();
-		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
-		assertThatThrownBy(() -> nameField.toEntity(String.class))
+		field = response.field("me.name");
+		assertThat((Object) field.getValue()).isNull();
+		assertThat(field.getErrors()).isNotEmpty();
+		assertThat(field.getErrors().get(0).getParsedPath()).containsExactly("me", "name");
+		ClientResponseField theField = field;
+		assertThatThrownBy(() -> theField.toEntity(String.class))
 				.as("Decoding field null with direct field error should be rejected")
 				.isInstanceOf(FieldAccessException.class)
 				.hasMessageContaining("Test error");
 
-		ClientResponseField nonExistingField = response.field("me.name.other");
-		assertThat(nonExistingField.hasValue()).isFalse();
-		assertThat(nameField.getError()).isNotNull();
-		assertThat(nameField.getError().getParsedPath()).containsExactly("me", "name");
+		field = response.field("me.name.other");
+		assertThat((Object) field.getValue()).isNull();
+		assertThat(field.getErrors()).isNotEmpty();
+		assertThat(field.getErrors().get(0).getParsedPath()).containsExactly("me", "name");
 	}
 
 	private GraphQLError errorForPath(String errorPath) {

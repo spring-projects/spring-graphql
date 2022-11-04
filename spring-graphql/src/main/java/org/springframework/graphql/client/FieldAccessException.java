@@ -21,10 +21,9 @@ import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseField;
 
 /**
- * An exception raised on an attempt to decode data from a
- * {@link GraphQlResponse#isValid() failed response} or a field is not present,
- * or has no value, checked via
- * {@link ResponseField#hasValue()}.
+ * An exception raised when an attempt is made to decode data from a response
+ * that is not {@link GraphQlResponse#isValid() valid} or where field value
+ * is {@code null}, or there field {@link ResponseField#getErrors() errors}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
