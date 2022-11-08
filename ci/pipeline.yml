@@ -177,6 +177,7 @@ jobs:
       params:
         RELEASE_TYPE: M
         <<: *artifactory-task-params
+        <<: *registry-mirror-vars
     - task: generate-changelog
       file: git-repo/ci/tasks/generate-changelog.yml
       params:
@@ -226,6 +227,7 @@ jobs:
       params:
         RELEASE_TYPE: RC
         <<: *artifactory-task-params
+        <<: *registry-mirror-vars
     - task: generate-changelog
       file: git-repo/ci/tasks/generate-changelog.yml
       params:
@@ -275,6 +277,7 @@ jobs:
       params:
         RELEASE_TYPE: RELEASE
         <<: *artifactory-task-params
+        <<: *registry-mirror-vars
         <<: *sonatype-task-params
 - name: create-github-release
   serial: true
