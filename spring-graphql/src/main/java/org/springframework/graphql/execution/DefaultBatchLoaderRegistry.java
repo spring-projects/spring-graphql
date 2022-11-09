@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
@@ -55,6 +56,25 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 	private final List<ReactorMappedBatchLoader<?,?>> mappedLoaders = new ArrayList<>();
 
+	private final Supplier<DataLoaderOptions> defaultOptionsSupplier;
+
+
+	/**
+	 * Default constructor
+	 */
+	public DefaultBatchLoaderRegistry() {
+		this(DataLoaderOptions::newOptions);
+	}
+
+	/**
+	 * Constructor with a default {@link DataLoaderOptions} supplier to use as
+	 * a starting point for all registrations.
+	 * @since 1.1
+	 */
+	public DefaultBatchLoaderRegistry(Supplier<DataLoaderOptions> defaultOptionsSupplier) {
+		this.defaultOptionsSupplier = defaultOptionsSupplier;
+	}
+
 
 	@Override
 	public <K, V> RegistrationSpec<K, V> forTypePair(Class<K> keyType, Class<V> valueType) {
@@ -69,14 +89,16 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	@Override
 	public void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context) {
 		BatchLoaderContextProvider contextProvider = () -> context;
-		DataLoaderOptions defaultOptions = DataLoaderOptions.newOptions().setBatchLoaderContextProvider(contextProvider);
+		DataLoaderOptions defaultOptions = this.defaultOptionsSupplier.get();
 		for (ReactorBatchLoader<?, ?> loader : this.loaders) {
-			DataLoaderOptions options = loader.getOptionsOrDefault(contextProvider, defaultOptions);
+			DataLoaderOptions options = loader.getOptions();
+			options = (options != null ? options : defaultOptions).setBatchLoaderContextProvider(contextProvider);
 			DataLoader<?, ?> dataLoader = DataLoaderFactory.newDataLoader(loader, options);
 			registerDataLoader(loader.getName(), dataLoader, registry);
 		}
 		for (ReactorMappedBatchLoader<?, ?> loader : this.mappedLoaders) {
-			DataLoaderOptions options = loader.getOptionsOrDefault(contextProvider, defaultOptions);
+			DataLoaderOptions options = loader.getOptions();
+			options = (options != null ? options : defaultOptions).setBatchLoaderContextProvider(contextProvider);
 			DataLoader<?, ?> dataLoader = DataLoaderFactory.newMappedDataLoader(loader, options);
 			registerDataLoader(loader.getName(), dataLoader, registry);
 		}
@@ -101,6 +123,9 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Nullable
 		private DataLoaderOptions options;
 
+		@Nullable
+		private Consumer<DataLoaderOptions> optionsConsumer;
+
 		public DefaultRegistrationSpec(Class<V> valueType) {
 			this.valueType = valueType;
 		}
@@ -118,8 +143,8 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer) {
-			this.options = (this.options != null ? this.options : DataLoaderOptions.newOptions());
-			optionsConsumer.accept(this.options);
+			this.optionsConsumer = (this.optionsConsumer != null ?
+					this.optionsConsumer.andThen(optionsConsumer) : optionsConsumer);
 			return this;
 		}
 
@@ -132,13 +157,33 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public void registerBatchLoader(BiFunction<List<K>, BatchLoaderEnvironment, Flux<V>> loader) {
 			DefaultBatchLoaderRegistry.this.loaders.add(
-					new ReactorBatchLoader<>(initName(), loader, this.options));
+					new ReactorBatchLoader<>(initName(), loader, initOptionsSupplier()));
 		}
 
 		@Override
 		public void registerMappedBatchLoader(BiFunction<Set<K>, BatchLoaderEnvironment, Mono<Map<K, V>>> loader) {
 			DefaultBatchLoaderRegistry.this.mappedLoaders.add(
-					new ReactorMappedBatchLoader<>(initName(), loader, this.options));
+					new ReactorMappedBatchLoader<>(initName(), loader, initOptionsSupplier()));
+		}
+
+		@Nullable
+		private Supplier<DataLoaderOptions> initOptionsSupplier() {
+			if (this.options == null && this.optionsConsumer == null) {
+				return null;
+			}
+
+			Supplier<DataLoaderOptions> optionsSupplier =
+					(this.options != null ? () -> this.options : defaultOptionsSupplier);
+
+			if (this.optionsConsumer == null) {
+				return optionsSupplier;
+			}
+
+			return () -> {
+				DataLoaderOptions options = optionsSupplier.get();
+				this.optionsConsumer.accept(options);
+				return options;
+			};
 		}
 
 		private String initName() {
@@ -162,29 +207,24 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		private final BiFunction<List<K>, BatchLoaderEnvironment, Flux<V>> loader;
 
 		@Nullable
-		private final DataLoaderOptions options;
+		private final Supplier<DataLoaderOptions> optionsSupplier;
 
 		private ReactorBatchLoader(String name,
 				BiFunction<List<K>, BatchLoaderEnvironment, Flux<V>> loader,
-				@Nullable DataLoaderOptions options) {
+				@Nullable Supplier<DataLoaderOptions> optionsSupplier) {
 
 			this.name = name;
 			this.loader = loader;
-			this.options = options;
+			this.optionsSupplier = optionsSupplier;
 		}
 
 		public String getName() {
 			return this.name;
 		}
 
-		public DataLoaderOptions getOptionsOrDefault(
-				BatchLoaderContextProvider provider, DataLoaderOptions defaultOptions) {
-
-			if (this.options != null) {
-				return new DataLoaderOptions(this.options).setBatchLoaderContextProvider(provider);
-			}
-
-			return defaultOptions;
+		@Nullable
+		public DataLoaderOptions getOptions() {
+			return (this.optionsSupplier != null ? this.optionsSupplier.get() : null);
 		}
 
 		@Override
@@ -217,29 +257,24 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		private final BiFunction<Set<K>, BatchLoaderEnvironment, Mono<Map<K, V>>> loader;
 
 		@Nullable
-		private final DataLoaderOptions options;
+		private final Supplier<DataLoaderOptions> optionsSupplier;
 
 		private ReactorMappedBatchLoader(String name,
 				BiFunction<Set<K>, BatchLoaderEnvironment, Mono<Map<K, V>>> loader,
-				@Nullable DataLoaderOptions options) {
+				@Nullable Supplier<DataLoaderOptions> optionsSupplier) {
 
 			this.name = name;
 			this.loader = loader;
-			this.options = options;
+			this.optionsSupplier = optionsSupplier;
 		}
 
 		public String getName() {
 			return this.name;
 		}
 
-		public DataLoaderOptions getOptionsOrDefault(
-				BatchLoaderContextProvider provider, DataLoaderOptions defaultOptions) {
-
-			if (this.options != null) {
-				return new DataLoaderOptions(this.options).setBatchLoaderContextProvider(provider);
-			}
-
-			return defaultOptions;
+		@Nullable
+		public DataLoaderOptions getOptions() {
+			return (this.optionsSupplier != null ? this.optionsSupplier.get() : null);
 		}
 
 		@Override

@@ -715,12 +715,16 @@ By default, the `DataLoader` name is based on the class name of the target entit
 This allows an `@SchemaMapping` method to declare a
 <<controllers-schema-mapping-data-loader,DataLoader argument>> with a generic type, and
 without the need for specifying a name. The name, however, can be customized through the
-`BatchLoaderRegistry` builder, if necessary, along with other `DataLoader` options.
+`BatchLoaderRegistry` builder, if necessary, along with other `DataLoaderOptions`.
+
+To configure default `DataLoaderOptions` globally, to use as a starting point for any
+registration, you can override Boot's `BatchLoaderRegistry` bean and use the constructor
+for `DefaultBatchLoaderRegistry` that accepts `Supplier<DataLoaderOptions>`.
 
 For many cases, when loading related entities, you can use
 <<controllers-batch-mapping,@BatchMapping>> controller methods, which are a shortcut
 for and replace the need to use `BatchLoaderRegistry` and `DataLoader` directly.
-s
+
 `BatchLoaderRegistry` provides other important benefits too. It supports access to
 the same `GraphQLContext` from batch loading functions and from `@BatchMapping` methods,
 as well as ensures <<execution-context>> to them. This is why applications are expected

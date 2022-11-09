@@ -22,6 +22,7 @@ import java.util.function.Function;
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import org.dataloader.DataLoader;
+import org.dataloader.DataLoaderOptions;
 import org.dataloader.DataLoaderRegistry;
 import org.dataloader.stats.NoOpStatisticsCollector;
 import org.dataloader.stats.StatisticsCollector;
@@ -40,7 +41,11 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
  */
 public class DefaultBatchLoaderRegistryTests {
 
-	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
+	private final BatchLoaderRegistry batchLoaderRegistry =
+			new DefaultBatchLoaderRegistry(() -> {
+				// Disable batching, so we can test loading immediately
+				return DataLoaderOptions.newOptions().setBatchingEnabled(false);
+			});
 
 	private final DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
 
@@ -50,7 +55,6 @@ public class DefaultBatchLoaderRegistryTests {
 		AtomicReference<String> valueRef = new AtomicReference<>();
 
 		this.batchLoaderRegistry.forTypePair(Long.class, Book.class)
-				.withOptions(options -> options.setBatchingEnabled(false)) // DataLoader invoked immediately
 				.registerBatchLoader((ids, environment) ->
 						Flux.deferContextual(contextView -> {
 							valueRef.set(contextView.get("key"));
@@ -76,7 +80,6 @@ public class DefaultBatchLoaderRegistryTests {
 		AtomicReference<String> valueRef = new AtomicReference<>();
 
 		this.batchLoaderRegistry.forTypePair(Long.class, Book.class)
-				.withOptions(options -> options.setBatchingEnabled(false)) // DataLoader invoked immediately
 				.registerMappedBatchLoader((ids, environment) ->
 						Mono.deferContextual(contextView -> {
 							valueRef.set(contextView.get("key"));
