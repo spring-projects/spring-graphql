@@ -980,7 +980,7 @@ public interface AccountRepository extends Repository<Account, Long>,
 }
 ----
 
-Use `QueryByExampleDataFetcher` to turn the repository into a `DataFecher`:
+Use `QueryByExampleDataFetcher` to turn the repository into a `DataFetcher`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
