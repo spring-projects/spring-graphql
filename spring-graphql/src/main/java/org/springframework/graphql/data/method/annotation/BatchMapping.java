@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,5 +94,13 @@ public @interface BatchMapping {
 	 * here overrides the one at the class level.
 	 */
 	String typeName() default "";
+
+	/**
+	 * Set the maximum number of keys to include a single batch, before
+	 * splitting into multiple batches of keys to load.
+	 * <p>By default this is -1 in which case there is no limit.
+	 * @since 1.1
+	 */
+	int maxBatchSize() default -1;
 
 }

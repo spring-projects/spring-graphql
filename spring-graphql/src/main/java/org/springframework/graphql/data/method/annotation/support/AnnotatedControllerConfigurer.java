@@ -309,11 +309,11 @@ public class AnnotatedControllerConfigurer
 		String typeName;
 		String field;
 		boolean batchMapping = false;
+		int batchSize = -1;
 		HandlerMethod handlerMethod = createHandlerMethod(method, handler, handlerType);
 
 		Annotation annotation = annotations.iterator().next();
-		if (annotation instanceof SchemaMapping) {
-			SchemaMapping mapping = (SchemaMapping) annotation;
+		if (annotation instanceof SchemaMapping mapping) {
 			typeName = mapping.typeName();
 			field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
 		}
@@ -322,6 +322,7 @@ public class AnnotatedControllerConfigurer
 			typeName = mapping.typeName();
 			field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
 			batchMapping = true;
+			batchSize = mapping.maxBatchSize();
 		}
 
 		if (!StringUtils.hasText(typeName)) {
@@ -354,7 +355,7 @@ public class AnnotatedControllerConfigurer
 				"No parentType specified, and a source/parent method argument was also not found: " +
 						handlerMethod.getShortLogMessage());
 
-		return new MappingInfo(typeName, field, batchMapping, handlerMethod);
+		return new MappingInfo(typeName, field, batchMapping, batchSize, handlerMethod);
 	}
 
 	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {
@@ -394,11 +395,16 @@ public class AnnotatedControllerConfigurer
 		Class<?> clazz = returnType.getParameterType();
 		Class<?> nestedClass = (clazz.equals(Callable.class) ? returnType.nested().getNestedParameterType() : clazz);
 
+		BatchLoaderRegistry.RegistrationSpec<Object, Object> registration = registry.forName(dataLoaderKey);
+		if (info.getMaxBatchSize() > 0) {
+			registration.withOptions(options -> options.setMaxBatchSize(info.getMaxBatchSize()));
+		}
+
 		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(nestedClass)) {
-			registry.forName(dataLoaderKey).registerBatchLoader(invocable::invokeForIterable);
+			registration.registerBatchLoader(invocable::invokeForIterable);
 		}
 		else if (clazz.equals(Mono.class) || nestedClass.equals(Map.class)) {
-			registry.forName(dataLoaderKey).registerMappedBatchLoader(invocable::invokeForMap);
+			registration.registerMappedBatchLoader(invocable::invokeForMap);
 		}
 		else {
 			throw new IllegalStateException("@BatchMapping method is expected to return " +
@@ -434,12 +440,18 @@ public class AnnotatedControllerConfigurer
 
 		private final boolean batchMapping;
 
+		private final int maxBatchSize;
+
 		private final HandlerMethod handlerMethod;
 
-		public MappingInfo(String typeName, String field, boolean batchMapping, HandlerMethod handlerMethod) {
+		public MappingInfo(
+				String typeName, String field, boolean batchMapping, int maxBatchSize,
+				HandlerMethod handlerMethod) {
+
 			this.coordinates = FieldCoordinates.coordinates(typeName, field);
-			this.handlerMethod = handlerMethod;
 			this.batchMapping = batchMapping;
+			this.maxBatchSize = maxBatchSize;
+			this.handlerMethod = handlerMethod;
 		}
 
 		public FieldCoordinates getCoordinates() {
@@ -449,6 +461,10 @@ public class AnnotatedControllerConfigurer
 		@SuppressWarnings("BooleanMethodIsAlwaysInverted")
 		public boolean isBatchMapping() {
 			return this.batchMapping;
+		}
+
+		public int getMaxBatchSize() {
+			return this.maxBatchSize;
 		}
 
 		public HandlerMethod getHandlerMethod() {

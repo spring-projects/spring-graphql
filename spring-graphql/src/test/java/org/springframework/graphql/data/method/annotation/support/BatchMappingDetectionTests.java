@@ -15,6 +15,9 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -23,6 +26,7 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
 import graphql.schema.idl.RuntimeWiring;
 import org.dataloader.BatchLoaderEnvironment;
+import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderRegistry;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -72,6 +76,22 @@ public class BatchMappingDetectionTests {
 	}
 
 	@Test
+	void registerWithMaxBatchSize() {
+
+		BatchSizeController controller = new BatchSizeController();
+		initRuntimeWiringBuilder(controller).build();
+		DataLoaderRegistry registry = new DataLoaderRegistry();
+		this.batchLoaderRegistry.registerDataLoaders(registry, GraphQLContext.newContext().build());
+
+		DataLoader<Integer, String> dataLoader = registry.getDataLoader("Book.authors");
+		dataLoader.loadMany(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8));
+		dataLoader.dispatchAndJoin();
+
+		assertThat(controller.getBatchSizes()).containsExactly(5, 3);
+
+	}
+
+	@Test
 	void invalidReturnType() {
 		assertThatThrownBy(() -> initRuntimeWiringBuilder(InvalidReturnTypeController.class).build())
 				.hasMessageStartingWith("@BatchMapping method is expected to return");
@@ -83,9 +103,15 @@ public class BatchMappingDetectionTests {
 				.hasMessageStartingWith("Expected either @BatchMapping or @SchemaMapping, not both");
 	}
 
-	private RuntimeWiring.Builder initRuntimeWiringBuilder(Class<?> handlerType) {
+	@SuppressWarnings("unchecked")
+	private <T> RuntimeWiring.Builder initRuntimeWiringBuilder(T handler) {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.registerBean(handlerType);
+		if (handler instanceof Class<?> handlerType) {
+			context.registerBean(handlerType);
+		}
+		else {
+			context.registerBean((Class<T>) handler.getClass(), () -> handler);
+		}
 		context.registerBean(BatchLoaderRegistry.class, () -> this.batchLoaderRegistry);
 		context.refresh();
 
@@ -132,6 +158,24 @@ public class BatchMappingDetectionTests {
 		@BatchMapping
 		public List<Author> authorEnvironment(BatchLoaderEnvironment environment, List<Book> books) {
 			return null;
+		}
+	}
+
+
+	@Controller
+	@SuppressWarnings("unused")
+	private static class BatchSizeController {
+
+		private final List<Integer> batchSizes = new ArrayList<>();
+
+		public List<Integer> getBatchSizes() {
+			return this.batchSizes;
+		}
+
+		@BatchMapping(maxBatchSize = 5, typeName = "Book")
+		public List<String> authors(List<Integer> bookIds) {
+			this.batchSizes.add(bookIds.size());
+			return Collections.emptyList();
 		}
 	}
 
