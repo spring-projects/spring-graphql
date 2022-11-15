@@ -35,6 +35,7 @@ dependencies {
 	testImplementation 'org.assertj:assertj-core'
 	testImplementation 'org.mockito:mockito-core'
 	testImplementation 'io.projectreactor:reactor-test'
+	testImplementation 'org.springframework:spring-core-test'
 	testImplementation 'org.springframework:spring-messaging'
 	testImplementation 'org.springframework:spring-test'
 	testImplementation 'org.springframework:spring-webflux'

@@ -165,6 +165,10 @@ public class AnnotatedControllerConfigurer
 		this.applicationContext = applicationContext;
 	}
 
+	@Nullable
+	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
+		return this.argumentResolvers;
+	}
 
 	@Override
 	public void afterPropertiesSet() {
