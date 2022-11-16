@@ -8,29 +8,22 @@ include::attributes.adoc[]
 
 Spring for GraphQL provides support for Spring applications built on
 https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between the
-GraphQL Java team and Spring engineering. Our shared philosophy is to provide as little
-opinion as we can while focusing on comprehensive support for a wide range of use cases.
+GraphQL Java team and Spring engineering.
 
 Spring for GraphQL is the successor of the
 https://github.com/graphql-java/graphql-java-spring[GraphQL Java Spring] project from
 the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL applications.
 
-The project reached version 1.0 in May 2022. Please, use our
-https://github.com/spring-projects/spring-graphql/issues[issue tracker] to report a
-problem, discuss a design issue, or to request a feature.
+Please, use our https://github.com/spring-projects/spring-graphql/issues[issue tracker]
+to report a problem, discuss a design issue, or to request a feature.
+
+Please, see our
+https://github.com/spring-projects/spring-graphql/wiki[Wiki].
+for what's new, baseline requirements, and upgrade notes, and other cross-version information.
 
 To get started, check the Spring GraphQL starter on https://start.spring.io and the
 <<samples>> in this repository.
 
-[[requirements]]
-== Requirements
-
-Spring for GraphQL requires the following as a baseline:
-
-* JDK8
-* Spring Framework 5.3
-* GraphQL Java 18
-* Spring Data 2021.1.0 or later for QueryDSL or Query by Example
 
 
 
