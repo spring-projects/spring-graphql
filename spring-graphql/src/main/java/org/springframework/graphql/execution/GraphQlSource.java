@@ -105,7 +105,8 @@ public interface GraphQlSource {
 
 		/**
 		 * Add {@link GraphQLTypeVisitor}s to visit all element of the created
-		 * {@link graphql.schema.GraphQLSchema}.
+		 * {@link graphql.schema.GraphQLSchema} and make changes to the
+		 * {@link graphql.schema.GraphQLCodeRegistry}.
 		 * <p><strong>Note:</strong> Visitors are applied via
 		 * {@link graphql.schema.SchemaTraverser} and cannot change the schema.
 		 * @param typeVisitors the type visitors
@@ -113,6 +114,21 @@ public interface GraphQlSource {
 		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
 		 */
 		B typeVisitors(List<GraphQLTypeVisitor> typeVisitors);
+
+		/**
+		 * Alternative to {@link #typeVisitors(List)} for visitors that also
+		 * need to make schema changes.
+		 * <p><strong>Note:</strong> Visitors are applied via
+		 * {@link graphql.schema.SchemaTransformer}, and therefore can change
+		 * the schema. However, this is more expensive than using
+		 * {@link graphql.schema.SchemaTraverser}, so generally prefer
+		 * {@link #typeVisitors(List)} if it's not necessary to change the schema.
+		 * @param typeVisitors the type visitors to register
+		 * @return the current builder
+		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
+		 * @since 1.1
+		 */
+		B typeVisitorsToTransformSchema(List<GraphQLTypeVisitor> typeVisitors);
 
 		/**
 		 * Provide {@link Instrumentation} components to instrument the

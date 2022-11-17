@@ -16,14 +16,22 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import graphql.Scalars;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.schema.idl.FieldWiringEnvironment;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.WiringFactory;
+import graphql.util.TraversalControl;
+import graphql.util.TraverserContext;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.graphql.BookSource;
@@ -43,6 +51,65 @@ public class DefaultSchemaResourceGraphQlSourceBuilderTests {
 	void duplicateResourcesAreIgnored() {
 		// This should not fail with schema errors
 		GraphQlSetup.schemaResource(BookSource.schema, BookSource.schema).toGraphQlSource();
+	}
+
+	@Test
+	void typeVisitors() {
+
+		AtomicInteger counter = new AtomicInteger();
+
+		GraphQLTypeVisitor visitor = new GraphQLTypeVisitorStub() {
+
+			@Override
+			public TraversalControl visitGraphQLObjectType(
+					GraphQLObjectType node, TraverserContext<GraphQLSchemaElement> context) {
+
+				counter.incrementAndGet();
+				return TraversalControl.CONTINUE;
+			}
+		};
+
+		GraphQlSetup.schemaContent("type Query {  myQuery: String}").typeVisitor(visitor).toGraphQlSource();
+
+		assertThat(counter.get()).isPositive();
+	}
+
+	@Test
+	void typeVisitorToTransformSchema() {
+
+		String schemaContent = "" +
+				"type Query {" +
+				"  person: Person" +
+				"} " +
+				"type Person {" +
+				"  firstName: String" +
+				"}";
+
+		GraphQLTypeVisitor visitor = new GraphQLTypeVisitorStub() {
+
+			@Override
+			public TraversalControl visitGraphQLObjectType(
+					GraphQLObjectType node, TraverserContext<GraphQLSchemaElement> context) {
+
+				if (node.getName().equals("Person")) {
+					node = node.transform(builder -> builder.field(
+							GraphQLFieldDefinition.newFieldDefinition()
+									.name("lastName")
+									.type(Scalars.GraphQLString)
+									.build()));
+					changeNode(context, node);
+				}
+
+				return TraversalControl.CONTINUE;
+			}
+		};
+
+		GraphQLSchema schema = GraphQlSetup.schemaContent(schemaContent)
+				.typeVisitorToTransformSchema(visitor)
+				.toGraphQlSource()
+				.schema();
+
+		assertThat(schema.getObjectType("Person").getFieldDefinition("lastName")).isNotNull();
 	}
 
 	@Test

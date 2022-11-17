@@ -117,6 +117,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 		return this;
 	}
 
+	public GraphQlSetup typeVisitorToTransformSchema(GraphQLTypeVisitor... visitors) {
+		this.graphQlSourceBuilder.typeVisitorsToTransformSchema(Arrays.asList(visitors));
+		return this;
+	}
+
 	public GraphQL toGraphQl() {
 		return this.graphQlSourceBuilder.build().graphQl();
 	}

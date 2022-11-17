@@ -284,29 +284,23 @@ The main implementation, `DefaultExecutionGraphQlService`, is configured with a
 [[execution-graphqlsource]]
 === `GraphQLSource`
 
-`GraphQlSource` is a core Spring abstraction for access to the
-`graphql.GraphQL` instance to use for request execution. It provides a builder API to
-initialize GraphQL Java and build a `GraphQlSource`.
+`GraphQlSource` is a contract to expose the `graphql.GraphQL` instance to use that also
+includes a builder API to build that instance. The default builder is available via
+`GraphQlSource.schemaResourceBuilder()`. The
+{spring-boot-ref-docs}/web.html#web.graphql[Spring Boot starter] creates an instance of
+this builder and further initializes it as follows:
 
-The default `GraphQlSource` builder, accessible via
-`GraphQlSource.schemaResourceBuilder()`, enables support for
-<<execution-reactive-datafetcher>>, <<execution-context>>, and <<execution-exceptions>>.
-
-The Spring Boot {spring-boot-ref-docs}/web.html#web.graphql[starter] initializes a
-`GraphQlSource` instance through the default `GraphQlSource.Builder` and also enables
-the following:
-
-- Load <<execution-graphqlsource-schema-resources, schema files>> from a configurable location.
-- Expose {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[properties]
+- Loads <<execution-graphqlsource-schema-resources, schema files>> from a configurable location.
+- Exposes {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[properties]
   that apply to `GraphQlSource.Builder`.
-- Detect <<execution-graphqlsource-runtimewiring-configurer>> beans.
-- Detect https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
+- Detects <<execution-graphqlsource-runtimewiring-configurer>> beans.
+- Detects https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
   {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics].
-- Detect `DataFetcherExceptionResolver` beans for <<execution-exceptions, exception resolution>>.
-- Detect `SubscriptionExceptionResolver` beans for <<execution-exceptions-subsctiption, subscription exception resolution>>.
+- Detects `DataFetcherExceptionResolver` beans for <<execution-exceptions, exception resolution>>.
+- Detects `SubscriptionExceptionResolver` beans for <<execution-exceptions-subsctiption, subscription exception resolution>>.
 
-For further customizations, you can declare your own `GraphQlSourceBuilderCustomizer` beans;
-for example, for configuring your own `ExecutionIdProvider`:
+For further customizations, you can declare a `GraphQlSourceBuilderCustomizer` bean. For example, to
+configure your own `ExecutionIdProvider`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -345,9 +339,9 @@ locations, e.g. across multiple modules.
 [[execution-graphqlsource-schema-creation]]
 ==== Schema Creation
 
-By default, `GraphQlSource.Builder` uses the GraphQL Java `GraphQLSchemaGenerator` to
-create the `graphql.schema.GraphQLSchema`. This works for most applications, but if
-necessary, you can hook into the schema creation through the builder:
+By default, `GraphQlSource.Builder` uses the GraphQL Java `SchemaGenerator` to create the
+`graphql.schema.GraphQLSchema`. This works for typical use, but if you need to use a
+different generator, e.g. for federation, you can register a `schemaFactory` callback:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -360,9 +354,28 @@ builder.schemaResources(..)
 		})
 ----
 
-The primary reason for this is to create the schema through a federation library.
-
 The <<execution-graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
+
+
+[[execution-graphqlsource-schema-traversal]]
+==== Schema Traversal
+
+You can register a `graphql.schema.GraphQLTypeVisitor` via
+`builder.schemaResources(..).typeVisitors(..)` if you want to traverse the schema after
+it is created, and possibly apply changes to the `GraphQLCodeRegistry`. Keep in mind,
+however, that such a visitor cannot change the schema. See
+<<execution-graphqlsource-schema-transformation>>, if you need to make changes to the schema.
+
+
+[[execution-graphqlsource-schema-transformation]]
+==== Schema Transformation
+
+You can register a `graphql.schema.GraphQLTypeVisitor` via
+`builder.schemaResources(..).typeVisitorsToTransformSchema(..)` if you want to traverse
+and transform the schema after it is created, and make changes to the schema. Keep in mind
+that this is more expensive than <<execution-graphqlsource-schema-traversal>> so generally
+prefer traversal to transformation unless you need to make schema changes.
+
 
 [[execution-graphqlsource-runtimewiring-configurer]]
 ==== `RuntimeWiringConfigurer`

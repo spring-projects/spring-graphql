@@ -28,6 +28,7 @@ import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.SchemaTransformer;
 import graphql.schema.SchemaTraverser;
 
 
@@ -46,6 +47,8 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	private final List<SubscriptionExceptionResolver> subscriptionExceptionResolvers = new ArrayList<>();
 
 	private final List<GraphQLTypeVisitor> typeVisitors = new ArrayList<>();
+
+	private final List<GraphQLTypeVisitor> typeVisitorsToTransformSchema = new ArrayList<>();
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
@@ -72,6 +75,12 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	}
 
 	@Override
+	public B typeVisitorsToTransformSchema(List<GraphQLTypeVisitor> typeVisitorsToTransformSchema) {
+		this.typeVisitorsToTransformSchema.addAll(typeVisitorsToTransformSchema);
+		return self();
+	}
+
+	@Override
 	public B instrumentation(List<Instrumentation> instrumentations) {
 		this.instrumentations.addAll(instrumentations);
 		return self();
@@ -92,6 +101,7 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	public GraphQlSource build() {
 		GraphQLSchema schema = initGraphQlSchema();
 
+		schema = applyTypeVisitorsToTransformSchema(schema);
 		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
@@ -111,6 +121,14 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	 * {@link GraphQLSchema} instance.
 	 */
 	protected abstract GraphQLSchema initGraphQlSchema();
+
+	private GraphQLSchema applyTypeVisitorsToTransformSchema(GraphQLSchema schema) {
+		SchemaTransformer transformer = new SchemaTransformer();
+		for (GraphQLTypeVisitor visitor : this.typeVisitorsToTransformSchema) {
+			schema = transformer.transform(schema, visitor);
+		}
+		return schema;
+	}
 
 	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
 		GraphQLTypeVisitor visitor = ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers);
