@@ -15,11 +15,13 @@
  */
 package io.spring.sample.graphql;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Duration;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.test.context.SpringBootTest;
@@ -97,6 +99,21 @@ class WebFluxSecuritySampleTests {
 	@Test
 	void canNotQuerySalary() {
 		this.graphQlTester.documentName("employeesNamesAndSalaries")
+				.execute()
+				.errors()
+				.satisfy(errors -> {
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.UNAUTHORIZED);
+				});
+	}
+
+	@Disabled // This does not work currently
+	@Test
+	void canNotMutateUpdateSalary() {
+		SalaryInput salaryInput = new SalaryInput("1", BigDecimal.valueOf(44));
+
+		this.graphQlTester.documentName("updateSalary")
+				.variable("salaryInput", salaryInput)
 				.execute()
 				.errors()
 				.satisfy(errors -> {

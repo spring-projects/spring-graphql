@@ -32,9 +32,9 @@ public class SalaryService {
 		return Mono.just(new BigDecimal("42"));
 	}
 
-	@Secured({ "ROLE_HR" })
-	public void updateSalary(String employeeId, BigDecimal newSalary) {
-		// empty
+	@Secured("ROLE_HR")
+	public Mono<Void> updateSalary(String employeeId, BigDecimal newSalary) {
+		return Mono.empty();
 	}
 
 }

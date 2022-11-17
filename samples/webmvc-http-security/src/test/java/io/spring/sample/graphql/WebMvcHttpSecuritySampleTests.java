@@ -75,11 +75,10 @@ class WebMvcHttpSecuritySampleTests {
 	}
 
 	@Test
-	void canNotMutationUpdateSalary() {
-		WebGraphQlTester tester = this.graphQlTester.mutate().build();
+	void canNotMutateUpdateSalary() {
 		SalaryInput salaryInput = new SalaryInput("1", BigDecimal.valueOf(44));
 
-		tester.documentName("updateSalary")
+		this.graphQlTester.documentName("updateSalary")
 				.variable("salaryInput", salaryInput)
 				.execute()
 				.errors()

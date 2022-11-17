@@ -15,7 +15,7 @@ public class SalaryService {
 		return new BigDecimal("42");
 	}
 
-	@Secured({ "ROLE_HR" })
+	@Secured("ROLE_HR")
 	public void updateSalary(String employeeId, BigDecimal newSalary) {
 
 	}
