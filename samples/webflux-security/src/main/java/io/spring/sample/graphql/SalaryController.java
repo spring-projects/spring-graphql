@@ -49,10 +49,10 @@ public class SalaryController {
 	}
 
 	@MutationMapping
-	public void updateSalary(@Argument("input") SalaryInput salaryInput) {
+	public Mono<Void> updateSalary(@Argument("input") SalaryInput salaryInput) {
 		String employeeId = salaryInput.getEmployeeId();
 		BigDecimal salary = salaryInput.getNewSalary();
-		this.salaryService.updateSalary(employeeId, salary);
+		return this.salaryService.updateSalary(employeeId, salary);
 	}
 
 }

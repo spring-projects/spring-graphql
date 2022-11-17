@@ -23,6 +23,11 @@ public class SalaryInput {
 
 	private BigDecimal newSalary;
 
+	public SalaryInput(String employeeId, BigDecimal newSalary) {
+		this.employeeId = employeeId;
+		this.newSalary = newSalary;
+	}
+
 	public String getEmployeeId() {
 		return employeeId;
 	}
