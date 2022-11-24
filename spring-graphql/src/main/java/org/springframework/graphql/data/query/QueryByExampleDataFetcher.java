@@ -178,14 +178,16 @@ public abstract class QueryByExampleDataFetcher<T> {
 		for (QueryByExampleExecutor<?> executor : executors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+				Builder<?, ?> builder = customize(executor, builder(executor));
+				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
 
 		for (ReactiveQueryByExampleExecutor<?> executor : reactiveExecutors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+				ReactiveBuilder<?, ?> builder = customize(executor, builder(executor));
+				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
 
@@ -218,18 +220,37 @@ public abstract class QueryByExampleDataFetcher<T> {
 		for (QueryByExampleExecutor<?> executor : executors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+				Builder<?, ?> builder = customize(executor, builder(executor));
+				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
 
 		for (ReactiveQueryByExampleExecutor<?> executor : reactiveExecutors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				factories.put(typeName, single -> single ? builder(executor).single() : builder(executor).many());
+				ReactiveBuilder<?, ?> builder = customize(executor, builder(executor));
+				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
 
 		return new AutoRegistrationTypeVisitor(factories);
+	}
+
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static Builder customize(QueryByExampleExecutor<?> executor, Builder builder) {
+		if(executor instanceof QueryByExampleBuilderCustomizer<?> customizer){
+			return customizer.customize(builder);
+		}
+		return builder;
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static ReactiveBuilder customize(ReactiveQueryByExampleExecutor<?> executor, ReactiveBuilder builder) {
+		if(executor instanceof ReactiveQueryByExampleBuilderCustomizer<?> customizer){
+			return customizer.customize(builder);
+		}
+		return builder;
 	}
 
 
@@ -301,6 +322,24 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public DataFetcher<Iterable<R>> many() {
 			return new ManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
+
+	}
+
+	/**
+	 * Callback interface that can be used to customize QueryByExampleDataFetcher {@link Builder}
+	 * to change its configuration. {@link #autoRegistrationConfigurer(List, List) Auto-registration}
+	 * applies the customizer for DataFetchers based on repositories implementing this interface.
+	 *
+	 * @param <T>
+	 * @since 1.1.1
+	 */
+	public interface QueryByExampleBuilderCustomizer<T> {
+
+		/**
+		 * Callback to customize a {@link Builder} instance.
+		 * @param builder builder to customize
+		 */
+		Builder<T, ?> customize(Builder<T, ?> builder);
 
 	}
 
@@ -376,6 +415,24 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public DataFetcher<Flux<R>> many() {
 			return new ReactiveManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
+
+	}
+
+	/**
+	 * Callback interface that can be used to customize QueryByExampleDataFetcher {@link ReactiveBuilder}
+	 * to change its configuration. {@link #autoRegistrationConfigurer(List, List) Auto-registration}
+	 * applies the customizer for DataFetchers based on repositories implementing this interface.
+	 *
+	 * @param <T>
+	 * @since 1.1.1
+	 */
+	public interface ReactiveQueryByExampleBuilderCustomizer<T> {
+
+		/**
+		 * Callback to customize a {@link ReactiveBuilder} instance.
+		 * @param builder builder to customize
+		 */
+		ReactiveBuilder<T, ?> customize(ReactiveBuilder<T, ?> builder);
 
 	}
 

@@ -47,6 +47,8 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.data.query.QuerydslDataFetcher.Builder;
+import org.springframework.graphql.data.query.QuerydslDataFetcher.QuerydslBuilderCustomizer;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlHandler;
@@ -213,16 +215,21 @@ class QuerydslDataFetcherTests {
 
 	@Test
 	void shouldFetchSingleItemsWithDtoProjection() {
+		MockWithBuilderCustomizerRepository mockWithCustomizerRepository = repositoryFactory.getRepository(MockWithBuilderCustomizerRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
-		mockRepository.save(book);
+		mockWithCustomizerRepository.save(book);
 
-		DataFetcher<?> fetcher = QuerydslDataFetcher.builder(mockRepository).projectAs(BookDto.class).single();
-		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
+		Consumer<GraphQlSetup> tester = graphQlSetup -> {
+			WebGraphQlRequest request = request("{ bookById(id: 42) {name}}");
+			Mono<WebGraphQlResponse> responseMono = graphQlSetup.toWebGraphQlHandler().handleRequest(request);
 
-		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 42) {name}}"));
+			Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 
-		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
-		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
+			assertThat(actualBook.getName()).isEqualTo("The book is: " + book.getName());
+		};
+
+		// explicit wiring
+		tester.accept(initGraphQlSetup(mockWithCustomizerRepository, null));
 	}
 
 	@Test
@@ -275,11 +282,11 @@ class QuerydslDataFetcherTests {
 	}
 
 	static GraphQlSetup graphQlSetup(@Nullable QuerydslPredicateExecutor<?> executor) {
-		return initGraphQlSetup(executor, null);
+		return initGraphQlSetup(executor,  null);
 	}
 
 	static GraphQlSetup graphQlSetup(@Nullable ReactiveQuerydslPredicateExecutor<?> executor) {
-		return initGraphQlSetup(null, executor);
+		return initGraphQlSetup(null,  executor);
 	}
 
 	private static GraphQlSetup initGraphQlSetup(
@@ -301,6 +308,15 @@ class QuerydslDataFetcherTests {
 
 	@GraphQlRepository
 	interface MockRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book> {
+	}
+
+	@GraphQlRepository
+	interface MockWithBuilderCustomizerRepository extends CrudRepository<Book, Long>, QuerydslPredicateExecutor<Book>, QuerydslBuilderCustomizer<Book> {
+
+		@Override
+		default Builder<Book, ?> customize(Builder<Book, ?> builder) {
+			return builder.projectAs(BookDto.class);
+		}
 	}
 
 
@@ -327,6 +343,7 @@ class QuerydslDataFetcherTests {
 		String getName();
 
 	}
+
 
 	static class BookDto {
 
