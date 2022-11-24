@@ -12,6 +12,7 @@
 :github-raw: https://raw.githubusercontent.com/{github-repo}/{github-tag}
 :github-issues: https://github.com/{github-repo}/issues/
 :github-main-branch: https://github.com/{github-repo}/tree/main
+:github-10x-branch: https://github.com/{github-repo}/tree/1.0.x
 :github-wiki: https://github.com/{github-repo}/wiki
 :graphql-java-docs: https://www.graphql-java.com/documentation
 :javadoc: https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api

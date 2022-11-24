@@ -1,9 +1,0 @@
-mutation updateSalary($salaryInput: UpdateSalaryInput!) {
-    updateSalary(input: $salaryInput) {
-        success
-        employee {
-            id
-            name
-        }
-    }
-}

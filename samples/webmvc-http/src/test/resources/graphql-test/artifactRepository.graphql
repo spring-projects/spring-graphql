@@ -1,5 +1,0 @@
-query artifactRepository($id: ID!) {
-    artifactRepository(id: $id) {
-        name
-    }
-}

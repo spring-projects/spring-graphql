@@ -21,8 +21,8 @@ Please, see our
 https://github.com/spring-projects/spring-graphql/wiki[Wiki].
 for what's new, baseline requirements, and upgrade notes, and other cross-version information.
 
-To get started, check the Spring GraphQL starter on https://start.spring.io and the
-<<samples>> in this repository.
+To get started, check the Spring GraphQL starter on https://start.spring.io.
+The are also https://github.com/spring-projects/spring-graphql/tree/1.0.x/samples[samples] in the 1.0.x branch, which will be https://github.com/spring-projects/spring-graphql/issues/208[moved out] into a separate repository.
 
 
 
@@ -59,8 +59,8 @@ Boot starter does this, see the
 details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
 it contains, for the actual config.
 
-The Spring for GraphQL repository contains a Spring MVC
-{github-main-branch}/samples/webmvc-http[HTTP sample] application.
+The 1.0.x branch of this repository contains a Spring MVC
+{github-10x-branch}/samples/webmvc-http[HTTP sample] application.
 
 
 
@@ -103,8 +103,8 @@ enable it by adding a property for the endpoint path. Please, see the
 section for details, or check the `GraphQlWebMvcAutoConfiguration` or the
 `GraphQlWebFluxAutoConfiguration` for the actual Boot starter config.
 
-The Spring for GraphQL repository contains a WebFlux
-{github-main-branch}/samples/webflux-websocket[WebSocket sample] application.
+The 1.0.x branch of this repository contains a WebFlux
+{github-10x-branch}/samples/webflux-websocket[WebSocket sample] application.
 
 
 
@@ -892,7 +892,7 @@ compileJava {
 </plugins>
 ----
 
-The {github-main-branch}/samples/webmvc-http[webmvc-http] sample uses Querydsl for
+The {github-10x-branch}/samples/webmvc-http[webmvc-http] sample uses Querydsl for
 `artifactRepositories`.
 
 
@@ -1748,9 +1748,9 @@ To apply more fine-grained security, add Spring Security annotations such as
 the GraphQL response. This should work due to <<execution-context>> that aims to make
 Security, and other context, available at the data fetching level.
 
-The Spring for GraphQL repository contains samples for
-{github-main-branch}/samples/webmvc-http-security[Spring MVC] and for
-{github-main-branch}/samples/webflux-security[WebFlux].
+The 1.0.x branch of this repository contains samples for
+{github-10x-branch}/samples/webmvc-http-security[Spring MVC] and for
+{github-10x-branch}/samples/webflux-security[WebFlux].
 
 
 
@@ -1768,11 +1768,9 @@ include::testing.adoc[leveloffset=+1]
 [[samples]]
 == Samples
 
-This Spring for GraphQL repository contains {github-main-branch}/samples[sample applications] for
-various scenarios.
+The 1.0.x branch of this repository contains {github-10x-branch}/samples[sample applications] for various scenarios.
 
-You can run those by cloning this repository and running main application classes from
-your IDE or by typing the following on the command line:
+You can run those by cloning this repository and running main application classes from your IDE or by typing the following on the command line:
 
 [source,bash,indent=0,subs="verbatim,quotes"]
 ----

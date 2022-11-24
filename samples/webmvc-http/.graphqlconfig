@@ -1,5 +1,0 @@
-{
-  "name": "Spring MVC HTTP Sample Schema",
-  "schemaPath": "src/main/resources/graphql/schema.graphqls",
-  "extensions": {}
-}
