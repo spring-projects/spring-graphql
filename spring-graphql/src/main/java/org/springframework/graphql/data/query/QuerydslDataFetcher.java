@@ -205,7 +205,7 @@ public abstract class QuerydslDataFetcher<T> {
 		for (QuerydslPredicateExecutor<?> executor : executors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				Builder<?, ?> builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
+				Builder builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
 				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
@@ -213,7 +213,7 @@ public abstract class QuerydslDataFetcher<T> {
 		for (ReactiveQuerydslPredicateExecutor<?> executor : reactiveExecutors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				ReactiveBuilder builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
+				ReactiveBuilder builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
 				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
@@ -253,7 +253,7 @@ public abstract class QuerydslDataFetcher<T> {
 		for (QuerydslPredicateExecutor<?> executor : executors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				Builder<?, ?> builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
+				Builder<?, ?> builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
 				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
@@ -261,12 +261,28 @@ public abstract class QuerydslDataFetcher<T> {
 		for (ReactiveQuerydslPredicateExecutor<?> executor : reactiveExecutors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
-				ReactiveBuilder builder = QuerydslDataFetcher.builder(executor).customizer(customizer(executor));
+				ReactiveBuilder builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
 				factories.put(typeName, single -> single ? builder.single() : builder.many());
 			}
 		}
 
 		return new AutoRegistrationTypeVisitor(factories);
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static Builder customize(QuerydslPredicateExecutor<?> executor, Builder builder) {
+		if(executor instanceof QuerydslBuilderCustomizer<?> customizer){
+			return customizer.customize(builder);
+		}
+		return builder;
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static ReactiveBuilder customize(ReactiveQuerydslPredicateExecutor<?> executor, ReactiveBuilder builder) {
+		if(executor instanceof ReactiveQuerydslBuilderCustomizer<?> customizer){
+			return customizer.customize(builder);
+		}
+		return builder;
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -378,6 +394,25 @@ public abstract class QuerydslDataFetcher<T> {
 
 
 	/**
+	 * Callback interface that can be used to customize QuerydslDataFetcher {@link Builder}
+	 * to change its configuration. {@link #autoRegistrationConfigurer(List, List) Auto-registration}
+	 * applies the customizer for DataFetchers based on repositories implementing this interface.
+	 *
+	 * @param <T>
+	 * @since 1.1.1
+	 */
+	public interface QuerydslBuilderCustomizer<T> {
+
+		/**
+		 * Callback to customize a {@link Builder} instance.
+		 * @param builder builder to customize
+		 */
+		Builder<T, ?> customize(Builder<T, ?> builder);
+
+	}
+
+
+	/**
 	 * Builder for a reactive Querydsl-based {@link DataFetcher}. Note that builder
 	 * instances are immutable and return a new instance of the builder when
 	 * calling configuration methods.
@@ -476,6 +511,25 @@ public abstract class QuerydslDataFetcher<T> {
 			return new ReactiveManyEntityFetcher<>(
 					this.executor, this.domainType, this.resultType, this.sort, this.customizer);
 		}
+
+	}
+
+
+	/**
+	 * Callback interface that can be used to customize QuerydslDataFetcher {@link ReactiveBuilder}
+	 * to change its configuration. {@link #autoRegistrationConfigurer(List, List) Auto-registration}
+	 * applies the customizer for DataFetchers based on repositories implementing this interface.
+	 *
+	 * @param <T>
+	 * @since 1.1.1
+	 */
+	public interface ReactiveQuerydslBuilderCustomizer<T> {
+
+		/**
+		 * Callback to customize a {@link ReactiveBuilder} instance.
+		 * @param builder builder to customize
+		 */
+		ReactiveBuilder<T, ?> customize(ReactiveBuilder<T, ?> builder);
 
 	}
 
@@ -658,6 +712,5 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 	}
-
 
 }

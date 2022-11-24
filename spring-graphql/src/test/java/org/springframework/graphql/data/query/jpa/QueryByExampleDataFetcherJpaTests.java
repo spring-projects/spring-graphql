@@ -72,6 +72,9 @@ class QueryByExampleDataFetcherJpaTests {
 	@Autowired
 	private BookJpaRepository repository;
 
+	@Autowired
+	private ProjectingBookJpaRepository projectingRepository;
+
 
 	@Test
 	void shouldFetchSingleItems() {
@@ -147,8 +150,7 @@ class QueryByExampleDataFetcherJpaTests {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		repository.save(book);
 
-		DataFetcher<?> fetcher = QueryByExampleDataFetcher.builder(repository).projectAs(BookProjection.class).single();
-		WebGraphQlHandler handler = graphQlSetup("bookById", fetcher).toWebGraphQlHandler();
+		WebGraphQlHandler handler = graphQlSetup(projectingRepository).toWebGraphQlHandler();
 
 		Mono<WebGraphQlResponse> responseMono = handler.handleRequest(request("{ bookById(id: 42) {name}}"));
 
@@ -191,14 +193,6 @@ class QueryByExampleDataFetcherJpaTests {
 	private WebGraphQlRequest request(String query) {
 		return new WebGraphQlRequest(
 				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
-	}
-
-
-	interface BookProjection {
-
-		@Value("#{target.name + ' by ' + target.author.firstName + ' ' + target.author.lastName}")
-		String getName();
-
 	}
 
 

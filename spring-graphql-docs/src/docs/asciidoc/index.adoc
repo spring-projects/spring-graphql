@@ -967,11 +967,10 @@ obtained from `QuerydslDataFetcher`. The
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
 
-Auto-registration does not support <<data-querybyexample-customizations, customizations>>.
-If you need that, you'll need to use `QueryByExampleDataFetcher` to build and
-register the `DataFetcher` manually through a
-<<execution-graphqlsource-runtimewiring-configurer>>.
-
+Auto-registration applies <<data-querybyexample-customizations, customizations>>
+by calling `customize(Builder)` on the repository instance if your repository
+implements `QuerydslBuilderCustomizer` or `ReactiveQuerydslBuilderCustomizer`
+respectively.
 
 
 [[data-querybyexample]]
@@ -1081,10 +1080,10 @@ obtained from `QueryByExampleDataFetcher`. The
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
 
-Auto-registration does not support <<data-querybyexample-customizations, customizations>>.
-If you need that, you'll need to use `QueryByExampleDataFetcher` to build and
-register the `DataFetcher` manually through a
-<<execution-graphqlsource-runtimewiring-configurer>>.
+Auto-registration applies <<data-querybyexample-customizations, customizations>>
+by calling `customize(Builder)` on the repository instance if your repository
+implements `QueryByExampleBuilderCustomizer` or
+`ReactiveQueryByExampleBuilderCustomizer` respectively.
 
 
 
