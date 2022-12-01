@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.support.StaticApplicationContext;
@@ -32,7 +33,8 @@ import org.springframework.stereotype.Controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- *
+ * Unit tests for {@link ProjectedPayloadMethodArgumentResolver}.
+ * @author Rossen Stoyanchev
  */
 public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
@@ -56,7 +58,19 @@ public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolve
 	}
 
 	@Test
-	void optionalWrapper() throws Exception {
+	void optionalPresent() throws Exception {
+
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "optionalProjection", Optional.class),
+				environment("{ \"where\" : { \"author\" : \"Orwell\" }}"));
+
+		assertThat(result).isNotNull().isInstanceOf(Optional.class);
+		BookProjection book = ((Optional<BookProjection>) result).get();
+		assertThat(book.getAuthor()).isEqualTo("Orwell");
+	}
+
+	@Test
+	void optionalNotPresent() throws Exception {
 
 		Object result = this.resolver.resolveArgument(
 				methodParam(BookController.class, "optionalProjection", Optional.class),
@@ -66,10 +80,26 @@ public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolve
 		assertThat((Optional<?>) result).isNotPresent();
 	}
 
+	@Test
+	@Disabled // pending decision under gh-550
+	void nullValue() throws Exception {
+
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "projection", BookProjection.class),
+				environment("{}"));
+
+		assertThat(result).isNull();
+	}
+
 
 	@SuppressWarnings({"ConstantConditions", "unused"})
 	@Controller
 	static class BookController {
+
+		@QueryMapping
+		public List<Book> projection(@Argument(name = "where") BookProjection projection) {
+			return null;
+		}
 
 		@QueryMapping
 		public List<Book> optionalProjection(@Argument(name = "where") Optional<BookProjection> projection) {

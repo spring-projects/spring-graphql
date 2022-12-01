@@ -30,32 +30,34 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.util.Assert;
 
 /**
- * Resolver to obtain an {@link ProjectedPayload @ProjectedPayload},
- * either based on the complete {@link  DataFetchingEnvironment#getArguments()}
- * map, or based on a specific argument within the map when the method
- * parameter is annotated with {@code @Argument}.
+ * Resolver for a method parameter that is an interface annotated with
+ * {@link ProjectedPayload @ProjectedPayload}.
  *
- * <p>Projected payloads consist of the projection interface and accessor
- * methods. Projections can be closed or open projections. Closed projections
- * use interface getter methods to access underlying properties directly.
- * Open projection methods make use of the {@code @Value} annotation to
+ * <p>By default, the projection is prepared by using the complete
+ * {@link  DataFetchingEnvironment#getArguments() arguments map} as its source.
+ * Add {@link Argument @Argument} with a name, if you to prepare it by using a
+ * specific argument value instead as its source.
+ *
+ * <p>An {@code @ProjectedPayload} interface has accessor methods. In a closed
+ * projection, getter methods access underlying properties directly. In an open
+ * projection, getter methods make use of the {@code @Value} annotation to
  * evaluate SpEL expressions against the underlying {@code target} object.
  *
  * <p>For example:
  * <pre class="code">
  * &#064;ProjectedPayload
  * interface BookProjection {
- *   String getName();
- * }
  *
- * &#064;ProjectedPayload
- * interface BookProjection {
+ *   String getName();
+ *
  *   &#064;Value("#{target.author + ' '  + target.name}")
  *   String getAuthorAndName();
  * }
  * </pre>
  *
  * @author Mark Paluch
+ * @author Rossen Stoyanchev
+ *
  * @since 1.0.0
  */
 public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgumentResolver {
@@ -77,11 +79,19 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 	}
 
 
+	/**
+	 * Return underlying projection factory used by the resolver.
+	 * @since 1.1.1
+	 */
+	protected SpelAwareProxyProjectionFactory getProjectionFactory() {
+		return this.projectionFactory;
+	}
+
+
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.nestedIfOptional().getNestedParameterType();
-		return (type.isInterface() &&
-				AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null);
+		return (type.isInterface() && AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null);
 	}
 
 	@Override
@@ -90,26 +100,22 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		String name = (parameter.hasParameterAnnotation(Argument.class) ?
 				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null);
 
-		Class<?> projectionType = parameter.getParameterType();
-
-		boolean isOptional = parameter.isOptional();
-		if (isOptional) {
-			projectionType = parameter.nestedIfOptional().getNestedParameterType();
-		}
-
-		Object projectionSource = (name != null ?
-				environment.getArgument(name) : environment.getArguments());
-
-		Object value = null;
-		if (!isOptional || projectionSource != null) {
-			value = project(projectionType, projectionSource);
-		}
-
-		return (isOptional ? Optional.ofNullable(value) : value);
+		Class<?> targetType = parameter.nestedIfOptional().getNestedParameterType();
+		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+		Object value = (!parameter.isOptional() || rawValue != null ? createProjection(targetType, rawValue) : null);
+		return (parameter.isOptional() ? Optional.ofNullable(value) : value);
 	}
 
-	protected Object project(Class<?> projectionType, Object projectionSource){
-		return this.projectionFactory.createProjection(projectionType, projectionSource);
+	/**
+	 * Protected method to create the projection. The default implementation
+	 * delegates to the underlying {@link #getProjectionFactory() projectionFactory}.
+	 * @param targetType the type to create
+	 * @param rawValue a specific argument (if named via {@link Argument}
+	 * or the map of arguments
+	 * @return the created project instance
+	 */
+	protected Object createProjection(Class<?> targetType, Object rawValue){
+		return this.projectionFactory.createProjection(targetType, rawValue);
 	}
 
 }
