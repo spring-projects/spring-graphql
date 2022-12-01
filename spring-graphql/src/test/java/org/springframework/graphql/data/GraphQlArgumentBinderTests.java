@@ -230,8 +230,8 @@ class GraphQlArgumentBinderTests {
 		itemBean = (PrimaryConstructorOptionalArgumentItemBean) result;
 
 		assertThat(itemBean).isNotNull();
-		assertThat(itemBean.getItem().isOmitted()).isFalse();
-		assertThat(itemBean.getName().isOmitted()).isFalse();
+		assertThat(itemBean.getItem().isOmitted()).isTrue();
+		assertThat(itemBean.getName().isPresent()).isFalse();
 	}
 
 	@Test

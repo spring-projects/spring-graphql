@@ -46,7 +46,7 @@ import org.springframework.util.ObjectUtils;
  */
 public final class ArgumentValue<T> {
 
-	private static final ArgumentValue<?> OMITTED = new ArgumentValue<>(null, false);
+	private static final ArgumentValue<?> OMITTED = new ArgumentValue<>(null, true);
 
 
 	@Nullable
