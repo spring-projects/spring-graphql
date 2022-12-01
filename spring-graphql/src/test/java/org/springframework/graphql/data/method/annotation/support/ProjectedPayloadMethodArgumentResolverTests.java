@@ -19,13 +19,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
@@ -50,11 +50,15 @@ public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolve
 
 	@Test
 	void supports() {
-		MethodParameter param = methodParam(BookController.class, "optionalProjection", Optional.class);
-		assertThat(this.resolver.supportsParameter(param)).isTrue();
+		testSupports("projection", BookProjection.class, true);
+		testSupports("optionalProjection", Optional.class, true);
+		testSupports("optionalString", Optional.class, false);
+		testSupports("argumentValueProjection", ArgumentValue.class, true);
+	}
 
-		param = methodParam(BookController.class, "optionalString", Optional.class);
-		assertThat(this.resolver.supportsParameter(param)).isFalse();
+	void testSupports(String methodName, Class<?> methodParamType, boolean supported) {
+		MethodParameter param = methodParam(BookController.class, methodName, methodParamType);
+		assertThat(this.resolver.supportsParameter(param)).isEqualTo(supported);
 	}
 
 	@Test
@@ -81,7 +85,44 @@ public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolve
 	}
 
 	@Test
-	@Disabled // pending decision under gh-550
+	void argumentValuePresent() throws Exception {
+
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "argumentValueProjection", ArgumentValue.class),
+				environment("{ \"where\" : { \"author\" : \"Orwell\" }}"));
+
+		assertThat(result).isNotNull().isInstanceOf(ArgumentValue.class);
+		BookProjection book = ((ArgumentValue<BookProjection>) result).value();
+		assertThat(book.getAuthor()).isEqualTo("Orwell");
+	}
+
+	@Test
+	void argumentValueSetToNull() throws Exception {
+
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "argumentValueProjection", ArgumentValue.class),
+				environment("{ \"where\" : null}"));
+
+		assertThat(result).isNotNull().isInstanceOf(ArgumentValue.class);
+		ArgumentValue<BookProjection> value = ((ArgumentValue<BookProjection>) result);
+		assertThat(value.isPresent()).isFalse();
+		assertThat(value.isOmitted()).isFalse();
+	}
+
+	@Test
+	void argumentValueIsOmitted() throws Exception {
+
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "argumentValueProjection", ArgumentValue.class),
+				environment("{}"));
+
+		assertThat(result).isNotNull().isInstanceOf(ArgumentValue.class);
+		ArgumentValue<BookProjection> value = ((ArgumentValue<BookProjection>) result);
+		assertThat(value.isPresent()).isFalse();
+		assertThat(value.isOmitted()).isTrue();
+	}
+
+	@Test // gh-550
 	void nullValue() throws Exception {
 
 		Object result = this.resolver.resolveArgument(
@@ -108,6 +149,11 @@ public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolve
 
 		@QueryMapping
 		public void optionalString(@Argument Optional<String> projection) {
+		}
+
+		@QueryMapping
+		public List<Book> argumentValueProjection(@Argument(name = "where") ArgumentValue<BookProjection> projection) {
+			return null;
 		}
 
 	}

@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 
+import java.util.Map;
 import java.util.Optional;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -25,6 +26,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.web.ProjectedPayload;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.util.Assert;
@@ -90,8 +92,14 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		Class<?> type = parameter.nestedIfOptional().getNestedParameterType();
+		Class<?> type = getTargetType(parameter);
 		return (type.isInterface() && AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null);
+	}
+
+	private static Class<?> getTargetType(MethodParameter parameter) {
+		Class<?> type = parameter.getParameterType();
+		return (type.equals(Optional.class) || type.equals(ArgumentValue.class) ?
+				parameter.nested().getNestedParameterType() : parameter.getParameterType());
 	}
 
 	@Override
@@ -100,10 +108,28 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		String name = (parameter.hasParameterAnnotation(Argument.class) ?
 				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null);
 
-		Class<?> targetType = parameter.nestedIfOptional().getNestedParameterType();
-		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
-		Object value = (!parameter.isOptional() || rawValue != null ? createProjection(targetType, rawValue) : null);
-		return (parameter.isOptional() ? Optional.ofNullable(value) : value);
+		Class<?> targetType = parameter.getParameterType();
+		boolean isOptional = (targetType == Optional.class);
+		boolean isArgumentValue = (targetType == ArgumentValue.class);
+
+		if (isOptional || isArgumentValue) {
+			targetType = parameter.nested().getNestedParameterType();
+		}
+
+		Map<String, Object> arguments = environment.getArguments();
+		Object rawValue = (name != null ? arguments.get(name) : arguments);
+		Object value = (rawValue != null ? createProjection(targetType, rawValue) : null);
+
+		if (isOptional) {
+			return Optional.ofNullable(value);
+		}
+		else if (isArgumentValue) {
+			return (name != null && arguments.containsKey(name) ?
+					ArgumentValue.ofNullable(value) : ArgumentValue.omitted());
+		}
+		else {
+			return value;
+		}
 	}
 
 	/**
