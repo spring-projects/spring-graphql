@@ -59,7 +59,7 @@ class DefaultDataFetcherObservationConventionTests {
 			builder.mergedField(MergedField.newMergedField(Field.newField("project").build()).build());
 		});
 		DataFetcherObservationContext context = new DataFetcherObservationContext(environment);
-		assertThat(this.convention.getContextualName(context)).isEqualTo("graphQL field project");
+		assertThat(this.convention.getContextualName(context)).isEqualTo("graphql field project");
 	}
 
 	@Test
@@ -68,7 +68,7 @@ class DefaultDataFetcherObservationConventionTests {
 			builder.mergedField(MergedField.newMergedField(Field.newField("project").build()).build());
 		});
 		DataFetcherObservationContext context = new DataFetcherObservationContext(environment);
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("field.name", "project"));
+		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.field.name", "project"));
 	}
 
 	@Test
@@ -78,7 +78,7 @@ class DefaultDataFetcherObservationConventionTests {
 		});
 		DataFetcherObservationContext context = new DataFetcherObservationContext(environment);
 		context.setError(new IllegalStateException("custom data fetching failure"));
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("error.type", "IllegalStateException"));
+		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.error.type", "IllegalStateException"));
 	}
 
 	@Test
@@ -90,7 +90,7 @@ class DefaultDataFetcherObservationConventionTests {
 		});
 		DataFetcherObservationContext context = new DataFetcherObservationContext(environment);
 		context.setError(new IllegalStateException("custom data fetching failure"));
-		assertThat(this.convention.getHighCardinalityKeyValues(context)).contains(KeyValue.of("field.path", "/projectBySlug/releases"));
+		assertThat(this.convention.getHighCardinalityKeyValues(context)).contains(KeyValue.of("graphql.field.path", "/projectBySlug/releases"));
 	}
 
 	private DataFetchingEnvironment createDataFetchingEnvironment(Consumer<DataFetchingEnvironmentImpl.Builder> consumer) {

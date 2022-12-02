@@ -61,16 +61,16 @@ class GraphQlObservationInstrumentationTests {
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("outcome", "SUCCESS")
-				.hasHighCardinalityKeyValueWithKey("execution.id");
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasNumberOfObservationsWithNameEqualTo("graphql.datafetcher", 1)
 				.hasObservationWithNameEqualTo("graphql.datafetcher")
 				.that()
-				.hasLowCardinalityKeyValue("outcome", "SUCCESS")
-				.hasLowCardinalityKeyValue("field.name", "bookById")
-				.hasHighCardinalityKeyValue("field.path", "/bookById");
+				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasLowCardinalityKeyValue("graphql.field.name", "bookById")
+				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById");
 	}
 
 	@Test
@@ -82,8 +82,8 @@ class GraphQlObservationInstrumentationTests {
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("outcome", "REQUEST_ERROR")
-				.hasHighCardinalityKeyValueWithKey("execution.id");
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasNumberOfObservationsWithNameEqualTo("graphql.datafetcher", 0);
@@ -108,8 +108,8 @@ class GraphQlObservationInstrumentationTests {
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("outcome", "SUCCESS")
-				.hasHighCardinalityKeyValueWithKey("execution.id");
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasNumberOfObservationsWithNameEqualTo("graphql.datafetcher", 2);
@@ -117,13 +117,13 @@ class GraphQlObservationInstrumentationTests {
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasObservationWithNameEqualTo("graphql.datafetcher")
 				.that()
-				.hasLowCardinalityKeyValue("outcome", "SUCCESS")
-				.hasLowCardinalityKeyValue("field.name", "bookById")
-				.hasHighCardinalityKeyValue("field.path", "/bookById");
+				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasLowCardinalityKeyValue("graphql.field.name", "bookById")
+				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
-				.hasAnObservationWithAKeyValue("field.name", "author")
-				.hasAnObservationWithAKeyValue("field.path", "/bookById/author");
+				.hasAnObservationWithAKeyValue("graphql.field.name", "author")
+				.hasAnObservationWithAKeyValue("graphql.field.path", "/bookById/author");
 	}
 
 	@Test
@@ -148,17 +148,17 @@ class GraphQlObservationInstrumentationTests {
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("outcome", "REQUEST_ERROR")
-				.hasHighCardinalityKeyValueWithKey("execution.id");
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasNumberOfObservationsWithNameEqualTo("graphql.datafetcher", 1)
 				.hasObservationWithNameEqualTo("graphql.datafetcher")
 				.that()
-				.hasLowCardinalityKeyValue("outcome", "ERROR")
-				.hasLowCardinalityKeyValue("error.type", "IllegalStateException")
-				.hasLowCardinalityKeyValue("field.name", "bookById")
-				.hasHighCardinalityKeyValue("field.path", "/bookById");
+				.hasLowCardinalityKeyValue("graphql.outcome", "ERROR")
+				.hasLowCardinalityKeyValue("graphql.error.type", "IllegalStateException")
+				.hasLowCardinalityKeyValue("graphql.field.name", "bookById")
+				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById");
 	}
 
 	@Test
@@ -177,8 +177,8 @@ class GraphQlObservationInstrumentationTests {
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("outcome", "SUCCESS")
-				.hasHighCardinalityKeyValueWithKey("execution.id");
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasObservationWithNameEqualTo("graphql.datafetcher")

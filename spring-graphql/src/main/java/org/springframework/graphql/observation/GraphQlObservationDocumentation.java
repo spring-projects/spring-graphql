@@ -36,6 +36,12 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 	 * Observation created for GraphQL execution requests.
 	 */
 	EXECUTION_REQUEST {
+
+		@Override
+		public String getPrefix() {
+			return "graphql";
+		}
+
 		@Override
 		public Class<? extends ObservationConvention<? extends Observation.Context>> getDefaultConvention() {
 			return DefaultExecutionRequestObservationConvention.class;
@@ -58,6 +64,12 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 	 * data fetching operations.
 	 */
 	DATA_FETCHER {
+
+		@Override
+		public String getPrefix() {
+			return "graphql";
+		}
+
 		@Override
 		public Class<? extends ObservationConvention<? extends Observation.Context>> getDefaultConvention() {
 			return DefaultDataFetcherObservationConvention.class;
@@ -77,7 +89,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		OUTCOME {
 			@Override
 			public String asString() {
-				return "outcome";
+				return "graphql.outcome";
 			}
 		},
 
@@ -87,7 +99,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		OPERATION {
 			@Override
 			public String asString() {
-				return "operation";
+				return "graphql.operation";
 			}
 		}
 	}
@@ -100,7 +112,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		EXECUTION_ID {
 			@Override
 			public String asString() {
-				return "execution.id";
+				return "graphql.execution.id";
 			}
 		}
 	}
@@ -113,7 +125,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		OUTCOME {
 			@Override
 			public String asString() {
-				return "outcome";
+				return "graphql.outcome";
 			}
 		},
 
@@ -123,7 +135,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		FIELD_NAME {
 			@Override
 			public String asString() {
-				return "field.name";
+				return "graphql.field.name";
 			}
 		},
 
@@ -133,7 +145,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		ERROR_TYPE {
 			@Override
 			public String asString() {
-				return "error.type";
+				return "graphql.error.type";
 			}
 		}
 
@@ -147,7 +159,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		FIELD_PATH {
 			@Override
 			public String asString() {
-				return "field.path";
+				return "graphql.field.path";
 			}
 		}
 

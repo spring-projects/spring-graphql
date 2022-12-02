@@ -33,7 +33,7 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 
 	private static final String DEFAULT_NAME = "graphql.request";
 
-	private static final String BASE_CONTEXTUAL_NAME = "graphQL ";
+	private static final String BASE_CONTEXTUAL_NAME = "graphql ";
 
 	private static final KeyValue OUTCOME_SUCCESS = KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OUTCOME, "SUCCESS");
 
@@ -60,7 +60,8 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 
 	@Override
 	public String getContextualName(ExecutionRequestObservationContext context) {
-		return BASE_CONTEXTUAL_NAME + context.getCarrier().getOperationName();
+		String operationName = (context.getCarrier().getOperationName() != null) ? context.getCarrier().getOperationName() : "query";
+		return BASE_CONTEXTUAL_NAME + operationName;
 	}
 
 	@Override

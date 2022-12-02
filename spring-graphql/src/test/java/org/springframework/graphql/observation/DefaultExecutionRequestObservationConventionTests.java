@@ -58,28 +58,28 @@ class DefaultExecutionRequestObservationConventionTests {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
 				.operationName("mutation").build();
 		ExecutionRequestObservationContext context = createObservationContext(input, builder -> {});
-		assertThat(this.convention.getContextualName(context)).isEqualTo("graphQL mutation");
+		assertThat(this.convention.getContextualName(context)).isEqualTo("graphql mutation");
 	}
 
 	@Test
 	void hasOperationKeyValueWhenSuccessfulOutput() {
 		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
 		});
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("operation", "query"));
+		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.operation", "query"));
 	}
 
 	@Test
 	void hasOutcomeKeyValueWhenSuccessfulOutput() {
 		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
 		});
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("outcome", "SUCCESS"));
+		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.outcome", "SUCCESS"));
 	}
 
 	@Test
 	void hasOutcomeKeyValueWhenErrorOutput() {
 		ExecutionRequestObservationContext context = createObservationContext(this.input,
 				builder -> builder.addError(new QueryOperationMissingError()));
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("outcome", "REQUEST_ERROR"));
+		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.outcome", "REQUEST_ERROR"));
 	}
 
 	@Test
@@ -87,14 +87,14 @@ class DefaultExecutionRequestObservationConventionTests {
 		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
 		});
 		context.setError(new IllegalStateException("custom internal error"));
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("outcome", "INTERNAL_ERROR"));
+		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.outcome", "INTERNAL_ERROR"));
 	}
 
 	@Test
 	void hasExecutionIdKeyValue() {
 		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
 		});
-		assertThat(this.convention.getHighCardinalityKeyValues(context)).contains(KeyValue.of("execution.id", "42"));
+		assertThat(this.convention.getHighCardinalityKeyValues(context)).contains(KeyValue.of("graphql.execution.id", "42"));
 	}
 
 

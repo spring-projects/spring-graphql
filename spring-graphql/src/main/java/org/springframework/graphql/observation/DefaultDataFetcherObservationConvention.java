@@ -55,7 +55,7 @@ public class DefaultDataFetcherObservationConvention implements DataFetcherObser
 
 	@Override
 	public String getContextualName(DataFetcherObservationContext context) {
-		return "graphQL field " + context.getEnvironment().getField().getName();
+		return "graphql field " + context.getEnvironment().getField().getName();
 	}
 
 	@Override
