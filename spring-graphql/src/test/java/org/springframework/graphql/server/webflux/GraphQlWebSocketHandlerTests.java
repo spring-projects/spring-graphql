@@ -32,6 +32,10 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.annotation.ReflectiveRuntimeHintsRegistrar;
+import org.springframework.aot.hint.predicate.ReflectionHintsPredicates;
+import org.springframework.aot.hint.predicate.RuntimeHintsPredicates;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
@@ -351,6 +355,23 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				})
 				.expectComplete()
 				.verify(TIMEOUT);
+	}
+
+	@Test
+	void registerBindingReflectionOnWebSocketMessage() {
+		RuntimeHints runtimeHints = new RuntimeHints();
+		new ReflectiveRuntimeHintsRegistrar().registerRuntimeHints(runtimeHints, GraphQlWebSocketHandler.class);
+		ReflectionHintsPredicates reflection = RuntimeHintsPredicates.reflection();
+		assertThat(reflection.onType(GraphQlWebSocketMessage.class)).accepts(runtimeHints);
+		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "id")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getId")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setId")).accepts(runtimeHints);
+		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "type")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getType")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setType")).accepts(runtimeHints);
+		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "payload")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getPayload")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setPayload")).accepts(runtimeHints);
 	}
 
 	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebGraphQlInterceptor... interceptors) {

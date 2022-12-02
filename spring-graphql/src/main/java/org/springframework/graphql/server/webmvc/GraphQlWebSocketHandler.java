@@ -46,6 +46,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
@@ -84,6 +85,7 @@ import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
+@RegisterReflectionForBinding(GraphQlWebSocketMessage.class)
 public class GraphQlWebSocketHandler extends TextWebSocketHandler implements SubProtocolCapable {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);

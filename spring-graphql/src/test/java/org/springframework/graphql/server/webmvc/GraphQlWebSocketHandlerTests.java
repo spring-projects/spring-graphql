@@ -36,6 +36,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.annotation.ReflectiveRuntimeHintsRegistrar;
+import org.springframework.aot.hint.predicate.ReflectionHintsPredicates;
+import org.springframework.aot.hint.predicate.RuntimeHintsPredicates;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestThreadLocalAccessor;
 import org.springframework.graphql.execution.ErrorType;
@@ -404,6 +408,23 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		finally {
 			threadLocal.remove();
 		}
+	}
+
+	@Test
+	void registerBindingReflectionOnWebSocketMessage() {
+		RuntimeHints runtimeHints = new RuntimeHints();
+		new ReflectiveRuntimeHintsRegistrar().registerRuntimeHints(runtimeHints, GraphQlWebSocketHandler.class);
+		ReflectionHintsPredicates reflection = RuntimeHintsPredicates.reflection();
+		assertThat(reflection.onType(GraphQlWebSocketMessage.class)).accepts(runtimeHints);
+		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "id")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getId")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setId")).accepts(runtimeHints);
+		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "type")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getType")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setType")).accepts(runtimeHints);
+		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "payload")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getPayload")).accepts(runtimeHints);
+		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setPayload")).accepts(runtimeHints);
 	}
 
 	private void handle(GraphQlWebSocketHandler handler, TextMessage... textMessages) throws Exception {

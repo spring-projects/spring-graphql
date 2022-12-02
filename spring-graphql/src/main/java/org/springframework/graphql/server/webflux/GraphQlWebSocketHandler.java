@@ -35,6 +35,7 @@ import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.WebSocketGraphQlInterceptor;
@@ -59,6 +60,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
+@RegisterReflectionForBinding(GraphQlWebSocketMessage.class)
 public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);

@@ -1,0 +1,11 @@
+[
+  {
+    "name":"org.springframework.graphql.server.support.GraphQlWebSocketMessage",
+    "allDeclaredFields":true,
+    "allDeclaredMethods":true,
+    "allDeclaredConstructors":true,
+    "condition": {
+      "typeReachable": "org.springframework.graphql.client.WebSocketGraphQlTransport"
+    }
+  }
+]
