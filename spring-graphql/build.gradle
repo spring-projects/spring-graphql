@@ -9,6 +9,7 @@ dependencies {
 	implementation 'io.micrometer:context-propagation'
 
 	compileOnly 'io.micrometer:micrometer-observation'
+	compileOnly 'io.micrometer:micrometer-tracing'
 	compileOnly 'jakarta.annotation:jakarta.annotation-api'
 	compileOnly 'org.springframework:spring-webflux'
 	compileOnly 'org.springframework:spring-webmvc'
@@ -45,6 +46,7 @@ dependencies {
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
 	testImplementation 'org.springframework.data:spring-data-jpa'
 	testImplementation 'io.micrometer:micrometer-observation-test'
+	testImplementation 'io.micrometer:micrometer-tracing-test'
 	testImplementation 'com.h2database:h2'
 	testImplementation 'org.hibernate:hibernate-core'
 	testImplementation 'org.hibernate.validator:hibernate-validator'

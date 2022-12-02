@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.observation;
 
+import java.util.Map;
+
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import io.micrometer.observation.transport.RequestReplyReceiverContext;
@@ -24,7 +26,8 @@ import io.micrometer.observation.transport.RequestReplyReceiverContext;
  * Context that holds information for metadata collection during observations
  * for {@link GraphQlObservationDocumentation#EXECUTION_REQUEST GraphQL requests}.
  * <p>This context also extends {@link RequestReplyReceiverContext} for propagating
- * tracing information with the HTTP server exchange.
+ * tracing information from the {@link graphql.GraphQLContext}
+ * or the {@link ExecutionInput#getExtensions() input extensions}.
  *
  * @author Brian Clozel
  * @since 1.1.0
@@ -32,8 +35,23 @@ import io.micrometer.observation.transport.RequestReplyReceiverContext;
 public class ExecutionRequestObservationContext extends RequestReplyReceiverContext<ExecutionInput, ExecutionResult> {
 
 	public ExecutionRequestObservationContext(ExecutionInput executionInput) {
-		super((input, key) -> executionInput.getExtensions().get(key).toString());
+		super(ExecutionRequestObservationContext::getContextValue);
 		setCarrier(executionInput);
+	}
+
+	/**
+	 * Read propagation field from the {@link graphql.GraphQLContext},
+	 * or the {@link ExecutionInput#getExtensions() input extensions} as a fallback.
+	 */
+	private static String getContextValue(ExecutionInput executionInput, String key) {
+		String value = executionInput.getGraphQLContext().get(key);
+		if (value == null) {
+			Map<String, Object> extensions = executionInput.getExtensions();
+			if (extensions != null) {
+				value = (String) extensions.get(key);
+			}
+		}
+		return value;
 	}
 
 }
