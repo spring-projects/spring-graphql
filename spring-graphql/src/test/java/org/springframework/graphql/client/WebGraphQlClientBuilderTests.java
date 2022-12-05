@@ -189,13 +189,14 @@ public class WebGraphQlClientBuilderTests {
 
 	@Test
 	void contentTypeOverride() {
+		MediaType testMediaType = new MediaType("application", "graphql-request+json");
 
 		HttpBuilderSetup setup = new HttpBuilderSetup();
-		setup.initBuilder().header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_GRAPHQL_VALUE).build()
+		setup.initBuilder().header(HttpHeaders.CONTENT_TYPE, "application/graphql-request+json").build()
 				.document(DOCUMENT).execute().block(TIMEOUT);
 
 		WebGraphQlRequest request = setup.getActualRequest();
-		assertThat(request.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+		assertThat(request.getHeaders().getContentType()).isEqualTo(testMediaType);
 
 	}
 

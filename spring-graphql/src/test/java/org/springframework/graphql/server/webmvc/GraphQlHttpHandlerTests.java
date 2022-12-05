@@ -64,9 +64,9 @@ public class GraphQlHttpHandlerTests {
 
 	@Test
 	void shouldProduceApplicationGraphQl() throws Exception {
-		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_VALUE);
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, this.greetingHandler);
-		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_VALUE);
+		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
 	}
 
 	@Test
@@ -81,7 +81,7 @@ public class GraphQlHttpHandlerTests {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
 				.toHttpHandler();
-		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_VALUE);
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
 		LocaleContextHolder.setLocale(Locale.FRENCH);
 
 		try {
@@ -101,7 +101,7 @@ public class GraphQlHttpHandlerTests {
 				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
 				.toHttpHandler();
 
-		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ showId }\"}", MediaType.APPLICATION_GRAPHQL_VALUE);
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ showId }\"}", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
 
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
 		DocumentContext document = JsonPath.parse(servletResponse.getContentAsString());

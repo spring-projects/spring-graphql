@@ -43,11 +43,16 @@ public class GraphQlHttpHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
+	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
+	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
+			new MediaType("application", "graphql-response+json");
+
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
+	@SuppressWarnings("removal")
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
-			Arrays.asList(MediaType.APPLICATION_GRAPHQL, MediaType.APPLICATION_JSON);
+			Arrays.asList(APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL);
 
 	private final WebGraphQlHandler graphQlHandler;
 

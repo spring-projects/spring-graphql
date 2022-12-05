@@ -64,12 +64,12 @@ public class GraphQlHttpHandlerTests {
 	@Test
 	void shouldProduceApplicationGraphQl() {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_GRAPHQL).build();
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
 
-		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL);
+		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_RESPONSE);
 	}
 
 	@Test
@@ -90,7 +90,8 @@ public class GraphQlHttpHandlerTests {
 				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_GRAPHQL).acceptLanguageAsLocales(Locale.FRENCH).build();
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.acceptLanguageAsLocales(Locale.FRENCH).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, handler, Collections.singletonMap("query", "{greeting}"));
@@ -106,7 +107,7 @@ public class GraphQlHttpHandlerTests {
 				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_GRAPHQL).accept(MediaType.APPLICATION_GRAPHQL).build();
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
 				httpRequest, handler, Collections.singletonMap("query", "{showId}"));

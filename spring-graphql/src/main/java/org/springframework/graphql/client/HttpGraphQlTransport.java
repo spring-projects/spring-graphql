@@ -44,6 +44,10 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
 
+	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
+	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
+			new MediaType("application", "graphql-response+json");
+
 
 	private final WebClient webClient;
 
@@ -65,10 +69,11 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 
 
 	@Override
+	@SuppressWarnings("removal")
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
 		return this.webClient.post()
 				.contentType(this.contentType)
-				.accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL)
+				.accept(MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_GRAPHQL)
 				.bodyValue(request.toMap())
 				.retrieve()
 				.bodyToMono(MAP_TYPE)
