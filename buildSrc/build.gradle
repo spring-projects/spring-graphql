@@ -30,6 +30,10 @@ gradlePlugin {
 			id = "org.springframework.graphql.compiler"
 			implementationClass = "org.springframework.graphql.build.compile.CompilerConventionsPlugin"
 		}
+		deploymentConventionsPlugin {
+			id = "org.springframework.graphql.deployment"
+			implementationClass = "org.springframework.graphql.build.deployment.DeploymentConventionsPlugin"
+		}
 	}
 }
 

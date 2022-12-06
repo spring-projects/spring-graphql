@@ -12,6 +12,9 @@ ext {
 description = "Spring for GraphQL"
 
 subprojects {
+	apply plugin: 'org.springframework.graphql.compiler'
+	apply plugin: 'org.springframework.graphql.deployment'
+
 	group = 'org.springframework.graphql'
 
 	repositories {
@@ -28,7 +31,6 @@ subprojects {
 configure(moduleProjects) {
 	apply plugin: 'java-library'
 	apply plugin: 'java-test-fixtures'
-	apply plugin: 'org.springframework.graphql.compiler'
 
 	java {
 		toolchain {

@@ -9,6 +9,10 @@ configurations {
 	asciidoctorExtensions
 }
 
+dependencies {
+	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
+}
+
 jar {
 	enabled = false
 }
@@ -17,9 +21,6 @@ javadoc {
 	enabled = false
 }
 
-dependencies {
-	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
-}
 
 repositories {
 	maven {
@@ -91,6 +92,8 @@ asciidoctor {
 			'spring-boot-version': bootVersion
 }
 
+asciidoctor.mustRunAfter "check"
+
 /**
  * Zip all docs into a single archive
  */
@@ -105,8 +108,6 @@ task docsZip(type: Zip, dependsOn: ['api', 'asciidoctor']) {
 		into "reference/html"
 	}
 }
-
-apply from: "${rootDir}/gradle/publishing.gradle"
 
 publishing {
 	publications {
