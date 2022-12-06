@@ -117,29 +117,7 @@ handled as `request-stream`.
 `GraphQlRSocketHandler` can be used a delegate from an `@Controller` that is mapped to
 the route for GraphQL requests. For example:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@Controller
-public class GraphQlRSocketController {
-
-	 private final GraphQlRSocketHandler handler;
-
-	 GraphQlRSocketController(GraphQlRSocketHandler handler) {
-			this.handler = handler;
-	 }
-
-	 @MessageMapping("graphql")
-	 public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
-			return this.handler.handle(payload);
-	 }
-
-	 @MessageMapping("graphql")
-	 public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
-			return this.handler.handleSubscription(payload);
-	 }
-}
-----
-
+include::code:GraphQlRSocketController[]
 
 
 
@@ -166,58 +144,13 @@ incoming requests and do one of the following:
 
 For example, an interceptor can pass an HTTP request header to a `DataFetcher`:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-class HeaderInterceptor implements WebGraphQlInterceptor { <1>
-
-	@Override
-	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		String value = request.getHeaders().getFirst("myHeader");
-		request.configureExecutionInput((executionInput, builder) ->
-				builder.graphQLContext(Collections.singletonMap("myHeader", value)).build());
-		return chain.next(request);
-	}
-}
-
-@Controller
-class MyController { <2>
-
-	@QueryMapping
-	Person person(@ContextValue String myHeader) {
-		// ...
-	}
-}
-----
+include::code:RequestHeaderInterceptor[]
 <1> Interceptor adds HTTP request header value into GraphQLContext
 <2> Data controller method accesses the value
 
 Reversely, an interceptor can access values added to the `GraphQLContext` by a controller:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@Controller
-class MyController {
-
-	@QueryMapping
-	Person person(GraphQLContext context) { <1>
-		context.put("cookieName", "123");
-	}
-}
-
-// Subsequent access from a WebGraphQlInterceptor
-
-class HeaderInterceptor implements WebGraphQlInterceptor {
-
-	@Override
-	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) { <2>
-		return chain.next(request).doOnNext(response -> {
-			String value = response.getExecutionInput().getGraphQLContext().get("cookieName");
-			ResponseCookie cookie = ResponseCookie.from("cookieName", value).build();
-			response.getResponseHeaders().add(HttpHeaders.SET_COOKIE, cookie.toString());
-		});
-	}
-}
-----
+include::code:ResponseHeaderInterceptor[]
 <1> Controller adds value to the `GraphQLContext`
 <2> Interceptor uses the value to add an HTTP response header
 
@@ -225,30 +158,7 @@ class HeaderInterceptor implements WebGraphQlInterceptor {
 request validation errors that are raised before execution begins and which cannot be
 handled with a `DataFetcherExceptionResolver`:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-static class RequestErrorInterceptor implements WebGraphQlInterceptor {
-
-	@Override
-	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		return chain.next(request).map(response -> {
-			if (response.isValid()) {
-				return response; <1>
-			}
-
-			List<GraphQLError> errors = response.getErrors().stream() <2>
-					.map(error -> {
-						GraphqlErrorBuilder<?> builder = GraphqlErrorBuilder.newError();
-						// ...
-						return builder.build();
-					})
-					.collect(Collectors.toList());
-
-			return response.transform(builder -> builder.errors(errors).build()); <3>
-		});
-	}
-}
-----
+include::code:RequestErrorInterceptor[]
 <1> Return the same if `ExecutionResult` has a "data" key with non-null value
 <2> Check and transform the GraphQL errors
 <3> Update the `ExecutionResult` with the modified errors
