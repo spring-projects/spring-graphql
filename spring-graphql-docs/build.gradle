@@ -1,16 +1,29 @@
 plugins {
-	id 'java'
+	id 'java-library'
 	id 'org.asciidoctor.jvm.convert' version '3.3.2'
 }
 
 description = "Spring for GraphQL reference documentation"
 
 configurations {
+	dependencyManagement {
+		canBeConsumed = false
+		canBeResolved = false
+		visible = false
+	}
+	matching { it.name.endsWith("Classpath") }.all { it.extendsFrom(dependencyManagement) }
 	asciidoctorExtensions
 }
 
 dependencies {
-	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
+	dependencyManagement(enforcedPlatform(dependencies.project(path: ":platform")))
+	api project(':spring-graphql')
+	api project(':spring-graphql-test')
+	api 'org.springframework:spring-webflux'
+	api 'org.springframework:spring-webmvc'
+	api 'org.springframework:spring-websocket'
+	api 'org.springframework:spring-messaging'
+	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.3'
 }
 
 jar {
