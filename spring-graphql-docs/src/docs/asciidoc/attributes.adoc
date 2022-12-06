@@ -1,22 +1,26 @@
+:chomp:                         default headers packages
+:docs-site:                     https://docs.spring.io
 :idprefix:
-:idseparator: -
-:toc: left
-:toclevels: 4
-:tabsize: 4
+:idseparator: 					-
+:toc:							left
+:toclevels:						4
+:tabsize:						4
 :numbered:
 :sectanchors:
 :sectnums:
 :hide-uri-scheme:
-:github-tag: main
-:github-repo: spring-projects/spring-graphql
-:github-raw: https://raw.githubusercontent.com/{github-repo}/{github-tag}
-:github-issues: https://github.com/{github-repo}/issues/
-:github-main-branch: https://github.com/{github-repo}/tree/main
-:github-10x-branch: https://github.com/{github-repo}/tree/1.0.x
-:github-wiki: https://github.com/{github-repo}/wiki
-:graphql-java-docs: https://www.graphql-java.com/documentation
-:javadoc: https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api
-:spring-framework-ref-docs: https://docs.spring.io/spring-framework/docs/current/reference/html
-
+:docs-java:                     {docdir}/../../main/java/org/springframework/graphql/docs
+:docs-kotlin:                   {docdir}/../../main/kotlin/org/springframework/graphql/docs
+:docs-resources:                {docdir}/../../main/resources
+:github-tag:					main
+:github-repo:					spring-projects/spring-graphql
+:github-raw: 					https://raw.githubusercontent.com/{github-repo}/{github-tag}
+:github-issues: 				https://github.com/{github-repo}/issues/
+:github-main-branch: 			https://github.com/{github-repo}/tree/main
+:github-10x-branch: 			https://github.com/{github-repo}/tree/1.0.x
+:github-wiki: 					https://github.com/{github-repo}/wiki
+:graphql-java-docs: 			https://www.graphql-java.com/documentation
+:javadoc: 						https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api
+:spring-framework-ref-docs: 	https://docs.spring.io/spring-framework/docs/current/reference/html
 // {spring-boot-version} attribute from build.gradle
-:spring-boot-ref-docs: https://docs.spring.io/spring-boot/docs/{spring-boot-version}/reference/html
+:spring-boot-ref-docs: 			https://docs.spring.io/spring-boot/docs/{spring-boot-version}/reference/html

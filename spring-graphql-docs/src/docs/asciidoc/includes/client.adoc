@@ -1,8 +1,3 @@
-include::attributes.adoc[]
-
-
-
-
 [[client]]
 = Client
 
@@ -11,7 +6,7 @@ WebSocket, and RSocket.
 
 
 
-[[client-graphqlclient]]
+[[client.graphqlclient]]
 == `GraphQlClient`
 
 `GraphQlClient` is a contract that declares a common workflow for GraphQL requests that is
@@ -21,18 +16,18 @@ build time.
 
 To create a `GraphQlClient` you need one of the following extensions:
 
-- <<client-httpgraphqlclient, HttpGraphQlClient>>
-- <<client-websocketgraphqlclient, WebSocketGraphQlClient>>
-- <<client-rsocketgraphqlclient, RSocketGraphQlClient>>
+- <<client.httpgraphqlclient, HttpGraphQlClient>>
+- <<client.websocketgraphqlclient, WebSocketGraphQlClient>>
+- <<client.rsocketgraphqlclient, RSocketGraphQlClient>>
 
 Each defines a `Builder` with options relevant to the transport. All builders extend
-from a common, base GraphQlClient <<client-graphqlclient-builder, `Builder`>> with options
+from a common, base GraphQlClient <<client.graphqlclient.builder, `Builder`>> with options
 relevant to all extensions.
 
-Once you have a `GraphQlClient` you can begin to make <<client-requests, requests>>.
+Once you have a `GraphQlClient` you can begin to make <<client.requests, requests>>.
 
 
-[[client-httpgraphqlclient]]
+[[client.httpgraphqlclient]]
 === HTTP
 
 `HttpGraphQlClient` uses
@@ -46,7 +41,7 @@ HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
 ----
 
 Once `HttpGraphQlClient` is created, you can begin to
-<<client-requests, execute requests>> using the same API, independent of the underlying
+<<client.requests, execute requests>> using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpGraphQlClient` to create a new instance with customized settings:
 
@@ -70,7 +65,7 @@ existing `HttpGraphQlClient` to create a new instance with customized settings:
 
 
 
-[[client-websocketgraphqlclient]]
+[[client.websocketgraphqlclient]]
 === WebSocket
 
 `WebSocketGraphQlClient` executes GraphQL requests over a shared WebSocket connection.
@@ -102,7 +97,7 @@ single, shared connection for all requests to that server. Each client instance
 establishes its own connection and that is typically not the intent for a single server.
 
 Once `WebSocketGraphQlClient` is created, you can begin to
-<<client-requests, execute requests>> using the same API, independent of the underlying
+<<client.requests, execute requests>> using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `WebSocketGraphQlClient` to create a new instance with customized settings:
 
@@ -126,7 +121,7 @@ existing `WebSocketGraphQlClient` to create a new instance with customized setti
 ----
 
 
-[[client-websocketgraphqlclient-interceptor]]
+[[client.websocketgraphqlclient.interceptor]]
 ==== Interceptor
 
 The https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[GraphQL over WebSocket]
@@ -154,13 +149,13 @@ For WebSocket transport specific interception, you can create a
 	}
 ----
 
-<<client-interception,Register>> the above interceptor as any other
+<<client.interception,Register>> the above interceptor as any other
 `GraphQlClientInterceptor` and use it also to intercept GraphQL requests, but note there
 can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
 
 
 
-[[client-rsocketgraphqlclient]]
+[[client.rsocketgraphqlclient]]
 === RSocket
 
 `RSocketGraphQlClient` uses
@@ -192,33 +187,33 @@ single, shared session for all requests to that server. Each client instance
 establishes its own connection and that is typically not the intent for a single server.
 
 Once `RSocketGraphQlClient` is created, you can begin to
-<<client-requests, execute requests>> using the same API, independent of the underlying
+<<client.requests, execute requests>> using the same API, independent of the underlying
 transport.
 
 
 
-[[client-graphqlclient-builder]]
+[[client.graphqlclient.builder]]
 === Builder
 
 `GraphQlClient` defines a parent `Builder` with common configuration options for the
 builders of all extensions. Currently, it has lets you configure:
 
 - `DocumentSource` strategy to load the document for a request from a file
-- <<client-interception>> of executed requests
+- <<client.interception>> of executed requests
 
 
 
 
-[[client-requests]]
+[[client.requests]]
 == Requests
 
-Once you have a <<client-graphqlclient>>, you can begin to perform requests via
-<<client-requests-retrieve, retrieve()>> or <<client-requests-execute, execute()>>
+Once you have a <<client.graphqlclient>>, you can begin to perform requests via
+<<client.requests.retrieve, retrieve()>> or <<client.requests.execute, execute()>>
 where the former is only a shortcut for the latter.
 
 
 
-[[client-requests-retrieve]]
+[[client.requests.retrieve]]
 === Retrieve
 
 The below retrieves and decodes the data for a query:
@@ -244,7 +239,7 @@ The below retrieves and decodes the data for a query:
 
 The input document is a `String` that could be a literal or produced through a code
 generated request object. You can also define documents in files and use a
-<<client-requests-document-source>> to resole them by file name.
+<<client.requests.document-source>> to resole them by file name.
 
 The path is relative to the "data" key and uses a simple dot (".") separated notation
 for nested fields with optional array indices for list elements, e.g. `"project.name"`
@@ -269,10 +264,10 @@ response and the field:
 
 
 
-[[client-requests-execute]]
+[[client.requests.execute]]
 === Execute
 
-<<client-requests-retrieve>> is only a shortcut to decode from a single path in the
+<<client.requests.retrieve>> is only a shortcut to decode from a single path in the
 response map. For more control, use the `execute` method and handle the response:
 
 For example:
@@ -307,7 +302,7 @@ For example:
 
 
 
-[[client-requests-document-source]]
+[[client.requests.document-source]]
 === Document Source
 
 The document for a request is a `String` that may be defined in a local variable or
@@ -346,26 +341,26 @@ You can then:
 
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
 
-You can use the `GraphQlClient` <<client-graphqlclient-builder>> to customize the
+You can use the `GraphQlClient` <<client.graphqlclient.builder>> to customize the
 `DocumentSource` for loading documents by names.
 
 
 
 
-[[client-subscriptions]]
+[[client.subscriptions]]
 == Subscription Requests
 
 `GraphQlClient` can execute subscriptions over transports that support it. Currently, only
 the WebSocket transport supports GraphQL streams, so you'll need to create a
-<<client-websocketgraphqlclient,WebSocketGraphQlClient>>.
+<<client.websocketgraphqlclient,WebSocketGraphQlClient>>.
 
 
 
-[[client-subscriptions-retrieve]]
+[[client.subscriptions.retrieve]]
 === Retrieve
 
 To start a subscription stream, use `retrieveSubscription` which is similar to
-<<client-requests-retrieve,retrieve>> for a single response but returning a stream of
+<<client.requests.retrieve,retrieve>> for a single response but returning a stream of
 responses, each decoded to some data:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -389,10 +384,10 @@ the connection and start the subscription again.
 
 
 
-[[client-subscriptions-execute]]
+[[client.subscriptions.execute]]
 === Execute
 
-<<client-subscriptions-retrieve>> is only a shortcut to decode from a single path in each
+<<client.subscriptions.retrieve>> is only a shortcut to decode from a single path in each
 response map. For more control, use the `executeSubscription` method and handle each
 response directly:
 
@@ -422,7 +417,7 @@ response directly:
 
 
 
-[[client-interception]]
+[[client.interception]]
 == Interception
 
 You create a `GraphQlClientInterceptor` to intercept all requests through a client:

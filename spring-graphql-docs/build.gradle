@@ -81,7 +81,7 @@ asciidoctor {
 	configurations 'asciidoctorExtensions'
 	baseDirFollowsSourceDir()
 	sources {
-		include '*.adoc'
+		include 'index.adoc'
 	}
 	logDocuments = true
 	outputOptions {

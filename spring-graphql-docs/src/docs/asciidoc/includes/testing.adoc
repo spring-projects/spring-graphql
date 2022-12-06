@@ -1,8 +1,3 @@
-include::attributes.adoc[]
-
-
-
-
 [[testing]]
 = Testing
 
@@ -36,7 +31,7 @@ dependencies {
 
 
 
-[[testing-graphqltester]]
+[[testing.graphqltester]]
 == `GraphQlTester`
 
 `GraphQlTester` is a contract that declares a common workflow for testing GraphQL
@@ -47,22 +42,22 @@ specific is configured at build time.
 To create a `GraphQlTester` that performs requests through a client, you need one of the
 following extensions:
 
-- <<testing-httpgraphqltester, HttpGraphQlTester>>
-- <<testing-websocketgraphqltester, WebSocketGraphQlTester>>
-- <<testing-rsocketgraphqltester, RSocketGraphQlTester>>
+- <<testing.httpgraphqltester, HttpGraphQlTester>>
+- <<testing.websocketgraphqltester, WebSocketGraphQlTester>>
+- <<testing.rsocketgraphqltester, RSocketGraphQlTester>>
 
 To create a `GraphQlTester` that performs tests on the server side, without a client:
 
-- <<testing-graphqlservicetester, ExecutionGraphQlServiceTester>>
-- <<testing-webgraphqltester, WebGraphQlServiceTester>>
+- <<testing.graphqlservicetester, ExecutionGraphQlServiceTester>>
+- <<testing.webgraphqltester, WebGraphQlServiceTester>>
 
 Each defines a `Builder` with options relevant to the transport. All builders extend
-from a common, base GraphQlTester <<testing-graphqltester-builder, `Builder`>> with
+from a common, base GraphQlTester <<testing.graphqltester.builder, `Builder`>> with
 options relevant to all extensions.
 
 
 
-[[testing-httpgraphqltester]]
+[[testing.httpgraphqltester]]
 === HTTP
 
 `HttpGraphQlTester` uses
@@ -114,7 +109,7 @@ Or to test against a live server running on a port:
 ----
 
 Once `HttpGraphQlTester` is created, you can begin to
-<<testing-requests, execute requests>> using the same API, independent of the underlying
+<<testing.requests, execute requests>> using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpSocketGraphQlTester` to create a new instance with customized settings:
 
@@ -136,7 +131,7 @@ existing `HttpSocketGraphQlTester` to create a new instance with customized sett
 
 
 
-[[testing-websocketgraphqltester]]
+[[testing.websocketgraphqltester]]
 === WebSocket
 
 `WebSocketGraphQlTester` executes GraphQL requests over a shared WebSocket connection.
@@ -157,7 +152,7 @@ its own single, shared connection for all requests. Typically, you'll want to us
 instance only per server.
 
 Once `WebSocketGraphQlTester` is created, you can begin to
-<<testing-requests, execute requests>> using the same API, independent of the underlying
+<<testing.requests, execute requests>> using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `WebSocketGraphQlTester` to create a new instance with customized settings:
 
@@ -185,7 +180,7 @@ connection closed, e.g. after a test runs.
 
 
 
-[[testing-rsocketgraphqltester]]
+[[testing.rsocketgraphqltester]]
 === RSocket
 
 `RSocketGraphQlTester` uses `RSocketRequester` from spring-messaging to execute GraphQL
@@ -207,11 +202,11 @@ instance only per server. You can use the `stop()` method on the tester to close
 session explicitly.
 
 Once `RSocketGraphQlTester` is created, you can begin to
-<<testing-requests, execute requests>> using the same API, independent of the underlying
+<<testing.requests, execute requests>> using the same API, independent of the underlying
 transport.
 
 
-[[testing-graphqlservicetester]]
+[[testing.graphqlservicetester]]
 === `GraphQlService`
 
 Many times it's enough to test GraphQL requests on the server side, without the use of a
@@ -225,14 +220,14 @@ client to send requests over a transport protocol. To test directly against a
 ----
 
 Once `ExecutionGraphQlServiceTester` is created, you can begin to
-<<testing-requests, execute requests>> using the same API, independent of the underlying
+<<testing.requests, execute requests>> using the same API, independent of the underlying
 transport.
 
 
-[[testing-webgraphqltester]]
+[[testing.webgraphqltester]]
 === `WebGraphQlHandler`
 
-The <<testing-graphqlservicetester>> extension lets you test on the server side, without
+The <<testing.graphqlservicetester>> extension lets you test on the server side, without
 a client. However, in some cases it's useful to involve server side transport
 handling with given mock transport input.
 
@@ -258,12 +253,12 @@ The builder for this extension allows you to define HTTP request details:
 ----
 
 Once `WebGraphQlServiceTester` is created, you can begin to
-<<testing-requests, execute requests>> using the same API, independent of the underlying
+<<testing.requests, execute requests>> using the same API, independent of the underlying
 transport.
 
 
 
-[[testing-graphqltester-builder]]
+[[testing.graphqltester.builder]]
 === Builder
 
 `GraphQlTester` defines a parent `Builder` with common configuration options for the
@@ -279,7 +274,7 @@ out.
 
 
 
-[[testing-requests]]
+[[testing.requests]]
 == Requests
 
 Once you have a `GraphQlTester`, you can begin to test requests. The below executes a
@@ -349,12 +344,12 @@ instead of `execute` to verify there are no errors in the response:
 	graphQlTester.query(query).executeAndVerify();
 ----
 
-See <<testing-errors>> for more details on error handling.
+See <<testing.errors>> for more details on error handling.
 
 
 
 
-[[testing-subscriptions]]
+[[testing.subscriptions]]
 == Subscriptions
 
 To test subscriptions, call `executeSubscription` instead of `execute` to obtain a stream
@@ -373,13 +368,13 @@ of responses and then use `StepVerifier` from Project Reactor to inspect the str
 			.verifyComplete();
 ----
 
-Subscriptions are supported only with <<testing-websocketgraphqltester,
+Subscriptions are supported only with <<testing.websocketgraphqltester,
 WebSocketGraphQlTester>>, or with the server side
-<<testing-graphqlservicetester>> and <<testing-webgraphqltester>> extensions.
+<<testing.graphqlservicetester>> and <<testing.webgraphqltester>> extensions.
 
 
 
-[[testing-errors]]
+[[testing.errors]]
 == Errors
 
 When you use `verify()`, any errors under the "errors" key in the response will cause
