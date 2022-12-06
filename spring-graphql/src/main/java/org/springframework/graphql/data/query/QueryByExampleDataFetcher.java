@@ -326,9 +326,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 	}
 
 	/**
-	 * Callback interface that can be used to customize QueryByExampleDataFetcher {@link Builder}
-	 * to change its configuration. {@link #autoRegistrationConfigurer(List, List) Auto-registration}
-	 * applies the customizer for DataFetchers based on repositories implementing this interface.
+	 * Callback interface that can be used to customize QueryByExampleDataFetcher
+	 * {@link Builder} to change its configuration.
+	 * <p>This is supported by {@link #autoRegistrationConfigurer(List, List)
+	 * Auto-registration}, which detects if a repository implements this
+	 * interface and applies it accordingly.
 	 *
 	 * @param <T>
 	 * @since 1.1.1
@@ -419,9 +421,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 	}
 
 	/**
-	 * Callback interface that can be used to customize QueryByExampleDataFetcher {@link ReactiveBuilder}
-	 * to change its configuration. {@link #autoRegistrationConfigurer(List, List) Auto-registration}
-	 * applies the customizer for DataFetchers based on repositories implementing this interface.
+	 * Callback interface that can be used to customize QueryByExampleDataFetcher
+	 * {@link ReactiveBuilder} to change its configuration.
+	 * <p>This is supported by {@link #autoRegistrationConfigurer(List, List)
+	 * Auto-registration}, which detects if a repository implements this
+	 * interface and applies it accordingly.
 	 *
 	 * @param <T>
 	 * @since 1.1.1

@@ -282,11 +282,11 @@ class QuerydslDataFetcherTests {
 	}
 
 	static GraphQlSetup graphQlSetup(@Nullable QuerydslPredicateExecutor<?> executor) {
-		return initGraphQlSetup(executor,  null);
+		return initGraphQlSetup(executor, null);
 	}
 
 	static GraphQlSetup graphQlSetup(@Nullable ReactiveQuerydslPredicateExecutor<?> executor) {
-		return initGraphQlSetup(null,  executor);
+		return initGraphQlSetup(null, executor);
 	}
 
 	private static GraphQlSetup initGraphQlSetup(
