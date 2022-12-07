@@ -318,7 +318,7 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test
-	void primaryConstructorWithMapArgument() throws Exception {
+	void primaryConstructorWithItemMapArgument() throws Exception {
 
 		Object result = bind(
 				"{\"map\":{\"item1\":{\"name\":\"Jason\",\"age\":\"21\"},\"item2\":{\"name\":\"James\",\"age\":\"22\"}}}",
@@ -334,6 +334,25 @@ class GraphQlArgumentBinderTests {
 		Item item2 = map.get("item2");
 		assertThat(item2.getName()).isEqualTo("James");
 		assertThat(item2.getAge()).isEqualTo(22);
+	}
+
+	@Test // gh-554
+	void primaryConstructorWithRawMapArgument() throws Exception {
+
+		Object result = bind(
+				"{\"map\":{\"item1\":{\"name\":\"Jason\",\"age\":\"21\"},\"item2\":{\"name\":\"James\",\"age\":\"22\"}}}",
+				ResolvableType.forClass(PrimaryConstructorRawMapBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorRawMapBean.class);
+		Map<String, ?> map = ((PrimaryConstructorRawMapBean) result).getMap();
+
+		Map<String, Object> item1 = (Map<String, Object>) map.get("item1");
+		assertThat(item1).containsEntry("name", "Jason");
+		assertThat(item1).containsEntry("age", "21");
+
+		Map<String, Object> item2 = (Map<String, Object>) map.get("item2");
+		assertThat(item2).containsEntry("name", "James");
+		assertThat(item2).containsEntry("age", "22");
 	}
 
 	@Test // gh-447
@@ -471,6 +490,20 @@ class GraphQlArgumentBinderTests {
 		}
 
 		public Map<String, Item> getMap() {
+			return this.map;
+		}
+	}
+
+
+	static class PrimaryConstructorRawMapBean {
+
+		private final Map<String, ?> map;
+
+		public PrimaryConstructorRawMapBean(Map<String, ?> map) {
+			this.map = map;
+		}
+
+		public Map<String, ?> getMap() {
 			return this.map;
 		}
 	}

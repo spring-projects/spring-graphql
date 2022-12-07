@@ -245,10 +245,9 @@ public class GraphQlArgumentBinder {
 			ArgumentsBindingResult bindingResult) {
 
 		ResolvableType valueType = targetType.asMap().getGeneric(1);
-		Class<?> valueClass = valueType.resolve();
-		if (valueClass == null) {
-			bindingResult.rejectArgumentValue(name, null, "unknownType", "Unknown Map value type");
-			return Collections.emptyMap(); // Keep going, to record more errors
+		Class<?> valueClass = valueType.resolve(Object.class);
+		if (valueClass == Object.class) {
+			return rawMap;
 		}
 
 		Map<String, Object> map = CollectionFactory.createMap(targetClass, rawMap.size());
