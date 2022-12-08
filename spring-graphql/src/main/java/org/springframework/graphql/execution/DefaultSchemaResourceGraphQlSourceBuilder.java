@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.UnionTypeDefinition;
@@ -36,6 +37,8 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.WiringFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
@@ -52,6 +55,8 @@ import org.springframework.util.Assert;
 final class DefaultSchemaResourceGraphQlSourceBuilder
 		extends AbstractGraphQlSourceBuilder<GraphQlSource.SchemaResourceBuilder>
 		implements GraphQlSource.SchemaResourceBuilder {
+
+	private static final Log logger = LogFactory.getLog(DefaultSchemaResourceGraphQlSourceBuilder.class);
 
 	private final Set<Resource> schemaResources = new LinkedHashSet<>();
 
@@ -97,6 +102,14 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 				.map(this::parse)
 				.reduce(TypeDefinitionRegistry::merge)
 				.orElseThrow(MissingSchemaException::new);
+
+		logger.info("Loaded " + this.schemaResources.size() + " resource(s) in the GraphQL schema.");
+		if (logger.isDebugEnabled()) {
+			String resources = this.schemaResources.stream()
+					.map(Resource::getDescription)
+					.collect(Collectors.joining(","));
+			logger.debug("Loaded GraphQL schema resources: (" + resources + ")");
+		}
 
 		RuntimeWiring runtimeWiring = initRuntimeWiring();
 
