@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
+import graphql.execution.DataFetcherExceptionHandler;
 import graphql.schema.DataFetchingEnvironment;
 import reactor.core.publisher.Mono;
 
@@ -81,6 +82,26 @@ public interface DataFetcherExceptionResolver {
 				return resolver.apply(ex, env);
 			}
 		};
+	}
+
+	/**
+	 * Factory method to create a {@link DataFetcherExceptionResolver} from a
+	 * list of resolvers. Spring for GraphQL uses this method to set
+	 * {@link graphql.GraphQL.Builder#defaultDataFetcherExceptionHandler(DataFetcherExceptionHandler)}
+	 * from resolvers found in Spring configuration, and that default handler
+	 * is used in turn to create each {@code ExecutionStrategy}. Applications
+	 * may also find this factory method useful when creating a custom
+	 * {@code ExecutionStrategy}.
+	 * <p>Resolvers are invoked in turn until one resolves the exception by
+	 * emitting a (possibly empty) {@code GraphQLError} list. If the exception
+	 * remains unresolved, the handler creates a {@code GraphQLError} with
+	 * {@link ErrorType#INTERNAL_ERROR} and a short message with the execution id.
+	 * @param resolvers the list of resolvers to use
+	 * @return the created {@link DataFetcherExceptionHandler} instance
+	 * @since 1.1.1
+	 */
+	static DataFetcherExceptionHandler createExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
+		return new ExceptionResolversExceptionHandler(resolvers);
 	}
 
 }
