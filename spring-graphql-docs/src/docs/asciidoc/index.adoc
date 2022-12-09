@@ -299,8 +299,10 @@ You can use `RuntimeWiringConfigurer` to register:
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
    The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
 
-NOTE: Unlike web frameworks, GraphQL does not use Jackson annotations to drive JSON serialization/deserialization.
-Custom data types and their serialization https://www.graphql-java.com/documentation/scalars/[must be described as Scalars].
+NOTE: GraphQL Java, server applications use Jackson only for serialization to and from maps of data.
+Client input is parsed into a map. Server output is assembled into a map based on the field selection set.
+This means you can't rely on Jackson serialization/deserialization annotations.
+Instead, you can use https://www.graphql-java.com/documentation/scalars/[custom scalar types].
 
 The Spring Boot starter detects beans of type `RuntimeWiringConfigurer` and
 registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
