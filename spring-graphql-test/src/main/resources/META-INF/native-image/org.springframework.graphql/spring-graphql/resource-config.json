@@ -1,0 +1,19 @@
+{
+  "bundles": [],
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\Qgraphql-test\/\\E.*\\Q.graphql\\E",
+        "condition": {
+          "typeReachable": "org.springframework.graphql.test.tester.GraphQlTester"
+        }
+      },
+      {
+        "pattern": "\\Qgraphql-test\/\\E.*\\Q.gql\\E",
+        "condition": {
+          "typeReachable": "org.springframework.graphql.test.tester.GraphQlTester"
+        }
+      }
+    ]
+  }
+}

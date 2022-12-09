@@ -1,0 +1,19 @@
+{
+  "bundles": [],
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\Qgraphql-documents\/\\E.*\\Q.graphql\\E",
+        "condition": {
+          "typeReachable": "org.springframework.graphql.client.GraphQlClient"
+        }
+      },
+      {
+        "pattern": "\\Qgraphql-documents\/\\E.*\\Q.gql\\E",
+        "condition": {
+          "typeReachable": "org.springframework.graphql.client.GraphQlClient"
+        }
+      }
+    ]
+  }
+}
