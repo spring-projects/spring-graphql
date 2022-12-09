@@ -282,7 +282,7 @@ For example:
 					// Request failure... <1>
 				}
 
-				ResponseField field = response.field("project");
+				ClientResponseField field = response.field("project");
 				if (!field.hasValue()) {
 					if (field.getError() != null) {
 						// Field failure... <2>
@@ -400,7 +400,7 @@ response directly:
 					// Request failure...
 				}
 
-				ResponseField field = response.field("project");
+				ClientResponseField field = response.field("project");
 				if (!field.hasValue()) {
 					if (field.getError() != null) {
 						// Field failure...
