@@ -1,0 +1,56 @@
+[[graalvm]]
+= GraalVM Native support
+
+Spring Framework 6.0 introduced the support infrastructure for compiling Spring applications to https://www.graalvm.org/22.3/reference-manual/native-image/[GraalVM Native images].
+If you are not familiar with GraalVM in general, how this differs from applications deployed on the JVM and what it means for Spring application,
+please refer to the dedicated {spring-boot-ref-docs}/native-image.html#native-image[Spring Boot 3.0 GraalVM Native Image support documentation].
+Spring Boot also documents the https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-with-GraalVM[know limitations with the GraalVM support in Spring].
+
+
+[[graalvm.graphql-java]]
+== GraphQL Java metadata
+
+Since the {spring-boot-ref-docs}/native-image.html#native-image.introducing-graalvm-native-images.key-differences-with-jvm-deployments[static analysis of your application is done at build time],
+GraalVM might need extra hints if your application is looking up static resources, performing reflection or creating JDK proxies at runtime.
+
+GraphQL Java is performing three tasks at runtime that Native Images are sensible to:
+
+1. Loading resource bundles for message internationalization
+2. Some reflection on internal types for schema inspection
+3. Reflection on Java types that your application registers with the schema. This happens for example when GraphQL Java is fetching properties from application types
+
+The first two items are handled via reachability metadata that has been contributed by the Spring team to
+https://github.com/oracle/graalvm-reachability-metadata/tree/master/metadata/com.graphql-java/graphql-java[the GraalVM reachability metadata repository].
+This metadata is automatically fetched by the native compilation tool when building an application that depends on GraphQL Java.
+This doesn't cover our third item in the list, as those types are provided by the application itself and must be discovered by another mean.
+
+
+[[graalvm.server]]
+== Native Server applications support
+
+In typical Spring for GraphQL applications, Java types tied to the GraphQL schema are exposed in `@Controller` method signatures
+as parameters or return types. During the {spring-framework-ref-docs}/core.html#core.aot[Ahead Of Time processing phase] of the build,
+Spring or GraphQL will use its `o.s.g.data.method.annotation.support.SchemaMappingBeanFactoryInitializationAotProcessor` to discover
+the relevant types and register reachability metadata accordingly.
+This is all done automatically for you if you are building a Spring Boot application with GraalVM support.
+
+If your application is "manually" registering data fetchers, some types are not discoverable as a result.
+You should then register them with Spring Framework's `@RegisterReflectionForBinding`:
+
+include::code:GraphQlConfiguration[]
+<1> This application declares a `RuntimeWiringConfigurer` that "manually" adds a `DataFetcher`
+<2> Through this `DataFetcher`, the `BookRepository` will expose a `Book` type
+<3> `@RegisterReflectionForBinding` will register the relevant hints for the `Book` type and all types exposed as fields
+
+[[graalvm.client]]
+== Client support
+
+The `GraphQlClient` is not necessarily present as a bean in the application context and it does not expose the Java types used in the schema in method signatures.
+The `AotProcessor` strategy described in the section above cannot be used as a result.
+For client support, Spring for GraphQL embeds the {github-main-branch}/spring-graphql/src/main/resources/META-INF/native-image/org.springframework.graphql/spring-graphql[relevant reachability metadata for the client infrastructure].
+When it comes to Java types used by the application, applications should use a similar strategy as "manual" data fetchers using `@RegisterReflectionForBinding`:
+
+include::code:ProjectService[]
+<1> In a Native image, we need to ensure that reflection can be performed on `Project` at runtime
+<2> `@RegisterReflectionForBinding` will register the relevant hints for the `Project` type and all types exposed as fields
+
