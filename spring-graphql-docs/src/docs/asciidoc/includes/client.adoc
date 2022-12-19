@@ -257,7 +257,7 @@ response and the field:
 			.onErrorResume(FieldAccessException.class, ex -> {
 				ClientGraphQlResponse response = ex.getResponse();
 				// ...
-				ResponseField field = ex.getField();
+				ClientResponseField field = ex.getField();
 				// ...
 			});
 ----
