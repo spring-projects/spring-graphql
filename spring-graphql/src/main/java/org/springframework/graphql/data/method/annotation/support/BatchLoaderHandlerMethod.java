@@ -29,7 +29,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CollectionFactory;
+import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -51,6 +53,9 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	private final static boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerConfigurer.class.getClassLoader());
+
+
+	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
 	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, @Nullable Executor executor) {
@@ -113,6 +118,8 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	@Nullable
 	private  <K> Object resolveArgument(
 			MethodParameter parameter, Collection<K> keys, BatchLoaderEnvironment environment) {
+
+		parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
 
 		Class<?> parameterType = parameter.getParameterType();
 

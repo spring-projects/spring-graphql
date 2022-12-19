@@ -17,12 +17,15 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import org.dataloader.BatchLoaderEnvironment;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -30,7 +33,9 @@ import reactor.test.StepVerifier;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.SynthesizingMethodParameter;
+import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.BookSource;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -134,6 +139,28 @@ public class ContextValueMethodArgumentResolverTests {
 		StepVerifier.create((Mono<String>) handlerMethod.invoke(environment)).verifyComplete();
 	}
 
+	@Test // gh-562
+	void resolveFromParameterNameWithBatchMapping() throws Exception {
+
+		TestController controller = new TestController();
+
+		BatchLoaderHandlerMethod handlerMethod = new BatchLoaderHandlerMethod(
+				new HandlerMethod(controller,
+						TestController.class.getMethod("getAuthors", List.class, Long.class)), null);
+
+		GraphQLContext context = new GraphQLContext.Builder().build();
+		context.put("id", 123L);
+
+		BatchLoaderEnvironment environment = BatchLoaderEnvironment.newBatchLoaderEnvironment().context(context).build();
+		List<Book> keys = Arrays.asList(BookSource.getBook(1L), BookSource.getBook(2L), BookSource.getBook(3L));
+
+		StepVerifier.create(handlerMethod.invokeForIterable(keys, environment))
+				.expectNextCount(3)
+				.verifyComplete();
+
+		assertThat(controller.savedId).isEqualTo(context.get("id"));
+	}
+
 	@Nullable
 	private Object resolveValue(
 			@Nullable GraphQLContext localContext, @Nullable GraphQLContext graphQLContext, int index) {
@@ -166,11 +193,17 @@ public class ContextValueMethodArgumentResolverTests {
 
 	private static class TestController {
 
+		private Long savedId;
+
 		@Nullable
 		public String handleMono(@ContextValue Mono<String> stringMono) {
 			return stringMono.block(Duration.ofSeconds(1));
 		}
 
+		public List<Author> getAuthors(List<Book> books, @ContextValue Long id) {
+			this.savedId = id;
+			return books.stream().map(Book::getAuthor).toList();
+		}
 	}
 
 }
