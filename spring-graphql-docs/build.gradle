@@ -24,6 +24,7 @@ dependencies {
 	api 'org.springframework:spring-websocket'
 	api 'org.springframework:spring-messaging'
 	api 'org.springframework.data:spring-data-commons'
+	api 'com.querydsl:querydsl-core'
 	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.3'
 }
 

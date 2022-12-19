@@ -30,7 +30,7 @@ public class GraphQlConfiguration {
 
 	@Bean
 	RuntimeWiringConfigurer customWiringConfigurer(BookRepository bookRepository) { // <1>
-		DataFetcher dataFetcher = QuerydslDataFetcher.builder(bookRepository).single();
+		DataFetcher<Book> dataFetcher = QuerydslDataFetcher.builder(bookRepository).single();
 		return wiringBuilder -> wiringBuilder
 				.type("Query", builder -> builder.dataFetcher("book", dataFetcher)); // <2>
 	}
