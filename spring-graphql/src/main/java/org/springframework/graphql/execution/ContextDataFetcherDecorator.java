@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.GraphQLTypeVisitorStub;
@@ -103,9 +105,13 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	 * Static factory method to create {@link GraphQLTypeVisitor} that wraps
 	 * data fetchers with the {@link ContextDataFetcherDecorator}.
 	 */
-	static GraphQLTypeVisitor createVisitor(List<SubscriptionExceptionResolver> resolvers) {
+	static GraphQLTypeVisitor createVisitor(
+			GraphQLSchema schema, List<SubscriptionExceptionResolver> resolvers) {
 
-		SubscriptionExceptionResolver compositeResolver = new CompositeSubscriptionExceptionResolver(resolvers);
+		GraphQLObjectType subscriptionType = schema.getSubscriptionType();
+		String subscriptionTypeName = (subscriptionType != null ? subscriptionType.getName() : null);
+
+		SubscriptionExceptionResolver exceptionResolver = new CompositeSubscriptionExceptionResolver(resolvers);
 
 		return new GraphQLTypeVisitorStub() {
 			@Override
@@ -117,8 +123,8 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 				DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
 				if (applyDecorator(dataFetcher)) {
-					boolean handlesSubscription = parent.getName().equals("Subscription");
-					dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, compositeResolver);
+					boolean handlesSubscription = parent.getName().equals(subscriptionTypeName);
+					dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, exceptionResolver);
 					codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				}
 
