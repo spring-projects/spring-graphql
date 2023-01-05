@@ -1,0 +1,6 @@
+[[observability]]
+= Observability
+
+https://micrometer.io/docs/observation
+{spring-framework-ref-docs}/integration.html#integration.observability
+{spring-boot-ref-docs}/actuator.html#actuator.metrics
