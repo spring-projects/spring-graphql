@@ -1,6 +1,65 @@
 [[observability]]
 = Observability
 
-https://micrometer.io/docs/observation
-{spring-framework-ref-docs}/integration.html#integration.observability
-{spring-boot-ref-docs}/actuator.html#actuator.metrics
+https://micrometer.io/docs/observation[Observability support with Micrometer] is directly instrumented in Spring for GraphQL.
+This enables both metrics and traces for GraphQL requests and "non-trivial" data fetching operations.
+Because the GraphQL engine operates on top of a transport layer, you should also {spring-framework-ref-docs}/integration.html#integration.observability[expect observations from the transport], if supported in Spring Framework.
+
+Observations are only published if an `ObservationRegistry` is configured in the application.
+You can learn more about {spring-boot-ref-docs}/actuator.html#actuator.metrics[configuring the observability infrastructure in Spring Boot].
+If you would like to customize the metadata produced with the GraphQL observations, you can {spring-framework-ref-docs}/integration.html#integration.observability.config.conventions[configure a custom convention on the instrumentation directly].
+If your application is using Spring Boot, contributing the custom convention as a bean is the preferred way.
+
+[[observability.server.request]]
+== Server Requests instrumentation
+
+GraphQL Server Requests observations are created with the name `"graphql.request"` for Servlet and Reactive applications and above all supported transports.
+Applications need to configure the `org.springframework.graphql.observation.GraphQlObservationInstrumentation` instrumentation in their application.
+It is using the `org.springframework.graphql.observation.DefaultExecutionRequestObservationConvention` by default, backed by the `ExecutionRequestObservationContext`.
+
+By default, the following KeyValues are created:
+
+.Low cardinality Keys
+[cols="a,a"]
+|===
+|Name | Description
+|`graphql.operation` _(required)_|GraphQL Operation name.
+|`graphql.outcome` _(required)_|Outcome of the GraphQL request.
+|===
+
+The `graphql.operation` KeyValue will use the custom name of the provided query, or http://spec.graphql.org/draft/#sec-Language.Operations[the standard name for the operation] if none (`"query"`, `"mutation"` or `"subscription"`).
+The `graphql.outcome` KeyValue will be `"SUCCESS"` if a valid GraphQL response has been sent, `"REQUEST_ERROR"` if the request could not be parsed, or `"INTERNAL_ERROR"` if no valid GraphQL response could be produced.
+
+.High cardinality Keys
+[cols="a,a"]
+|===
+|Name | Description
+|`graphql.execution.id` _(required)_|`graphql.execution.ExecutionId` of the GraphQL request.
+|===
+
+
+
+[[observability.server.datafetcher]]
+== DataFetcher instrumentation
+
+GraphQL DataFetcher observations are created with the name `"graphql.datafetcher"`, only for data fetching operations that are considered as "non trivial" (property fetching on a Java object is a trivial operation).
+Applications need to configure the `org.springframework.graphql.observation.GraphQlObservationInstrumentation` instrumentation in their application.
+It is using the `org.springframework.graphql.observation.DefaultDataFetcherObservationConvention` by default, backed by the `DataFetcherObservationContext`.
+
+By default, the following KeyValues are created:
+
+.Low cardinality Keys
+[cols="a,a"]
+|===
+|Name | Description
+|`graphql.error.type` _(required)_|Class name of the data fetching error
+|`graphql.field.name` _(required)_|Name of the field being fetched.
+|`graphql.outcome` _(required)_|Outcome of the GraphQL data fetching operation, "SUCCESS" or "ERROR".
+|===
+
+
+.High cardinality Keys
+|===
+|Name | Description
+|`graphql.field.path` _(required)_|Path to the field being fetched (for example, "/bookById").
+|===
