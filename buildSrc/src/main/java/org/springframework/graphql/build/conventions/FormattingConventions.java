@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.build.format;
+package org.springframework.graphql.build.conventions;
 
 import io.spring.javaformat.gradle.FormatTask;
 import io.spring.javaformat.gradle.SpringJavaFormatPlugin;
-import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.plugins.JavaBasePlugin;
@@ -32,9 +31,8 @@ import org.gradle.api.plugins.quality.CheckstylePlugin;
  *
  * @author Brian Clozel
  */
-public class FormattingConventionsPlugin implements Plugin<Project> {
+public class FormattingConventions {
 
-	@Override
 	public void apply(Project project) {
 		project.getPlugins().withType(JavaBasePlugin.class, (java) -> applySpringJavaFormat(project));
 	}

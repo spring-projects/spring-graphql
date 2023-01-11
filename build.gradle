@@ -1,6 +1,4 @@
-plugins {
-	id 'org.jetbrains.kotlin.jvm' version '1.7.0' apply false
-}
+description = "Spring for GraphQL"
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
@@ -9,12 +7,8 @@ ext {
 	springBootVersion = "3.0.0"
 }
 
-description = "Spring for GraphQL"
-
 subprojects {
-	apply plugin: 'org.springframework.graphql.compiler'
-	apply plugin: 'org.springframework.graphql.deployment'
-
+	apply plugin: 'org.springframework.graphql.build.conventions'
 	group = 'org.springframework.graphql'
 
 	repositories {
@@ -35,24 +29,6 @@ configure(moduleProjects) {
 	java {
 		toolchain {
 			languageVersion = JavaLanguageVersion.of(17)
-		}
-	}
-
-	pluginManager.withPlugin("kotlin") {
-		compileKotlin {
-			kotlinOptions {
-				jvmTarget = "17"
-				languageVersion = "1.7"
-				apiVersion = "1.7"
-				freeCompilerArgs = ["-Xjsr305=strict", "-Xsuppress-version-warnings", "-opt-in=kotlin.RequiresOptIn"]
-				allWarningsAsErrors = true
-			}
-		}
-		compileTestKotlin {
-			kotlinOptions {
-				jvmTarget = "17"
-				freeCompilerArgs = ["-Xjsr305=strict"]
-			}
 		}
 	}
 

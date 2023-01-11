@@ -6,11 +6,21 @@ plugins {
 repositories {
 	mavenCentral()
 	gradlePluginPortal()
-	maven { url "https://repo.spring.io/release" }
+}
+
+ext {
+	def propertiesFile = new File(new File("$projectDir").parentFile, "gradle.properties")
+	propertiesFile.withInputStream {
+		def properties = new Properties()
+		properties.load(it)
+		set("kotlinVersion", properties["kotlinVersion"])
+	}
 }
 
 dependencies {
 	checkstyle "io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}"
+	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+	implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${kotlinVersion}")
 	implementation("io.spring.javaformat:spring-javaformat-gradle-plugin:${javaFormatVersion}")
 }
 
@@ -22,17 +32,9 @@ checkstyle {
 
 gradlePlugin {
 	plugins {
-		formattingConventionsPlugin {
-			id = "org.springframework.graphql.formatting"
-			implementationClass = "org.springframework.graphql.build.format.FormattingConventionsPlugin"
-		}
-		compilerConventionsPlugin {
-			id = "org.springframework.graphql.compiler"
-			implementationClass = "org.springframework.graphql.build.compile.CompilerConventionsPlugin"
-		}
-		deploymentConventionsPlugin {
-			id = "org.springframework.graphql.deployment"
-			implementationClass = "org.springframework.graphql.build.deployment.DeploymentConventionsPlugin"
+		conventionsPlugin {
+			id = "org.springframework.graphql.build.conventions"
+			implementationClass = "org.springframework.graphql.build.ConventionsPlugin"
 		}
 	}
 }

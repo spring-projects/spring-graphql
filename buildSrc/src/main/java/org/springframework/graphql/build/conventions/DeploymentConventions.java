@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.build.deployment;
+package org.springframework.graphql.build.conventions;
 
-import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
@@ -27,9 +26,8 @@ import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
  *
  * @author Brian Clozel
  */
-public class DeploymentConventionsPlugin implements Plugin<Project> {
+public class DeploymentConventions {
 
-	@Override
 	public void apply(Project project) {
 		project.getPlugins().apply(MavenPublishPlugin.class);
 		project.getPlugins().withType(MavenPublishPlugin.class).forEach((mavenPublishPlugin) -> {
