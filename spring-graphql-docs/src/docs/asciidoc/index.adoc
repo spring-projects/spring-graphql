@@ -1665,13 +1665,23 @@ The 1.0.x branch of this repository contains samples for
 
 
 
+include::includes/observability.adoc[leveloffset=+1]
+
+
+
+
+include::includes/graalvm-native.adoc[leveloffset=+1]
+
+
+
+
 include::includes/client.adoc[leveloffset=+1]
 
-include::includes/observability.adoc[leveloffset=+1]
+
+
 
 include::includes/testing.adoc[leveloffset=+1]
 
-include::includes/graalvm-native.adoc[leveloffset=+1]
 
 
 
