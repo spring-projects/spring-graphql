@@ -1,12 +1,6 @@
 pluginManagement {
 	repositories {
 		mavenCentral()
-		maven {
-			url 'https://repo.spring.io/release'
-		}
-		maven {
-			url "https://repo.spring.io/snapshot"
-		}
 		gradlePluginPortal()
 	}
     resolutionStrategy {
@@ -19,8 +13,8 @@ pluginManagement {
 }
 
 plugins {
-	id "com.gradle.enterprise" version "3.11.1"
-	id "io.spring.ge.conventions" version "0.0.9"
+	id "com.gradle.enterprise" version "3.12.1"
+	id "io.spring.ge.conventions" version "0.0.13"
 }
 
 rootProject.name = 'spring-graphql'
