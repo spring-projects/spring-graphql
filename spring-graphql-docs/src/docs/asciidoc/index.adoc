@@ -17,12 +17,10 @@ the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL appl
 Please, use our https://github.com/spring-projects/spring-graphql/issues[issue tracker]
 to report a problem, discuss a design issue, or to request a feature.
 
-Please, see our
-https://github.com/spring-projects/spring-graphql/wiki[Wiki].
+Check the https://github.com/spring-projects/spring-graphql/wiki[Wiki].
 for what's new, baseline requirements, and upgrade notes, and other cross-version information.
 
-To get started, check the Spring GraphQL starter on https://start.spring.io.
-The are also https://github.com/spring-projects/spring-graphql/tree/1.0.x/samples[samples] in the 1.0.x branch, which will be https://github.com/spring-projects/spring-graphql/issues/208[moved out] into a separate repository.
+To get started, see the <<boot-starter>> and <<samples>> sections.
 
 
 
@@ -53,7 +51,7 @@ is also supported, as described in the specification.
 
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
-Boot starter does this, see the
+<<boot-starter>> does this, see the
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints] section for
 details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
 it contains, for the actual config.
@@ -96,7 +94,7 @@ https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 
 `GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
 `SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. By default,
-the Boot starter does not expose a GraphQL over WebSocket endpoint, but it's easy to
+the <<boot-starter>> does not expose a GraphQL over WebSocket endpoint, but it's easy to
 enable it by adding a property for the endpoint path. Please, see the
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints]
 section for details, or check the `GraphQlWebMvcAutoConfiguration` or the
@@ -164,7 +162,7 @@ include::code:RequestErrorInterceptor[]
 <3> Update the `ExecutionResult` with the modified errors
 
 Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
-by the Boot starter, see
+by the <<boot-starter>>, see
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
 
 
@@ -195,21 +193,18 @@ The main implementation, `DefaultExecutionGraphQlService`, is configured with a
 
 `GraphQlSource` is a contract to expose the `graphql.GraphQL` instance to use that also
 includes a builder API to build that instance. The default builder is available via
-`GraphQlSource.schemaResourceBuilder()`. The
-{spring-boot-ref-docs}/web.html#web.graphql[Spring Boot starter] creates an instance of
-this builder and further initializes it as follows:
+`GraphQlSource.schemaResourceBuilder()`.
 
-- Loads <<execution.graphqlsource.schema-resources, schema files>> from a configurable location.
-- Exposes {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[properties]
-  that apply to `GraphQlSource.Builder`.
-- Detects <<execution.graphqlsource.runtimewiring-configurer>> beans.
-- Detects https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
-  {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics].
-- Detects `DataFetcherExceptionResolver` beans for <<execution.exceptions, exception resolution>>.
-- Detects `SubscriptionExceptionResolver` beans for <<execution.exceptions.subscription, subscription exception resolution>>.
-
-For further customizations, you can declare a `GraphQlSourceBuilderCustomizer` bean. For example, to
-configure your own `ExecutionIdProvider`:
+The <<boot-starter>> creates an instance of this builder and further initializes it
+to <<execution.graphqlsource.schema-resources, load schema files>> from a configurable location,
+to {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[expose properties]
+to apply to `GraphQlSource.Builder`, to detect
+<<execution.graphqlsource.runtimewiring-configurer>> beans,
+https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
+{spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics],
+and `DataFetcherExceptionResolver` and `SubscriptionExceptionResolver`  beans for
+<<execution.exceptions, exception resolution>>. For further customizations, you can also
+declare a `GraphQlSourceBuilderCustomizer` bean, for example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -234,7 +229,7 @@ class GraphQlConfig {
 parsed and merged together. That means schema files can be loaded from just about any
 location.
 
-By default, the Spring Boot starter
+By default, the Boot starter
 {spring-boot-ref-docs}/web.html#web.graphql.schema[looks for schema files] with extensions
 ".graphqls" or ".gqls" under the location `classpath:graphql/**`, which is typically
 `src/main/resources/graphql`. You can also use a file system location, or any location
@@ -297,14 +292,14 @@ You can use `RuntimeWiringConfigurer` to register:
    <<execution.graphqlsource.default-type-resolver>> for a type.
  - `DataFetcher` for a field, although most applications will simply configure
    `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
-   The Spring Boot starter adds the `AnnotatedControllerConfigurer` by default.
+   The <<boot-starter>> adds the `AnnotatedControllerConfigurer` by default.
 
 NOTE: GraphQL Java, server applications use Jackson only for serialization to and from maps of data.
 Client input is parsed into a map. Server output is assembled into a map based on the field selection set.
 This means you can't rely on Jackson serialization/deserialization annotations.
 Instead, you can use https://www.graphql-java.com/documentation/scalars/[custom scalar types].
 
-The Spring Boot starter detects beans of type `RuntimeWiringConfigurer` and
+The <<boot-starter>> detects beans of type `RuntimeWiringConfigurer` and
 registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
 something like the following in your configuration:
 
@@ -402,7 +397,7 @@ and handle directives. For more details, see
 GraphQL Java documentation.
 
 In Spring GraphQL you can register a `SchemaDirectiveWiring` through a
-<<execution.graphqlsource.runtimewiring-configurer>>. The Spring Boot starter detects
+<<execution.graphqlsource.runtimewiring-configurer>>. The <<boot-starter>> detects
 such beans, so you might have something like:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -623,7 +618,7 @@ public class MyConfig {
 }
 ----
 
-The Spring Boot starter declares a `BatchLoaderRegistry` bean that you can inject into
+The <<boot-starter>> declares a `BatchLoaderRegistry` bean that you can inject into
 your configuration, as shown above, or into any component such as a controller in order
 register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
 `DefaultExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
@@ -873,8 +868,7 @@ Auto-registration detects if a given repository implements `QuerydslBinderCustom
 transparently applies that through `QuerydslDataFetcher` builder methods.
 
 Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
-obtained from `QuerydslDataFetcher`. The
-{spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
+obtained from `QuerydslDataFetcher`. The <<boot-starter>> automatically
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
 
@@ -986,8 +980,7 @@ of the repository domain type. If needed, you can use the `typeName` attribute o
 `@GraphQlRepository` to specify the target GraphQL type name.
 
 Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
-obtained from `QueryByExampleDataFetcher`. The
-{spring-boot-ref-docs}/web.html#web.graphql.data-query[Boot starter] automatically
+obtained from `QueryByExampleDataFetcher`. The <<boot-starter>> automatically
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
 
@@ -1091,7 +1084,7 @@ class, indicating its role as a data fetching component in a GraphQL application
 `AnnotatedControllerConfigurer` detects `@Controller` beans and registers their
 annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is an
 implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
-The Spring Boot starter automatically declares `AnnotatedControllerConfigurer` as a bean
+The <<boot-starter>> automatically declares `AnnotatedControllerConfigurer` as a bean
 and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
 support for annotated ``DataFetcher``s, see the
 {spring-boot-ref-docs}/web.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
@@ -1685,10 +1678,36 @@ include::includes/testing.adoc[leveloffset=+1]
 
 
 
+[[boot-starter]]
+== Boot Starter
+
+Spring Boot provides a starter for building GraphQL applications with Spring for GraphQL.
+For version information, see the
+https://github.com/spring-projects/spring-graphql/wiki/Spring-for-GraphQL-Versions[Spring for GraphQL Versions] wiki page.
+
+The easiest way to get started is via https://start.spring.io by selecting
+"Spring for GraphQL" along with an underlying transport such as Spring MVC of WebFlux over
+HTTP or WebSocket, or over RSocket. Refer to the
+https://docs.spring.io/spring-boot/docs/current/reference/html/web.html#web.graphql[Spring for GraphQL Starter]
+section in the Spring Boot reference for details on supported transports, auto-configuration related
+features, and more. For testing support, see
+https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.spring-graphql-tests[Auto-Configured GraphQL Tests].
+
+For further reference, check the following GraphQL related:
+
+- https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html#actuator.metrics.supported.spring-graphql[Metrics]
+- https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.web[Properties]
+- https://docs.spring.io/spring-boot/docs/current/reference/html/auto-configuration-classes.html#appendix.auto-configuration-classes.core[Auto-Configuration Classes]
+
+
+
+
 [[samples]]
 == Samples
 
 The 1.0.x branch of this repository contains {github-10x-branch}/samples[sample applications] for various scenarios.
+Those samples do not exist in the `main` branch and will be
+https://github.com/spring-projects/spring-graphql/issues/208[moved out] into a separate repository.
 
 You can run those by cloning this repository and running main application classes from your IDE or by typing the following on the command line:
 
