@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.function.Consumer;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -28,7 +28,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.Validation;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
-
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.IterableAssert;
 import org.assertj.core.api.ThrowableAssert;
@@ -39,71 +38,63 @@ import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.validation.annotation.Validated;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for {@link HandlerMethodValidationHelper}.
+ * Unit tests for {@link ValidationHelper}.
+ *
  * @author Brian Clozel
  */
-class HandlerMethodValidationHelperTests {
-
-	private final HandlerMethodValidationHelper validator =
-			new HandlerMethodValidationHelper(Validation.buildDefaultValidatorFactory().getValidator());
-
+class ValidationHelperTests {
 
 	@Test
 	void shouldFailWithNullValidator() {
-		assertThatThrownBy(() -> new HandlerMethodValidationHelper(null)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> ValidationHelper.create(null)).isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test
 	void shouldIgnoreMethodsWithoutAnnotations() {
-		HandlerMethod method = findHandlerMethod(MyBean.class, "notValidatedMethod");
-		assertThatNoException().isThrownBy(() -> validator.validate(method, new Object[] {"test", 12}));
+		Consumer<Object[]> validator = createValidator(MyBean.class, "notValidatedMethod");
+		assertThat(validator).isNull();
 	}
 
 	@Test
 	void shouldRaiseValidationErrorForAnnotatedParams() {
-		HandlerMethod method = findHandlerMethod(MyBean.class, "myValidMethod");
-		assertViolations(() -> validator.validate(method, new Object[] {null, 2}))
+		Consumer<Object[]> validator = createValidator(MyBean.class, "myValidMethod");
+		assertViolations(() -> validator.accept(new Object[] {null, 2}))
 				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethod.arg0"));
-		assertViolations(() -> validator.validate(method, new Object[] {"test", 12}))
+		assertViolations(() -> validator.accept(new Object[] {"test", 12}))
 				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethod.arg1"));
 	}
 
 	@Test
 	void shouldRaiseValidationErrorForAnnotatedParamsWithGroups() {
-		HandlerMethod myValidMethodWithGroup = findHandlerMethod(MyValidationGroupsBean.class, "myValidMethodWithGroup");
-		assertViolations(() -> validator.validate(myValidMethodWithGroup, new Object[] {null}))
-				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethodWithGroup.arg0"));
+		Consumer<Object[]> validator1 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroup");
+		assertViolation(() -> validator1.accept(new Object[] {null}), "myValidMethodWithGroup.arg0");
 
-		HandlerMethod myValidMethodWithGroupOnType = findHandlerMethod(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
-		assertViolations(() -> validator.validate(myValidMethodWithGroupOnType, new Object[] {null}))
-				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethodWithGroupOnType.arg0"));
+		Consumer<Object[]> validator2 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
+		assertViolation(() -> validator2.accept(new Object[] {null}), "myValidMethodWithGroupOnType.arg0");
 	}
 
 	@Test
 	void shouldRecognizeMethodsThatRequireValidation() {
-		HandlerMethod method = findHandlerMethod(RequiresValidationBean.class, "processConstrainedValue");
-		assertThat(validator.requiresValidation(method)).isTrue();
+		Consumer<Object[]> validator1 = createValidator(RequiresValidationBean.class, "processConstrainedValue");
+		assertThat(validator1).isNotNull();
 
-		method = findHandlerMethod(RequiresValidationBean.class, "processValidInput");
-		assertThat(validator.requiresValidation(method)).isTrue();
+		Consumer<Object[]> validator2 = createValidator(RequiresValidationBean.class, "processValidInput");
+		assertThat(validator2).isNotNull();
 
-		method = findHandlerMethod(RequiresValidationBean.class, "processValidatedInput");
-		assertThat(validator.requiresValidation(method)).isTrue();
+		Consumer<Object[]> validator3 = createValidator(RequiresValidationBean.class, "processValidatedInput");
+		assertThat(validator3).isNotNull();
 
-		method = findHandlerMethod(RequiresValidationBean.class, "processInputWithConstrainedValue");
-		assertThat(validator.requiresValidation(method)).isTrue();
-
-		method = findHandlerMethod(RequiresValidationBean.class, "processOptionalInputWithConstrainedValue");
-		assertThat(validator.requiresValidation(method)).isTrue();
-
-		method = findHandlerMethod(RequiresValidationBean.class, "processValue");
-		assertThat(validator.requiresValidation(method)).isFalse();
+		Consumer<Object[]> validator4 = createValidator(RequiresValidationBean.class, "processValue");
+		assertThat(validator4).isNull();
 	}
 
+	private Consumer<Object[]> createValidator(Class<?> handlerType, String methodName) {
+		return ValidationHelper.create(Validation.buildDefaultValidatorFactory().getValidator())
+				.getValidationHelperFor(findHandlerMethod(handlerType, methodName));
+	}
 
 	private HandlerMethod findHandlerMethod(Class<?> handlerType, String methodName) {
 		Object handler = BeanUtils.instantiateClass(handlerType);
@@ -119,6 +110,11 @@ class HandlerMethodValidationHelperTests {
 				.isInstanceOf(ConstraintViolationException.class)
 				.extracting("constraintViolations")
 				.asInstanceOf(InstanceOfAssertFactories.iterable(ConstraintViolation.class));
+	}
+
+	private void assertViolation(ThrowableAssert.ThrowingCallable callable, String propertyPath) {
+		assertViolations(callable).anyMatch(violation ->
+				violation.getPropertyPath().toString().equals(propertyPath));
 	}
 
 
@@ -184,34 +180,12 @@ class HandlerMethodValidationHelperTests {
 		public void processValidatedInput(@Validated MyInput input) {
 		}
 
-		public void processInputWithConstrainedValue(MyConstrainedInput input) {
-		}
-
-		public void processOptionalInputWithConstrainedValue(Optional<MyConstrainedInput> input) {
-		}
-
 		public void processValue(int i) {
 		}
-
 	}
 
 
 	private static class MyInput {
-	}
-
-	private static class MyConstrainedInput {
-
-		@Max(99)
-		private int i;
-
-		public int getI() {
-			return this.i;
-		}
-
-		public void setI(int i) {
-			this.i = i;
-		}
-
 	}
 
 }

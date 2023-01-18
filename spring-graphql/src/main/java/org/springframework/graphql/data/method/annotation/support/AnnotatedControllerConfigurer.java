@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -125,7 +125,7 @@ public class AnnotatedControllerConfigurer
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
 	@Nullable
-	private HandlerMethodValidationHelper validationHelper;
+	private ValidationHelper validationHelper;
 
 
 	/**
@@ -176,8 +176,7 @@ public class AnnotatedControllerConfigurer
 		this.argumentResolvers = initArgumentResolvers();
 
 		if (beanValidationPresent) {
-			this.validationHelper =
-					HandlerMethodValidationHelper.createIfValidatorAvailable(obtainApplicationContext());
+			this.validationHelper = ValidationHelper.createIfValidatorPresent(obtainApplicationContext());
 		}
 	}
 
@@ -228,7 +227,8 @@ public class AnnotatedControllerConfigurer
 		findHandlerMethods().forEach((info) -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
-				dataFetcher = new SchemaMappingDataFetcher(info, this.argumentResolvers, this.validationHelper, this.executor);
+				dataFetcher = new SchemaMappingDataFetcher(
+						info, this.argumentResolvers, this.validationHelper, this.executor);
 			}
 			else {
 				String dataLoaderKey = registerBatchLoader(info);
@@ -492,7 +492,7 @@ public class AnnotatedControllerConfigurer
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
 		@Nullable
-		private final HandlerMethodValidationHelper validatorHelper;
+		private final Consumer<Object[]> methodValidationHelper;
 
 		@Nullable
 		private final Executor executor;
@@ -501,12 +501,12 @@ public class AnnotatedControllerConfigurer
 
 		SchemaMappingDataFetcher(
 				MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
-				@Nullable HandlerMethodValidationHelper validatorHelper,
-				@Nullable Executor executor) {
+				@Nullable ValidationHelper validationHelper, @Nullable Executor executor) {
 
 			this.info = info;
 			this.argumentResolvers = resolvers;
-			this.validatorHelper = validatorHelper;
+			this.methodValidationHelper = (validationHelper != null ?
+					validationHelper.getValidationHelperFor(info.getHandlerMethod()) : null);
 			this.executor = executor;
 			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
@@ -524,7 +524,8 @@ public class AnnotatedControllerConfigurer
 		public Object get(DataFetchingEnvironment environment) throws Exception {
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-					getHandlerMethod(), this.argumentResolvers, this.validatorHelper, this.executor, this.subscription);
+					getHandlerMethod(), this.argumentResolvers, this.methodValidationHelper,
+					this.executor, this.subscription);
 
 			return handlerMethod.invoke(environment);
 		}

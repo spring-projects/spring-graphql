@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 
 import graphql.schema.DataFetchingEnvironment;
 import org.reactivestreams.Publisher;
@@ -49,8 +50,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private final HandlerMethodArgumentResolverComposite resolvers;
 
-	@Nullable
-	private final HandlerMethodValidationHelper validator;
+	private final Consumer<Object[]> validationHelper;
 	
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
@@ -61,17 +61,17 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 * Constructor with a parent handler method.
 	 * @param handlerMethod the handler method
 	 * @param resolvers the argument resolvers
-	 * @param validator the input validator
+	 * @param validationHelper to apply bean validation with
 	 * @param subscription whether the field being fetched is of subscription type
 	 */
-	public DataFetcherHandlerMethod(HandlerMethod handlerMethod,
-			HandlerMethodArgumentResolverComposite resolvers, @Nullable HandlerMethodValidationHelper validator,
-			@Nullable Executor executor, boolean subscription) {
+	public DataFetcherHandlerMethod(
+			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
+			@Nullable Consumer<Object[]> validationHelper, @Nullable Executor executor, boolean subscription) {
 
 		super(handlerMethod, executor);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
-		this.validator = (validator != null && validator.requiresValidation(handlerMethod) ? validator : null);
+		this.validationHelper = (validationHelper != null ? validationHelper : args -> {});
 		this.subscription = subscription;
 	}
 
@@ -83,15 +83,6 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 		return this.resolvers;
 	}
 
-	/**
-	 * Return the configured input validator.
-	 * @deprecated as of 1.1 without a replacement
-	 */
-	@Deprecated
-	@Nullable
-	public HandlerMethodValidationHelper getValidator() {
-		return this.validator;
-	}
 
 
 	/**
@@ -188,9 +179,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	@Nullable
 	private Object validateAndInvoke(Object[] args, DataFetchingEnvironment environment) {
-		if (this.validator != null) {
-			this.validator.validate(this, args);
-		}
+		this.validationHelper.accept(args);
 		return doInvoke(environment.getGraphQlContext(), args);
 	}
 
