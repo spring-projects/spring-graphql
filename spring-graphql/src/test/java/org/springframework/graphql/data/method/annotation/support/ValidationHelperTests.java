@@ -60,11 +60,12 @@ class ValidationHelperTests {
 
 	@Test
 	void shouldRaiseValidationErrorForAnnotatedParams() {
-		Consumer<Object[]> validator = createValidator(MyBean.class, "myValidMethod");
-		assertViolations(() -> validator.accept(new Object[] {null, 2}))
-				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethod.arg0"));
-		assertViolations(() -> validator.accept(new Object[] {"test", 12}))
-				.anyMatch(violation -> violation.getPropertyPath().toString().equals("myValidMethod.arg1"));
+		Consumer<Object[]> validator1 = createValidator(MyBean.class, "myValidMethod");
+		assertViolation(() -> validator1.accept(new Object[] {null, 2}), "myValidMethod.arg0");
+		assertViolation(() -> validator1.accept(new Object[] {"test", 12}), "myValidMethod.arg1");
+
+		Consumer<Object[]> validator2 = createValidator(MyBean.class, "myValidatedParameterMethod");
+		assertViolation(() -> validator2.accept(new Object[] {new ConstrainedInput(100)}), "integerValue");
 	}
 
 	@Test
@@ -118,6 +119,23 @@ class ValidationHelperTests {
 	}
 
 
+
+	private static class ConstrainedInput {
+
+		@Max(99)
+		private final int integerValue;
+
+		public ConstrainedInput(int i) {
+			this.integerValue = i;
+		}
+
+		public int getIntegerValue() {
+			return this.integerValue;
+		}
+
+	}
+
+
 	@SuppressWarnings("unused")
 	private static class MyBean {
 
@@ -129,6 +147,9 @@ class ValidationHelperTests {
 			return null;
 		}
 
+		public Object myValidatedParameterMethod(@Validated ConstrainedInput input) {
+			return null;
+		}
 	}
 
 

@@ -63,31 +63,45 @@ class ValidationHelper {
 	@Nullable
 	public Consumer<Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
 
-		boolean required = false;
-		Class<?>[] groups = null;
+		boolean requiresMethodValidation = false;
+		Class<?>[] methodValidationGroups = null;
 
 		Validated validatedAnnotation = findAnnotation(handlerMethod, Validated.class);
 		if (validatedAnnotation != null) {
-			required = true;
-			groups = validatedAnnotation.value();
+			requiresMethodValidation = true;
+			methodValidationGroups = validatedAnnotation.value();
 		}
 		else if (findAnnotation(handlerMethod, Valid.class) != null) {
-			required = true;
+			requiresMethodValidation = true;
 		}
 
-		for (MethodParameter parameter : handlerMethod.getMethodParameters()) {
-			if (required) {
-				break;
-			}
+		Consumer<Object[]> parameterValidator = null;
+		MethodParameter[] parameters = handlerMethod.getMethodParameters();
+
+		for (int i = 0; i < parameters.length; i++) {
+			MethodParameter parameter = parameters[i];
 			for (Annotation annot : parameter.getParameterAnnotations()) {
 				MergedAnnotations merged = MergedAnnotations.from(annot);
-				if (merged.isPresent(Valid.class) || merged.isPresent(Constraint.class) || merged.isPresent(Validated.class)) {
-					required = true;
+				if (merged.isPresent(Valid.class) || merged.isPresent(Constraint.class)) {
+					requiresMethodValidation = true;
+				}
+				else if (annot.annotationType().equals(Validated.class)) {
+					Class<?>[] groups = ((Validated) annot).value();
+					parameterValidator = (parameterValidator != null ?
+							parameterValidator.andThen(new MethodParameterValidator(i, groups)) :
+							new MethodParameterValidator(i, groups));
 				}
 			}
 		}
 
-		return (required ? new HandlerMethodValidator(handlerMethod, groups) : null);
+		Consumer<Object[]> result = (requiresMethodValidation ?
+				new HandlerMethodValidator(handlerMethod, methodValidationGroups) : null);
+
+		if (parameterValidator != null) {
+			return (result != null ? result.andThen(parameterValidator) : parameterValidator);
+		}
+
+		return result;
 	}
 
 	@Nullable
@@ -131,10 +145,9 @@ class ValidationHelper {
 
 		private final HandlerMethod handlerMethod;
 
-		@Nullable
 		private final Class<?>[] validationGroups;
 
-		private HandlerMethodValidator(HandlerMethod handlerMethod, @Nullable Class<?>[] validationGroups) {
+		HandlerMethodValidator(HandlerMethod handlerMethod, @Nullable Class<?>[] validationGroups) {
 			Assert.notNull(handlerMethod, "HandlerMethod is required");
 			this.handlerMethod = handlerMethod;
 			this.validationGroups = (validationGroups != null ? validationGroups : new Class<?>[] {});
@@ -143,12 +156,41 @@ class ValidationHelper {
 		@Override
 		public void accept(Object[] arguments) {
 
-			Set<ConstraintViolation<Object>> result =
+			Set<ConstraintViolation<Object>> violations =
 					ValidationHelper.this.validator.forExecutables().validateParameters(
 							this.handlerMethod.getBean(), this.handlerMethod.getMethod(), arguments, this.validationGroups);
 
-			if (!result.isEmpty()) {
-				throw new ConstraintViolationException(result);
+			if (!violations.isEmpty()) {
+				throw new ConstraintViolationException(violations);
+			}
+		}
+	}
+
+
+	/**
+	 * Callback to apply validation to a {@link MethodParameter}, typically
+	 * because it's annotated with Spring's {@code @Validated} rather than with
+	 * {@code @Valid}.
+	 */
+	private class MethodParameterValidator implements Consumer<Object[]> {
+
+		private final int index;
+
+		private final Class<?>[] validationGroups;
+
+		MethodParameterValidator(int index, @Nullable Class<?>[] validationGroups) {
+			this.index = index;
+			this.validationGroups = (validationGroups != null ? validationGroups : new Class<?>[] {});
+		}
+
+		@Override
+		public void accept(Object[] arguments) {
+
+			Set<ConstraintViolation<Object>> violations =
+					ValidationHelper.this.validator.validate(arguments[this.index], this.validationGroups);
+
+			if (!violations.isEmpty()) {
+				throw new ConstraintViolationException(violations);
 			}
 		}
 	}
