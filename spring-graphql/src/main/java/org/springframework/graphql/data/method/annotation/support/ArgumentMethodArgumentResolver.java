@@ -30,7 +30,7 @@ import org.springframework.util.StringUtils;
  * Resolver for a method parameter that is annotated with
  * {@link Argument @Argument}. The specified raw argument value is obtained via
  * {@link DataFetchingEnvironment#getArgument(String)} and bound to a higher
- * level object, via {@link GraphQlArgumentBinder}, to match the target method
+ * level object via {@link GraphQlArgumentBinder} to match the target method
  * parameter type.
  *
  * <p>This resolver also supports wrapping the target object with
@@ -45,9 +45,7 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  * @since 1.0.0
- * @see org.springframework.graphql.data.method.annotation.Argument
- * @see org.springframework.graphql.data.method.annotation.Arguments
- * @see org.springframework.graphql.data.GraphQlArgumentBinder
+ * @see org.springframework.graphql.data.method.annotation.support.ArgumentsMethodArgumentResolver
  */
 public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
@@ -81,7 +79,8 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 			}
 		}
 		else if (parameter.getParameterType() != ArgumentValue.class) {
-			throw new IllegalStateException("Expected @Argument annotation");
+			throw new IllegalStateException(
+					"Expected either @Argument or a method parameter of type ArgumentValue");
 		}
 
 		String parameterName = parameter.getParameterName();

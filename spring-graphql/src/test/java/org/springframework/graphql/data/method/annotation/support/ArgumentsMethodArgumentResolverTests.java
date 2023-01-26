@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.MethodParameter;
@@ -27,6 +30,7 @@ import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Arguments;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +48,9 @@ class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 	@Test
 	void shouldSupportAnnotatedParameters() {
 		MethodParameter methodParameter = methodParam(BookController.class, "addBook", BookInput.class);
+		assertThat(resolver.supportsParameter(methodParameter)).isTrue();
+
+		methodParameter = methodParam(BookController.class, "argumentsMap", Map.class);
 		assertThat(resolver.supportsParameter(methodParameter)).isTrue();
 	}
 
@@ -71,6 +78,15 @@ class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 				});
 	}
 
+	@Test
+	void shouldResolveRawArgumentsMap() throws Exception {
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "argumentsMap", Map.class),
+				environment("{\"id\": 42 }"));
+
+		assertThat(result).isNotNull().isEqualTo(Collections.singletonMap("id", 42));
+	}
+
 
 	@SuppressWarnings({"ConstantConditions", "unused"})
 	@Controller
@@ -84,6 +100,10 @@ class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 			return null;
 		}
 
+		@QueryMapping
+		public Book argumentsMap(@Arguments Map<?, ?> map) {
+			return null;
+		}
 	}
 
 	@SuppressWarnings({"NotNullFieldNotInitialized", "unused"})
