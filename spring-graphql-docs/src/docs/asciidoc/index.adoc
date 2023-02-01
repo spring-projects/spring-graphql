@@ -1183,23 +1183,19 @@ Schema mapping handler methods can have any of the following method arguments:
 
 | `@Argument`
 | For access to a named field argument bound to a higher-level, typed Object.
-
 See <<controllers.schema-mapping.argument>>.
 
 | `@Argument Map<String, Object>`
-| For access to the raw argument value.
-
-See <<controllers.schema-mapping.argument>>.
+| For access to the raw map of arguments, where `@Argument` does not have a
+`name` attribute.
 
 | `ArgumentValue`
 | For access to a named field argument bound to a higher-level, typed Object along
 with a flag to indicate if the input argument was omitted vs set to `null`.
-
 See <<controllers.schema-mapping.argument-value>>.
 
 | `@Arguments`
 | For access to all field arguments bound to a higher-level, typed Object.
-
 See <<controllers.schema-mapping.arguments>>.
 
 | `@Arguments Map<String, Object>`
@@ -1207,17 +1203,14 @@ See <<controllers.schema-mapping.arguments>>.
 
 | `@ProjectedPayload` Interface
 | For access to field arguments through a project interface.
-
 See <<controllers.schema-mapping.projectedpayload.argument>>.
 
 | "Source"
 | For access to the source (i.e. parent/container) instance of the field.
-
 See <<controllers.schema-mapping.source>>.
 
 | `DataLoader`
 | For access to a `DataLoader` in the `DataLoaderRegistry`.
-
 See <<controllers.schema-mapping.data-loader>>.
 
 | `@ContextValue`
@@ -1297,26 +1290,8 @@ are enforced by GraphQL Java.
 If binding fails, a `BindException` is raised with binding issues accumulated as field
 errors where the `field` of each error is the argument path where the issue occurred.
 
-You can use `@Argument` with a `Map<String, Object>` argument, to obtain the raw value of
-the argument. For example:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@MutationMapping
-		public Book addBook(@Argument Map<String, Object> bookInput) {
-			// ...
-		}
-	}
-----
-
-NOTE: Prior to 1.2, `@Argument Map<String, Object>` returned the full arguments map if
-the annotation did not specify a name. After 1.2, `@Argument` with
-`Map<String, Object>` always returns the raw argument value, matching either to the name
-specified in the annotation, or to the parameter name. For access to the full arguments
-map, please use <<controllers.schema-mapping.arguments>> instead.
+You can use `@Argument` with a `Map<String, Object>` argument, to obtain the raw map of
+all argument values. The name attribute on `@Argument` must not be set.
 
 
 [[controllers.schema-mapping.argument-value]]

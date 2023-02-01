@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,13 +40,12 @@ import org.springframework.validation.BindException;
  * {@code field} of each error is the argument path where the issue occurred.
  *
  * <p>If the method parameter is {@link java.util.Map Map&lt;String, Object&gt;}
- * then the raw argument value for the named argument is used. For access to the
- * full {@link graphql.schema.DataFetchingEnvironment#getArguments() arguments}
- * map, use {@link Arguments @Arguments} instead.
+ * and a parameter name is not specified, then the resolves value is the raw
+ * {@link graphql.schema.DataFetchingEnvironment#getArguments() arguments} map.
  *
- * <p>This annotation has neither a "required" flag nor the option to specify a
- * default value, both of which can be specified at the GraphQL schema level
- * and are enforced by the GraphQL Java engine.
+ * <p>Note that this annotation has neither a "required" flag nor the option to
+ * specify a default value, both of which can be specified at the GraphQL schema
+ * level and are enforced by the GraphQL Java engine.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

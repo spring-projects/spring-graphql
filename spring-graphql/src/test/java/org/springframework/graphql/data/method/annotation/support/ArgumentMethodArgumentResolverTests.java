@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.springframework.graphql.data.method.annotation.support;
 
 
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -51,9 +50,6 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 		assertThat(this.resolver.supportsParameter(param)).isTrue();
 
 		param = methodParam(BookController.class, "addBook", ArgumentValue.class);
-		assertThat(this.resolver.supportsParameter(param)).isTrue();
-
-		param = methodParam(BookController.class, "rawArgumentValue", Map.class);
 		assertThat(this.resolver.supportsParameter(param)).isTrue();
 
 		param = methodParam(BookController.class, "notSupported", String.class);
@@ -117,17 +113,6 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 		assertThat(result).isNotNull().isInstanceOf(Keyword.class).hasFieldOrPropertyWithValue("term", "test");
 	}
 
-	@Test
-	void shouldResolveRawArgumentValue() throws Exception {
-		Map<String, Object> result = (Map<String, Object>) this.resolver.resolveArgument(
-				methodParam(BookController.class, "rawArgumentValue", Map.class),
-				environment("{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }"));
-
-		assertThat(result)
-				.containsEntry("name", "test name")
-				.containsEntry("authorId", 42);
-	}
-
 
 	@SuppressWarnings({"ConstantConditions", "unused"})
 	@Controller
@@ -162,12 +147,7 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 			return null;
 		}
 
-		@MutationMapping
-		public Book rawArgumentValue(@Argument Map<?, ?> bookInput) {
-			return null;
-		}
 	}
-
 
 	@SuppressWarnings({"NotNullFieldNotInitialized", "unused"})
 	static class BookInput {
