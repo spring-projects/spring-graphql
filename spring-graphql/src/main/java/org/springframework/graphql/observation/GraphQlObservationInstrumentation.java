@@ -21,8 +21,8 @@ import java.util.concurrent.CompletionStage;
 import graphql.ExecutionResult;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
-import graphql.execution.instrumentation.SimpleInstrumentation;
 import graphql.execution.instrumentation.SimpleInstrumentationContext;
+import graphql.execution.instrumentation.SimplePerformantInstrumentation;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
@@ -31,8 +31,8 @@ import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 
 /**
- * {@link SimpleInstrumentation} that creates {@link Observation observations}
- * for GraphQL requests and data fetcher operations.
+ * {@link graphql.execution.instrumentation.Instrumentation} that creates
+ * {@link Observation observations} for GraphQL requests and data fetcher operations.
  * <p>GraphQL request instrumentation measures the execution time of requests
  * and collects information from the {@link ExecutionRequestObservationContext}.
  * A request can perform many data fetching operations.
@@ -47,7 +47,7 @@ import io.micrometer.observation.ObservationRegistry;
  * @author Brian Clozel
  * @since 1.1.0
  */
-public class GraphQlObservationInstrumentation extends SimpleInstrumentation {
+public class GraphQlObservationInstrumentation extends SimplePerformantInstrumentation {
 
 	private static final String OBSERVATION_KEY = "micrometer.observation";
 
