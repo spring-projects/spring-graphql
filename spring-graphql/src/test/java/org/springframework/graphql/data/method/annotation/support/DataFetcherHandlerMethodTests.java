@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
-import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -37,6 +36,7 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
+import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -86,6 +86,27 @@ public class DataFetcherHandlerMethodTests {
 		assertThat(future.get()).isEqualTo("A");
 	}
 
+	@Test
+	void completableFutureReturnValue() throws Exception {
+
+		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
+		resolvers.addResolver(new ArgumentMethodArgumentResolver(new GraphQlArgumentBinder()));
+
+		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
+				handlerMethodFor(new TestController(), "handleAndReturnsCompletableFuture"), resolvers, null,
+				new SimpleAsyncTaskExecutor(), false);
+
+		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl
+				.newDataFetchingEnvironment()
+				.build();
+
+		Object result = handlerMethod.invoke(environment);
+
+		assertThat(result).isInstanceOf(Mono.class);
+		Mono<String> mono = (Mono<String>) result;
+		assertThat(mono.block()).isEqualTo("B");
+	}
+
 	private static HandlerMethod handlerMethodFor(Object controller, String methodName) {
 		Method method = ClassUtils.getMethod(controller.getClass(), methodName, (Class<?>[]) null);
 		return new HandlerMethod(controller, method);
@@ -112,6 +133,9 @@ public class DataFetcherHandlerMethodTests {
 			return () -> "A";
 		}
 
+		public CompletableFuture<String> handleAndReturnsCompletableFuture() {
+			return CompletableFuture.completedFuture("B");
+		}
 	}
 
 }
