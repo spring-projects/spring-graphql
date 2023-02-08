@@ -60,6 +60,7 @@ public class WebSocketGraphQlTransportTests {
 	private final static Duration TIMEOUT = Duration.ofSeconds(5);
 
 	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate(ClientCodecConfigurer.create());
+	public static final int KEEPALIVE = 1;
 
 
 	private final MockGraphQlWebSocketServer mockServer = new MockGraphQlWebSocketServer();
@@ -186,6 +187,22 @@ public class WebSocketGraphQlTransportTests {
 	}
 
 	@Test
+	void pingSending() throws InterruptedException {
+
+		GraphQlRequest request = this.mockServer.expectOperation("{Sub1}").andStream(Flux.just(this.response1, response2));
+
+		StepVerifier.create(this.transport.executeSubscription(request))
+				.expectNext(this.response1, response2).expectComplete()
+				.verify(TIMEOUT);
+		Thread.sleep(KEEPALIVE*1000 + 50); // wait for ping
+
+		assertActualClientMessages(
+				GraphQlWebSocketMessage.connectionInit(null),
+				GraphQlWebSocketMessage.subscribe("1", request),
+				GraphQlWebSocketMessage.ping(null));
+	}
+
+	@Test
 	void start() {
 		MockGraphQlWebSocketServer handler = new MockGraphQlWebSocketServer();
 		handler.connectionInitHandler(payload -> Mono.just(Collections.singletonMap("key", payload.get("key") + "Ack")));
@@ -210,7 +227,7 @@ public class WebSocketGraphQlTransportTests {
 
 
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor);
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor, 3);
 
 		transport.start().block(TIMEOUT);
 
@@ -324,7 +341,7 @@ public class WebSocketGraphQlTransportTests {
 	private static WebSocketGraphQlTransport createTransport(WebSocketClient client) {
 		return new WebSocketGraphQlTransport(
 				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
-				new WebSocketGraphQlClientInterceptor() {});
+				new WebSocketGraphQlClientInterceptor() {}, KEEPALIVE);
 	}
 
 	private void assertActualClientMessages(GraphQlWebSocketMessage... expectedMessages) {

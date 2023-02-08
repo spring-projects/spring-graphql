@@ -110,6 +110,8 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 										GraphQlWebSocketMessage.complete(id));
 			case COMPLETE:
 				return Flux.empty();
+			case PING:
+				return Mono.just(GraphQlWebSocketMessage.pong(null));
 			default:
 				return Flux.error(new IllegalStateException("Unexpected message: " + message));
 		}

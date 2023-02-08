@@ -16,6 +16,7 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -67,10 +68,12 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	private final Mono<GraphQlSession> graphQlSessionMono;
 
+	private final long keepalive;
+
 
 	WebSocketGraphQlTransport(
 			URI url, @Nullable HttpHeaders headers, WebSocketClient client, CodecConfigurer codecConfigurer,
-			WebSocketGraphQlClientInterceptor interceptor) {
+			WebSocketGraphQlClientInterceptor interceptor, long keepalive) {
 
 		Assert.notNull(url, "URI is required");
 		Assert.notNull(client, "WebSocketClient is required");
@@ -80,8 +83,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		this.url = url;
 		this.headers.putAll(headers != null ? headers : HttpHeaders.EMPTY);
 		this.webSocketClient = client;
+		this.keepalive = keepalive;
 
-		this.graphQlSessionHandler = new GraphQlSessionHandler(codecConfigurer, interceptor);
+		this.graphQlSessionHandler = new GraphQlSessionHandler(codecConfigurer, interceptor, keepalive);
 
 		this.graphQlSessionMono = initGraphQlSession(this.url, this.headers, client, this.graphQlSessionHandler)
 				.cacheInvalidateWhen(GraphQlSession::notifyWhenClosed);
@@ -154,6 +158,10 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
 	}
 
+	public long getKeepAlive() {
+		return keepalive;
+	}
+
 
 	/**
 	 * Client {@code WebSocketHandler} for GraphQL that deals with WebSocket
@@ -175,11 +183,15 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final AtomicBoolean stopped = new AtomicBoolean();
 
+		private final long keepalive;
 
-		GraphQlSessionHandler(CodecConfigurer codecConfigurer, WebSocketGraphQlClientInterceptor interceptor) {
+
+		GraphQlSessionHandler(CodecConfigurer codecConfigurer, WebSocketGraphQlClientInterceptor interceptor,
+							  long keepalive) {
 			this.codecDelegate = new CodecDelegate(codecConfigurer);
 			this.interceptor = interceptor;
 			this.graphQlSessionSink = Sinks.unsafe().one();
+			this.keepalive = keepalive;
 		}
 
 
@@ -236,7 +248,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 					session.send(connectionInitMono.concatWith(graphQlSession.getRequestFlux())
 							.map(message -> this.codecDelegate.encode(session, message)));
 
-			Mono<Void> receiveCompletion = session.receive()
+			Flux<Void> receiveCompletion = session.receive()
 					.flatMap(webSocketMessage -> {
 						if (sessionNotInitialized()) {
 							try {
@@ -277,6 +289,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 									case COMPLETE:
 										graphQlSession.handleComplete(message);
 										break;
+									case PONG:
+										break;
 									default:
 										throw new IllegalStateException(
 												"Unexpected message type: '" + message.getType() + "'");
@@ -290,10 +304,21 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 							}
 						}
 						return Mono.empty();
-					})
-					.then();
+					});
 
-			return Mono.zip(sendCompletion, receiveCompletion).then();
+			if (keepalive > 0) {
+				Duration keepAliveDuration = Duration.ofSeconds(keepalive);
+				receiveCompletion = receiveCompletion
+						.mergeWith(Flux.interval(keepAliveDuration, keepAliveDuration)
+							.flatMap(i -> {
+								graphQlSession.sendPing(null);
+								return Mono.empty();
+							})
+						);
+			}
+
+
+			return Mono.zip(sendCompletion, receiveCompletion.then()).then();
 		}
 
 		private boolean sessionNotInitialized() {
@@ -451,6 +476,11 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		public void sendPong(@Nullable Map<String, Object> payload) {
 			GraphQlWebSocketMessage message = GraphQlWebSocketMessage.pong(payload);
+			this.requestSink.sendRequest(message);
+		}
+
+		public void sendPing(@Nullable Map<String, Object> payload) {
+			GraphQlWebSocketMessage message = GraphQlWebSocketMessage.ping(payload);
 			this.requestSink.sendRequest(message);
 		}
 
