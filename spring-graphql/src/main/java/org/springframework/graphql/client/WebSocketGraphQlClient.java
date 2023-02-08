@@ -65,6 +65,16 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	}
 
 	/**
+	 * Create a {@link WebSocketGraphQlClient}.
+	 * @param url the GraphQL endpoint URL
+	 * @param webSocketClient the underlying transport client to use
+	 * @param keepalive the delay in seconds between sending ping messages, or 0 to disable
+	 */
+	static WebSocketGraphQlClient create(URI url, WebSocketClient webSocketClient, long keepalive) {
+		return builder(url, webSocketClient).keepalive(keepalive).build();
+	}
+
+	/**
 	 * Return a builder for a {@link WebSocketGraphQlClient}.
 	 * @param url the GraphQL endpoint URL
 	 * @param webSocketClient the underlying transport client to use
@@ -77,9 +87,29 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	 * Return a builder for a {@link WebSocketGraphQlClient}.
 	 * @param url the GraphQL endpoint URL
 	 * @param webSocketClient the underlying transport client to use
+	 * @param keepalive the delay in seconds between sending ping messages, or 0 to disable
+	 */
+	static Builder<?> builder(String url, WebSocketClient webSocketClient, long keepalive) {
+		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient, keepalive);
+	}
+
+	/**
+	 * Return a builder for a {@link WebSocketGraphQlClient}.
+	 * @param url the GraphQL endpoint URL
+	 * @param webSocketClient the underlying transport client to use
 	 */
 	static Builder<?> builder(URI url, WebSocketClient webSocketClient) {
 		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient);
+	}
+
+	/**
+	 * Return a builder for a {@link WebSocketGraphQlClient}.
+	 * @param url the GraphQL endpoint URL
+	 * @param webSocketClient the underlying transport client to use
+	 * @param keepalive the delay in seconds between sending ping messages, or 0 to disable
+	 */
+	static Builder<?> builder(URI url, WebSocketClient webSocketClient, long keepalive) {
+		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient, keepalive);
 	}
 
 
@@ -94,6 +124,8 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 		 */
 		@Override
 		WebSocketGraphQlClient build();
+
+		Builder<B> keepalive(long keepalive);
 
 	}
 

@@ -49,6 +49,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 
 	private final CodecConfigurer codecConfigurer;
 
+	private long keepalive;
 
 	/**
 	 * Constructor to start via {@link WebSocketGraphQlClient#builder(String, WebSocketClient)}.
@@ -58,12 +59,27 @@ final class DefaultWebSocketGraphQlClientBuilder
 	}
 
 	/**
+	 * Constructor to start via {@link WebSocketGraphQlClient#builder(String, WebSocketClient, long)}.
+	 */
+	DefaultWebSocketGraphQlClientBuilder(String url, WebSocketClient client, long keepalive) {
+		this(toURI(url), client, keepalive);
+	}
+
+	/**
 	 * Constructor to start via {@link WebSocketGraphQlClient#builder(URI, WebSocketClient)}.
 	 */
 	DefaultWebSocketGraphQlClientBuilder(URI url, WebSocketClient client) {
+		this(url, client, 0);
+	}
+
+	/**
+	 * Constructor to start via {@link WebSocketGraphQlClient#builder(URI, WebSocketClient, long)}.
+	 */
+	DefaultWebSocketGraphQlClientBuilder(URI url, WebSocketClient client, long keepalive) {
 		this.url = url;
 		this.webSocketClient = client;
 		this.codecConfigurer = ClientCodecConfigurer.create();
+		this.keepalive = keepalive;
 	}
 
 	/**
@@ -75,6 +91,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 		this.headers.putAll(transport.getHeaders());
 		this.webSocketClient = transport.getWebSocketClient();
 		this.codecConfigurer = transport.getCodecConfigurer();
+		this.keepalive = transport.getKeepAlive();
 	}
 
 
@@ -119,10 +136,16 @@ final class DefaultWebSocketGraphQlClientBuilder
 				CodecDelegate.findJsonDecoder(this.codecConfigurer));
 
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				this.url, this.headers, this.webSocketClient, this.codecConfigurer, getInterceptor());
+				this.url, this.headers, this.webSocketClient, this.codecConfigurer, getInterceptor(), this.keepalive);
 
 		GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
 		return new DefaultWebSocketGraphQlClient(graphQlClient, transport, getBuilderInitializer());
+	}
+
+	@Override
+	public WebSocketGraphQlClient.Builder<DefaultWebSocketGraphQlClientBuilder> keepalive(long keepalive) {
+		this.keepalive = keepalive;
+		return this;
 	}
 
 	private WebSocketGraphQlClientInterceptor getInterceptor() {

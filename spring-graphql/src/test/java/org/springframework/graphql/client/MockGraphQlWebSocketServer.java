@@ -110,6 +110,9 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 										GraphQlWebSocketMessage.error(id, Collections.singletonList(request.getError())) :
 										GraphQlWebSocketMessage.complete(id));
 			}
+			case PING -> {
+				return Mono.just(GraphQlWebSocketMessage.pong(null));
+			}
 			case COMPLETE -> {
 				return Flux.empty();
 			}

@@ -165,6 +165,13 @@ existing `WebSocketGraphQlClient` to create a new instance with customized setti
 
 ----
 
+If you'd like the client to send regular graphql ping messages to the server, you can add these by adding `keepalive(long seconds)` to the builder
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
+        .keepalive(30)
+        .build();
+----
 
 [[client.websocketgraphqlclient.interceptor]]
 ==== Interceptor
