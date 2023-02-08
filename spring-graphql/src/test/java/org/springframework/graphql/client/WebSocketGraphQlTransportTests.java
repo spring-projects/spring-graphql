@@ -227,7 +227,7 @@ public class WebSocketGraphQlTransportTests {
 
 
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor, 3);
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor, KEEPALIVE);
 
 		transport.start().block(TIMEOUT);
 
