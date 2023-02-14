@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.graphql.observation;
 import java.util.concurrent.CompletionStage;
 
 import graphql.ExecutionResult;
+import graphql.GraphQLContext;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentationContext;
@@ -100,20 +101,21 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 			InstrumentationState state) {
 		if (state instanceof RequestObservationInstrumentationState instrumentationState) {
 			ExecutionRequestObservationContext observationContext = new ExecutionRequestObservationContext(parameters.getExecutionInput());
+			Observation parentObservation = parameters.getGraphQLContext().get(OBSERVATION_KEY);
 			Observation requestObservation = instrumentationState.createRequestObservation(this.requestObservationConvention,
 					observationContext, this.observationRegistry);
+			requestObservation.parentObservation(parentObservation);
+			parameters.getGraphQLContext().put(OBSERVATION_KEY, requestObservation);
 			requestObservation.start();
 			return new SimpleInstrumentationContext<>() {
 				@Override
 				public void onCompleted(ExecutionResult result, Throwable exc) {
 					observationContext.setResponse(result);
 					if (exc != null) {
-						observationContext.setError(exc);
 						requestObservation.error(exc);
 					}
-					else {
-						requestObservation.stop();
-					}
+					requestObservation.stop();
+					instrumentationState.restoreParentObservation(parameters.getGraphQLContext(), parentObservation);
 				}
 			};
 		}
@@ -126,58 +128,66 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 		if (!parameters.isTrivialDataFetcher()
 				&& state instanceof RequestObservationInstrumentationState instrumentationState) {
 			return (environment) -> {
+				GraphQLContext graphQLContext = parameters.getExecutionContext().getGraphQLContext();
+				Observation parentObservation = graphQLContext.get(OBSERVATION_KEY);
 				DataFetcherObservationContext observationContext = new DataFetcherObservationContext(parameters.getEnvironment());
 				Observation dataFetcherObservation = instrumentationState.createDataFetcherObservation(
 						this.dataFetcherObservationConvention, observationContext, this.observationRegistry);
-				parameters.getExecutionContext().getGraphQLContext().put(OBSERVATION_KEY, dataFetcherObservation);
+				dataFetcherObservation.parentObservation(parentObservation);
+				graphQLContext.put(OBSERVATION_KEY, dataFetcherObservation);
 				dataFetcherObservation.start();
 				try {
 					Object value = dataFetcher.get(environment);
 					if (value instanceof CompletionStage<?> completion) {
 						return completion.whenComplete((result, error) -> {
+							observationContext.setValue(result);
 							if (error != null) {
 								dataFetcherObservation.error(error);
 							}
-							observationContext.setValue(result);
 							dataFetcherObservation.stop();
+							instrumentationState.restoreParentObservation(graphQLContext, parentObservation);
 						});
 					}
 					else {
 						observationContext.setValue(value);
 						dataFetcherObservation.stop();
+						instrumentationState.restoreParentObservation(graphQLContext, parentObservation);
 						return value;
 					}
 				}
 				catch (Throwable throwable) {
 					dataFetcherObservation.error(throwable);
 					dataFetcherObservation.stop();
+					instrumentationState.restoreParentObservation(graphQLContext, parentObservation);
 					throw throwable;
 				}
 			};
 		}
-		return super.instrumentDataFetcher(dataFetcher, parameters, state);
+		return dataFetcher;
 	}
 
 
 	static class RequestObservationInstrumentationState implements InstrumentationState {
 
-		private Observation requestObservation;
-
-
 		Observation createRequestObservation(ExecutionRequestObservationConvention convention,
 				ExecutionRequestObservationContext context, ObservationRegistry registry) {
-			Observation observation = GraphQlObservationDocumentation.EXECUTION_REQUEST.observation(convention,
+			return GraphQlObservationDocumentation.EXECUTION_REQUEST.observation(convention,
 					DEFAULT_REQUEST_CONVENTION, () -> context, registry);
-			this.requestObservation = observation;
-			return observation;
 		}
 
 		Observation createDataFetcherObservation(DataFetcherObservationConvention convention,
 				DataFetcherObservationContext context, ObservationRegistry registry) {
-			Observation dataFetcherObservation = GraphQlObservationDocumentation.DATA_FETCHER.observation(convention,
+			return GraphQlObservationDocumentation.DATA_FETCHER.observation(convention,
 					DEFAULT_DATA_FETCHER_CONVENTION, () -> context, registry);
-			dataFetcherObservation.parentObservation(requestObservation);
-			return dataFetcherObservation;
+		}
+
+		void restoreParentObservation(GraphQLContext context, Observation parentObservation) {
+			if (parentObservation != null) {
+				context.put(OBSERVATION_KEY, parentObservation);
+			}
+			else {
+				context.delete(OBSERVATION_KEY);
+			}
 		}
 
 	}

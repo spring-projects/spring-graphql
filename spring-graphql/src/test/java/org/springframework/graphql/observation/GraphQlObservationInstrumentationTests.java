@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import graphql.GraphqlErrorBuilder;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
 import io.micrometer.observation.transport.ReceiverContext;
@@ -197,6 +199,30 @@ class GraphQlObservationInstrumentationTests {
 				.hasObservationWithNameEqualTo("graphql.datafetcher")
 				.that()
 				.hasParentObservationContextMatching(context -> context instanceof ExecutionRequestObservationContext);
+	}
+
+	@Test
+	void setIncomingObservationAsParent() {
+		String document = """
+				{
+					bookById(id: 1) {
+						name
+					}
+				}
+				""";
+		ExecutionGraphQlRequest graphQlRequest = TestExecutionRequest.forDocument(document);
+		Observation incoming = Observation.start("incoming", ObservationRegistry.create());
+		graphQlRequest.configureExecutionInput((input, builder) ->
+				builder.graphQLContext(contextBuilder -> contextBuilder.of("micrometer.observation", incoming)).build());
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
+				.toGraphQlService()
+				.execute(graphQlRequest);
+		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
+				.that().hasParentObservationEqualTo(incoming);
+		incoming.stop();
 	}
 
 	@Test
