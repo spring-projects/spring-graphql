@@ -13,10 +13,6 @@ anchors:
     ARTIFACTORY_SERVER: ((artifactory-server))
     ARTIFACTORY_USERNAME: ((artifactory-username))
     ARTIFACTORY_PASSWORD: ((artifactory-password))
-  registry-mirror-vars: &registry-mirror-vars
-    registry-mirror-host: ((registry-mirror-host))
-    registry-mirror-username: ((registry-mirror-username))
-    registry-mirror-password: ((registry-mirror-password))
   sonatype-task-params: &sonatype-task-params
     SONATYPE_USERNAME: ((sonatype-username))
     SONATYPE_PASSWORD: ((sonatype-password))
@@ -35,7 +31,7 @@ resource_types:
   source:
     <<: *registry-image-resource-source
     repository: springio/artifactory-resource
-    tag: 0.0.17
+    tag: 0.0.18
 - name: github-release
   type: registry-image
   source:
@@ -63,8 +59,7 @@ resources:
   type: registry-image
   icon: docker
   source:
-    username: ((docker-hub-username))
-    password: ((docker-hub-password))
+    <<: *registry-image-resource-source
     tag: ((milestone))
     repository: ((docker-hub-organization))/spring-graphql-ci-image
 - name: artifactory-repo
@@ -106,7 +101,7 @@ jobs:
       image: ci-image
     vars:
       ci-image-name: ci-image
-      <<: *registry-mirror-vars
+      <<: *registry-image-resource-source
   - put: ci-image
     params:
       image: ci-image/image.tar
@@ -183,7 +178,7 @@ jobs:
       params:
         RELEASE_TYPE: M
         <<: *artifactory-task-params
-        <<: *registry-mirror-vars
+        <<: *registry-image-resource-source
     - task: generate-changelog
       file: git-repo/ci/tasks/generate-changelog.yml
       params:
@@ -191,7 +186,7 @@ jobs:
         GITHUB_USERNAME: ((github-username))
         GITHUB_TOKEN: ((github-ci-release-token))
       vars:
-        <<: *registry-mirror-vars
+        <<: *registry-image-resource-source
     - put: github-pre-release
       params:
         name: generated-changelog/tag
@@ -233,7 +228,7 @@ jobs:
       params:
         RELEASE_TYPE: RC
         <<: *artifactory-task-params
-        <<: *registry-mirror-vars
+        <<: *registry-image-resource-source
     - task: generate-changelog
       file: git-repo/ci/tasks/generate-changelog.yml
       params:
@@ -241,7 +236,7 @@ jobs:
         GITHUB_USERNAME: ((github-username))
         GITHUB_TOKEN: ((github-ci-release-token))
       vars:
-        <<: *registry-mirror-vars
+        <<: *registry-image-resource-source
     - put: github-pre-release
       params:
         name: generated-changelog/tag
@@ -283,7 +278,7 @@ jobs:
       params:
         RELEASE_TYPE: RELEASE
         <<: *artifactory-task-params
-        <<: *registry-mirror-vars
+        <<: *registry-image-resource-source
         <<: *sonatype-task-params
 - name: create-github-release
   serial: true
@@ -303,7 +298,7 @@ jobs:
         GITHUB_USERNAME: ((github-username))
         GITHUB_TOKEN: ((github-ci-release-token))
       vars:
-        <<: *registry-mirror-vars
+        <<: *registry-image-resource-source
     - put: github-release
       params:
         name: generated-changelog/tag
