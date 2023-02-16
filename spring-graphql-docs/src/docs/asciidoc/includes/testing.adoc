@@ -223,6 +223,17 @@ Once `ExecutionGraphQlServiceTester` is created, you can begin to
 <<testing.requests, execute requests>> using the same API, independent of the underlying
 transport.
 
+`ExecutionGraphQlServiceTester.Builder` provides an option to customize `ExecutionInput` details:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	GraphQlService service = ... ;
+	ExecutionGraphQlServiceTester tester = ExecutionGraphQlServiceTester.builder(service)
+			.configureExecutionInput((executionInput, builder) -> builder.executionId(id).build())
+			.build();
+----
+
+
 
 [[testing.webgraphqltester]]
 === `WebGraphQlHandler`

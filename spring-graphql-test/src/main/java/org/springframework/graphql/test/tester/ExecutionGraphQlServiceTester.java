@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@
  */
 
 package org.springframework.graphql.test.tester;
+
+import java.util.function.BiFunction;
+
+import graphql.ExecutionInput;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -53,6 +57,14 @@ public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 	 * Default {@link ExecutionGraphQlServiceTester.Builder} implementation.
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlTester.Builder<B> {
+
+		/**
+		 * Provide a {@code BiFunction} to help initialize the
+		 * {@link ExecutionInput} with.
+		 * @since 1.1.2
+		 * @see org.springframework.graphql.ExecutionGraphQlRequest#configureExecutionInput(BiFunction)
+		 */
+		B configureExecutionInput(BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer);
 
 		/**
 		 * Configure the JSON encoder to use for mapping response data to

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,14 @@ import java.util.Map;
 
 import graphql.ExecutionResultImpl;
 import graphql.GraphqlErrorBuilder;
+import graphql.execution.ExecutionId;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
@@ -63,17 +65,27 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 		getGraphQlService().setDataAsJson(DOCUMENT, "{}");
 
 		// Original
-		GraphQlTester.Builder<?> builder = graphQlTesterBuilder().documentSource(documentSource);
-		GraphQlTester tester = builder.build();
+		ExecutionGraphQlServiceTester tester = graphQlTesterBuilder()
+				.documentSource(documentSource)
+				.configureExecutionInput((executionInput, builder) -> builder.operationName("A").build())
+				.build();
 		tester.documentName("name").execute();
 
-		assertThat(getActualRequestDocument()).isEqualTo(DOCUMENT);
+		ExecutionGraphQlRequest request = getGraphQlService().getGraphQlRequest();
+		assertThat(request.toExecutionInput().getOperationName()).isEqualTo("A");
+		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
-		tester = tester.mutate().build();
+		ExecutionId id = ExecutionId.from("123");
+		tester = tester.mutate()
+				.configureExecutionInput((executionInput, builder) -> builder.executionId(id).build())
+				.build();
 		tester.documentName("name").execute();
 
-		assertThat(getActualRequestDocument()).isEqualTo(DOCUMENT);
+		request = getGraphQlService().getGraphQlRequest();
+		assertThat(request.toExecutionInput().getOperationName()).isEqualTo("A");
+		assertThat(request.toExecutionInput().getExecutionId()).isEqualTo(id);
+		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 	}
 
 	@Test
