@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import graphql.language.InterfaceTypeDefinition;
@@ -60,7 +61,11 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	private final Set<Resource> schemaResources = new LinkedHashSet<>();
 
+	@Nullable
+	private Function<TypeDefinitionRegistry, TypeDefinitionRegistry> typeDefinitionRegistryConfigurer;
+
 	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
+
 
 	@Nullable
 	private TypeResolver typeResolver;
@@ -72,6 +77,16 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	@Override
 	public DefaultSchemaResourceGraphQlSourceBuilder schemaResources(Resource... resources) {
 		this.schemaResources.addAll(Arrays.asList(resources));
+		return this;
+	}
+
+	@Override
+	public GraphQlSource.SchemaResourceBuilder configureTypeDefinitionRegistry(
+			Function<TypeDefinitionRegistry, TypeDefinitionRegistry> configurer) {
+
+		this.typeDefinitionRegistryConfigurer = (this.typeDefinitionRegistryConfigurer != null ?
+				this.typeDefinitionRegistryConfigurer.andThen(configurer) : configurer);
+
 		return this;
 	}
 
@@ -102,6 +117,10 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 				.map(this::parse)
 				.reduce(TypeDefinitionRegistry::merge)
 				.orElseThrow(MissingSchemaException::new);
+
+		if (this.typeDefinitionRegistryConfigurer != null) {
+			registry = this.typeDefinitionRegistryConfigurer.apply(registry);
+		}
 
 		logger.info("Loaded " + this.schemaResources.size() + " resource(s) in the GraphQL schema.");
 		if (logger.isDebugEnabled()) {

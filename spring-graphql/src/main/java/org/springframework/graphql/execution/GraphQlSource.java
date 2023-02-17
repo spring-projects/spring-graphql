@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.graphql.execution;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
@@ -170,6 +171,19 @@ public interface GraphQlSource {
 		 * @return the current builder
 		 */
 		SchemaResourceBuilder schemaResources(Resource... resources);
+
+		/**
+		 * Provide a function to customize the {@link TypeDefinitionRegistry}
+		 * created by parsing schema files. This allows adding or changing schema
+		 * type definitions before {@link GraphQLSchema} is created and validated.
+		 * @param configurer the function to apply accepting the current
+		 * {@link TypeDefinitionRegistry} and returning the one to use, likely
+		 * the same instance since {@link TypeDefinitionRegistry} is mutable.
+		 * @return the current builder
+		 * @sine 1.2
+		 */
+		SchemaResourceBuilder configureTypeDefinitionRegistry(
+				Function<TypeDefinitionRegistry, TypeDefinitionRegistry> configurer);
 
 		/**
 		 * Configure the underlying {@link RuntimeWiring.Builder} to register

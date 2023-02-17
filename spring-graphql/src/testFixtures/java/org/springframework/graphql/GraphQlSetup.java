@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
+import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
@@ -78,6 +80,13 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	public GraphQlSetup dataFetcher(String type, String field, DataFetcher<?> dataFetcher) {
 		return runtimeWiring(wiringBuilder ->
 				wiringBuilder.type(type, typeBuilder -> typeBuilder.dataFetcher(field, dataFetcher)));
+	}
+
+	public GraphQlSetup typeDefinitionRegistryConfigurer(
+			Function<TypeDefinitionRegistry, TypeDefinitionRegistry> configurer) {
+
+		this.graphQlSourceBuilder.configureTypeDefinitionRegistry(configurer);
+		return this;
 	}
 
 	public GraphQlSetup runtimeWiring(RuntimeWiringConfigurer configurer) {
