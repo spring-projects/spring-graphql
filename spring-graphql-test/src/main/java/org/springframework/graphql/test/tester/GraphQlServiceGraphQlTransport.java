@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,11 @@
 package org.springframework.graphql.test.tester;
 
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiFunction;
+
+import graphql.ExecutionInput;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
@@ -35,10 +40,16 @@ final class GraphQlServiceGraphQlTransport extends AbstractDirectGraphQlTranspor
 
 	private final ExecutionGraphQlService graphQlService;
 
+	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers;
 
-	GraphQlServiceGraphQlTransport(ExecutionGraphQlService graphQlService) {
+
+	GraphQlServiceGraphQlTransport(
+			ExecutionGraphQlService graphQlService,
+			List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers) {
+
 		Assert.notNull(graphQlService, "GraphQlService is required");
 		this.graphQlService = graphQlService;
+		this.executionInputConfigurers = new ArrayList<>(executionInputConfigurers);
 	}
 
 
@@ -46,8 +57,13 @@ final class GraphQlServiceGraphQlTransport extends AbstractDirectGraphQlTranspor
 		return this.graphQlService;
 	}
 
+	public List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> getExecutionInputConfigurers() {
+		return this.executionInputConfigurers;
+	}
+
 	@Override
 	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest request) {
+		this.executionInputConfigurers.forEach(request::configureExecutionInput);
 		return this.graphQlService.execute(request);
 	}
 

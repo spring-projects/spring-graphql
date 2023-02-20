@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,13 @@
 package org.springframework.graphql.test.tester;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+
+import graphql.ExecutionInput;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -40,6 +45,8 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 
 	private final ExecutionGraphQlService service;
 
+	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers;
+
 	@Nullable
 	private Encoder<?> encoder;
 
@@ -50,10 +57,20 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 	DefaultExecutionGraphQlServiceTesterBuilder(ExecutionGraphQlService service) {
 		Assert.notNull(service, "GraphQlService is required");
 		this.service = service;
+		this.executionInputConfigurers = new ArrayList<>();
 	}
 
 	DefaultExecutionGraphQlServiceTesterBuilder(GraphQlServiceGraphQlTransport transport) {
 		this.service = transport.getGraphQlService();
+		this.executionInputConfigurers = new ArrayList<>(transport.getExecutionInputConfigurers());
+	}
+
+	@Override
+	public DefaultExecutionGraphQlServiceTesterBuilder configureExecutionInput(
+			BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer) {
+
+		this.executionInputConfigurers.add(configurer);
+		return this;
 	}
 
 	@Override
@@ -71,7 +88,7 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 	@Override
 	public ExecutionGraphQlServiceTester build() {
 		registerJsonPathMappingProvider();
-		GraphQlServiceGraphQlTransport transport = new GraphQlServiceGraphQlTransport(this.service);
+		GraphQlServiceGraphQlTransport transport = createTransport();
 		GraphQlTester tester = super.buildGraphQlTester(transport);
 		return new DefaultExecutionGraphQlServiceTester(tester, transport, getBuilderInitializer());
 	}
@@ -84,6 +101,10 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 				return config.mappingProvider(provider);
 			});
 		}
+	}
+
+	private GraphQlServiceGraphQlTransport createTransport() {
+		return new GraphQlServiceGraphQlTransport(this.service, this.executionInputConfigurers);
 	}
 
 
