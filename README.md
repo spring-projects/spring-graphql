@@ -19,6 +19,9 @@ Information regarding CI builds can be found in the project's [Concourse pipelin
 
 Follow [@SpringCentral](https://twitter.com/springcentral).
 
+## Getting Support
+Check out the [Spring GraphQL tags on Stack Overflow](https://stackoverflow.com/questions/tagged/spring-graphql).
+[Commercial support](https://spring.io/support) is available too.
 
 
 ## License
