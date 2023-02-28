@@ -30,7 +30,6 @@ import jakarta.persistence.EntityManagerFactory;
 import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +52,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,8 +63,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link QueryByExampleDataFetcher}.
  */
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration
+@SpringJUnitConfig
 class QueryByExampleDataFetcherJpaTests {
 
 	@Autowired
@@ -159,7 +156,7 @@ class QueryByExampleDataFetcherJpaTests {
 	}
 
 	@Disabled("Pending https://github.com/spring-projects/spring-data-jpa/issues/2327")
-	@Test
+			@Test
 	void shouldFetchSingleItemsWithDtoProjection() {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		repository.save(book);
