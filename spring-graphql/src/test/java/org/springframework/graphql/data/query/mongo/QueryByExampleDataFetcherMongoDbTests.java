@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import com.mongodb.client.MongoClients;
 import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -51,8 +50,7 @@ import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
@@ -62,8 +60,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link QueryByExampleDataFetcher}.
  */
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration
+@SpringJUnitConfig
 @Testcontainers(disabledWithoutDocker = true)
 class QueryByExampleDataFetcherMongoDbTests {
 
