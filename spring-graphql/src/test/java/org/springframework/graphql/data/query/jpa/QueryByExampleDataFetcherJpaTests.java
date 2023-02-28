@@ -156,7 +156,7 @@ class QueryByExampleDataFetcherJpaTests {
 	}
 
 	@Disabled("Pending https://github.com/spring-projects/spring-data-jpa/issues/2327")
-			@Test
+	@Test
 	void shouldFetchSingleItemsWithDtoProjection() {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		repository.save(book);
