@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import graphql.GraphQLContext;
+import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
@@ -42,13 +43,17 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -206,6 +211,50 @@ public class SchemaMappingInvocationTests {
 				.verifyComplete();
 	}
 
+	@Test
+	void handleExceptionFromQuery() {
+		String document = "{ " +
+				"  booksByCriteria(criteria: {author:\"Fitzgerald\"}) { " +
+				"    id" +
+				"    name" +
+				"  }" +
+				"}";
+
+		Mono<ExecutionGraphQlResponse> responseMono =
+				graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+		ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+		assertThat(responseHelper.errorCount()).isEqualTo(1);
+		assertThat(responseHelper.error(0).errorType()).isEqualTo("BAD_REQUEST");
+		assertThat(responseHelper.error(0).message()).isEqualTo("Rejected: Bad input");
+	}
+
+	@Test
+	void handleExceptionFromSubscription() {
+		String document = "subscription { " +
+				"  bookSearch(author:\"Fitzgerald\") { " +
+				"    id" +
+				"    name" +
+				"  }" +
+				"}";
+
+		Mono<ExecutionGraphQlResponse> responseMono =
+				graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+		Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
+				.map(response -> response.toEntity("bookSearch", Book.class));
+
+		StepVerifier.create(bookFlux)
+				.expectErrorSatisfies(ex -> {
+					SubscriptionPublisherException theEx = (SubscriptionPublisherException) ex;
+					List<GraphQLError> errors = theEx.getErrors();
+					assertThat(errors).hasSize(1);
+					assertThat(errors.get(0).getErrorType().toString()).isEqualTo("BAD_REQUEST");
+					assertThat(errors.get(0).getMessage()).isEqualTo("Rejected: Bad input");
+				})
+				.verify();
+	}
+
 
 	private ExecutionGraphQlService graphQlService() {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
@@ -243,6 +292,7 @@ public class SchemaMappingInvocationTests {
 
 		@QueryMapping
 		public List<Book> booksByCriteria(@Argument BookCriteria criteria) {
+			Assert.isTrue(!criteria.getAuthor().equalsIgnoreCase("Fitzgerald"), "Bad input");
 			return BookSource.findBooksByAuthor(criteria.getAuthor());
 		}
 
@@ -277,7 +327,16 @@ public class SchemaMappingInvocationTests {
 
 		@SubscriptionMapping
 		public Flux<Book> bookSearch(@Argument String author) {
-			return Flux.fromIterable(BookSource.findBooksByAuthor(author));
+			return (author.equalsIgnoreCase("Fitzgerald") ?
+					Flux.error(new IllegalArgumentException("Bad input")) :
+					Flux.fromIterable(BookSource.findBooksByAuthor(author)));
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handleInputError(IllegalArgumentException ex) {
+			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST)
+					.message("Rejected: " + ex.getMessage())
+					.build();
 		}
 	}
 

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -30,6 +31,7 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -38,6 +40,7 @@ import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -62,7 +65,9 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComp
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
+import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
+import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -127,6 +132,9 @@ public class AnnotatedControllerConfigurer
 	@Nullable
 	private ValidationHelper validationHelper;
 
+	@Nullable
+	private AnnotatedControllerExceptionResolver exceptionResolver;
+
 
 	/**
 	 * Add a {@code FormatterRegistrar} to customize the {@link ConversionService}
@@ -165,6 +173,25 @@ public class AnnotatedControllerConfigurer
 		this.applicationContext = applicationContext;
 	}
 
+	/**
+	 * Return a {@link DataFetcherExceptionResolver} that resolves exceptions with
+	 * {@code @GraphQlExceptionHandler} methods in {@code @ControllerAdvice}
+	 * classes declared in Spring configuration. This is useful primarily for
+	 * exceptions from non-controller {@link DataFetcher}s since exceptions from
+	 * {@code @SchemaMapping} controller methods are handled automatically at
+	 * the point of invocation.
+	 *
+	 * @return a resolver instance that can be plugged into
+	 * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
+	 * GraphQlSource.Builder}
+	 *
+	 * @since 1.2
+	 */
+	public DataFetcherExceptionResolver getExceptionResolver() {
+		Assert.notNull(this.exceptionResolver, "ExceptionResolver is not initialized, was afterPropertiesSet called?");
+		return (ex, env) -> this.exceptionResolver.resolveException(ex, env, null);
+	}
+
 	@Nullable
 	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
 		return this.argumentResolvers;
@@ -174,6 +201,11 @@ public class AnnotatedControllerConfigurer
 	public void afterPropertiesSet() {
 
 		this.argumentResolvers = initArgumentResolvers();
+
+		this.exceptionResolver = new AnnotatedControllerExceptionResolver(this.argumentResolvers);
+		if (this.applicationContext != null) {
+			this.exceptionResolver.registerControllerAdvice(this.applicationContext);
+		}
 
 		if (beanValidationPresent) {
 			this.validationHelper = ValidationHelper.createIfValidatorPresent(obtainApplicationContext());
@@ -222,12 +254,13 @@ public class AnnotatedControllerConfigurer
 	@Override
 	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
 		Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
+		Assert.state(this.exceptionResolver != null, "`exceptionResolver` is not initialized");
 
 		findHandlerMethods().forEach((info) -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
 				dataFetcher = new SchemaMappingDataFetcher(
-						info, this.argumentResolvers, this.validationHelper, this.executor);
+						info, this.argumentResolvers, this.validationHelper, this.exceptionResolver, this.executor);
 			}
 			else {
 				String dataLoaderKey = registerBatchLoader(info);
@@ -493,19 +526,30 @@ public class AnnotatedControllerConfigurer
 		@Nullable
 		private final Consumer<Object[]> methodValidationHelper;
 
+		private final AnnotatedControllerExceptionResolver exceptionResolver;
+
 		@Nullable
 		private final Executor executor;
 
 		private final boolean subscription;
 
 		SchemaMappingDataFetcher(
-				MappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
-				@Nullable ValidationHelper validationHelper, @Nullable Executor executor) {
+				MappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
+				@Nullable ValidationHelper helper, AnnotatedControllerExceptionResolver exceptionResolver,
+				@Nullable Executor executor) {
 
 			this.info = info;
-			this.argumentResolvers = resolvers;
-			this.methodValidationHelper = (validationHelper != null ?
-					validationHelper.getValidationHelperFor(info.getHandlerMethod()) : null);
+			this.argumentResolvers = argumentResolvers;
+
+			this.methodValidationHelper =
+					(helper != null ? helper.getValidationHelperFor(info.getHandlerMethod()) : null);
+
+			// Register controllers early to validate exception handler return types
+			Class<?> controllerType = info.getHandlerMethod().getBeanType();
+			exceptionResolver.registerController(controllerType);
+
+			this.exceptionResolver = exceptionResolver;
+
 			this.executor = executor;
 			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
@@ -517,17 +561,53 @@ public class AnnotatedControllerConfigurer
 			return this.info.getHandlerMethod();
 		}
 
-
 		@Override
-		@SuppressWarnings("ConstantConditions")
+		@SuppressWarnings({"ConstantConditions", "ReactiveStreamsUnusedPublisher"})
 		public Object get(DataFetchingEnvironment environment) throws Exception {
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 					getHandlerMethod(), this.argumentResolvers, this.methodValidationHelper,
 					this.executor, this.subscription);
 
-			return handlerMethod.invoke(environment);
+			try {
+				Object result = handlerMethod.invoke(environment);
+				return applyExceptionHandling(environment, handlerMethod, result);
+			}
+			catch (Throwable ex) {
+				return handleException(ex, environment, handlerMethod);
+			}
 		}
+
+		@SuppressWarnings({"unchecked", "ReactiveStreamsUnusedPublisher"})
+		private <T> Object applyExceptionHandling(
+				DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod, Object result) {
+
+			if (this.subscription && result instanceof Publisher<?> publisher) {
+				result = Flux.from(publisher).onErrorResume(ex -> handleSubscriptionError(ex, env, handlerMethod));
+			}
+			else if (result instanceof Mono) {
+				result = ((Mono<T>) result).onErrorResume(ex -> (Mono<T>) handleException(ex, env, handlerMethod));
+			}
+			else if (result instanceof Flux<?>) {
+				result = ((Flux<T>) result).onErrorResume(ex -> (Mono<T>) handleException(ex, env, handlerMethod));
+			}
+			return result;
+		}
+
+		private Mono<DataFetcherResult<?>> handleException(
+				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
+
+			return this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
+					.map(errors -> DataFetcherResult.newResult().errors(errors).build());
+		}
+
+		private <T> Publisher<T> handleSubscriptionError(
+				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
+
+			return this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
+					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)));
+		}
+
 	}
 
 

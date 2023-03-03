@@ -84,7 +84,6 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	}
 
 
-
 	/**
 	 * Invoke the method after resolving its argument values in the context of
 	 * the given {@link DataFetchingEnvironment}.
@@ -95,8 +94,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 * be used directly, i.e. without argument resolution. Provided argument
 	 * values are checked before argument resolvers.
 	 *
-	 * @param environment the GraphQL {@link DataFetchingEnvironment} to use to
-	 * resolve arguments.
+	 * @param environment the environment to resolve arguments from
 	 *
 	 * @return the raw value returned by the invoked method, possibly a
 	 * {@code Mono} in case a method argument requires asynchronous resolution;
@@ -104,9 +102,19 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 */
 	@Nullable
 	public Object invoke(DataFetchingEnvironment environment) {
+		return invoke(environment, new Object[0]);
+	}
+
+	/**
+	 * Variant of {@link #invoke(DataFetchingEnvironment)} that also accepts
+	 * "given" arguments, which are matched by type.
+	 * @since 1.2
+	 */
+	@Nullable
+	public Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {
 		Object[] args;
 		try {
-			args = getMethodArgumentValues(environment);
+			args = getMethodArgumentValues(environment, providedArgs);
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);

@@ -77,9 +77,14 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		if (this.subscription) {
 			Assert.state(value instanceof Publisher, "Expected Publisher for a subscription");
-			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume(exception ->
-					this.subscriptionExceptionResolver.resolveException(exception)
-							.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, exception))));
+			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume(exception -> {
+				// Already handled, e.g. controller methods?
+				if (exception instanceof SubscriptionPublisherException) {
+					return Mono.error(exception);
+				}
+				return this.subscriptionExceptionResolver.resolveException(exception)
+						.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, exception)));
+			});
 			return flux.contextWrite(snapshot::updateContext);
 		}
 
