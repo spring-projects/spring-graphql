@@ -17,13 +17,12 @@ package org.springframework.graphql.data.method;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
@@ -132,16 +131,19 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 */
 	@SuppressWarnings("unchecked")
 	protected Mono<Object[]> toArgsMono(Object[] args) {
-
-		List<Mono<Object>> monoList = Arrays.stream(args)
-				.map(arg -> {
-					Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.justOrEmpty(arg));
-					return argMono.defaultIfEmpty(NO_VALUE);
-				})
-				.collect(Collectors.toList());
-
-		return Mono.zip(monoList,
-				values -> Stream.of(values).map(value -> value != NO_VALUE ? value : null).toArray());
+		List<Mono<Object>> monoList = new ArrayList<>();
+		for (Object arg : args) {
+			Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.justOrEmpty(arg));
+			monoList.add(argMono.defaultIfEmpty(NO_VALUE));
+		}
+		return Mono.zip(monoList, values -> {
+			for (int i = 0; i < values.length; i++) {
+				if (values[i] == NO_VALUE) {
+					values[i] = null;
+				}
+			}
+			return values;
+		});
 	}
 
 }
