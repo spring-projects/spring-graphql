@@ -17,7 +17,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import graphql.schema.DataFetchingEnvironment;
 import org.reactivestreams.Publisher;
@@ -50,7 +50,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private final HandlerMethodArgumentResolverComposite resolvers;
 
-	private final Consumer<Object[]> validationHelper;
+	private final BiConsumer<Object, Object[]> validationHelper;
 	
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
@@ -66,12 +66,13 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 */
 	public DataFetcherHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable Consumer<Object[]> validationHelper, @Nullable Executor executor, boolean subscription) {
+			@Nullable BiConsumer<Object, Object[]> validationHelper, @Nullable Executor executor,
+			boolean subscription) {
 
 		super(handlerMethod, executor);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.resolvers = resolvers;
-		this.validationHelper = (validationHelper != null ? validationHelper : args -> {});
+		this.validationHelper = (validationHelper != null ? validationHelper : (controller, args) -> {});
 		this.subscription = subscription;
 	}
 
@@ -187,7 +188,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 
 	@Nullable
 	private Object validateAndInvoke(Object[] args, DataFetchingEnvironment environment) {
-		this.validationHelper.accept(args);
+		this.validationHelper.accept(getBean(), args);
 		return doInvoke(environment.getGraphQlContext(), args);
 	}
 

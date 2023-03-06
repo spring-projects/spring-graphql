@@ -20,7 +20,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -54,45 +54,49 @@ class ValidationHelperTests {
 
 	@Test
 	void shouldIgnoreMethodsWithoutAnnotations() {
-		Consumer<Object[]> validator = createValidator(MyBean.class, "notValidatedMethod");
+		BiConsumer<Object, Object[]> validator = createValidator(MyBean.class, "notValidatedMethod");
 		assertThat(validator).isNull();
 	}
 
 	@Test
 	void shouldRaiseValidationErrorForAnnotatedParams() {
-		Consumer<Object[]> validator1 = createValidator(MyBean.class, "myValidMethod");
-		assertViolation(() -> validator1.accept(new Object[] {null, 2}), "myValidMethod.arg0");
-		assertViolation(() -> validator1.accept(new Object[] {"test", 12}), "myValidMethod.arg1");
+		MyBean bean = new MyBean();
 
-		Consumer<Object[]> validator2 = createValidator(MyBean.class, "myValidatedParameterMethod");
-		assertViolation(() -> validator2.accept(new Object[] {new ConstrainedInput(100)}), "integerValue");
+		BiConsumer<Object, Object[]> validator1 = createValidator(MyBean.class, "myValidMethod");
+		assertViolation(() -> validator1.accept(bean, new Object[] {null, 2}), "myValidMethod.arg0");
+		assertViolation(() -> validator1.accept(bean, new Object[] {"test", 12}), "myValidMethod.arg1");
+
+		BiConsumer<Object, Object[]> validator2 = createValidator(MyBean.class, "myValidatedParameterMethod");
+		assertViolation(() -> validator2.accept(bean, new Object[] {new ConstrainedInput(100)}), "integerValue");
 	}
 
 	@Test
 	void shouldRaiseValidationErrorForAnnotatedParamsWithGroups() {
-		Consumer<Object[]> validator1 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroup");
-		assertViolation(() -> validator1.accept(new Object[] {null}), "myValidMethodWithGroup.arg0");
+		MyValidationGroupsBean bean = new MyValidationGroupsBean();
 
-		Consumer<Object[]> validator2 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
-		assertViolation(() -> validator2.accept(new Object[] {null}), "myValidMethodWithGroupOnType.arg0");
+		BiConsumer<Object, Object[]> validator1 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroup");
+		assertViolation(() -> validator1.accept(bean, new Object[] {null}), "myValidMethodWithGroup.arg0");
+
+		BiConsumer<Object, Object[]> validator2 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
+		assertViolation(() -> validator2.accept(bean, new Object[] {null}), "myValidMethodWithGroupOnType.arg0");
 	}
 
 	@Test
 	void shouldRecognizeMethodsThatRequireValidation() {
-		Consumer<Object[]> validator1 = createValidator(RequiresValidationBean.class, "processConstrainedValue");
+		BiConsumer<Object, Object[]> validator1 = createValidator(RequiresValidationBean.class, "processConstrainedValue");
 		assertThat(validator1).isNotNull();
 
-		Consumer<Object[]> validator2 = createValidator(RequiresValidationBean.class, "processValidInput");
+		BiConsumer<Object, Object[]> validator2 = createValidator(RequiresValidationBean.class, "processValidInput");
 		assertThat(validator2).isNotNull();
 
-		Consumer<Object[]> validator3 = createValidator(RequiresValidationBean.class, "processValidatedInput");
+		BiConsumer<Object, Object[]> validator3 = createValidator(RequiresValidationBean.class, "processValidatedInput");
 		assertThat(validator3).isNotNull();
 
-		Consumer<Object[]> validator4 = createValidator(RequiresValidationBean.class, "processValue");
+		BiConsumer<Object, Object[]> validator4 = createValidator(RequiresValidationBean.class, "processValue");
 		assertThat(validator4).isNull();
 	}
 
-	private Consumer<Object[]> createValidator(Class<?> handlerType, String methodName) {
+	private BiConsumer<Object, Object[]> createValidator(Class<?> handlerType, String methodName) {
 		return ValidationHelper.create(Validation.buildDefaultValidatorFactory().getValidator())
 				.getValidationHelperFor(findHandlerMethod(handlerType, methodName));
 	}

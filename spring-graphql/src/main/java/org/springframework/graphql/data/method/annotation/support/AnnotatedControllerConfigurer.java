@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -524,7 +525,7 @@ public class AnnotatedControllerConfigurer
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
 		@Nullable
-		private final Consumer<Object[]> methodValidationHelper;
+		private final BiConsumer<Object, Object[]> methodValidationHelper;
 
 		private final AnnotatedControllerExceptionResolver exceptionResolver;
 
