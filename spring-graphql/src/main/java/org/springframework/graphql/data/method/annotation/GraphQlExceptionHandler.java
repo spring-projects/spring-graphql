@@ -38,6 +38,9 @@ import java.util.List;
  * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
  * GraphQlSource.Builder}.
  *
+ * <p>Supported return types are listed in the Spring for GraphQL reference documentation
+ * in the section {@literal "Annotated Controllers"}.
+ *
  * @author Rossen Stoyanchev
  * @since 1.2
  */

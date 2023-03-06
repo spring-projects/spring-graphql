@@ -499,25 +499,27 @@ added by <<server.interception, WebGraphQlInterceptor>> components.
 
 
 [[execution.exceptions]]
-=== Exception Resolution
+=== Exceptions
 
-A GraphQL Java application can register a `DataFetcherExceptionHandler` to decide how to
-represent exceptions from the data layer in the "errors" section of the GraphQL response.
+In GraphQL Java, `DataFetcherExceptionHandler` decides how to represent exceptions from
+data fetching in the "errors" section of the response. An application can register a
+single handler only.
 
-Spring for GraphQL has a built-in `DataFetcherExceptionHandler` that is configured for use
-by the default <<execution.graphqlsource>> builder. It allows applications to register
-one or more Spring `DataFetcherExceptionResolver` components that are invoked sequentially
-until one resolves the `Exception` to a (possibly empty) list of `graphql.GraphQLError`
-objects.
+Spring for GraphQL registers a `DataFetcherExceptionHandler` that provides default
+handling and enables the `DataFetcherExceptionResolver` contract. An application can
+register any number of resolvers via <<execution.graphqlsource>> builder and those are in
+order until one them resolves the `Exception` to a `List<graphql.GraphQLError>`.
+The Spring Boot starter detects beans of this type.
 
-`DataFetcherExceptionResolver` is an asynchronous contract. For most implementations, it
-would be sufficient to extend `DataFetcherExceptionResolverAdapter` and override
-one of its `resolveToSingleError` or `resolveToMultipleErrors` methods that
-resolve exceptions synchronously.
+`DataFetcherExceptionResolverAdapter` is a convenient base class with protected methods
+`resolveToSingleError` and `resolveToMultipleErrors`.
 
-A `GraphQLError` can be assigned to a category via `graphql.ErrorClassification`.
-In Spring GraphQL, you can also assign via `ErrorType` which has the following common
-classifications that applications can use to categorize errors:
+The <<controllers>> programming model enables handling data fetching exceptions with
+annotated exception handler methods with a flexible method signature, see
+<<controllers.exception-handler>> for details.
+
+A `GraphQLError` can be assigned to a category based on the GraphQL Java
+`graphql.ErrorClassification`, or the Spring GraphQL `ErrorType`, which defines the following:
 
 - `BAD_REQUEST`
 - `UNAUTHORIZED`
@@ -533,6 +535,7 @@ error details.
 
 Unresolved exception are logged at ERROR level along with the `executionId` to correlate
 to the error sent to the client. Resolved exceptions are logged at DEBUG level.
+
 
 [[execution.exceptions.request]]
 ==== Request Exceptions
@@ -1657,6 +1660,88 @@ Batch mapping methods can return:
 | `Callable<Map<K,V>>`, `Callable<Collection<V>>`
 | Imperative variants to be invoked asynchronously. For this to work,
   `AnnotatedControllerConfigurer` must be configured with an `Executor`.
+
+|===
+
+
+
+[[controllers.exception-handler]]
+=== `@GraphQlExceptionHandler`
+
+Use `@GraphQlExceptionHandler` methods to handle exceptions from data fetching with a
+flexible <<controllers.exception-handler.signature,method signature>>. When declared in a
+controller, exception handler methods apply to exceptions from the same controller:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(BindException ex) {
+			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
+		}
+
+	}
+----
+
+When declared in an `@ControllerAdvice`, exception handler methods apply across controllers:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@ControllerAdvice
+	public class GlobalExceptionHandler {
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(BindException ex) {
+			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
+		}
+
+	}
+----
+
+Exception handling via `@GraphQlExceptionHandler` methods is applied automatically to
+controller invocations. To handle exceptions from other `graphql.schema.DataFetcher`
+implementations, not based on controller methods, obtain a
+`DataFetcherExceptionResolver` from `AnnotatedControllerConfigurer`, and register it in
+`GraphQlSource.Builder` as a <<execution.exceptions,DataFetcherExceptionResolver>>.
+
+
+
+
+[[controllers.exception-handler.signature]]
+==== Method Signature
+
+Exception handler methods support a flexible method signature with method arguments
+resolved from a `DataFetchingEnvironment,` and matching to those of
+<<controllers.schema-mapping.arguments,@SchemaMapping methods>>.
+
+Supported return types are listed below:
+
+[cols="1,2"]
+|===
+| Return Type | Description
+
+| `graphql.GraphQLError`
+| Resolve the exception to a single field error.
+
+| `Collection<GraphQLError>`
+| Resolve the exception to multiple field errors.
+
+| `void`
+| Resolve the exception without response errors.
+
+| `Object`
+| Resolve the exception to a single error, to multiple errors, or none.
+  The return value must be `GraphQLError`, `Collection<GraphQLError>`, or `null`.
+
+| `Mono<T>`
+| For asynchronous resolution where `<T>` is one of the supported, synchronous, return types.
 
 |===
 

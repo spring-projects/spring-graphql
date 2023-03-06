@@ -367,7 +367,7 @@ final class AnnotatedControllerExceptionResolver {
 		 */
 		static ReturnValueAdapter createFor(MethodParameter returnType) {
 			Class<?> parameterType = returnType.getParameterType();
-			if (parameterType == void.class || parameterType == Void.class) {
+			if (parameterType == void.class) {
 				return forVoid;
 			}
 			else if (parameterType.equals(GraphQLError.class)) {
@@ -381,7 +381,7 @@ final class AnnotatedControllerExceptionResolver {
 			else if (Mono.class.isAssignableFrom(parameterType)) {
 				returnType = returnType.nested();
 				Class<?> nestedType = returnType.getNestedParameterType();
-				if (nestedType == void.class || nestedType == Void.class) {
+				if (nestedType == Void.class) {
 					return forMonoVoid;
 				}
 				if (Collection.class.isAssignableFrom(nestedType)) {
