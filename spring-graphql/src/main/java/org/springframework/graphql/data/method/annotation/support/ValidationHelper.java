@@ -16,8 +16,9 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.ConstraintViolation;
@@ -61,7 +62,7 @@ class ValidationHelper {
 	 * {@link Validated}, {@link Valid}, or {@link Constraint} annotations.
 	 */
 	@Nullable
-	public Consumer<Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
+	public BiConsumer<Object, Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
 
 		boolean requiresMethodValidation = false;
 		Class<?>[] methodValidationGroups = null;
@@ -75,7 +76,7 @@ class ValidationHelper {
 			requiresMethodValidation = true;
 		}
 
-		Consumer<Object[]> parameterValidator = null;
+		BiConsumer<Object, Object[]> parameterValidator = null;
 		MethodParameter[] parameters = handlerMethod.getMethodParameters();
 
 		for (int i = 0; i < parameters.length; i++) {
@@ -94,7 +95,7 @@ class ValidationHelper {
 			}
 		}
 
-		Consumer<Object[]> result = (requiresMethodValidation ?
+		BiConsumer<Object, Object[]> result = (requiresMethodValidation ?
 				new HandlerMethodValidator(handlerMethod, methodValidationGroups) : null);
 
 		if (parameterValidator != null) {
@@ -141,24 +142,24 @@ class ValidationHelper {
 	/**
 	 * Callback to apply validation to the invocation of a {@link HandlerMethod}.
 	 */
-	private class HandlerMethodValidator implements Consumer<Object[]> {
+	private class HandlerMethodValidator implements BiConsumer<Object, Object[]> {
 
-		private final HandlerMethod handlerMethod;
+		private final Method method;
 
 		private final Class<?>[] validationGroups;
 
 		HandlerMethodValidator(HandlerMethod handlerMethod, @Nullable Class<?>[] validationGroups) {
 			Assert.notNull(handlerMethod, "HandlerMethod is required");
-			this.handlerMethod = handlerMethod;
+			this.method = handlerMethod.getMethod();
 			this.validationGroups = (validationGroups != null ? validationGroups : new Class<?>[] {});
 		}
 
 		@Override
-		public void accept(Object[] arguments) {
+		public void accept(Object controller, Object[] arguments) {
 
 			Set<ConstraintViolation<Object>> violations =
-					ValidationHelper.this.validator.forExecutables().validateParameters(
-							this.handlerMethod.getBean(), this.handlerMethod.getMethod(), arguments, this.validationGroups);
+					ValidationHelper.this.validator.forExecutables()
+							.validateParameters(controller, this.method, arguments, this.validationGroups);
 
 			if (!violations.isEmpty()) {
 				throw new ConstraintViolationException(violations);
@@ -172,7 +173,7 @@ class ValidationHelper {
 	 * because it's annotated with Spring's {@code @Validated} rather than with
 	 * {@code @Valid}.
 	 */
-	private class MethodParameterValidator implements Consumer<Object[]> {
+	private class MethodParameterValidator implements BiConsumer<Object, Object[]> {
 
 		private final int index;
 
@@ -184,7 +185,7 @@ class ValidationHelper {
 		}
 
 		@Override
-		public void accept(Object[] arguments) {
+		public void accept(Object controller, Object[] arguments) {
 
 			Set<ConstraintViolation<Object>> violations =
 					ValidationHelper.this.validator.validate(arguments[this.index], this.validationGroups);
