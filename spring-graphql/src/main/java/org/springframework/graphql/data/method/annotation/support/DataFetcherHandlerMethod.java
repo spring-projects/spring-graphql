@@ -126,19 +126,18 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 				}) :
 				toArgsMono(args).flatMap(argValues -> {
 					Object result = validateAndInvoke(argValues, environment);
-					if (result instanceof Mono) {
-						return (Mono<?>) result;
+					if (result instanceof Mono<?> mono) {
+						return mono;
 					}
-
-					if (result instanceof Flux) {
-						return Flux.from((Flux<?>) result).collectList();
+					else if (result instanceof Flux<?> flux) {
+						return Flux.from(flux).collectList();
 					}
-
-					if (result instanceof CompletableFuture<?>) {
-						return Mono.fromFuture((CompletableFuture<?>) result);
+					else if (result instanceof CompletableFuture<?> future) {
+						return Mono.fromFuture(future);
 					}
-
-					return Mono.justOrEmpty(result);
+					else {
+						return Mono.justOrEmpty(result);
+					}
 				});
 	}
 

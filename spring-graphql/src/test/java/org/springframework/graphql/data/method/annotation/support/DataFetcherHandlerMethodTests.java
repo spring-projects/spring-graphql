@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Mono;
 
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
@@ -35,8 +36,9 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComp
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.lang.Nullable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.util.ClassUtils;
-import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,24 +89,20 @@ public class DataFetcherHandlerMethodTests {
 	}
 
 	@Test
-	void completableFutureReturnValue() throws Exception {
+	void completableFutureReturnValue() {
 
 		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
+		resolvers.addResolver(new AuthenticationPrincipalArgumentResolver((beanName, context) -> null));
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(new GraphQlArgumentBinder()));
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-				handlerMethodFor(new TestController(), "handleAndReturnsCompletableFuture"), resolvers, null,
-				new SimpleAsyncTaskExecutor(), false);
+				handlerMethodFor(new TestController(), "handleAndReturnFuture"), resolvers,
+				null, null, false);
 
-		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl
-				.newDataFetchingEnvironment()
-				.build();
-
-		Object result = handlerMethod.invoke(environment);
+		Object result = handlerMethod.invoke(DataFetchingEnvironmentImpl.newDataFetchingEnvironment().build());
 
 		assertThat(result).isInstanceOf(Mono.class);
-		Mono<String> mono = (Mono<String>) result;
-		assertThat(mono.block()).isEqualTo("B");
+		assertThat(((Mono<String>) result).block()).isEqualTo("B");
 	}
 
 	private static HandlerMethod handlerMethodFor(Object controller, String methodName) {
@@ -133,9 +131,10 @@ public class DataFetcherHandlerMethodTests {
 			return () -> "A";
 		}
 
-		public CompletableFuture<String> handleAndReturnsCompletableFuture() {
+		public CompletableFuture<String> handleAndReturnFuture(@AuthenticationPrincipal User user) {
 			return CompletableFuture.completedFuture("B");
 		}
+
 	}
 
 }
