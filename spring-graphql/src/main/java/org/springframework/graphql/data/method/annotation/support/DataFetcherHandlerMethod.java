@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
@@ -133,11 +134,14 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 				}) :
 				toArgsMono(args).flatMap(argValues -> {
 					Object result = validateAndInvoke(argValues, environment);
-					if (result instanceof Mono) {
-						return (Mono<?>) result;
+					if (result instanceof Mono<?> mono) {
+						return mono;
 					}
-					else if (result instanceof Flux) {
-						return Flux.from((Flux<?>) result).collectList();
+					else if (result instanceof Flux<?> flux) {
+						return Flux.from(flux).collectList();
+					}
+					else if (result instanceof CompletableFuture<?> future) {
+						return Mono.fromFuture(future);
 					}
 					else {
 						return Mono.justOrEmpty(result);
