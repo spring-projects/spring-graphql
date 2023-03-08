@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -133,11 +134,14 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 				}) :
 				toArgsMono(args).flatMap(argValues -> {
 					Object result = validateAndInvoke(argValues, environment);
-					if (result instanceof Mono) {
+					if (result instanceof Mono<?>) {
 						return (Mono<?>) result;
 					}
-					else if (result instanceof Flux) {
-						return Flux.from((Flux<?>) result).collectList();
+					else if (result instanceof Flux<?>) {
+						return ((Flux<?>) result).collectList();
+					}
+					else if (result instanceof CompletableFuture<?>) {
+						return Mono.fromFuture((CompletableFuture<?>) result);
 					}
 					else {
 						return Mono.justOrEmpty(result);
