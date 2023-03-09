@@ -139,6 +139,12 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 			}
 		});
 
+		SchemaInspector.Report schemaInspectionReport = new SchemaInspector().inspectSchema(registry, runtimeWiring);
+		if(!schemaInspectionReport.isEmpty()) {
+			logger.info(schemaInspectionReport.getSummary());
+			logger.info(schemaInspectionReport.getDetailedReport());
+		}
+
 		return (this.schemaFactory != null ?
 				this.schemaFactory.apply(registry, runtimeWiring) :
 				new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring));

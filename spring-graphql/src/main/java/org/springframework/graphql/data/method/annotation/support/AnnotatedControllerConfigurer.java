@@ -54,6 +54,7 @@ import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.expression.BeanResolver;
@@ -61,6 +62,7 @@ import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
+import org.springframework.graphql.data.TypedDataFetcher;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -538,7 +540,7 @@ public class AnnotatedControllerConfigurer
 	/**
 	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
 	 */
-	static class SchemaMappingDataFetcher implements DataFetcher<Object> {
+	static class SchemaMappingDataFetcher implements TypedDataFetcher<Object> {
 
 		private final MappingInfo info;
 
@@ -629,6 +631,11 @@ public class AnnotatedControllerConfigurer
 					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)));
 		}
 
+		@Override
+		public ResolvableType getDeclaredType() {
+			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
+		}
+		
 	}
 
 
