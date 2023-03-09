@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -121,6 +122,8 @@ public class AnnotatedControllerConfigurer
 
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
+	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
+
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
@@ -145,6 +148,18 @@ public class AnnotatedControllerConfigurer
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
+	}
+
+	/**
+	 * Add {@link HandlerMethodArgumentResolver}'s for custom controller method
+	 * arguments. Such custom resolvers are ordered after built-in resolvers
+	 * except for {@link SourceMethodArgumentResolver}, which is always last.
+	 *
+	 * @param resolvers the resolvers to add.
+	 * @since 1.2
+	 */
+	public void setCustomArgumentResolver(List<HandlerMethodArgumentResolver> resolvers) {
+		this.customArgumentResolvers.addAll(resolvers);
 	}
 
 	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
@@ -242,6 +257,8 @@ public class AnnotatedControllerConfigurer
 		if (KotlinDetector.isKotlinPresent()) {
 			resolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
 		}
+
+		this.customArgumentResolvers.forEach(resolvers::addResolver);
 
 		// This works as a fallback, after all other resolvers
 		resolvers.addResolver(new SourceMethodArgumentResolver());
