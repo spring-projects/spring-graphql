@@ -148,8 +148,8 @@ public class AnnotatedControllerExceptionResolverTests {
 		configurer.setApplicationContext(applicationContext);
 		configurer.afterPropertiesSet();
 
-		HandlerMethodArgumentResolverComposite argumentResolvers = configurer.getArgumentResolvers();
-		AnnotatedControllerExceptionResolver resolver = new AnnotatedControllerExceptionResolver(argumentResolvers);
+		HandlerMethodArgumentResolverComposite resolvers = configurer.getArgumentResolvers();
+		AnnotatedControllerExceptionResolver resolver = new AnnotatedControllerExceptionResolver(resolvers);
 		resolver.registerControllerAdvice(applicationContext);
 		return resolver;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComp
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 
@@ -57,17 +56,21 @@ import static org.springframework.core.annotation.MergedAnnotations.SearchStrate
  * {@link BeanFactoryInitializationAotProcessor} implementation for registering
  * runtime hints discoverable through GraphQL controllers, such as:
  * <ul>
- *     <li>invocation reflection on {@code @SchemaMapping} and {@code @BatchMapping} annotated controllers methods
- *     <li>binding reflection on controller method arguments, needed for binding or by the GraphQL Java engine itself
- *     <li>reflection for SpEL support and JDK proxy creation for {@code @ProjectedPayload} projections,
- *     if Spring Data Commons is present on the classpath.
+ * <li>invocation reflection on {@code @SchemaMapping} and {@code @BatchMapping}
+ * annotated controllers methods
+ * <li>binding reflection on controller method arguments, needed for binding or
+ * by the GraphQL Java engine itself
+ * <li>reflection for SpEL support and JDK proxy creation for
+ * {@code @ProjectedPayload} projections, if Spring Data Commons is present on
+ * the classpath.
  * </ul>
- * <p>This processor is using a {@link HandlerMethodArgumentResolver} resolution mechanism similar
- * to the one used in {@link AnnotatedControllerConfigurer}. The type of runtime hints registered
- * for each method argument depends on the {@link HandlerMethodArgumentResolver} resolved.
- * <p>Manual registration of {@link graphql.schema.DataFetcher} cannot be detected by this
- * processor; developers will need to declare bound types with {@link RegisterReflectionForBinding}
- * annotations on their configuration class.
+ * <p>This processor is using a {@link HandlerMethodArgumentResolver} resolution
+ * mechanism similar to the one used in {@link AnnotatedControllerConfigurer}.
+ * The type of runtime hints registered for each method argument depends on the
+ * {@link HandlerMethodArgumentResolver} resolved.
+ * <p>Manual registration of {@link graphql.schema.DataFetcher} cannot be detected
+ * by this processor; developers will need to declare bound types with
+ * {@link RegisterReflectionForBinding} annotations on their configuration class.
  *
  * @author Brian Clozel
  * @see org.springframework.graphql.data.method.HandlerMethodArgumentResolver
@@ -93,7 +96,9 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(Controller.class);
 	}
 
-	private static class SchemaMappingBeanFactoryInitializationAotContribution implements BeanFactoryInitializationAotContribution {
+
+	private static class SchemaMappingBeanFactoryInitializationAotContribution
+			implements BeanFactoryInitializationAotContribution {
 
 		private final Class<?>[] controllers;
 
@@ -105,21 +110,21 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		}
 
 		private HandlerMethodArgumentResolverComposite createArgumentResolvers() {
-			AnnotatedControllerConfigurer controllerConfigurer = new AnnotatedControllerConfigurer();
-			controllerConfigurer.setApplicationContext(new StaticApplicationContext());
-			controllerConfigurer.afterPropertiesSet();
-			HandlerMethodArgumentResolverComposite argumentResolverComposite = controllerConfigurer.getArgumentResolvers();
-			Assert.notNull(argumentResolverComposite, "argument resolvers should not be null");
-			return argumentResolverComposite;
+			AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+			configurer.setApplicationContext(new StaticApplicationContext());
+			configurer.afterPropertiesSet();
+			return configurer.getArgumentResolvers();
 		}
 
 		@Override
-		public void applyTo(GenerationContext generationContext, BeanFactoryInitializationCode beanFactoryInitializationCode) {
-			RuntimeHints runtimeHints = generationContext.getRuntimeHints();
+		public void applyTo(GenerationContext context, BeanFactoryInitializationCode initializationCode) {
+			RuntimeHints runtimeHints = context.getRuntimeHints();
 			registerSpringDataSpelSupport(runtimeHints);
 			Arrays.stream(this.controllers).forEach(controller -> {
 				runtimeHints.reflection().registerType(controller);
-				ReflectionUtils.doWithMethods(controller, method -> processSchemaMappingMethod(runtimeHints, method), this::isGraphQlHandlerMethod);
+				ReflectionUtils.doWithMethods(controller,
+						method -> processSchemaMappingMethod(runtimeHints, method),
+						this::isGraphQlHandlerMethod);
 			});
 		}
 
@@ -134,9 +139,8 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		}
 
 		private boolean isGraphQlHandlerMethod(AnnotatedElement element) {
-			MergedAnnotations mergedAnnotations = MergedAnnotations.from(element, TYPE_HIERARCHY);
-			return mergedAnnotations.isPresent(SchemaMapping.class)
-					|| mergedAnnotations.isPresent(BatchMapping.class);
+			MergedAnnotations annotations = MergedAnnotations.from(element, TYPE_HIERARCHY);
+			return annotations.isPresent(SchemaMapping.class) || annotations.isPresent(BatchMapping.class);
 		}
 
 		private void processSchemaMappingMethod(RuntimeHints runtimeHints, Method method) {
@@ -147,16 +151,16 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 			processReturnType(runtimeHints, MethodParameter.forExecutable(method, -1));
 		}
 
-		private void processMethodParameter(RuntimeHints runtimeHints, MethodParameter methodParameter) {
-			MethodParameterRuntimeHintsRegistrar.fromMethodParameter(this.argumentResolvers, methodParameter)
-					.apply(runtimeHints);
+		private void processMethodParameter(RuntimeHints hints, MethodParameter parameter) {
+			MethodParameterRuntimeHintsRegistrar.fromMethodParameter(this.argumentResolvers, parameter).apply(hints);
 		}
 
-		private void processReturnType(RuntimeHints runtimeHints, MethodParameter methodParameter) {
-			new ArgumentBindingHints(methodParameter).apply(runtimeHints);
+		private void processReturnType(RuntimeHints hints, MethodParameter parameter) {
+			new ArgumentBindingHints(parameter).apply(hints);
 		}
 
 	}
+
 
 	@FunctionalInterface
 	private interface MethodParameterRuntimeHintsRegistrar {
@@ -165,24 +169,27 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		void apply(RuntimeHints runtimeHints);
 
-		static MethodParameterRuntimeHintsRegistrar fromMethodParameter(HandlerMethodArgumentResolverComposite argumentResolvers, MethodParameter methodParameter) {
-			HandlerMethodArgumentResolver argumentResolver = argumentResolvers.getArgumentResolver(methodParameter);
-			if (argumentResolver instanceof ArgumentMethodArgumentResolver
-					|| argumentResolver instanceof ArgumentsMethodArgumentResolver) {
-				return new ArgumentBindingHints(methodParameter);
+		static MethodParameterRuntimeHintsRegistrar fromMethodParameter(
+				HandlerMethodArgumentResolverComposite resolvers, MethodParameter parameter) {
+
+			HandlerMethodArgumentResolver resolver = resolvers.getArgumentResolver(parameter);
+			if (resolver instanceof ArgumentMethodArgumentResolver
+					|| resolver instanceof ArgumentsMethodArgumentResolver) {
+				return new ArgumentBindingHints(parameter);
 			}
-			if (argumentResolver instanceof DataLoaderMethodArgumentResolver) {
-				return new DataLoaderHints(methodParameter);
+			if (resolver instanceof DataLoaderMethodArgumentResolver) {
+				return new DataLoaderHints(parameter);
 			}
 			if (springDataPresent) {
-				if (argumentResolver instanceof ProjectedPayloadMethodArgumentResolver) {
-					return new ProjectedPayloadHints(methodParameter);
+				if (resolver instanceof ProjectedPayloadMethodArgumentResolver) {
+					return new ProjectedPayloadHints(parameter);
 				}
 			}
 			return new NoHintsRequired();
 		}
 
 	}
+
 
 	private static class NoHintsRequired implements MethodParameterRuntimeHintsRegistrar {
 
@@ -191,6 +198,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 			// no runtime hints are required for this type of argument
 		}
 	}
+
 
 	private static class ArgumentBindingHints implements MethodParameterRuntimeHintsRegistrar {
 
@@ -210,6 +218,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		}
 	}
 
+
 	private static class DataLoaderHints implements MethodParameterRuntimeHintsRegistrar {
 
 		private final MethodParameter methodParameter;
@@ -219,11 +228,12 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		}
 
 		@Override
-		public void apply(RuntimeHints runtimeHints) {
-			bindingRegistrar.registerReflectionHints(runtimeHints.reflection(),
-					this.methodParameter.nested().getNestedGenericParameterType());
+		public void apply(RuntimeHints hints) {
+			bindingRegistrar.registerReflectionHints(
+					hints.reflection(), this.methodParameter.nested().getNestedGenericParameterType());
 		}
 	}
+
 
 	private static class ProjectedPayloadHints implements MethodParameterRuntimeHintsRegistrar {
 
@@ -234,10 +244,10 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		}
 
 		@Override
-		public void apply(RuntimeHints runtimeHints) {
+		public void apply(RuntimeHints hints) {
 			Class<?> parameterType = this.methodParameter.nestedIfOptional().getNestedParameterType();
-			runtimeHints.reflection().registerType(parameterType);
-			runtimeHints.proxies().registerJdkProxy(parameterType, TargetAware.class, SpringProxy.class, DecoratingProxy.class);
+			hints.reflection().registerType(parameterType);
+			hints.proxies().registerJdkProxy(parameterType, TargetAware.class, SpringProxy.class, DecoratingProxy.class);
 		}
 	}
 

@@ -122,12 +122,6 @@ public class AnnotatedControllerConfigurer
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
 	@Nullable
-	private Executor executor;
-
-	@Nullable
-	private ApplicationContext applicationContext;
-
-	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
 	@Nullable
@@ -135,6 +129,12 @@ public class AnnotatedControllerConfigurer
 
 	@Nullable
 	private AnnotatedControllerExceptionResolver exceptionResolver;
+
+	@Nullable
+	private Executor executor;
+
+	@Nullable
+	private ApplicationContext applicationContext;
 
 
 	/**
@@ -147,31 +147,10 @@ public class AnnotatedControllerConfigurer
 		registrar.registerFormatters(this.conversionService);
 	}
 
-	/**
-	 * Configure an {@link Executor} to use for asynchronous handling of
-	 * {@link Callable} return values from controller methods.
-	 * <p>By default, this is not set in which case controller methods with a
-	 * {@code Callable} return value cannot be registered.
-	 * @param executor the executor to use
-	 */
-	public void setExecutor(Executor executor) {
-		this.executor = executor;
-	}
-
-	/**
-	 * Configure an initializer that configures the {@link DataBinder} before the binding process.
-	 * @param consumer the data binder initializer
-	 * @since 1.0.1
-	 * @deprecated this property is deprecated, ignored, and should not be
-	 * necessary as a {@link DataBinder} is no longer used to bind arguments
-	 */
-	@Deprecated(since = "1.1.0", forRemoval = true)
-	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> consumer) {
-	}
-
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) {
-		this.applicationContext = applicationContext;
+	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
+		Assert.notNull(this.argumentResolvers,
+				"HandlerMethodArgumentResolverComposite is not yet initialized, was afterPropertiesSet called?");
+		return this.argumentResolvers;
 	}
 
 	/**
@@ -189,14 +168,38 @@ public class AnnotatedControllerConfigurer
 	 * @since 1.2
 	 */
 	public DataFetcherExceptionResolver getExceptionResolver() {
-		Assert.notNull(this.exceptionResolver, "ExceptionResolver is not initialized, was afterPropertiesSet called?");
+		Assert.notNull(this.exceptionResolver,
+				"DataFetcherExceptionResolver is not yet initialized, was afterPropertiesSet called?");
 		return (ex, env) -> this.exceptionResolver.resolveException(ex, env, null);
 	}
 
-	@Nullable
-	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
-		return this.argumentResolvers;
+	/**
+	 * Configure an initializer that configures the {@link DataBinder} before the binding process.
+	 * @param consumer the data binder initializer
+	 * @since 1.0.1
+	 * @deprecated this property is deprecated, ignored, and should not be
+	 * necessary as a {@link DataBinder} is no longer used to bind arguments
+	 */
+	@Deprecated(since = "1.1.0", forRemoval = true)
+	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> consumer) {
 	}
+
+	/**
+	 * Configure an {@link Executor} to use for asynchronous handling of
+	 * {@link Callable} return values from controller methods.
+	 * <p>By default, this is not set in which case controller methods with a
+	 * {@code Callable} return value cannot be registered.
+	 * @param executor the executor to use
+	 */
+	public void setExecutor(Executor executor) {
+		this.executor = executor;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) {
+		this.applicationContext = applicationContext;
+	}
+
 
 	@Override
 	public void afterPropertiesSet() {
