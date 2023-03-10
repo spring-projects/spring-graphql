@@ -62,7 +62,7 @@ import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
-import org.springframework.graphql.data.TypedDataFetcher;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -540,7 +540,7 @@ public class AnnotatedControllerConfigurer
 	/**
 	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
 	 */
-	static class SchemaMappingDataFetcher implements TypedDataFetcher<Object> {
+	static class SchemaMappingDataFetcher implements SelfDescribingDataFetcher<Object> {
 
 		private final MappingInfo info;
 
@@ -632,7 +632,7 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
-		public ResolvableType getDeclaredType() {
+		public ResolvableType getReturnType() {
 			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
 		}
 		

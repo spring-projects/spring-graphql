@@ -14,28 +14,27 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data;
+package org.springframework.graphql.execution;
 
 import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.ResolvableType;
 
 /**
- * Specialized {@link DataFetcher} that can provide {@link ResolvableType type information}
- * about the {@link #get(DataFetchingEnvironment) instances returned}.
- * <p>Such {@code DataFetchers} are often backed by actual Java methods with declared return types.
- * Declared types might not reflect the concrete type of the returned instance.
+ * Specialized {@link DataFetcher} that can provide information about itself.
  * @author Brian Clozel
  * @since 1.2.0
  */
-public interface TypedDataFetcher<T> extends DataFetcher<T> {
+public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 
 	/**
-	 * The type declared by this {@link DataFetcher}.
-	 * <p>The concrete type of the returned instance might differ from the declared one.
-	 * @return the declared type for the data to be fetched.
+	 * The type that the {@link DataFetcher} returns.
+	 * <p>This could be a type from a {@code @Controller} method declaration
+	 * or the type expected to be returned by the {@link DataFetcher}
+	 * possibly backed by a Spring Data repository.
+	 * The concrete type of the returned instance might be a subclass.
+	 * @return the type of the data returned by the data fetcher.
 	 */
-	ResolvableType getDeclaredType();
+	ResolvableType getReturnType();
 	
 }

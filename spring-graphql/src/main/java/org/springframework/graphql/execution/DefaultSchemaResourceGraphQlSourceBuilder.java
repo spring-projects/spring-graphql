@@ -139,11 +139,13 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 			}
 		});
 
-		SchemaInspector.Report schemaInspectionReport = new SchemaInspector().inspectSchema(registry, runtimeWiring);
-		if(!schemaInspectionReport.isEmpty()) {
-			logger.info(schemaInspectionReport.getSummary());
-			logger.info(schemaInspectionReport.getDetailedReport());
-		}
+		configureGraphQl(builder -> {
+			GraphQLSchema schema = builder.build().getGraphQLSchema();
+			SchemaMappingInspector.Report schemaInspectionReport = new SchemaMappingInspector().inspectSchemaMappings(schema, runtimeWiring);
+			if(!schemaInspectionReport.isEmpty()) {
+				logger.info(schemaInspectionReport.getSummary());
+			}
+		});
 
 		return (this.schemaFactory != null ?
 				this.schemaFactory.apply(registry, runtimeWiring) :
