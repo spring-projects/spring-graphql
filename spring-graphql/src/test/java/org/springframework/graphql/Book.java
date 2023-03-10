@@ -16,6 +16,11 @@
 
 package org.springframework.graphql;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Book {
 
 	Long id;
@@ -69,6 +74,11 @@ public class Book {
 
 	public void setAuthor(Author author) {
 		this.author = author;
+	}
+
+	@SchemaMapping(field = "description")
+	public String getDescription(@Argument("full") boolean full) {
+		return full ? "Full description of " + this.name : "Short description of " + this.name;
 	}
 
 }

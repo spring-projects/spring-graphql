@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import graphql.GraphQLContext;
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLCodeRegistry;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -77,6 +78,31 @@ public class SchemaMappingInvocationTests {
 				"    }" +
 				"  }" +
 				"}";
+
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+		Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
+		assertThat(book.getId()).isEqualTo(1);
+		assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
+
+		Author author = book.getAuthor();
+		assertThat(author.getFirstName()).isEqualTo("George");
+		assertThat(author.getLastName()).isEqualTo("Orwell");
+	}
+
+	@Test
+	void queryWithScalarArgumentOnDto() {
+		String document = "{ " +
+			"  bookById(id:\"1\") { " +
+			"    id" +
+			"    name" +
+			"    author {" +
+			"      firstName" +
+			"      lastName" +
+			"    }" +
+			"    description(full: true)" +
+			"  }" +
+			"}";
 
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
@@ -271,6 +297,10 @@ public class SchemaMappingInvocationTests {
 
 		return GraphQlSetup.schemaResource(BookSource.schema)
 				.runtimeWiring(configurer)
+				.runtimeWiring(builder -> builder.codeRegistry(
+					GraphQLCodeRegistry.newCodeRegistry().defaultDataFetcher(
+						new AnnotatedControllerDataFetcherFactory(configurer)))
+				)
 				.dataLoaders(registry)
 				.toGraphQlService();
 	}

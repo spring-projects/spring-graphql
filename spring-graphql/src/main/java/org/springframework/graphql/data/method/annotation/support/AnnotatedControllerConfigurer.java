@@ -33,11 +33,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import graphql.com.google.common.collect.Iterables;
 import graphql.execution.DataFetcherResult;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.FieldCoordinates;
-import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.*;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -292,6 +290,73 @@ public class AnnotatedControllerConfigurer
 			runtimeWiringBuilder.type(info.getCoordinates().getTypeName(), typeBuilder ->
 					typeBuilder.dataFetcher(info.getCoordinates().getFieldName(), dataFetcher));
 		});
+	}
+	public static FieldCoordinates getCoordinates(DataFetchingEnvironment environment) {
+		final String fieldName = environment.getFieldDefinition().getName();
+		final GraphQLType parent = environment.getParentType();
+		if (!(parent instanceof GraphQLObjectType)) {
+			return null;
+		}
+		final String typeName = ((GraphQLObjectType) parent).getName();
+		return FieldCoordinates.coordinates(typeName, fieldName);
+	}
+
+	public SchemaMappingDataFetcher createDataFetcher(DataFetchingEnvironment environment) {
+		final FieldCoordinates coordinates = getCoordinates(environment);
+		final MappingInfo info = findDtoMethod(coordinates, environment.getSource(), environment.getSource().getClass());
+		if (info == null) {
+			return null;
+		}
+		return new SchemaMappingDataFetcher(info, this.argumentResolvers, validationHelper, exceptionResolver, executor);
+	}
+
+	private MappingInfo findDtoMethod(FieldCoordinates coordinates, Object handler, Class<?> handlerClass) {
+		if (handlerClass == null) {
+			return null;
+		}
+
+		Class<?> userClass = ClassUtils.getUserClass(handlerClass);
+		Map<Method, MappingInfo> map = MethodIntrospector.selectMethods(
+			userClass, (Method method) -> getMappingInfoForDtoField(coordinates, method, handler, userClass));
+
+		Collection<MappingInfo> mappingInfos = map.values();
+
+		if (logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
+			logger.trace(formatMappings(userClass, mappingInfos));
+		}
+
+		final List<MappingInfo> infos = mappingInfos.stream().filter(mappingInfo -> mappingInfo.getCoordinates().equals(coordinates)).toList();
+		if (infos.isEmpty()) {
+			return null;
+		} else if (infos.size() > 1) {
+			throw new IllegalStateException("Ambiguous mapping. Cannot map '" + handler + "' method \n" +
+				infos + "\nto " + coordinates + ": There is already '" +
+				handler + "' bean method\n" + infos + " mapped.");
+		} else {
+			return infos.get(0);
+		}
+	}
+
+	@Nullable
+	private MappingInfo getMappingInfoForDtoField(FieldCoordinates coordinates, Method method, Object handler, Class<?> handlerType) {
+
+		Set<Annotation> annotations = AnnotatedElementUtils.findAllMergedAnnotations(
+			method, new LinkedHashSet<>(Arrays.asList(SchemaMapping.class)));
+
+		if (annotations.isEmpty()) {
+			return null;
+		}
+
+		final SchemaMapping mapping = (SchemaMapping) Iterables.getOnlyElement(annotations);
+
+		final HandlerMethod handlerMethod = createHandlerMethod(method, handler, handlerType);
+		final String field = (StringUtils.hasText(mapping.field()) ? mapping.field() : method.getName());
+
+		if (!field.equals(coordinates.getFieldName())) {
+			return null;
+		}
+
+		return new MappingInfo(coordinates.getTypeName(), coordinates.getFieldName(), false, -1, handlerMethod);
 	}
 
 	/**
@@ -635,7 +700,7 @@ public class AnnotatedControllerConfigurer
 		public ResolvableType getDeclaredType() {
 			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
 		}
-		
+
 	}
 
 
