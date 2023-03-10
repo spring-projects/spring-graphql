@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,8 @@ public class GraphQlHttpHandler {
 		return serverRequest.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
 				.flatMap(body -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-							serverRequest.uri(), serverRequest.headers().asHttpHeaders(), body,
+							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
+							serverRequest.cookies(), body,
 							serverRequest.exchange().getRequest().getId(),
 							serverRequest.exchange().getLocaleContext().getLocale());
 					if (logger.isDebugEnabled()) {

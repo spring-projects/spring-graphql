@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
@@ -31,10 +31,13 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.MediaType;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
 import org.springframework.util.IdGenerator;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -86,8 +89,9 @@ public class GraphQlHttpHandler {
 	public ServerResponse handleRequest(ServerRequest serverRequest) throws ServletException {
 
 		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-				serverRequest.uri(), serverRequest.headers().asHttpHeaders(), readBody(serverRequest),
-				this.idGenerator.generateId().toString(), LocaleContextHolder.getLocale());
+				serverRequest.uri(), serverRequest.headers().asHttpHeaders(), initCookies(serverRequest),
+				readBody(serverRequest), this.idGenerator.generateId().toString(),
+				LocaleContextHolder.getLocale());
 
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + graphQlRequest);
@@ -105,6 +109,16 @@ public class GraphQlHttpHandler {
 				});
 
 		return ServerResponse.async(responseMono);
+	}
+
+	private static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
+		MultiValueMap<String, Cookie> source = serverRequest.cookies();
+		MultiValueMap<String, HttpCookie> target = new LinkedMultiValueMap<>(source.size());
+		source.values().forEach(cookieList -> cookieList.forEach(cookie -> {
+			HttpCookie httpCookie = new HttpCookie(cookie.getName(), cookie.getValue());
+			target.add(cookie.getName(), httpCookie);
+		}));
+		return target;
 	}
 
 	private static Map<String, Object> readBody(ServerRequest request) throws ServletException {
