@@ -16,59 +16,69 @@
 
 package org.springframework.graphql;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Book {
 
-	Long id;
+    Long id;
 
-	String name;
+    String name;
 
-	Long authorId;
+    Long authorId;
 
-	Author author;
+    Author author;
 
-	public Book() {
-	}
+    public Book() {
+    }
 
-	public Book(Long id, String name, Long authorId) {
-		this.id = id;
-		this.name = name;
-		this.authorId = authorId;
-		this.author = null;
-	}
+    public Book(Long id, String name, Long authorId) {
+        this.id = id;
+        this.name = name;
+        this.authorId = authorId;
+        this.author = null;
+    }
 
-	public Book(Long id, String name, Author author) {
-		this.id = id;
-		this.name = name;
-		this.authorId = author.getId();
-		this.author = author;
-	}
+    public Book(Long id, String name, Author author) {
+        this.id = id;
+        this.name = name;
+        this.authorId = author.getId();
+        this.author = author;
+    }
 
-	public Long getId() {
-		return this.id;
-	}
+    public Long getId() {
+        return this.id;
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public String getName() {
-		return this.name;
-	}
+    public String getName() {
+        return this.name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    @SchemaMapping(field = "description")
+    public String getDescription(@Argument("full") boolean full) {
+        return full ? "Full description of " + this.name : "Short description of " + this.name;
+    }
 
-	public Long getAuthorId() {
-		return this.authorId;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public Author getAuthor() {
-		return this.author;
-	}
+    public Long getAuthorId() {
+        return this.authorId;
+    }
 
-	public void setAuthor(Author author) {
-		this.author = author;
-	}
+    public Author getAuthor() {
+        return this.author;
+    }
+
+    public void setAuthor(Author author) {
+        this.author = author;
+    }
 
 }
