@@ -15,7 +15,6 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -41,8 +40,8 @@ public class AnnotatedControllerConfigurerTests {
 		HandlerMethodArgumentResolver customResolver2 = mock(HandlerMethodArgumentResolver.class);
 
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
-		configurer.setCustomArgumentResolver(Collections.singletonList(customResolver1));
-		configurer.setCustomArgumentResolver(Collections.singletonList(customResolver2));
+		configurer.addCustomArgumentResolver(customResolver1);
+		configurer.addCustomArgumentResolver(customResolver2);
 		configurer.setApplicationContext(new StaticApplicationContext());
 		configurer.afterPropertiesSet();
 

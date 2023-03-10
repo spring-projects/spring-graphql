@@ -153,15 +153,15 @@ public class AnnotatedControllerConfigurer
 	}
 
 	/**
-	 * Add {@link HandlerMethodArgumentResolver}'s for custom controller method
+	 * Add a {@link HandlerMethodArgumentResolver} for custom controller method
 	 * arguments. Such custom resolvers are ordered after built-in resolvers
 	 * except for {@link SourceMethodArgumentResolver}, which is always last.
 	 *
-	 * @param resolvers the resolvers to add.
+	 * @param resolver the resolver to add.
 	 * @since 1.2
 	 */
-	public void setCustomArgumentResolver(List<HandlerMethodArgumentResolver> resolvers) {
-		this.customArgumentResolvers.addAll(resolvers);
+	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
+		this.customArgumentResolvers.add(resolver);
 	}
 
 	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
