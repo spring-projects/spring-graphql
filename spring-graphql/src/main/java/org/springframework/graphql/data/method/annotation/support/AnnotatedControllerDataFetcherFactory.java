@@ -30,30 +30,30 @@ import java.util.Map;
  */
 public class AnnotatedControllerDataFetcherFactory implements DataFetcherFactory<Object> {
 
-    private final Map<FieldCoordinates, Map<Class<?>, DataFetcher<Object>>> fetchers = Maps.newConcurrentMap();
+        private final Map<FieldCoordinates, Map<Class<?>, DataFetcher<Object>>> fetchers = Maps.newConcurrentMap();
 
-    private final AnnotatedControllerConfigurer annotatedControllerConfigurer;
+        private final AnnotatedControllerConfigurer annotatedControllerConfigurer;
 
-    public AnnotatedControllerDataFetcherFactory(AnnotatedControllerConfigurer annotatedControllerConfigurer) {
-        Preconditions.checkNotNull(annotatedControllerConfigurer, "AnnotatedControllerConfigurer must not be null");
-        this.annotatedControllerConfigurer = annotatedControllerConfigurer;
-    }
+        public AnnotatedControllerDataFetcherFactory(AnnotatedControllerConfigurer annotatedControllerConfigurer) {
+                Preconditions.checkNotNull(annotatedControllerConfigurer, "AnnotatedControllerConfigurer must not be null");
+                this.annotatedControllerConfigurer = annotatedControllerConfigurer;
+        }
 
-    @Override
-    public DataFetcher<Object> get(DataFetcherFactoryEnvironment dataFetcherFactoryEnvironment) {
-        return environment -> {
-            final FieldCoordinates coordinates = AnnotatedControllerConfigurer.getCoordinates(environment);
-            final Object src = environment.getSource();
-            if (src == null) {
-                return null;
-            } else {
-                final DataFetcher<Object> dataFetcher = fetchers.computeIfAbsent(coordinates, c -> Maps.newConcurrentMap())
-                        .computeIfAbsent(src.getClass(), (aClass) -> {
-                            final DataFetcher<Object> df = annotatedControllerConfigurer.createDataFetcher(environment);
-                            return df != null ? df : new PropertyDataFetcher<>(coordinates.getFieldName());
-                        });
-                return dataFetcher.get(environment);
-            }
-        };
-    }
+        @Override
+        public DataFetcher<Object> get(DataFetcherFactoryEnvironment dataFetcherFactoryEnvironment) {
+                return environment -> {
+                        final FieldCoordinates coordinates = AnnotatedControllerConfigurer.getCoordinates(environment);
+                        final Object src = environment.getSource();
+                        if (src == null) {
+                                return null;
+                        } else {
+                                final DataFetcher<Object> dataFetcher = fetchers.computeIfAbsent(coordinates, c -> Maps.newConcurrentMap())
+                                        .computeIfAbsent(src.getClass(), (aClass) -> {
+                                                final DataFetcher<Object> df = annotatedControllerConfigurer.createDataFetcher(environment);
+                                                return df != null ? df : new PropertyDataFetcher<>(coordinates.getFieldName());
+                                        });
+                                return dataFetcher.get(environment);
+                        }
+                };
+        }
 }

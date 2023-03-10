@@ -51,314 +51,314 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SchemaMappingInvocationTests {
 
-    @Test
-    void queryWithScalarArgument() {
-        String document = "{ " +
-                "  bookById(id:\"1\") { " +
-                "    id" +
-                "    name" +
-                "    author {" +
-                "      firstName" +
-                "      lastName" +
-                "    }" +
-                "  }" +
-                "}";
+        @Test
+        void queryWithScalarArgument() {
+                String document = "{ " +
+                        "  bookById(id:\"1\") { " +
+                        "    id" +
+                        "    name" +
+                        "    author {" +
+                        "      firstName" +
+                        "      lastName" +
+                        "    }" +
+                        "  }" +
+                        "}";
 
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
 
-        Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
-        assertThat(book.getId()).isEqualTo(1);
-        assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
+                Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
+                assertThat(book.getId()).isEqualTo(1);
+                assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
 
-        Author author = book.getAuthor();
-        assertThat(author.getFirstName()).isEqualTo("George");
-        assertThat(author.getLastName()).isEqualTo("Orwell");
-    }
-
-    @Test
-    void queryWithScalarArgumentOnDto() {
-        String document = "{ " +
-                "  bookById(id:\"1\") { " +
-                "    id" +
-                "    name" +
-                "    author {" +
-                "      firstName" +
-                "      lastName" +
-                "    }" +
-                "    description(full: true)" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
-        assertThat(book.getId()).isEqualTo(1);
-        assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
-
-        Author author = book.getAuthor();
-        assertThat(author.getFirstName()).isEqualTo("George");
-        assertThat(author.getLastName()).isEqualTo("Orwell");
-    }
-
-    @Test
-    void queryWithObjectArgument() {
-        String document = "{ " +
-                "  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
-                "    id" +
-                "    name" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
-        assertThat(bookList).hasSize(2);
-        assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
-        assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
-    }
-
-    @Test
-    void queryWithProjectionOnArgumentsMap() {
-        String document = "{ " +
-                "  booksByProjectedArguments(author:\"Orwell\") { " +
-                "    id" +
-                "    name" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedArguments", Book.class);
-        assertThat(bookList).hasSize(2);
-        assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
-        assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
-    }
-
-    @Test
-    void queryWithProjectionOnNamedArgument() {
-        String document = "{ " +
-                "  booksByProjectedCriteria(criteria: {author:\"Orwell\"}) { " +
-                "    id" +
-                "    name" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedCriteria", Book.class);
-        assertThat(bookList).hasSize(2);
-        assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
-        assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
-    }
-
-    @Test
-    void queryWithArgumentViaDataFetchingEnvironment() {
-        String document = "{ " +
-                "  authorById(id:\"101\") { " +
-                "    id" +
-                "    firstName" +
-                "    lastName" +
-                "  }" +
-                "}";
-
-        AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
-        ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
-        request.configureExecutionInput((executionInput, builder) -> {
-            contextRef.set(executionInput.getGraphQLContext());
-            return executionInput;
-        });
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(request);
-
-        Author author = ResponseHelper.forResponse(responseMono).toEntity("authorById", Author.class);
-        assertThat(author.getId()).isEqualTo(101);
-        assertThat(author.getFirstName()).isEqualTo("George");
-        assertThat(author.getLastName()).isEqualTo("Orwell");
-
-        assertThat(contextRef.get().<String>get("key")).isEqualTo("value");
-    }
-
-    @Test
-    void mutation() {
-        String document = "mutation { " +
-                "  addAuthor(firstName:\"James\", lastName:\"Joyce\") { " +
-                "    id" +
-                "    firstName" +
-                "    lastName" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        Author author = ResponseHelper.forResponse(responseMono).toEntity("addAuthor", Author.class);
-        assertThat(author.getId()).isEqualTo(99);
-        assertThat(author.getFirstName()).isEqualTo("James");
-        assertThat(author.getLastName()).isEqualTo("Joyce");
-    }
-
-    @Test
-    void subscription() {
-        String document = "subscription { " +
-                "  bookSearch(author:\"Orwell\") { " +
-                "    id" +
-                "    name" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
-                .map(response -> response.toEntity("bookSearch", Book.class));
-
-        StepVerifier.create(bookFlux)
-                .consumeNextWith(book -> {
-                    assertThat(book.getId()).isEqualTo(1);
-                    assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
-                })
-                .consumeNextWith(book -> {
-                    assertThat(book.getId()).isEqualTo(5);
-                    assertThat(book.getName()).isEqualTo("Animal Farm");
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleExceptionFromQuery() {
-        String document = "{ " +
-                "  booksByCriteria(criteria: {author:\"Fitzgerald\"}) { " +
-                "    id" +
-                "    name" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono =
-                graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
-        assertThat(responseHelper.errorCount()).isEqualTo(1);
-        assertThat(responseHelper.error(0).errorType()).isEqualTo("BAD_REQUEST");
-        assertThat(responseHelper.error(0).message()).isEqualTo("Rejected: Bad input");
-    }
-
-    @Test
-    void handleExceptionFromSubscription() {
-        String document = "subscription { " +
-                "  bookSearch(author:\"Fitzgerald\") { " +
-                "    id" +
-                "    name" +
-                "  }" +
-                "}";
-
-        Mono<ExecutionGraphQlResponse> responseMono =
-                graphQlService().execute(TestExecutionRequest.forDocument(document));
-
-        Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
-                .map(response -> response.toEntity("bookSearch", Book.class));
-
-        StepVerifier.create(bookFlux)
-                .expectErrorSatisfies(ex -> {
-                    SubscriptionPublisherException theEx = (SubscriptionPublisherException) ex;
-                    List<GraphQLError> errors = theEx.getErrors();
-                    assertThat(errors).hasSize(1);
-                    assertThat(errors.get(0).getErrorType().toString()).isEqualTo("BAD_REQUEST");
-                    assertThat(errors.get(0).getMessage()).isEqualTo("Rejected: Bad input");
-                })
-                .verify();
-    }
-
-
-    private ExecutionGraphQlService graphQlService() {
-        BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
-
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-        context.register(BookController.class);
-        context.registerBean(BatchLoaderRegistry.class, () -> registry);
-        context.refresh();
-
-        AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
-        configurer.setExecutor(new SimpleAsyncTaskExecutor());
-        configurer.setApplicationContext(context);
-        configurer.afterPropertiesSet();
-
-        return GraphQlSetup.schemaResource(BookSource.schema)
-                .runtimeWiring(configurer)
-                .runtimeWiring(builder -> builder.codeRegistry(GraphQLCodeRegistry.newCodeRegistry().defaultDataFetcher(
-                        new AnnotatedControllerDataFetcherFactory(configurer)
-                )))
-                .dataLoaders(registry)
-                .toGraphQlService();
-    }
-
-
-    @SuppressWarnings("unused")
-    @Controller
-    private static class BookController {
-
-        public BookController(BatchLoaderRegistry batchLoaderRegistry) {
-            batchLoaderRegistry.forTypePair(Long.class, Author.class)
-                    .registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
+                Author author = book.getAuthor();
+                assertThat(author.getFirstName()).isEqualTo("George");
+                assertThat(author.getLastName()).isEqualTo("Orwell");
         }
 
-        @QueryMapping
-        public Book bookById(@Argument Long id) {
-            return BookSource.getBookWithoutAuthor(id);
+        @Test
+        void queryWithScalarArgumentOnDto() {
+                String document = "{ " +
+                        "  bookById(id:\"1\") { " +
+                        "    id" +
+                        "    name" +
+                        "    author {" +
+                        "      firstName" +
+                        "      lastName" +
+                        "    }" +
+                        "    description(full: true)" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
+                assertThat(book.getId()).isEqualTo(1);
+                assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
+
+                Author author = book.getAuthor();
+                assertThat(author.getFirstName()).isEqualTo("George");
+                assertThat(author.getLastName()).isEqualTo("Orwell");
         }
 
-        @QueryMapping
-        public List<Book> booksByCriteria(@Argument BookCriteria criteria) {
-            Assert.isTrue(!criteria.getAuthor().equalsIgnoreCase("Fitzgerald"), "Bad input");
-            return BookSource.findBooksByAuthor(criteria.getAuthor());
+        @Test
+        void queryWithObjectArgument() {
+                String document = "{ " +
+                        "  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
+                        "    id" +
+                        "    name" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
+                assertThat(bookList).hasSize(2);
+                assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
+                assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
         }
 
-        @QueryMapping
-        public List<Book> booksByProjectedArguments(BookProjection projection) {
-            return BookSource.findBooksByAuthor(projection.getAuthor());
+        @Test
+        void queryWithProjectionOnArgumentsMap() {
+                String document = "{ " +
+                        "  booksByProjectedArguments(author:\"Orwell\") { " +
+                        "    id" +
+                        "    name" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedArguments", Book.class);
+                assertThat(bookList).hasSize(2);
+                assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
+                assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
         }
 
-        @QueryMapping
-        public List<Book> booksByProjectedCriteria(@Argument BookProjection criteria) {
-            return BookSource.findBooksByAuthor(criteria.getAuthor());
+        @Test
+        void queryWithProjectionOnNamedArgument() {
+                String document = "{ " +
+                        "  booksByProjectedCriteria(criteria: {author:\"Orwell\"}) { " +
+                        "    id" +
+                        "    name" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedCriteria", Book.class);
+                assertThat(bookList).hasSize(2);
+                assertThat(bookList.get(0).getName()).isEqualTo("Nineteen Eighty-Four");
+                assertThat(bookList.get(1).getName()).isEqualTo("Animal Farm");
         }
 
-        @SchemaMapping
-        public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> dataLoader) {
-            return dataLoader.load(book.getAuthorId());
+        @Test
+        void queryWithArgumentViaDataFetchingEnvironment() {
+                String document = "{ " +
+                        "  authorById(id:\"101\") { " +
+                        "    id" +
+                        "    firstName" +
+                        "    lastName" +
+                        "  }" +
+                        "}";
+
+                AtomicReference<GraphQLContext> contextRef = new AtomicReference<>();
+                ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
+                request.configureExecutionInput((executionInput, builder) -> {
+                        contextRef.set(executionInput.getGraphQLContext());
+                        return executionInput;
+                });
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(request);
+
+                Author author = ResponseHelper.forResponse(responseMono).toEntity("authorById", Author.class);
+                assertThat(author.getId()).isEqualTo(101);
+                assertThat(author.getFirstName()).isEqualTo("George");
+                assertThat(author.getLastName()).isEqualTo("Orwell");
+
+                assertThat(contextRef.get().<String>get("key")).isEqualTo("value");
         }
 
-        @QueryMapping
-        public Callable<Author> authorById(DataFetchingEnvironment environment, GraphQLContext context) {
-            return () -> {
-                context.put("key", "value");
-                String id = environment.getArgument("id");
-                return BookSource.getAuthor(Long.parseLong(id));
-            };
+        @Test
+        void mutation() {
+                String document = "mutation { " +
+                        "  addAuthor(firstName:\"James\", lastName:\"Joyce\") { " +
+                        "    id" +
+                        "    firstName" +
+                        "    lastName" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                Author author = ResponseHelper.forResponse(responseMono).toEntity("addAuthor", Author.class);
+                assertThat(author.getId()).isEqualTo(99);
+                assertThat(author.getFirstName()).isEqualTo("James");
+                assertThat(author.getLastName()).isEqualTo("Joyce");
         }
 
-        @MutationMapping
-        public Author addAuthor(@Argument String firstName, @Argument String lastName) {
-            return new Author(99L, firstName, lastName);
+        @Test
+        void subscription() {
+                String document = "subscription { " +
+                        "  bookSearch(author:\"Orwell\") { " +
+                        "    id" +
+                        "    name" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
+                        .map(response -> response.toEntity("bookSearch", Book.class));
+
+                StepVerifier.create(bookFlux)
+                        .consumeNextWith(book -> {
+                                assertThat(book.getId()).isEqualTo(1);
+                                assertThat(book.getName()).isEqualTo("Nineteen Eighty-Four");
+                        })
+                        .consumeNextWith(book -> {
+                                assertThat(book.getId()).isEqualTo(5);
+                                assertThat(book.getName()).isEqualTo("Animal Farm");
+                        })
+                        .verifyComplete();
         }
 
-        @SubscriptionMapping
-        public Flux<Book> bookSearch(@Argument String author) {
-            return (author.equalsIgnoreCase("Fitzgerald") ?
-                    Flux.error(new IllegalArgumentException("Bad input")) :
-                    Flux.fromIterable(BookSource.findBooksByAuthor(author)));
+        @Test
+        void handleExceptionFromQuery() {
+                String document = "{ " +
+                        "  booksByCriteria(criteria: {author:\"Fitzgerald\"}) { " +
+                        "    id" +
+                        "    name" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono =
+                        graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+                assertThat(responseHelper.errorCount()).isEqualTo(1);
+                assertThat(responseHelper.error(0).errorType()).isEqualTo("BAD_REQUEST");
+                assertThat(responseHelper.error(0).message()).isEqualTo("Rejected: Bad input");
         }
 
-        @GraphQlExceptionHandler
-        public GraphQLError handleInputError(IllegalArgumentException ex) {
-            return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST)
-                    .message("Rejected: " + ex.getMessage())
-                    .build();
+        @Test
+        void handleExceptionFromSubscription() {
+                String document = "subscription { " +
+                        "  bookSearch(author:\"Fitzgerald\") { " +
+                        "    id" +
+                        "    name" +
+                        "  }" +
+                        "}";
+
+                Mono<ExecutionGraphQlResponse> responseMono =
+                        graphQlService().execute(TestExecutionRequest.forDocument(document));
+
+                Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
+                        .map(response -> response.toEntity("bookSearch", Book.class));
+
+                StepVerifier.create(bookFlux)
+                        .expectErrorSatisfies(ex -> {
+                                SubscriptionPublisherException theEx = (SubscriptionPublisherException) ex;
+                                List<GraphQLError> errors = theEx.getErrors();
+                                assertThat(errors).hasSize(1);
+                                assertThat(errors.get(0).getErrorType().toString()).isEqualTo("BAD_REQUEST");
+                                assertThat(errors.get(0).getMessage()).isEqualTo("Rejected: Bad input");
+                        })
+                        .verify();
         }
-    }
 
-    @ProjectedPayload
-    interface BookProjection {
 
-        String getAuthor();
+        private ExecutionGraphQlService graphQlService() {
+                BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
-    }
+                AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+                context.register(BookController.class);
+                context.registerBean(BatchLoaderRegistry.class, () -> registry);
+                context.refresh();
+
+                AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+                configurer.setExecutor(new SimpleAsyncTaskExecutor());
+                configurer.setApplicationContext(context);
+                configurer.afterPropertiesSet();
+
+                return GraphQlSetup.schemaResource(BookSource.schema)
+                        .runtimeWiring(configurer)
+                        .runtimeWiring(builder -> builder.codeRegistry(GraphQLCodeRegistry.newCodeRegistry().defaultDataFetcher(
+                                new AnnotatedControllerDataFetcherFactory(configurer)
+                        )))
+                        .dataLoaders(registry)
+                        .toGraphQlService();
+        }
+
+
+        @SuppressWarnings("unused")
+        @Controller
+        private static class BookController {
+
+                public BookController(BatchLoaderRegistry batchLoaderRegistry) {
+                        batchLoaderRegistry.forTypePair(Long.class, Author.class)
+                                .registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
+                }
+
+                @QueryMapping
+                public Book bookById(@Argument Long id) {
+                        return BookSource.getBookWithoutAuthor(id);
+                }
+
+                @QueryMapping
+                public List<Book> booksByCriteria(@Argument BookCriteria criteria) {
+                        Assert.isTrue(!criteria.getAuthor().equalsIgnoreCase("Fitzgerald"), "Bad input");
+                        return BookSource.findBooksByAuthor(criteria.getAuthor());
+                }
+
+                @QueryMapping
+                public List<Book> booksByProjectedArguments(BookProjection projection) {
+                        return BookSource.findBooksByAuthor(projection.getAuthor());
+                }
+
+                @QueryMapping
+                public List<Book> booksByProjectedCriteria(@Argument BookProjection criteria) {
+                        return BookSource.findBooksByAuthor(criteria.getAuthor());
+                }
+
+                @SchemaMapping
+                public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> dataLoader) {
+                        return dataLoader.load(book.getAuthorId());
+                }
+
+                @QueryMapping
+                public Callable<Author> authorById(DataFetchingEnvironment environment, GraphQLContext context) {
+                        return () -> {
+                                context.put("key", "value");
+                                String id = environment.getArgument("id");
+                                return BookSource.getAuthor(Long.parseLong(id));
+                        };
+                }
+
+                @MutationMapping
+                public Author addAuthor(@Argument String firstName, @Argument String lastName) {
+                        return new Author(99L, firstName, lastName);
+                }
+
+                @SubscriptionMapping
+                public Flux<Book> bookSearch(@Argument String author) {
+                        return (author.equalsIgnoreCase("Fitzgerald") ?
+                                Flux.error(new IllegalArgumentException("Bad input")) :
+                                Flux.fromIterable(BookSource.findBooksByAuthor(author)));
+                }
+
+                @GraphQlExceptionHandler
+                public GraphQLError handleInputError(IllegalArgumentException ex) {
+                        return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST)
+                                .message("Rejected: " + ex.getMessage())
+                                .build();
+                }
+        }
+
+        @ProjectedPayload
+        interface BookProjection {
+
+                String getAuthor();
+
+        }
 
 }
