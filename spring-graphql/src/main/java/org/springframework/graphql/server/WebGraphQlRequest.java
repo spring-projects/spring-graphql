@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,13 @@ import java.util.Map;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriComponents;
@@ -42,21 +46,39 @@ import org.springframework.web.util.UriComponentsBuilder;
  */
 public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements ExecutionGraphQlRequest {
 
+	private static final MultiValueMap<String, HttpCookie> EMPTY_COOKIES =
+			CollectionUtils.unmodifiableMultiValueMap(new LinkedMultiValueMap<>());
+
+
 	private final UriComponents uri;
 
 	private final HttpHeaders headers;
 
+	private final MultiValueMap<String, HttpCookie> cookies;
+
+
+	/**
+	 * Create an instance.
+	 * @deprecated as of 1.1.3 in favor of the constructor with cookies
+	 */
+	@Deprecated
+	public WebGraphQlRequest(URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
+		this(uri, headers, null, body, id, locale);
+	}
 
 	/**
 	 * Create an instance.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
+	 * @param cookies the request cookies
 	 * @param body the deserialized content of the GraphQL request
 	 * @param id an identifier for the GraphQL request
 	 * @param locale the locale from the HTTP request, if any
+	 * @since 1.1.3
 	 */
 	public WebGraphQlRequest(
-			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
+			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+			Map<String, Object> body, String id, @Nullable Locale locale) {
 
 		super(getKey("query", body), getKey("operationName", body), getKey("variables", body),
 				getKey("extensions", body), id, locale);
@@ -66,6 +88,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
+		this.cookies = (cookies != null ? cookies : EMPTY_COOKIES);
 	}
 
 	@SuppressWarnings("unchecked")
