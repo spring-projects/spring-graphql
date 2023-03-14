@@ -18,6 +18,7 @@ package org.springframework.graphql.observation;
 
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +84,7 @@ class PropagationWebGraphQlInterceptorTests {
 		HttpHeaders httpHeaders = new HttpHeaders();
 		headers.forEach(httpHeaders::set);
 		return new WebGraphQlRequest(
-				URI.create("https://example.org/graphql"), httpHeaders, null,
+				URI.create("https://example.org/graphql"), httpHeaders, null, Collections.emptyMap(),
 				Map.of("query", "{ notUsed }"), "1", null);
 	}
 

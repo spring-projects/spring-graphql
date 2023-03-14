@@ -18,6 +18,7 @@ package org.springframework.graphql.server;
 
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
@@ -49,14 +50,15 @@ public class WebSocketGraphQlRequest extends WebGraphQlRequest {
 			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale,
 			WebSocketSessionInfo sessionInfo) {
 
-		this(uri, headers, null, body, id, locale, sessionInfo);
+		this(uri, headers, null, Collections.emptyMap(), body, id, locale, sessionInfo);
 	}
 
 	/**
 	 * Create an instance.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
-	 * @param cookies the request cookies
+	 * @param cookies the HTTP request cookies
+	 * @param attributes session attributes
 	 * @param body the deserialized content of the GraphQL request
 	 * @param id the id from the GraphQL over WebSocket {@code "subscribe"} message
 	 * @param locale the locale from the HTTP request, if any
@@ -65,9 +67,10 @@ public class WebSocketGraphQlRequest extends WebGraphQlRequest {
 	 */
 	public WebSocketGraphQlRequest(
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
-			Map<String, Object> body, String id, @Nullable Locale locale, WebSocketSessionInfo sessionInfo) {
+			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale,
+			WebSocketSessionInfo sessionInfo) {
 
-		super(uri, headers, cookies, body, id, locale);
+		super(uri, headers, cookies, attributes, body, id, locale);
 		Assert.notNull(sessionInfo, "WebSocketSessionInfo is required");
 		this.sessionInfo = sessionInfo;
 	}

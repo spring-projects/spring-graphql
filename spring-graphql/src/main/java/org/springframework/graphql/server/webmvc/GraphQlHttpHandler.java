@@ -90,7 +90,7 @@ public class GraphQlHttpHandler {
 
 		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 				serverRequest.uri(), serverRequest.headers().asHttpHeaders(), initCookies(serverRequest),
-				readBody(serverRequest), this.idGenerator.generateId().toString(),
+				serverRequest.attributes(), readBody(serverRequest), this.idGenerator.generateId().toString(),
 				LocaleContextHolder.getLocale());
 
 		if (logger.isDebugEnabled()) {

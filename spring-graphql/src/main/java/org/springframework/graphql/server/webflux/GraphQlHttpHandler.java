@@ -75,7 +75,7 @@ public class GraphQlHttpHandler {
 				.flatMap(body -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
-							serverRequest.cookies(), body,
+							serverRequest.cookies(), serverRequest.attributes(), body,
 							serverRequest.exchange().getRequest().getId(),
 							serverRequest.exchange().getLocaleContext().getLocale());
 					if (logger.isDebugEnabled()) {

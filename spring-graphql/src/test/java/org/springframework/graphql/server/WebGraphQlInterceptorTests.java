@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebGraphQlInterceptorTests {
 
 	private static final WebGraphQlRequest webRequest = new WebGraphQlRequest(
-			URI.create("http://abc.org"), new HttpHeaders(), null,
+			URI.create("http://abc.org"), new HttpHeaders(), null, Collections.emptyMap(),
 			Collections.singletonMap("query", "{ notUsed }"), "1", null);
 
 	@Test
