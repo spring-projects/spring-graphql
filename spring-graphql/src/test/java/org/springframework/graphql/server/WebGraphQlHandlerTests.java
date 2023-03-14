@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebGraphQlHandlerTests {
 
 	private static final WebGraphQlRequest webInput = new WebGraphQlRequest(
-			URI.create("https://abc.org"), new HttpHeaders(), Collections.singletonMap("query", "{ greeting }"), "1", null);
+			URI.create("https://abc.org"), new HttpHeaders(), null,
+			Collections.singletonMap("query", "{ greeting }"), "1", null);
 
 
 	private final GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent("type Query { greeting: String }");

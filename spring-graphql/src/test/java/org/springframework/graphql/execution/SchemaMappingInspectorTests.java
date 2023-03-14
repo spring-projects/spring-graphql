@@ -20,9 +20,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.SchemaGenerator;
 import org.assertj.core.api.AbstractAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,11 +42,11 @@ import org.springframework.stereotype.Controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link SchemaInspector}.
+ * Tests for {@link SchemaMappingInspector}.
  *
  * @author Brian Clozel
  */
-class SchemaInspectorTests {
+class SchemaMappingInspectorTests {
 
 
 	@Nested
@@ -59,7 +59,7 @@ class SchemaInspectorTests {
 							greeting: String
 						}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, EmptyController.class);
 			assertThatReport(report).hasSize(1).missesOperations("Query", "greeting");
 		}
 
@@ -70,7 +70,7 @@ class SchemaInspectorTests {
 							greeting: String
 						}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).isEmpty();
 		}
 
@@ -87,7 +87,7 @@ class SchemaInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasSize(1).missesFields("Book", "missing");
 		}
 
@@ -100,7 +100,7 @@ class SchemaInspectorTests {
 					    	greeting: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, EmptyController.class);
 			assertThatReport(report).hasSize(1).missesOperations("Query", "greeting");
 		}
 
@@ -111,6 +111,9 @@ class SchemaInspectorTests {
 		@Test
 		void hasMissingOperationEntryWhenMissingQueryMapping() {
 			String schema = """
+						type Query{
+							greeting: String
+						}
 						type Mutation {
 							createBook: Book
 						}
@@ -120,13 +123,16 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasSize(1).missesOperations("Mutation", "createBook");
 		}
 
 		@Test
 		void reportIsEmptyWhenMutationMapping() {
 			String schema = """
+						type Query{
+							greeting: String
+						}
 						type Mutation {
 							createBook: Book
 						}
@@ -136,13 +142,16 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class, BookController.class);
 			assertThatReport(report).isEmpty();
 		}
 
 		@Test
 		void inspectExtensionTypesForMutations() {
 			String schema = """
+						type Query {
+							greeting: String
+						}
 						type Mutation {
 						}
 						extend type Mutation {
@@ -153,7 +162,7 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasSize(1).missesOperations("Mutation", "createBook");
 		}
 
@@ -164,6 +173,9 @@ class SchemaInspectorTests {
 		@Test
 		void hasMissingOperationEntryWhenMissingSubscriptionMapping() {
 			String schema = """
+						type Query{
+							greeting: String
+						}
 						type Subscription {
 							bookSearch(author: String) : Book!
 						}
@@ -173,13 +185,16 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasSize(1).missesOperations("Subscription", "bookSearch");
 		}
 
 		@Test
 		void reportIsEmptyWhenSubscriptionMapping() {
 			String schema = """
+						type Query{
+							greeting: String
+						}
 						type Subscription {
 							bookSearch(author: String) : Book!
 						}
@@ -189,13 +204,16 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class, BookController.class);
 			assertThatReport(report).isEmpty();
 		}
 
 		@Test
 		void inspectExtensionTypesForSubscriptions() {
 			String schema = """
+						type Query{
+							greeting: String
+						}
 						type Subscription {
 						}
 						extend type Subscription {
@@ -206,7 +224,7 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasSize(1).missesOperations("Subscription", "bookSearch");
 		}
 
@@ -226,7 +244,7 @@ class SchemaInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).isEmpty();
 		}
 
@@ -243,7 +261,7 @@ class SchemaInspectorTests {
 							fetcher: String
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).isEmpty();
 		}
 
@@ -260,7 +278,7 @@ class SchemaInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasSize(1).missesFields("Book", "missing");
 		}
 
@@ -283,7 +301,7 @@ class SchemaInspectorTests {
 							missing: String
 						}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasSize(1).missesFields("Author", "missing");
 		}
 
@@ -304,7 +322,7 @@ class SchemaInspectorTests {
 							team: Team
 						}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, TeamController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, TeamController.class);
 			assertThatReport(report).isEmpty();
 		}
 
@@ -323,27 +341,8 @@ class SchemaInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasSize(1).missesFields("Book", "missing");
-		}
-
-		@Test
-		void hasMissingFieldEntryWhenMissingPropertyOnTypeProvidedByInterface() {
-			String schema = """
-						type Query {
-							bookById(id: ID): Book
-						}
-
-						interface LibraryItem {
-							missing: Boolean
-						}
-						type Book implements LibraryItem {
-							id: ID
-							name: String
-					 	}
-					""";
-			SchemaInspector.Report report = inspectSchema(schema, BookController.class);
-			assertThatReport(report).hasSize(1).missesFields("LibraryItem", "missing");
 		}
 
 	}
@@ -358,11 +357,8 @@ class SchemaInspectorTests {
 							greeting: String
 						}
 					""";
-			 SchemaInspector.Report report = inspectSchema(schema, EmptyController.class);
-			 assertThat(report.getSummary()).isEqualTo("GraphQL schema inspection found missing mappings for [Query], no missing data fetchers for inspected types.");
-			 assertThat(report.getDetailedReport()).isEqualTo("""
-					 - on Query: [greeting]
-					 """);
+			 SchemaMappingInspector.Report report = inspectSchema(schema, EmptyController.class);
+			 assertThat(report.getSummary()).isEqualTo("GraphQL schema inspection found missing mappings for: Query[greeting].");
 		 }
 
 		 @Test
@@ -378,11 +374,8 @@ class SchemaInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			 SchemaInspector.Report report = inspectSchema(schema, BookController.class);
-			 assertThat(report.getSummary()).isEqualTo("GraphQL schema inspection found no missing mappings for operations, missing data fetchers for types [Book].");
-			 assertThat(report.getDetailedReport()).isEqualTo("""
-					 - on Book: [missing]
-					 """);
+			 SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			 assertThat(report.getSummary()).isEqualTo("GraphQL schema inspection found missing mappings for: Book[missing].");
 		 }
 
 	}
@@ -463,17 +456,11 @@ class SchemaInspectorTests {
 
 	}
 
-	SchemaInspector.Report inspectSchema(String schema, Class<?>... controllers) {
-		TypeDefinitionRegistry typeDefinitionRegistry = loadTypeDefinitionRegistryFromSchema(schema);
+	SchemaMappingInspector.Report inspectSchema(String schemaContent, Class<?>... controllers) {
+		GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
 		RuntimeWiring.Builder builder = createRuntimeWiring(controllers);
-		return new SchemaInspector().inspectSchema(typeDefinitionRegistry, builder.build());
+		return new SchemaMappingInspector().inspectSchemaMappings(schema, builder.build());
 	}
-
-
-	TypeDefinitionRegistry loadTypeDefinitionRegistryFromSchema(String schema) {
-		return new SchemaParser().parse(schema);
-	}
-
 
 	RuntimeWiring.Builder createRuntimeWiring(Class<?>... handlerTypes) {
 		AnnotationConfigApplicationContext appContext = new AnnotationConfigApplicationContext();
@@ -491,13 +478,13 @@ class SchemaInspectorTests {
 		return wiringBuilder;
 	}
 
-	static SchemaInspectionReportAssert assertThatReport(SchemaInspector.Report actual) {
+	static SchemaInspectionReportAssert assertThatReport(SchemaMappingInspector.Report actual) {
 		return new SchemaInspectionReportAssert(actual);
 	}
 
-	static class SchemaInspectionReportAssert extends AbstractAssert<SchemaInspectionReportAssert, SchemaInspector.Report> {
+	static class SchemaInspectionReportAssert extends AbstractAssert<SchemaInspectionReportAssert, SchemaMappingInspector.Report> {
 
-		public SchemaInspectionReportAssert(SchemaInspector.Report actual) {
+		public SchemaInspectionReportAssert(SchemaMappingInspector.Report actual) {
 			super(actual, SchemaInspectionReportAssert.class);
 		}
 

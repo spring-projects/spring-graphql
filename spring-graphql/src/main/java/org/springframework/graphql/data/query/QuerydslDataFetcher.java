@@ -47,7 +47,7 @@ import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
-import org.springframework.graphql.data.TypedDataFetcher;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
@@ -540,7 +540,7 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 
-	private static class SingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements TypedDataFetcher<R> {
+	private static class SingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<R> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
@@ -584,13 +584,13 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@Override
-		public ResolvableType getDeclaredType() {
+		public ResolvableType getReturnType() {
 			return ResolvableType.forClass(this.resultType);
 		}
 	}
 
 
-	private static class ManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements TypedDataFetcher<Iterable<R>> {
+	private static class ManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Iterable<R>> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
@@ -632,14 +632,14 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@Override
-		public ResolvableType getDeclaredType() {
+		public ResolvableType getReturnType() {
 			return ResolvableType.forClassWithGenerics(Iterable.class, this.resultType);
 		}
 
 	}
 
 
-	private static class ReactiveSingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements TypedDataFetcher<Mono<R>> {
+	private static class ReactiveSingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Mono<R>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
@@ -682,14 +682,14 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@Override
-		public ResolvableType getDeclaredType() {
+		public ResolvableType getReturnType() {
 			return ResolvableType.forClassWithGenerics(Mono.class, this.resultType);
 		}
 
 	}
 
 
-	private static class ReactiveManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements TypedDataFetcher<Flux<R>> {
+	private static class ReactiveManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Flux<R>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
@@ -732,7 +732,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@Override
-		public ResolvableType getDeclaredType() {
+		public ResolvableType getReturnType() {
 			return ResolvableType.forClassWithGenerics(Flux.class, this.resultType);
 		}
 

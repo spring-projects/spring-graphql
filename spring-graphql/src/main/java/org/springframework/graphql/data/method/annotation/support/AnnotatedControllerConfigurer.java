@@ -60,7 +60,7 @@ import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
-import org.springframework.graphql.data.TypedDataFetcher;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -151,15 +151,15 @@ public class AnnotatedControllerConfigurer
 	}
 
 	/**
-	 * Add {@link HandlerMethodArgumentResolver}'s for custom controller method
+	 * Add a {@link HandlerMethodArgumentResolver} for custom controller method
 	 * arguments. Such custom resolvers are ordered after built-in resolvers
 	 * except for {@link SourceMethodArgumentResolver}, which is always last.
 	 *
-	 * @param resolvers the resolvers to add.
+	 * @param resolver the resolver to add.
 	 * @since 1.2
 	 */
-	public void setCustomArgumentResolver(List<HandlerMethodArgumentResolver> resolvers) {
-		this.customArgumentResolvers.addAll(resolvers);
+	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
+		this.customArgumentResolvers.add(resolver);
 	}
 
 	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
@@ -605,7 +605,7 @@ public class AnnotatedControllerConfigurer
 	/**
 	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
 	 */
-	public static class SchemaMappingDataFetcher implements TypedDataFetcher<Object> {
+	public static class SchemaMappingDataFetcher implements SelfDescribingDataFetcher<Object> {
 
 		private final MappingInfo info;
 
@@ -697,7 +697,7 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
-		public ResolvableType getDeclaredType() {
+		public ResolvableType getReturnType() {
 			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
 		}
 

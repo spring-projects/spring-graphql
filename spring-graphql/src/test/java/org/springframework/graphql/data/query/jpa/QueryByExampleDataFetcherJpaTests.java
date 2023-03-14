@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +25,14 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
-import jakarta.persistence.EntityManagerFactory;
 
 import graphql.schema.DataFetcher;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -189,7 +188,8 @@ class QueryByExampleDataFetcherJpaTests {
 
 	private WebGraphQlRequest request(String query) {
 		return new WebGraphQlRequest(
-				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
+				URI.create("/"), new HttpHeaders(), null,
+				Collections.singletonMap("query", query), "1", null);
 	}
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,8 +41,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
-import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlHandler;
@@ -185,7 +185,8 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 	private WebGraphQlRequest request(String query) {
 		return new WebGraphQlRequest(
-				URI.create("/"), new HttpHeaders(), Collections.singletonMap("query", query), "1", null);
+				URI.create("/"), new HttpHeaders(), null,
+				Collections.singletonMap("query", query), "1", null);
 	}
 
 
