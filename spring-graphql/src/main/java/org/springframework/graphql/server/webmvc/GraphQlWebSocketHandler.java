@@ -203,8 +203,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				URI uri = session.getUri();
 				Assert.notNull(uri, "Expected handshake url");
 				HttpHeaders headers = session.getHandshakeHeaders();
-				WebSocketGraphQlRequest request =
-						new WebSocketGraphQlRequest(uri, headers, null, payload, id, null, state.getSessionInfo());
+				WebSocketGraphQlRequest request = new WebSocketGraphQlRequest(
+						uri, headers, null, session.getAttributes(), payload, id, null, state.getSessionInfo());
 				if (logger.isDebugEnabled()) {
 					logger.debug("Executing: " + request);
 				}

@@ -185,7 +185,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 	private WebGraphQlRequest request(String query) {
 		return new WebGraphQlRequest(
-				URI.create("/"), new HttpHeaders(), null,
+				URI.create("/"), new HttpHeaders(), null, Collections.emptyMap(),
 				Collections.singletonMap("query", query), "1", null);
 	}
 

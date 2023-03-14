@@ -18,7 +18,7 @@ package org.springframework.graphql.test.tester;
 
 
 import java.net.URI;
-import java.util.Map;
+import java.util.Collections;
 
 import reactor.core.publisher.Mono;
 
@@ -77,10 +77,12 @@ final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTrans
 
 	@Override
 	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest executionRequest) {
-		String id = idGenerator.generateId().toString();
-		Map<String, Object> body = executionRequest.toMap();
-		WebGraphQlRequest webRequest = new WebGraphQlRequest(this.url, this.headers, null, body, id, null);
-		return this.graphQlHandler.handleRequest(webRequest).cast(ExecutionGraphQlResponse.class);
+
+		WebGraphQlRequest request = new WebGraphQlRequest(
+				this.url, this.headers, null,  Collections.emptyMap(), executionRequest.toMap(),
+				idGenerator.generateId().toString(), null);
+
+		return this.graphQlHandler.handleRequest(request).cast(ExecutionGraphQlResponse.class);
 	}
 
 }
