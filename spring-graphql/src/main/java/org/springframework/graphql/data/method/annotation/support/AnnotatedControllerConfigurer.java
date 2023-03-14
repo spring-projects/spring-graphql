@@ -605,7 +605,7 @@ public class AnnotatedControllerConfigurer
 	/**
 	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
 	 */
-	static class SchemaMappingDataFetcher implements TypedDataFetcher<Object> {
+	public static class SchemaMappingDataFetcher implements TypedDataFetcher<Object> {
 
 		private final MappingInfo info;
 
