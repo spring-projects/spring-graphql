@@ -15,10 +15,12 @@
  */
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 import graphql.GraphQLContext;
 import graphql.GraphQLError;
@@ -49,11 +51,11 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
+import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -230,6 +232,34 @@ public class SchemaMappingInvocationTests {
 	}
 
 	@Test
+	void handleExceptionWithResolverWhenNoAnnotatedExceptionHandlerMatches() {
+		String document = "{ " +
+				"  booksByCriteria(criteria: {author:\"Heller\"}) { " +
+				"    id" +
+				"    name" +
+				"  }" +
+				"}";
+
+		DataFetcherExceptionResolver resolver = (ex, env) ->
+				Mono.just(Collections.singletonList(
+						GraphQLError.newError().errorType(ErrorType.INTERNAL_ERROR)
+								.message("Rejected: " + ex.getMessage())
+								.build()));
+
+		ExecutionGraphQlService service = graphQlService((configurer, setup) -> {
+			setup.exceptionResolver(configurer.getExceptionResolver()); // First @ControllerAdvice (no match)
+			setup.exceptionResolver(resolver); // Then resolver
+		});
+
+		Mono<ExecutionGraphQlResponse> responseMono = service.execute(TestExecutionRequest.forDocument(document));
+
+		ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+		assertThat(responseHelper.errorCount()).isEqualTo(1);
+		assertThat(responseHelper.error(0).errorType()).isEqualTo("INTERNAL_ERROR");
+		assertThat(responseHelper.error(0).message()).isEqualTo("Rejected: Fetch failure");
+	}
+
+	@Test
 	void handleExceptionFromSubscription() {
 		String document = "subscription { " +
 				"  bookSearch(author:\"Fitzgerald\") { " +
@@ -257,6 +287,10 @@ public class SchemaMappingInvocationTests {
 
 
 	private ExecutionGraphQlService graphQlService() {
+		return graphQlService((configurer, setup) -> {});
+	}
+
+	private ExecutionGraphQlService graphQlService(BiConsumer<AnnotatedControllerConfigurer, GraphQlSetup> consumer) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
@@ -269,10 +303,10 @@ public class SchemaMappingInvocationTests {
 		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 
-		return GraphQlSetup.schemaResource(BookSource.schema)
-				.runtimeWiring(configurer)
-				.dataLoaders(registry)
-				.toGraphQlService();
+		GraphQlSetup setup = GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
+		consumer.accept(configurer, setup);
+
+		return setup.dataLoaders(registry).toGraphQlService();
 	}
 
 
@@ -292,7 +326,10 @@ public class SchemaMappingInvocationTests {
 
 		@QueryMapping
 		public List<Book> booksByCriteria(@Argument BookCriteria criteria) {
-			Assert.isTrue(!criteria.getAuthor().equalsIgnoreCase("Fitzgerald"), "Bad input");
+			switch (criteria.getAuthor()) {
+				case "Fitzgerald" -> throw new IllegalArgumentException("Bad input");
+				case "Heller" -> throw new IllegalStateException("Fetch failure");
+			}
 			return BookSource.findBooksByAuthor(criteria.getAuthor());
 		}
 

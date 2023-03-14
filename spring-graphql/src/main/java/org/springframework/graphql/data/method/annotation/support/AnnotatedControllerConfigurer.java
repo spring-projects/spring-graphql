@@ -62,7 +62,6 @@ import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
-import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -71,6 +70,7 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
@@ -617,18 +617,21 @@ public class AnnotatedControllerConfigurer
 			return result;
 		}
 
-		private Mono<DataFetcherResult<?>> handleException(
+		private Mono<DataFetcherResult<Object>> handleException(
 				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
 
 			return this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
-					.map(errors -> DataFetcherResult.newResult().errors(errors).build());
+					.map(errors -> DataFetcherResult.newResult().errors(errors).build())
+					.switchIfEmpty(Mono.error(ex));
 		}
 
+		@SuppressWarnings("unchecked")
 		private <T> Publisher<T> handleSubscriptionError(
 				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
 
-			return this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
-					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)));
+			return (Publisher<T>) this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
+					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)))
+					.switchIfEmpty(Mono.error(ex));
 		}
 
 		@Override

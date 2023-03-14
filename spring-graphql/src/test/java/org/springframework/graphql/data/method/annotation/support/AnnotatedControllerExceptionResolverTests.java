@@ -102,9 +102,8 @@ public class AnnotatedControllerExceptionResolverTests {
 		AnnotatedControllerExceptionResolver resolver = exceptionResolver();
 		resolver.registerController(controller.getClass());
 
-		StepVerifier.create(resolver.resolveException(ex, this.environment, controller))
-				.expectErrorSatisfies(actualEx -> assertThat(actualEx).isSameAs(ex))
-				.verify();
+		StepVerifier.create(resolver.resolveException(ex, this.environment, controller)).verifyComplete();
+		StepVerifier.create(resolver.resolveException(ex, this.environment, controller)).verifyComplete();
 	}
 
 	@Test

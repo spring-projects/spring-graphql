@@ -160,7 +160,7 @@ final class AnnotatedControllerExceptionResolver {
 	 * @param ex the exception to resolve
 	 * @param environment the environment for the invoked {@code DataFetcher}
 	 * @param controller the controller that raised the exception, if applicable
-	 * @return a {@code Mono} with errors as specified in
+	 * @return a {@code Mono} with resolved {@code GraphQLError}s as specified in
 	 * {@link DataFetcherExceptionResolver#resolveException(Throwable, DataFetchingEnvironment)}
 	 */
 	public Mono<List<GraphQLError>> resolveException(
@@ -194,7 +194,7 @@ final class AnnotatedControllerExceptionResolver {
 		}
 
 		if (methodHolder == null) {
-			return Mono.error(ex);
+			return Mono.empty();
 		}
 
 		return invokeExceptionHandler(ex, environment, controllerOrAdvice, methodHolder);
@@ -405,13 +405,13 @@ final class AnnotatedControllerExceptionResolver {
 		/** Adapter for a single GraphQLError */
 		ReturnValueAdapter forSingleError = (result, returnType, ex) ->
 				(result == null ?
-						Mono.error(ex) :
+						Mono.empty() :
 						Mono.just(Collections.singletonList((GraphQLError) result)));
 
 		/** Adapter for a collection of GraphQLError's */
 		ReturnValueAdapter forCollection = (result, returnType, ex) ->
 				(result == null ?
-						Mono.error(ex) :
+						Mono.empty() :
 						Mono.just((result instanceof List ?
 								(List<GraphQLError>) result :
 								new ArrayList<>((Collection<GraphQLError>) result))));
@@ -419,7 +419,7 @@ final class AnnotatedControllerExceptionResolver {
 		/** Adapter for Object */
 		ReturnValueAdapter forObject = (result, returnType, ex) -> {
 			if (result == null) {
-				return Mono.error(ex);
+				return Mono.empty();
 			}
 			else if (result instanceof GraphQLError) {
 				return forSingleError.adapt(result, returnType, ex);
@@ -438,12 +438,12 @@ final class AnnotatedControllerExceptionResolver {
 
 		/** Adapter for {@code Mono<Void>} */
 		ReturnValueAdapter forMonoVoid = (result, returnType, ex) ->
-				(result == null ? Mono.error(ex) : Mono.just(Collections.emptyList()));
+				(result == null ? Mono.empty() : Mono.just(Collections.emptyList()));
 
 		/** Adapter for a {@code Mono} wrapping any of the other synchronous return value types */
 		ReturnValueAdapter forMono = (result, returnType, ex) ->
 				(result == null ?
-						Mono.error(ex) :
+						Mono.empty() :
 						((Mono<?>) result).flatMap(o -> forObject.adapt(o, returnType, ex)).switchIfEmpty(Mono.error(ex)));
 	}
 
