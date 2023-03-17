@@ -67,6 +67,8 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
+import org.springframework.graphql.data.pagination.CursorStrategy;
+import org.springframework.graphql.data.pagination.SortStrategy;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -124,6 +126,12 @@ public class AnnotatedControllerConfigurer
 
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
+	@Nullable
+	private CursorStrategy<?> cursorStrategy;
+
+	@Nullable
+	private SortStrategy<?> sortStrategy;
+
 	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
 
 	@Nullable
@@ -150,6 +158,32 @@ public class AnnotatedControllerConfigurer
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
+	}
+
+	/**
+	 * Configure a {@link CursorStrategy} to handle pagination requests, which
+	 * results in one of the following:
+	 * <ul>
+	 * <li>If Spring Data is present, and the strategy supports {@code ScrollPosition},
+	 * then {@link ScrollRequestMethodArgumentResolver} is
+	 * configured as a method argument resolver.
+	 * <li>Otherwise {@link PaginationRequestMethodArgumentResolver} is added
+	 * instead.
+	 * </ul>
+	 * @since 1.2
+	 */
+	public void setCursorStrategy(@Nullable CursorStrategy<?> cursorStrategy) {
+		this.cursorStrategy = cursorStrategy;
+	}
+
+	/**
+	 * Configure a {@link SortStrategy} to extract sort details for pagination
+	 * requests. This results in {@link SortMethodArgumentResolver} being added
+	 * as a method argument resolver.
+	 * @since 1.2
+	 */
+	public void setSortStrategy(SortStrategy<?> sortStrategy) {
+		this.sortStrategy = sortStrategy;
 	}
 
 	/**
@@ -251,6 +285,12 @@ public class AnnotatedControllerConfigurer
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		resolvers.addResolver(new DataLoaderMethodArgumentResolver());
+		if (this.cursorStrategy != null) {
+			resolvers.addResolver(initPaginationResolver(this.cursorStrategy));
+		}
+		if (this.sortStrategy != null) {
+			resolvers.addResolver(new SortMethodArgumentResolver(this.sortStrategy));
+		}
 		if (springSecurityPresent) {
 			resolvers.addResolver(new PrincipalMethodArgumentResolver());
 			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
@@ -266,6 +306,17 @@ public class AnnotatedControllerConfigurer
 		resolvers.addResolver(new SourceMethodArgumentResolver());
 
 		return resolvers;
+	}
+
+	@SuppressWarnings("unchecked")
+	private HandlerMethodArgumentResolver initPaginationResolver(CursorStrategy<?> cursorStrategy) {
+		if (springDataPresent) {
+			if (cursorStrategy.supports(org.springframework.data.domain.ScrollPosition.class)) {
+				return new ScrollRequestMethodArgumentResolver(
+						(CursorStrategy<org.springframework.data.domain.ScrollPosition>) cursorStrategy);
+			}
+		}
+		return new PaginationRequestMethodArgumentResolver<>(cursorStrategy);
 	}
 
 	protected final ApplicationContext obtainApplicationContext() {
