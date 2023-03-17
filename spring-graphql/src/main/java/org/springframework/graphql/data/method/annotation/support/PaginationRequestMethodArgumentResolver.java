@@ -53,8 +53,8 @@ public class PaginationRequestMethodArgumentResolver<P> implements HandlerMethod
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		boolean forward = !environment.getArguments().containsKey("last");
-		String cursor = environment.getArgument(forward ? "before" : "after");
 		Integer count = environment.getArgument(forward ? "first" : "last");
+		String cursor = environment.getArgument(forward ? "after" : "before");
 		P position = (cursor != null ? this.cursorStrategy.fromCursor(cursor) : null);
 		return createRequest(position, count, forward);
 	}
