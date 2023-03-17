@@ -31,11 +31,11 @@ import org.springframework.graphql.execution.ConnectionTypeGenerator;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link ConnectionTypeVisitor}.
+ * Unit tests for {@link ConnectionFieldTypeVisitor}.
  *
  * @author Rossen Stoyanchev
  */
-public class ConnectionTypeVisitorTests {
+public class ConnectionFieldTypeVisitorTests {
 
 
 	@Test
@@ -76,7 +76,7 @@ public class ConnectionTypeVisitorTests {
 		ExecutionGraphQlResponse response = GraphQlSetup.schemaContent(schemaContent)
 				.dataFetcher("Query", "books", env -> BookSource.books())
 				.typeDefinitionRegistryConfigurer(new ConnectionTypeGenerator()::generateConnectionTypes)
-				.typeVisitor(ConnectionTypeVisitor.create(List.of(adapter)))
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(document))
 				.block();

@@ -55,12 +55,12 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public final class ConnectionTypeVisitor extends GraphQLTypeVisitorStub {
+public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 
 	private final ConnectionAdapter adapter;
 
 
-	private ConnectionTypeVisitor(ConnectionAdapter adapter) {
+	private ConnectionFieldTypeVisitor(ConnectionAdapter adapter) {
 		Assert.notNull(adapter, "ConnectionAdapter is required");
 		this.adapter = adapter;
 	}
@@ -102,9 +102,9 @@ public final class ConnectionTypeVisitor extends GraphQLTypeVisitorStub {
 	 * @param adapters the adapters to use
 	 * @return the type visitor
 	 */
-	public static ConnectionTypeVisitor create(List<ConnectionAdapter> adapters) {
+	public static ConnectionFieldTypeVisitor create(List<ConnectionAdapter> adapters) {
 		Assert.notEmpty(adapters, "Expected at least one ConnectionAdapter");
-		return new ConnectionTypeVisitor(ConnectionAdapter.from(adapters));
+		return new ConnectionFieldTypeVisitor(ConnectionAdapter.from(adapters));
 	}
 
 
