@@ -22,23 +22,23 @@ import graphql.schema.DataFetchingEnvironment;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.pagination.CursorStrategy;
-import org.springframework.graphql.data.pagination.PaginationRequest;
+import org.springframework.graphql.data.pagination.Subrange;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Resolver for a method argument of type {@link PaginationRequest} initialized
+ * Resolver for a method argument of type {@link Subrange} initialized
  * from "first", "last", "before", and "after" GraphQL arguments.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public class PaginationRequestMethodArgumentResolver<P> implements HandlerMethodArgumentResolver {
+public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentResolver {
 
 	private final CursorStrategy<P> cursorStrategy;
 
 
-	public PaginationRequestMethodArgumentResolver(CursorStrategy<P> cursorStrategy) {
+	public SubrangeMethodArgumentResolver(CursorStrategy<P> cursorStrategy) {
 		Assert.notNull(cursorStrategy, "CursorStrategy is required");
 		this.cursorStrategy = cursorStrategy;
 	}
@@ -46,7 +46,7 @@ public class PaginationRequestMethodArgumentResolver<P> implements HandlerMethod
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return (parameter.getParameterType().equals(PaginationRequest.class) &&
+		return (parameter.getParameterType().equals(Subrange.class) &&
 				this.cursorStrategy.supports(parameter.nested().getNestedParameterType()));
 	}
 
@@ -56,14 +56,14 @@ public class PaginationRequestMethodArgumentResolver<P> implements HandlerMethod
 		Integer count = environment.getArgument(forward ? "first" : "last");
 		String cursor = environment.getArgument(forward ? "after" : "before");
 		P position = (cursor != null ? this.cursorStrategy.fromCursor(cursor) : null);
-		return createRequest(position, count, forward);
+		return createSubrange(position, count, forward);
 	}
 
 	/**
-	 * Create the {@code PaginationRequest} instance.
+	 * Allows subclasses to create an extension of {@link Subrange}.
 	 */
-	protected PaginationRequest<P> createRequest(@Nullable P position, @Nullable Integer size, boolean forward) {
-		return new PaginationRequest<>(position, size, forward);
+	protected Subrange<P> createSubrange(@Nullable P pos, @Nullable Integer size, boolean forward) {
+		return new Subrange<>(pos, size, forward);
 	}
 
 }

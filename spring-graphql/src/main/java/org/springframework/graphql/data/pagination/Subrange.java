@@ -22,12 +22,13 @@ import java.util.Optional;
 import org.springframework.lang.Nullable;
 
 /**
- * Container for a pagination request.
+ * Container for parameters that limit result elements to a subrange including a
+ * relative position, number of elements, and direction.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public class PaginationRequest<P> {
+public class Subrange<P> {
 
 	@Nullable
 	private final P position;
@@ -39,9 +40,9 @@ public class PaginationRequest<P> {
 
 
 	/**
-	 * Constructor with the position, count, and direction.
+	 * Constructor with the relative position, count, and direction.
 	 */
-	public PaginationRequest(@Nullable P position, @Nullable Integer count, boolean forward) {
+	public Subrange(@Nullable P position, @Nullable Integer count, boolean forward) {
 		this.position = position;
 		this.forward = forward;
 		this.count = count;
@@ -49,16 +50,16 @@ public class PaginationRequest<P> {
 
 
 	/**
-	 * The position of an element relative to which to paginate, decoded from a
-	 * String cursor, e.g. the "before" and "after" arguments from the GraphQL
-	 * Cursor connection spec.
+	 * The position of the result element the subrange is relative to. This is
+	 * decoded from the "before" or "after" input arguments from the GraphQL
+	 * Cursor connection spec via {@link CursorStrategy}.
 	 */
 	public Optional<P> position() {
 		return Optional.ofNullable(this.position);
 	}
 
 	/**
-	 * The number of elements requested, e.g. "first" and "last" N elements
+	 * The number of elements in the subrange based on the "first" and "last"
 	 * arguments from the GraphQL Cursor connection spec.
 	 */
 	public Optional<Integer> count() {
@@ -66,12 +67,11 @@ public class PaginationRequest<P> {
 	}
 
 	/**
-	 * Whether forward or backward pagination is requested, e.g. depending on
-	 * whether "fist" or "last" N elements was sent.
-	 * <p><strong>Note:</strong> This value may not reflect the one originally
-	 * sent by the client. For example, for backward pagination, an offset cursor
-	 * may be adjusted down by the number of requested elements, turning into
-	 * forward pagination.
+	 * Whether the subrange is forward or backward from ths position, depending
+	 * on whether the argument sent "fist" or "last".
+	 * <p><strong>Note:</strong> The direction may not always match the original
+	 * value. For backward pagination, for example, an offset cursor could be
+	 * adjusted down by the count of elements, switching backward to forward.
 	 */
 	public boolean forward() {
 		return this.forward;

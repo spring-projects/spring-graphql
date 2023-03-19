@@ -27,29 +27,29 @@ import org.springframework.data.domain.Window;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
-import org.springframework.graphql.data.pagination.PaginationRequest;
+import org.springframework.graphql.data.pagination.Subrange;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link PaginationRequestMethodArgumentResolver}.
+ * Unit tests for {@link SubrangeMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class PaginationRequestMethodArgumentResolverTests extends ArgumentResolverTestSupport {
+public class SubrangeMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
-	private final PaginationRequestMethodArgumentResolver<MyPosition> resolver =
-			new PaginationRequestMethodArgumentResolver<>(new MyPositionCursorStrategy());
+	private final SubrangeMethodArgumentResolver<MyPosition> resolver =
+			new SubrangeMethodArgumentResolver<>(new MyPositionCursorStrategy());
 
 	private final MethodParameter param =
-			methodParam(BookController.class, "getBooks", PaginationRequest.class);
+			methodParam(BookController.class, "getBooks", Subrange.class);
 
 
 	@Test
 	void supports() {
 		assertThat(this.resolver.supportsParameter(this.param)).isTrue();
 
-		MethodParameter param = methodParam(BookController.class, "getBooksWithUnknownPosition", PaginationRequest.class);
+		MethodParameter param = methodParam(BookController.class, "getBooksWithUnknownPosition", Subrange.class);
 		assertThat(this.resolver.supportsParameter(param)).isFalse();
 	}
 
@@ -74,10 +74,10 @@ public class PaginationRequestMethodArgumentResolverTests extends ArgumentResolv
 	}
 
 	private static void testRequest(int count, int index, Object result, boolean forward) {
-		PaginationRequest<MyPosition> request = (PaginationRequest<MyPosition>) result;
-		assertThat(request.position().get().index()).isEqualTo(index);
-		assertThat(request.count().get()).isEqualTo(count);
-		assertThat(request.forward()).isEqualTo(forward);
+		Subrange<MyPosition> subrange = (Subrange<MyPosition>) result;
+		assertThat(subrange.position().get().index()).isEqualTo(index);
+		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.forward()).isEqualTo(forward);
 	}
 
 	private static DataFetchingEnvironment environment(Map<String, Object> arguments) {
@@ -90,12 +90,12 @@ public class PaginationRequestMethodArgumentResolverTests extends ArgumentResolv
 	private static class BookController {
 
 		@QueryMapping
-		public Window<Book> getBooks(PaginationRequest<MyPosition> request) {
+		public Window<Book> getBooks(Subrange<MyPosition> subrange) {
 			return null;
 		}
 
 		@QueryMapping
-		public Window<Book> getBooksWithUnknownPosition(PaginationRequest<UnknownPosition> request) {
+		public Window<Book> getBooksWithUnknownPosition(Subrange<UnknownPosition> subrange) {
 			return null;
 		}
 

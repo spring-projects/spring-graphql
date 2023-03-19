@@ -94,8 +94,19 @@ import org.springframework.validation.DataBinder;
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class AnnotatedControllerConfigurer
-		implements ApplicationContextAware, InitializingBean, RuntimeWiringConfigurer {
+public class AnnotatedControllerConfigurer implements ApplicationContextAware, InitializingBean, RuntimeWiringConfigurer {
+
+	private static final ClassLoader classLoader = AnnotatedControllerConfigurer.class.getClassLoader();
+
+	private final static boolean springDataPresent = ClassUtils.isPresent(
+			"org.springframework.data.projection.SpelAwareProxyProjectionFactory", classLoader);
+
+	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+			"org.springframework.security.core.context.SecurityContext", classLoader);
+
+	private final static boolean beanValidationPresent = ClassUtils.isPresent(
+			"jakarta.validation.executable.ExecutableValidator", classLoader);
+
 
 	private final static Log logger = LogFactory.getLog(AnnotatedControllerConfigurer.class);
 
@@ -110,18 +121,6 @@ public class AnnotatedControllerConfigurer
 	 * but duplicated here to avoid a hard dependency on the spring-aop module.
 	 */
 	private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
-
-	private final static boolean springDataPresent = ClassUtils.isPresent(
-			"org.springframework.data.projection.SpelAwareProxyProjectionFactory",
-			AnnotatedControllerConfigurer.class.getClassLoader());
-
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
-			"org.springframework.security.core.context.SecurityContext",
-			AnnotatedControllerConfigurer.class.getClassLoader());
-
-	private final static boolean beanValidationPresent = ClassUtils.isPresent(
-			"jakarta.validation.executable.ExecutableValidator",
-			AnnotatedControllerConfigurer.class.getClassLoader());
 
 
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
@@ -165,10 +164,9 @@ public class AnnotatedControllerConfigurer
 	 * results in one of the following:
 	 * <ul>
 	 * <li>If Spring Data is present, and the strategy supports {@code ScrollPosition},
-	 * then {@link ScrollRequestMethodArgumentResolver} is
-	 * configured as a method argument resolver.
-	 * <li>Otherwise {@link PaginationRequestMethodArgumentResolver} is added
-	 * instead.
+	 * then {@link ScrollSubrangeMethodArgumentResolver} is configured as a method
+	 * argument resolver.
+	 * <li>Otherwise {@link SubrangeMethodArgumentResolver} is added.
 	 * </ul>
 	 * @since 1.2
 	 */
@@ -286,7 +284,7 @@ public class AnnotatedControllerConfigurer
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		resolvers.addResolver(new DataLoaderMethodArgumentResolver());
 		if (this.cursorStrategy != null) {
-			resolvers.addResolver(initPaginationResolver(this.cursorStrategy));
+			resolvers.addResolver(createSubrangeMethodArgumentResolver(this.cursorStrategy));
 		}
 		if (this.sortStrategy != null) {
 			resolvers.addResolver(new SortMethodArgumentResolver(this.sortStrategy));
@@ -309,14 +307,14 @@ public class AnnotatedControllerConfigurer
 	}
 
 	@SuppressWarnings("unchecked")
-	private HandlerMethodArgumentResolver initPaginationResolver(CursorStrategy<?> cursorStrategy) {
+	private static HandlerMethodArgumentResolver createSubrangeMethodArgumentResolver(CursorStrategy<?> strategy) {
 		if (springDataPresent) {
-			if (cursorStrategy.supports(org.springframework.data.domain.ScrollPosition.class)) {
-				return new ScrollRequestMethodArgumentResolver(
-						(CursorStrategy<org.springframework.data.domain.ScrollPosition>) cursorStrategy);
+			if (strategy.supports(org.springframework.data.domain.ScrollPosition.class)) {
+				return new ScrollSubrangeMethodArgumentResolver(
+						(CursorStrategy<org.springframework.data.domain.ScrollPosition>) strategy);
 			}
 		}
-		return new PaginationRequestMethodArgumentResolver<>(cursorStrategy);
+		return new SubrangeMethodArgumentResolver<>(strategy);
 	}
 
 	protected final ApplicationContext obtainApplicationContext() {

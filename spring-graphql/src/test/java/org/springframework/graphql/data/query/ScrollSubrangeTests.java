@@ -33,22 +33,22 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class ScrollRequestTests {
+public class ScrollSubrangeTests {
 
 	@Test
 	void offset() {
 		OffsetScrollPosition position = OffsetScrollPosition.of(30);
 		int count = 10;
 
-		ScrollRequest request = new ScrollRequest(position, count, true);
-		assertThat(((OffsetScrollPosition) request.position().get())).isEqualTo(position);
-		assertThat(request.count().get()).isEqualTo(count);
-		assertThat(request.forward()).isTrue();
+		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
+		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);
+		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.forward()).isTrue();
 
-		request = new ScrollRequest(position, count, false);
-		assertThat(((OffsetScrollPosition) request.position().get()).getOffset()).isEqualTo(20);
-		assertThat(request.count().get()).isEqualTo(count);
-		assertThat(request.forward()).isTrue();
+		subrange = new ScrollSubrange(position, count, false);
+		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(20);
+		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.forward()).isTrue();
 	}
 
 	@Test
@@ -61,38 +61,38 @@ public class ScrollRequestTests {
 		ScrollPosition position = KeysetScrollPosition.of(keys);
 		int count = 10;
 
-		ScrollRequest request = new ScrollRequest(position, count, true);
-		KeysetScrollPosition actualPosition = (KeysetScrollPosition) request.position().get();
+		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
+		KeysetScrollPosition actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
 		assertThat(actualPosition.getDirection()).isEqualTo(Direction.Forward);
-		assertThat(request.count().get()).isEqualTo(count);
-		assertThat(request.forward()).isTrue();
+		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.forward()).isTrue();
 
-		request = new ScrollRequest(position, count, false);
-		actualPosition = (KeysetScrollPosition) request.position().get();
+		subrange = new ScrollSubrange(position, count, false);
+		actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
 		assertThat(actualPosition.getDirection()).isEqualTo(Direction.Backward);
-		assertThat(request.count().get()).isEqualTo(count);
-		assertThat(request.forward()).isFalse();
+		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.forward()).isFalse();
 	}
 
 	@Test
 	void nullInput() {
-		ScrollRequest request = new ScrollRequest(null, null, true);
+		ScrollSubrange subrange = new ScrollSubrange(null, null, true);
 
-		assertThat(request.position()).isNotPresent();
-		assertThat(request.count()).isNotPresent();
-		assertThat(request.forward()).isTrue();
+		assertThat(subrange.position()).isNotPresent();
+		assertThat(subrange.count()).isNotPresent();
+		assertThat(subrange.forward()).isTrue();
 	}
 
 	@Test
 	void offsetBackwardPaginationNullSize() {
 		OffsetScrollPosition position = OffsetScrollPosition.of(30);
-		ScrollRequest request = new ScrollRequest(position, null, false);
+		ScrollSubrange subrange = new ScrollSubrange(position, null, false);
 
-		assertThat(((OffsetScrollPosition) request.position().get())).isEqualTo(position);
-		assertThat(request.count()).isNotPresent();
-		assertThat(request.forward()).isTrue();
+		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);
+		assertThat(subrange.count()).isNotPresent();
+		assertThat(subrange.forward()).isTrue();
 	}
 
 }

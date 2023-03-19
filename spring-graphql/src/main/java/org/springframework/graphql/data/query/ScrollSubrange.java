@@ -23,43 +23,41 @@ import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.KeysetScrollPosition.Direction;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
-import org.springframework.graphql.data.pagination.PaginationRequest;
+import org.springframework.graphql.data.pagination.Subrange;
 import org.springframework.lang.Nullable;
 
 /**
- * Container for pagination request with a {@link ScrollPosition} cursor.
+ * Container for parameters that limit result elements to a subrange including a
+ * relative {@link ScrollPosition}, number of elements, and direction.
  *
- * <p>An {@link OffsetScrollPosition} is always used for forward pagination.
- * When backward pagination is requested, the offset is adjusted down by the
- * requested count, thus turning it into forward pagination.
+ * <p> For backward pagination, the offset of an {@link OffsetScrollPosition}
+ * is adjusted to point to the first item in the range by subtracting the count
+ * from it. Hence, for {@code OffsetScrollPosition} {@link #forward()} is
+ * always {@code true}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public final class ScrollRequest extends PaginationRequest<ScrollPosition> {
+public final class ScrollSubrange extends Subrange<ScrollPosition> {
 
 
-	public ScrollRequest(@Nullable ScrollPosition position, @Nullable Integer count, boolean forward) {
-		super(initPosition(position, count, forward), count,
-				(position instanceof OffsetScrollPosition || forward));
+	public ScrollSubrange(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
+		super(initPosition(pos, count, forward), count, (pos instanceof OffsetScrollPosition || forward));
 	}
 
 	@Nullable
-	private static ScrollPosition initPosition(
-			@Nullable ScrollPosition position, @Nullable Integer count, boolean forward) {
-
+	private static ScrollPosition initPosition(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
 		if (!forward) {
-			if (position instanceof OffsetScrollPosition offsetPosition && count != null) {
+			if (pos instanceof OffsetScrollPosition offsetPosition && count != null) {
 				long offset = offsetPosition.getOffset();
 				return OffsetScrollPosition.of(offset > count ? offset - count : 0);
 			}
-			else if (position instanceof KeysetScrollPosition keysetPosition) {
+			else if (pos instanceof KeysetScrollPosition keysetPosition) {
 				Map<String, Object> keys = keysetPosition.getKeys();
-				position = KeysetScrollPosition.of(keys, Direction.Backward);
+				pos = KeysetScrollPosition.of(keys, Direction.Backward);
 			}
 		}
-
-		return position;
+		return pos;
 	}
 
 }

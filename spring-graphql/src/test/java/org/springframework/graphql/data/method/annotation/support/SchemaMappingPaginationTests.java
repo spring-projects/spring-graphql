@@ -33,7 +33,7 @@ import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
-import org.springframework.graphql.data.query.ScrollRequest;
+import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.graphql.data.query.WindowConnectionAdapter;
 import org.springframework.graphql.execution.ConnectionTypeGenerator;
 import org.springframework.stereotype.Controller;
@@ -120,7 +120,7 @@ public class SchemaMappingPaginationTests {
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(context);
 
-		GraphQlSetup setup = GraphQlSetup.schemaContent(this.SCHEMA).runtimeWiring(configurer);
+		GraphQlSetup setup = GraphQlSetup.schemaContent(SCHEMA).runtimeWiring(configurer);
 		consumer.accept(configurer, setup);
 
 		configurer.afterPropertiesSet();
@@ -134,9 +134,9 @@ public class SchemaMappingPaginationTests {
 	private static class BookController {
 
 		@QueryMapping
-		public Window<Book> books(ScrollRequest request) {
-			int offset = (int) ((OffsetScrollPosition) request.position().get()).getOffset();
-			int count = request.count().get();
+		public Window<Book> books(ScrollSubrange subrange) {
+			int offset = (int) ((OffsetScrollPosition) subrange.position().orElse(OffsetScrollPosition.initial())).getOffset();
+			int count = subrange.count().orElse(5);
 			List<Book> books = BookSource.books().subList(offset, offset + count);
 			return Window.from(books, OffsetScrollPosition::of);
 		}

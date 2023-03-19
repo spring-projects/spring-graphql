@@ -20,33 +20,32 @@ package org.springframework.graphql.data.method.annotation.support;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.graphql.data.pagination.CursorStrategy;
-import org.springframework.graphql.data.query.ScrollRequest;
+import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.lang.Nullable;
 
 
 /**
- * Subclass of {@link PaginationRequestMethodArgumentResolver} that supports
- * {@link ScrollRequest} with cursors converted to {@link ScrollPosition} for
- * forward or backward pagination.
+ * A {@link SubrangeMethodArgumentResolver} that supports {@link ScrollSubrange}
+ * and {@link ScrollPosition} as cursor.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public class ScrollRequestMethodArgumentResolver extends PaginationRequestMethodArgumentResolver<ScrollPosition> {
+public class ScrollSubrangeMethodArgumentResolver extends SubrangeMethodArgumentResolver<ScrollPosition> {
 
 
-	public ScrollRequestMethodArgumentResolver(CursorStrategy<ScrollPosition> cursorStrategy) {
-		super(cursorStrategy);
+	public ScrollSubrangeMethodArgumentResolver(CursorStrategy<ScrollPosition> strategy) {
+		super(strategy);
 	}
 
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.getParameterType().equals(ScrollRequest.class);
+		return parameter.getParameterType().equals(ScrollSubrange.class);
 	}
 
-	protected ScrollRequest createRequest(@Nullable ScrollPosition position, @Nullable Integer size, boolean forward) {
-		return new ScrollRequest(position, size, forward);
+	protected ScrollSubrange createSubrange(@Nullable ScrollPosition pos, @Nullable Integer size, boolean forward) {
+		return new ScrollSubrange(pos, size, forward);
 	}
 
 }
