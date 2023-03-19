@@ -20,23 +20,24 @@ package org.springframework.graphql.data.method.annotation.support;
 import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
+import org.springframework.data.domain.Sort;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
-import org.springframework.graphql.data.pagination.SortStrategy;
+import org.springframework.graphql.data.query.SortStrategy;
 import org.springframework.util.Assert;
 
 
 /**
- * Resolver for a Sort object decoded with {@link SortStrategy}.
+ * Resolver for method arguments of type {@link Sort}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
 public class SortMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-	private final SortStrategy<?> sortStrategy;
+	private final SortStrategy sortStrategy;
 
 
-	public SortMethodArgumentResolver(SortStrategy<?> sortStrategy) {
+	public SortMethodArgumentResolver(SortStrategy sortStrategy) {
 		Assert.notNull(sortStrategy, "SortStrategy is required");
 		this.sortStrategy = sortStrategy;
 	}
@@ -44,12 +45,13 @@ public class SortMethodArgumentResolver implements HandlerMethodArgumentResolver
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return this.sortStrategy.supports(parameter.getParameterType());
+		return parameter.getParameterType().equals(Sort.class);
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
-		return this.sortStrategy.extract(environment);
+		Sort sort = this.sortStrategy.extract(environment);
+		return (sort != null ? sort : Sort.unsorted());
 	}
 
 }

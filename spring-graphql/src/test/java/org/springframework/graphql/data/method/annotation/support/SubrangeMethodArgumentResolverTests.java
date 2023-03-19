@@ -80,12 +80,8 @@ public class SubrangeMethodArgumentResolverTests extends ArgumentResolverTestSup
 		assertThat(subrange.forward()).isEqualTo(forward);
 	}
 
-	private static DataFetchingEnvironment environment(Map<String, Object> arguments) {
-		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
-	}
 
-
-	@SuppressWarnings("unused")
+	@SuppressWarnings({"unused", "DataFlowIssue"})
 	@Controller
 	private static class BookController {
 

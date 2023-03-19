@@ -14,32 +14,26 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data.pagination;
+package org.springframework.graphql.data.query;
 
 
 import graphql.schema.DataFetchingEnvironment;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.lang.Nullable;
 
 /**
- * Strategy to extract sort information from GraphQL request arguments.
+ * Strategy to extract {@link Sort} details from GraphQL arguments.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public interface SortStrategy<S> {
+public interface SortStrategy {
 
 	/**
-	 * Whether this strategy supports the given Sort object target type.
-	 */
-	boolean supports(Class<?> targetType);
-
-	/**
-	 * Return an Object that contains sort order and direction information.
-	 * @param environment the environment to obtain GraphQL request arguments from
-	 * @return the object with sort details, if present
+	 * Return a {@link Sort} instance initialized from GraphQL arguments, or {@code null}.
 	 */
 	@Nullable
-	S extract(DataFetchingEnvironment environment);
+	Sort extract(DataFetchingEnvironment environment);
 
 }

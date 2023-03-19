@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.graphql.data.query.SortStrategy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -32,7 +33,6 @@ import static org.mockito.Mockito.mock;
  * @since 1.2
  */
 public class AnnotatedControllerConfigurerTests {
-
 
 	@Test
 	void customArgumentResolvers() {
@@ -50,6 +50,31 @@ public class AnnotatedControllerConfigurerTests {
 		assertThat(resolvers).element(size -1).isInstanceOf(SourceMethodArgumentResolver.class);
 		assertThat(resolvers).element(size -2).isSameAs(customResolver2);
 		assertThat(resolvers).element(size -3).isSameAs(customResolver1);
+	}
+
+	@Test
+	void sortArgumentResolver() {
+		SortStrategy sortStrategy = mock(SortStrategy.class);
+
+		StaticApplicationContext context = new StaticApplicationContext();
+		context.registerBean(SortStrategy.class, () -> sortStrategy);
+
+		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+		configurer.setApplicationContext(context);
+		configurer.afterPropertiesSet();
+
+		List<HandlerMethodArgumentResolver> resolvers = configurer.getArgumentResolvers().getResolvers();
+		assertThat(resolvers.stream().filter(r -> r instanceof SortMethodArgumentResolver).findFirst()).isPresent();
+	}
+
+	@Test
+	void sortArgumentResolverStrategyNotPresent() {
+		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+		configurer.setApplicationContext(new StaticApplicationContext());
+		configurer.afterPropertiesSet();
+
+		List<HandlerMethodArgumentResolver> resolvers = configurer.getArgumentResolvers().getResolvers();
+		assertThat(resolvers.stream().filter(r -> r instanceof SortMethodArgumentResolver).findFirst()).isNotPresent();
 	}
 
 }

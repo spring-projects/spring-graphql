@@ -57,4 +57,8 @@ class ArgumentResolverTestSupport {
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}
 
+	protected DataFetchingEnvironment environment(Map<String, Object> arguments) {
+		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
+	}
+
 }

@@ -48,6 +48,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.expression.BeanFactoryResolver;
@@ -57,7 +58,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.expression.BeanResolver;
 import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
@@ -68,7 +68,7 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComp
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
-import org.springframework.graphql.data.pagination.SortStrategy;
+import org.springframework.graphql.data.query.SortStrategy;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
@@ -128,9 +128,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	@Nullable
 	private CursorStrategy<?> cursorStrategy;
 
-	@Nullable
-	private SortStrategy<?> sortStrategy;
-
 	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
 
 	@Nullable
@@ -172,16 +169,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 */
 	public void setCursorStrategy(@Nullable CursorStrategy<?> cursorStrategy) {
 		this.cursorStrategy = cursorStrategy;
-	}
-
-	/**
-	 * Configure a {@link SortStrategy} to extract sort details for pagination
-	 * requests. This results in {@link SortMethodArgumentResolver} being added
-	 * as a method argument resolver.
-	 * @since 1.2
-	 */
-	public void setSortStrategy(SortStrategy<?> sortStrategy) {
-		this.sortStrategy = sortStrategy;
 	}
 
 	/**
@@ -286,13 +273,19 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		if (this.cursorStrategy != null) {
 			resolvers.addResolver(createSubrangeMethodArgumentResolver(this.cursorStrategy));
 		}
-		if (this.sortStrategy != null) {
-			resolvers.addResolver(new SortMethodArgumentResolver(this.sortStrategy));
+		if (springDataPresent) {
+			try {
+				resolvers.addResolver(
+						new SortMethodArgumentResolver(obtainApplicationContext().getBean(SortStrategy.class)));
+			}
+			catch (NoSuchBeanDefinitionException ex) {
+				// ignore
+			}
 		}
 		if (springSecurityPresent) {
+			ApplicationContext context = obtainApplicationContext();
 			resolvers.addResolver(new PrincipalMethodArgumentResolver());
-			BeanResolver beanResolver = new BeanFactoryResolver(obtainApplicationContext());
-			resolvers.addResolver(new AuthenticationPrincipalArgumentResolver(beanResolver));
+			resolvers.addResolver(new AuthenticationPrincipalArgumentResolver(new BeanFactoryResolver(context)));
 		}
 		if (KotlinDetector.isKotlinPresent()) {
 			resolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
