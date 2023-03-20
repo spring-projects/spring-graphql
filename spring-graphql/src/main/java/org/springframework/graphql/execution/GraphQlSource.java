@@ -173,17 +173,14 @@ public interface GraphQlSource {
 		SchemaResourceBuilder schemaResources(Resource... resources);
 
 		/**
-		 * Provide a function to customize the {@link TypeDefinitionRegistry}
-		 * created by parsing schema files. This allows adding or changing schema
-		 * type definitions before {@link GraphQLSchema} is created and validated.
-		 * @param configurer the function to apply accepting the current
-		 * {@link TypeDefinitionRegistry} and returning the one to use, likely
-		 * the same instance since {@link TypeDefinitionRegistry} is mutable.
+		 * Customize the {@link TypeDefinitionRegistry} created from parsed
+		 * schema files, adding or changing schema type definitions before the
+		 * {@link GraphQLSchema} is created and validated.
+		 * @param configurer the configurer to apply
 		 * @return the current builder
-		 * @sine 1.2
+		 * @since 1.2
 		 */
-		SchemaResourceBuilder configureTypeDefinitionRegistry(
-				Function<TypeDefinitionRegistry, TypeDefinitionRegistry> configurer);
+		SchemaResourceBuilder configureTypeDefinitions(TypeDefinitionConfigurer configurer);
 
 		/**
 		 * Configure the underlying {@link RuntimeWiring.Builder} to register

@@ -19,14 +19,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
-import graphql.schema.idl.TypeDefinitionRegistry;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
@@ -38,6 +36,7 @@ import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SubscriptionExceptionResolver;
+import org.springframework.graphql.execution.TypeDefinitionConfigurer;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
 import org.springframework.graphql.server.WebGraphQlSetup;
@@ -82,10 +81,8 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 				wiringBuilder.type(type, typeBuilder -> typeBuilder.dataFetcher(field, dataFetcher)));
 	}
 
-	public GraphQlSetup typeDefinitionRegistryConfigurer(
-			Function<TypeDefinitionRegistry, TypeDefinitionRegistry> configurer) {
-
-		this.graphQlSourceBuilder.configureTypeDefinitionRegistry(configurer);
+	public GraphQlSetup typeDefinitionConfigurer(TypeDefinitionConfigurer configurer) {
+		this.graphQlSourceBuilder.configureTypeDefinitions(configurer);
 		return this;
 	}
 

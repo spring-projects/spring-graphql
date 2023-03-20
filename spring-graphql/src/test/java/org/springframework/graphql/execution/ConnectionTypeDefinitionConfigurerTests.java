@@ -38,12 +38,12 @@ import org.springframework.graphql.TestExecutionRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link ConnectionTypeGenerator}.
+ * Unit tests for {@link ConnectionTypeDefinitionConfigurer}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public class ConnectionTypeGeneratorTests {
+public class ConnectionTypeDefinitionConfigurerTests {
 
 	@Test
 	void connectionTypeGeneration() throws Exception {
@@ -108,8 +108,7 @@ public class ConnectionTypeGeneratorTests {
 	}
 
 	private GraphQlSetup initGraphQlSetup(String schema) {
-		ConnectionTypeGenerator generator = new ConnectionTypeGenerator();
-		return GraphQlSetup.schemaContent(schema).typeDefinitionRegistryConfigurer(generator::generateConnectionTypes);
+		return GraphQlSetup.schemaContent(schema).typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
 	}
 
 	private static <N> Connection<N> createConnection(

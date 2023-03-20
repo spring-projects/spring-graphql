@@ -24,7 +24,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import graphql.language.InterfaceTypeDefinition;
@@ -61,8 +60,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	private final Set<Resource> schemaResources = new LinkedHashSet<>();
 
-	@Nullable
-	private Function<TypeDefinitionRegistry, TypeDefinitionRegistry> typeDefinitionRegistryConfigurer;
+	private List<TypeDefinitionConfigurer> typeDefinitionConfigurers = new ArrayList<>();
 
 	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
 
@@ -81,12 +79,8 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	}
 
 	@Override
-	public GraphQlSource.SchemaResourceBuilder configureTypeDefinitionRegistry(
-			Function<TypeDefinitionRegistry, TypeDefinitionRegistry> configurer) {
-
-		this.typeDefinitionRegistryConfigurer = (this.typeDefinitionRegistryConfigurer != null ?
-				this.typeDefinitionRegistryConfigurer.andThen(configurer) : configurer);
-
+	public GraphQlSource.SchemaResourceBuilder configureTypeDefinitions(TypeDefinitionConfigurer configurer) {
+		this.typeDefinitionConfigurers.add(configurer);
 		return this;
 	}
 
@@ -118,8 +112,8 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 				.reduce(TypeDefinitionRegistry::merge)
 				.orElseThrow(MissingSchemaException::new);
 
-		if (this.typeDefinitionRegistryConfigurer != null) {
-			registry = this.typeDefinitionRegistryConfigurer.apply(registry);
+		for (TypeDefinitionConfigurer configurer : this.typeDefinitionConfigurers) {
+			configurer.configure(registry);
 		}
 
 		logger.info("Loaded " + this.schemaResources.size() + " resource(s) in the GraphQL schema.");

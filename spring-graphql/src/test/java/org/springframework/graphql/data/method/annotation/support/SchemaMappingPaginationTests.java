@@ -35,7 +35,7 @@ import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
 import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.graphql.data.query.WindowConnectionAdapter;
-import org.springframework.graphql.execution.ConnectionTypeGenerator;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,8 +83,7 @@ public class SchemaMappingPaginationTests {
 
 		ExecutionGraphQlService graphQlService = graphQlService((configurer, setup) -> {
 
-			ConnectionTypeGenerator typeGenerator = new ConnectionTypeGenerator();
-			setup.typeDefinitionRegistryConfigurer(typeGenerator::generateConnectionTypes);
+			setup.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
 
 			ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
 			WindowConnectionAdapter connectionAdapter = new WindowConnectionAdapter(cursorStrategy);

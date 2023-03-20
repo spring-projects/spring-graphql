@@ -26,7 +26,7 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestExecutionRequest;
-import org.springframework.graphql.execution.ConnectionTypeGenerator;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -75,7 +75,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 		ExecutionGraphQlResponse response = GraphQlSetup.schemaContent(schemaContent)
 				.dataFetcher("Query", "books", env -> BookSource.books())
-				.typeDefinitionRegistryConfigurer(new ConnectionTypeGenerator()::generateConnectionTypes)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
 				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(document))

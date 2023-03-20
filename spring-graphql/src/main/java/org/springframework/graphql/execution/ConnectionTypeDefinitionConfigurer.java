@@ -17,7 +17,6 @@ package org.springframework.graphql.execution;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import graphql.language.FieldDefinition;
@@ -30,18 +29,20 @@ import graphql.language.TypeName;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 /**
- * Exposes the {@link #generateConnectionTypes(TypeDefinitionRegistry)
- * generateConnectionTypes method} for adding boilerplate type definitions to a
- * {@link TypeDefinitionRegistry}, for pagination based on the Relay
- * <a href="https://relay.dev/graphql/connections.htm">GraphQL Cursor Connections Specification</a>.
+ * {@link TypeDefinitionConfigurer} that generates "Connection" types by looking
+ * for fields whose type definition name ends in "Connection", considered by the
+ * <a href="https://relay.dev/graphql/connections.htm">GraphQL Cursor Connections Specification</a>
+ * to be a {@literal Connection Type}, and adding the required type definitions
+ * if they don't already exist.
  *
- * <p>Use {@link GraphQlSource.SchemaResourceBuilder#configureTypeDefinitionRegistry(Function)}
- * to enable connection type generation.
+ * <p>This is intended to be set on
+ * {@link GraphQlSource.SchemaResourceBuilder#configureTypeDefinitions(TypeDefinitionConfigurer)
+ * GraphQlSource.Builder}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
-public class ConnectionTypeGenerator {
+public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigurer {
 
 	private static final TypeName STRING_TYPE = new TypeName("String");
 
@@ -50,14 +51,8 @@ public class ConnectionTypeGenerator {
 	private static final TypeName PAGE_INFO_TYPE = new TypeName("PageInfo");
 
 
-	/**
-	 * Find fields whose type definition name ends in "Connection", considered
-	 * by the spec to be a {@literal Connection Type}, and add type definitions
-	 * for all such types, if they don't exist already.
-	 * @param registry the registry to check and add types to
-	 * @return the same registry instance with additional types added
-	 */
-	public TypeDefinitionRegistry generateConnectionTypes(TypeDefinitionRegistry registry) {
+	@Override
+	public void configure(TypeDefinitionRegistry registry) {
 
 		Set<String> typeNames = findConnectionTypeNames(registry);
 
@@ -89,8 +84,6 @@ public class ConnectionTypeGenerator {
 						.build());
 			});
 		}
-
-		return registry;
 	}
 
 	private static Set<String> findConnectionTypeNames(TypeDefinitionRegistry registry) {
