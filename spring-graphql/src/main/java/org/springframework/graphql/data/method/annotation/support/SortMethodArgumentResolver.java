@@ -50,12 +50,17 @@ public class SortMethodArgumentResolver implements HandlerMethodArgumentResolver
 		return parameter.nestedIfOptional().getNestedParameterType().equals(Sort.class);
 	}
 
+	@SuppressWarnings("ConstantValue")
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
+
 		Sort sort = this.sortStrategy.extract(environment);
+
 		if (parameter.isOptional()) {
+			sort = (sort == Sort.unsorted() ? null : sort);
 			return Optional.ofNullable(sort);
 		}
+
 		return (sort != null ? sort : Sort.unsorted());
 	}
 

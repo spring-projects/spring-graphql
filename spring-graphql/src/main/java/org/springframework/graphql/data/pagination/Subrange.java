@@ -18,6 +18,7 @@ package org.springframework.graphql.data.pagination;
 
 
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import org.springframework.lang.Nullable;
 
@@ -28,13 +29,12 @@ import org.springframework.lang.Nullable;
  * @author Rossen Stoyanchev
  * @since 1.2
  */
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class Subrange<P> {
 
-	@Nullable
-	private final P position;
+	private final Optional<P> position;
 
-	@Nullable
-	private final Integer count;
+	private final OptionalInt count;
 
 	private final boolean forward;
 
@@ -43,9 +43,9 @@ public class Subrange<P> {
 	 * Constructor with the relative position, count, and direction.
 	 */
 	public Subrange(@Nullable P position, @Nullable Integer count, boolean forward) {
-		this.position = position;
+		this.position = Optional.ofNullable(position);
+		this.count = (count != null ? OptionalInt.of(count) : OptionalInt.empty());
 		this.forward = forward;
-		this.count = count;
 	}
 
 
@@ -55,15 +55,15 @@ public class Subrange<P> {
 	 * Cursor connection spec via {@link CursorStrategy}.
 	 */
 	public Optional<P> position() {
-		return Optional.ofNullable(this.position);
+		return this.position;
 	}
 
 	/**
 	 * The number of elements in the subrange based on the "first" and "last"
 	 * arguments from the GraphQL Cursor connection spec.
 	 */
-	public Optional<Integer> count() {
-		return Optional.ofNullable(this.count);
+	public OptionalInt count() {
+		return this.count;
 	}
 
 	/**

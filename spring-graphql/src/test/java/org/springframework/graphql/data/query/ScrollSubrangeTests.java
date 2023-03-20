@@ -42,12 +42,12 @@ public class ScrollSubrangeTests {
 
 		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
 		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);
-		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 
 		subrange = new ScrollSubrange(position, count, false);
 		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(20);
-		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 	}
 
@@ -65,14 +65,14 @@ public class ScrollSubrangeTests {
 		KeysetScrollPosition actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
 		assertThat(actualPosition.getDirection()).isEqualTo(Direction.Forward);
-		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 
 		subrange = new ScrollSubrange(position, count, false);
 		actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
 		assertThat(actualPosition.getDirection()).isEqualTo(Direction.Backward);
-		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isFalse();
 	}
 

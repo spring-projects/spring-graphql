@@ -20,7 +20,6 @@ package org.springframework.graphql.data.query;
 import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.data.domain.Sort;
-import org.springframework.lang.Nullable;
 
 /**
  * Strategy to extract {@link Sort} details from GraphQL arguments.
@@ -31,9 +30,9 @@ import org.springframework.lang.Nullable;
 public interface SortStrategy {
 
 	/**
-	 * Return a {@link Sort} instance initialized from GraphQL arguments, or {@code null}.
+	 * Return a {@link Sort} instance by extracting the sort information from
+	 * GraphQL arguments, or {@link Sort#unsorted()} otherwise.
 	 */
-	@Nullable
 	Sort extract(DataFetchingEnvironment environment);
 
 }

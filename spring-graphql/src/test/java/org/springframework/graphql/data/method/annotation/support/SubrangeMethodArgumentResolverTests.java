@@ -76,7 +76,7 @@ public class SubrangeMethodArgumentResolverTests extends ArgumentResolverTestSup
 	private static void testRequest(int count, int index, Object result, boolean forward) {
 		Subrange<MyPosition> subrange = (Subrange<MyPosition>) result;
 		assertThat(subrange.position().get().index()).isEqualTo(index);
-		assertThat(subrange.count().get()).isEqualTo(count);
+		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isEqualTo(forward);
 	}
 
