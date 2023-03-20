@@ -17,6 +17,8 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -28,7 +30,6 @@ import org.springframework.graphql.Book;
 import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.query.AbstractSortStrategy;
-import org.springframework.graphql.data.query.SortStrategy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,25 +40,35 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
+	private final SortMethodArgumentResolver resolver = new SortMethodArgumentResolver(new MySortStrategy());
+
 	private final MethodParameter param = methodParam(BookController.class, "getBooks", Sort.class);
+
+	private final MethodParameter paramOptional = methodParam(BookController.class, "getBooksOptional", Optional.class);
 
 
 	@Test
 	void supports() {
-		SortMethodArgumentResolver resolver = resolver(new SimpleSortStrategy());
-		assertThat(resolver.supportsParameter(this.param)).isTrue();
-		
+		assertThat(this.resolver.supportsParameter(this.param)).isTrue();
+		assertThat(this.resolver.supportsParameter(this.paramOptional)).isTrue();
+
 		MethodParameter param = methodParam(BookController.class, "getBooksByCriteria", BookCriteria.class);
-		assertThat(resolver.supportsParameter(param)).isFalse();
+		assertThat(this.resolver.supportsParameter(param)).isFalse();
 	}
 
+	@SuppressWarnings({"unchecked", "DataFlowIssue", "OptionalGetWithoutIsPresent"})
 	@Test
 	void resolve() throws Exception {
+		testResolver(env -> (Sort) this.resolver.resolveArgument(this.param, env));
+		testResolver(env -> ((Optional<Sort>) this.resolver.resolveArgument(this.paramOptional, env)).get());
+	}
+
+	private void testResolver(Function<DataFetchingEnvironment, Sort> resolveFunction) throws Exception {
 		DataFetchingEnvironment environment = environment("""
 			{ "sortFields": ["firstName", "lastName", "id"], "sortDirection": "DESC"}"
 		""");
 
-		Sort sort = (Sort) resolver(new SimpleSortStrategy()).resolveArgument(param, environment);
+		Sort sort = resolveFunction.apply(environment);
 
 		assertThat(sort.stream().collect(Collectors.toList()))
 				.hasSize(3)
@@ -67,16 +78,17 @@ public class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport
 						new Sort.Order(Sort.Direction.DESC, "id"));
 	}
 
-	private SortMethodArgumentResolver resolver(SortStrategy sortStrategy) {
-		return new SortMethodArgumentResolver(sortStrategy);
-	}
 
-
-	@SuppressWarnings({"DataFlowIssue", "unused"})
+	@SuppressWarnings({"unused", "DataFlowIssue", "OptionalUsedAsFieldOrParameterType"})
 	private static class BookController {
 
 		@QueryMapping
 		public List<Book> getBooks(Sort sort) {
+			return null;
+		}
+
+		@QueryMapping
+		public List<Book> getBooksOptional(Optional<Sort> sort) {
 			return null;
 		}
 
@@ -88,17 +100,17 @@ public class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport
 	}
 
 
-	private static class SimpleSortStrategy extends AbstractSortStrategy {
+	private static class MySortStrategy extends AbstractSortStrategy {
 
 		@Override
-		protected List<String> getProperties(DataFetchingEnvironment environment) {
-			return environment.getArgument("sortFields");
+		protected List<String> getProperties(DataFetchingEnvironment env) {
+			return env.getArgument("sortFields");
 		}
 
 		@Override
-		protected Sort.Direction getDirection(DataFetchingEnvironment environment) {
-			return (environment.containsArgument("sortDirection") ?
-					Sort.Direction.valueOf(environment.getArgument("sortDirection")) : null);
+		protected Sort.Direction getDirection(DataFetchingEnvironment env) {
+			String direction = env.getArgument("sortDirection");
+			return (direction != null ? Sort.Direction.valueOf(direction) : null);
 		}
 
 	}

@@ -17,6 +17,8 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 
+import java.util.Optional;
+
 import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
@@ -45,12 +47,15 @@ public class SortMethodArgumentResolver implements HandlerMethodArgumentResolver
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.getParameterType().equals(Sort.class);
+		return parameter.nestedIfOptional().getNestedParameterType().equals(Sort.class);
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
 		Sort sort = this.sortStrategy.extract(environment);
+		if (parameter.isOptional()) {
+			return Optional.ofNullable(sort);
+		}
 		return (sort != null ? sort : Sort.unsorted());
 	}
 
