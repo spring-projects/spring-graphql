@@ -668,7 +668,7 @@ GraphQlSource.schemaResourceBuilder()
 <1> Create type visitor with one or more ``ConnectionAdapter``s.
 <2> Resister the type visitor.
 
-There are <<data.scroll.sort,built-in>> ``ConnectionAdapter``s for Spring Data's
+There are <<data.pagination.scroll,built-in>> ``ConnectionAdapter``s for Spring Data's
 `Window` and `Slice`. You can also create your own custom adapter. `ConnectionAdapter`
 implementations rely on a <<execution.pagination.cursor.strategy>> to
 create cursors for returned items. The same strategy is also used to support the
@@ -692,28 +692,19 @@ ensure that annotated controllers are <<controllers-declaration, configured>> fo
 them opaque to clients. `EncodingCursorStrategy` combines `CursorStrategy` with a
 `CursorEncoder`. You can use `Base64CursorEncoder`, `NoOpEncoder` or create your own.
 
-There is a <<data.scroll.sort,built-in>> `CursorStrategy` for the Spring Data
+There is a <<data.pagination.scroll,built-in>> `CursorStrategy` for the Spring Data
 `ScrollPosition`. The <<boot-starter>> registers a `ScrollPositionCursorStrategy` with
 `Base64Encoder` when Spring Data is present.
-
-
-[[execution.pagination.arguments]]
-==== Arguments
-
-Controller methods can declare a <<controllers.schema-mapping.subrange>>, or a
-`ScrollSubange` method argument when Spring Data is present, for pagination requests.
-The argument resolver is added when a <<execution.pagination.cursor.strategy>> bean is
-present in Spring configuration.
 
 
 [[execution.pagination.sort.strategy]]
 ==== Sort
 
 There is no standard way to provide sort information in a GraphQL request. However,
-pagination depends on a stable sort order. You can use a default order or extract, and
-keep it as an internal detail, or extract sort details from GraphQL arguments.
+pagination depends on a stable sort order. You can use a default order, or otherwise
+expose input types and extract sort details from GraphQL arguments.
 
-There is <<data.scroll.sort,built-in>> support for Spring Data's `Sort` as a controller
+There is <<data.pagination.sort,built-in>> support for Spring Data's `Sort` as a controller
 method argument. For this to work, you need to have a `SortStrategy` bean.
 
 
@@ -1197,15 +1188,16 @@ required fields (or columns) are part of the database query result.
 
 
 
-[[data.scroll.sort]]
-=== Scroll and Sort
+[[data.pagination.scroll]]
+=== Scroll
 
 As explained in <<execution.pagination>>, the GraphQL Cursor Connection spec defines a
-mechanism for pagination with the `Connection`, `Edge`, and `PageInfo` schema type, while
+mechanism for pagination with `Connection`, `Edge`, and `PageInfo` schema types, while
 GraphQL Java provides the equivalent Java type representations.
 
-Spring for GraphQL has built-in ``ConnectionAdapter``s to adapt the Spring Data pagination
-types `Window` and `Slice` transparently. You can configure that as follows:
+Spring for GraphQL provides built-in ``ConnectionAdapter`` implementations to adapt the
+Spring Data pagination types `Window` and `Slice` transparently. You can configure that
+as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -1232,10 +1224,19 @@ On the request side, a controller method can declare a
 or backward. For this to work, you must declare a <<execution.pagination.cursor.strategy>>
 supports `ScrollPosition` as a bean.
 
+The <<boot-starter>> declares a `CursorStrategy<ScrollPosition>` bean, and registers the
+`ConnectionFieldTypeVisitor` as shown above if Spring Data is on the classpath.
+
+
+
+[[data.pagination.sort]]
+=== Sort
+
 Spring for GraphQL defines a `SortStrategy` to create `Sort` from GraphQL arguments.
 `AbstractSortStrategy` implements the contract with abstract methods to extract the sort
 direction and properties. To enable support for `Sort` as a controller method argument,
 you need to declare a `SortStrategy` bean.
+
 
 
 
@@ -1411,12 +1412,12 @@ See <<controllers.schema-mapping.source>>.
 | `Subrange` and `ScrollSubrange`
 | For access to pagination arguments.
 
-See <<execution.pagination>>, <<data.scroll.sort>>, <<controllers.schema-mapping.subrange>>.
+See <<execution.pagination>>, <<data.pagination.scroll>>, <<controllers.schema-mapping.subrange>>.
 
 | `Sort`
 | For access to sort details.
 
-See <<execution.pagination>>, <<data.scroll.sort>>, <<controllers.schema-mapping.sort>>.
+See <<execution.pagination>>, <<controllers.schema-mapping.sort>>.
 
 | `DataLoader`
 | For access to a `DataLoader` in the `DataLoaderRegistry`.
@@ -1682,7 +1683,7 @@ public class BookController {
 [[controllers.schema-mapping.sort]]
 ==== `Sort`
 
-When there is a <<data.scroll.sort,SortStrategy>> bean in Spring configuration, controller
+When there is a <<data.pagination.scroll,SortStrategy>> bean in Spring configuration, controller
 methods support `Sort` as a method argument. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
