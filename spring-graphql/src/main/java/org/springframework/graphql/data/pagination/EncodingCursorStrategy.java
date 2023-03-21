@@ -22,8 +22,8 @@ import org.springframework.util.Assert;
  * Decorator for a {@link CursorStrategy} that applies a {@link CursorEncoder}
  * to the cursor String to make it opaque for external use.
  *
- * <p>Use {@link CursorStrategy#withEncoder(CursorStrategy, CursorEncoder)} to
- * decorate a {@code CursorStrategy}.
+ * <p>To create an instance, use
+ * {@link CursorStrategy#withEncoder(CursorStrategy, CursorEncoder)}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2

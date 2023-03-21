@@ -19,6 +19,8 @@ package org.springframework.graphql.data.pagination;
 /**
  * {@link CursorEncoder} that leaves the cursor value unchanged.
  *
+ * <p>To create an instance, use {@link CursorEncoder#noOpEncoder()}.
+ *
  * @author Rossen Stoyanchev
  * @since 1.2
  */

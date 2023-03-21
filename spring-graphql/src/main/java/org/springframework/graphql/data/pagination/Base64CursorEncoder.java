@@ -25,6 +25,8 @@ import java.util.Base64;
 /**
  * {@link CursorEncoder} that applies Base 64 encoding and decoding.
  *
+ * <p>To create an instance, use {@link CursorEncoder#base64()}.
+ *
  * @author Rossen Stoyanchev
  * @since 1.2
  */
