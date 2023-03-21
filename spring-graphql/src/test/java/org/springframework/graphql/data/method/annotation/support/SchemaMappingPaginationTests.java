@@ -32,6 +32,7 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
+import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
 import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.graphql.data.query.WindowConnectionAdapter;
@@ -81,16 +82,7 @@ public class SchemaMappingPaginationTests {
 			}
 			""";
 
-		ExecutionGraphQlService graphQlService = graphQlService((configurer, setup) -> {
-
-			setup.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
-
-			ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
-			WindowConnectionAdapter connectionAdapter = new WindowConnectionAdapter(cursorStrategy);
-			setup.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(connectionAdapter)));
-
-			configurer.setCursorStrategy(cursorStrategy);
-		});
+		ExecutionGraphQlService graphQlService = graphQlService();
 
 		ExecutionGraphQlResponse response =
 				graphQlService.execute(TestExecutionRequest.forDocument(document)).block();
@@ -110,19 +102,22 @@ public class SchemaMappingPaginationTests {
 								"}}}");
 	}
 
-	private ExecutionGraphQlService graphQlService(BiConsumer<AnnotatedControllerConfigurer, GraphQlSetup> consumer) {
+	private ExecutionGraphQlService graphQlService() {
+
+		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.register(BookController.class);
+		context.registerBean(CursorStrategy.class, () -> cursorStrategy);
 		context.refresh();
 
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(context);
+		configurer.afterPropertiesSet();
 
 		GraphQlSetup setup = GraphQlSetup.schemaContent(SCHEMA).runtimeWiring(configurer);
-		consumer.accept(configurer, setup);
-
-		configurer.afterPropertiesSet();
+		setup.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
+		setup.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
 
 		return setup.toGraphQlService();
 	}

@@ -58,6 +58,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
@@ -82,13 +83,26 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
 
 /**
- * {@link RuntimeWiringConfigurer} that detects {@link SchemaMapping @SchemaMapping}
- * annotated handler methods in {@link Controller @Controller} classes and
- * registers them as {@link DataFetcher}s.
+ * {@link RuntimeWiringConfigurer} that finds {@link SchemaMapping @SchemaMapping}
+ * annotated handler methods in {@link Controller @Controller} classes declared in
+ * Spring configuration, and registers them as {@link DataFetcher}s.
  *
  * <p>In addition to initializing a {@link RuntimeWiring.Builder}, this class, also
  * provides an option to {@link #configure(GraphQLCodeRegistry.Builder) configure}
  * data fetchers on a {@link GraphQLCodeRegistry.Builder}.
+ *
+ * <p>This class detects the following strategies in Spring configuration,
+ * expecting to find a single, unique bean of that type:
+ * <ul>
+ * <li>{@link CursorStrategy} -- if Spring Data is present, and the strategy
+ * supports {@code ScrollPosition}, then {@link ScrollSubrangeMethodArgumentResolver}
+ * is configured for use. If not, then {@link SubrangeMethodArgumentResolver}
+ * is added instead.
+ * <li>{@link SortStrategy} -- if present, then {@link SortMethodArgumentResolver}
+ * is configured for use.
+ * </ul>
+ *
+ *
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
@@ -125,9 +139,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
-	@Nullable
-	private CursorStrategy<?> cursorStrategy;
-
 	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
 
 	@Nullable
@@ -154,21 +165,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
-	}
-
-	/**
-	 * Configure a {@link CursorStrategy} to handle pagination requests, which
-	 * results in one of the following:
-	 * <ul>
-	 * <li>If Spring Data is present, and the strategy supports {@code ScrollPosition},
-	 * then {@link ScrollSubrangeMethodArgumentResolver} is configured as a method
-	 * argument resolver.
-	 * <li>Otherwise {@link SubrangeMethodArgumentResolver} is added.
-	 * </ul>
-	 * @since 1.2
-	 */
-	public void setCursorStrategy(@Nullable CursorStrategy<?> cursorStrategy) {
-		this.cursorStrategy = cursorStrategy;
 	}
 
 	/**
@@ -270,18 +266,8 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
 		resolvers.addResolver(new DataLoaderMethodArgumentResolver());
-		if (this.cursorStrategy != null) {
-			resolvers.addResolver(createSubrangeMethodArgumentResolver(this.cursorStrategy));
-		}
-		if (springDataPresent) {
-			try {
-				resolvers.addResolver(
-						new SortMethodArgumentResolver(obtainApplicationContext().getBean(SortStrategy.class)));
-			}
-			catch (NoSuchBeanDefinitionException ex) {
-				// ignore
-			}
-		}
+		addSubrangeMethodArgumentResolver(resolvers);
+		addSortMethodArgumentResolver(resolvers);
 		if (springSecurityPresent) {
 			ApplicationContext context = obtainApplicationContext();
 			resolvers.addResolver(new PrincipalMethodArgumentResolver());
@@ -299,15 +285,34 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		return resolvers;
 	}
 
-	@SuppressWarnings("unchecked")
-	private static HandlerMethodArgumentResolver createSubrangeMethodArgumentResolver(CursorStrategy<?> strategy) {
+	@SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
+	private void addSubrangeMethodArgumentResolver(HandlerMethodArgumentResolverComposite resolvers) {
+		try {
+			CursorStrategy<?> strategy = obtainApplicationContext().getBean(CursorStrategy.class);
+			if (springDataPresent) {
+				if (strategy.supports(ScrollPosition.class)) {
+					CursorStrategy<ScrollPosition> strategyToUse = (CursorStrategy<ScrollPosition>) strategy;
+					resolvers.addResolver(new ScrollSubrangeMethodArgumentResolver(strategyToUse));
+					return;
+				}
+			}
+			resolvers.addResolver(new SubrangeMethodArgumentResolver<>(strategy));
+		}
+		catch (NoSuchBeanDefinitionException ex) {
+			// ignore
+		}
+	}
+
+	private void addSortMethodArgumentResolver(HandlerMethodArgumentResolverComposite resolvers) {
 		if (springDataPresent) {
-			if (strategy.supports(org.springframework.data.domain.ScrollPosition.class)) {
-				return new ScrollSubrangeMethodArgumentResolver(
-						(CursorStrategy<org.springframework.data.domain.ScrollPosition>) strategy);
+			try {
+				SortStrategy strategy = obtainApplicationContext().getBean(SortStrategy.class);
+				resolvers.addResolver(new SortMethodArgumentResolver(strategy));
+			}
+			catch (NoSuchBeanDefinitionException ex) {
+				// ignore
 			}
 		}
-		return new SubrangeMethodArgumentResolver<>(strategy);
 	}
 
 	protected final ApplicationContext obtainApplicationContext() {
