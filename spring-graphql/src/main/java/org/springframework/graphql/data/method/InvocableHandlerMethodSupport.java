@@ -26,6 +26,7 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
+import org.springframework.data.util.KotlinReflectionUtils;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
@@ -81,7 +82,18 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		Method method = getBridgedMethod();
 		try {
 			if (KotlinDetector.isSuspendingFunction(method)) {
-				return CoroutinesUtils.invokeSuspendingFunction(method, getBean(), argValues);
+				Object result = CoroutinesUtils.invokeSuspendingFunction(method, getBean(), argValues);
+
+				Class<?> returnType = KotlinReflectionUtils.getReturnType(method);
+
+				if (CompletableFuture.class.isAssignableFrom(returnType)) {
+					@SuppressWarnings("unchecked")
+					Mono<CompletableFuture<?>> mono = (Mono<CompletableFuture<?>>)result;
+					// Unwrap nested CompletableFuture
+					return mono.flatMap(Mono::fromFuture);
+				}
+
+				return result;
 			}
 			Object result = method.invoke(getBean(), argValues);
 			return handleReturnValue(graphQLContext, result);
