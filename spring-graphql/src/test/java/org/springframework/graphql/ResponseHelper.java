@@ -106,7 +106,7 @@ public class ResponseHelper {
 
 	private void assertNoErrors() {
 		if (!this.errorsChecked) {
-			assertThat(this.errors).as("Errors present in GraphQL response").isEmpty();
+			assertThat(this.errors).as("GraphQL response errors: " + this.errors).isEmpty();
 			this.errorsChecked = true;
 		}
 	}

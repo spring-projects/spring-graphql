@@ -44,6 +44,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.Repository;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.GraphQlRepository;
@@ -74,7 +75,7 @@ class QuerydslDataFetcherTests {
 
 
 	@Test
-	void shouldFetchSingleItems() {
+	void shouldFetchSingleItem() {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		mockRepository.save(book);
 
@@ -275,6 +276,25 @@ class QuerydslDataFetcherTests {
 
 		// auto registration
 		tester.accept(graphQlSetup(mockRepository));
+	}
+
+	@Test
+	void shouldNestForSingleArgumentInputType() {
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		mockRepository.saveAll(Arrays.asList(book1, book2));
+
+		String queryName = "booksByCriteria";
+
+		Mono<ExecutionGraphQlResponse> responseMono =
+				graphQlSetup(queryName, QuerydslDataFetcher.builder(mockRepository).many())
+						.toGraphQlService()
+						.execute(request("{" + queryName + "(criteria: {id: 42}) {name}}"));
+
+		List<Book> books = ResponseHelper.forResponse(responseMono).toList(queryName, Book.class);
+
+		assertThat(books).hasSize(1);
+		assertThat(books.get(0).getName()).isEqualTo(book1.getName());
 	}
 
 	static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {

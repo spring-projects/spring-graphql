@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.function.Function;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
+import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLTypeVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,8 +42,9 @@ import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
-import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.validation.BindException;
 
@@ -108,13 +110,32 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	/**
 	 * Prepare an {@link Example} from GraphQL request arguments.
-	 * @param env contextual info for the GraphQL request
+	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting example
 	 */
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
-	protected Example<T> buildExample(DataFetchingEnvironment env) throws BindException {
+	protected Example<T> buildExample(DataFetchingEnvironment environment) throws BindException {
+		String name = getArgumentName(environment);
 		ResolvableType targetType = ResolvableType.forClass(this.domainType.getType());
-		return (Example<T>) Example.of(this.argumentBinder.bind(env, null, targetType));
+		return (Example<T>) Example.of(this.argumentBinder.bind(environment, name, targetType));
+	}
+
+	/**
+	 * For a single argument that is a GraphQL input type, return the argument
+	 * name, thereby nesting and having the example Object populated from the
+	 * sub-map. Otherwise, {@code null} to bind using the top-level map.
+	 */
+	@Nullable
+	private static String getArgumentName(DataFetchingEnvironment environment) {
+		Map<String, Object> arguments = environment.getArguments();
+		List<GraphQLArgument> definedArguments = environment.getFieldDefinition().getArguments();
+		if (definedArguments.size() == 1) {
+			String name = definedArguments.get(0).getName();
+			if (arguments.get(name) instanceof Map<?,?>) {
+				return name;
+			}
+		}
+		return null;
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {

@@ -865,9 +865,11 @@ Then use it to create a `DataFetcher`:
 You can now register the above `DataFetcher` through a
 <<execution.graphqlsource.runtimewiring-configurer>>.
 
-The `DataFetcher` builds a Querydsl `Predicate` from GraphQL request parameters, and
-uses it to fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA,
-MongoDB, and LDAP.
+The `DataFetcher` builds a Querydsl `Predicate` from GraphQL arguments, and uses it to
+fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA, MongoDB, and LDAP.
+
+NOTE: For a single argument that is a GraphQL input type, `QuerydslDataFetcher` nests one
+level down, and uses the values from the argument sub-map.
 
 If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
@@ -1057,6 +1059,9 @@ You can now register the above `DataFetcher` through a
 The `DataFetcher` uses the GraphQL arguments map to create the domain type of the
 repository and use that as the example object to fetch data with. Spring Data supports
 `QueryByExampleDataFetcher` for JPA, MongoDB, Neo4j, and Redis.
+
+NOTE: For a single argument that is a GraphQL input type, `QueryByExampleDataFetcher`
+nests one level down, and binds with the values from the argument sub-map.
 
 If the repository is `ReactiveQueryByExampleExecutor`, the builder returns
 `DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this

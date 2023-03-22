@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
+import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
@@ -167,6 +168,25 @@ class QueryByExampleDataFetcherJpaTests {
 
 		Book actualBook = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(actualBook.getName()).isEqualTo("The book is: Hitchhiker's Guide to the Galaxy");
+	}
+
+	@Test
+	void shouldNestForSingleArgumentInputType() {
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		repository.saveAll(Arrays.asList(book1, book2));
+
+		String queryName = "booksByCriteria";
+
+		Mono<ExecutionGraphQlResponse> responseMono =
+				graphQlSetup(queryName, QueryByExampleDataFetcher.builder(repository).many())
+						.toGraphQlService()
+						.execute(request("{" + queryName + "(criteria: {id: 42}) {name}}"));
+
+		List<Book> books = ResponseHelper.forResponse(responseMono).toList(queryName, Book.class);
+
+		assertThat(books).hasSize(1);
+		assertThat(books.get(0).getName()).isEqualTo(book1.getName());
 	}
 
 	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {

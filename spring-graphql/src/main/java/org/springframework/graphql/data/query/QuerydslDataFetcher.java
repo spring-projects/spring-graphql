@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,8 +47,8 @@ import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
-import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -134,13 +134,30 @@ public abstract class QuerydslDataFetcher<T> {
 		EntityPath<?> path = SimpleEntityPathResolver.INSTANCE.createPath(this.domainType.getType());
 		this.customizer.customize(bindings, path);
 
-		for (Map.Entry<String, Object> entry : environment.getArguments().entrySet()) {
+		for (Map.Entry<String, Object> entry : getArgumentValues(environment).entrySet()) {
 			Object value = entry.getValue();
 			List<Object> values = (value instanceof List ? (List<Object>) value : Collections.singletonList(value));
 			parameters.put(entry.getKey(), values);
 		}
 
 		return BUILDER.getPredicate(this.domainType, parameters, bindings);
+	}
+
+	/**
+	 * For a single argument that is a GraphQL input type, return the sub-map
+	 * under the argument name, or otherwise the top-level argument map.
+	 */
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> getArgumentValues(DataFetchingEnvironment environment) {
+		Map<String, Object> arguments = environment.getArguments();
+		if (environment.getFieldDefinition().getArguments().size() == 1) {
+			String name = environment.getFieldDefinition().getArguments().get(0).getName();
+			Object value = arguments.get(name);
+			if (value instanceof Map<?,?>) {
+				return (Map<String, Object>) value;
+			}
+		}
+		return arguments;
 	}
 
 	protected boolean requiresProjection(Class<?> resultType) {
