@@ -1,0 +1,8 @@
+type Query {
+	books(first:Int, after:String): BookConnection
+}
+
+type Book {
+	id: ID
+	name: String
+}

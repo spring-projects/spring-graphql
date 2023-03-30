@@ -27,15 +27,14 @@ import graphql.relay.DefaultPageInfo;
 import graphql.relay.Edge;
 import graphql.schema.DataFetcher;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link ConnectionTypeDefinitionConfigurer}.
@@ -46,48 +45,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ConnectionTypeDefinitionConfigurerTests {
 
 	@Test
-	void connectionTypeGeneration() throws Exception {
-
-		String schema = """
-			type Query {
-				books: BookConnection
-			}
-			type Book {
-				id: ID
-				name: String
-			}
-        """;
+	void connectionTypeGeneration() {
 
 		List<Book> books = BookSource.books();
 
 		DataFetcher<?> dataFetcher = environment ->
 				createConnection(books, book -> new DefaultConnectionCursor("book:" + book.getId()));
 
-		String document = "{ " +
-				"  books { " +
-				"    edges {" +
-				"      cursor," +
-				"      node {" +
-				"        id" +
-				"        name" +
-				"      }" +
-				"    }" +
-				"    pageInfo {" +
-				"      startCursor," +
-				"      endCursor," +
-				"      hasPreviousPage," +
-				"      hasNextPage" +
-				"    }" +
-				"  }" +
-				"}";
+		String document = BookSource.booksConnectionQuery("");
 
-		ExecutionGraphQlResponse response = initGraphQlSetup(schema)
+		Mono<ExecutionGraphQlResponse> response = initGraphQlSetup()
 				.dataFetcher("Query", "books", dataFetcher)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document))
-				.block();
+				.execute(TestExecutionRequest.forDocument(document));
 
-		assertThat(new ObjectMapper().writeValueAsString(response.getData())).isEqualTo(
+		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +
 						"\"edges\":[" +
 						"{\"cursor\":\"book:1\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +
@@ -107,8 +79,9 @@ public class ConnectionTypeDefinitionConfigurerTests {
 		);
 	}
 
-	private GraphQlSetup initGraphQlSetup(String schema) {
-		return GraphQlSetup.schemaContent(schema).typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
+	private GraphQlSetup initGraphQlSetup() {
+		return GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
 	}
 
 	private static <N> Connection<N> createConnection(

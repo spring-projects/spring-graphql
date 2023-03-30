@@ -16,10 +16,9 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.domain.OffsetScrollPosition;
@@ -29,6 +28,7 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
@@ -39,8 +39,6 @@ import org.springframework.graphql.data.query.WindowConnectionAdapter;
 import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.stereotype.Controller;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
  * GraphQL paginated requests handled through {@code @SchemaMapping} methods.
  *
@@ -48,47 +46,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SchemaMappingPaginationTests {
 
-	private static final String SCHEMA = """
-			type Query {
-				books(first:Int, after:String): BookConnection
-			}
-			type Book {
-				id: ID
-				name: String
-			}
-			""";
-
 
 	@Test
-	void forwardPagination() throws Exception {
+	void forwardPagination() {
 
-		String document = """
-			{
-				books(first:2, after:"O_3") {
-					edges {
-						cursor,
-						node {
-							id
-						name
-						}
-					}
-					pageInfo {
-						startCursor,
-						endCursor,
-						hasPreviousPage,
-						hasNextPage
-					}
-				}
-			}
-			""";
+		String query = BookSource.booksConnectionQuery("first:2, after:\"O_3\"");
 
-		ExecutionGraphQlService graphQlService = graphQlService();
+		Mono<ExecutionGraphQlResponse> response = graphQlService().execute(TestExecutionRequest.forDocument(query));
 
-		ExecutionGraphQlResponse response =
-				graphQlService.execute(TestExecutionRequest.forDocument(document)).block();
-
-		assertThat(new ObjectMapper().writeValueAsString(response.getData()))
-				.as("Errors: " + response.getErrors()).isEqualTo(
+		ResponseHelper.forResponse(response).assertData(
 						"{\"books\":{" +
 								"\"edges\":[" +
 								"{\"cursor\":\"O_0\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
@@ -115,7 +81,7 @@ public class SchemaMappingPaginationTests {
 		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 
-		GraphQlSetup setup = GraphQlSetup.schemaContent(SCHEMA).runtimeWiring(configurer);
+		GraphQlSetup setup = GraphQlSetup.schemaResource(BookSource.paginationSchema).runtimeWiring(configurer);
 		setup.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
 		setup.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
 

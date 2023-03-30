@@ -131,6 +131,11 @@ public class ResponseHelper {
 		return new Error(index);
 	}
 
+	public void assertData(String expectedJson) {
+		expectedJson = "{\"data\":" + expectedJson + "}";
+		assertThat(this.documentContext.jsonString()).as("Errors: " + this.errors).isEqualTo(expectedJson);
+	}
+
 
 	public static ResponseHelper forResult(ExecutionResult result) {
 		return new ResponseHelper(result.toSpecification(), result.getErrors());

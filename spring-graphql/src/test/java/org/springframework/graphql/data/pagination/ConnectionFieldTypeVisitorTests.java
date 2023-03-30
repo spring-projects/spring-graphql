@@ -20,15 +20,14 @@ import java.util.Collection;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link ConnectionFieldTypeVisitor}.
@@ -39,49 +38,22 @@ public class ConnectionFieldTypeVisitorTests {
 
 
 	@Test
-	void dataFetcherDecoration() throws Exception {
+	void dataFetcherDecoration() {
 
-		String schemaContent = """
-			type Query {
-				books: BookConnection
-			}
-			type Book {
-				id: ID
-				name: String
-			}
-        """;
-
-		String document = "{ " +
-				"  books { " +
-				"    edges {" +
-				"      cursor," +
-				"      node {" +
-				"        id" +
-				"        name" +
-				"      }" +
-				"    }" +
-				"    pageInfo {" +
-				"      startCursor," +
-				"      endCursor," +
-				"      hasPreviousPage," +
-				"      hasNextPage" +
-				"    }" +
-				"  }" +
-				"}";
+		String document = BookSource.booksConnectionQuery("");
 
 		TestConnectionAdapter adapter = new TestConnectionAdapter();
 		adapter.setInitialOffset(30);
 		adapter.setHasNext(true);
 
-		ExecutionGraphQlResponse response = GraphQlSetup.schemaContent(schemaContent)
+		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
 				.dataFetcher("Query", "books", env -> BookSource.books())
 				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
 				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document))
-				.block();
+				.execute(TestExecutionRequest.forDocument(document));
 
-		assertThat(new ObjectMapper().writeValueAsString(response.getData())).isEqualTo(
+		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +
 						"\"edges\":[" +
 						"{\"cursor\":\"T_30\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +

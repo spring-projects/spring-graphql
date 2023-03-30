@@ -22,14 +22,18 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.Nullable;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.util.StringUtils;
 
 public class BookSource {
 
 	public static final Resource schema = new ClassPathResource("books/schema.graphqls");
+
+	public static final Resource paginationSchema = new ClassPathResource("books/pagination-schema.graphqls");
 
 
 	private static final Map<Long, Book> booksMap = new HashMap<>();
@@ -86,6 +90,27 @@ public class BookSource {
 
 	public static Author getAuthor(Long id) {
 		return authorsMap.get(id);
+	}
+
+	public static String booksConnectionQuery(@Nullable String arguments) {
+		arguments = StringUtils.hasText(arguments) ? "(" + arguments + ")" : "";
+		return "{" +
+			   "	books" + arguments + " {" +
+			   "		edges {" +
+			   "			cursor," +
+			   "			node {" +
+			   "				id" +
+			   "				name" +
+			   "			}" +
+			   "		}" +
+			   "		pageInfo {" +
+			   "			startCursor," +
+			   "			endCursor," +
+			   "			hasPreviousPage," +
+			   "			hasNextPage" +
+			   "		}" +
+			   "	}" +
+			   "}";
 	}
 
 }
