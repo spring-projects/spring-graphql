@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNamedOutputType;
 import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLType;
 import graphql.schema.idl.FieldWiringEnvironment;
 import graphql.schema.idl.RuntimeWiring;
@@ -76,14 +77,19 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 	interface DataFetcherFactory {
 
 		/**
-		 * Create a singe item {@code DataFetcher}.
+		 * Create {@code DataFetcher} for a singe item.
 		 */
 		DataFetcher<?> single();
 
 		/**
-		 * Create {@code DataFetcher} for multiple items.
+		 * Create {@code DataFetcher} for many items.
 		 */
 		DataFetcher<?> many();
+
+		/**
+		 * Create {@code DataFetcher} for scrolling.
+		 */
+		DataFetcher<?> scrollable();
 
 	}
 
@@ -127,6 +133,11 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 		private String getOutputTypeName(FieldWiringEnvironment environment) {
 			GraphQLType outputType = removeNonNullWrapper(environment.getFieldType());
 
+			if (isConnectionType(outputType)) {
+				String name = ((GraphQLObjectType) outputType).getName();
+				return name.substring(0, name.length() - 10);
+			}
+
 			if (outputType instanceof GraphQLList) {
 				outputType = removeNonNullWrapper(((GraphQLList) outputType).getWrappedType());
 			}
@@ -140,6 +151,12 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 
 		private GraphQLType removeNonNullWrapper(GraphQLType outputType) {
 			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
+		}
+
+		private boolean isConnectionType(GraphQLType type) {
+			return (type instanceof GraphQLObjectType objectType &&
+					objectType.getName().endsWith("Connection") &&
+					objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
 		}
 
 		private boolean hasDataFetcherFor(FieldDefinition fieldDefinition) {
@@ -168,13 +185,9 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			DataFetcherFactory factory = dataFetcherFactories.get(outputTypeName);
 			Assert.notNull(factory, "Expected DataFetcher factory for typeName '" + outputTypeName + "'");
 
-			GraphQLType outputType = removeNonNullWrapper(environment.getFieldType());
-			if (outputType instanceof GraphQLList) {
-				return factory.many();
-			}
-			else {
-				return factory.single();
-			}
+			GraphQLType type = removeNonNullWrapper(environment.getFieldType());
+			return (isConnectionType(type) ? factory.scrollable() :
+					(type instanceof GraphQLList ? factory.many() : factory.single()));
 		}
 
 	}

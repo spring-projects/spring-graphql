@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,20 @@ package org.springframework.graphql.data.query;
 
 import java.lang.reflect.Type;
 
+import graphql.schema.DataFetchingEnvironment;
+
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
+import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.data.pagination.CursorEncoder;
+import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -71,6 +77,26 @@ class RepositoryUtils {
 
 		return (StringUtils.hasText(annotation.typeName()) ?
 				annotation.typeName() : RepositoryUtils.getDomainType(repository).getSimpleName());
+	}
+
+
+	public static CursorStrategy<ScrollPosition> defaultCursorStrategy() {
+		return CursorStrategy.withEncoder(new ScrollPositionCursorStrategy(), CursorEncoder.base64());
+	}
+
+	public static ScrollSubrange defaultScrollSubrange() {
+		return new ScrollSubrange(OffsetScrollPosition.initial(), 20, true);
+	}
+
+	public static ScrollSubrange buildScrollSubrange(
+			DataFetchingEnvironment environment, CursorStrategy<ScrollPosition> cursorStrategy) {
+
+		Assert.notNull(cursorStrategy, "CursorStrategy is required to build a ScrollSubrange");
+		boolean forward = !environment.getArguments().containsKey("last");
+		Integer count = environment.getArgument(forward ? "first" : "last");
+		String cursor = environment.getArgument(forward ? "after" : "before");
+		ScrollPosition position = (cursor != null ? cursorStrategy.fromCursor(cursor) : null);
+		return new ScrollSubrange(position, count, forward);
 	}
 
 }

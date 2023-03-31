@@ -33,6 +33,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.keyvalue.core.KeyValueTemplate;
 import org.springframework.data.keyvalue.repository.support.KeyValueRepositoryFactory;
 import org.springframework.data.map.MapKeyValueAdapter;
@@ -48,8 +49,10 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.query.QuerydslDataFetcher.Builder;
 import org.springframework.graphql.data.query.QuerydslDataFetcher.QuerydslBuilderCustomizer;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
@@ -115,6 +118,48 @@ class QuerydslDataFetcherTests {
 
 		// auto registration
 		tester.accept(graphQlSetup(mockRepository));
+	}
+
+	@Test
+	void shouldFetchWindow() {
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		mockRepository.saveAll(Arrays.asList(book1, book2));
+
+		Consumer<GraphQlSetup> tester = graphQlSetup -> {
+
+			Mono<WebGraphQlResponse> response = graphQlSetup
+					.toWebGraphQlHandler()
+					.handleRequest(request(BookSource.booksConnectionQuery("")));
+
+			ResponseHelper.forResponse(response).assertData(
+					"{\"books\":{" +
+					"\"edges\":[" +
+					"{\"cursor\":\"O_4\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}," +
+					"{\"cursor\":\"O_5\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}" +
+					"]," +
+					"\"pageInfo\":{" +
+					"\"startCursor\":\"O_4\"," +
+					"\"endCursor\":\"O_5\"," +
+					"\"hasPreviousPage\":true," +
+					"\"hasNextPage\":false" +
+					"}}}"
+			);
+		};
+
+		// explicit wiring
+
+		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
+
+		DataFetcher<Iterable<Book>> dataFetcher = QuerydslDataFetcher.builder(mockRepository)
+				.scrollable(cursorStrategy, new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+
+		GraphQlSetup graphQlSetup = paginationSetup(cursorStrategy).queryFetcher("books", dataFetcher);
+		tester.accept(graphQlSetup);
+
+		// auto registration
+		graphQlSetup = paginationSetup(cursorStrategy).runtimeWiring(createRuntimeWiringConfigurer(mockRepository, null));
+		tester.accept(graphQlSetup);
 	}
 
 	@Test
@@ -230,7 +275,7 @@ class QuerydslDataFetcherTests {
 		};
 
 		// explicit wiring
-		tester.accept(initGraphQlSetup(mockWithCustomizerRepository, null));
+		tester.accept(graphQlSetup(mockWithCustomizerRepository));
 	}
 
 	@Test
@@ -297,27 +342,33 @@ class QuerydslDataFetcherTests {
 		assertThat(books.get(0).getName()).isEqualTo(book1.getName());
 	}
 
-	static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
-		return initGraphQlSetup(null, null).queryFetcher(fieldName, fetcher);
+	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
+		return GraphQlSetup.schemaResource(BookSource.schema).queryFetcher(fieldName, fetcher);
 	}
 
-	static GraphQlSetup graphQlSetup(@Nullable QuerydslPredicateExecutor<?> executor) {
-		return initGraphQlSetup(executor, null);
+	private static GraphQlSetup graphQlSetup(@Nullable QuerydslPredicateExecutor<?> executor) {
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.runtimeWiring(createRuntimeWiringConfigurer(executor, null));
 	}
 
-	static GraphQlSetup graphQlSetup(@Nullable ReactiveQuerydslPredicateExecutor<?> executor) {
-		return initGraphQlSetup(null, executor);
+	private static GraphQlSetup graphQlSetup(@Nullable ReactiveQuerydslPredicateExecutor<?> executor) {
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.runtimeWiring(createRuntimeWiringConfigurer(null, executor));
 	}
 
-	private static GraphQlSetup initGraphQlSetup(
+	private static GraphQlSetup paginationSetup(ScrollPositionCursorStrategy cursorStrategy) {
+		return GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
+	}
+
+	private static RuntimeWiringConfigurer createRuntimeWiringConfigurer(
 			@Nullable QuerydslPredicateExecutor<?> executor,
 			@Nullable ReactiveQuerydslPredicateExecutor<?> reactiveExecutor) {
 
-		RuntimeWiringConfigurer configurer = QuerydslDataFetcher.autoRegistrationConfigurer(
+		return QuerydslDataFetcher.autoRegistrationConfigurer(
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				(reactiveExecutor != null ? Collections.singletonList(reactiveExecutor) : Collections.emptyList()));
-
-		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
 	}
 
 	private WebGraphQlRequest request(String query) {

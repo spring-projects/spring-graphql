@@ -35,13 +35,17 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.data.domain.Example;
+import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Window;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.AutoRegistrationRuntimeWiringConfigurer.DataFetcherFactory;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
@@ -102,9 +106,15 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private final GraphQlArgumentBinder argumentBinder;
 
+	@Nullable
+	private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
+
+	QueryByExampleDataFetcher(
+			TypeInformation<T> domainType, @Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
+
 		this.domainType = domainType;
+		this.cursorStrategy = cursorStrategy;
 		this.argumentBinder = new GraphQlArgumentBinder();
 	}
 
@@ -154,11 +164,14 @@ public abstract class QueryByExampleDataFetcher<T> {
 		return Collections.emptyList();
 	}
 
+	protected ScrollSubrange buildScrollSubrange(DataFetchingEnvironment environment) {
+		return RepositoryUtils.buildScrollSubrange(environment, this.cursorStrategy);
+	}
+
 
 	/**
 	 * Create a new {@link Builder} accepting {@link QueryByExampleExecutor}
 	 * to build a {@link DataFetcher}.
-	 *
 	 * @param executor the QBE repository object to use
 	 * @param <T> the domain type of the repository
 	 * @return a new builder
@@ -170,13 +183,28 @@ public abstract class QueryByExampleDataFetcher<T> {
 	/**
 	 * Create a new {@link ReactiveBuilder} accepting
 	 * {@link ReactiveQueryByExampleExecutor} to build a {@link DataFetcher}.
-	 *
 	 * @param executor the QBE repository object to use
 	 * @param <T> the domain type of the repository
 	 * @return a new builder
 	 */
 	public static <T> ReactiveBuilder<T, T> builder(ReactiveQueryByExampleExecutor<T> executor) {
 		return new ReactiveBuilder<>(executor, RepositoryUtils.getDomainType(executor));
+	}
+
+	/**
+	 * Variation of {@link #autoRegistrationConfigurer(List, List, CursorStrategy, ScrollSubrange)}
+	 * that defaults to the following:
+	 * <ul>
+	 * <li>{@link ScrollPositionCursorStrategy} with Base64 encoding.
+	 * <li>{@link OffsetScrollPosition Offset}-based scrolling with 20 items at a time
+	 * </ul>
+	 */
+	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
+			List<QueryByExampleExecutor<?>> executors,
+			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
+
+		return autoRegistrationConfigurer(executors, reactiveExecutors,
+				RepositoryUtils.defaultCursorStrategy(), RepositoryUtils.defaultScrollSubrange());
 	}
 
 	/**
@@ -190,11 +218,16 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 *
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
+	 * @param cursorStrategy for decoding cursors in pagination requests
+	 * @param defaultScrollSubrange default parameters for scrolling
 	 * @return the created configurer
+	 * @since 1.2
 	 */
 	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
 			List<QueryByExampleExecutor<?>> executors,
-			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
+			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors,
+			CursorStrategy<ScrollPosition> cursorStrategy,
+			ScrollSubrange defaultScrollSubrange) {
 
 		Map<String, DataFetcherFactory> factories = new HashMap<>();
 
@@ -211,6 +244,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 					@Override
 					public DataFetcher<?> many() {
 						return builder.many();
+					}
+
+					@Override
+					public DataFetcher<?> scrollable() {
+						return builder.scrollable(cursorStrategy, defaultScrollSubrange);
 					}
 				});
 			}
@@ -229,6 +267,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 					@Override
 					public DataFetcher<?> many() {
 						return builder.many();
+					}
+
+					@Override
+					public DataFetcher<?> scrollable() {
+						return builder.scrollable(cursorStrategy, defaultScrollSubrange);
 					}
 				});
 			}
@@ -363,7 +406,19 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * Build a {@link DataFetcher} to fetch many object instances.
 		 */
 		public DataFetcher<Iterable<R>> many() {
-			return new ManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
+			return new ManyEntityFetcher<>(this.executor, this.domainType, this.resultType, null, this.sort);
+		}
+
+		/**
+		 * Build a {@link DataFetcher} that scrolls and returns
+		 * {@link org.springframework.data.domain.Window}.
+		 * @since 1.2
+		 */
+		public DataFetcher<Iterable<R>> scrollable(
+				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultScrollSubrange) {
+
+			return new ScrollableEntityFetcher<>(
+					this.executor, this.domainType, this.resultType, cursorStrategy, defaultScrollSubrange, this.sort);
 		}
 
 	}
@@ -461,6 +516,18 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return new ReactiveManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
 
+		/**
+		 * Build a {@link DataFetcher} that scrolls and returns
+		 * {@link org.springframework.data.domain.Window}.
+		 * @since 1.2
+		 */
+		public DataFetcher<Mono<Iterable<R>>> scrollable(
+				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultScrollSubrange) {
+
+			return new ReactiveScrollableEntityFetcher<>(
+					this.executor, this.domainType, this.resultType, cursorStrategy, defaultScrollSubrange, this.sort);
+		}
+
 	}
 
 	/**
@@ -495,7 +562,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		SingleEntityFetcher(
 				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType, Sort sort) {
 
-			super(domainType);
+			super(domainType, null);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -539,10 +606,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final Sort sort;
 
 		ManyEntityFetcher(
-				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
-				Class<R> resultType, Sort sort) {
+				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				@Nullable CursorStrategy<ScrollPosition> cursorStrategy, Sort sort) {
 
-			super(domainType);
+			super(domainType, cursorStrategy);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -565,13 +632,57 @@ public abstract class QueryByExampleDataFetcher<T> {
 					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
-				return queryToUse.all();
+				return getResult(queryToUse, env);
 			});
+		}
+
+		protected Iterable<R> getResult(FluentQuery.FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
+			return queryToUse.all();
 		}
 
 		@Override
 		public ResolvableType getReturnType() {
 			return ResolvableType.forClassWithGenerics(Iterable.class, this.resultType);
+		}
+
+	}
+
+
+	private static class ScrollableEntityFetcher<T, R> extends ManyEntityFetcher<T, R> {
+
+		private final ScrollSubrange defaultSubrange;
+
+		private final ResolvableType scrollableResultType;
+
+		ScrollableEntityFetcher(
+				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				CursorStrategy<ScrollPosition> cursorStrategy,
+				ScrollSubrange defaultSubrange,
+				Sort sort) {
+
+			super(executor, domainType, resultType, cursorStrategy, sort);
+
+			Assert.notNull(cursorStrategy, "CursorStrategy is required");
+			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
+			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
+			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
+
+			this.defaultSubrange = defaultSubrange;
+			this.scrollableResultType = ResolvableType.forClassWithGenerics(Window.class, resultType);
+		}
+
+		@SuppressWarnings("OptionalGetWithoutIsPresent")
+		@Override
+		protected Iterable<R> getResult(FluentQuery.FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
+			ScrollSubrange subrange = buildScrollSubrange(env);
+			int limit = subrange.count().orElse(this.defaultSubrange.count().getAsInt());
+			ScrollPosition position = subrange.position().orElse(this.defaultSubrange.position().get());
+			return queryToUse.limit(limit).scroll(position);
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Iterable.class, this.scrollableResultType);
 		}
 
 	}
@@ -589,7 +700,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
 
-			super(domainType);
+			super(domainType, null);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -636,7 +747,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
 
-			super(domainType);
+			super(domainType, null);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -666,6 +777,69 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@Override
 		public ResolvableType getReturnType() {
 			return ResolvableType.forClassWithGenerics(Flux.class, this.resultType);
+		}
+
+	}
+
+
+	private static class ReactiveScrollableEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Mono<Iterable<R>>> {
+
+		private final ReactiveQueryByExampleExecutor<T> executor;
+
+		private final Class<R> resultType;
+
+		private final ResolvableType scrollableResultType;
+
+		private final ScrollSubrange defaultSubrange;
+
+		private final Sort sort;
+
+		ReactiveScrollableEntityFetcher(
+				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultSubrange, Sort sort) {
+
+			super(domainType, cursorStrategy);
+
+			Assert.notNull(cursorStrategy, "CursorStrategy is required");
+			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
+			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
+			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
+
+			this.executor = executor;
+			this.resultType = resultType;
+			this.scrollableResultType = ResolvableType.forClassWithGenerics(Iterable.class, resultType);
+			this.defaultSubrange = defaultSubrange;
+			this.sort = sort;
+		}
+
+		@Override
+		@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+		public Mono<Iterable<R>> get(DataFetchingEnvironment env) throws BindException {
+			return this.executor.findBy(buildExample(env), query -> {
+				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
+
+				if (this.sort.isSorted()) {
+					queryToUse = queryToUse.sortBy(this.sort);
+				}
+
+				if (requiresProjection(this.resultType)) {
+					queryToUse = queryToUse.as(this.resultType);
+				}
+				else {
+					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
+				}
+
+				ScrollSubrange subrange = buildScrollSubrange(env);
+				int limit = subrange.count().orElse(this.defaultSubrange.count().getAsInt());
+				ScrollPosition position = subrange.position().orElse(this.defaultSubrange.position().get());
+
+				return queryToUse.limit(limit).scroll(position).map(Function.identity());
+			});
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Mono.class, this.scrollableResultType);
 		}
 
 	}

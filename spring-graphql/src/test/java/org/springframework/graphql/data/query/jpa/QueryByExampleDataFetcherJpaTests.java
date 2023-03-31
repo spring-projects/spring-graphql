@@ -35,20 +35,25 @@ import reactor.core.publisher.Mono;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
+import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
+import org.springframework.graphql.data.query.ScrollSubrange;
+import org.springframework.graphql.data.query.WindowConnectionAdapter;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.lang.Nullable;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
@@ -116,6 +121,52 @@ class QueryByExampleDataFetcherJpaTests {
 
 		// auto registration
 		tester.accept(graphQlSetup(repository));
+	}
+
+	@Test
+	void shouldFetchWindow() {
+
+		repository.saveAll(List.of(
+				new Book(1L, "Nineteen Eighty-Four", new Author(0L, "George", "Orwell")),
+				new Book(2L, "The Great Gatsby", new Author(0L, "F. Scott", "Fitzgerald")),
+				new Book(3L, "Catch-22", new Author(0L, "Joseph", "Heller")),
+				new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams")),
+				new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"))));
+
+		Consumer<GraphQlSetup> tester = graphQlSetup -> {
+
+			Mono<WebGraphQlResponse> response = graphQlSetup
+					.toWebGraphQlHandler()
+					.handleRequest(request(BookSource.booksConnectionQuery("first:2, after:\"O_3\"")));
+
+			ResponseHelper.forResponse(response).assertData(
+					"{\"books\":{" +
+					"\"edges\":[" +
+					"{\"cursor\":\"O_4\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}," +
+					"{\"cursor\":\"O_5\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}" +
+					"]," +
+					"\"pageInfo\":{" +
+					"\"startCursor\":\"O_4\"," +
+					"\"endCursor\":\"O_5\"," +
+					"\"hasPreviousPage\":true," +
+					"\"hasNextPage\":false" +
+					"}}}"
+			);
+		};
+
+		// explicit wiring
+
+		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
+
+		DataFetcher<Iterable<Book>> dataFetcher = QueryByExampleDataFetcher.builder(repository)
+				.scrollable(cursorStrategy, new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+
+		GraphQlSetup graphQlSetup = paginationSetup(cursorStrategy).queryFetcher("books", dataFetcher);
+		tester.accept(graphQlSetup);
+
+		// auto registration
+		graphQlSetup = paginationSetup(cursorStrategy).runtimeWiring(createRuntimeWiringConfigurer(repository));
+		tester.accept(graphQlSetup);
 	}
 
 	@Test
@@ -190,20 +241,26 @@ class QueryByExampleDataFetcherJpaTests {
 	}
 
 	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
-		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
+		return GraphQlSetup.schemaResource(BookSource.schema).queryFetcher(fieldName, fetcher);
 	}
 
-	private static GraphQlSetup graphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
-		return initGraphQlSetup(executor);
+	private static GraphQlSetup graphQlSetup(QueryByExampleExecutor<?> executor) {
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.runtimeWiring(createRuntimeWiringConfigurer(executor));
 	}
 
-	private static GraphQlSetup initGraphQlSetup(@Nullable QueryByExampleExecutor<?> executor) {
+	private static GraphQlSetup paginationSetup(ScrollPositionCursorStrategy cursorStrategy) {
+		return GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
+	}
 
-		RuntimeWiringConfigurer configurer = QueryByExampleDataFetcher.autoRegistrationConfigurer(
+	private static RuntimeWiringConfigurer createRuntimeWiringConfigurer(QueryByExampleExecutor<?> executor) {
+		return QueryByExampleDataFetcher.autoRegistrationConfigurer(
 				executor != null ? Collections.singletonList(executor) : Collections.emptyList(),
-				Collections.emptyList());
-
-		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
+				Collections.emptyList(),
+				new ScrollPositionCursorStrategy(),
+				new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
 	}
 
 	private WebGraphQlRequest request(String query) {
