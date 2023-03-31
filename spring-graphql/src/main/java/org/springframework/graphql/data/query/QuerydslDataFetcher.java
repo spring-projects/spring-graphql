@@ -47,6 +47,7 @@ import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.data.query.AutoRegistrationRuntimeWiringConfigurer.DataFetcherFactory;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.util.Assert;
@@ -219,13 +220,23 @@ public abstract class QuerydslDataFetcher<T> {
 			List<QuerydslPredicateExecutor<?>> executors,
 			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
 
-		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
+		Map<String, DataFetcherFactory> factories = new HashMap<>();
 
 		for (QuerydslPredicateExecutor<?> executor : executors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
 				Builder builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
+				factories.put(typeName, new DataFetcherFactory() {
+					@Override
+					public DataFetcher<?> single() {
+						return builder.single();
+					}
+
+					@Override
+					public DataFetcher<?> many() {
+						return builder.many();
+					}
+				});
 			}
 		}
 
@@ -233,7 +244,17 @@ public abstract class QuerydslDataFetcher<T> {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
 				ReactiveBuilder builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
+				factories.put(typeName, new DataFetcherFactory() {
+					@Override
+					public DataFetcher<?> single() {
+						return builder.single();
+					}
+
+					@Override
+					public DataFetcher<?> many() {
+						return builder.many();
+					}
+				});
 			}
 		}
 

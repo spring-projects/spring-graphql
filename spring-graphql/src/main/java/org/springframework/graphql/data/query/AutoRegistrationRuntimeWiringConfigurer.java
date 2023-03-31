@@ -17,7 +17,6 @@ package org.springframework.graphql.data.query;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import graphql.language.FieldDefinition;
@@ -49,19 +48,15 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 	private final static Log logger = LogFactory.getLog(AutoRegistrationRuntimeWiringConfigurer.class);
 
 
-	private final Map<String, Function<Boolean, DataFetcher<?>>> dataFetcherFactories;
+	private final Map<String, DataFetcherFactory> dataFetcherFactories;
 
 
 	/**
-	 * Constructor with a Map of GraphQL type names for which auto-registration
-	 * can be performed.
-	 * @param dataFetcherFactories Map with GraphQL type names as keys, and
-	 * functions to create a corresponding {@link DataFetcher} as values.
+	 * Constructor with a Map of GraphQL type names as keys, and
+	 * {@code DataFetcher} factories as values.
 	 */
-	AutoRegistrationRuntimeWiringConfigurer(
-			Map<String, Function<Boolean, DataFetcher<?>>> dataFetcherFactories) {
-
-		this.dataFetcherFactories = dataFetcherFactories;
+	AutoRegistrationRuntimeWiringConfigurer(Map<String, DataFetcherFactory> factories) {
+		this.dataFetcherFactories = factories;
 	}
 
 
@@ -72,6 +67,24 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 	@Override
 	public void configure(RuntimeWiring.Builder builder, List<WiringFactory> container) {
 		container.add(new AutoRegistrationWiringFactory(builder));
+	}
+
+
+	/**
+	 * Callback interface to create the desired type of {@code DataFetcher}.
+	 */
+	interface DataFetcherFactory {
+
+		/**
+		 * Create a singe item {@code DataFetcher}.
+		 */
+		DataFetcher<?> single();
+
+		/**
+		 * Create {@code DataFetcher} for multiple items.
+		 */
+		DataFetcher<?> many();
+
 	}
 
 
@@ -112,16 +125,21 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 
 		@Nullable
 		private String getOutputTypeName(FieldWiringEnvironment environment) {
-			GraphQLType outputType = (environment.getFieldType() instanceof GraphQLList ?
-					((GraphQLList) environment.getFieldType()).getWrappedType() :
-					environment.getFieldType());
+			GraphQLType outputType = removeNonNullWrapper(environment.getFieldType());
 
-			if (outputType instanceof GraphQLNonNull) {
-				outputType = ((GraphQLNonNull) outputType).getWrappedType();
+			if (outputType instanceof GraphQLList) {
+				outputType = removeNonNullWrapper(((GraphQLList) outputType).getWrappedType());
 			}
 
-			return (outputType instanceof GraphQLNamedOutputType ?
-					((GraphQLNamedOutputType) outputType).getName() : null);
+			if (outputType instanceof GraphQLNamedOutputType namedType) {
+				return namedType.getName();
+			}
+
+			return null;
+		}
+
+		private GraphQLType removeNonNullWrapper(GraphQLType outputType) {
+			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
 		}
 
 		private boolean hasDataFetcherFor(FieldDefinition fieldDefinition) {
@@ -132,13 +150,11 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			return this.existingQueryDataFetcherPredicate.test(fieldDefinition.getName());
 		}
 
-		private void logTraceMessage(
-				FieldWiringEnvironment environment, @Nullable String outputTypeName, boolean match) {
-
+		private void logTraceMessage(FieldWiringEnvironment environment, @Nullable String typeName, boolean match) {
 			if (logger.isTraceEnabled()) {
 				String query = environment.getFieldDefinition().getName();
 				logger.trace((match ? "Matched" : "Skipped") +
-						" output typeName " + (outputTypeName != null ? "'" + outputTypeName + "'" : "null") +
+						" output typeName " + (typeName != null ? "'" + typeName + "'" : "null") +
 						" for query '" + query + "'");
 			}
 		}
@@ -149,11 +165,16 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			String outputTypeName = getOutputTypeName(environment);
 			logTraceMessage(environment, outputTypeName, true);
 
-			Function<Boolean, DataFetcher<?>> factory = dataFetcherFactories.get(outputTypeName);
+			DataFetcherFactory factory = dataFetcherFactories.get(outputTypeName);
 			Assert.notNull(factory, "Expected DataFetcher factory for typeName '" + outputTypeName + "'");
 
-			boolean single = !(environment.getFieldType() instanceof GraphQLList);
-			return factory.apply(single);
+			GraphQLType outputType = removeNonNullWrapper(environment.getFieldType());
+			if (outputType instanceof GraphQLList) {
+				return factory.many();
+			}
+			else {
+				return factory.single();
+			}
 		}
 
 	}

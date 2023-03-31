@@ -42,6 +42,7 @@ import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
+import org.springframework.graphql.data.query.AutoRegistrationRuntimeWiringConfigurer.DataFetcherFactory;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.lang.Nullable;
@@ -195,13 +196,23 @@ public abstract class QueryByExampleDataFetcher<T> {
 			List<QueryByExampleExecutor<?>> executors,
 			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
 
-		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
+		Map<String, DataFetcherFactory> factories = new HashMap<>();
 
 		for (QueryByExampleExecutor<?> executor : executors) {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
 				Builder<?, ?> builder = customize(executor, builder(executor));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
+				factories.put(typeName, new DataFetcherFactory() {
+					@Override
+					public DataFetcher<?> single() {
+						return builder.single();
+					}
+
+					@Override
+					public DataFetcher<?> many() {
+						return builder.many();
+					}
+				});
 			}
 		}
 
@@ -209,7 +220,17 @@ public abstract class QueryByExampleDataFetcher<T> {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
 				ReactiveBuilder<?, ?> builder = customize(executor, builder(executor));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
+				factories.put(typeName, new DataFetcherFactory() {
+					@Override
+					public DataFetcher<?> single() {
+						return builder.single();
+					}
+
+					@Override
+					public DataFetcher<?> many() {
+						return builder.many();
+					}
+				});
 			}
 		}
 
