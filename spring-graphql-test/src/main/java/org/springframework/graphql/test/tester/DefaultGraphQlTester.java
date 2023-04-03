@@ -565,7 +565,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			doAssert(() -> {
 				List<E> expected = Arrays.asList(values);
 				AssertionErrors.assertTrue(
-						"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain exactly " + expected,
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain exactly " + expected + ", but contains " + getEntity(),
 						getEntity().equals(expected));
 			});
 			return this;
