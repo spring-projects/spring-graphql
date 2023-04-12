@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
@@ -120,8 +121,13 @@ class QuerydslDataFetcherTests {
 		tester.accept(graphQlSetup(mockRepository));
 	}
 
+	@Disabled
 	@Test
 	void shouldFetchWindow() {
+
+		// KeyValueRepositoryFactory doesn't have pagination support yet:
+		// https://github.com/spring-projects/spring-data-keyvalue/issues/490
+
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
 		mockRepository.saveAll(Arrays.asList(book1, book2));

@@ -684,16 +684,17 @@ position within a large result set, e.g. based on an offset or key set.
 <<execution.pagination.adapters>> implementations use this to create cursors for returned
 items.
 
-The strategy also supports the <<controllers.schema-mapping.subrange>> controller
-method argument. For this to work, you need to declare a `CursorStrategy` bean, and also
-ensure that annotated controllers are <<controllers-declaration, configured>> for use.
+The strategy also enables <<controllers>> methods, <<data.querydsl>> repositories,
+and <<data.querybyexample>> repositories to decode pagination request cursors, and create
+a `Subrange`. For this to work, you need to declare a `CursorStrategy` bean in your Spring
+configuration.
 
 `CursorEncoder` is a related, supporting strategy to encode and decode cursors to make
 them opaque to clients. `EncodingCursorStrategy` combines `CursorStrategy` with a
 `CursorEncoder`. You can use `Base64CursorEncoder`, `NoOpEncoder` or create your own.
 
 There is a <<data.pagination.scroll,built-in>> `CursorStrategy` for the Spring Data
-`ScrollPosition`. The <<boot-starter>> registers a `ScrollPositionCursorStrategy` with
+`ScrollPosition`. The <<boot-starter>> registers a `CursorStrategy<ScrollPosition>` with
 `Base64Encoder` when Spring Data is present.
 
 
@@ -860,6 +861,13 @@ Then use it to create a `DataFetcher`:
 	// For multi-result queries
 	DataFetcher<Iterable<Account>> dataFetcher =
 			QuerydslDataFetcher.builder(repository).many();
+
+	// For paginated queries
+	CursorStrategy<ScrollPosition> cursorStrategy = ... ;
+	ScrollSubrange defaultSubrange = ... ;
+
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).scrollable(cursorStrategy, defaultSubrange);
 ----
 
 You can now register the above `DataFetcher` through a
@@ -1002,12 +1010,17 @@ or a target DTO class and configure it through the `projectAs` method to obtain 
 
 If a repository is annotated with `@GraphQlRepository`, it is automatically registered
 for queries that do not already have a registered `DataFetcher` and whose return type
-matches that of the repository domain type. This includes both single value and multi-value
-queries.
+matches that of the repository domain type. This includes single value queries, multi-value
+queries, and <<execution.pagination,paginated>> queries.
 
 By default, the name of the GraphQL type returned by the query must match the simple name
 of the repository domain type. If needed, you can use the `typeName` attribute of
 `@GraphQlRepository` to specify the target GraphQL type name.
+
+For paginated queries, the simple name of the repository domain type must match the
+`Connection` type name without the `Connection` ending (e.g. `**Book**` matches
+`**Books**Connection`). For auto-registration, pagination is offset-based with 20 items
+per page.
 
 Auto-registration detects if a given repository implements `QuerydslBinderCustomizer` and
 transparently applies that through `QuerydslDataFetcher` builder methods.
@@ -1051,6 +1064,13 @@ Use `QueryByExampleDataFetcher` to turn the repository into a `DataFetcher`:
 	// For multi-result queries
 	DataFetcher<Iterable<Account>> dataFetcher =
 			QueryByExampleDataFetcher.builder(repository).many();
+
+	// For paginated queries
+	CursorStrategy<ScrollPosition> cursorStrategy = ... ;
+	ScrollSubrange defaultSubrange = ... ;
+
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).scrollable(cursorStrategy, defaultSubrange);
 ----
 
 You can now register the above `DataFetcher` through a
@@ -1120,12 +1140,17 @@ or a target DTO class and configure it through the `projectAs` method to obtain 
 
 If a repository is annotated with `@GraphQlRepository`, it is automatically registered
 for queries that do not already have a registered `DataFetcher` and whose return type
-matches that of the repository domain type. This includes both single value and multi-value
-queries.
+matches that of the repository domain type. This includes single value queries, multi-value
+queries, and <<execution.pagination,paginated>> queries.
 
 By default, the name of the GraphQL type returned by the query must match the simple name
 of the repository domain type. If needed, you can use the `typeName` attribute of
 `@GraphQlRepository` to specify the target GraphQL type name.
+
+For paginated queries, the simple name of the repository domain type must match the
+`Connection` type name without the `Connection` ending (e.g. `**Book**` matches
+`**Books**Connection`). For auto-registration, pagination is offset-based with 20 items
+per page.
 
 Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
 obtained from `QueryByExampleDataFetcher`. The <<boot-starter>> automatically
@@ -1683,6 +1708,8 @@ public class BookController {
 
 }
 ----
+
+See <<execution.pagination>> for an overview of pagination and of built-in mechanisms.
 
 
 [[controllers.schema-mapping.sort]]
