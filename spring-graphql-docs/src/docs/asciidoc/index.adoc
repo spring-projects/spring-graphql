@@ -863,11 +863,8 @@ Then use it to create a `DataFetcher`:
 			QuerydslDataFetcher.builder(repository).many();
 
 	// For paginated queries
-	CursorStrategy<ScrollPosition> cursorStrategy = ... ;
-	ScrollSubrange defaultSubrange = ... ;
-
 	DataFetcher<Iterable<Account>> dataFetcher =
-			QuerydslDataFetcher.builder(repository).scrollable(cursorStrategy, defaultSubrange);
+			QuerydslDataFetcher.builder(repository).scrollable();
 ----
 
 You can now register the above `DataFetcher` through a
@@ -1066,11 +1063,8 @@ Use `QueryByExampleDataFetcher` to turn the repository into a `DataFetcher`:
 			QueryByExampleDataFetcher.builder(repository).many();
 
 	// For paginated queries
-	CursorStrategy<ScrollPosition> cursorStrategy = ... ;
-	ScrollSubrange defaultSubrange = ... ;
-
 	DataFetcher<Iterable<Account>> dataFetcher =
-			QueryByExampleDataFetcher.builder(repository).scrollable(cursorStrategy, defaultSubrange);
+			QueryByExampleDataFetcher.builder(repository).scrollable();
 ----
 
 You can now register the above `DataFetcher` through a

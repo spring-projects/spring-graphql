@@ -34,7 +34,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.keyvalue.core.KeyValueTemplate;
 import org.springframework.data.keyvalue.repository.support.KeyValueRepositoryFactory;
 import org.springframework.data.map.MapKeyValueAdapter;
@@ -157,8 +156,8 @@ class QuerydslDataFetcherTests {
 
 		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
 
-		DataFetcher<Iterable<Book>> dataFetcher = QuerydslDataFetcher.builder(mockRepository)
-				.scrollable(cursorStrategy, new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+		DataFetcher<Iterable<Book>> dataFetcher =
+				QuerydslDataFetcher.builder(mockRepository).cursorStrategy(cursorStrategy).scrollable();
 
 		GraphQlSetup graphQlSetup = paginationSetup(cursorStrategy).queryFetcher("books", dataFetcher);
 		tester.accept(graphQlSetup);

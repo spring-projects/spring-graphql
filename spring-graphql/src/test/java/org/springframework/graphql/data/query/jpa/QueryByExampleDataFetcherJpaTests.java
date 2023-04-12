@@ -158,8 +158,8 @@ class QueryByExampleDataFetcherJpaTests {
 
 		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
 
-		DataFetcher<Iterable<Book>> dataFetcher = QueryByExampleDataFetcher.builder(repository)
-				.scrollable(cursorStrategy, new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+		DataFetcher<Iterable<Book>> dataFetcher =
+				QueryByExampleDataFetcher.builder(repository).cursorStrategy(cursorStrategy).scrollable();
 
 		GraphQlSetup graphQlSetup = paginationSetup(cursorStrategy).queryFetcher("books", dataFetcher);
 		tester.accept(graphQlSetup);
