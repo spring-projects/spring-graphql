@@ -219,18 +219,15 @@ public abstract class QuerydslDataFetcher<T> {
 
 	/**
 	 * Variation of {@link #autoRegistrationConfigurer(List, List, CursorStrategy, ScrollSubrange)}
-	 * that defaults to the following:
-	 * <ul>
-	 * <li>{@link ScrollPositionCursorStrategy} with Base64 encoding.
-	 * <li>{@link OffsetScrollPosition Offset}-based scrolling with 20 items at a time
-	 * </ul>
+	 * without a {@code CursorStrategy} and default {@link ScrollSubrange}.
+	 * For default values, see the respective methods on {@link Builder} and
+	 * {@link ReactiveBuilder}.
 	 */
 	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
 			List<QuerydslPredicateExecutor<?>> executors,
 			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
 
-		return autoRegistrationConfigurer(executors, reactiveExecutors,
-				RepositoryUtils.defaultCursorStrategy(), RepositoryUtils.defaultScrollSubrange());
+		return autoRegistrationConfigurer(executors, reactiveExecutors, null, null);
 	}
 
 	/**
@@ -247,6 +244,10 @@ public abstract class QuerydslDataFetcher<T> {
 	 *
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
+	 * @param cursorStrategy for decoding cursors in pagination requests;
+	 * if {@code null}, then {@link Builder#cursorStrategy} defaults apply.
+	 * @param defaultScrollSubrange default parameters for scrolling;
+	 * if {@code null}, then {@link Builder#defaultScrollSubrange} defaults apply.
 	 * @return the created configurer
 	 * @since 1.2
 	 */
@@ -254,8 +255,8 @@ public abstract class QuerydslDataFetcher<T> {
 	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
 			List<QuerydslPredicateExecutor<?>> executors,
 			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors,
-			CursorStrategy<ScrollPosition> cursorStrategy,
-			ScrollSubrange defaultScrollSubrange) {
+			@Nullable CursorStrategy<ScrollPosition> cursorStrategy,
+			@Nullable ScrollSubrange defaultScrollSubrange) {
 
 		Map<String, DataFetcherFactory> factories = new HashMap<>();
 
