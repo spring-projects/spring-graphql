@@ -1514,6 +1514,10 @@ accordingly. For example:
 	}
 ----
 
+TIP: If the target object doesn't have setters, and you can't change that, you can use a
+property on `AnnotatedControllerConfigurer` to allow falling back on binding via direct
+field access.
+
 By default, if the method parameter name is available (requires the `-parameters` compiler
 flag with Java 8+ or debugging info from the compiler), it is used to look up the argument.
 If needed, you can customize the name through the annotation, e.g. `@Argument("bookInput")`.

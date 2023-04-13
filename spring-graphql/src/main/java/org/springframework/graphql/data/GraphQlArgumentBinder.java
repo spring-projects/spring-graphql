@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.graphql.data;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -39,8 +40,10 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.data.util.DirectFieldAccessFallbackBeanWrapper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.validation.AbstractBindingResult;
 import org.springframework.validation.BindException;
 import org.springframework.validation.DataBinder;
@@ -78,21 +81,33 @@ public class GraphQlArgumentBinder {
 	@Nullable
 	private final SimpleTypeConverter typeConverter;
 
+	private final boolean fallBackOnDirectFieldAccess;
+
 
 	public GraphQlArgumentBinder() {
 		this(null);
 	}
 
 	public GraphQlArgumentBinder(@Nullable ConversionService conversionService) {
-		if (conversionService != null) {
-			this.typeConverter = new SimpleTypeConverter();
-			this.typeConverter.setConversionService(conversionService);
-		}
-		else {
-			//  Not thread-safe when using PropertyEditors
-			this.typeConverter = null;
-		}
+		this(conversionService, false);
 	}
+
+	public GraphQlArgumentBinder(@Nullable ConversionService conversionService, boolean fallBackOnDirectFieldAccess) {
+		this.typeConverter = initTypeConverter(conversionService);
+		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
+	}
+
+	@Nullable
+	private static SimpleTypeConverter initTypeConverter(@Nullable ConversionService conversionService) {
+		if (conversionService == null) {
+			//  Not thread-safe when using PropertyEditors
+			return null;
+		}
+		SimpleTypeConverter typeConverter = new SimpleTypeConverter();
+		typeConverter.setConversionService(conversionService);
+		return typeConverter;
+	}
+
 
 
 	/**
@@ -297,11 +312,18 @@ public class GraphQlArgumentBinder {
 			ArgumentsBindingResult bindingResult) {
 
 		Object target = BeanUtils.instantiateClass(constructor);
-		BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(target);
+		BeanWrapper beanWrapper = (this.fallBackOnDirectFieldAccess ?
+				new DirectFieldAccessFallbackBeanWrapper(target) : PropertyAccessorFactory.forBeanPropertyAccess(target));
 
 		for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
 			String key = entry.getKey();
 			TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(key);
+			if (typeDescriptor == null && this.fallBackOnDirectFieldAccess) {
+				Field field = ReflectionUtils.findField(beanWrapper.getWrappedClass(), key);
+				if (field != null) {
+					typeDescriptor = new TypeDescriptor(field);
+				}
+			}
 			if (typeDescriptor == null) {
 				// Ignore unknown property
 				continue;

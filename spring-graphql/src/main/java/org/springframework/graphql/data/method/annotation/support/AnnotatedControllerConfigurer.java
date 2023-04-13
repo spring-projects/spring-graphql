@@ -139,6 +139,8 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
+	private boolean fallBackOnDirectFieldAccess;
+
 	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
 
 	@Nullable
@@ -165,6 +167,17 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
+	}
+
+	/**
+	 * Whether binding GraphQL arguments onto
+	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
+	 * should falls back to direct field access in case the target object does
+	 * not use accessor methods.
+	 * @since 1.2
+	 */
+	public void setFallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
+		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
 	}
 
 	/**
@@ -257,7 +270,10 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			// Must be ahead of ArgumentMethodArgumentResolver
 			resolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
 		}
-		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(this.conversionService);
+
+		GraphQlArgumentBinder argumentBinder =
+				new GraphQlArgumentBinder(this.conversionService, this.fallBackOnDirectFieldAccess);
+
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());

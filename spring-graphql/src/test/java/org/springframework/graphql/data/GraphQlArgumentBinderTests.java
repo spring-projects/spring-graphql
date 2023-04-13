@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.graphql.data;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -116,6 +117,19 @@ class GraphQlArgumentBinderTests {
 
 		assertThat(result).isNotNull().isInstanceOf(ItemListHolder.class);
 		assertThat(((ItemListHolder) result).getItems()).hasSize(0);
+	}
+
+	@Test // gh-599
+	void dataBindingWithDirectFieldAccess() throws Exception {
+
+		Object result = bind(
+				new GraphQlArgumentBinder(new DefaultFormattingConversionService(), true /* fallBackOnFieldAccess */),
+				"{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}",
+				ResolvableType.forClass(DirectFieldAccessItemListHolder.class));
+
+		assertThat(result).isNotNull().isInstanceOf(DirectFieldAccessItemListHolder.class);
+		DirectFieldAccessItemListHolder holder = (DirectFieldAccessItemListHolder) result;
+		assertThat(holder.items).hasSize(2).extracting("name").containsExactly("first", "second");
 	}
 
 	@Test // gh-349
@@ -389,14 +403,19 @@ class GraphQlArgumentBinderTests {
 		assertThat(input.enums()).hasSize(2).containsExactly(FancyEnum.ONE, FancyEnum.TWO);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Nullable
 	private Object bind(String json, ResolvableType targetType) throws Exception {
+		return bind(this.binder, json, targetType);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Nullable
+	private Object bind(GraphQlArgumentBinder binder, String json, ResolvableType targetType) throws Exception {
 		DataFetchingEnvironment environment =
 				DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
 						.arguments(this.mapper.readValue("{\"key\":" + json + "}", Map.class))
 						.build();
-		return this.binder.bind(environment, "key", targetType);
+		return binder.bind(environment, "key", targetType);
 	}
 
 
@@ -603,6 +622,17 @@ class GraphQlArgumentBinderTests {
 
 		public Object getValue() {
 			return value;
+		}
+	}
+
+
+	static class DirectFieldAccessItemListHolder {
+
+		private List<Item> items = new ArrayList<>();
+
+		public DirectFieldAccessItemListHolder addItem(Item item) {
+			this.items.add(item);
+			return this;
 		}
 	}
 
