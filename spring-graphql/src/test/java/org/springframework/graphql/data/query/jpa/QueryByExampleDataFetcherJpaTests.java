@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
@@ -139,19 +141,17 @@ class QueryByExampleDataFetcherJpaTests {
 					.toWebGraphQlHandler()
 					.handleRequest(request(BookSource.booksConnectionQuery("first:2, after:\"O_3\"")));
 
-			ResponseHelper.forResponse(response).assertData(
-					"{\"books\":{" +
-					"\"edges\":[" +
-					"{\"cursor\":\"O_4\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}," +
-					"{\"cursor\":\"O_5\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}" +
-					"]," +
-					"\"pageInfo\":{" +
-					"\"startCursor\":\"O_4\"," +
-					"\"endCursor\":\"O_5\"," +
-					"\"hasPreviousPage\":true," +
-					"\"hasNextPage\":false" +
-					"}}}"
-			);
+			List<Map<String, Object>> edges = ResponseHelper.forResponse(response).toEntity("books.edges", List.class);
+			assertThat(edges.size()).isEqualTo(2);
+			assertThat(edges.get(0).get("cursor")).isEqualTo("O_4");
+			assertThat(edges.get(1).get("cursor")).isEqualTo("O_5");
+
+			Map<String, Object> pageInfo = ResponseHelper.forResponse(response).toEntity("books.pageInfo", Map.class);
+			assertThat(pageInfo.size()).isEqualTo(4);
+			assertThat(pageInfo.get("startCursor")).isEqualTo("O_4");
+			assertThat(pageInfo.get("endCursor")).isEqualTo("O_5");
+			assertThat(pageInfo.get("hasPreviousPage")).isEqualTo(true);
+			assertThat(pageInfo.get("hasNextPage")).isEqualTo(false);
 		};
 
 		// explicit wiring

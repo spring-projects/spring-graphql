@@ -19,6 +19,7 @@ package org.springframework.graphql.data.query.mongo;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -36,13 +37,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
+import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
+import org.springframework.graphql.data.query.ScrollSubrange;
+import org.springframework.graphql.data.query.WindowConnectionAdapter;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
@@ -138,21 +145,71 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 		tester.accept(graphQlSetup(repository));
 	}
 
+	@Test
+	void shouldFetchWindow() {
+
+		repository.saveAll(List.of(
+				new Book("1", "Nineteen Eighty-Four", new Author("0", "George", "Orwell")),
+				new Book("2", "The Great Gatsby", new Author("0", "F. Scott", "Fitzgerald")),
+				new Book("3", "Catch-22", new Author("0", "Joseph", "Heller")),
+				new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams")),
+				new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg"))));
+
+		Consumer<GraphQlSetup> tester = graphQlSetup -> {
+
+			Mono<WebGraphQlResponse> response = graphQlSetup
+					.toWebGraphQlHandler()
+					.handleRequest(request(BookSource.booksConnectionQuery("first:2, after:\"O_3\"")));
+
+			List<Map<String, Object>> edges = ResponseHelper.forResponse(response).toEntity("books.edges", List.class);
+			assertThat(edges.size()).isEqualTo(2);
+			assertThat(edges.get(0).get("cursor")).isEqualTo("O_4");
+			assertThat(edges.get(1).get("cursor")).isEqualTo("O_5");
+
+			Map<String, Object> pageInfo = ResponseHelper.forResponse(response).toEntity("books.pageInfo", Map.class);
+			assertThat(pageInfo.size()).isEqualTo(4);
+			assertThat(pageInfo.get("startCursor")).isEqualTo("O_4");
+			assertThat(pageInfo.get("endCursor")).isEqualTo("O_5");
+			assertThat(pageInfo.get("hasPreviousPage")).isEqualTo(true);
+			assertThat(pageInfo.get("hasNextPage")).isEqualTo(false);
+		};
+
+		// explicit wiring
+
+		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
+
+		DataFetcher<Mono<Iterable<Book>>> dataFetcher =
+				QueryByExampleDataFetcher.builder(repository).cursorStrategy(cursorStrategy).scrollable();
+
+		GraphQlSetup graphQlSetup = paginationSetup(cursorStrategy).queryFetcher("books", dataFetcher);
+		tester.accept(graphQlSetup);
+
+		// auto registration
+		graphQlSetup = paginationSetup(cursorStrategy).runtimeWiring(createRuntimeWiringConfigurer(repository));
+		tester.accept(graphQlSetup);
+	}
+
 	private static GraphQlSetup graphQlSetup(String fieldName, DataFetcher<?> fetcher) {
-		return initGraphQlSetup(null).queryFetcher(fieldName, fetcher);
+		return GraphQlSetup.schemaResource(BookSource.schema).queryFetcher(fieldName, fetcher);
 	}
 
 	private static GraphQlSetup graphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
-		return initGraphQlSetup(executor);
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.runtimeWiring(createRuntimeWiringConfigurer(executor));
 	}
 
-	private static GraphQlSetup initGraphQlSetup(@Nullable ReactiveQueryByExampleExecutor<?> executor) {
+	private static GraphQlSetup paginationSetup(ScrollPositionCursorStrategy cursorStrategy) {
+		return GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
+	}
 
-		RuntimeWiringConfigurer configurer = QueryByExampleDataFetcher.autoRegistrationConfigurer(
+	private static RuntimeWiringConfigurer createRuntimeWiringConfigurer(ReactiveQueryByExampleExecutor<?> executor) {
+		return QueryByExampleDataFetcher.autoRegistrationConfigurer(
 				Collections.emptyList(),
-				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()));
-
-		return GraphQlSetup.schemaResource(BookSource.schema).runtimeWiring(configurer);
+				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
+				new ScrollPositionCursorStrategy(),
+				new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
 	}
 
 	private WebGraphQlRequest request(String query) {
