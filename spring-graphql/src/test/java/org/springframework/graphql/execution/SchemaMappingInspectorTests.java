@@ -22,15 +22,17 @@ import java.util.List;
 
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
-import graphql.schema.idl.SchemaGenerator;
 import org.assertj.core.api.AbstractAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.Window;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -45,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link SchemaMappingInspector}.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  */
 class SchemaMappingInspectorTests {
 
@@ -81,6 +84,23 @@ class SchemaMappingInspectorTests {
 							allBooks: [Book]
 						}
 						
+						type Book {
+							id: ID
+							name: String
+							missing: Boolean
+					 	}
+					""";
+			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			assertThatReport(report).hasSize(1).missesFields("Book", "missing");
+		}
+
+		@Test
+		void inspectTypeForConnection() {
+			String schema = """
+						type Query {
+							paginatedBooks: BookConnection
+						}
+
 						type Book {
 							id: ID
 							name: String
@@ -413,6 +433,11 @@ class SchemaMappingInspectorTests {
 			return List.of(new Book());
 		}
 
+		@QueryMapping
+		public Window<Book> paginatedBooks() {
+			return Window.from(List.of(new Book()), OffsetScrollPosition::of);
+		}
+
 		@SchemaMapping
 		public String fetcher(Book book) {
 			return "custom fetcher";
@@ -457,12 +482,20 @@ class SchemaMappingInspectorTests {
 	}
 
 	SchemaMappingInspector.Report inspectSchema(String schemaContent, Class<?>... controllers) {
-		GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
-		RuntimeWiring.Builder builder = createRuntimeWiring(controllers);
-		return new SchemaMappingInspector().inspectSchemaMappings(schema, builder.build());
+		RuntimeWiringConfigurer wiringConfigurer = createRuntimeWiring(controllers);
+		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();
+		wiringConfigurer.configure(wiringBuilder);
+
+		GraphQLSchema schema = GraphQlSetup.schemaContent(schemaContent)
+				.runtimeWiring(wiringConfigurer)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
+				.toGraphQlSource()
+				.schema();
+
+		return new SchemaMappingInspector().inspectSchemaMappings(schema, wiringBuilder.build());
 	}
 
-	RuntimeWiring.Builder createRuntimeWiring(Class<?>... handlerTypes) {
+	private RuntimeWiringConfigurer createRuntimeWiring(Class<?>... handlerTypes) {
 		AnnotationConfigApplicationContext appContext = new AnnotationConfigApplicationContext();
 		for (Class<?> handlerType : handlerTypes) {
 			appContext.registerBean(handlerType);
@@ -473,9 +506,7 @@ class SchemaMappingInspectorTests {
 		configurer.setApplicationContext(appContext);
 		configurer.afterPropertiesSet();
 
-		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();
-		configurer.configure(wiringBuilder);
-		return wiringBuilder;
+		return configurer;
 	}
 
 	static SchemaInspectionReportAssert assertThatReport(SchemaMappingInspector.Report actual) {

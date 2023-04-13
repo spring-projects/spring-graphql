@@ -33,6 +33,7 @@ import graphql.schema.GraphQLType;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jetbrains.annotations.NotNull;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
@@ -56,6 +57,7 @@ import org.springframework.util.MultiValueMap;
  * even if a common interface is declared by a {@link SelfDescribingDataFetcher}.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  * @since 1.2.0
  */
 class SchemaMappingInspector {
@@ -120,6 +122,10 @@ class SchemaMappingInspector {
 			if (isTypeAlreadyInspected(objectType)) {
 				return;
 			}
+			if (isConnectionType(objectType)) {
+				objectType = getEdgeNodeType(objectType);
+				declaredType = declaredType.getNested(2);
+			}
 			Map<String, DataFetcher> typeDataFetcher = this.runtimeWiring.getDataFetcherForType(objectType.getName());
 			Class<?> declaredClass = unwrapPublisherTypes(declaredType);
 			for (GraphQLFieldDefinition field : objectType.getFieldDefinitions()) {
@@ -140,6 +146,22 @@ class SchemaMappingInspector {
 					}
 				}
 			}
+		}
+
+		private boolean isConnectionType(GraphQLObjectType objectType) {
+			return (objectType.getName().endsWith("Connection") &&
+					objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
+		}
+
+		@NotNull
+		private GraphQLObjectType getEdgeNodeType(GraphQLObjectType objectType) {
+			GraphQLList edgesListType = (GraphQLList) unwrapNonNull(objectType.getField("edges").getType());
+			GraphQLObjectType edgeType = (GraphQLObjectType) edgesListType.getWrappedType();
+			return (GraphQLObjectType) unwrapNonNull(edgeType.getField("node").getType());
+		}
+
+		private <T extends GraphQLType> GraphQLType unwrapNonNull(GraphQLType outputType) {
+			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
 		}
 
 		@Nullable
