@@ -148,12 +148,13 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 	@Test
 	void shouldFetchWindow() {
 
-		repository.saveAll(List.of(
-				new Book("1", "Nineteen Eighty-Four", new Author("0", "George", "Orwell")),
-				new Book("2", "The Great Gatsby", new Author("0", "F. Scott", "Fitzgerald")),
-				new Book("3", "Catch-22", new Author("0", "Joseph", "Heller")),
-				new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams")),
-				new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg"))));
+		repository.saveAll(Flux.just(
+						new Book("1", "Nineteen Eighty-Four", new Author("0", "George", "Orwell")),
+						new Book("2", "The Great Gatsby", new Author("0", "F. Scott", "Fitzgerald")),
+						new Book("3", "Catch-22", new Author("0", "Joseph", "Heller")),
+						new Book("42", "Hitchhiker's Guide to the Galaxy", new Author("0", "Douglas", "Adams")),
+						new Book("53", "Breaking Bad", new Author("0", "", "Heisenberg"))))
+				.blockLast();
 
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
 
