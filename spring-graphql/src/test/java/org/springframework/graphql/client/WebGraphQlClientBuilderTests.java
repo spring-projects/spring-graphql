@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import graphql.ExecutionResultImpl;
@@ -47,6 +48,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.HandlerStrategies;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -227,6 +231,20 @@ public class WebGraphQlClientBuilderTests {
 		assertThat(testDecoder.getLastValue()).isEqualTo(character);
 	}
 
+	@Test
+	void attributes() {
+
+		HttpBuilderSetup builderSetup = new HttpBuilderSetup();
+
+		builderSetup.initBuilder().url("/graphql-one").headers(headers -> headers.add("h", "one")).build()
+				.document(DOCUMENT)
+				.attribute("id", 123)
+				.execute()
+				.block(TIMEOUT);
+
+		assertThat(builderSetup.getClientAttributes()).containsEntry("id", 123);
+	}
+
 
 	private interface ClientBuilderSetup {
 
@@ -275,13 +293,26 @@ public class WebGraphQlClientBuilderTests {
 
 	private static class HttpBuilderSetup extends AbstractBuilderSetup {
 
+		private final Map<String, Object> clientAttributes = new ConcurrentHashMap<>();
+
+		public Map<String, Object> getClientAttributes() {
+			return this.clientAttributes;
+		}
+
 		@Override
 		public HttpGraphQlClient.Builder<?> initBuilder() {
 			GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler());
 			RouterFunction<ServerResponse> routerFunction = route().POST("/**", handler::handleRequest).build();
 			HttpHandler httpHandler = RouterFunctions.toHttpHandler(routerFunction, HandlerStrategies.withDefaults());
 			HttpHandlerConnector connector = new HttpHandlerConnector(httpHandler);
-			return HttpGraphQlClient.builder(WebClient.builder().clientConnector(connector));
+			return HttpGraphQlClient.builder(WebClient.builder()
+					.clientConnector(connector).filter(this::updateAttributes));
+		}
+
+		private Mono<ClientResponse> updateAttributes(ClientRequest request, ExchangeFunction next) {
+			this.clientAttributes.clear();
+			this.clientAttributes.putAll(request.attributes());
+			return next.exchange(request);
 		}
 
 	}
