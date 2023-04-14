@@ -64,123 +64,138 @@ class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
 
-	Report inspectSchemaMappings(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
+
+	private final GraphQLSchema schema;
+
+	private final RuntimeWiring runtimeWiring;
+
+	private final Set<String> seenTypes = new HashSet<>();
+
+
+	private SchemaMappingInspector(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
+		this.schema = schema;
+		this.runtimeWiring = runtimeWiring;
+	}
+
+
+	public Report inspectMappings() {
 		ReportBuilder report = ReportBuilder.create();
-		SchemaMappingInspection inspection = new SchemaMappingInspection(runtimeWiring);
-		inspection.inspectOperation(schema.getQueryType(), report);
-		inspection.inspectOperation(schema.getMutationType(), report);
-		inspection.inspectOperation(schema.getSubscriptionType(), report);
+		inspectOperation(schema.getQueryType(), report);
+		inspectOperation(schema.getMutationType(), report);
+		inspectOperation(schema.getSubscriptionType(), report);
 		return report.build();
 	}
 
-	private static class SchemaMappingInspection {
 
-		private final RuntimeWiring runtimeWiring;
-
-		private final Set<String> seenTypes = new HashSet<>();
-
-		SchemaMappingInspection(RuntimeWiring runtimeWiring) {
-			this.runtimeWiring = runtimeWiring;
-		}
-
-		@SuppressWarnings("rawtypes")
-		void inspectOperation(@Nullable GraphQLObjectType operationType, ReportBuilder report) {
-			if (operationType != null) {
-				Map<String, DataFetcher> operationDataFetchers = this.runtimeWiring.getDataFetcherForType(operationType.getName());
-				for (GraphQLFieldDefinition fieldDefinition : operationType.getFieldDefinitions()) {
-					if (operationDataFetchers.containsKey(fieldDefinition.getName())) {
-						DataFetcher fieldDataFetcher = operationDataFetchers.get(fieldDefinition.getName());
-						if (fieldDataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
-							inspectType(fieldDefinition.getType(), selfDescribingDataFetcher.getReturnType(), report);
-						}
-					}
-					else {
-						report.missingOperation(operationType, fieldDefinition);
-					}
-				}
-			}
-		}
-
-		private void inspectType(GraphQLType type, ResolvableType declaredType, ReportBuilder report) {
-			if (type instanceof GraphQLObjectType objectType) {
-				inspectObjectType(objectType, declaredType, report);
-			}
-			else if (type instanceof GraphQLList listType) {
-				inspectType(listType.getWrappedType(), declaredType.getNested(2), report);
-			}
-			else if (type instanceof GraphQLNonNull nonNullType) {
-				inspectType(nonNullType.getWrappedType(), declaredType, report);
-			}
-			else if (type instanceof GraphQLNamedType namedType && logger.isTraceEnabled()){
-				logger.trace("Cannot inspect type '" + namedType.getName() + "', inspector does not support "
-						+ type.getClass().getSimpleName());
-			}
-		}
-
-		@SuppressWarnings("rawtypes")
-		private void inspectObjectType(GraphQLObjectType objectType, ResolvableType declaredType, ReportBuilder report) {
-			if (isTypeAlreadyInspected(objectType)) {
-				return;
-			}
-			if (isConnectionType(objectType)) {
-				objectType = getEdgeNodeType(objectType);
-				declaredType = declaredType.getNested(2);
-			}
-			Map<String, DataFetcher> typeDataFetcher = this.runtimeWiring.getDataFetcherForType(objectType.getName());
-			Class<?> declaredClass = unwrapPublisherTypes(declaredType);
-			for (GraphQLFieldDefinition field : objectType.getFieldDefinitions()) {
-				if (typeDataFetcher.containsKey(field.getName())) {
-					DataFetcher fieldDataFetcher = typeDataFetcher.get(field.getName());
-					if (fieldDataFetcher instanceof SelfDescribingDataFetcher<?> typedFieldDataFetcher) {
-						inspectType(field.getType(), typedFieldDataFetcher.getReturnType(), report);
+	@SuppressWarnings("rawtypes")
+	private void inspectOperation(@Nullable GraphQLObjectType operationType, ReportBuilder report) {
+		if (operationType != null) {
+			Map<String, DataFetcher> operationDataFetchers = this.runtimeWiring.getDataFetcherForType(operationType.getName());
+			for (GraphQLFieldDefinition fieldDefinition : operationType.getFieldDefinitions()) {
+				if (operationDataFetchers.containsKey(fieldDefinition.getName())) {
+					DataFetcher fieldDataFetcher = operationDataFetchers.get(fieldDefinition.getName());
+					if (fieldDataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
+						inspectType(fieldDefinition.getType(), selfDescribingDataFetcher.getReturnType(), report);
 					}
 				}
 				else {
-					try {
-						if (declaredClass == null || BeanUtils.getPropertyDescriptor(declaredClass, field.getName()) == null) {
-							report.missingField(objectType, field);
-						}
-					}
-					catch (BeansException exc) {
-						logger.debug("Failed while inspecting " + declaredType + " for property " + field.getName() + "", exc);
-					}
+					report.missingOperation(operationType, fieldDefinition);
 				}
 			}
 		}
-
-		private boolean isConnectionType(GraphQLObjectType objectType) {
-			return (objectType.getName().endsWith("Connection") &&
-					objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
-		}
-
-		@NotNull
-		private GraphQLObjectType getEdgeNodeType(GraphQLObjectType objectType) {
-			GraphQLList edgesListType = (GraphQLList) unwrapNonNull(objectType.getField("edges").getType());
-			GraphQLObjectType edgeType = (GraphQLObjectType) edgesListType.getWrappedType();
-			return (GraphQLObjectType) unwrapNonNull(edgeType.getField("node").getType());
-		}
-
-		private <T extends GraphQLType> GraphQLType unwrapNonNull(GraphQLType outputType) {
-			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
-		}
-
-		@Nullable
-		private Class<?> unwrapPublisherTypes(ResolvableType declaredType) {
-			Class<?> rawClass = declaredType.getRawClass();
-			if (rawClass != null) {
-				ReactiveAdapter adapter = ReactiveAdapterRegistry.getSharedInstance().getAdapter(declaredType.getRawClass());
-				if (adapter != null) {
-					return declaredType.getNested(2).getRawClass();
-				}
-			}
-			return rawClass;
-		}
-
-		private boolean isTypeAlreadyInspected(GraphQLObjectType objectType) {
-			return !this.seenTypes.add(objectType.getName());
-		}
-
 	}
+
+	private void inspectType(GraphQLType type, ResolvableType declaredType, ReportBuilder report) {
+		if (type instanceof GraphQLObjectType objectType) {
+			inspectObjectType(objectType, declaredType, report);
+		}
+		else if (type instanceof GraphQLList listType) {
+			inspectType(listType.getWrappedType(), declaredType.getNested(2), report);
+		}
+		else if (type instanceof GraphQLNonNull nonNullType) {
+			inspectType(nonNullType.getWrappedType(), declaredType, report);
+		}
+		else if (type instanceof GraphQLNamedType namedType && logger.isTraceEnabled()){
+			logger.trace("Cannot inspect type '" + namedType.getName() + "', inspector does not support "
+					+ type.getClass().getSimpleName());
+		}
+	}
+
+	@SuppressWarnings("rawtypes")
+	private void inspectObjectType(GraphQLObjectType objectType, ResolvableType declaredType, ReportBuilder report) {
+		if (isTypeAlreadyInspected(objectType)) {
+			return;
+		}
+		if (isConnectionType(objectType)) {
+			objectType = getEdgeNodeType(objectType);
+			declaredType = declaredType.getNested(2);
+		}
+		Map<String, DataFetcher> typeDataFetcher = this.runtimeWiring.getDataFetcherForType(objectType.getName());
+		Class<?> declaredClass = unwrapPublisherTypes(declaredType);
+		for (GraphQLFieldDefinition field : objectType.getFieldDefinitions()) {
+			if (typeDataFetcher.containsKey(field.getName())) {
+				DataFetcher fieldDataFetcher = typeDataFetcher.get(field.getName());
+				if (fieldDataFetcher instanceof SelfDescribingDataFetcher<?> typedFieldDataFetcher) {
+					inspectType(field.getType(), typedFieldDataFetcher.getReturnType(), report);
+				}
+			}
+			else {
+				try {
+					if (declaredClass == null || BeanUtils.getPropertyDescriptor(declaredClass, field.getName()) == null) {
+						report.missingField(objectType, field);
+					}
+				}
+				catch (BeansException exc) {
+					logger.debug("Failed while inspecting " + declaredType + " for property " + field.getName() + "", exc);
+				}
+			}
+		}
+	}
+
+	private boolean isConnectionType(GraphQLObjectType objectType) {
+		return (objectType.getName().endsWith("Connection") &&
+				objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
+	}
+
+	@NotNull
+	private GraphQLObjectType getEdgeNodeType(GraphQLObjectType objectType) {
+		GraphQLList edgesListType = (GraphQLList) unwrapNonNull(objectType.getField("edges").getType());
+		GraphQLObjectType edgeType = (GraphQLObjectType) edgesListType.getWrappedType();
+		return (GraphQLObjectType) unwrapNonNull(edgeType.getField("node").getType());
+	}
+
+	private <T extends GraphQLType> GraphQLType unwrapNonNull(GraphQLType outputType) {
+		return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
+	}
+
+	@Nullable
+	private Class<?> unwrapPublisherTypes(ResolvableType declaredType) {
+		Class<?> rawClass = declaredType.getRawClass();
+		if (rawClass != null) {
+			ReactiveAdapter adapter = ReactiveAdapterRegistry.getSharedInstance().getAdapter(declaredType.getRawClass());
+			if (adapter != null) {
+				return declaredType.getNested(2).getRawClass();
+			}
+		}
+		return rawClass;
+	}
+
+	private boolean isTypeAlreadyInspected(GraphQLObjectType objectType) {
+		return !this.seenTypes.add(objectType.getName());
+	}
+
+
+	/**
+	 * Inspect the schema mappings and produce a report.
+	 * @param schema the schema to inspect
+	 * @param runtimeWiring for {@code DataFetcher} mappings
+	 * @return the resulting report
+	 */
+	public static Report inspect(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
+		return new SchemaMappingInspector(schema, runtimeWiring).inspectMappings();
+	}
+
+
 
 	record Report(MultiValueMap<String, String> missingOperations, MultiValueMap<String, String> missingFields) {
 
@@ -190,7 +205,7 @@ class SchemaMappingInspector {
 				builder.append("no missing mapping.");
 			}
 			else {
-			   builder.append(getDetailedReport());
+				builder.append(getDetailedReport());
 			}
 			return builder.toString();
 		}
@@ -209,6 +224,7 @@ class SchemaMappingInspector {
 		}
 
 	}
+
 
 	private static class ReportBuilder {
 

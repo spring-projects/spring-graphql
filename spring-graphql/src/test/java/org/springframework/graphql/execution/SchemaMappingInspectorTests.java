@@ -492,7 +492,7 @@ class SchemaMappingInspectorTests {
 				.toGraphQlSource()
 				.schema();
 
-		return new SchemaMappingInspector().inspectSchemaMappings(schema, wiringBuilder.build());
+		return SchemaMappingInspector.inspect(schema, wiringBuilder.build());
 	}
 
 	private RuntimeWiringConfigurer createRuntimeWiring(Class<?>... handlerTypes) {
