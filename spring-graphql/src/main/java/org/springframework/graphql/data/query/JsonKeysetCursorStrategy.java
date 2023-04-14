@@ -41,7 +41,7 @@ import org.springframework.util.MimeTypeUtils;
  * to assist with converting keys to and from a String.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String, Object>> {
 

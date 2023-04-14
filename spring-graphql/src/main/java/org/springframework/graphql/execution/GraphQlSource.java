@@ -127,7 +127,7 @@ public interface GraphQlSource {
 		 * @param typeVisitors the type visitors to register
 		 * @return the current builder
 		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
-		 * @since 1.1
+		 * @since 1.1.0
 		 */
 		B typeVisitorsToTransformSchema(List<GraphQLTypeVisitor> typeVisitors);
 
@@ -178,7 +178,7 @@ public interface GraphQlSource {
 		 * {@link GraphQLSchema} is created and validated.
 		 * @param configurer the configurer to apply
 		 * @return the current builder
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		SchemaResourceBuilder configureTypeDefinitions(TypeDefinitionConfigurer configurer);
 

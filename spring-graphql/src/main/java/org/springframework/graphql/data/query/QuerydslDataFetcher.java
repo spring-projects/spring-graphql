@@ -249,7 +249,7 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param defaultScrollSubrange default parameters for scrolling;
 	 * if {@code null}, then {@link Builder#defaultScrollSubrange} defaults apply.
 	 * @return the created configurer
-	 * @since 1.2
+	 * @since 1.2.0
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
@@ -457,7 +457,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * @param cursorStrategy the strategy to use
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		public Builder<T, R> cursorStrategy(@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
 			return new Builder<>(this.executor, this.domainType, this.resultType,
@@ -471,7 +471,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		public Builder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new Builder<>(this.executor, this.domainType, this.resultType,
@@ -528,7 +528,7 @@ public abstract class QuerydslDataFetcher<T> {
 		/**
 		 * Build a {@link DataFetcher} that scrolls and returns
 		 * {@link org.springframework.data.domain.Window}.
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		public DataFetcher<Iterable<R>> scrollable() {
 			return new ScrollableEntityFetcher<>(
@@ -629,7 +629,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * @param cursorStrategy the strategy to use
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		public ReactiveBuilder<T, R> cursorStrategy(@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
@@ -643,7 +643,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		public ReactiveBuilder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
@@ -700,7 +700,7 @@ public abstract class QuerydslDataFetcher<T> {
 		/**
 		 * Build a {@link DataFetcher} that scrolls and returns
 		 * {@link org.springframework.data.domain.Window}.
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		public DataFetcher<Mono<Iterable<R>>> scrollable() {
 			return new ReactiveScrollableEntityFetcher<>(

@@ -32,7 +32,7 @@ import org.springframework.util.ObjectUtils;
  * and {@link #getDirection(DataFetchingEnvironment) direction}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public abstract class AbstractSortStrategy implements SortStrategy {
 

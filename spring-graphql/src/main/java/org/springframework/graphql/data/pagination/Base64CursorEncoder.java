@@ -28,7 +28,7 @@ import java.util.Base64;
  * <p>To create an instance, use {@link CursorEncoder#base64()}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 final class Base64CursorEncoder implements CursorEncoder {
 

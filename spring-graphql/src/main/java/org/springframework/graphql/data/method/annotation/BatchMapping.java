@@ -99,7 +99,7 @@ public @interface BatchMapping {
 	 * Set the maximum number of keys to include a single batch, before
 	 * splitting into multiple batches of keys to load.
 	 * <p>By default this is -1 in which case there is no limit.
-	 * @since 1.1
+	 * @since 1.1.0
 	 */
 	int maxBatchSize() default -1;
 

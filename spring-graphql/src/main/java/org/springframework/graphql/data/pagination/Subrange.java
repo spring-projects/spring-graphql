@@ -27,7 +27,7 @@ import org.springframework.lang.Nullable;
  * relative position, number of elements, and direction.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class Subrange<P> {

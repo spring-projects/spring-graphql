@@ -40,7 +40,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
  * GraphQlSource.Builder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigurer {
 

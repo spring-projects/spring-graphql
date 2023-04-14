@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  * Unit tests for {@link AnnotatedControllerExceptionResolver}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class AnnotatedControllerExceptionResolverTests {
 

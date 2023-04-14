@@ -31,7 +31,7 @@ import org.springframework.util.Assert;
  * from "first", "last", "before", and "after" GraphQL arguments.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentResolver {
 

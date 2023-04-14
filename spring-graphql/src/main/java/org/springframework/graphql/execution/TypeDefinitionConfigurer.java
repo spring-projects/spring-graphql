@@ -24,7 +24,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
  * before the registry is used to create {@link GraphQLSchema}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public interface TypeDefinitionConfigurer {
 

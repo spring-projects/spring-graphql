@@ -25,7 +25,7 @@ package org.springframework.graphql.data.pagination;
  * decode cursor Strings to make them opaque for clients.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public interface CursorStrategy<P> {
 

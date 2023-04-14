@@ -29,7 +29,7 @@ import org.springframework.lang.Nullable;
  * and {@link ScrollPosition} as cursor.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class ScrollSubrangeMethodArgumentResolver extends SubrangeMethodArgumentResolver<ScrollPosition> {
 

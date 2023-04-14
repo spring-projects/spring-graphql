@@ -32,7 +32,7 @@ import org.springframework.util.Assert;
  * Resolver for method arguments of type {@link Sort}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class SortMethodArgumentResolver implements HandlerMethodArgumentResolver {
 

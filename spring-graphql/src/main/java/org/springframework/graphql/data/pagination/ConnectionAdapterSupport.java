@@ -23,7 +23,7 @@ import org.springframework.util.Assert;
  * {@link org.springframework.graphql.data.pagination.ConnectionAdapter}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class ConnectionAdapterSupport<P> {
 

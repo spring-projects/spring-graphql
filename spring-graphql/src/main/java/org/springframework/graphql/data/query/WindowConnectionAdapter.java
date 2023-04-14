@@ -28,7 +28,7 @@ import org.springframework.graphql.data.pagination.CursorStrategy;
  * Adapter for {@link Window} to {@link graphql.relay.Connection}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public final class WindowConnectionAdapter
 		extends ConnectionAdapterSupport<ScrollPosition> implements ConnectionAdapter {

@@ -30,7 +30,7 @@ import static org.mockito.Mockito.mock;
  * Unit tests for {@link AnnotatedControllerConfigurer}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class AnnotatedControllerConfigurerTests {
 

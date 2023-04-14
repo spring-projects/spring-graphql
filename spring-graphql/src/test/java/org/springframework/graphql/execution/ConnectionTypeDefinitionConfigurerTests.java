@@ -40,7 +40,7 @@ import org.springframework.graphql.TestExecutionRequest;
  * Unit tests for {@link ConnectionTypeDefinitionConfigurer}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public class ConnectionTypeDefinitionConfigurerTests {
 

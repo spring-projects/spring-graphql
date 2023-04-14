@@ -41,7 +41,7 @@ import org.springframework.util.ObjectUtils;
  *
  * @author Rossen Stoyanchev
  * @param <T> the type of value contained
- * @since 1.1
+ * @since 1.1.0
  * @see <a href="http://spec.graphql.org/October2021/#sec-Non-Null.Nullable-vs-Optional">Nullable vs Optional</a>
  */
 public final class ArgumentValue<T> {

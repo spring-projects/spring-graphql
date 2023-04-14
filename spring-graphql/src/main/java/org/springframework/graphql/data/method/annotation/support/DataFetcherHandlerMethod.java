@@ -100,7 +100,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	 *
 	 * @return the raw value returned by the invoked method, possibly a
 	 * {@code Mono} in case a method argument requires asynchronous resolution;
-	 * {@code Mono<Throwable} is returned if invocation fails.
+	 * {@code Mono<Throwable>} is returned if invocation fails.
 	 */
 	@Nullable
 	public Object invoke(DataFetchingEnvironment environment) {
@@ -110,7 +110,7 @@ public class DataFetcherHandlerMethod extends InvocableHandlerMethodSupport {
 	/**
 	 * Variant of {@link #invoke(DataFetchingEnvironment)} that also accepts
 	 * "given" arguments, which are matched by type.
-	 * @since 1.2
+	 * @since 1.2.0
 	 */
 	@Nullable
 	public Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {

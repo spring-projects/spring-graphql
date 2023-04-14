@@ -174,7 +174,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
 	 * should falls back to direct field access in case the target object does
 	 * not use accessor methods.
-	 * @since 1.2
+	 * @since 1.2.0
 	 */
 	public void setFallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
 		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
@@ -186,7 +186,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * except for {@link SourceMethodArgumentResolver}, which is always last.
 	 *
 	 * @param resolver the resolver to add.
-	 * @since 1.2
+	 * @since 1.2.0
 	 */
 	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
 		this.customArgumentResolvers.add(resolver);
@@ -210,7 +210,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
 	 * GraphQlSource.Builder}
 	 *
-	 * @since 1.2
+	 * @since 1.2.0
 	 */
 	public DataFetcherExceptionResolver getExceptionResolver() {
 		Assert.notNull(this.exceptionResolver,

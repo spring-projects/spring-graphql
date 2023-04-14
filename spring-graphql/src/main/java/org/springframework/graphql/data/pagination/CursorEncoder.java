@@ -22,7 +22,7 @@ package org.springframework.graphql.data.pagination;
  * {@link CursorStrategy#withEncoder(CursorStrategy, CursorEncoder)}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public interface CursorEncoder {
 

@@ -53,7 +53,7 @@ import org.springframework.util.Assert;
  * {@link org.springframework.graphql.execution.GraphQlSource.Builder#typeVisitors(List)}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 

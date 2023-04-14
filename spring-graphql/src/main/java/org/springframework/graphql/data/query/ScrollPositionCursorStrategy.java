@@ -28,7 +28,7 @@ import org.springframework.util.Assert;
  * Strategy to convert a {@link ScrollPosition} to and from a String cursor.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public final class ScrollPositionCursorStrategy implements CursorStrategy<ScrollPosition> {
 

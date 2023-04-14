@@ -36,7 +36,7 @@ import org.springframework.lang.Nullable;
  * always {@code true}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public final class ScrollSubrange extends Subrange<ScrollPosition> {
 

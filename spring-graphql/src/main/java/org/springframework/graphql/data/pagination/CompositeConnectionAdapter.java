@@ -27,7 +27,7 @@ import org.springframework.util.Assert;
  * the first one that supports a given Object container type, and delegates to it.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 final class CompositeConnectionAdapter implements ConnectionAdapter {
 

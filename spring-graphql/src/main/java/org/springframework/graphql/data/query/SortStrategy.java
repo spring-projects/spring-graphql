@@ -25,7 +25,7 @@ import org.springframework.data.domain.Sort;
  * Strategy to extract {@link Sort} details from GraphQL arguments.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public interface SortStrategy {
 

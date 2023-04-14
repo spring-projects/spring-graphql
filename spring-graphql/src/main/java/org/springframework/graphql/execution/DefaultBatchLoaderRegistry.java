@@ -69,7 +69,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	/**
 	 * Constructor with a default {@link DataLoaderOptions} supplier to use as
 	 * a starting point for all registrations.
-	 * @since 1.1
+	 * @since 1.1.0
 	 */
 	public DefaultBatchLoaderRegistry(Supplier<DataLoaderOptions> defaultOptionsSupplier) {
 		this.defaultOptionsSupplier = defaultOptionsSupplier;

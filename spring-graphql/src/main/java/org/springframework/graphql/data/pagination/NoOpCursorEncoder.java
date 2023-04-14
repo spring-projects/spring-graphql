@@ -22,7 +22,7 @@ package org.springframework.graphql.data.pagination;
  * <p>To create an instance, use {@link CursorEncoder#noOpEncoder()}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 final class NoOpCursorEncoder implements CursorEncoder {
 

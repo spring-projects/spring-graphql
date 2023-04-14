@@ -26,7 +26,7 @@ import org.springframework.util.Assert;
  * {@link CursorStrategy#withEncoder(CursorStrategy, CursorEncoder)}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 public final class EncodingCursorStrategy<T> implements CursorStrategy<T> {
 

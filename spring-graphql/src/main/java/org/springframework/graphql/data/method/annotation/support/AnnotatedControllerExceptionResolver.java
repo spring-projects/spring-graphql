@@ -67,7 +67,7 @@ import org.springframework.web.method.ControllerAdviceBean;
  * non-controller {@link graphql.schema.DataFetcher}s.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 final class AnnotatedControllerExceptionResolver {
 

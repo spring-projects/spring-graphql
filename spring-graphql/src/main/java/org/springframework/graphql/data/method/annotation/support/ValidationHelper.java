@@ -43,7 +43,7 @@ import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
  * requires bean validation.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 class ValidationHelper {
 

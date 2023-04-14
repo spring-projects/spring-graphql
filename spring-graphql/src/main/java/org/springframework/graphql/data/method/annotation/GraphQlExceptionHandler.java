@@ -42,7 +42,7 @@ import java.util.List;
  * in the section {@literal "Annotated Controllers"}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2
+ * @since 1.2.0
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
