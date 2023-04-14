@@ -260,6 +260,9 @@ builder.schemaResources(..)
 
 The <<execution.graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
+For an example with Apollo Federation, see
+https://github.com/apollographql/federation-jvm-spring-example[federation-jvm-spring-example].
+
 
 [[execution.graphqlsource.schema-traversal]]
 ==== Schema Traversal
