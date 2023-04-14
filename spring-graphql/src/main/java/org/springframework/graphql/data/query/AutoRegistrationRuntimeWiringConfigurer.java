@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,16 +112,21 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 
 		@Nullable
 		private String getOutputTypeName(FieldWiringEnvironment environment) {
-			GraphQLType outputType = (environment.getFieldType() instanceof GraphQLList ?
-					((GraphQLList) environment.getFieldType()).getWrappedType() :
-					environment.getFieldType());
+			GraphQLType outputType = removeNonNullWrapper(environment.getFieldType());
 
-			if (outputType instanceof GraphQLNonNull) {
-				outputType = ((GraphQLNonNull) outputType).getWrappedType();
+			if (outputType instanceof GraphQLList) {
+				outputType = removeNonNullWrapper(((GraphQLList) outputType).getWrappedType());
 			}
 
-			return (outputType instanceof GraphQLNamedOutputType ?
-					((GraphQLNamedOutputType) outputType).getName() : null);
+			if (outputType instanceof GraphQLNamedOutputType namedType) {
+				return namedType.getName();
+			}
+
+			return null;
+		}
+
+		private GraphQLType removeNonNullWrapper(GraphQLType outputType) {
+			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
 		}
 
 		private boolean hasDataFetcherFor(FieldDefinition fieldDefinition) {
@@ -152,8 +157,8 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			Function<Boolean, DataFetcher<?>> factory = dataFetcherFactories.get(outputTypeName);
 			Assert.notNull(factory, "Expected DataFetcher factory for typeName '" + outputTypeName + "'");
 
-			boolean single = !(environment.getFieldType() instanceof GraphQLList);
-			return factory.apply(single);
+			GraphQLType type = removeNonNullWrapper(environment.getFieldType());
+			return factory.apply(!(type instanceof GraphQLList));
 		}
 
 	}
