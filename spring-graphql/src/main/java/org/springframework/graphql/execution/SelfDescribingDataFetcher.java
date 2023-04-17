@@ -36,5 +36,5 @@ public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 	 * @return the type of the data returned by the data fetcher.
 	 */
 	ResolvableType getReturnType();
-	
+
 }
