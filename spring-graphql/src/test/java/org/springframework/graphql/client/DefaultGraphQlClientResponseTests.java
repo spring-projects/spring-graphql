@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -151,7 +151,7 @@ public class DefaultGraphQlClientResponseTests {
 	}
 
 	private ClientResponseField getFieldOnErrorResponse(String path, GraphQLError... errors) {
-		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).collect(Collectors.toList());
+		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).toList();
 		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("errors", list));
 		return response.field(path);
 	}

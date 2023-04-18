@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ public class ResourceDocumentSource implements DocumentSource {
 				.switchIfEmpty(Mono.fromRunnable(() -> {
 					throw new IllegalStateException(
 							"Failed to find document, name='" + name + "', under location(s)=" +
-									this.locations.stream().map(Resource::toString).collect(Collectors.toList()));
+									this.locations.stream().map(Resource::toString).toList());
 				}))
 				.subscribeOn(Schedulers.boundedElastic());
 	}
@@ -117,9 +117,9 @@ public class ResourceDocumentSource implements DocumentSource {
 
 	private String resourceToString(Resource resource) {
 		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			FileCopyUtils.copy(resource.getInputStream(), out);
-			return new String(out.toByteArray(), StandardCharsets.UTF_8);
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			FileCopyUtils.copy(resource.getInputStream(), outputStream);
+			return outputStream.toString(StandardCharsets.UTF_8);
 		}
 		catch (IOException ex) {
 			throw new IllegalArgumentException(

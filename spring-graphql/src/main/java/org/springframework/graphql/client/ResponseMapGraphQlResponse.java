@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 	private static List<ResponseError> wrapErrors(Map<String, Object> map) {
 		List<Map<String, Object>> errors = (List<Map<String, Object>>) map.get("errors");
 		errors = (errors != null ? errors : Collections.emptyList());
-		return errors.stream().map(Error::new).collect(Collectors.toList());
+		return errors.stream().map(MapResponseError::new).collect(Collectors.toList());
 	}
 
 
@@ -112,7 +112,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 	/**
 	 * {@link GraphQLError} that wraps a deserialized the GraphQL response map.
 	 */
-	private static final class Error implements ResponseError {
+	private static final class MapResponseError implements ResponseError {
 
 		private final Map<String, Object> errorMap;
 
@@ -120,7 +120,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
 		private final String path;
 
-		Error(Map<String, Object> errorMap) {
+		MapResponseError(Map<String, Object> errorMap) {
 			Assert.notNull(errorMap, "'errorMap' is required");
 			this.errorMap = errorMap;
 			this.locations = initLocations(errorMap);

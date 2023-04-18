@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	@Override
 	public List<ResponseError> getErrors() {
-		return this.result.getErrors().stream().map(Error::new).collect(Collectors.toList());
+		return this.result.getErrors().stream().map(GraphQLErrorResponseError::new).collect(Collectors.toList());
 	}
 
 	@Override
@@ -111,13 +111,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 	/**
 	 * {@link GraphQLError} that wraps a {@link GraphQLError}.
 	 */
-	private static class Error implements ResponseError {
-
-		private final GraphQLError delegate;
-
-		Error(GraphQLError delegate) {
-			this.delegate = delegate;
-		}
+	private record GraphQLErrorResponseError(GraphQLError delegate) implements ResponseError {
 
 		@Override
 		public String getMessage() {
