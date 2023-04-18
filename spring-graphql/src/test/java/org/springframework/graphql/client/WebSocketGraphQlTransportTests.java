@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -360,18 +360,14 @@ public class WebSocketGraphQlTransportTests {
 			return session.send(session.receive()
 					.flatMap(webSocketMessage -> {
 						GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
-						switch (message.resolvedType()) {
-							case CONNECTION_INIT:
-								return Flux.just(
-										GraphQlWebSocketMessage.connectionAck(null),
-										GraphQlWebSocketMessage.ping(null));
-							case SUBSCRIBE:
-								return Flux.just(GraphQlWebSocketMessage.next("1", this.response.toMap()));
-							case PONG:
-								return Flux.empty();
-							default:
-								return Flux.error(new IllegalStateException("Unexpected message: " + message));
-						}
+						return switch (message.resolvedType()) {
+							case CONNECTION_INIT -> Flux.just(
+									GraphQlWebSocketMessage.connectionAck(null),
+									GraphQlWebSocketMessage.ping(null));
+							case SUBSCRIBE -> Flux.just(GraphQlWebSocketMessage.next("1", this.response.toMap()));
+							case PONG -> Flux.empty();
+							default -> Flux.error(new IllegalStateException("Unexpected message: " + message));
+						};
 					})
 					.map(graphQlMessage -> this.codecDelegate.encode(session, graphQlMessage))
 			);

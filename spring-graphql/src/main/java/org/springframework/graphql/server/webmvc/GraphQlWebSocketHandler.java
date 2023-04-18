@@ -191,7 +191,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		Map<String, Object> payload = message.getPayload();
 		SessionState state = getSessionInfo(session);
 		switch (message.resolvedType()) {
-			case SUBSCRIBE:
+			case SUBSCRIBE -> {
 				if (state.getConnectionInitPayload() == null) {
 					GraphQlStatus.closeSession(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 					return;
@@ -212,11 +212,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						.flatMapMany((response) -> handleResponse(session, request.getId(), response))
 						.publishOn(state.getScheduler()) // Serial blocking send via single thread
 						.subscribe(new SendMessageSubscriber(id, session, state));
-				return;
-			case PING:
-				session.sendMessage(encode(GraphQlWebSocketMessage.pong(null)));
-				return;
-			case COMPLETE:
+			}
+			case PING -> session.sendMessage(encode(GraphQlWebSocketMessage.pong(null)));
+			case COMPLETE -> {
 				if (id != null) {
 					Subscription subscription = state.getSubscriptions().remove(id);
 					if (subscription != null) {
@@ -225,8 +223,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 					this.webSocketGraphQlInterceptor.handleCancelledSubscription(state.getSessionInfo(), id)
 							.block(Duration.ofSeconds(10));
 				}
-				return;
-			case CONNECTION_INIT:
+			}
+			case CONNECTION_INIT -> {
 				if (!state.setConnectionInitPayload(payload)) {
 					GraphQlStatus.closeSession(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					return;
@@ -248,9 +246,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 							return Mono.empty();
 						})
 						.block(Duration.ofSeconds(10));
-				return;
-			default:
-				GraphQlStatus.closeSession(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
+			}
+			default -> GraphQlStatus.closeSession(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 		}
 	}
 
@@ -341,11 +338,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						state.getSessionInfo(), closeStatus.getCode(), connectionInitPayload);
 			}
 		}
-	}
-
-	@Override
-	public boolean supportsPartialMessages() {
-		return false;
 	}
 
 

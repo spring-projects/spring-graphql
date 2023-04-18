@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 		List<WebSocketGraphQlClientInterceptor> interceptors = getInterceptors().stream()
 				.filter(interceptor -> interceptor instanceof WebSocketGraphQlClientInterceptor)
 				.map(interceptor -> (WebSocketGraphQlClientInterceptor) interceptor)
-				.collect(Collectors.toList());
+				.toList();
 
 		Assert.state(interceptors.size() <= 1,
 				"Only a single interceptor of type WebSocketGraphQlClientInterceptor may be configured");

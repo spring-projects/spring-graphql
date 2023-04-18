@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,6 +87,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				.cacheInvalidateWhen(GraphQlSession::notifyWhenClosed);
 	}
 
+	@SuppressWarnings({"CallingSubscribeInNonBlockingScope", "ReactorTransformationOnMonoVoid"})
 	private static Mono<GraphQlSession> initGraphQlSession(
 			URI uri, HttpHeaders headers, WebSocketClient client, GraphQlSessionHandler handler) {
 
@@ -219,6 +220,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 
 
+		@SuppressWarnings({"ReactorZipWithMonoVoid", "ReactiveStreamsThrowInOperator"})
 		@Override
 		public Mono<Void> handle(WebSocketSession session) {
 
@@ -265,21 +267,12 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 							try {
 								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
 								switch (message.resolvedType()) {
-									case NEXT:
-										graphQlSession.handleNext(message);
-										break;
-									case PING:
-										graphQlSession.sendPong(null);
-										break;
-									case ERROR:
-										graphQlSession.handleError(message);
-										break;
-									case COMPLETE:
-										graphQlSession.handleComplete(message);
-										break;
-									default:
-										throw new IllegalStateException(
-												"Unexpected message type: '" + message.getType() + "'");
+									case NEXT -> graphQlSession.handleNext(message);
+									case PING -> graphQlSession.sendPong(null);
+									case ERROR -> graphQlSession.handleError(message);
+									case COMPLETE -> graphQlSession.handleComplete(message);
+									default -> throw new IllegalStateException(
+											"Unexpected message type: '" + message.getType() + "'");
 								}
 							}
 							catch (Exception ex) {
@@ -501,7 +494,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 			else {
 				List<ResponseError> errors = response.getErrors();
-				Exception ex = new SubscriptionErrorException(requestState.getRequest(), errors);
+				Exception ex = new SubscriptionErrorException(requestState.request(), errors);
 				requestState.handlerError(ex);
 			}
 		}
@@ -619,7 +612,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 */
 	private interface RequestState {
 
-		GraphQlRequest getRequest();
+		GraphQlRequest request();
 
 		void handleResponse(GraphQlResponse response);
 
@@ -628,7 +621,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		void handleCompletion();
 
 		default void emitDisconnectError(String message, CloseStatus closeStatus) {
-			emitDisconnectError(new WebSocketDisconnectedException(message, getRequest(), closeStatus));
+			emitDisconnectError(new WebSocketDisconnectedException(message, request(), closeStatus));
 		}
 
 		void emitDisconnectError(WebSocketDisconnectedException ex);
@@ -639,21 +632,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	/**
 	 * State container for a request that emits a single response.
 	 */
-	private static class SingleResponseRequestState implements RequestState {
-
-		private final GraphQlRequest request;
-
-		private final MonoSink<GraphQlResponse> responseSink;
-
-		SingleResponseRequestState(GraphQlRequest request, MonoSink<GraphQlResponse> responseSink) {
-			this.request = request;
-			this.responseSink = responseSink;
-		}
-
-		@Override
-		public GraphQlRequest getRequest() {
-			return this.request;
-		}
+	private record SingleResponseRequestState(
+			GraphQlRequest request, MonoSink<GraphQlResponse> responseSink) implements RequestState {
 
 		@Override
 		public void handleResponse(GraphQlResponse response) {
@@ -681,21 +661,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	/**
 	 * State container for a subscription request that emits a stream of responses.
 	 */
-	private static class SubscriptionRequestState implements RequestState {
-
-		private final GraphQlRequest request;
-
-		private final FluxSink<GraphQlResponse> responseSink;
-
-		SubscriptionRequestState(GraphQlRequest request, FluxSink<GraphQlResponse> responseSink) {
-			this.request = request;
-			this.responseSink = responseSink;
-		}
-
-		@Override
-		public GraphQlRequest getRequest() {
-			return request;
-		}
+	private record SubscriptionRequestState(
+			GraphQlRequest request, FluxSink<GraphQlResponse> responseSink) implements RequestState {
 
 		@Override
 		public void handleResponse(GraphQlResponse response) {

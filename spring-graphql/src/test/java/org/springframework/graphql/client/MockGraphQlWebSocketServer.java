@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 	@SuppressWarnings("SuspiciousMethodCalls")
 	private Publisher<GraphQlWebSocketMessage> handleMessage(GraphQlWebSocketMessage message) {
 		switch (message.resolvedType()) {
-			case CONNECTION_INIT:
+			case CONNECTION_INIT -> {
 				if (this.connectionInitHandler == null) {
 					return Flux.just(GraphQlWebSocketMessage.connectionAck(null));
 				}
@@ -96,7 +96,8 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 					Map<String, Object> payload = message.getPayload();
 					return this.connectionInitHandler.apply(payload).map(GraphQlWebSocketMessage::connectionAck);
 				}
-			case SUBSCRIBE:
+			}
+			case SUBSCRIBE -> {
 				String id = message.getId();
 				Exchange request = expectedExchanges.get(message.getPayload());
 				if (id == null || request == null) {
@@ -108,10 +109,13 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 								request.getError() != null ?
 										GraphQlWebSocketMessage.error(id, Collections.singletonList(request.getError())) :
 										GraphQlWebSocketMessage.complete(id));
-			case COMPLETE:
+			}
+			case COMPLETE -> {
 				return Flux.empty();
-			default:
+			}
+			default -> {
 				return Flux.error(new IllegalStateException("Unexpected message: " + message));
+			}
 		}
 	}
 

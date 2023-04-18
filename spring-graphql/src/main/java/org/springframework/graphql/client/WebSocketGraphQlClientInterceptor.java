@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,10 @@ import reactor.core.publisher.Mono;
  * An extension of {@link GraphQlClientInterceptor} with additional methods to
  * for WebSocket interception points. Only a single interceptor of type
  * {@link WebSocketGraphQlClientInterceptor} may be configured.
+ *
+ * <p>Use {@link GraphQlClient.Builder#interceptor(GraphQlClientInterceptor...)}
+ * to configure the interceptor chain. Only one interceptor in the chain may be
+ * of type {@code WebSocketGraphQlClientInterceptor}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0

@@ -101,6 +101,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	}
 
 
+	@SuppressWarnings("CallingSubscribeInNonBlockingScope")
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
 		HandshakeInfo handshakeInfo = session.getHandshakeInfo();
@@ -140,7 +141,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 			String id = message.getId();
 			Map<String, Object> payload = message.getPayload();
 			switch (message.resolvedType()) {
-				case SUBSCRIBE:
+				case SUBSCRIBE -> {
 					if (connectionInitPayloadRef.get() == null) {
 						return GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 					}
@@ -156,9 +157,11 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					return this.graphQlHandler.handleRequest(request)
 							.flatMapMany(response -> handleResponse(session, id, subscriptions, response))
 							.doOnTerminate(() -> subscriptions.remove(id));
-				case PING:
+				}
+				case PING -> {
 					return Flux.just(this.codecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
-				case COMPLETE:
+				}
+				case COMPLETE -> {
 					if (id != null) {
 						Subscription subscription = subscriptions.remove(id);
 						if (subscription != null) {
@@ -168,7 +171,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 								.thenMany(Flux.empty());
 					}
 					return Flux.empty();
-				case CONNECTION_INIT:
+				}
+				case CONNECTION_INIT -> {
 					if (!connectionInitPayloadRef.compareAndSet(null, payload)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					}
@@ -177,8 +181,10 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							.map(ackPayload -> this.codecDelegate.encodeConnectionAck(session, ackPayload))
 							.flux()
 							.onErrorResume(ex -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
-				default:
+				}
+				default -> {
 					return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
+				}
 			}
 		}));
 	}

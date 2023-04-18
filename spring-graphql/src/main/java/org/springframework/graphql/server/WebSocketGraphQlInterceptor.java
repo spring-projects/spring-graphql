@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,11 @@ import reactor.core.publisher.Mono;
 
 /**
  * An extension of {@link WebGraphQlInterceptor} with additional methods
- * to handle the start and end of a WebSocket connection. Only a single
- * interceptor of type {@link WebSocketGraphQlInterceptor} may be
- * declared.
+ * to handle the start and end of a WebSocket connection.
+ *
+ * <p>Use {@link WebGraphQlHandler.Builder#interceptor(WebGraphQlInterceptor...)}
+ * to configure the interceptor chain. Only one interceptor in the chain may be
+ * of type {@code WebSocketGraphQlInterceptor}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -57,8 +59,8 @@ public interface WebSocketGraphQlInterceptor extends WebGraphQlInterceptor {
 	 * additional, or more centralized handling across subscriptions.
 	 * @param sessionInfo information about the underlying WebSocket session
 	 * @param subscriptionId the unique id for the subscription; correlates to the
-	 * {@link WebGraphQlRequest#getId() requestId} from the original {@code "subscribe"}
-	 * message that started the subscription
+	 * {@link WebGraphQlRequest#getId() requestId} from the {@code "subscribe"}
+	 * message that started the subscription stream
 	 * @return {@code Mono} for the completion of handling
 	 */
 	default Mono<Void> handleCancelledSubscription(WebSocketSessionInfo sessionInfo, String subscriptionId) {
