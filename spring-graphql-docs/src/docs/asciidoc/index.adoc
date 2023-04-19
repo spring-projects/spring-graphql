@@ -264,38 +264,18 @@ For an example with Apollo Federation, see
 https://github.com/apollographql/federation-jvm-spring-example[federation-jvm-spring-example].
 
 
-[[execution.graphqlsource.schema-traversal]]
-==== Schema Traversal
-
-You can register a `graphql.schema.GraphQLTypeVisitor` via
-`builder.schemaResources(..).typeVisitors(..)` if you want to traverse the schema after
-it is created, and possibly apply changes to the `GraphQLCodeRegistry`. Keep in mind,
-however, that such a visitor cannot change the schema. See
-<<execution.graphqlsource.schema-transformation>>, if you need to make changes to the schema.
-
-
-[[execution.graphqlsource.schema-transformation]]
-==== Schema Transformation
-
-You can register a `graphql.schema.GraphQLTypeVisitor` via
-`builder.schemaResources(..).typeVisitorsToTransformSchema(..)` if you want to traverse
-and transform the schema after it is created, and make changes to the schema. Keep in mind
-that this is more expensive than <<execution.graphqlsource.schema-traversal>> so generally
-prefer traversal to transformation unless you need to make schema changes.
-
-
 [[execution.graphqlsource.runtimewiring-configurer]]
 ==== `RuntimeWiringConfigurer`
 
 You can use `RuntimeWiringConfigurer` to register:
 
- - Custom scalar types.
- - Directives handling code.
- - `TypeResolver`, if you need to override the
-   <<execution.graphqlsource.default-type-resolver>> for a type.
- - `DataFetcher` for a field, although most applications will simply configure
-   `AnnotatedControllerConfigurer`, which detects annotated, `DataFetcher` handler methods.
-   The <<boot-starter>> adds the `AnnotatedControllerConfigurer` by default.
+- Custom scalar types.
+- <<execution.graphqlsource.directives>> handling code.
+- Default <<execution.graphqlsource.default-type-resolver>> for interface and union types.
+- `DataFetcher` for a field although applications will typically use <<controllers>>, and
+those are detected and registered as `DataFetcher`s by `AnnotatedControllerConfigurer`,
+which is a `RuntimeWiringConfigurer`. The <<boot-starter>> automatically registers
+`AnnotatedControllerConfigurer`.
 
 NOTE: GraphQL Java, server applications use Jackson only for serialization to and from maps of data.
 Client input is parsed into a map. Server output is assembled into a map based on the field selection set.
@@ -333,7 +313,7 @@ number of factories that are then invoked in sequence.
 
 
 [[execution.graphqlsource.default-type-resolver]]
-==== Default `TypeResolver`
+==== `TypeResolver`
 
 `GraphQlSource.Builder` registers `ClassNameTypeResolver` as the default `TypeResolver`
 to use for GraphQL Interfaces and Unions that don't already have such a registration
@@ -359,33 +339,6 @@ builder.defaultTypeResolver(classNameTypeResolver);
 
 The <<execution.graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
-[[execution.graphqlsource.operation-caching]]
-==== Operation Caching
-
-GraphQL Java must _parse_ and _validate_ an operation before executing it. This may impact
-performance significantly. To avoid the need to re-parse and validate, an application may
-configure a `PreparsedDocumentProvider` that caches and reuses Document instances. The
-{graphql-java-docs}/execution/#query-caching[GraphQL Java docs] provide more details on
-query caching through a `PreparsedDocumentProvider`.
-
-In Spring GraphQL you can register a `PreparsedDocumentProvider` through
-`GraphQlSource.Builder#configureGraphQl`:
-.
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-// Typically, accessed through Spring Boot's GraphQlSourceBuilderCustomizer
-GraphQlSource.Builder builder = ...
-
-// Create provider
-PreparsedDocumentProvider provider = ...
-
-builder.schemaResources(..)
-		.configureRuntimeWiring(..)
-		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
-----
-
-The <<execution.graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 [[execution.graphqlsource.directives]]
 ==== Directives
@@ -419,6 +372,55 @@ public class GraphQlConfig {
 TIP: For an example of directives support check out the
 https://github.com/graphql-java/graphql-java-extended-validation[Extended Validation for Graphql Java]
 library.
+
+
+[[execution.graphqlsource.schema-transformation]]
+==== Schema Transformation
+
+You can register a `graphql.schema.GraphQLTypeVisitor` via
+`builder.schemaResources(..).typeVisitorsToTransformSchema(..)` if you want to traverse
+and transform the schema after it is created, and make changes to the schema. Keep in mind
+that this is more expensive than <<execution.graphqlsource.schema-traversal>> so generally
+prefer traversal to transformation unless you need to make schema changes.
+
+
+[[execution.graphqlsource.schema-traversal]]
+==== Schema Traversal
+
+You can register a `graphql.schema.GraphQLTypeVisitor` via
+`builder.schemaResources(..).typeVisitors(..)` if you want to traverse the schema after
+it is created, and possibly apply changes to the `GraphQLCodeRegistry`. Keep in mind,
+however, that such a visitor cannot change the schema. See
+<<execution.graphqlsource.schema-transformation>>, if you need to make changes to the schema.
+
+
+[[execution.graphqlsource.operation-caching]]
+==== Operation Caching
+
+GraphQL Java must _parse_ and _validate_ an operation before executing it. This may impact
+performance significantly. To avoid the need to re-parse and validate, an application may
+configure a `PreparsedDocumentProvider` that caches and reuses Document instances. The
+{graphql-java-docs}/execution/#query-caching[GraphQL Java docs] provide more details on
+query caching through a `PreparsedDocumentProvider`.
+
+In Spring GraphQL you can register a `PreparsedDocumentProvider` through
+`GraphQlSource.Builder#configureGraphQl`:
+.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+// Typically, accessed through Spring Boot's GraphQlSourceBuilderCustomizer
+GraphQlSource.Builder builder = ...
+
+// Create provider
+PreparsedDocumentProvider provider = ...
+
+builder.schemaResources(..)
+		.configureRuntimeWiring(..)
+		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
+----
+
+The <<execution.graphqlsource, GraphQlSource section>> explains how to configure that with Spring Boot.
 
 
 
