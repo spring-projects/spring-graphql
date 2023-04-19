@@ -394,6 +394,48 @@ however, that such a visitor cannot change the schema. See
 <<execution.graphqlsource.schema-transformation>>, if you need to make changes to the schema.
 
 
+[[execution.graphqlsource.schema-mapping-inspection]]
+==== Schema Mapping Inspection
+
+If a a query, mutation, or subscription operation does not have a `DataFetcher`, it won't
+return any data, and won't do anything useful. Fields on schema types returned by
+an operation should be covered by an explicit `DataFetcher` registration, or implicitly by
+the default `PropertyDataFetcher`, which looks for a matching Java object property, or
+otherwise they will always be `null`.
+
+GraphQL Java does not perform checks to ensure every schema field is covered one way or
+another, and that means at runtime you'll get either an error for a non-null field, or
+a "silent" `null`. As a lower level library, GraphQL Java simply does not know enough
+about `DataFetcher` implementations and their return types, and can't effectively compare
+schema types against Java objects.
+
+Spring for GraphQL defines the `SelfDescribingDataFetcher` interface to allow a
+`DataFetcher` to expose return type information. All Spring `DataFetcher` implementations
+including those for <<controllers>>, and for <<data.querydsl>> and <<data.querybyexample>>
+implement this interface. For annotated controllers, the return type is
+transparently sourced from `@SchemaMapping` method signature.
+
+On startup, Spring for GraphQL checks schema mappings to ensure every field has either an
+explicit `DataFetcher`, or a matching Java object property. The inspection is performed
+automatically, and results in a report logged at INFO level. For example:
+
+----
+GraphQL schema inspection:
+    Unmapped fields: {Book=[title], Author[firstName, lastName]} // <1>
+    Skipped types: [BookOrAuthor] // <2>
+----
+
+<1> List of schema fields (and source types) that are not mapped
+<2> List of schema types that are skipped (explained next)
+
+There are limits to what the inspection can do, mainly when there is insufficient Java
+type information. This is the case if an annotated controller method returns
+`java.lang.Object` such as for a `union` type, or if a `DataFetcher` does not implement
+`SelfDescribingDataFetcher`. If a type is skipped it is included as such in the
+report summary. For `interface` types, the inspection checks only interface declared
+fields against the properties of the `DataFetcher` declared Java return type.
+
+
 [[execution.graphqlsource.operation-caching]]
 ==== Operation Caching
 
