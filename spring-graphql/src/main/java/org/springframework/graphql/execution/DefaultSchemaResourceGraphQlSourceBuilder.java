@@ -60,7 +60,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	private final Set<Resource> schemaResources = new LinkedHashSet<>();
 
-	private List<TypeDefinitionConfigurer> typeDefinitionConfigurers = new ArrayList<>();
+	private final List<TypeDefinitionConfigurer> typeDefinitionConfigurers = new ArrayList<>();
 
 	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
 
@@ -132,6 +132,9 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 				runtimeWiring.getTypeResolvers().putIfAbsent(def.getName(), typeResolver);
 			}
 		});
+
+		// SchemaMappingInspector needs RuntimeWiring, but cannot run here since type
+		// visitors may transform the schema, for example to add Connection types.
 
 		configureGraphQl(builder -> {
 			GraphQLSchema schema = builder.build().getGraphQLSchema();

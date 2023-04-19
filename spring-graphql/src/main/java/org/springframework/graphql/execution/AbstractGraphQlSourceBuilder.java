@@ -149,27 +149,7 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	/**
 	 * {@link GraphQlSource} with fixed {@link GraphQL} and {@link GraphQLSchema} instances.
 	 */
-	private static class FixedGraphQlSource implements GraphQlSource {
-
-		private final GraphQL graphQl;
-
-		private final GraphQLSchema schema;
-
-		FixedGraphQlSource(GraphQL graphQl, GraphQLSchema schema) {
-			this.graphQl = graphQl;
-			this.schema = schema;
-		}
-
-		@Override
-		public GraphQL graphQl() {
-			return this.graphQl;
-		}
-
-		@Override
-		public GraphQLSchema schema() {
-			return this.schema;
-		}
-
+	private record FixedGraphQlSource(GraphQL graphQl, GraphQLSchema schema) implements GraphQlSource {
 	}
 
 }
