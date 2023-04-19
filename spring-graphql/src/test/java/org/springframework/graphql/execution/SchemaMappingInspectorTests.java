@@ -34,7 +34,6 @@ import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -423,7 +422,7 @@ class SchemaMappingInspectorTests {
 					 	}
 					""";
 
-			GraphQLSchema schema = GraphQlSetup.schemaContent(schemaContent).toGraphQlSource().schema();
+			GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
 			RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
 					.type("Query", builder -> builder.dataFetcher("bookById", environment -> null))
 					.build();
@@ -440,7 +439,7 @@ class SchemaMappingInspectorTests {
 						}
 					""";
 
-			GraphQLSchema schema = GraphQlSetup.schemaContent(schemaContent).toGraphQlSource().schema();
+			GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
 			RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
 					.type("Query", builder -> builder.dataFetcher("greeting", environment -> null))
 					.build();

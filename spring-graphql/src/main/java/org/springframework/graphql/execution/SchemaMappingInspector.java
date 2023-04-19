@@ -34,6 +34,8 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.idl.RuntimeWiring;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
@@ -70,6 +72,9 @@ import org.springframework.util.MultiValueMap;
  * @since 1.2.0
  */
 class SchemaMappingInspector {
+
+	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
+
 
 	private final GraphQLSchema schema;
 
@@ -132,11 +137,19 @@ class SchemaMappingInspector {
 
 		if (!(type instanceof GraphQLFieldsContainer fieldContainer)) {
 			if (isNotScalarOrEnumType(type)) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Skipped '" + getTypeName(type) + "': " +
+							"inspection does not support " + type.getClass().getSimpleName() + ".");
+				}
 				this.reportBuilder.addSkippedType(getTypeName(type));
 			}
 			return;
 		}
 		else if (resolvableType != null && resolveClassToCompare(resolvableType) == Object.class) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Skipped '" + getTypeName(type) + "': " +
+						"inspection could not determine the Java object return type.");
+			}
 			this.reportBuilder.addSkippedType(getTypeName(type));
 			return;
 		}
@@ -152,6 +165,10 @@ class SchemaMappingInspector {
 					inspectType(field.getType(), selfDescribingDataFetcher.getReturnType());
 				}
 				else if (isNotScalarOrEnumType(field.getType())) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Skipped '" + getTypeName(field.getType()) + "': " +
+								fetcher.getClass().getName() + " does not implement SelfDescribingDataFetcher.");
+					}
 					this.reportBuilder.addSkippedType(getTypeName(field.getType()));
 				}
 			}
