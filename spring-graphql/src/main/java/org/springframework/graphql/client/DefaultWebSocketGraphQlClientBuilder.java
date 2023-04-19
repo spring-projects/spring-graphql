@@ -16,20 +16,18 @@
 
 package org.springframework.graphql.client;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import reactor.core.publisher.Mono;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import reactor.core.publisher.Mono;
+
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
 
 
 /**
@@ -51,6 +49,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 
 	private final CodecConfigurer codecConfigurer;
 
+	private long keepalive;
 
 	/**
 	 * Constructor to start via {@link WebSocketGraphQlClient#builder(String, WebSocketClient)}.
@@ -60,12 +59,27 @@ final class DefaultWebSocketGraphQlClientBuilder
 	}
 
 	/**
+	 * Constructor to start via {@link WebSocketGraphQlClient#builder(String, WebSocketClient, long)}.
+	 */
+	DefaultWebSocketGraphQlClientBuilder(String url, WebSocketClient client, long keepalive) {
+		this(toURI(url), client, keepalive);
+	}
+
+	/**
 	 * Constructor to start via {@link WebSocketGraphQlClient#builder(URI, WebSocketClient)}.
 	 */
 	DefaultWebSocketGraphQlClientBuilder(URI url, WebSocketClient client) {
+		this(url, client, 0);
+	}
+
+	/**
+	 * Constructor to start via {@link WebSocketGraphQlClient#builder(URI, WebSocketClient, long)}.
+	 */
+	DefaultWebSocketGraphQlClientBuilder(URI url, WebSocketClient client, long keepalive) {
 		this.url = url;
 		this.webSocketClient = client;
 		this.codecConfigurer = ClientCodecConfigurer.create();
+		this.keepalive = keepalive;
 	}
 
 	/**
@@ -77,6 +91,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 		this.headers.putAll(transport.getHeaders());
 		this.webSocketClient = transport.getWebSocketClient();
 		this.codecConfigurer = transport.getCodecConfigurer();
+		this.keepalive = transport.getKeepAlive();
 	}
 
 
@@ -121,10 +136,16 @@ final class DefaultWebSocketGraphQlClientBuilder
 				CodecDelegate.findJsonDecoder(this.codecConfigurer));
 
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				this.url, this.headers, this.webSocketClient, this.codecConfigurer, getInterceptor());
+				this.url, this.headers, this.webSocketClient, this.codecConfigurer, getInterceptor(), this.keepalive);
 
 		GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
 		return new DefaultWebSocketGraphQlClient(graphQlClient, transport, getBuilderInitializer());
+	}
+
+	@Override
+	public WebSocketGraphQlClient.Builder<DefaultWebSocketGraphQlClientBuilder> keepalive(long keepalive) {
+		this.keepalive = keepalive;
+		return this;
 	}
 
 	private WebSocketGraphQlClientInterceptor getInterceptor() {
@@ -132,7 +153,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 		List<WebSocketGraphQlClientInterceptor> interceptors = getInterceptors().stream()
 				.filter(interceptor -> interceptor instanceof WebSocketGraphQlClientInterceptor)
 				.map(interceptor -> (WebSocketGraphQlClientInterceptor) interceptor)
-				.collect(Collectors.toList());
+				.toList();
 
 		Assert.state(interceptors.size() <= 1,
 				"Only a single interceptor of type WebSocketGraphQlClientInterceptor may be configured");
