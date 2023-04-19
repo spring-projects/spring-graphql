@@ -443,7 +443,7 @@ directly on the interface against properties of the Java return type declared by
 `DataFetcher`. Additional fields on concrete implementations are not inspected, as there
 is insufficient information about what Java types may be returned at runtime. This could
 be improved in a future release to extend inspection to schema `interface` implementing
-types to look for a match among implementation classes of the Java interface.
+types to look for a match among subtypes of the declared Java return type.
 
 
 [[execution.graphqlsource.operation-caching]]
