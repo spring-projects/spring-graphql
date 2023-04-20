@@ -48,24 +48,30 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 /**
- * Provide {@link #inspect(GraphQLSchema, RuntimeWiring)} method that checks if
- * schema fields are covered by either a {@link DataFetcher} registration, or a
- * Java object property. Fields that have neither are reported as unmapped in
- * the output {@link Report}.
+ * Declares an {@link #inspect(GraphQLSchema, RuntimeWiring)} method that checks
+ * if schema fields are covered either by a {@link DataFetcher} registration,
+ * or match a Java object property. Fields that have neither are reported as
+ * "unmapped" in the resulting {@link Report Resport}.
  *
- * <p>The inspection depends on {@code DataFetcher}s to expose return type
- * information by implementing {@link SelfDescribingDataFetcher}. This allows
- * checking if Java object types have properties that match schema fields.
- * If a {@code DataFetcher} does not implement this interface, then the Java
- * object type is not known, and the field type is reported as skipped.
+ * <p>The inspection depends on {@code DataFetcher}s to be
+ * {@link SelfDescribingDataFetcher} to be able to compare schema type and Java
+ * object type structure. If a {@code DataFetcher} does not implement this
+ * interface, then the Java type remains unknown, and the field type is reported
+ * as "skipped".
  *
- * <p>The {@link SelfDescribingDataFetcher} for annotated controller methods
- * exposes the declared return type of the controller method. If the return type
- * is {@link Object} such as for a union, then the Java object structure is
- * not known, and the field output type is reported as skipped.
+ * <p>The {@code SelfDescribingDataFetcher} for an annotated controller method
+ * derives type information from the controller method signature. If the declared
+ * return type is {@link Object}, or an unspecified generic parameter such as
+ * {@code List<?>} then the Java type structure remains unknown, and the field
+ * output type is reported as skipped.
  *
- * <p>Union types are automatically skipped because there is no way for an
- * annotated controller method to declare the actual Java types.
+ * <p>Unions are always skipped because there is no way for an annotated
+ * controller method to express that in a return type, and the Java type
+ * structure remains unknown.
+ *
+ * <p>Interfaces are supported only as far as fields declared directly on the
+ * interface, which are compared against properties of the Java type declared
+ * by a {@code SelfDescribingDataFetcher}.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
@@ -242,9 +248,9 @@ class SchemaMappingInspector {
 
 
 	/**
-	 * Container of unmapped fields and skipped types.
-	 * @param unmappedFields fields with neither {@link DataFetcher} mapping nor Object property
-	 * @param skippedTypes types that could not be verified, e.g. union
+	 * The report produced as a result of schema mappings inspection.
+	 * @param unmappedFields a map with type names as keys, and unmapped field names as values
+	 * @param skippedTypes the names of types skipped by the inspection
 	 */
 	public record Report(MultiValueMap<String, String> unmappedFields, Set<String> skippedTypes) {
 

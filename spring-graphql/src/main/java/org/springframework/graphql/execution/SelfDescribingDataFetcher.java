@@ -21,19 +21,20 @@ import graphql.schema.DataFetcher;
 import org.springframework.core.ResolvableType;
 
 /**
- * Specialized {@link DataFetcher} that can provide information about itself.
+ * Specialized {@link DataFetcher} that exposes additional details such as
+ * return type information.
+ *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  * @since 1.2.0
  */
 public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 
 	/**
-	 * The type that the {@link DataFetcher} returns.
-	 * <p>This could be a type from a {@code @Controller} method declaration
-	 * or the type expected to be returned by the {@link DataFetcher}
-	 * possibly backed by a Spring Data repository.
-	 * The concrete type of the returned instance might be a subclass.
-	 * @return the type of the data returned by the data fetcher.
+	 * The return type of this {@link DataFetcher}.
+	 * <p>This could be derived from the method signature of an annotated
+	 * {@code @Controller} method, the domain type of a {@link DataFetcher}
+	 * backed by a Spring Data repository, or other.
 	 */
 	ResolvableType getReturnType();
 
