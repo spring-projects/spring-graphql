@@ -135,6 +135,15 @@ public abstract class QuerydslDataFetcher<T> {
 
 
 	/**
+	 * Provides shared implementation of
+	 * {@link SelfDescribingDataFetcher#getDescription()} for all subclasses.
+	 * @since 1.2.0
+	 */
+	public String getDescription() {
+		return "QuerydslDataFetcher<" + this.domainType.getType().getName() + ">";
+	}
+
+	/**
 	 * Prepare a {@link Predicate} from GraphQL request arguments, also applying
 	 * any {@link QuerydslBinderCustomizer} that may have been configured.
 	 * @param environment contextual info for the GraphQL request
@@ -192,6 +201,11 @@ public abstract class QuerydslDataFetcher<T> {
 	protected ScrollSubrange buildScrollSubrange(DataFetchingEnvironment environment) {
 		Assert.state(this.cursorStrategy != null, "Expected CursorStrategy");
 		return RepositoryUtils.buildScrollSubrange(environment, this.cursorStrategy);
+	}
+
+	@Override
+	public String toString() {
+		return getDescription();
 	}
 
 

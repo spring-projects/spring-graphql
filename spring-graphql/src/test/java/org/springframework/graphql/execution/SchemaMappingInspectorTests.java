@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
@@ -181,7 +182,7 @@ class SchemaMappingInspectorTests {
 					 	}
 					""";
 			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class, BookController.class);
-			assertThatReport(report).isEmpty();
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
 		@Test
@@ -245,7 +246,7 @@ class SchemaMappingInspectorTests {
 					 	}
 					""";
 			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class, BookController.class);
-			assertThatReport(report).isEmpty();
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
 		@Test
@@ -287,7 +288,7 @@ class SchemaMappingInspectorTests {
 					 	}
 					""";
 			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
-			assertThatReport(report).isEmpty();
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
 		@Test
@@ -304,7 +305,7 @@ class SchemaMappingInspectorTests {
 					 	}
 					""";
 			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
-			assertThatReport(report).isEmpty();
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
 		@Test
@@ -322,6 +323,17 @@ class SchemaMappingInspectorTests {
 					""";
 			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
+		}
+
+		@Test
+		void reportHasUnmappedDataFetcher() {
+			String schema = """
+						type Query {
+							anything: String
+						}
+					""";
+			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			assertThatReport(report).hasUnmappedDataFetcherCount(1).containsUnmappedDataFetchersFor("Query", "greeting");
 		}
 
 		@Test
@@ -432,6 +444,22 @@ class SchemaMappingInspectorTests {
 		}
 
 		@Test
+		void reportHasSkippedTypeForObjectReturnType() {
+			String schemaContent = """
+						type Query {
+							bookObject(id: ID): Book
+						}
+						
+						type Book {
+							id: ID
+							name: String
+					 	}
+					""";
+			SchemaMappingInspector.Report report = inspectSchema(schemaContent, BookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("Book");
+		}
+
+		@Test
 		void reportIsEmptyIfUnknownDataFetcherReturnsSimpleType() {
 			String schemaContent = """
 						type Query {
@@ -448,22 +476,6 @@ class SchemaMappingInspectorTests {
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
-		@Test
-		void reportHasSkippedTypeForObjectReturnType() {
-			String schemaContent = """
-						type Query {
-							bookObject(id: ID): Book
-						}
-						
-						type Book {
-							id: ID
-							name: String
-					 	}
-					""";
-			SchemaMappingInspector.Report report = inspectSchema(schemaContent, BookController.class);
-			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("Book");
-		}
-
 	}
 
 
@@ -476,18 +488,28 @@ class SchemaMappingInspectorTests {
 						type Query {
 							allBooks: [Book]
 						}
-						
+						type Mutation {
+							createBook: Book
+						}
+						type Subscription {
+							bookSearch(author: String) : Book!
+						}
 						type Book {
 							id: ID
 							name: String
 							missing: Boolean
+							author: Author
 					 	}
+						type Author {
+							id: ID
+						}
 					""";
 			 SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).hasSkippedTypeCount(0);
 			 assertThat(report.toString()).isEqualTo("""
 					GraphQL schema inspection:
 						Unmapped fields: {Book=[missing]}
+						Unmapped DataFetcher registrations: {Book.fetcher=BookController#fetcher[1 args], Query.paginatedBooks=BookController#paginatedBooks[0 args], Query.bookObject=BookController#bookObject[1 args], Query.bookById=BookController#bookById[1 args]}
 						Skipped types: []""");
 		 }
 
@@ -631,7 +653,13 @@ class SchemaMappingInspectorTests {
 		public void isEmpty() {
 			isNotNull();
 			if (!this.actual.unmappedFields().isEmpty()) {
-				failWithMessage("Report contains missing fields for %s", this.actual.unmappedFields().keySet());
+				failWithMessage("Report contains missing fields: %s", this.actual.unmappedFields());
+			}
+			if (!this.actual.unmappedDataFetchers().isEmpty()) {
+				failWithMessage("Report contains missing DataFetcher registrations for %s", this.actual.unmappedDataFetchers());
+			}
+			if (!this.actual.skippedTypes().isEmpty()) {
+				failWithMessage("Report contains skipped types: %s", this.actual.skippedTypes());
 			}
 		}
 
@@ -639,6 +667,14 @@ class SchemaMappingInspectorTests {
 			isNotNull();
 			Integer actual = this.actual.unmappedFields().values().stream().map(List::size).reduce(0, Integer::sum);
 			if (actual != expected) {
+				failWithMessage("Expected %s unmapped fields, found %s.", expected, this.actual.unmappedFields());
+			}
+			return this;
+		}
+
+		public SchemaInspectionReportAssert hasUnmappedDataFetcherCount(int expected) {
+			isNotNull();
+			if (this.actual.unmappedDataFetchers().size() != expected) {
 				failWithMessage("Expected %s unmapped fields, found %s.", expected, this.actual.unmappedFields());
 			}
 			return this;
@@ -658,6 +694,17 @@ class SchemaMappingInspectorTests {
 			List<String> actual = this.actual.unmappedFields().get(typeName);
 			if (actual == null || !actual.containsAll(expected)) {
 				failWithMessage("Expected unmapped fields for %s: %s, found %s", typeName, expected, actual);
+			}
+			return this;
+		}
+
+		public SchemaInspectionReportAssert containsUnmappedDataFetchersFor(String typeName, String... fieldNames) {
+			isNotNull();
+			List<FieldCoordinates> expected = Arrays.stream(fieldNames)
+					.map(field -> FieldCoordinates.coordinates(typeName, field)).toList();
+			if (!this.actual.unmappedDataFetchers().keySet().containsAll(expected)) {
+				failWithMessage("Expected unmapped DataFetchers for %s, found %s",
+						expected, this.actual.unmappedDataFetchers());
 			}
 			return this;
 		}

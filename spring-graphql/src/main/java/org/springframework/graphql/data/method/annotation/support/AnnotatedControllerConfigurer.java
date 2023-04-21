@@ -641,6 +641,11 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		}
 
 		@Override
+		public String getDescription() {
+			return this.info.getHandlerMethod().getShortLogMessage();
+		}
+
+		@Override
 		public ResolvableType getReturnType() {
 			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
 		}
@@ -700,6 +705,11 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			return (Publisher<T>) this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
 					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)))
 					.switchIfEmpty(Mono.error(ex));
+		}
+
+		@Override
+		public String toString() {
+			return getDescription();
 		}
 
 	}

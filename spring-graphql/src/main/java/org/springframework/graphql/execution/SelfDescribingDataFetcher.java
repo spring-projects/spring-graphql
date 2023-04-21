@@ -31,6 +31,14 @@ import org.springframework.core.ResolvableType;
 public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 
 	/**
+	 * Provide a description of the {@code DataFetcher} for display or logging
+	 * purposes. Depending on the underlying implementation, this could be a
+	 * controller method, a Spring Data repository backed {@code DataFetcher},
+	 * or other.
+	 */
+	String getDescription();
+
+	/**
 	 * The return type of this {@link DataFetcher}.
 	 * <p>This could be derived from the method signature of an annotated
 	 * {@code @Controller} method, the domain type of a {@link DataFetcher}

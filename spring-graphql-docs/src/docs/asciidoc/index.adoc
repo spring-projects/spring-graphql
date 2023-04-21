@@ -418,21 +418,25 @@ controllers, the return type is derived from the declared return type on a
 `@SchemaMapping` method.
 
 On startup, Spring for GraphQL inspects all schema fields, `DataFetcher` registrations,
-and the properties of Java objects returned from `DataFetcher` implementations in order
-to ensure that every schema field has either an explicitly registered `DataFetcher`, or
-a matching Java object property. This inspection is performed automatically, and results
-in a report that is always logged on startup at INFO level. For example:
+and the properties of Java objects returned from `DataFetcher` implementations to check
+if all schema fields are covered either by an explicitly registered `DataFetcher`, or
+a matching Java object property. The inspection also performs a reverse check looking for
+`DataFetcher` registrations against schema fields that don't exist. This inspection is
+performed automatically, and results in a report that is logged at INFO level on startup.
+For example:
 
 ----
 GraphQL schema inspection:
     Unmapped fields: {Book=[title], Author[firstName, lastName]} // <1>
-    Skipped types: [BookOrAuthor] // <2>
+    Unmapped DataFetcher registrations: {Book.reviews=BookController#reviews[1 args]} <2>
+    Skipped types: [BookOrAuthor] // <3>
 ----
 
 <1> List of schema fields and their source types that are not mapped
-<2> List of schema types that are skipped, as explained next
+<2> List of `DataFetcher` registrations on fields that don't exist
+<3> List of schema types that are skipped, as explained next
 
-There are limits to what schema mappings inspection can do, in particular when there is
+There are limits to what schema field inspection can do, in particular when there is
 insufficient Java type information. This is the case if an annotated controller method is
 declared to return `java.lang.Object`, or if the return type has an unspecified generic
 parameter such as `List<?>`, or if the `DataFetcher` does not implement

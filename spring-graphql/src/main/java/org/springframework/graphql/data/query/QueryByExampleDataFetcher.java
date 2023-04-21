@@ -121,6 +121,15 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 
 	/**
+	 * Provides shared implementation of
+	 * {@link SelfDescribingDataFetcher#getDescription()} for all subclasses.
+	 * @since 1.2.0
+	 */
+	public String getDescription() {
+		return "QueryByExampleDataFetcher<" + this.domainType.getType().getName() + ">";
+	}
+
+	/**
 	 * Prepare an {@link Example} from GraphQL request arguments.
 	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting example
@@ -168,6 +177,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 	protected ScrollSubrange buildScrollSubrange(DataFetchingEnvironment environment) {
 		Assert.state(this.cursorStrategy != null, "Expected CursorStrategy");
 		return RepositoryUtils.buildScrollSubrange(environment, this.cursorStrategy);
+	}
+
+	@Override
+	public String toString() {
+		return getDescription();
 	}
 
 
