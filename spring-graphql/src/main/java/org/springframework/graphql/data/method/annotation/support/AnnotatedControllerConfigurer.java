@@ -640,6 +640,11 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
 
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
+		}
+
 		/**
 		 * Return the {@link HandlerMethod} used to fetch data.
 		 */
@@ -697,11 +702,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 					.switchIfEmpty(Mono.error(ex));
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
-		}
-		
 	}
 
 

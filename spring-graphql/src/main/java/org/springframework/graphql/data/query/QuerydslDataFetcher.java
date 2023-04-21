@@ -734,7 +734,8 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 
-	private static class SingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<R> {
+	private static class SingleEntityFetcher<T, R>
+			extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<R> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
@@ -753,6 +754,11 @@ public abstract class QuerydslDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClass(this.resultType);
 		}
 
 		@Override
@@ -777,14 +783,11 @@ public abstract class QuerydslDataFetcher<T> {
 			}).orElse(null);
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClass(this.resultType);
-		}
 	}
 
 
-	private static class ManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Iterable<R>> {
+	private static class ManyEntityFetcher<T, R>
+			extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Iterable<R>> {
 
 		private final QuerydslPredicateExecutor<T> executor;
 
@@ -803,6 +806,11 @@ public abstract class QuerydslDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Iterable.class, this.resultType);
 		}
 
 		@Override
@@ -828,11 +836,6 @@ public abstract class QuerydslDataFetcher<T> {
 
 		protected Iterable<R> getResult(FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
 			return queryToUse.all();
-		}
-
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Iterable.class, this.resultType);
 		}
 
 	}
@@ -872,7 +875,8 @@ public abstract class QuerydslDataFetcher<T> {
 	}
 
 
-	private static class ReactiveSingleEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Mono<R>> {
+	private static class ReactiveSingleEntityFetcher<T, R>
+			extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Mono<R>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
@@ -891,6 +895,11 @@ public abstract class QuerydslDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Mono.class, this.resultType);
 		}
 
 		@Override
@@ -914,15 +923,11 @@ public abstract class QuerydslDataFetcher<T> {
 			});
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Mono.class, this.resultType);
-		}
-
 	}
 
 
-	private static class ReactiveManyEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Flux<R>> {
+	private static class ReactiveManyEntityFetcher<T, R>
+			extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Flux<R>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
@@ -941,6 +946,11 @@ public abstract class QuerydslDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Flux.class, this.resultType);
 		}
 
 		@Override
@@ -964,15 +974,11 @@ public abstract class QuerydslDataFetcher<T> {
 			});
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Flux.class, this.resultType);
-		}
-
 	}
 
 
-	private static class ReactiveScrollableEntityFetcher<T, R> extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Mono<Iterable<R>>> {
+	private static class ReactiveScrollableEntityFetcher<T, R>
+			extends QuerydslDataFetcher<T> implements SelfDescribingDataFetcher<Mono<Iterable<R>>> {
 
 		private final ReactiveQuerydslPredicateExecutor<T> executor;
 
@@ -1007,6 +1013,11 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Mono.class, this.scrollableResultType);
+		}
+
+		@Override
 		@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
 		public Mono<Iterable<R>> get(DataFetchingEnvironment env) {
 			return this.executor.findBy(buildPredicate(env), query -> {
@@ -1029,11 +1040,6 @@ public abstract class QuerydslDataFetcher<T> {
 
 				return queryToUse.limit(limit).scroll(position).map(Function.identity());
 			});
-		}
-
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Mono.class, this.scrollableResultType);
 		}
 
 	}

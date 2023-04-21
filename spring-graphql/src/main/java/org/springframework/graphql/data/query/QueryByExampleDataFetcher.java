@@ -640,7 +640,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 	}
 
 
-	private static class SingleEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<R> {
+	private static class SingleEntityFetcher<T, R>
+			extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<R> {
 
 		private final QueryByExampleExecutor<T> executor;
 
@@ -655,6 +656,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClass(this.resultType);
 		}
 
 		@Override
@@ -679,14 +685,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			}).orElse(null);
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClass(this.resultType);
-		}
 	}
 
 
-	private static class ManyEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Iterable<R>> {
+	private static class ManyEntityFetcher<T, R>
+			extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Iterable<R>> {
 
 		private final QueryByExampleExecutor<T> executor;
 
@@ -702,6 +705,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Iterable.class, this.resultType);
 		}
 
 		@Override
@@ -727,11 +735,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		protected Iterable<R> getResult(FluentQuery.FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
 			return queryToUse.all();
-		}
-
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Iterable.class, this.resultType);
 		}
 
 	}
@@ -760,6 +763,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Window.class, resultType);
 		}
 
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Iterable.class, this.scrollableResultType);
+		}
+
 		@SuppressWarnings("OptionalGetWithoutIsPresent")
 		@Override
 		protected Iterable<R> getResult(FluentQuery.FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
@@ -769,15 +777,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return queryToUse.limit(limit).scroll(position);
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Iterable.class, this.scrollableResultType);
-		}
-
 	}
 
 
-	private static class ReactiveSingleEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Mono<R>> {
+	private static class ReactiveSingleEntityFetcher<T, R>
+			extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Mono<R>> {
 
 		private final ReactiveQueryByExampleExecutor<T> executor;
 
@@ -793,6 +797,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Mono.class, this.resultType);
 		}
 
 		@Override
@@ -816,15 +825,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			});
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Mono.class, this.resultType);
-		}
-
 	}
 
 
-	private static class ReactiveManyEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Flux<R>> {
+	private static class ReactiveManyEntityFetcher<T, R>
+			extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Flux<R>> {
 
 		private final ReactiveQueryByExampleExecutor<T> executor;
 
@@ -840,6 +845,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Flux.class, this.resultType);
 		}
 
 		@Override
@@ -863,15 +873,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 			});
 		}
 
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Flux.class, this.resultType);
-		}
-
 	}
 
 
-	private static class ReactiveScrollableEntityFetcher<T, R> extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Mono<Iterable<R>>> {
+	private static class ReactiveScrollableEntityFetcher<T, R>
+			extends QueryByExampleDataFetcher<T> implements SelfDescribingDataFetcher<Mono<Iterable<R>>> {
 
 		private final ReactiveQueryByExampleExecutor<T> executor;
 
@@ -902,6 +908,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 		}
 
 		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClassWithGenerics(Mono.class, this.scrollableResultType);
+		}
+
+		@Override
 		@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
 		public Mono<Iterable<R>> get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), query -> {
@@ -924,11 +935,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 				return queryToUse.limit(limit).scroll(position).map(Function.identity());
 			});
-		}
-
-		@Override
-		public ResolvableType getReturnType() {
-			return ResolvableType.forClassWithGenerics(Mono.class, this.scrollableResultType);
 		}
 
 	}
