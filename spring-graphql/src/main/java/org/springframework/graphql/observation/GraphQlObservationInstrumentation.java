@@ -110,7 +110,7 @@ public class GraphQlObservationInstrumentation extends SimpleInstrumentation {
 			return new SimpleInstrumentationContext<>() {
 				@Override
 				public void onCompleted(ExecutionResult result, Throwable exc) {
-					observationContext.setResponse(result);
+					observationContext.setExecutionResult(result);
 					if (exc != null) {
 						requestObservation.error(exc);
 					}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,42 +16,72 @@
 
 package org.springframework.graphql.observation;
 
-import java.util.Map;
-
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import io.micrometer.observation.transport.RequestReplyReceiverContext;
+import io.micrometer.observation.Observation;
+import org.springframework.lang.Nullable;
 
 /**
  * Context that holds information for metadata collection during observations
  * for {@link GraphQlObservationDocumentation#EXECUTION_REQUEST GraphQL requests}.
- * <p>This context also extends {@link RequestReplyReceiverContext} for propagating
- * tracing information from the {@link graphql.GraphQLContext}
- * or the {@link ExecutionInput#getExtensions() input extensions}.
  *
  * @author Brian Clozel
  * @since 1.1.0
  */
-public class ExecutionRequestObservationContext extends RequestReplyReceiverContext<ExecutionInput, ExecutionResult> {
+public class ExecutionRequestObservationContext extends Observation.Context {
 
-	public ExecutionRequestObservationContext(ExecutionInput executionInput) {
-		super(ExecutionRequestObservationContext::getContextValue);
-		setCarrier(executionInput);
-	}
+    private final ExecutionInput executionInput;
 
-	/**
-	 * Read propagation field from the {@link graphql.GraphQLContext},
-	 * or the {@link ExecutionInput#getExtensions() input extensions} as a fallback.
-	 */
-	private static String getContextValue(ExecutionInput executionInput, String key) {
-		String value = executionInput.getGraphQLContext().get(key);
-		if (value == null) {
-			Map<String, Object> extensions = executionInput.getExtensions();
-			if (extensions != null) {
-				value = (String) extensions.get(key);
-			}
-		}
-		return value;
-	}
+    @Nullable
+    private ExecutionResult executionResult;
+
+    public ExecutionRequestObservationContext(ExecutionInput executionInput) {
+        this.executionInput = executionInput;
+    }
+
+    /**
+     * Return the {@link ExecutionInput input} for the request execution.
+     * @since 1.1.4
+     */
+    public ExecutionInput getExecutionInput() {
+        return this.executionInput;
+    }
+
+    /**
+     * Return the {@link ExecutionInput input} for the request execution.
+     * @deprecated since 1.1.4 in favor of {@link #getExecutionInput()}
+     */
+    @Deprecated(since = "1.1.4", forRemoval = true)
+    public ExecutionInput getCarrier() {
+        return this.executionInput;
+    }
+
+    /**
+     * Return the {@link ExecutionResult result} for the request execution.
+     * @since 1.1.4
+     */
+    @Nullable
+    public ExecutionResult getExecutionResult() {
+        return this.executionResult;
+    }
+
+    /**
+     * Set the {@link ExecutionResult result} for the request execution.
+     * @param executionResult the execution result
+     * @since 1.1.4
+     */
+    public void setExecutionResult(ExecutionResult executionResult) {
+        this.executionResult = executionResult;
+    }
+
+    /**
+     * Return the {@link ExecutionResult result} for the request execution.
+     * @deprecated since 1.1.4 in favor of {@link #getExecutionResult()}
+     */
+    @Nullable
+    @Deprecated(since = "1.1.4", forRemoval = true)
+    public ExecutionResult getResponse() {
+        return this.executionResult;
+    }
 
 }
