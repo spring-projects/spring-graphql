@@ -32,7 +32,9 @@ import org.springframework.util.Assert;
  *
  * @author Brian Clozel
  * @since 1.1.1
+ * @deprecated since 1.1.4 with no replacement.
  */
+@Deprecated(since = "1.1.4", forRemoval = true)
 public class PropagationWebGraphQlInterceptor implements WebGraphQlInterceptor {
 
 	private final Propagator propagator;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 
 	@Override
 	public String getContextualName(ExecutionRequestObservationContext context) {
-		String operationName = (context.getCarrier().getOperationName() != null) ? context.getCarrier().getOperationName() : "query";
+		String operationName = (context.getExecutionInput().getOperationName() != null) ? context.getExecutionInput().getOperationName() : "query";
 		return BASE_CONTEXTUAL_NAME + operationName;
 	}
 
@@ -70,17 +70,17 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 	}
 
 	protected KeyValue outcome(ExecutionRequestObservationContext context) {
-		if (context.getError() != null || context.getResponse() == null) {
+		if (context.getError() != null || context.getExecutionResult() == null) {
 			return OUTCOME_INTERNAL_ERROR;
 		}
-		else if (context.getResponse().getErrors().size() > 0) {
+		else if (context.getExecutionResult().getErrors().size() > 0) {
 			return OUTCOME_REQUEST_ERROR;
 		}
 		return OUTCOME_SUCCESS;
 	}
 
 	protected KeyValue operation(ExecutionRequestObservationContext context) {
-		String operationName = context.getCarrier().getOperationName();
+		String operationName = context.getExecutionInput().getOperationName();
 		if (operationName != null) {
 			return KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OPERATION, operationName);
 		}
@@ -93,7 +93,7 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 	}
 
 	protected KeyValue executionId(ExecutionRequestObservationContext context) {
-		return KeyValue.of(ExecutionRequestHighCardinalityKeyNames.EXECUTION_ID, context.getCarrier().getExecutionId().toString());
+		return KeyValue.of(ExecutionRequestHighCardinalityKeyNames.EXECUTION_ID, context.getExecutionInput().getExecutionId().toString());
 	}
 
 }

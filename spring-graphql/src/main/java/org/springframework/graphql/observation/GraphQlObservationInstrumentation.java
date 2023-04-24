@@ -16,10 +16,9 @@
 
 package org.springframework.graphql.observation;
 
-import java.util.concurrent.CompletionStage;
-
 import graphql.ExecutionResult;
-import graphql.GraphQLContext;
+import graphql.execution.ExecutionStepInfo;
+import graphql.execution.ResultPath;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentationContext;
@@ -30,6 +29,10 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchPar
 import graphql.schema.DataFetcher;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
+
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link graphql.execution.instrumentation.Instrumentation} that creates
@@ -49,8 +52,6 @@ import io.micrometer.observation.ObservationRegistry;
  * @since 1.1.0
  */
 public class GraphQlObservationInstrumentation extends SimplePerformantInstrumentation {
-
-	private static final String OBSERVATION_KEY = "micrometer.observation";
 
 	private static final ExecutionRequestObservationConvention DEFAULT_REQUEST_CONVENTION =
 			new DefaultExecutionRequestObservationConvention();
@@ -101,21 +102,19 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 			InstrumentationState state) {
 		if (state instanceof RequestObservationInstrumentationState instrumentationState) {
 			ExecutionRequestObservationContext observationContext = new ExecutionRequestObservationContext(parameters.getExecutionInput());
-			Observation parentObservation = parameters.getGraphQLContext().get(OBSERVATION_KEY);
+			Observation parentObservation = parameters.getGraphQLContext().get(ObservationThreadLocalAccessor.KEY);
 			Observation requestObservation = instrumentationState.createRequestObservation(this.requestObservationConvention,
 					observationContext, this.observationRegistry);
 			requestObservation.parentObservation(parentObservation);
-			parameters.getGraphQLContext().put(OBSERVATION_KEY, requestObservation);
 			requestObservation.start();
 			return new SimpleInstrumentationContext<>() {
 				@Override
 				public void onCompleted(ExecutionResult result, Throwable exc) {
-					observationContext.setResponse(result);
+					observationContext.setExecutionResult(result);
 					if (exc != null) {
 						requestObservation.error(exc);
 					}
 					requestObservation.stop();
-					instrumentationState.restoreParentObservation(parameters.getGraphQLContext(), parentObservation);
 				}
 			};
 		}
@@ -128,13 +127,8 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 		if (!parameters.isTrivialDataFetcher()
 				&& state instanceof RequestObservationInstrumentationState instrumentationState) {
 			return (environment) -> {
-				GraphQLContext graphQLContext = parameters.getExecutionContext().getGraphQLContext();
-				Observation parentObservation = graphQLContext.get(OBSERVATION_KEY);
 				DataFetcherObservationContext observationContext = new DataFetcherObservationContext(parameters.getEnvironment());
-				Observation dataFetcherObservation = instrumentationState.createDataFetcherObservation(
-						this.dataFetcherObservationConvention, observationContext, this.observationRegistry);
-				dataFetcherObservation.parentObservation(parentObservation);
-				graphQLContext.put(OBSERVATION_KEY, dataFetcherObservation);
+				Observation dataFetcherObservation = instrumentationState.createDataFetcherObservation(this.dataFetcherObservationConvention, observationContext, this.observationRegistry);
 				dataFetcherObservation.start();
 				try {
 					Object value = dataFetcher.get(environment);
@@ -145,20 +139,17 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 								dataFetcherObservation.error(error);
 							}
 							dataFetcherObservation.stop();
-							instrumentationState.restoreParentObservation(graphQLContext, parentObservation);
 						});
 					}
 					else {
 						observationContext.setValue(value);
 						dataFetcherObservation.stop();
-						instrumentationState.restoreParentObservation(graphQLContext, parentObservation);
 						return value;
 					}
 				}
 				catch (Throwable throwable) {
 					dataFetcherObservation.error(throwable);
 					dataFetcherObservation.stop();
-					instrumentationState.restoreParentObservation(graphQLContext, parentObservation);
 					throw throwable;
 				}
 			};
@@ -169,25 +160,28 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	static class RequestObservationInstrumentationState implements InstrumentationState {
 
+		private Observation requestObservation;
+
+		private final ConcurrentHashMap<ResultPath, Observation> activeObservations = new ConcurrentHashMap<>(8);
+
 		Observation createRequestObservation(ExecutionRequestObservationConvention convention,
-				ExecutionRequestObservationContext context, ObservationRegistry registry) {
-			return GraphQlObservationDocumentation.EXECUTION_REQUEST.observation(convention,
+											 ExecutionRequestObservationContext context, ObservationRegistry registry) {
+			Observation observation = GraphQlObservationDocumentation.EXECUTION_REQUEST.observation(convention,
 					DEFAULT_REQUEST_CONVENTION, () -> context, registry);
+			this.requestObservation = observation;
+			return observation;
 		}
 
 		Observation createDataFetcherObservation(DataFetcherObservationConvention convention,
-				DataFetcherObservationContext context, ObservationRegistry registry) {
-			return GraphQlObservationDocumentation.DATA_FETCHER.observation(convention,
+												 DataFetcherObservationContext context, ObservationRegistry registry) {
+			ExecutionStepInfo executionStepInfo = context.getEnvironment().getExecutionStepInfo();
+			Observation observation = GraphQlObservationDocumentation.DATA_FETCHER.observation(convention,
 					DEFAULT_DATA_FETCHER_CONVENTION, () -> context, registry);
-		}
-
-		void restoreParentObservation(GraphQLContext context, Observation parentObservation) {
-			if (parentObservation != null) {
-				context.put(OBSERVATION_KEY, parentObservation);
-			}
-			else {
-				context.delete(OBSERVATION_KEY);
-			}
+			Observation parentObservation = (executionStepInfo.hasParent()) ? this.activeObservations.getOrDefault(executionStepInfo.getParent().getPath(), this.requestObservation)
+					: this.requestObservation;
+			observation.parentObservation(parentObservation);
+			this.activeObservations.put(executionStepInfo.getPath(), observation);
+			return observation;
 		}
 
 	}

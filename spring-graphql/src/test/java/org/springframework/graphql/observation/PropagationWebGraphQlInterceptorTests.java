@@ -47,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * @author Brian Clozel
  */
+@SuppressWarnings("removal")
 class PropagationWebGraphQlInterceptorTests {
 
 	PropagationWebGraphQlInterceptor interceptor = new PropagationWebGraphQlInterceptor(new TestPropagator());

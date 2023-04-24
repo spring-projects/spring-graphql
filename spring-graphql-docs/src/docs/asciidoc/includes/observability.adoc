@@ -13,7 +13,11 @@ If your application is using Spring Boot, contributing the custom convention as 
 [[observability.server.request]]
 == Server Requests instrumentation
 
-GraphQL Server Requests observations are created with the name `"graphql.request"` for Servlet and Reactive applications and above all supported transports.
+GraphQL Server Requests observations are created with the name `"graphql.request"` for traditional and Reactive applications and above all supported transports.
+This instrumentation assumes that any parent observation must be set as the current one on the GraphQL context with the well-known `"micrometer.observation"` key.
+For trace propagation across network boundaries, a separate instrumentation at the transport level must be in charge.
+In the case of HTTP, Spring Framework {spring-framework-ref-docs}/integration.html#integration.observability.http-server[has dedicated instrumentation that takes care of trace propagation].
+
 Applications need to configure the `org.springframework.graphql.observation.GraphQlObservationInstrumentation` instrumentation in their application.
 It is using the `org.springframework.graphql.observation.DefaultExecutionRequestObservationConvention` by default, backed by the `ExecutionRequestObservationContext`.
 

@@ -16,23 +16,12 @@
 
 package org.springframework.graphql.observation;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
 import graphql.GraphqlErrorBuilder;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
-import io.micrometer.observation.transport.ReceiverContext;
-import io.micrometer.tracing.Span;
-import io.micrometer.tracing.TraceContext;
-import io.micrometer.tracing.handler.PropagatingReceiverTracingObservationHandler;
-import io.micrometer.tracing.handler.TracingObservationHandler;
-import io.micrometer.tracing.propagation.Propagator;
-import io.micrometer.tracing.test.simple.SimpleSpanBuilder;
-import io.micrometer.tracing.test.simple.SimpleTracer;
-import io.micrometer.tracing.test.simple.TracerAssert;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -45,7 +34,7 @@ import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Tests for {@link GraphQlObservationInstrumentation}.
@@ -134,7 +123,8 @@ class GraphQlObservationInstrumentationTests {
 				.that()
 				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
 				.hasLowCardinalityKeyValue("graphql.field.name", "bookById")
-				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById");
+				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById")
+				.hasParentObservationContextMatching(context -> context instanceof ExecutionRequestObservationContext);
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
 				.hasAnObservationWithAKeyValue("graphql.field.name", "author")
@@ -213,7 +203,7 @@ class GraphQlObservationInstrumentationTests {
 		ExecutionGraphQlRequest graphQlRequest = TestExecutionRequest.forDocument(document);
 		Observation incoming = Observation.start("incoming", ObservationRegistry.create());
 		graphQlRequest.configureExecutionInput((input, builder) ->
-				builder.graphQLContext(contextBuilder -> contextBuilder.of("micrometer.observation", incoming)).build());
+				builder.graphQLContext(contextBuilder -> contextBuilder.of(ObservationThreadLocalAccessor.KEY, incoming)).build());
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
 				.toGraphQlService()
@@ -225,65 +215,4 @@ class GraphQlObservationInstrumentationTests {
 		incoming.stop();
 	}
 
-	@Test
-	void inboundTracingInformationIsPropagated() {
-		SimpleTracer simpleTracer = new SimpleTracer();
-		String traceId = "traceId";
-		TracingObservationHandler<ReceiverContext> tracingHandler = new PropagatingReceiverTracingObservationHandler<>(simpleTracer, new TestPropagator(simpleTracer, traceId));
-		this.observationRegistry.observationConfig().observationHandler(tracingHandler);
-		String document = """
-				{
-					bookById(id: 1) {
-						name
-					}
-				}
-				""";
-		ExecutionGraphQlRequest executionRequest = TestExecutionRequest.forDocument(document);
-		executionRequest.configureExecutionInput((input, builder) ->
-				builder.graphQLContext(context -> context.of(TestPropagator.TRACING_HEADER_NAME, traceId)).build());
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
-				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
-				.toGraphQlService()
-				.execute(executionRequest);
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
-
-		TracerAssert.assertThat(simpleTracer)
-				.onlySpan()
-				.hasNameEqualTo("graphql query")
-				.hasKindEqualTo(Span.Kind.SERVER)
-				.hasTag("graphql.operation", "query")
-				.hasTag("graphql.outcome", "SUCCESS")
-				.hasTagWithKey("graphql.execution.id");
-	}
-
-	static class TestPropagator implements Propagator {
-
-		public static String TRACING_HEADER_NAME = "X-Test-Tracing";
-
-		private final SimpleTracer tracer;
-
-		private final String traceId;
-
-		TestPropagator(SimpleTracer tracer, String traceId) {
-			this.tracer = tracer;
-			this.traceId = traceId;
-		}
-
-		@Override
-		public List<String> fields() {
-			return List.of(TRACING_HEADER_NAME);
-		}
-
-		@Override
-		public <C> void inject(TraceContext context, C carrier, Setter<C> setter) {
-			setter.set(carrier, TRACING_HEADER_NAME, "traceId");
-		}
-
-		@Override
-		public <C> Span.Builder extract(C carrier, Getter<C> getter) {
-			String foo = getter.get(carrier, TRACING_HEADER_NAME);
-			assertThat(foo).isEqualTo(this.traceId);
-			return new SimpleSpanBuilder(this.tracer);
-		}
-	}
 }
