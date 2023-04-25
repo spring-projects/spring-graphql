@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLSchema;
@@ -28,7 +29,7 @@ import graphql.schema.idl.SchemaGenerator;
 import org.assertj.core.api.AbstractAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.domain.OffsetScrollPosition;
@@ -597,8 +598,8 @@ class SchemaMappingInspectorTests {
 		}
 
 		@SubscriptionMapping
-		public Mono<Book> bookSearch(@Argument String author) {
-			return Mono.empty();
+		public Flux<Book> bookSearch(@Argument String author) {
+			return Flux.empty();
 		}
 	}
 
@@ -611,8 +612,8 @@ class SchemaMappingInspectorTests {
 		}
 
 		@SchemaMapping
-		public List<TeamMember> members(Team team) {
-			return List.of();
+		public CompletableFuture<List<TeamMember>> members(Team team) {
+			return CompletableFuture.completedFuture(List.of());
 		}
 
 		@SchemaMapping

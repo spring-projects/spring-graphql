@@ -134,11 +134,14 @@ class SchemaMappingInspector {
 		type = unwrapNonNull(type);
 		if (isConnectionType(type)) {
 			type = getConnectionNodeType(type);
-			resolvableType = nest(resolvableType, type);
+			resolvableType = nestForConnection(resolvableType, type);
 		}
 		else if (type instanceof GraphQLList listType) {
 			type = unwrapNonNull(listType.getWrappedType());
-			resolvableType = nest(resolvableType, type);
+			resolvableType = nestForList(resolvableType, type);
+		}
+		else {
+			resolvableType = (resolvableType != null ? nestIfReactive(resolvableType) : null);
 		}
 
 		if (type instanceof GraphQLNamedOutputType outputType) {
@@ -157,7 +160,7 @@ class SchemaMappingInspector {
 			}
 			return;
 		}
-		else if (resolvableType != null && resolveClassToCompare(resolvableType) == Object.class) {
+		else if (resolvableType != null && resolvableType.resolve(Object.class) == Object.class) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Skipped '" + getTypeName(type) + "': " +
 						"inspection could not determine the Java object return type.");
@@ -208,10 +211,35 @@ class SchemaMappingInspector {
 		return type;
 	}
 
-	private static ResolvableType nest(@Nullable ResolvableType resolvableType, GraphQLType type) {
-		Assert.notNull(resolvableType, "No declaredType for " + getTypeName(type));
-		resolvableType = resolvableType.getNested(2);
-		return resolvableType;
+	private ResolvableType nestForConnection(@Nullable ResolvableType type, GraphQLType graphQLType) {
+		Assert.state(type != null, "No Java type for " + getTypeName(graphQLType));
+		type = nestIfReactive(type);
+		Assert.state(type.hasGenerics(), "Expected type with generics: " + type);
+		return type.getNested(2);
+	}
+
+	private ResolvableType nestIfReactive(ResolvableType type) {
+		Class<?> clazz = type.resolve(Object.class);
+		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(clazz);
+		if (adapter != null) {
+			Assert.state(!adapter.isNoValue(), "Expected value producing type: " + type);
+			return type.getNested(2);
+		}
+		return type;
+	}
+
+	private ResolvableType nestForList(@Nullable ResolvableType type, GraphQLType graphQlType) {
+		Assert.state(type != null, "No Java type for " + getTypeName(graphQlType));
+		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(type.resolve(Object.class));
+		if (adapter != null) {
+			if (adapter.isMultiValue()) {
+				return type.getNested(2);
+			}
+			Assert.state(!adapter.isNoValue(), "Expected List compatible type: " + type);
+			type = type.getNested(2);
+		}
+		Assert.state(type.isArray() || type.hasGenerics(), "Expected List compatible type: " + type);
+		return type.getNested(2);
 	}
 
 	private static String getTypeName(GraphQLType type) {
@@ -224,19 +252,13 @@ class SchemaMappingInspector {
 
 	private boolean hasProperty(ResolvableType resolvableType, String fieldName) {
 		try {
-			Class<?> clazz = resolveClassToCompare(resolvableType);
+			Class<?> clazz = resolvableType.resolve(Object.class);
 			return (BeanUtils.getPropertyDescriptor(clazz, fieldName) != null);
 		}
 		catch (BeansException ex) {
 			throw new IllegalStateException(
 					"Failed to introspect " + resolvableType + " for field '" + fieldName + "'", ex);
 		}
-	}
-
-	private Class<?> resolveClassToCompare(ResolvableType resolvableType) {
-		Class<?> clazz = resolvableType.resolve(Object.class);
-		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(clazz);
-		return (adapter != null ? resolvableType.getNested(2).resolve(Object.class) : clazz);
 	}
 
 	@SuppressWarnings("rawtypes")
