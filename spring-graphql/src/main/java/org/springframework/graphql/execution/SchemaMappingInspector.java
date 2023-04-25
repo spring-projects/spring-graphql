@@ -112,14 +112,14 @@ class SchemaMappingInspector {
 	 */
 	public Report inspect() {
 
-		inspectSchemaType(this.schema.getQueryType(), null);
+		inspectSchemaType(this.schema.getQueryType(), null, false);
 
 		if (this.schema.isSupportingMutations()) {
-			inspectSchemaType(this.schema.getMutationType(), null);
+			inspectSchemaType(this.schema.getMutationType(), null, false);
 		}
 
 		if (this.schema.isSupportingSubscriptions()) {
-			inspectSchemaType(this.schema.getSubscriptionType(), null);
+			inspectSchemaType(this.schema.getSubscriptionType(), null, false);
 		}
 
 		inspectDataFetcherRegistrations();
@@ -128,7 +128,7 @@ class SchemaMappingInspector {
 	}
 
 	@SuppressWarnings("rawtypes")
-	private void inspectSchemaType(GraphQLType type, @Nullable ResolvableType resolvableType) {
+	private void inspectSchemaType(GraphQLType type, @Nullable ResolvableType resolvableType, boolean subscription) {
 		Assert.notNull(type, "No GraphQLType");
 
 		type = unwrapNonNull(type);
@@ -138,7 +138,7 @@ class SchemaMappingInspector {
 		}
 		else if (type instanceof GraphQLList listType) {
 			type = unwrapNonNull(listType.getWrappedType());
-			resolvableType = nestForList(resolvableType, type);
+			resolvableType = nestForList(resolvableType, type, subscription);
 		}
 		else {
 			resolvableType = (resolvableType != null ? nestIfReactive(resolvableType) : null);
@@ -177,7 +177,9 @@ class SchemaMappingInspector {
 			if (dataFetcherMap.containsKey(fieldName)) {
 				DataFetcher<?> fetcher = dataFetcherMap.get(fieldName);
 				if (fetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
-					inspectSchemaType(field.getType(), selfDescribingDataFetcher.getReturnType());
+					inspectSchemaType(
+							field.getType(), selfDescribingDataFetcher.getReturnType(),
+							(type == this.schema.getSubscriptionType()));
 				}
 				else if (isNotScalarOrEnumType(field.getType())) {
 					if (logger.isDebugEnabled()) {
@@ -228,15 +230,15 @@ class SchemaMappingInspector {
 		return type;
 	}
 
-	private ResolvableType nestForList(@Nullable ResolvableType type, GraphQLType graphQlType) {
+	private ResolvableType nestForList(@Nullable ResolvableType type, GraphQLType graphQlType, boolean subscription) {
 		Assert.state(type != null, "No Java type for " + getTypeName(graphQlType));
 		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(type.resolve(Object.class));
 		if (adapter != null) {
-			if (adapter.isMultiValue()) {
-				return type.getNested(2);
-			}
 			Assert.state(!adapter.isNoValue(), "Expected List compatible type: " + type);
 			type = type.getNested(2);
+			if (adapter.isMultiValue() && !subscription) {
+				return type;
+			}
 		}
 		Assert.state(type.isArray() || type.hasGenerics(), "Expected List compatible type: " + type);
 		return type.getNested(2);

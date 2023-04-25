@@ -219,7 +219,7 @@ class SchemaMappingInspectorTests {
 							greeting: String
 						}
 						type Subscription {
-							bookSearch(author: String) : Book!
+							bookSearch(author: String) : [Book!]!
 						}
 						
 						type Book {
@@ -238,7 +238,7 @@ class SchemaMappingInspectorTests {
 							greeting: String
 						}
 						type Subscription {
-							bookSearch(author: String) : Book!
+							bookSearch(author: String) : [Book!]!
 						}
 						
 						type Book {
@@ -259,7 +259,7 @@ class SchemaMappingInspectorTests {
 						type Subscription {
 						}
 						extend type Subscription {
-					    	bookSearch(author: String) : Book!
+					    	bookSearch(author: String) : [Book!]!
 					 	}
 					 	type Book {
 							id: ID
@@ -493,7 +493,7 @@ class SchemaMappingInspectorTests {
 							createBook: Book
 						}
 						type Subscription {
-							bookSearch(author: String) : Book!
+							bookSearch(author: String) : [Book!]!
 						}
 						type Book {
 							id: ID
@@ -598,7 +598,7 @@ class SchemaMappingInspectorTests {
 		}
 
 		@SubscriptionMapping
-		public Flux<Book> bookSearch(@Argument String author) {
+		public Flux<List<Book>> bookSearch(@Argument String author) {
 			return Flux.empty();
 		}
 	}
