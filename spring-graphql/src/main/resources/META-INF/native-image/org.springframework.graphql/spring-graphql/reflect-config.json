@@ -1,5 +1,12 @@
 [
   {
+    "name": "org.springframework.graphql.data.method.annotation.support.AnnotatedControllerExceptionResolver$MethodResolver",
+    "allDeclaredMethods": true,
+    "condition": {
+      "typeReachable": "org.springframework.graphql.data.method.annotation.support.AnnotatedControllerExceptionResolver"
+    }
+  },
+  {
     "name":"org.springframework.graphql.server.support.GraphQlWebSocketMessage",
     "allDeclaredFields":true,
     "allDeclaredMethods":true,

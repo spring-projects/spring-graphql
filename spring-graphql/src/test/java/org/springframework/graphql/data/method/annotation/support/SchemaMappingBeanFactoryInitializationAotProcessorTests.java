@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 import graphql.GraphQLContext;
+import graphql.GraphQLError;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.data.method.annotation.*;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -58,13 +62,6 @@ import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.ArgumentValue;
-import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.graphql.data.method.annotation.BatchMapping;
-import org.springframework.graphql.data.method.annotation.ContextValue;
-import org.springframework.graphql.data.method.annotation.LocalContextValue;
-import org.springframework.graphql.data.method.annotation.MutationMapping;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,39 +89,51 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 		@Test
 		void registerBindingReflectionOnReturnType() {
-			processController(ReturnTypeController.class);
+			processBeanClasses(ReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(ReturnTypeController.class, "bookById");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnInput() {
-			processController(InputController.class);
+			processBeanClasses(InputController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(InputController.class);
+			assertThatInvocationHintRegisteredForMethods(InputController.class, "addBook");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, BookInput.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnArgumentCollection() {
-			processController(ArgumentCollectionController.class);
+			processBeanClasses(ArgumentCollectionController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ArgumentCollectionController.class);
+			assertThatInvocationHintRegisteredForMethods(ArgumentCollectionController.class, "addBooks");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnArgumentValue() {
-			processController(ArgumentValueController.class);
+			processBeanClasses(ArgumentValueController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ArgumentValueController.class);
+			assertThatInvocationHintRegisteredForMethods(ArgumentValueController.class, "addBook");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, BookInput.class);
 			assertThatHintsAreNotRegisteredForTypes(ArgumentValue.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnDataLoaderArgument() {
-			processController(DataLoaderController.class);
+			processBeanClasses(DataLoaderController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(DataLoaderController.class);
+			assertThatInvocationHintRegisteredForMethods(DataLoaderController.class, "authorWithLoader");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Author.class);
 			assertThatHintsAreNotRegisteredForTypes(DataLoader.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnAsyncReturnType() {
-			processController(AsyncReturnTypeController.class);
+			processBeanClasses(AsyncReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(AsyncReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(AsyncReturnTypeController.class, "author");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Author.class);
 		}
 
@@ -211,37 +220,49 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 		@Test
 		void registerBindingReflectionOnFluxReturnType() {
-			processController(FluxReturnTypeController.class);
+			processBeanClasses(FluxReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(FluxReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(FluxReturnTypeController.class, "batchMappingFlux");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Author.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnMonoMapReturnType() {
-			processController(MonoMapReturnTypeController.class);
+			processBeanClasses(MonoMapReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(MonoMapReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(MonoMapReturnTypeController.class, "batchMappingMono");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, Author.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnMapReturnType() {
-			processController(MapReturnTypeController.class);
+			processBeanClasses(MapReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(MapReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(MapReturnTypeController.class, "batchMappingMap");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, Author.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnCollectionReturnType() {
-			processController(CollectionReturnTypeController.class);
+			processBeanClasses(CollectionReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(CollectionReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(CollectionReturnTypeController.class, "batchMappingCollection");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Author.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnCallableCollectionReturnType() {
-			processController(CallableCollectionReturnTypeController.class);
+			processBeanClasses(CallableCollectionReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(CallableCollectionReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(CallableCollectionReturnTypeController.class, "batchMappingCallableCollection");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Author.class);
 		}
 
 		@Test
 		void registerBindingReflectionOnCallableMapReturnType() {
-			processController(CallableMapReturnTypeController.class);
+			processBeanClasses(CallableMapReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(CallableMapReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(CallableMapReturnTypeController.class, "batchMappingCallableMap");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, Author.class);
 		}
 
@@ -302,13 +323,17 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 		@Test
 		void doNotRegisterBindingForContextArguments() {
-			processController(ContextArgumentsController.class);
+			processBeanClasses(ContextArgumentsController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ContextArgumentsController.class);
+			assertThatInvocationHintRegisteredForMethods(ContextArgumentsController.class, "dataFetchingEnvironment");
 			assertThatHintsAreNotRegisteredForTypes(GraphQLContext.class, DataFetchingFieldSelectionSet.class, Locale.class);
 		}
 
 		@Test
 		void doNotRegisterBindingForAnnotatedContextArguments() {
-			processController(AnnotatedContextArgumentController.class);
+			processBeanClasses(AnnotatedContextArgumentController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(AnnotatedContextArgumentController.class);
+			assertThatInvocationHintRegisteredForMethods(AnnotatedContextArgumentController.class, "contextValue");
 			assertThatHintsAreNotRegisteredForTypes(Book.class);
 		}
 
@@ -333,7 +358,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 		@Test
 		void registerSpringDataSpelSupport() {
-			processController();
+			processBeanClasses();
 			TypeReference targetWrapper = TypeReference.of("org.springframework.data.projection.SpelEvaluatingMethodInterceptor$TargetWrapper");
 			assertThat(RuntimeHintsPredicates.reflection().onType(targetWrapper)
 					.withMemberCategories(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_DECLARED_METHODS,
@@ -342,7 +367,9 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 		@Test
 		void registerProxyForProjection() {
-			processController(ProjectionController.class);
+			processBeanClasses(ProjectionController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ProjectionController.class);
+			assertThatInvocationHintRegisteredForMethods(ProjectionController.class, "projection");
 			assertThat(RuntimeHintsPredicates.proxies().forInterfaces(BookProjection.class, TargetAware.class,
 					SpringProxy.class, DecoratingProxy.class)).accepts(generationContext.getRuntimeHints());
 		}
@@ -350,7 +377,9 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 		@Test
 		void registerProxyForOptionalProjection() {
-			processController(OptionalProjectionController.class);
+			processBeanClasses(OptionalProjectionController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(OptionalProjectionController.class);
+			assertThatInvocationHintRegisteredForMethods(OptionalProjectionController.class, "optionalProjection");
 			assertThat(RuntimeHintsPredicates.proxies().forInterfaces(BookProjection.class, TargetAware.class,
 					SpringProxy.class, DecoratingProxy.class)).accepts(generationContext.getRuntimeHints());
 		}
@@ -379,15 +408,65 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 	}
 
+	@Nested
+	class ExceptionHandlerTests {
 
-	private void processController(Class<?>... controllers) {
+		@Test
+		void registerReflectionOnControllerExceptionHandler() {
+			processBeanClasses(ExceptionController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ExceptionController.class);
+			assertThatInvocationHintRegisteredForMethods(ExceptionController.class, "handleIllegalState");
+		}
+
+		@Test
+		void registerReflectionOnControllerAdviceExceptionHandler() {
+			processBeanClasses(ExceptionHandlers.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ExceptionHandlers.class);
+			assertThatInvocationHintRegisteredForMethods(ExceptionHandlers.class, "handleBindException");
+		}
+
+
+		@Controller
+		class ExceptionController {
+			@GraphQlExceptionHandler
+			public GraphQLError handleIllegalState(IllegalStateException exc) {
+				return null;
+			}
+		}
+
+		@ControllerAdvice
+		class ExceptionHandlers {
+
+			@GraphQlExceptionHandler
+			public GraphQLError handleBindException(BindException exc) {
+				return null;
+			}
+		}
+	}
+
+
+	private void processBeanClasses(Class<?>... beanClasses) {
 		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
-		for (Class<?> beanClass : controllers) {
+		for (Class<?> beanClass : beanClasses) {
 			beanFactory.registerBeanDefinition(beanClass.getName(), new RootBeanDefinition(beanClass));
 		}
 		BeanFactoryInitializationAotContribution contribution = this.processor.processAheadOfTime(beanFactory);
 		assertThat(contribution).isNotNull();
 		contribution.applyTo(this.generationContext, mock(BeanFactoryInitializationCode.class));
+	}
+
+	private void assertThatIntrospectionOnMethodsHintRegisteredForType(Class<?> type) {
+		Predicate<RuntimeHints> predicate = RuntimeHintsPredicates.reflection()
+				.onType(type).withAnyMemberCategory(MemberCategory.INTROSPECT_DECLARED_METHODS);
+		assertThat(predicate).accepts(this.generationContext.getRuntimeHints());
+	}
+
+	private void assertThatInvocationHintRegisteredForMethods(Class<?> type, String... methodNames) {
+		Predicate<RuntimeHints> predicate = Arrays.stream(methodNames)
+				.map(methodName -> (Predicate<RuntimeHints>) RuntimeHintsPredicates.reflection().onMethod(type, methodName))
+				.reduce(Predicate::and)
+				.orElseThrow(() -> new IllegalArgumentException("Could not generate predicate on type " + type + " for methods " + Arrays.toString(methodNames)));
+		assertThat(predicate).accepts(this.generationContext.getRuntimeHints());
 	}
 
 	private void assertThatHintsForJavaBeanBindingRegisteredForTypes(Class<?>... types) {
@@ -405,7 +484,6 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 				.orElseThrow(() -> new IllegalArgumentException("Could not generate predicate for types " + types));
 		assertThat(predicate).rejects(this.generationContext.getRuntimeHints());
 	}
-
 
 	private Predicate<RuntimeHints> javaBeanBindingOnType(Class<?> type) {
 		Predicate<RuntimeHints> predicate = RuntimeHintsPredicates.reflection().onType(type)

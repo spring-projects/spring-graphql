@@ -20,7 +20,9 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.aop.SpringProxy;
 import org.springframework.aot.generate.GenerationContext;
@@ -45,10 +47,12 @@ import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
+import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import static org.springframework.core.annotation.MergedAnnotations.SearchStrategy.TYPE_HIERARCHY;
 
@@ -58,6 +62,8 @@ import static org.springframework.core.annotation.MergedAnnotations.SearchStrate
  * <ul>
  * <li>invocation reflection on {@code @SchemaMapping} and {@code @BatchMapping}
  * annotated controllers methods
+ * <li>invocation reflection on {@code @GraphQlExceptionHandler} methods
+ * in {@code @Controller} and {@code @ControllerAdvice} beans
  * <li>binding reflection on controller method arguments, needed for binding or
  * by the GraphQL Java engine itself
  * <li>reflection for SpEL support and JDK proxy creation for
@@ -85,27 +91,42 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 	@Override
 	public BeanFactoryInitializationAotContribution processAheadOfTime(ConfigurableListableBeanFactory beanFactory) {
-		Class<?>[] controllerTypes = Arrays.stream(beanFactory.getBeanDefinitionNames())
+		List<Class<?>> controllers = new ArrayList<>();
+		List<Class<?>> controllerAdvices = new ArrayList<>();
+		Arrays.stream(beanFactory.getBeanDefinitionNames())
 				.map(beanName -> RegisteredBean.of(beanFactory, beanName).getBeanClass())
-				.filter(this::isController)
-				.toArray(Class<?>[]::new);
-		return new SchemaMappingBeanFactoryInitializationAotContribution(controllerTypes);
+				.forEach(beanClass -> {
+					if (isController(beanClass)) {
+						controllers.add(beanClass);
+					}
+					else if (isControllerAdvice(beanClass)) {
+						controllerAdvices.add(beanClass);
+					}
+				});
+		return new SchemaMappingBeanFactoryInitializationAotContribution(controllers, controllerAdvices);
 	}
 
 	private boolean isController(AnnotatedElement element) {
 		return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(Controller.class);
 	}
 
+	private boolean isControllerAdvice(AnnotatedElement element) {
+		return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(ControllerAdvice.class);
+	}
+
 
 	private static class SchemaMappingBeanFactoryInitializationAotContribution
 			implements BeanFactoryInitializationAotContribution {
 
-		private final Class<?>[] controllers;
+		private final List<Class<?>> controllers;
+
+		private final List<Class<?>> controllerAdvices;
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
-		public SchemaMappingBeanFactoryInitializationAotContribution(Class<?>[] controllers) {
+		public SchemaMappingBeanFactoryInitializationAotContribution(List<Class<?>> controllers, List<Class<?>> controllerAdvices) {
 			this.controllers = controllers;
+			this.controllerAdvices = controllerAdvices;
 			this.argumentResolvers = createArgumentResolvers();
 		}
 
@@ -120,11 +141,20 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		public void applyTo(GenerationContext context, BeanFactoryInitializationCode initializationCode) {
 			RuntimeHints runtimeHints = context.getRuntimeHints();
 			registerSpringDataSpelSupport(runtimeHints);
-			Arrays.stream(this.controllers).forEach(controller -> {
-				runtimeHints.reflection().registerType(controller);
+			this.controllers.forEach(controller -> {
+				runtimeHints.reflection().registerType(controller, MemberCategory.INTROSPECT_DECLARED_METHODS);
 				ReflectionUtils.doWithMethods(controller,
 						method -> processSchemaMappingMethod(runtimeHints, method),
 						this::isGraphQlHandlerMethod);
+				ReflectionUtils.doWithMethods(controller,
+						method -> processExceptionHandlerMethod(runtimeHints, method),
+						this::isExceptionHandlerMethod);
+			});
+			this.controllerAdvices.forEach(controllerAdvice -> {
+				runtimeHints.reflection().registerType(controllerAdvice, MemberCategory.INTROSPECT_DECLARED_METHODS);
+				ReflectionUtils.doWithMethods(controllerAdvice,
+						method -> processExceptionHandlerMethod(runtimeHints, method),
+						this::isExceptionHandlerMethod);
 			});
 		}
 
@@ -143,12 +173,20 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 			return annotations.isPresent(SchemaMapping.class) || annotations.isPresent(BatchMapping.class);
 		}
 
+		private boolean isExceptionHandlerMethod(AnnotatedElement element) {
+			return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(GraphQlExceptionHandler.class);
+		}
+
 		private void processSchemaMappingMethod(RuntimeHints runtimeHints, Method method) {
 			runtimeHints.reflection().registerMethod(method, ExecutableMode.INVOKE);
 			for (Parameter parameter : method.getParameters()) {
 				processMethodParameter(runtimeHints, MethodParameter.forParameter(parameter));
 			}
 			processReturnType(runtimeHints, MethodParameter.forExecutable(method, -1));
+		}
+
+		private void processExceptionHandlerMethod(RuntimeHints runtimeHints, Method method) {
+			runtimeHints.reflection().registerMethod(method, ExecutableMode.INVOKE);
 		}
 
 		private void processMethodParameter(RuntimeHints hints, MethodParameter parameter) {
