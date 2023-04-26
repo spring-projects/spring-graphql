@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
@@ -147,11 +148,8 @@ class SchemaMappingInspector {
 							(fields == this.schema.getSubscriptionType()));
 				}
 				else if (isNotScalarOrEnumType(field.getType())) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Skipped '" + typeNameToString(field.getType()) + "': " +
-								fetcher.getClass().getName() + " does not implement SelfDescribingDataFetcher.");
-					}
-					this.reportBuilder.addSkippedType(typeNameToString(field.getType()));
+					addSkippedType(field.getType(), () ->
+							fetcher.getClass().getName() + " does not implement SelfDescribingDataFetcher.");
 				}
 			}
 			else if (resolvableType == null || !hasProperty(resolvableType, fieldName)) {
@@ -170,8 +168,8 @@ class SchemaMappingInspector {
 
 		// Remove GraphQL type wrappers, and nest within Java generic types
 		outputType = unwrapIfNonNull(outputType);
-		if (isConnectionType(outputType)) {
-			outputType = getConnectionNodeType(outputType);
+		if (isPaginatedType(outputType)) {
+			outputType = getPaginatedType((GraphQLObjectType) outputType);
 			resolvableType = nestForConnection(resolvableType);
 		}
 		else if (outputType instanceof GraphQLList listType) {
@@ -190,22 +188,15 @@ class SchemaMappingInspector {
 		// Can we inspect GraphQL type?
 		if (!(outputType instanceof GraphQLFieldsContainer fieldContainer)) {
 			if (isNotScalarOrEnumType(outputType)) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Skipped '" + typeNameToString(outputType) + "': " +
-							"inspection does not support " + outputType.getClass().getSimpleName() + ".");
-				}
-				this.reportBuilder.addSkippedType(typeNameToString(outputType));
+				String schemaTypeName = outputType.getClass().getSimpleName();
+				addSkippedType(outputType, () -> "inspection does not support " + schemaTypeName + ".");
 			}
 			return;
 		}
 
 		// Can we inspect Java type?
 		if (resolvableType.resolve(Object.class) == Object.class) {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Skipped '" + typeNameToString(outputType) + "': " +
-						"inspection could not determine the Java object return type.");
-			}
-			this.reportBuilder.addSkippedType(typeNameToString(outputType));
+			addSkippedType(outputType, () -> "inspection could not determine the Java object return type.");
 			return;
 		}
 
@@ -217,23 +208,24 @@ class SchemaMappingInspector {
 		return (type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type);
 	}
 
-	private boolean isConnectionType(GraphQLType type) {
+	private boolean isPaginatedType(GraphQLType type) {
 		return (type instanceof GraphQLObjectType objectType &&
 				objectType.getName().endsWith("Connection") &&
 				objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
 	}
 
-	private GraphQLType getConnectionNodeType(GraphQLType type) {
-		String name = ((GraphQLObjectType) type).getName();
-		name = name.substring(0, name.length() - 10);
-		type = this.schema.getType(name);
-		Assert.state(type != null, "No '" + name + "' type");
-		return type;
+	private GraphQLType getPaginatedType(GraphQLObjectType type) {
+		String name = type.getName().substring(0, type.getName().length() - 10);
+		GraphQLType nodeType = this.schema.getType(name);
+		Assert.state(nodeType != null, "No node type for '" + type.getName() + "'");
+		return nodeType;
 	}
 
 	private ResolvableType nestForConnection(ResolvableType type) {
 		type = nestIfReactive(type);
-		Assert.state(type.hasGenerics(), "Expected type with generics: " + type);
+		if (logger.isDebugEnabled() && type.getGenerics().length != 1) {
+			logger.debug("Expected Connection type to have a generic parameter: " + type);
+		}
 		return type.getNested(2);
 	}
 
@@ -241,7 +233,9 @@ class SchemaMappingInspector {
 		Class<?> clazz = type.resolve(Object.class);
 		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(clazz);
 		if (adapter != null) {
-			Assert.state(!adapter.isNoValue(), "Expected value producing type: " + type);
+			if (logger.isDebugEnabled() && adapter.isNoValue()) {
+				logger.debug("Expected reactive/async return type that can produce value(s): " + type);
+			}
 			return type.getNested(2);
 		}
 		return type;
@@ -250,13 +244,17 @@ class SchemaMappingInspector {
 	private ResolvableType nestForList(ResolvableType type, boolean subscription) {
 		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(type.resolve(Object.class));
 		if (adapter != null) {
-			Assert.state(!adapter.isNoValue(), "Expected List compatible type: " + type);
+			if (logger.isDebugEnabled() && adapter.isNoValue()) {
+				logger.debug("Expected List compatible type: " + type);
+			}
 			type = type.getNested(2);
 			if (adapter.isMultiValue() && !subscription) {
 				return type;
 			}
 		}
-		Assert.state(type.isArray() || type.hasGenerics(), "Expected List compatible type: " + type);
+		if (logger.isDebugEnabled() && (!type.isArray() && type.getGenerics().length != 1)) {
+			logger.debug("Expected List compatible type: " + type);
+		}
 		return type.getNested(2);
 	}
 
@@ -280,6 +278,14 @@ class SchemaMappingInspector {
 		catch (BeansException ex) {
 			throw new IllegalStateException(
 					"Failed to introspect " + resolvableType + " for field '" + fieldName + "'", ex);
+		}
+	}
+
+	private void addSkippedType(GraphQLType type, Supplier<String> reason) {
+		String typeName = typeNameToString(type);
+		this.reportBuilder.addSkippedType(typeName);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Skipped '" + typeName + "': " + reason.get());
 		}
 	}
 
