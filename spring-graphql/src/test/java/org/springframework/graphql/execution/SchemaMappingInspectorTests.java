@@ -19,6 +19,7 @@ package org.springframework.graphql.execution;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,6 +31,7 @@ import org.assertj.core.api.AbstractAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.domain.OffsetScrollPosition;
@@ -37,6 +39,7 @@ import org.springframework.data.domain.Window;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
@@ -310,6 +313,29 @@ class SchemaMappingInspectorTests {
 		}
 
 		@Test
+		void reportIsEmptyWhenFieldHasBatchMapping() {
+			String schema = """
+						type Query {
+							books: [Book]
+						}
+						
+						type Book {
+							id: ID
+							name: String
+							author: Author
+					 	}
+					 	
+						type Author {
+							id: ID
+							firstName: String
+							lastName: String
+						}
+					""";
+			SchemaMappingInspector.Report report = inspectSchema(schema, BatchMappingBookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
+		}
+
+		@Test
 		void reportHasUnmappedField() {
 			String schema = """
 						type Query {
@@ -527,6 +553,7 @@ class SchemaMappingInspectorTests {
 		for (Class<?> controllerType : controllerTypes) {
 			context.registerBean(controllerType);
 		}
+		context.registerBean(BatchLoaderRegistry.class, () -> new DefaultBatchLoaderRegistry());
 		context.refresh();
 
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
@@ -600,6 +627,21 @@ class SchemaMappingInspectorTests {
 		@SubscriptionMapping
 		public Flux<List<Book>> bookSearch(@Argument String author) {
 			return Flux.empty();
+		}
+	}
+
+
+	@Controller
+	private static class BatchMappingBookController {
+
+		@QueryMapping
+		public List<Book> books() {
+			return Collections.emptyList();
+		}
+
+		@BatchMapping
+		public Mono<Map<Book, Author>> author(List<Book> books) {
+			return Mono.empty();
 		}
 	}
 
@@ -684,7 +726,7 @@ class SchemaMappingInspectorTests {
 		public SchemaInspectionReportAssert hasSkippedTypeCount(int expected) {
 			isNotNull();
 			if (this.actual.skippedTypes().size() != expected) {
-				failWithMessage("Expected %s skipped types, found %d.", expected, this.actual.skippedTypes());
+				failWithMessage("Expected %s skipped types, found %s.", expected, this.actual.skippedTypes());
 			}
 			return this;
 		}

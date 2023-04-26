@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -349,8 +350,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 						info, this.argumentResolvers, this.validationHelper, this.exceptionResolver, this.executor);
 			}
 			else {
-				String dataLoaderKey = registerBatchLoader(info);
-				dataFetcher = new BatchMappingDataFetcher(dataLoaderKey);
+				dataFetcher = registerBatchLoader(info);
 			}
 			runtimeWiringBuilder.type(info.getCoordinates().getTypeName(), typeBuilder ->
 					typeBuilder.dataFetcher(info.getCoordinates().getFieldName(), dataFetcher));
@@ -502,38 +502,49 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
 	}
 
-	private String registerBatchLoader(MappingInfo info) {
+	private DataFetcher<Object> registerBatchLoader(MappingInfo info) {
 		if (!info.isBatchMapping()) {
 			throw new IllegalArgumentException("Not a @BatchMapping method: " + info);
 		}
 
 		String dataLoaderKey = info.getCoordinates().toString();
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
+		BatchLoaderRegistry.RegistrationSpec<Object, Object> registration = registry.forName(dataLoaderKey);
+		if (info.getMaxBatchSize() > 0) {
+			registration.withOptions(options -> options.setMaxBatchSize(info.getMaxBatchSize()));
+		}
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
 		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, this.executor);
 
 		MethodParameter returnType = handlerMethod.getReturnType();
 		Class<?> clazz = returnType.getParameterType();
-		Class<?> nestedClass = (clazz.equals(Callable.class) ? returnType.nested().getNestedParameterType() : clazz);
 
-		BatchLoaderRegistry.RegistrationSpec<Object, Object> registration = registry.forName(dataLoaderKey);
-		if (info.getMaxBatchSize() > 0) {
-			registration.withOptions(options -> options.setMaxBatchSize(info.getMaxBatchSize()));
+		if (clazz.equals(Callable.class)) {
+			returnType = returnType.nested();
+			clazz = returnType.getNestedParameterType();
 		}
 
-		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(nestedClass)) {
+		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz)) {
 			registration.registerBatchLoader(invocable::invokeForIterable);
-		}
-		else if (clazz.equals(Mono.class) || nestedClass.equals(Map.class)) {
-			registration.registerMappedBatchLoader(invocable::invokeForMap);
-		}
-		else {
-			throw new IllegalStateException("@BatchMapping method is expected to return " +
-					"Flux<V>, List<V>, Mono<Map<K, V>>, or Map<K, V>: " + handlerMethod);
+			ResolvableType valueType = ResolvableType.forMethodParameter(returnType.nested());
+			return new BatchMappingDataFetcher(info, valueType, dataLoaderKey);
 		}
 
-		return dataLoaderKey;
+		if (clazz.equals(Mono.class)) {
+			returnType = returnType.nested();
+			clazz = returnType.getNestedParameterType();
+		}
+
+		if (Map.class.isAssignableFrom(clazz)) {
+			registration.registerMappedBatchLoader(invocable::invokeForMap);
+			ResolvableType valueType = ResolvableType.forMethodParameter(returnType.nested(1));
+			return new BatchMappingDataFetcher(info, valueType, dataLoaderKey);
+		}
+
+		throw new IllegalStateException(
+				"@BatchMapping method is expected to return " +
+						"Mono<Map<K, V>>, Map<K, V>, Flux<V>, or Collection<V>: " + handlerMethod);
 	}
 
 	/**
@@ -715,20 +726,34 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	}
 
 
-	static class BatchMappingDataFetcher implements DataFetcher<Object> {
+	static class BatchMappingDataFetcher implements DataFetcher<Object>, SelfDescribingDataFetcher<Object> {
+
+		private final MappingInfo info;
+
+		private final ResolvableType returnType;
 
 		private final String dataLoaderKey;
 
-		BatchMappingDataFetcher(String dataLoaderKey) {
+		BatchMappingDataFetcher(MappingInfo info, ResolvableType valueType, String dataLoaderKey) {
+			this.info = info;
+			this.returnType = ResolvableType.forClassWithGenerics(CompletableFuture.class, valueType);
 			this.dataLoaderKey = dataLoaderKey;
+		}
+
+		@Override
+		public String getDescription() {
+			return "@BatchMapping " + this.info.getHandlerMethod().getShortLogMessage();
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return this.returnType;
 		}
 
 		@Override
 		public Object get(DataFetchingEnvironment env) {
 			DataLoader<?, ?> dataLoader = env.getDataLoaderRegistry().getDataLoader(this.dataLoaderKey);
-			if (dataLoader == null) {
-				throw new IllegalStateException("No DataLoader for key '" + this.dataLoaderKey + "'");
-			}
+			Assert.state(dataLoader != null, "No DataLoader for key '" + this.dataLoaderKey + "'");
 			return dataLoader.load(env.getSource());
 		}
 	}
