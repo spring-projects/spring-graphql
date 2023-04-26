@@ -112,14 +112,12 @@ class SchemaMappingInspector {
 	 */
 	public Report inspect() {
 
-		inspectType(this.schema.getQueryType(), null, false);
-
+		inspectFields(this.schema.getQueryType(), null);
 		if (this.schema.isSupportingMutations()) {
-			inspectType(this.schema.getMutationType(), null, false);
+			inspectFields(this.schema.getMutationType(), null);
 		}
-
 		if (this.schema.isSupportingSubscriptions()) {
-			inspectType(this.schema.getSubscriptionType(), null, false);
+			inspectFields(this.schema.getSubscriptionType(), null);
 		}
 
 		inspectDataFetcherRegistrations();
@@ -128,70 +126,25 @@ class SchemaMappingInspector {
 	}
 
 	/**
-	 * Inspect the given schema {@link GraphQLType}, which is either one of the top-level
-	 * types Query, Mutation, or Subscription, or the output type for a field in which
-	 * case there should also be {@link ResolvableType} for the corresponding Java type.
-	 *
-	 * @param type the GraphQL schema type to inspect
-	 * @param resolvableType the corresponding Java type, but {@code null} for top-level types
-	 * @param isSubscriptionField whether this is the type for a subscription field
+	 * Inspect the given {@code GraphQLFieldsContainer} check against {@code DataFetcher}
+	 * registrations, or Java properties in the given {@code ResolvableType}.
+	 * @param fields the GraphQL schema type to inspect
+	 * @param resolvableType the Java type to match against, or {@code null} if
+	 * not applicable such as for Query, Mutation, or Subscription
 	 */
 	@SuppressWarnings("rawtypes")
-	private void inspectType(GraphQLType type, @Nullable ResolvableType resolvableType, boolean isSubscriptionField) {
-		Assert.notNull(type, "No GraphQLType");
+	private void inspectFields(GraphQLFieldsContainer fields, @Nullable ResolvableType resolvableType) {
 
-		// Remove GraphQL type wrappers, and nest within Java generic types
-		type = unwrapIfNonNull(type);
-		if (isConnectionType(type)) {
-			type = getConnectionNodeType(type);
-			resolvableType = nestForConnection(resolvableType, type);
-		}
-		else if (type instanceof GraphQLList listType) {
-			type = unwrapIfNonNull(listType.getWrappedType());
-			resolvableType = nestForList(resolvableType, type, isSubscriptionField);
-		}
-		else if (resolvableType != null) {
-			resolvableType = nestIfReactive(resolvableType);
-		}
+		Map<String, DataFetcher> dataFetcherMap = this.runtimeWiring.getDataFetcherForType(fields.getName());
 
-		// Type already inspected?
-		if (addAndCheckIfAlreadyInspected(type)) {
-			return;
-		}
-
-		// Can we inspect GraphQL type?
-		if (!(type instanceof GraphQLFieldsContainer fieldContainer)) {
-			if (isNotScalarOrEnumType(type)) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Skipped '" + typeNameToString(type) + "': " +
-							"inspection does not support " + type.getClass().getSimpleName() + ".");
-				}
-				this.reportBuilder.addSkippedType(typeNameToString(type));
-			}
-			return;
-		}
-
-		// Can we inspect Java type?
-		if (resolvableType != null && resolvableType.resolve(Object.class) == Object.class) {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Skipped '" + typeNameToString(type) + "': " +
-						"inspection could not determine the Java object return type.");
-			}
-			this.reportBuilder.addSkippedType(typeNameToString(type));
-			return;
-		}
-
-		String typeName = fieldContainer.getName();
-		Map<String, DataFetcher> dataFetcherMap = this.runtimeWiring.getDataFetcherForType(typeName);
-
-		for (GraphQLFieldDefinition field : fieldContainer.getFieldDefinitions()) {
+		for (GraphQLFieldDefinition field : fields.getFieldDefinitions()) {
 			String fieldName = field.getName();
 			if (dataFetcherMap.containsKey(fieldName)) {
 				DataFetcher<?> fetcher = dataFetcherMap.get(fieldName);
 				if (fetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
-					inspectType(
+					inspectFieldType(
 							field.getType(), selfDescribingDataFetcher.getReturnType(),
-							(type == this.schema.getSubscriptionType()));
+							(fields == this.schema.getSubscriptionType()));
 				}
 				else if (isNotScalarOrEnumType(field.getType())) {
 					if (logger.isDebugEnabled()) {
@@ -202,9 +155,62 @@ class SchemaMappingInspector {
 				}
 			}
 			else if (resolvableType == null || !hasProperty(resolvableType, fieldName)) {
-				this.reportBuilder.addUnmappedField(typeName, fieldName);
+				this.reportBuilder.addUnmappedField(fields.getName(), fieldName);
 			}
 		}
+	}
+
+	/**
+	 * Inspect the output {@link GraphQLType} of a field.
+	 * @param outputType the field type to inspect
+	 * @param resolvableType the expected Java return type
+	 * @param isSubscriptionField whether this is for a subscription field
+	 */
+	private void inspectFieldType(GraphQLType outputType, ResolvableType resolvableType, boolean isSubscriptionField) {
+
+		// Remove GraphQL type wrappers, and nest within Java generic types
+		outputType = unwrapIfNonNull(outputType);
+		if (isConnectionType(outputType)) {
+			outputType = getConnectionNodeType(outputType);
+			resolvableType = nestForConnection(resolvableType);
+		}
+		else if (outputType instanceof GraphQLList listType) {
+			outputType = unwrapIfNonNull(listType.getWrappedType());
+			resolvableType = nestForList(resolvableType, isSubscriptionField);
+		}
+		else {
+			resolvableType = nestIfReactive(resolvableType);
+		}
+
+		// Type already inspected?
+		if (addAndCheckIfAlreadyInspected(outputType)) {
+			return;
+		}
+
+		// Can we inspect GraphQL type?
+		if (!(outputType instanceof GraphQLFieldsContainer fieldContainer)) {
+			if (isNotScalarOrEnumType(outputType)) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Skipped '" + typeNameToString(outputType) + "': " +
+							"inspection does not support " + outputType.getClass().getSimpleName() + ".");
+				}
+				this.reportBuilder.addSkippedType(typeNameToString(outputType));
+			}
+			return;
+		}
+
+		// Can we inspect Java type?
+		if (resolvableType.resolve(Object.class) == Object.class) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Skipped '" + typeNameToString(outputType) + "': " +
+						"inspection could not determine the Java object return type.");
+			}
+			this.reportBuilder.addSkippedType(typeNameToString(outputType));
+			return;
+		}
+
+		// Nest within the
+		inspectFields(fieldContainer, resolvableType);
 	}
 
 	private GraphQLType unwrapIfNonNull(GraphQLType type) {
@@ -225,8 +231,7 @@ class SchemaMappingInspector {
 		return type;
 	}
 
-	private ResolvableType nestForConnection(@Nullable ResolvableType type, GraphQLType graphQLType) {
-		Assert.state(type != null, "No Java type for " + typeNameToString(graphQLType));
+	private ResolvableType nestForConnection(ResolvableType type) {
 		type = nestIfReactive(type);
 		Assert.state(type.hasGenerics(), "Expected type with generics: " + type);
 		return type.getNested(2);
@@ -242,8 +247,7 @@ class SchemaMappingInspector {
 		return type;
 	}
 
-	private ResolvableType nestForList(@Nullable ResolvableType type, GraphQLType graphQlType, boolean subscription) {
-		Assert.state(type != null, "No Java type for " + typeNameToString(graphQlType));
+	private ResolvableType nestForList(ResolvableType type, boolean subscription) {
 		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(type.resolve(Object.class));
 		if (adapter != null) {
 			Assert.state(!adapter.isNoValue(), "Expected List compatible type: " + type);
