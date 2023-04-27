@@ -21,7 +21,7 @@ dependencies {
 	compileOnly 'org.springframework.security:spring-security-core'
 
 	compileOnly 'com.querydsl:querydsl-core'
-	compileOnly 'org.springframework.data:spring-data-commons'
+	compileOnly 'org.springframework.data:spring-data-commons:3.1.0-SNAPSHOT'
 
 	compileOnly 'io.rsocket:rsocket-core'
 	compileOnly 'io.rsocket:rsocket-transport-netty'
@@ -44,7 +44,7 @@ dependencies {
 	testImplementation 'org.springframework:spring-websocket'
 	testImplementation 'org.springframework.data:spring-data-commons'
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
-	testImplementation 'org.springframework.data:spring-data-jpa'
+	testImplementation 'org.springframework.data:spring-data-jpa:3.1.0-SNAPSHOT'
 	testImplementation 'io.micrometer:micrometer-observation-test'
 	testImplementation 'io.micrometer:micrometer-tracing-test'
 	testImplementation 'com.h2database:h2'
