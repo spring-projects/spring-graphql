@@ -36,8 +36,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.OffsetScrollPosition;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
@@ -260,7 +259,7 @@ class QueryByExampleDataFetcherJpaTests {
 				executor != null ? Collections.singletonList(executor) : Collections.emptyList(),
 				Collections.emptyList(),
 				new ScrollPositionCursorStrategy(),
-				new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+				new ScrollSubrange(ScrollPosition.offset(), 10, true));
 	}
 
 	private WebGraphQlRequest request(String query) {

@@ -34,7 +34,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
@@ -54,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  */
 class SchemaMappingInspectorTests {
 
@@ -606,7 +607,7 @@ class SchemaMappingInspectorTests {
 
 		@QueryMapping
 		public Window<Book> paginatedBooks() {
-			return Window.from(List.of(new Book()), OffsetScrollPosition::of);
+			return Window.from(List.of(new Book()), ScrollPosition::offset);
 		}
 
 		@SchemaMapping

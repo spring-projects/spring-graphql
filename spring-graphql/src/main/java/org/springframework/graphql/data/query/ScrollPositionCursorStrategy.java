@@ -28,6 +28,7 @@ import org.springframework.util.Assert;
  * Strategy to convert a {@link ScrollPosition} to and from a String cursor.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  * @since 1.2.0
  */
 public final class ScrollPositionCursorStrategy implements CursorStrategy<ScrollPosition> {
@@ -79,11 +80,11 @@ public final class ScrollPositionCursorStrategy implements CursorStrategy<Scroll
 			try {
 				if (cursor.startsWith(OFFSET_PREFIX)) {
 					long index = Long.parseLong(cursor.substring(2));
-					return OffsetScrollPosition.of(index > 0 ? index : 0);
+					return ScrollPosition.offset(index > 0 ? index : 0);
 				}
 				else if (cursor.startsWith(KEYSET_PREFIX)) {
 					Map<String, Object> keys = this.keysetCursorStrategy.fromCursor(cursor.substring(2));
-					return KeysetScrollPosition.of(keys);
+					return ScrollPosition.forward(keys);
 				}
 			}
 			catch (Throwable ex) {

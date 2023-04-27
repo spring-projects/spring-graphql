@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
@@ -43,6 +44,7 @@ import org.springframework.stereotype.Controller;
  * GraphQL paginated requests handled through {@code @SchemaMapping} methods.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  */
 public class SchemaMappingPaginationTests {
 
@@ -95,10 +97,10 @@ public class SchemaMappingPaginationTests {
 
 		@QueryMapping
 		public Window<Book> books(ScrollSubrange subrange) {
-			int offset = (int) ((OffsetScrollPosition) subrange.position().orElse(OffsetScrollPosition.initial())).getOffset();
+			int offset = (int) ((OffsetScrollPosition) subrange.position().orElse(ScrollPosition.offset())).getOffset();
 			int count = subrange.count().orElse(5);
 			List<Book> books = BookSource.books().subList(offset, offset + count);
-			return Window.from(books, OffsetScrollPosition::of);
+			return Window.from(books, ScrollPosition::offset);
 		}
 
 	}

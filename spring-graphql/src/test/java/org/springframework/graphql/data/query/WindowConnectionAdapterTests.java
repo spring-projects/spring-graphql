@@ -20,7 +20,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link WindowConnectionAdapter}.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  */
 public class WindowConnectionAdapterTests {
 
@@ -40,7 +41,7 @@ public class WindowConnectionAdapterTests {
 	@Test
 	void paged() {
 		List<Book> books = BookSource.books();
-		Window<Book> window = Window.from(books, offset -> OffsetScrollPosition.of(35 + offset), true);
+		Window<Book> window = Window.from(books, offset -> ScrollPosition.offset(35 + offset), true);
 
 		assertThat(this.adapter.getContent(window)).isEqualTo(books);
 		assertThat(this.adapter.hasNext(window)).isTrue();
@@ -51,7 +52,7 @@ public class WindowConnectionAdapterTests {
 	@Test
 	void unpaged() {
 		List<Book> books = BookSource.books();
-		Window<Book> window = Window.from(books, OffsetScrollPosition::of);
+		Window<Book> window = Window.from(books, ScrollPosition::offset);
 
 		assertThat(this.adapter.getContent(window)).isEqualTo(books);
 		assertThat(this.adapter.hasNext(window)).isFalse();

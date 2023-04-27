@@ -38,7 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
@@ -237,7 +237,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				Collections.emptyList(),
 				new ScrollPositionCursorStrategy(),
-				new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+				new ScrollSubrange(ScrollPosition.offset(), 10, true));
 	}
 
 	private WebGraphQlRequest request(String query) {
