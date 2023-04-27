@@ -54,7 +54,7 @@ import org.springframework.util.MultiValueMap;
  * Declares an {@link #inspect(GraphQLSchema, RuntimeWiring)} method that checks
  * if schema fields are covered either by a {@link DataFetcher} registration,
  * or match a Java object property. Fields that have neither are reported as
- * "unmapped" in the resulting {@link Report Resport}. The inspection also
+ * "unmapped" in the resulting {@link SchemaMappingReport}. The inspection also
  * performs a reverse check for {@code DataFetcher} registrations against schema
  * fields that don't exist.
  *
@@ -82,7 +82,7 @@ import org.springframework.util.MultiValueMap;
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
-class SchemaMappingInspector {
+final class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
 
@@ -91,11 +91,18 @@ class SchemaMappingInspector {
 
 	private final RuntimeWiring runtimeWiring;
 
-	private final ReportBuilder reportBuilder = new ReportBuilder();
-
 	private final Set<String> inspectedTypes = new HashSet<>();
 
 	private final ReactiveAdapterRegistry reactiveAdapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
+
+	private final MultiValueMap<String, String> unmappedFields = new LinkedMultiValueMap<>();
+
+	private final Map<FieldCoordinates, DataFetcher<?>> unmappedDataFetchers = new LinkedHashMap<>();
+
+	private final Set<String> skippedTypes = new LinkedHashSet<>();
+
+	@Nullable
+	private SchemaMappingReport report;
 
 
 	private SchemaMappingInspector(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
@@ -107,34 +114,41 @@ class SchemaMappingInspector {
 
 
 	/**
-	 * Inspect all fields, starting from Query, Mutation, and Subscription, and
-	 * working recursively down through the types they return.
-	 * @return a report with unmapped fields and skipped types.
+	 * Perform an inspection and create a {@link SchemaMappingReport}.
+	 * The inspection is one once only, during the first call to this method.
 	 */
-	public Report inspect() {
+	public SchemaMappingReport getOrCreateReport() {
+		if (this.report == null) {
+			checkSchema();
+			checkDataFetcherRegistrations();
+			this.report = new SchemaMappingReport(
+					this.unmappedFields, this.unmappedDataFetchers, this.skippedTypes);
+		}
+		return this.report;
+	}
 
-		inspectFields(this.schema.getQueryType(), null);
+	private void checkSchema() {
+
+		checkFieldsContainer(this.schema.getQueryType(), null);
+
 		if (this.schema.isSupportingMutations()) {
-			inspectFields(this.schema.getMutationType(), null);
+			checkFieldsContainer(this.schema.getMutationType(), null);
 		}
+
 		if (this.schema.isSupportingSubscriptions()) {
-			inspectFields(this.schema.getSubscriptionType(), null);
+			checkFieldsContainer(this.schema.getSubscriptionType(), null);
 		}
-
-		inspectDataFetcherRegistrations();
-
-		return this.reportBuilder.build();
 	}
 
 	/**
-	 * Inspect the given {@code GraphQLFieldsContainer} check against {@code DataFetcher}
-	 * registrations, or Java properties in the given {@code ResolvableType}.
-	 * @param fields the GraphQL schema type to inspect
+	 * Check the given {@code GraphQLFieldsContainer} against {@code DataFetcher}
+	 * registrations, or Java properties of the given {@code ResolvableType}.
+	 * @param fields the GraphQL interface or object type to check
 	 * @param resolvableType the Java type to match against, or {@code null} if
 	 * not applicable such as for Query, Mutation, or Subscription
 	 */
 	@SuppressWarnings("rawtypes")
-	private void inspectFields(GraphQLFieldsContainer fields, @Nullable ResolvableType resolvableType) {
+	private void checkFieldsContainer(GraphQLFieldsContainer fields, @Nullable ResolvableType resolvableType) {
 
 		Map<String, DataFetcher> dataFetcherMap = this.runtimeWiring.getDataFetcherForType(fields.getName());
 
@@ -143,7 +157,7 @@ class SchemaMappingInspector {
 			if (dataFetcherMap.containsKey(fieldName)) {
 				DataFetcher<?> fetcher = dataFetcherMap.get(fieldName);
 				if (fetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
-					inspectFieldType(
+					checkFieldType(
 							field.getType(), selfDescribingDataFetcher.getReturnType(),
 							(fields == this.schema.getSubscriptionType()));
 				}
@@ -153,18 +167,18 @@ class SchemaMappingInspector {
 				}
 			}
 			else if (resolvableType == null || !hasProperty(resolvableType, fieldName)) {
-				this.reportBuilder.addUnmappedField(fields.getName(), fieldName);
+				this.unmappedFields.add(fields.getName(), fieldName);
 			}
 		}
 	}
 
 	/**
-	 * Inspect the output {@link GraphQLType} of a field.
+	 * Check the output {@link GraphQLType} of a field against the given DataFetcher return type.
 	 * @param outputType the field type to inspect
 	 * @param resolvableType the expected Java return type
 	 * @param isSubscriptionField whether this is for a subscription field
 	 */
-	private void inspectFieldType(GraphQLType outputType, ResolvableType resolvableType, boolean isSubscriptionField) {
+	private void checkFieldType(GraphQLType outputType, ResolvableType resolvableType, boolean isSubscriptionField) {
 
 		// Remove GraphQL type wrappers, and nest within Java generic types
 		outputType = unwrapIfNonNull(outputType);
@@ -201,7 +215,7 @@ class SchemaMappingInspector {
 		}
 
 		// Nest within the
-		inspectFields(fieldContainer, resolvableType);
+		checkFieldsContainer(fieldContainer, resolvableType);
 	}
 
 	private GraphQLType unwrapIfNonNull(GraphQLType type) {
@@ -283,19 +297,19 @@ class SchemaMappingInspector {
 
 	private void addSkippedType(GraphQLType type, Supplier<String> reason) {
 		String typeName = typeNameToString(type);
-		this.reportBuilder.addSkippedType(typeName);
+		this.skippedTypes.add(typeName);
 		if (logger.isDebugEnabled()) {
 			logger.debug("Skipped '" + typeName + "': " + reason.get());
 		}
 	}
 
 	@SuppressWarnings("rawtypes")
-	private void inspectDataFetcherRegistrations() {
+	private void checkDataFetcherRegistrations() {
 		this.runtimeWiring.getDataFetchers().forEach((typeName, registrations) ->
 				registrations.forEach((fieldName, fetcher) -> {
 					FieldCoordinates coordinates = FieldCoordinates.coordinates(typeName, fieldName);
 					if (this.schema.getFieldDefinition(coordinates) == null) {
-						this.reportBuilder.addUnmappedDataFetcher(coordinates, fetcher);
+						this.unmappedDataFetchers.put(coordinates, fetcher);
 					}
 				}));
 	}
@@ -307,73 +321,9 @@ class SchemaMappingInspector {
 	 * @param runtimeWiring for {@code DataFetcher} registrations
 	 * @return the created report
 	 */
-	public static Report inspect(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
-		SchemaMappingInspector inspector = new SchemaMappingInspector(schema, runtimeWiring);
-		return inspector.inspect();
+	public static SchemaMappingReport inspect(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
+		return new SchemaMappingInspector(schema, runtimeWiring).getOrCreateReport();
 	}
 
-
-
-	/**
-	 * The report produced as a result of schema mappings inspection.
-	 * @param unmappedFields map with type names as keys, and unmapped field names as values
-	 * @param unmappedDataFetchers map with unmapped {@code DataFetcher}s and their field coordinates
-	 * @param skippedTypes the names of types skipped by the inspection
-	 */
-	public record Report(
-			MultiValueMap<String, String> unmappedFields,
-			Map<FieldCoordinates, DataFetcher<?>> unmappedDataFetchers,
-			Set<String> skippedTypes) {
-
-		@Override
-		public String toString() {
-			return "GraphQL schema inspection:\n" +
-					"\tUnmapped fields: " + this.unmappedFields + "\n" +
-					"\tUnmapped DataFetcher registrations: " + this.unmappedDataFetchers + "\n" +
-					"\tSkipped types: " + this.skippedTypes;
-		}
-	}
-
-
-	/**
-	 * Builder for a {@link Report}.
-	 */
-	private static class ReportBuilder {
-
-		private final MultiValueMap<String, String> unmappedFields = new LinkedMultiValueMap<>();
-
-		private final Map<FieldCoordinates, DataFetcher<?>> unmappedDataFetchers = new LinkedHashMap<>();
-
-		private final Set<String> skippedTypes = new LinkedHashSet<>();
-
-		/**
-		 * Add an unmapped field.
-		 */
-		public void addUnmappedField(String typeName, String fieldName) {
-			this.unmappedFields.add(typeName, fieldName);
-		}
-
-		/**
-		 * Add an unmapped {@code DataFetcher} registration.
-		 */
-		public void addUnmappedDataFetcher(FieldCoordinates coordinates, DataFetcher<?> dataFetcher) {
-			this.unmappedDataFetchers.put(coordinates, dataFetcher);
-		}
-
-		/**
-		 * Add a skipped type name.
-		 */
-		public void addSkippedType(String typeName) {
-			this.skippedTypes.add(typeName);
-		}
-
-		public Report build() {
-			return new Report(
-					new LinkedMultiValueMap<>(this.unmappedFields),
-					new LinkedHashMap<>(this.unmappedDataFetchers),
-					new LinkedHashSet<>(this.skippedTypes));
-		}
-
-	}
 
 }

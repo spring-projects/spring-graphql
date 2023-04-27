@@ -138,7 +138,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 		configureGraphQl(builder -> {
 			GraphQLSchema schema = builder.build().getGraphQLSchema();
-			SchemaMappingInspector.Report report = SchemaMappingInspector.inspect(schema, runtimeWiring);
+			SchemaMappingReport report = SchemaMappingInspector.inspect(schema, runtimeWiring);
 			logger.info(report);
 		});
 

@@ -68,7 +68,7 @@ class SchemaMappingInspectorTests {
 							greeting: String
 						}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingReport report = inspectSchema(schema, EmptyController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Query", "greeting");
 		}
 
@@ -79,7 +79,7 @@ class SchemaMappingInspectorTests {
 							greeting: String
 						}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).isEmpty();
 		}
 
@@ -96,7 +96,7 @@ class SchemaMappingInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
 		}
 
@@ -128,7 +128,7 @@ class SchemaMappingInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
 		}
 
@@ -141,7 +141,7 @@ class SchemaMappingInspectorTests {
 					    	greeting: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, EmptyController.class);
+			SchemaMappingReport report = inspectSchema(schema, EmptyController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Query", "greeting");
 		}
 
@@ -166,7 +166,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Mutation", "createBook");
 		}
 
@@ -185,7 +185,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
@@ -205,7 +205,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Mutation", "createBook");
 		}
 
@@ -230,7 +230,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Subscription", "bookSearch");
 		}
 
@@ -249,7 +249,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
@@ -269,7 +269,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Subscription", "bookSearch");
 		}
 
@@ -291,7 +291,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
@@ -308,7 +308,7 @@ class SchemaMappingInspectorTests {
 							fetcher: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
@@ -331,7 +331,7 @@ class SchemaMappingInspectorTests {
 							lastName: String
 						}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BatchMappingBookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BatchMappingBookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
@@ -348,7 +348,7 @@ class SchemaMappingInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
 		}
 
@@ -359,7 +359,7 @@ class SchemaMappingInspectorTests {
 							anything: String
 						}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, GreetingController.class);
+			SchemaMappingReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedDataFetcherCount(1).containsUnmappedDataFetchersFor("Query", "greeting");
 		}
 
@@ -382,7 +382,7 @@ class SchemaMappingInspectorTests {
 							missing: String
 						}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Author", "missing");
 		}
 
@@ -404,7 +404,7 @@ class SchemaMappingInspectorTests {
 							missing: String
 						}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, TeamController.class);
+			SchemaMappingReport report = inspectSchema(schema, TeamController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("TeamMember", "missing");
 		}
 
@@ -423,7 +423,7 @@ class SchemaMappingInspectorTests {
 							missing: Boolean
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
 		}
 
@@ -444,7 +444,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schema, UnionController.class);
+			SchemaMappingReport report = inspectSchema(schema, UnionController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("FooBar");
 		}
 
@@ -466,7 +466,7 @@ class SchemaMappingInspectorTests {
 					.type("Query", builder -> builder.dataFetcher("bookById", environment -> null))
 					.build();
 
-			SchemaMappingInspector.Report report = SchemaMappingInspector.inspect(schema, wiring);
+			SchemaMappingReport report = SchemaMappingInspector.inspect(schema, wiring);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("Book");
 		}
 
@@ -482,7 +482,7 @@ class SchemaMappingInspectorTests {
 							name: String
 					 	}
 					""";
-			SchemaMappingInspector.Report report = inspectSchema(schemaContent, BookController.class);
+			SchemaMappingReport report = inspectSchema(schemaContent, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("Book");
 		}
 
@@ -499,7 +499,7 @@ class SchemaMappingInspectorTests {
 					.type("Query", builder -> builder.dataFetcher("greeting", environment -> null))
 					.build();
 
-			SchemaMappingInspector.Report report = SchemaMappingInspector.inspect(schema, wiring);
+			SchemaMappingReport report = SchemaMappingInspector.inspect(schema, wiring);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
@@ -531,7 +531,7 @@ class SchemaMappingInspectorTests {
 							id: ID
 						}
 					""";
-			 SchemaMappingInspector.Report report = inspectSchema(schema, BookController.class);
+			 SchemaMappingReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).hasSkippedTypeCount(0);
 			 assertThat(report.toString()).isEqualTo("""
 					GraphQL schema inspection:
@@ -542,7 +542,7 @@ class SchemaMappingInspectorTests {
 
 	}
 
-	private SchemaMappingInspector.Report inspectSchema(String schemaContent, Class<?>... controllers) {
+	private SchemaMappingReport inspectSchema(String schemaContent, Class<?>... controllers) {
 		GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
 		RuntimeWiring runtimeWiring = createRuntimeWiring(controllers);
 		return SchemaMappingInspector.inspect(schema, runtimeWiring);
@@ -565,7 +565,7 @@ class SchemaMappingInspectorTests {
 		return wiringBuilder.build();
 	}
 
-	static SchemaInspectionReportAssert assertThatReport(SchemaMappingInspector.Report actual) {
+	static SchemaInspectionReportAssert assertThatReport(SchemaMappingReport actual) {
 		return new SchemaInspectionReportAssert(actual);
 	}
 
@@ -687,9 +687,9 @@ class SchemaMappingInspectorTests {
 
 
 	private static class SchemaInspectionReportAssert
-			extends AbstractAssert<SchemaInspectionReportAssert, SchemaMappingInspector.Report> {
+			extends AbstractAssert<SchemaInspectionReportAssert, SchemaMappingReport> {
 
-		public SchemaInspectionReportAssert(SchemaMappingInspector.Report actual) {
+		public SchemaInspectionReportAssert(SchemaMappingReport actual) {
 			super(actual, SchemaInspectionReportAssert.class);
 		}
 
