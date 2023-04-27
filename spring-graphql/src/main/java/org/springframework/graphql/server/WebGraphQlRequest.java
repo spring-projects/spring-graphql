@@ -46,6 +46,17 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	private final HttpHeaders headers;
 
+    public WebGraphQlRequest(URI uri, HttpHeaders headers, String query, String operationName,
+                             Map<String, Object> variables, Map<String, Object> extensions, String id,
+                             @Nullable Locale locale) {
+        super(query, operationName, variables, extensions, id, locale);
+
+        Assert.notNull(uri, "URI is required'");
+        Assert.notNull(headers, "HttpHeaders is required'");
+
+        this.uri = UriComponentsBuilder.fromUri(uri).build(true);
+        this.headers = headers;
+    }
 
 	/**
 	 * Create an instance.
