@@ -22,7 +22,6 @@ import graphql.schema.DataFetchingEnvironment;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
-import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;
@@ -39,6 +38,7 @@ import org.springframework.util.StringUtils;
  * Utility methods to get information for Spring Data repositories.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  * @since 1.0.0
  */
 class RepositoryUtils {
@@ -85,7 +85,7 @@ class RepositoryUtils {
 	}
 
 	public static ScrollSubrange defaultScrollSubrange() {
-		return new ScrollSubrange(OffsetScrollPosition.initial(), 20, true);
+		return new ScrollSubrange(ScrollPosition.offset(), 20, true);
 	}
 
 	public static ScrollSubrange buildScrollSubrange(

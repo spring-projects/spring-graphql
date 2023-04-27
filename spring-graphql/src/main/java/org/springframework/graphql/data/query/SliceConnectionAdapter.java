@@ -18,7 +18,6 @@ package org.springframework.graphql.data.query;
 
 import java.util.Collection;
 
-import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Slice;
 import org.springframework.graphql.data.pagination.ConnectionAdapter;
@@ -29,6 +28,7 @@ import org.springframework.graphql.data.pagination.CursorStrategy;
  * Adapter for {@link Slice} to {@link graphql.relay.Connection}.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  * @since 1.2.0
  */
 public final class SliceConnectionAdapter
@@ -68,7 +68,7 @@ public final class SliceConnectionAdapter
 	@Override
 	public String cursorAt(Object container, int index) {
 		Slice<?> slice = slice(container);
-		ScrollPosition position = OffsetScrollPosition.of((long) slice.getNumber() * slice.getSize() + index);
+		ScrollPosition position = ScrollPosition.offset((long) slice.getNumber() * slice.getSize() + index);
 		return getCursorStrategy().toCursor(position);
 	}
 

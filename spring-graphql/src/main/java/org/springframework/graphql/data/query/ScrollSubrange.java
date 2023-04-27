@@ -17,10 +17,7 @@
 package org.springframework.graphql.data.query;
 
 
-import java.util.Map;
-
 import org.springframework.data.domain.KeysetScrollPosition;
-import org.springframework.data.domain.KeysetScrollPosition.Direction;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.graphql.data.pagination.Subrange;
@@ -36,6 +33,7 @@ import org.springframework.lang.Nullable;
  * always {@code true}.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  * @since 1.2.0
  */
 public final class ScrollSubrange extends Subrange<ScrollPosition> {
@@ -49,12 +47,10 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 	private static ScrollPosition initPosition(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
 		if (!forward) {
 			if (pos instanceof OffsetScrollPosition offsetPosition && count != null) {
-				long offset = offsetPosition.getOffset();
-				return OffsetScrollPosition.of(offset > count ? offset - count : 0);
+				return offsetPosition.advanceBy(-count);
 			}
 			else if (pos instanceof KeysetScrollPosition keysetPosition) {
-				Map<String, Object> keys = keysetPosition.getKeys();
-				pos = KeysetScrollPosition.of(keys, Direction.Backward);
+				pos = keysetPosition.backward();
 			}
 		}
 		return pos;

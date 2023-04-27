@@ -21,8 +21,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import org.springframework.data.domain.KeysetScrollPosition;
-import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link ScrollPositionCursorStrategy}.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  */
 public class ScrollPositionCursorStrategyTests {
 
@@ -39,7 +38,7 @@ public class ScrollPositionCursorStrategyTests {
 
 	@Test
 	void offsetPosition() {
-		toAndFromCursor(OffsetScrollPosition.of(43), "O_43");
+		toAndFromCursor(ScrollPosition.offset(43), "O_43");
 	}
 
 	@Test
@@ -49,7 +48,7 @@ public class ScrollPositionCursorStrategyTests {
 		keys.put("lastName", "Heller");
 		keys.put("id", 103);
 
-		toAndFromCursor(KeysetScrollPosition.of(keys),
+		toAndFromCursor(ScrollPosition.forward(keys),
 				"K_{\"firstName\":\"Joseph\",\"lastName\":\"Heller\",\"id\":103}");
 	}
 

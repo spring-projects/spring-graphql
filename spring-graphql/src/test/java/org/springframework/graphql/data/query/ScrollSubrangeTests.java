@@ -22,9 +22,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.data.domain.KeysetScrollPosition;
-import org.springframework.data.domain.KeysetScrollPosition.Direction;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
+import org.springframework.data.domain.ScrollPosition.Direction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,12 +32,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link ScrollPositionCursorStrategy}.
  *
  * @author Rossen Stoyanchev
+ * @author Oliver Drotbohm
  */
 public class ScrollSubrangeTests {
 
 	@Test
 	void offset() {
-		OffsetScrollPosition position = OffsetScrollPosition.of(30);
+		ScrollPosition position = ScrollPosition.offset(30);
 		int count = 10;
 
 		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
@@ -58,20 +59,20 @@ public class ScrollSubrangeTests {
 		keys.put("lastName", "Heller");
 		keys.put("id", 103);
 
-		ScrollPosition position = KeysetScrollPosition.of(keys);
+		ScrollPosition position = ScrollPosition.forward(keys);
 		int count = 10;
 
 		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
 		KeysetScrollPosition actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
-		assertThat(actualPosition.getDirection()).isEqualTo(Direction.Forward);
+		assertThat(actualPosition.getDirection()).isEqualTo(Direction.FORWARD);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 
 		subrange = new ScrollSubrange(position, count, false);
 		actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
-		assertThat(actualPosition.getDirection()).isEqualTo(Direction.Backward);
+		assertThat(actualPosition.getDirection()).isEqualTo(Direction.BACKWARD);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isFalse();
 	}
@@ -87,7 +88,7 @@ public class ScrollSubrangeTests {
 
 	@Test
 	void offsetBackwardPaginationNullSize() {
-		OffsetScrollPosition position = OffsetScrollPosition.of(30);
+		ScrollPosition position = ScrollPosition.offset(30);
 		ScrollSubrange subrange = new ScrollSubrange(position, null, false);
 
 		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);

@@ -37,7 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.OffsetScrollPosition;
+import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
@@ -210,7 +210,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 				Collections.emptyList(),
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				new ScrollPositionCursorStrategy(),
-				new ScrollSubrange(OffsetScrollPosition.initial(), 10, true));
+				new ScrollSubrange(ScrollPosition.offset(), 10, true));
 	}
 
 	private WebGraphQlRequest request(String query) {
