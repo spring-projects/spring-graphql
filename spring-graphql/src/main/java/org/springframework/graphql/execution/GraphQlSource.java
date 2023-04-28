@@ -19,7 +19,6 @@ package org.springframework.graphql.execution;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
@@ -200,6 +199,16 @@ public interface GraphQlSource {
 		 * @return the current builder
 		 */
 		SchemaResourceBuilder defaultTypeResolver(TypeResolver typeResolver);
+
+		/**
+		 * Enable inspection of schema mappings to find unmapped fields and
+		 * unmapped {@code DataFetcher} registrations. For more details, see
+		 * {@link SchemaReport} and the reference documentation.
+		 * @param reportConsumer a hook to inspect the report
+		 * @return the current builder
+		 * @since 1.2.0
+		 */
+		SchemaResourceBuilder inspectSchemaMappings(Consumer<SchemaReport> reportConsumer);
 
 		/**
 		 * Configure a function to create the {@link GraphQLSchema} from the

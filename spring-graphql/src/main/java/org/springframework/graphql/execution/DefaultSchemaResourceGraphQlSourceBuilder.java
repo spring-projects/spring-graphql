@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import graphql.language.InterfaceTypeDefinition;
@@ -71,6 +72,9 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	@Nullable
 	private BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory;
 
+	@Nullable
+	private Consumer<SchemaReport> schemaReportConsumer;
+
 
 	@Override
 	public DefaultSchemaResourceGraphQlSourceBuilder schemaResources(Resource... resources) {
@@ -93,6 +97,12 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	@Override
 	public DefaultSchemaResourceGraphQlSourceBuilder defaultTypeResolver(TypeResolver typeResolver) {
 		this.typeResolver = typeResolver;
+		return this;
+	}
+
+	@Override
+	public GraphQlSource.SchemaResourceBuilder inspectSchemaMappings(Consumer<SchemaReport> consumer) {
+		this.schemaReportConsumer = consumer;
 		return this;
 	}
 
@@ -136,11 +146,13 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		// SchemaMappingInspector needs RuntimeWiring, but cannot run here since type
 		// visitors may transform the schema, for example to add Connection types.
 
-		configureGraphQl(builder -> {
-			GraphQLSchema schema = builder.build().getGraphQLSchema();
-			SchemaReport report = SchemaMappingInspector.inspect(schema, runtimeWiring);
-			logger.info(report);
-		});
+		if (this.schemaReportConsumer != null) {
+			configureGraphQl(builder -> {
+				GraphQLSchema schema = builder.build().getGraphQLSchema();
+				SchemaReport report = SchemaMappingInspector.inspect(schema, runtimeWiring);
+				this.schemaReportConsumer.accept(report);
+			});
+		}
 
 		return (this.schemaFactory != null ?
 				this.schemaFactory.apply(registry, runtimeWiring) :

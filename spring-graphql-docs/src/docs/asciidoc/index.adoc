@@ -417,18 +417,30 @@ implement this interface. That includes those for <<controllers>>, and those for
 controllers, the return type is derived from the declared return type on a
 `@SchemaMapping` method.
 
-On startup, Spring for GraphQL inspects all schema fields, `DataFetcher` registrations,
+On startup, Spring for GraphQL can inspect schema fields, `DataFetcher` registrations,
 and the properties of Java objects returned from `DataFetcher` implementations to check
 if all schema fields are covered either by an explicitly registered `DataFetcher`, or
 a matching Java object property. The inspection also performs a reverse check looking for
-`DataFetcher` registrations against schema fields that don't exist. This inspection is
-performed automatically, and results in a report that is logged at INFO level on startup.
-For example:
+`DataFetcher` registrations against schema fields that don't exist.
+
+To enable inspection of schema mappings:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlSource.Builder builder = ...
+
+builder.schemaResources(..)
+		.inspectSchemaMappings(report -> {
+			logger.debug(report);
+		})
+----
+
+Below is an example report:
 
 ----
 GraphQL schema inspection:
     Unmapped fields: {Book=[title], Author[firstName, lastName]} // <1>
-    Unmapped DataFetcher registrations: {Book.reviews=BookController#reviews[1 args]} <2>
+    Unmapped registrations: {Book.reviews=BookController#reviews[1 args]} <2>
     Skipped types: [BookOrAuthor] // <3>
 ----
 
