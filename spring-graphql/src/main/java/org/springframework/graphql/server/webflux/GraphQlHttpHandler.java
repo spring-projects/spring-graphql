@@ -30,6 +30,7 @@ import org.springframework.graphql.server.support.MultipartVariableMapper;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.codec.multipart.Part;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -161,12 +162,12 @@ public class GraphQlHttpHandler {
                         String query = (String) inputQuery.get("query");
                         String opName = (String) inputQuery.get("operationName");
 
+                        Map<String, Object> body = Map.of(
+                                "query", query, "operationName", StringUtils.hasText(opName) ? opName : "", "variables", queryVariables, "extensions", extensions);
+
                         WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
                                 serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
-                                query,
-                                opName,
-                                queryVariables,
-                                extensions,
+                                body,
                                 serverRequest.exchange().getRequest().getId(),
                                 serverRequest.exchange().getLocaleContext().getLocale());
 

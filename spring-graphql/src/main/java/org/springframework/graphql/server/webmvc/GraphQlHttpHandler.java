@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.graphql.server.support.MultipartVariableMapper;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import reactor.core.publisher.Mono;
@@ -162,12 +163,12 @@ public class GraphQlHttpHandler {
 		String query = (String) inputQuery.get("query");
 		String opName = (String) inputQuery.get("operationName");
 
-		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
+        Map<String, Object> body = Map.of(
+                "query", query, "operationName", StringUtils.hasText(opName) ? opName : "", "variables", queryVariables, "extensions", extensions);
+
+        WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 			serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
-			query,
-			opName,
-			queryVariables,
-			extensions,
+            body,
 			this.idGenerator.generateId().toString(), LocaleContextHolder.getLocale());
 
 		if (logger.isDebugEnabled()) {
