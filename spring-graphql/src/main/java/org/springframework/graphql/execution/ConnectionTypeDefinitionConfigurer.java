@@ -66,8 +66,6 @@ public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigu
 					.build());
 
 			typeNames.forEach(typeName -> {
-
-				System.out.println("Generating pagination types for '" + typeName + "'");
 				String connectionTypeName = typeName + "Connection";
 				String edgeTypeName = typeName + "Edge";
 
