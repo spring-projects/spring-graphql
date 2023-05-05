@@ -193,7 +193,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		this.customArgumentResolvers.add(resolver);
 	}
 
-	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
+	public HandlerMethodArgumentResolverComposite getArgumentResolvers() {
 		Assert.notNull(this.argumentResolvers,
 				"HandlerMethodArgumentResolverComposite is not yet initialized, was afterPropertiesSet called?");
 		return this.argumentResolvers;
