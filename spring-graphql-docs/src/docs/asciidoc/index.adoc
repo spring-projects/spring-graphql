@@ -649,30 +649,30 @@ to send to the client.
 [[execution.pagination]]
 === Pagination
 
-The GraphQL Cursor Connection https://relay.dev/graphql/connections.htm[specification]
-defines a mechanism for efficient navigation of large result sets by returning a limited
-set of items at a time. Each item is paired with a cursor that a client can use to request
-the items after or before the cursor, providing a way to navigate forward and backward.
+The GraphQL https://relay.dev/graphql/connections.htm[Cursor Connection specification]
+defines a way to navigate large result sets by returning a subset of items at a time where
+each item is paired with a cursor that clients can use to request more items before or
+after the referenced item.
 
-The spec calls the pattern "Connections". A schema type whose name ends on "Connection"
-is considered a _Connection Type_ and represents a paginated result set. A `Connection`
-contains "edges" where an `Edge` is a wrapper around the actual item and its cursor.
-There is also a `PageInfo` to indicate whether there are more items forward and backward.
+The specification calls the pattern _"Connections"_. A schema type with a name that ends
+on Connection is a _Connection Type_ that represents a paginated result set. All `~Connection`
+types contain an "edges" field where `~Edge` type pairs the actual item with a cursor, as
+well as a "pageInfo" field with boolean flags to indicate if there are more items forward
+and backward.
 
 
 [[execution.pagination.types]]
 ==== Connection Types
 
-`Connection` type definitions must be repeated for every type that needs pagination, adding
+`Connection` type definitions must be created for every type that needs pagination, adding
 boilerplate and noise to the schema. Spring for GraphQL provides
-`ConnectionTypeDefinitionConfigurer` to generate these types on startup, if not already
-present in the parsed schema files. That means you can have a `Connection` field without
-a type declaration as follows:
+`ConnectionTypeDefinitionConfigurer` to add these types on startup, if not already
+present in the parsed schema files. That means in the schema you only need this:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
 	Query {
-		books: BookConnection
+		books(first:Int, after:String, last:Int, before:String): BookConnection
 	}
 
 	type Book {
@@ -681,7 +681,11 @@ a type declaration as follows:
 	}
 ----
 
-Configure `ConnectionTypeDefinitionConfigurer` as follows:
+Note the spec-defined forward pagination arguments `first` and `after` that clients can use
+to request the first N items after the given cursor, while `last` and `before` are backward
+pagination arguments to request the last N items before the given cursor.
+
+Next, configure `ConnectionTypeDefinitionConfigurer` as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -690,7 +694,7 @@ GraphQlSource.schemaResourceBuilder()
 		.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer)
 ----
 
-The following type definitions will be added to the schema on startup:
+and the following type definitions will be transparently added to the schema:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
