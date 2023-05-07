@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public DefaultRequest extension(String name, Object value) {
+		public DefaultRequest extension(String name, @Nullable Object value) {
 			this.extensions.put(name, value);
 			return this;
 		}
@@ -270,6 +270,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 									"If expected, please filter them out: " + this.unexpectedErrors,
 							CollectionUtils.isEmpty(this.unexpectedErrors)));
 		}
+
 	}
 
 
@@ -290,7 +291,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public Path path(String path) {
 			this.delegate.verifyErrors();
-			return new DefaultPath(path, this.delegate);
+			return DefaultPath.forPath(null, path, this.delegate);
+		}
+
+		@Override
+		public Path path(String path, Consumer<Path> pathConsumer) {
+			return DefaultPath.forNestedPath(null, path, this.delegate, pathConsumer);
 		}
 
 		@Override
@@ -329,6 +335,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	 */
 	private static final class DefaultPath implements Path {
 
+		@Nullable
+		private final String basePath;
+
 		private final String path;
 
 		private final ResponseDelegate delegate;
@@ -337,19 +346,20 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final JsonPathExpectationsHelper pathHelper;
 
-		private DefaultPath(String path, ResponseDelegate delegate) {
+		private DefaultPath(@Nullable String basePath, String path, ResponseDelegate delegate) {
 			Assert.notNull(path, "`path` is required");
 			Assert.notNull(delegate, "ResponseContainer is required");
 
-			String fullPath = initFullPath(path);
-
+			this.basePath = basePath;
 			this.path = path;
 			this.delegate = delegate;
+
+			String fullPath = initDataJsonPath(this.path);
 			this.jsonPath = JsonPath.compile(fullPath);
 			this.pathHelper = new JsonPathExpectationsHelper(fullPath);
 		}
 
-		private static String initFullPath(String path) {
+		private static String initDataJsonPath(String path) {
 			if (!StringUtils.hasText(path)) {
 				path = "$.data";
 			}
@@ -361,7 +371,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public Path path(String path) {
-			return new DefaultPath(path, this.delegate);
+			return forPath(this.basePath, path, this.delegate);
+		}
+
+		@Override
+		public Path path(String path, Consumer<Path> pathConsumer) {
+			return forNestedPath(this.basePath, path, this.delegate, pathConsumer);
 		}
 
 		@Override
@@ -390,25 +405,25 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public <D> Entity<D, ?> entity(Class<D> entityType) {
 			D entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(entityType));
-			return new DefaultEntity<>(entity, this.path, this.delegate);
+			return new DefaultEntity<>(entity, this.basePath, this.path, this.delegate);
 		}
 
 		@Override
 		public <D> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType) {
 			D entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(entityType));
-			return new DefaultEntity<>(entity, this.path, this.delegate);
+			return new DefaultEntity<>(entity, this.basePath, this.path, this.delegate);
 		}
 
 		@Override
 		public <D> EntityList<D> entityList(Class<D> elementType) {
 			List<D> entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(List.class, elementType));
-			return new DefaultEntityList<>(entity, this.path, this.delegate);
+			return new DefaultEntityList<>(entity, this.basePath, this.path, this.delegate);
 		}
 
 		@Override
 		public <D> EntityList<D> entityList(ParameterizedTypeReference<D> elementType) {
 			List<D> entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(List.class, elementType));
-			return new DefaultEntityList<>(entity, this.path, this.delegate);
+			return new DefaultEntityList<>(entity, this.basePath, this.path, this.delegate);
 		}
 
 		@Override
@@ -439,6 +454,22 @@ final class DefaultGraphQlTester implements GraphQlTester {
 				}
 			});
 		}
+
+		static Path forPath(@Nullable String basePath, String path, ResponseDelegate delegate) {
+			String pathToUse = joinPaths(basePath, path);
+			return new DefaultPath(basePath, pathToUse, delegate);
+		}
+
+		static Path forNestedPath(@Nullable String basePath, String path, ResponseDelegate delegate, Consumer<Path> consumer) {
+			String pathToUse = joinPaths(basePath, path);
+			consumer.accept(new DefaultPath(pathToUse, pathToUse, delegate));
+			return new DefaultPath(basePath, path, delegate);
+		}
+
+		private static String joinPaths(@Nullable String basePath, String path) {
+			return (basePath != null ? basePath + "." + path : path);
+		}
+
 	}
 
 
@@ -449,14 +480,18 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final D entity;
 
+		@Nullable
+		private final String basePath;
+
 		private final String path;
 
 		private final ResponseDelegate delegate;
 
-		protected DefaultEntity(D entity, String path, ResponseDelegate delegate) {
+		protected DefaultEntity(D entity, @Nullable String basePath, String path, ResponseDelegate delegate) {
 			this.entity = entity;
-			this.delegate = delegate;
+			this.basePath = basePath;
 			this.path = path;
+			this.delegate = delegate;
 		}
 
 		protected D getEntity() {
@@ -473,7 +508,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public Path path(String path) {
-			return new DefaultPath(path, this.delegate);
+			return DefaultPath.forPath(this.basePath, path, this.delegate);
+		}
+
+		@Override
+		public Path path(String path, Consumer<Path> pathConsumer) {
+			return DefaultPath.forNestedPath(this.basePath, path, this.delegate, pathConsumer);
 		}
 
 		@Override
@@ -528,11 +568,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	/**
 	 * Default {@link EntityList} implementation.
 	 */
-	private static final class DefaultEntityList<E> extends DefaultEntity<List<E>, EntityList<E>>
-			implements EntityList<E> {
+	@SuppressWarnings("SlowListContainsAll")
+	private static final class DefaultEntityList<E>
+			extends DefaultEntity<List<E>, EntityList<E>> implements EntityList<E> {
 
-		private DefaultEntityList(List<E> entity, String path, ResponseDelegate delegate) {
-			super(entity, path, delegate);
+		private DefaultEntityList(List<E> entity, @Nullable String basePath, String path, ResponseDelegate delegate) {
+			super(entity, basePath, path, delegate);
 		}
 
 		@Override

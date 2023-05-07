@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -190,6 +190,25 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.containsExactly(han, leia);
 
 		assertThat(getActualRequestDocument()).contains(document);
+	}
+
+	@Test
+	void nestedPath() {
+
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document,
+				"{" +
+						"  \"me\":{" +
+						"      \"name\":\"Luke Skywalker\","
+						+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+						"  }" +
+						"}");
+
+		graphQlTester().document(document).execute()
+				.path("me", me -> me
+						.path("name").entity(String.class).isEqualTo("Luke Skywalker")
+						.path("friends[0]", f -> f.path("name").entity(String.class).isEqualTo("Han Solo"))
+						.path("friends[1]", f -> f.path("name").entity(String.class).isEqualTo("Leia Organa")));
 	}
 
 	@Test

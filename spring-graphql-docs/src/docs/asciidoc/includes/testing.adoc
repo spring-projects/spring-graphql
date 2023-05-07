@@ -359,6 +359,26 @@ See <<testing.errors>> for more details on error handling.
 
 
 
+[[testing.requests.nestedPaths]]
+=== Nested Paths
+
+By default, paths are relative to the "data" section of the GraphQL response. You can also
+nest down to a path, and inspect multiple paths relative to it as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	graphQlTester.document(document)
+			.execute()
+			.path("project", project -> project // <1>
+				.path("name").entity(String.class).isEqualTo("spring-framework")
+				.path("releases[*].version").entityList(String.class).hasSizeGreaterThan(1));
+----
+
+<1> Use a callback to inspect paths relative to "project".
+
+
+
+
 
 [[testing.subscriptions]]
 == Subscriptions

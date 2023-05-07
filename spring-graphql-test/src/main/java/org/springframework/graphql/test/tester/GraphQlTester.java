@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -188,17 +188,28 @@ public interface GraphQlTester {
 	interface Traversable {
 
 		/**
-		 * Switch to a path under the "data" section of the GraphQL response. The path can
-		 * be an operation root type name, e.g. "project", or a nested path such as
-		 * "project.name", or any
+		 * Navigate to a path under the "data" section of the GraphQL response.
+		 * This could be an operation root type name, e.g. "project", or any
 		 * <a href="https://github.com/jayway/JsonPath">JsonPath</a>.
-		 * @param path the path to switch to
-		 * @return spec for asserting the content under the given path
+		 * @param path the path to navigate to
+		 * @return spec with further options at the given path
 		 * @throws AssertionError if the GraphQL response contains
 		 * <a href="https://spec.graphql.org/June2018/#sec-Errors">errors</a> that have
-		 * not be checked via {@link Response#errors()}
+		 * not been checked via {@link Response#errors()}
 		 */
 		Path path(String path);
+
+		/**
+		 * Variant of {@link #path(String)} with a callback that allows
+		 * inspecting multiple paths under the given path.
+		 * @param path the path to navigate to
+		 * @param pathConsumer callback with a {@link Path} that uses the current
+		 * path as a base path such that any further navigation through this
+		 * {@link Path} is relative to the current path.
+		 * @return spec with further options at the given path
+		 * @since 1.2
+		 */
+		Path path(String path, Consumer<Path> pathConsumer);
 
 	}
 
