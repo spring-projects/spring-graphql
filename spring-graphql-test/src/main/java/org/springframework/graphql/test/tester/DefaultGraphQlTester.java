@@ -404,26 +404,22 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public <D> Entity<D, ?> entity(Class<D> entityType) {
-			D entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(entityType));
-			return new DefaultEntity<>(entity, this.basePath, this.path, this.delegate);
+			return new DefaultEntity<>(new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType) {
-			D entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(entityType));
-			return new DefaultEntity<>(entity, this.basePath, this.path, this.delegate);
+			return new DefaultEntity<>(new TypeRefAdapter<>(entityType));
 		}
 
 		@Override
 		public <D> EntityList<D> entityList(Class<D> elementType) {
-			List<D> entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(List.class, elementType));
-			return new DefaultEntityList<>(entity, this.basePath, this.path, this.delegate);
+			return new DefaultEntityList<>(new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		@Override
 		public <D> EntityList<D> entityList(ParameterizedTypeReference<D> elementType) {
-			List<D> entity = this.delegate.read(this.jsonPath, new TypeRefAdapter<>(List.class, elementType));
-			return new DefaultEntityList<>(entity, this.basePath, this.path, this.delegate);
+			return new DefaultEntityList<>(new TypeRefAdapter<>(List.class, elementType));
 		}
 
 		@Override
@@ -470,200 +466,190 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			return (basePath != null ? basePath + "." + path : path);
 		}
 
-	}
 
+		/**
+		 * Default {@link GraphQlTester.Entity} implementation.
+		 */
+		private class DefaultEntity<D, S extends Entity<D, S>> implements Entity<D, S> {
 
-	/**
-	 * Default {@link GraphQlTester.Entity} implementation.
-	 */
-	private static class DefaultEntity<D, S extends Entity<D, S>> implements Entity<D, S> {
+			private final D entity;
 
-		private final D entity;
+			protected DefaultEntity(TypeRefAdapter<D> typeAdapter) {
+				this.entity = delegate.read(jsonPath, typeAdapter);
+			}
 
-		@Nullable
-		private final String basePath;
+			protected D getEntity() {
+				return this.entity;
+			}
 
-		private final String path;
+			protected void doAssert(Runnable task) {
+				delegate.doAssert(task);
+			}
 
-		private final ResponseDelegate delegate;
+			protected String getPath() {
+				return path;
+			}
 
-		protected DefaultEntity(D entity, @Nullable String basePath, String path, ResponseDelegate delegate) {
-			this.entity = entity;
-			this.basePath = basePath;
-			this.path = path;
-			this.delegate = delegate;
+			@Override
+			public Path path(String path) {
+				return forPath(basePath, path, delegate);
+			}
+
+			@Override
+			public Path path(String path, Consumer<Path> pathConsumer) {
+				return forNestedPath(basePath, path, delegate, pathConsumer);
+			}
+
+			@Override
+			public <T extends S> T isEqualTo(Object expected) {
+				delegate.doAssert(() -> AssertionErrors.assertEquals(path, expected, this.entity));
+				return self();
+			}
+
+			@Override
+			public <T extends S> T isNotEqualTo(Object other) {
+				delegate.doAssert(() -> AssertionErrors.assertNotEquals(path, other, this.entity));
+				return self();
+			}
+
+			@Override
+			public <T extends S> T isSameAs(Object expected) {
+				delegate.doAssert(() -> AssertionErrors.assertTrue(path, expected == this.entity));
+				return self();
+			}
+
+			@Override
+			public <T extends S> T isNotSameAs(Object other) {
+				delegate.doAssert(() -> AssertionErrors.assertTrue(path, other != this.entity));
+				return self();
+			}
+
+			@Override
+			public <T extends S> T matches(Predicate<D> predicate) {
+				delegate
+						.doAssert(() -> AssertionErrors.assertTrue(path, predicate.test(this.entity)));
+				return self();
+			}
+
+			@Override
+			public <T extends S> T satisfies(Consumer<D> consumer) {
+				delegate.doAssert(() -> consumer.accept(this.entity));
+				return self();
+			}
+
+			@Override
+			public D get() {
+				return this.entity;
+			}
+
+			@SuppressWarnings("unchecked")
+			private <T extends S> T self() {
+				return (T) this;
+			}
 		}
 
-		protected D getEntity() {
-			return this.entity;
+
+		/**
+		 * Default {@link EntityList} implementation.
+		 */
+		@SuppressWarnings("SlowListContainsAll")
+		private final class DefaultEntityList<E>
+				extends DefaultEntity<List<E>, EntityList<E>> implements EntityList<E> {
+
+			public DefaultEntityList(TypeRefAdapter<List<E>> typeAdapter) {
+				super(typeAdapter);
+			}
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public EntityList<E> contains(E... values) {
+				doAssert(() -> {
+					List<E> expected = Arrays.asList(values);
+					AssertionErrors.assertTrue(
+							"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain " + expected,
+							getEntity().containsAll(expected));
+				});
+				return this;
+			}
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public EntityList<E> doesNotContain(E... values) {
+				doAssert(() -> {
+					List<E> expected = Arrays.asList(values);
+					AssertionErrors.assertTrue(
+							"Expecting list " + getEntity() + " at path '" + getPath() + "' to not contain " + expected,
+							!getEntity().containsAll(expected));
+				});
+				return this;
+			}
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public EntityList<E> containsExactly(E... values) {
+				doAssert(() -> {
+					List<E> expected = Arrays.asList(values);
+					AssertionErrors.assertTrue(
+							"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain exactly " + expected,
+							getEntity().equals(expected));
+				});
+				return this;
+			}
+
+			@Override
+			public EntityList<E> hasSize(int size) {
+				doAssert(() -> AssertionErrors.assertTrue(
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size == " + size,
+						getEntity().size() == size));
+				return this;
+			}
+
+			@Override
+			public EntityList<E> hasSizeLessThan(int size) {
+				doAssert(() -> AssertionErrors.assertTrue(
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size < " + size,
+						getEntity().size() < size));
+				return this;
+			}
+
+			@Override
+			public EntityList<E> hasSizeGreaterThan(int size) {
+				doAssert(() -> AssertionErrors.assertTrue(
+						"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size > " + size,
+						getEntity().size() > size));
+				return this;
+			}
 		}
 
-		protected void doAssert(Runnable task) {
-			this.delegate.doAssert(task);
-		}
 
-		protected String getPath() {
-			return this.path;
-		}
+		/**
+		 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
+		 */
+		private static final class TypeRefAdapter<T> extends TypeRef<T> {
 
-		@Override
-		public Path path(String path) {
-			return DefaultPath.forPath(this.basePath, path, this.delegate);
-		}
+			private final Type type;
 
-		@Override
-		public Path path(String path, Consumer<Path> pathConsumer) {
-			return DefaultPath.forNestedPath(this.basePath, path, this.delegate, pathConsumer);
-		}
+			TypeRefAdapter(Class<T> clazz) {
+				this.type = clazz;
+			}
 
-		@Override
-		public <T extends S> T isEqualTo(Object expected) {
-			this.delegate.doAssert(() -> AssertionErrors.assertEquals(this.path, expected, this.entity));
-			return self();
-		}
+			TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
+				this.type = typeReference.getType();
+			}
 
-		@Override
-		public <T extends S> T isNotEqualTo(Object other) {
-			this.delegate.doAssert(() -> AssertionErrors.assertNotEquals(this.path, other, this.entity));
-			return self();
-		}
+			TypeRefAdapter(Class<?> clazz, Class<?> generic) {
+				this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
+			}
 
-		@Override
-		public <T extends S> T isSameAs(Object expected) {
-			this.delegate.doAssert(() -> AssertionErrors.assertTrue(this.path, expected == this.entity));
-			return self();
-		}
+			TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
+				this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
+			}
 
-		@Override
-		public <T extends S> T isNotSameAs(Object other) {
-			this.delegate.doAssert(() -> AssertionErrors.assertTrue(this.path, other != this.entity));
-			return self();
-		}
+			@Override
+			public Type getType() {
+				return this.type;
+			}
 
-		@Override
-		public <T extends S> T matches(Predicate<D> predicate) {
-			this.delegate
-					.doAssert(() -> AssertionErrors.assertTrue(this.path, predicate.test(this.entity)));
-			return self();
-		}
-
-		@Override
-		public <T extends S> T satisfies(Consumer<D> consumer) {
-			this.delegate.doAssert(() -> consumer.accept(this.entity));
-			return self();
-		}
-
-		@Override
-		public D get() {
-			return this.entity;
-		}
-
-		@SuppressWarnings("unchecked")
-		private <T extends S> T self() {
-			return (T) this;
-		}
-	}
-
-
-	/**
-	 * Default {@link EntityList} implementation.
-	 */
-	@SuppressWarnings("SlowListContainsAll")
-	private static final class DefaultEntityList<E>
-			extends DefaultEntity<List<E>, EntityList<E>> implements EntityList<E> {
-
-		private DefaultEntityList(List<E> entity, @Nullable String basePath, String path, ResponseDelegate delegate) {
-			super(entity, basePath, path, delegate);
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public EntityList<E> contains(E... values) {
-			doAssert(() -> {
-				List<E> expected = Arrays.asList(values);
-				AssertionErrors.assertTrue(
-						"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain " + expected,
-						getEntity().containsAll(expected));
-			});
-			return this;
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public EntityList<E> doesNotContain(E... values) {
-			doAssert(() -> {
-				List<E> expected = Arrays.asList(values);
-				AssertionErrors.assertTrue(
-						"Expecting list " + getEntity() + " at path '" + getPath() + "' to not contain " + expected,
-						!getEntity().containsAll(expected));
-			});
-			return this;
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public EntityList<E> containsExactly(E... values) {
-			doAssert(() -> {
-				List<E> expected = Arrays.asList(values);
-				AssertionErrors.assertTrue(
-						"Expecting list " + getEntity() + " at path '" + getPath() + "' to contain exactly " + expected,
-						getEntity().equals(expected));
-			});
-			return this;
-		}
-
-		@Override
-		public EntityList<E> hasSize(int size) {
-			doAssert(() -> AssertionErrors.assertTrue(
-					"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size == " + size,
-					getEntity().size() == size));
-			return this;
-		}
-
-		@Override
-		public EntityList<E> hasSizeLessThan(int size) {
-			doAssert(() -> AssertionErrors.assertTrue(
-					"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size < " + size,
-					getEntity().size() < size));
-			return this;
-		}
-
-		@Override
-		public EntityList<E> hasSizeGreaterThan(int size) {
-			doAssert(() -> AssertionErrors.assertTrue(
-					"Expecting list " + getEntity() + " at path '" + getPath() + "' to have size > " + size,
-					getEntity().size() > size));
-			return this;
-		}
-	}
-
-
-	/**
-	 * Adapt JSONPath {@link TypeRef} to {@link ParameterizedTypeReference}.
-	 */
-	private static final class TypeRefAdapter<T> extends TypeRef<T> {
-
-		private final Type type;
-
-		TypeRefAdapter(Class<T> clazz) {
-			this.type = clazz;
-		}
-
-		TypeRefAdapter(ParameterizedTypeReference<T> typeReference) {
-			this.type = typeReference.getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, Class<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, generic).getType();
-		}
-
-		TypeRefAdapter(Class<?> clazz, ParameterizedTypeReference<?> generic) {
-			this.type = ResolvableType.forClassWithGenerics(clazz, ResolvableType.forType(generic)).getType();
-		}
-
-		@Override
-		public Type getType() {
-			return this.type;
 		}
 
 	}
