@@ -695,7 +695,6 @@ GraphQlSource.schemaResourceBuilder()
 ----
 
 and the following type definitions will be transparently added to the schema:
-
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
 	type BookConnection {
@@ -761,18 +760,16 @@ pagination input.
 [[execution.pagination.cursor.strategy]]
 ==== `CursorStrategy`
 
-`CursorStrategy` is a contract to create a String cursor for an item to reflect its
-position within a large result set, e.g. based on an offset or key set.
-<<execution.pagination.adapters>> implementations use this to create cursors for returned
-items.
+`CursorStrategy` is a contract to encode and decode a String cursor that refers to the
+position of an item within a large result set. The cursor can be based on an index or
+on a keyset.
 
-The strategy also enables <<controllers>> methods, <<data.querydsl>> repositories,
-and <<data.querybyexample>> repositories to decode pagination request cursors, and create
-a `Subrange`. For this to work, you need to declare a `CursorStrategy` bean in your Spring
-configuration.
+A <<execution.pagination.adapters>> uses this to encode cursors for returned items.
+<<controllers>> methods, <<data.querydsl>> repositories, and <<data.querybyexample>>
+repositories use it to decode cursors from pagination requests, and create a `Subrange`.
 
-`CursorEncoder` is a related, supporting strategy to encode and decode cursors to make
-them opaque to clients. `EncodingCursorStrategy` combines `CursorStrategy` with a
+`CursorEncoder` is a related contract that further encodes and decodes String cursors to
+make them opaque to clients. `EncodingCursorStrategy` combines `CursorStrategy` with a
 `CursorEncoder`. You can use `Base64CursorEncoder`, `NoOpEncoder` or create your own.
 
 There is a <<data.pagination.scroll,built-in>> `CursorStrategy` for the Spring Data
@@ -1332,6 +1329,47 @@ supports `ScrollPosition` as a bean.
 
 The <<boot-starter>> declares a `CursorStrategy<ScrollPosition>` bean, and registers the
 `ConnectionFieldTypeVisitor` as shown above if Spring Data is on the classpath.
+
+
+[[data.pagination.scroll.keyset]]
+=== Keyset Position
+
+For `KeysetScrollPosition`, the cursor needs to be created from a keyset, which is
+essentially a `Map` of key-value pairs. To decide how to create a cursor from a keyset,
+you can configure `ScrollPositionCursorStrategy` with `CursorStrategy<Map<String, Object>>`.
+By default, `JsonKeysetCursorStrategy` writes the keyset `Map` to JSON. That works for
+simple like String, Boolean, Integer, and Double, but others cannot be restored back to the
+same type without target type information. The Jackson library has a default typing feature
+that can include type information in the JSON. To use it safely you must specify a list of
+allowed types. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	PolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
+			.allowIfBaseType(Map.class)
+			.allowIfSubType(ZonedDateTime.class)
+			.build();
+
+	ObjectMapper mapper = new ObjectMapper();
+	mapper.activateDefaultTyping(validator, ObjectMapper.DefaultTyping.NON_FINAL);
+----
+
+You can then create `JsonKeysetCursorStrategy`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	ObjectMapper mapper = ... ;
+
+	CodecConfigurer configurer = ServerCodecConfigurer.create();
+	configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+	configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+
+	JsonKeysetCursorStrategy strategy = new JsonKeysetCursorStrategy(configurer);
+----
+
+By default, if `JsonKeysetCursorStrategy` is created without a `CodecConfigurer` and the
+Jackson library is on the classpath, customizations like the above are applied for
+`Date`, `Calendar`, and any type from `java.time`.
 
 
 

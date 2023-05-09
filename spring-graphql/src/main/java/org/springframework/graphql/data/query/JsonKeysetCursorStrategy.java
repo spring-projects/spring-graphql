@@ -17,8 +17,14 @@
 package org.springframework.graphql.data.query;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -32,13 +38,16 @@ import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.MimeTypeUtils;
 
 /**
  * Strategy to convert a {@link KeysetScrollPosition#getKeys() keyset} to and
- * from a JSON String, typically used within {@link ScrollPositionCursorStrategy}
- * to assist with converting keys to and from a String.
+ * from a JSON String for use with {@link ScrollPositionCursorStrategy}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2.0
@@ -47,6 +56,9 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	private static final ResolvableType MAP_TYPE =
 			ResolvableType.forClassWithGenerics(Map.class, String.class, Object.class);
+
+	private static final boolean jackson2Present = ClassUtils.isPresent(
+			"com.fasterxml.jackson.databind.ObjectMapper", JsonKeysetCursorStrategy.class.getClassLoader());
 
 
 	private final Encoder<?> encoder;
@@ -60,7 +72,15 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	 * Shortcut constructor that uses {@link ServerCodecConfigurer}.
 	 */
 	public JsonKeysetCursorStrategy() {
-		this(ServerCodecConfigurer.create());
+		this(initCodecConfigurer());
+	}
+
+	private static ServerCodecConfigurer initCodecConfigurer() {
+		ServerCodecConfigurer configurer = ServerCodecConfigurer.create();
+		if (jackson2Present) {
+			JacksonObjectMapperCustomizer.customize(configurer);
+		}
+		return configurer;
 	}
 
 	/**
@@ -99,7 +119,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	@Override
 	public String toCursor(Map<String, Object> keys) {
 		return ((Encoder<Map<String, Object>>) this.encoder).encodeValue(
-				keys, DefaultDataBufferFactory.sharedInstance, ResolvableType.forClass(keys.getClass()),
+				keys, DefaultDataBufferFactory.sharedInstance, MAP_TYPE,
 				MimeTypeUtils.APPLICATION_JSON, null).toString(StandardCharsets.UTF_8);
 	}
 
@@ -109,6 +129,31 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 		DataBuffer buffer = this.bufferFactory.wrap(cursor.getBytes(StandardCharsets.UTF_8));
 		Map<String, Object> map = ((Decoder<Map<String, Object>>) this.decoder).decode(buffer, MAP_TYPE, null, null);
 		return (map != null ? map : Collections.emptyMap());
+	}
+
+
+	/**
+	 * Customizes the {@link ObjectMapper} to use default typing that supports
+	 * {@link Date}, {@link Calendar}, and classes in {@code java.time}.
+	 */
+	private static class JacksonObjectMapperCustomizer {
+
+		public static void customize(CodecConfigurer configurer) {
+
+			PolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
+					.allowIfBaseType(Map.class)
+					.allowIfSubType("java.time.")
+					.allowIfSubType(Calendar.class)
+					.allowIfSubType(Date.class)
+					.build();
+
+			ObjectMapper mapper = Jackson2ObjectMapperBuilder.json().build();
+			mapper.activateDefaultTyping(validator, ObjectMapper.DefaultTyping.NON_FINAL);
+
+			configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+			configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+		}
+
 	}
 
 }

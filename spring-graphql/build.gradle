@@ -65,6 +65,7 @@ dependencies {
 	testImplementation 'jakarta.validation:jakarta.validation-api'
 	testImplementation 'com.jayway.jsonpath:json-path'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+	testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-el:10.0.21'
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'

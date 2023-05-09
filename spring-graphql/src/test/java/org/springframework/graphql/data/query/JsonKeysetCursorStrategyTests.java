@@ -16,6 +16,11 @@
 
 package org.springframework.graphql.data.query;
 
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -40,7 +45,34 @@ public class JsonKeysetCursorStrategyTests {
 		keys.put("lastName", "Heller");
 		keys.put("id", 103);
 
-		String json = "{\"firstName\":\"Joseph\",\"lastName\":\"Heller\",\"id\":103}";
+		String json = "[\"java.util.LinkedHashMap\",{\"firstName\":\"Joseph\",\"lastName\":\"Heller\",\"id\":103}]";
+
+		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
+		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
+	}
+
+	@Test
+	void toAndFromCursorWithDate() {
+
+		Date date = new Date();
+
+		Map<String, Object> keys = new LinkedHashMap<>();
+		keys.put("date", date);
+		String json = "[\"java.util.LinkedHashMap\",{\"date\":[\"java.util.Date\"," + date.getTime() + "]}]";
+
+		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
+		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
+	}
+
+	@Test
+	void toAndFromCursorWithZonedDateTime() {
+
+		ZonedDateTime dateTime = ZonedDateTime.of(
+				LocalDateTime.of(2023, Month.MAY, 5, 0, 0, 0, 0), ZoneId.of("Z"));
+
+		Map<String, Object> keys = new LinkedHashMap<>();
+		keys.put("date", dateTime);
+		String json = "[\"java.util.LinkedHashMap\",{\"date\":[\"java.time.ZonedDateTime\",1683244800.000000000]}]";
 
 		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
 		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
