@@ -19,6 +19,7 @@ package org.springframework.graphql.execution;
 import java.util.List;
 
 import graphql.ExecutionInput;
+import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLCodeRegistry;
@@ -72,7 +73,18 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
 
-		ContextSnapshot snapshot = ContextSnapshot.captureFrom(environment.getGraphQlContext());
+		GraphQLContext context;
+		// temporarily merge global and local graphql context until https://github.com/micrometer-metrics/context-propagation/pull/98
+		if (environment.getLocalContext() instanceof GraphQLContext localContext) {
+			context = GraphQLContext.newContext()
+					.of(environment.getGraphQlContext())
+					.of(localContext)
+					.build();
+		}
+		else {
+			context = environment.getGraphQlContext();
+		}
+		ContextSnapshot snapshot = ContextSnapshot.captureFrom(context);
 		Object value = snapshot.wrap(() -> this.delegate.get(environment)).call();
 
 		if (this.subscription) {

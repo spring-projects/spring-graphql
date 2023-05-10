@@ -17,24 +17,27 @@
 package org.springframework.graphql.observation;
 
 import graphql.GraphqlErrorBuilder;
+import graphql.execution.DataFetcherResult;
+import graphql.schema.AsyncDataFetcher;
+import graphql.schema.DataFetcher;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
-
-import org.springframework.graphql.BookSource;
-import org.springframework.graphql.ExecutionGraphQlRequest;
-import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.graphql.*;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
+import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link GraphQlObservationInstrumentation}.
@@ -50,8 +53,9 @@ class GraphQlObservationInstrumentationTests {
 	private final GraphQlSetup graphQlSetup = GraphQlSetup.schemaResource(BookSource.schema).instrumentation(this.instrumentation);
 
 
-	@Test
-	void instrumentGraphQlRequestWhenSuccess() {
+	@ParameterizedTest
+	@MethodSource("successDataFetchers")
+	void instrumentGraphQlRequestWhenSuccess(DataFetcher<?> dataFetcher) {
 		String document = """
 				{
 					bookById(id: 1) {
@@ -60,7 +64,7 @@ class GraphQlObservationInstrumentationTests {
 				}
 				""";
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
-				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
+				.queryFetcher("bookById", dataFetcher)
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
@@ -75,6 +79,16 @@ class GraphQlObservationInstrumentationTests {
 				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
 				.hasLowCardinalityKeyValue("graphql.field.name", "bookById")
 				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById");
+	}
+
+	static Stream<Arguments> successDataFetchers() {
+		DataFetcher<Book> bookDataFetcher = environment -> BookSource.getBookWithoutAuthor(1L);
+		return Stream.of(
+				Arguments.of(bookDataFetcher),
+				Arguments.of(new AsyncDataFetcher<>(bookDataFetcher)),
+				Arguments.of((DataFetcher<DataFetcherResult<?>>) environment ->
+						DataFetcherResult.newResult().data(BookSource.getBookWithoutAuthor(1L)).build())
+		);
 	}
 
 	@Test
@@ -131,8 +145,9 @@ class GraphQlObservationInstrumentationTests {
 				.hasAnObservationWithAKeyValue("graphql.field.path", "/bookById/author");
 	}
 
-	@Test
-	void instrumentGraphQlRequestWhenDataFetchingFailure() {
+	@ParameterizedTest
+	@MethodSource("failureDataFetchers")
+	void instrumentGraphQlRequestWhenDataFetchingFailure(DataFetcher<?> dataFetcher) {
 		String document = """
 				{
 					bookById(id: 1) {
@@ -153,7 +168,7 @@ class GraphQlObservationInstrumentationTests {
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
 				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
@@ -166,29 +181,15 @@ class GraphQlObservationInstrumentationTests {
 				.hasHighCardinalityKeyValue("graphql.field.path", "/bookById");
 	}
 
-	@Test
-	void propagatesContextBetweenObservations() {
-		String document = """
-				{
-					bookById(id: 1) {
-						name
-					}
-				}
-				""";
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
-				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
-				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
-
-		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
-				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
-
-		TestObservationRegistryAssert.assertThat(this.observationRegistry)
-				.hasObservationWithNameEqualTo("graphql.datafetcher")
-				.that()
-				.hasParentObservationContextMatching(context -> context instanceof ExecutionRequestObservationContext);
+	static Stream<Arguments> failureDataFetchers() {
+		DataFetcher<Book> bookDataFetcher = environment -> {
+			throw new IllegalStateException("book fetching failure");
+		};
+		return Stream.of(
+				Arguments.of(bookDataFetcher),
+				Arguments.of((DataFetcher<?>) environment ->
+						CompletableFuture.failedStage(new IllegalStateException("book fetching failure")))
+		);
 	}
 
 	@Test
@@ -213,6 +214,63 @@ class GraphQlObservationInstrumentationTests {
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasParentObservationEqualTo(incoming);
 		incoming.stop();
+	}
+
+	@ParameterizedTest
+	@MethodSource("successDataFetchers")
+	void propagatesContextBetweenObservations(DataFetcher<?> dataFetcher) {
+		String document = """
+				{
+					bookById(id: 1) {
+						name
+					}
+				}
+				""";
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.queryFetcher("bookById", dataFetcher)
+				.toGraphQlService()
+				.execute(TestExecutionRequest.forDocument(document));
+		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry)
+				.hasObservationWithNameEqualTo("graphql.datafetcher")
+				.that()
+				.hasParentObservationContextMatching(context -> context instanceof ExecutionRequestObservationContext);
+	}
+
+	@Test
+	void currentObservationSetInDataFetcherContext() {
+		String document = """
+				{
+					bookById(id: 1) {
+						author {
+							firstName,
+							lastName
+						}
+					}
+				}
+				""";
+		DataFetcher<Book> bookDataFetcher = environment -> {
+			assertThat(observationRegistry.getCurrentObservation().getContext())
+					.isInstanceOf(ExecutionRequestObservationContext.class);
+			return BookSource.getBookWithoutAuthor(1L);
+		};
+		DataFetcher<Author> authorDataFetcher = environment -> {
+			assertThat(observationRegistry.getCurrentObservation().getContext())
+					.isInstanceOf(DataFetcherObservationContext.class);
+			return BookSource.getAuthor(101L);
+		};
+
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.queryFetcher("bookById", bookDataFetcher)
+				.dataFetcher("Book", "author", authorDataFetcher)
+				.toGraphQlService()
+				.execute(TestExecutionRequest.forDocument(document));
+		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 	}
 
 }
