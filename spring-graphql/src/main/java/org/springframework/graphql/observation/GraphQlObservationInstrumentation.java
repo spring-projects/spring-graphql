@@ -35,7 +35,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.lang.Nullable;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -152,11 +152,10 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 							if (error != null) {
 								dataFetcherObservation.error(error);
 								dataFetcherObservation.stop();
-								return CompletableFuture.failedStage(error);
+								throw new CompletionException(error);
 							}
 							dataFetcherObservation.stop();
-							return CompletableFuture.completedStage(wrapAsDataFetcherResult(result, dataFetcherObservation));
-
+							return wrapAsDataFetcherResult(result, dataFetcherObservation);
 						});
 					}
 					else {

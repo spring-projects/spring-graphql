@@ -68,6 +68,10 @@ class GraphQlObservationInstrumentationTests {
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+
+		String name = response.rawValue("bookById.name");
+		assertThat(name).isEqualTo("Nineteen Eighty-Four");
+
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
 				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
@@ -167,8 +171,10 @@ class GraphQlObservationInstrumentationTests {
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+		assertThat(response.error(0).message()).isEqualTo("Resolved error: book fetching failure");
+
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
-				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
 				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry)
