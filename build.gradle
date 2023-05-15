@@ -4,7 +4,7 @@ ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
 	springFrameworkVersion = "6.0.9"
 	graphQlJavaVersion = "19.5"
-	springBootVersion = "3.0.4"
+	springBootVersion = "3.0.6"
 }
 
 subprojects {
