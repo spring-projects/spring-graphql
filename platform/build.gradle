@@ -20,7 +20,7 @@ dependencies {
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
 	api(platform("org.junit:junit-bom:5.9.2"))
 	api(platform("org.mockito:mockito-bom:5.3.0"))
-	api(platform("org.testcontainers:testcontainers-bom:1.17.6"))
+	api(platform("org.testcontainers:testcontainers-bom:1.18.0"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.20.0"))
 
 	constraints {
@@ -39,12 +39,12 @@ dependencies {
 		api("org.skyscreamer:jsonassert:1.5.1")
 
 		api("com.h2database:h2:2.1.214")
-		api("org.hibernate:hibernate-core:6.1.7.Final")
+		api("org.hibernate:hibernate-core:6.2.2.Final")
 		api("org.hibernate.validator:hibernate-validator:8.0.0.Final")
-		api("org.mongodb:bson:4.9.0")
-		api("org.mongodb:mongodb-driver-core:4.9.0")
-		api("org.mongodb:mongodb-driver-reactivestreams:4.9.0")
-		api("org.mongodb:mongodb-driver-sync:4.9.0")
+		api("org.mongodb:bson:4.9.1")
+		api("org.mongodb:mongodb-driver-core:4.9.1")
+		api("org.mongodb:mongodb-driver-reactivestreams:4.9.1")
+		api("org.mongodb:mongodb-driver-sync:4.9.1")
 	}
 
 }
