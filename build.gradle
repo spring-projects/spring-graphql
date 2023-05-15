@@ -4,7 +4,7 @@ ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
 	springFrameworkVersion = "6.0.9"
 	graphQlJavaVersion = "20.2"
-	springBootVersion = "3.1.0-M2"
+	springBootVersion = "3.1.0-RC2"
 }
 
 subprojects {
@@ -13,6 +13,12 @@ subprojects {
 
 	repositories {
 		mavenCentral()
+		maven {
+			url "https://repo.spring.io/milestone"
+			content {
+				includeGroup "org.springframework.boot"
+			}
+		}
 		if (version.contains('-')) {
 			maven { url "https://repo.spring.io/milestone" }
 		}
