@@ -71,6 +71,10 @@ include::includes/client.adoc[leveloffset=+1]
 
 
 
+include::includes/graphiql.adoc[leveloffset=+1]
+
+
+
 include::includes/testing.adoc[leveloffset=+1]
 
 

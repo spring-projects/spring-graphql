@@ -1,0 +1,38 @@
+[[graphiql]]
+= GraphiQL
+
+https://github.com/graphql/graphiql/tree/main/packages/graphiql#readme[GraphiQL] is a graphical interactive in-browser GraphQL IDE.
+It is very popular amongst developers as it makes it easy to explore and interactively develop GraphQL APIs.
+During development, a stock GraphiQL integration is often enough to help developers work on an API.
+In production, applications can require a custom GraphiQL build, that ships with a company logo or specific authentication support.
+
+Spring for GraphQL ships with https://github.com/spring-projects/spring-graphql/blob/main/spring-graphql/src/main/resources/graphiql/index.html[a stock GraphiQL `index.html` page] that uses static resources hosted on the unpkg.com CDN.
+Spring Boot applications can easily {spring-boot-ref-docs}/web.html#web.graphql.graphiql[enable this page with a configuration property].
+
+Your application may need a custom GraphiQL build if it requires a setup that doesn't rely on a CDN, or if you wish to customize the user interface.
+This can be done in two steps:
+
+1. Configure and compile a GraphiQL build
+2. Expose the built GraphiQL instance through the Spring web infrastructure
+
+[[graphiql.custombuild]]
+== Creating a custom GraphiQL build
+
+This part is generally outside of the scope of this documentation, as there are several options for custom builds.
+You will find more information in the https://github.com/graphql/graphiql/tree/main/packages/graphiql#readme[official GraphiQL documentation].
+You can choose to copy the build result directly in your application resources.
+Alternatively, you can integrate the JavaScript build in your project as a separate module by leveraging Node.js https://github.com/node-gradle/gradle-node-plugin[Gradle] or https://github.com/eirslett/frontend-maven-plugin[Maven] build plugins.
+
+
+[[graphiql.configuration]]
+== Exposing a GraphiQL instance
+
+Once a GraphiQL build is available on the classpath, you can expose it as an endpoint with the {spring-framework-ref-docs}/web/webmvc-functional.html#webmvc-fn-router-functions[functional web frameworks].
+
+include::code:GraphiQlConfiguration[]
+<1> Load the GraphiQL page from the classpath (here, we are using the version shipped with Spring for GraphQL)
+<2> Configure a web handler for processing HTTP requests; you can implement a custom `HandlerFunction` depending on your use case
+<3> Finally, map the handler to a specific HTTP endpoint
+<4> Expose this new route through a `RouterFunction` bean
+
+You might also need to configure your application to {spring-boot-ref-docs}/web.html#web.servlet.spring-mvc.static-content[serve the relevant static resources].
