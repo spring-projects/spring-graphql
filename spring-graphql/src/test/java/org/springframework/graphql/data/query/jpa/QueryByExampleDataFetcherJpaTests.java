@@ -81,7 +81,7 @@ class QueryByExampleDataFetcherJpaTests {
 
 	@Test
 	void shouldFetchSingleItems() {
-		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
+		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(105L, "Douglas", "Adams"));
 		repository.save(book);
 
 		Consumer<GraphQlSetup> tester = setup -> {
@@ -101,8 +101,8 @@ class QueryByExampleDataFetcherJpaTests {
 
 	@Test
 	void shouldFetchMultipleItems() {
-		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
-		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(105L, "Douglas", "Adams"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(106L, "Vince", "Gilligan"));
 		repository.saveAll(Arrays.asList(book1, book2));
 
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
@@ -128,11 +128,11 @@ class QueryByExampleDataFetcherJpaTests {
 	void shouldFetchWindow() {
 
 		repository.saveAll(List.of(
-				new Book(1L, "Nineteen Eighty-Four", new Author(0L, "George", "Orwell")),
-				new Book(2L, "The Great Gatsby", new Author(0L, "F. Scott", "Fitzgerald")),
-				new Book(3L, "Catch-22", new Author(0L, "Joseph", "Heller")),
-				new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams")),
-				new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"))));
+				new Book(1L, "Nineteen Eighty-Four", new Author(101L, "George", "Orwell")),
+				new Book(2L, "The Great Gatsby", new Author(102L, "F. Scott", "Fitzgerald")),
+				new Book(3L, "Catch-22", new Author(103L, "Joseph", "Heller")),
+				new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(105L, "Douglas", "Adams")),
+				new Book(53L, "Breaking Bad", new Author(106L, "Vince", "Gilligan"))));
 
 		Consumer<GraphQlSetup> tester = graphQlSetup -> {
 
@@ -223,7 +223,7 @@ class QueryByExampleDataFetcherJpaTests {
 	@Test
 	void shouldNestForSingleArgumentInputType() {
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
-		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
+		Book book2 = new Book(53L, "Breaking Bad", new Author(1L, "", "Heisenberg"));
 		repository.saveAll(Arrays.asList(book1, book2));
 
 		String queryName = "booksByCriteria";
