@@ -3,7 +3,7 @@ description = "Spring for GraphQL"
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
 	springFrameworkVersion = "6.0.9"
-	graphQlJavaVersion = "19.3"
+	graphQlJavaVersion = "19.5"
 	springBootVersion = "3.0.4"
 }
 
@@ -48,7 +48,7 @@ configure(moduleProjects) {
 	ext.javadocLinks = [
 			"https://docs.oracle.com/en/java/javase/17/docs/api/",
 			"https://docs.spring.io/spring-framework/docs/6.0.x/javadoc-api/",
-			"https://javadoc.io/doc/com.graphql-java/graphql-java/19.2/"
+			"https://javadoc.io/doc/com.graphql-java/graphql-java/19.5/"
 	] as String[]
 
 	components.java.withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
