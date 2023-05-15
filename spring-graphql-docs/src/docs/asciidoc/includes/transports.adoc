@@ -1,0 +1,147 @@
+[[server.transports]]
+= Server Transports
+
+Spring for GraphQL supports server handling of GraphQL requests over HTTP, WebSocket, and
+RSocket.
+
+
+[[server.transports.http]]
+= HTTP
+
+`GraphQlHttpHandler` handles GraphQL over HTTP requests and delegates to the
+<<server.interception>> chain for request execution. There are two variants, one for
+Spring MVC and one for Spring WebFlux. Both handle requests asynchronously and have
+equivalent functionality, but rely on blocking vs non-blocking I/O respectively for
+writing the HTTP response.
+
+Requests must use HTTP POST with `"application/json"` as content type and GraphQL request details
+included as JSON in the request body, as defined in the proposed
+https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md[GraphQL over HTTP] specification.
+Once the JSON body has been successfully decoded, the HTTP response status is always 200 (OK),
+and any errors from GraphQL request execution appear in the "errors" section of the GraphQL response.
+The default and preferred choice of media type is `"application/graphql-response+json"`, but `"application/json"`
+is also supported, as described in the specification.
+
+`GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
+bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
+<<boot-starter>> does this, see the
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints] section for
+details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
+it contains, for the actual config.
+
+The 1.0.x branch of this repository contains a Spring MVC
+{github-10x-branch}/samples/webmvc-http[HTTP sample] application.
+
+
+
+[[server.transports.websocket]]
+== WebSocket
+
+`GraphQlWebSocketHandler` handles GraphQL over WebSocket requests based on the
+https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md[protocol] defined in the
+https://github.com/enisdenjo/graphql-ws[graphql-ws] library. The main reason to use
+GraphQL over WebSocket is subscriptions which allow sending a stream of GraphQL
+responses, but it can also be used for regular queries with a single response.
+The handler delegates every request to the <<server.interception>> chain for further
+request execution.
+
+[TIP]
+.GraphQL Over WebSocket Protocols
+====
+There are two such protocols, one in the
+https://github.com/apollographql/subscriptions-transport-ws[subscriptions-transport-ws]
+library and another in the
+https://github.com/enisdenjo/graphql-ws[graphql-ws] library. The former is not active and
+succeeded by the latter. Read this
+https://the-guild.dev/blog/graphql-over-websockets[blog post] for the history.
+====
+
+There are two variants of `GraphQlWebSocketHandler`, one for Spring MVC and one for
+Spring WebFlux. Both handle requests asynchronously and have equivalent functionality.
+The WebFlux handler also uses non-blocking I/O and back pressure to stream messages,
+which works well since in GraphQL Java a subscription response is a Reactive Streams
+`Publisher`.
+
+The `graphql-ws` project lists a number of
+https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
+
+`GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
+`SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. By default,
+the <<boot-starter>> does not expose a GraphQL over WebSocket endpoint, but it's easy to
+enable it by adding a property for the endpoint path. Please, see the
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints]
+section for details, or check the `GraphQlWebMvcAutoConfiguration` or the
+`GraphQlWebFluxAutoConfiguration` for the actual Boot starter config.
+
+The 1.0.x branch of this repository contains a WebFlux
+{github-10x-branch}/samples/webflux-websocket[WebSocket sample] application.
+
+
+
+[[server.transports.rsocket]]
+== RSocket
+
+`GraphQlRSocketHandler` handles GraphQL over RSocket requests. Queries and mutations are
+expected and handled as an RSocket `request-response` interaction while subscriptions are
+handled as `request-stream`.
+
+`GraphQlRSocketHandler` can be used a delegate from an `@Controller` that is mapped to
+the route for GraphQL requests. For example:
+
+include::code:GraphQlRSocketController[]
+
+
+
+
+[[server.interception]]
+== Interception
+
+Server transports allow intercepting requests before and after the GraphQL Java engine is
+called to process a request.
+
+
+[[server.interception.web]]
+=== `WebGraphQlInterceptor`
+
+<<server.transports.http>> and <<server.transports.websocket>> transports invoke a chain of
+0 or more `WebGraphQlInterceptor`, followed by an `ExecutionGraphQlService` that calls
+the GraphQL Java engine. `WebGraphQlInterceptor` allows an application to intercept
+incoming requests and do one of the following:
+
+- Check HTTP request details
+- Customize the `graphql.ExecutionInput`
+- Add HTTP response headers
+- Customize the `graphql.ExecutionResult`
+
+For example, an interceptor can pass an HTTP request header to a `DataFetcher`:
+
+include::code:RequestHeaderInterceptor[]
+<1> Interceptor adds HTTP request header value into GraphQLContext
+<2> Data controller method accesses the value
+
+Reversely, an interceptor can access values added to the `GraphQLContext` by a controller:
+
+include::code:ResponseHeaderInterceptor[]
+<1> Controller adds value to the `GraphQLContext`
+<2> Interceptor uses the value to add an HTTP response header
+
+`WebGraphQlHandler` can modify the `ExecutionResult`, for example, to inspect and modify
+request validation errors that are raised before execution begins and which cannot be
+handled with a `DataFetcherExceptionResolver`:
+
+include::code:RequestErrorInterceptor[]
+<1> Return the same if `ExecutionResult` has a "data" key with non-null value
+<2> Check and transform the GraphQL errors
+<3> Update the `ExecutionResult` with the modified errors
+
+Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
+by the <<boot-starter>>, see
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
+
+
+[[server.interception.rsocket]]
+=== `RSocketQlInterceptor`
+
+Similar to <<server.interception.web>>, an `RSocketQlInterceptor` allows intercepting
+GraphQL over RSocket requests before and after GraphQL Java engine execution. You can use
+this to customize the `graphql.ExecutionInput` and the `graphql.ExecutionResult`.

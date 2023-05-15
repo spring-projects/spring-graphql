@@ -1,0 +1,482 @@
+[[data]]
+= Data Integration
+
+Spring for GraphQL lets you leverage existing Spring technology, following common
+programming models to expose underlying data sources through GraphQL.
+
+This section discusses an integration layer for Spring Data that provides an easy way to
+adapt a Querydsl or a Query by Example repository to a `DataFetcher`, including the
+option for automated detection and GraphQL Query registration for repositories marked
+with `@GraphQlRepository`.
+
+
+
+[[data.querydsl]]
+== Querydsl
+
+Spring for GraphQL supports use of http://www.querydsl.com/[Querydsl] to fetch data through
+the Spring Data
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#core.extensions[Querydsl extension].
+Querydsl provides a flexible yet typesafe approach to express query predicates by
+generating a meta-model using annotation processors.
+
+For example, declare a repository as `QuerydslPredicateExecutor`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public interface AccountRepository extends Repository<Account, Long>,
+			QuerydslPredicateExecutor<Account> {
+}
+----
+
+Then use it to create a `DataFetcher`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	// For single result queries
+	DataFetcher<Account> dataFetcher =
+			QuerydslDataFetcher.builder(repository).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).many();
+
+	// For paginated queries
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).scrollable();
+----
+
+You can now register the above `DataFetcher` through a
+<<execution.graphqlsource.runtimewiring-configurer>>.
+
+The `DataFetcher` builds a Querydsl `Predicate` from GraphQL arguments, and uses it to
+fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA, MongoDB, and LDAP.
+
+NOTE: For a single argument that is a GraphQL input type, `QuerydslDataFetcher` nests one
+level down, and uses the values from the argument sub-map.
+
+If the repository is `ReactiveQuerydslPredicateExecutor`, the builder returns
+`DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
+variant for MongoDB.
+
+
+[[data.querydsl.build]]
+=== Build Setup
+
+To configure Querydsl in your build, follow the
+https://querydsl.com/static/querydsl/latest/reference/html/ch02.html[official reference documentation]:
+
+For example:
+
+[source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
+.Gradle
+----
+dependencies {
+	//...
+
+	annotationProcessor "com.querydsl:querydsl-apt:$querydslVersion:jpa",
+			'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final',
+			'javax.annotation:javax.annotation-api:1.3.2'
+}
+
+compileJava {
+	 options.annotationProcessorPath = configurations.annotationProcessor
+}
+----
+[source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
+.Maven
+----
+<dependencies>
+	<!-- ... -->
+	<dependency>
+		<groupId>com.querydsl</groupId>
+		<artifactId>querydsl-apt</artifactId>
+		<version>${querydsl.version}</version>
+		<classifier>jpa</classifier>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.hibernate.javax.persistence</groupId>
+		<artifactId>hibernate-jpa-2.1-api</artifactId>
+		<version>1.0.2.Final</version>
+	</dependency>
+	<dependency>
+		<groupId>javax.annotation</groupId>
+		<artifactId>javax.annotation-api</artifactId>
+		<version>1.3.2</version>
+	</dependency>
+</dependencies>
+<plugins>
+	<!-- Annotation processor configuration -->
+	<plugin>
+		<groupId>com.mysema.maven</groupId>
+		<artifactId>apt-maven-plugin</artifactId>
+		<version>${apt-maven-plugin.version}</version>
+		<executions>
+			<execution>
+				<goals>
+					<goal>process</goal>
+				</goals>
+				<configuration>
+					<outputDirectory>target/generated-sources/java</outputDirectory>
+					<processor>com.querydsl.apt.jpa.JPAAnnotationProcessor</processor>
+				</configuration>
+			</execution>
+		</executions>
+	</plugin>
+</plugins>
+----
+
+The {github-10x-branch}/samples/webmvc-http[webmvc-http] sample uses Querydsl for
+`artifactRepositories`.
+
+
+[[data.querydsl.customizations]]
+=== Customizations
+
+`QuerydslDataFetcher` supports customizing how GraphQL arguments are bound onto properties
+to create a Querydsl `Predicate`. By default, arguments are bound as "is equal to" for
+each available property. To customize that, you can use `QuerydslDataFetcher` builder
+methods to provide a `QuerydslBinderCustomizer`.
+
+A repository may itself be an instance of `QuerydslBinderCustomizer`. This is auto-detected
+and transparently applied during <<data.querydsl.registration>>. However, when manually
+building a `QuerydslDataFetcher` you will need to use builder methods to apply it.
+
+`QuerydslDataFetcher` supports interface and DTO projections to transform query results
+before returning these for further GraphQL processing.
+
+TIP: To learn what projections are, please refer to the
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data docs].
+To understand how to use projections in GraphQL, please see <<data.projections>>.
+
+To use Spring Data projections with Querydsl repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QuerydslDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
+
+
+[[data.querydsl.registration]]
+=== Auto-Registration
+
+If a repository is annotated with `@GraphQlRepository`, it is automatically registered
+for queries that do not already have a registered `DataFetcher` and whose return type
+matches that of the repository domain type. This includes single value queries, multi-value
+queries, and <<execution.pagination,paginated>> queries.
+
+By default, the name of the GraphQL type returned by the query must match the simple name
+of the repository domain type. If needed, you can use the `typeName` attribute of
+`@GraphQlRepository` to specify the target GraphQL type name.
+
+For paginated queries, the simple name of the repository domain type must match the
+`Connection` type name without the `Connection` ending (e.g. `**Book**` matches
+`**Books**Connection`). For auto-registration, pagination is offset-based with 20 items
+per page.
+
+Auto-registration detects if a given repository implements `QuerydslBinderCustomizer` and
+transparently applies that through `QuerydslDataFetcher` builder methods.
+
+Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
+obtained from `QuerydslDataFetcher`. The <<boot-starter>> automatically
+detects `@GraphQlRepository` beans and uses them to initialize the
+`RuntimeWiringConfigurer` with.
+
+Auto-registration applies <<data.querybyexample.customizations, customizations>>
+by calling `customize(Builder)` on the repository instance if your repository
+implements `QuerydslBuilderCustomizer` or `ReactiveQuerydslBuilderCustomizer`
+respectively.
+
+
+[[data.querybyexample]]
+== Query by Example
+
+Spring Data supports the use of
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#query-by-example[Query by Example]
+to fetch data. Query by Example (QBE) is a simple querying technique that does not require
+you to write queries through store-specific query languages.
+
+Start by declaring a repository that is `QueryByExampleExecutor`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public interface AccountRepository extends Repository<Account, Long>,
+			QueryByExampleExecutor<Account> {
+}
+----
+
+Use `QueryByExampleDataFetcher` to turn the repository into a `DataFetcher`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	// For single result queries
+	DataFetcher<Account> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).many();
+
+	// For paginated queries
+	DataFetcher<Iterable<Account>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).scrollable();
+----
+
+You can now register the above `DataFetcher` through a
+<<execution.graphqlsource.runtimewiring-configurer>>.
+
+The `DataFetcher` uses the GraphQL arguments map to create the domain type of the
+repository and use that as the example object to fetch data with. Spring Data supports
+`QueryByExampleDataFetcher` for JPA, MongoDB, Neo4j, and Redis.
+
+NOTE: For a single argument that is a GraphQL input type, `QueryByExampleDataFetcher`
+nests one level down, and binds with the values from the argument sub-map.
+
+If the repository is `ReactiveQueryByExampleExecutor`, the builder returns
+`DataFetcher<Mono<Account>>` or `DataFetcher<Flux<Account>>`. Spring Data supports this
+variant for MongoDB, Neo4j, Redis, and R2dbc.
+
+
+[[data.querybyexample.build]]
+=== Build Setup
+
+Query by Example is already included in the Spring Data modules for the data stores where
+it is supported, so no extra setup is required to enable it.
+
+
+[[data.querybyexample.customizations]]
+=== Customizations
+
+`QueryByExampleDataFetcher` supports interface and DTO projections to transform query
+results before returning these for further GraphQL processing.
+
+TIP: To learn what projections are, please refer to the
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data documentation].
+To understand the role of projections in GraphQL, please see <<data.projections>>.
+
+To use Spring Data projections with Query by Example repositories, create either a projection interface
+or a target DTO class and configure it through the `projectAs` method to obtain a
+`DataFetcher` producing the target type:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	class Account {
+
+		String name, identifier, description;
+
+		Person owner;
+	}
+
+	interface AccountProjection {
+
+		String getName();
+
+		String getIdentifier();
+	}
+
+	// For single result queries
+	DataFetcher<AccountProjection> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).single();
+
+	// For multi-result queries
+	DataFetcher<Iterable<AccountProjection>> dataFetcher =
+			QueryByExampleDataFetcher.builder(repository).projectAs(AccountProjection.class).many();
+----
+
+
+[[data.querybyexample.registration]]
+=== Auto-Registration
+
+If a repository is annotated with `@GraphQlRepository`, it is automatically registered
+for queries that do not already have a registered `DataFetcher` and whose return type
+matches that of the repository domain type. This includes single value queries, multi-value
+queries, and <<execution.pagination,paginated>> queries.
+
+By default, the name of the GraphQL type returned by the query must match the simple name
+of the repository domain type. If needed, you can use the `typeName` attribute of
+`@GraphQlRepository` to specify the target GraphQL type name.
+
+For paginated queries, the simple name of the repository domain type must match the
+`Connection` type name without the `Connection` ending (e.g. `**Book**` matches
+`**Books**Connection`). For auto-registration, pagination is offset-based with 20 items
+per page.
+
+Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
+obtained from `QueryByExampleDataFetcher`. The <<boot-starter>> automatically
+detects `@GraphQlRepository` beans and uses them to initialize the
+`RuntimeWiringConfigurer` with.
+
+Auto-registration applies <<data.querybyexample.customizations, customizations>>
+by calling `customize(Builder)` on the repository instance if your repository
+implements `QueryByExampleBuilderCustomizer` or
+`ReactiveQueryByExampleBuilderCustomizer` respectively.
+
+
+
+[[data.projections]]
+== Selection Set vs Projections
+
+A common question that arises is, how GraphQL selection sets compare to
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data projections]
+and what role does each play?
+
+The short answer is that Spring for GraphQL is not a data gateway that translates GraphQL
+queries directly into SQL or JSON queries. Instead, it lets you leverage existing Spring
+technology and does not assume a one for one mapping between the GraphQL schema and the
+underlying data model. That is why client-driven selection and server-side transformation
+of the data model can play complementary roles.
+
+To better understand, consider that Spring Data promotes domain-driven (DDD) design as
+the recommended approach to manage complexity in the data layer. In DDD, it is important
+to adhere to the constraints of an aggregate. By definition an aggregate is valid only if
+loaded in its entirety, since a partially loaded aggregate may impose limitations on
+aggregate functionality.
+
+In Spring Data you can choose whether you want your aggregate be exposed as is, or
+whether to apply transformations to the data model before returning it as a GraphQL
+result. Sometimes it's enough to do the former, and by default the
+<<data.querydsl>> and the <<data.querybyexample>> integrations turn the GraphQL
+selection set into property path hints that the underlying Spring Data module uses to
+limit the selection.
+
+In other cases, it's useful to reduce or even transform the underlying data model in
+order to adapt to the GraphQL schema. Spring Data supports this through Interface
+and DTO Projections.
+
+Interface projections define a fixed set of properties to expose where properties may or
+may not be `null`, depending on the data store query result. There are two kinds of
+interface projections both of which determine what properties to load from the underlying
+data source:
+
+- https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.closed[Closed interface projections]
+are helpful if you cannot partially materialize the aggregate object, but you still
+want to expose a subset of properties.
+- https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.open[Open interface projections]
+leverage Spring's `@Value` annotation and
+{spring-framework-ref-docs}/core.html#expressions[SpEL]  expressions to apply lightweight
+data transformations, such as concatenations, computations, or applying static functions
+to a property.
+
+DTO projections offer a higher level of customization as you can place transformation
+code either in the constructor or in getter methods.
+
+DTO projections materialize from a query where the individual properties are
+determined by the projection itself. DTO projections are commonly used with full-args
+constructors (e.g. Java records), and therefore they can only be constructed if all
+required fields (or columns) are part of the database query result.
+
+
+
+[[data.pagination.scroll]]
+== Scroll
+
+As explained in <<execution.pagination>>, the GraphQL Cursor Connection spec defines a
+mechanism for pagination with `Connection`, `Edge`, and `PageInfo` schema types, while
+GraphQL Java provides the equivalent Java type representations.
+
+Spring for GraphQL provides built-in ``ConnectionAdapter`` implementations to adapt the
+Spring Data pagination types `Window` and `Slice` transparently. You can configure that
+as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+CursorStrategy<ScrollPosition> strategy = CursorStrategy.withEncoder(
+		new ScrollPositionCursorStrategy(),
+		CursorEncoder.base64()); // <1>
+
+GraphQLTypeVisitor visitor = ConnectionFieldTypeVisitor.create(List.of(
+		new WindowConnectionAdapter(strategy),
+		new SliceConnectionAdapter(strategy))); // <2>
+
+GraphQlSource.schemaResourceBuilder()
+		.schemaResources(..)
+		.typeDefinitionConfigurer(..)
+		.typeVisitors(List.of(visitor)); // <3>
+----
+
+<1> Create strategy to convert `ScrollPosition` to a Base64 encoded cursor.
+<2> Create type visitor to adapt `Window` and `Slice` returned from ``DataFetcher``s.
+<3> Register the type visitor.
+
+On the request side, a controller method can declare a
+<<controllers.schema-mapping.subrange,ScrollSubrange>> method argument to paginate forward
+or backward. For this to work, you must declare a <<execution.pagination.cursor.strategy>>
+supports `ScrollPosition` as a bean.
+
+The <<boot-starter>> declares a `CursorStrategy<ScrollPosition>` bean, and registers the
+`ConnectionFieldTypeVisitor` as shown above if Spring Data is on the classpath.
+
+
+[[data.pagination.scroll.keyset]]
+== Keyset Position
+
+For `KeysetScrollPosition`, the cursor needs to be created from a keyset, which is
+essentially a `Map` of key-value pairs. To decide how to create a cursor from a keyset,
+you can configure `ScrollPositionCursorStrategy` with `CursorStrategy<Map<String, Object>>`.
+By default, `JsonKeysetCursorStrategy` writes the keyset `Map` to JSON. That works for
+simple like String, Boolean, Integer, and Double, but others cannot be restored back to the
+same type without target type information. The Jackson library has a default typing feature
+that can include type information in the JSON. To use it safely you must specify a list of
+allowed types. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	PolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
+			.allowIfBaseType(Map.class)
+			.allowIfSubType(ZonedDateTime.class)
+			.build();
+
+	ObjectMapper mapper = new ObjectMapper();
+	mapper.activateDefaultTyping(validator, ObjectMapper.DefaultTyping.NON_FINAL);
+----
+
+You can then create `JsonKeysetCursorStrategy`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	ObjectMapper mapper = ... ;
+
+	CodecConfigurer configurer = ServerCodecConfigurer.create();
+	configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+	configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+
+	JsonKeysetCursorStrategy strategy = new JsonKeysetCursorStrategy(configurer);
+----
+
+By default, if `JsonKeysetCursorStrategy` is created without a `CodecConfigurer` and the
+Jackson library is on the classpath, customizations like the above are applied for
+`Date`, `Calendar`, and any type from `java.time`.
+
+
+
+[[data.pagination.sort]]
+== Sort
+
+Spring for GraphQL defines a `SortStrategy` to create `Sort` from GraphQL arguments.
+`AbstractSortStrategy` implements the contract with abstract methods to extract the sort
+direction and properties. To enable support for `Sort` as a controller method argument,
+you need to declare a `SortStrategy` bean.

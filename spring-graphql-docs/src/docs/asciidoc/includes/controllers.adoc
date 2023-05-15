@@ -1,0 +1,756 @@
+[[controllers]]
+= Annotated Controllers
+
+Spring for GraphQL provides an annotation-based programming model where `@Controller`
+components use annotations to declare handler methods with flexible method signatures to
+fetch the data for specific GraphQL fields. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class GreetingController {
+
+			@QueryMapping // <1>
+			public String hello() { // <2>
+				return "Hello, world!";
+			}
+
+	}
+----
+<1> Bind this method to a query, i.e. a field under the Query type.
+<2> Determine the query from the method name if not declared on the annotation.
+
+Spring for GraphQL uses `RuntimeWiring.Builder` to register the above handler method as a
+`graphql.schema.DataFetcher` for the query named "hello".
+
+
+[[controllers-declaration]]
+== Declaration
+
+You can define `@Controller` beans as standard Spring bean definitions. The
+`@Controller` stereotype allows for auto-detection, aligned with Spring general
+support for detecting `@Controller` and `@Component` classes on the classpath and
+auto-registering bean definitions for them. It also acts as a stereotype for the annotated
+class, indicating its role as a data fetching component in a GraphQL application.
+
+`AnnotatedControllerConfigurer` detects `@Controller` beans and registers their
+annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is an
+implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
+The <<boot-starter>> automatically declares `AnnotatedControllerConfigurer` as a bean
+and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
+support for annotated ``DataFetcher``s, see the
+{spring-boot-ref-docs}/web.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
+in the Boot starter documentation.
+
+
+[[controllers.schema-mapping]]
+== `@SchemaMapping`
+
+The `@SchemaMapping` annotation maps a handler method to a field in the GraphQL schema
+and declares it to be the `DataFetcher` for that field. The annotation can specify the
+parent type name, and the field name:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@SchemaMapping(typeName="Book", field="author")
+		public Author getAuthor(Book book) {
+			// ...
+		}
+	}
+----
+
+The `@SchemaMapping` annotation can also leave out those attributes, in which case the
+field name defaults to the method name, while the type name defaults to the simple class
+name of the source/parent object injected into the method. For example, the below
+defaults to type "Book" and field "author":
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+	}
+----
+
+The `@SchemaMapping` annotation can be declared at the class level to specify a default
+type name for all handler methods in the class.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	@SchemaMapping(typeName="Book")
+	public class BookController {
+
+		// @SchemaMapping methods for fields of the "Book" type
+
+	}
+----
+
+`@QueryMapping`, `@MutationMapping`, and `@SubscriptionMapping` are meta annotations that
+are themselves annotated with `@SchemaMapping` and have the typeName preset to `Query`,
+`Mutation`, or `Subscription` respectively. Effectively, these are shortcut annotations
+for fields under the Query, Mutation, and Subscription types respectively. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInput bookInput) {
+			// ...
+		}
+
+		@SubscriptionMapping
+		public Flux<Book> newPublications() {
+			// ...
+		}
+	}
+----
+
+`@SchemaMapping` handler methods have flexible signatures and can choose from a range of
+method arguments and return values..
+
+
+[[controllers.schema-mapping.signature]]
+=== Method Signature
+
+Schema mapping handler methods can have any of the following method arguments:
+
+[cols="1,2"]
+|===
+| Method Argument | Description
+
+| `@Argument`
+| For access to a named field argument bound to a higher-level, typed Object.
+
+See <<controllers.schema-mapping.argument>>.
+
+| `@Argument Map<String, Object>`
+| For access to the raw argument value.
+
+See <<controllers.schema-mapping.argument>>.
+
+| `ArgumentValue`
+| For access to a named field argument bound to a higher-level, typed Object along
+with a flag to indicate if the input argument was omitted vs set to `null`.
+
+See <<controllers.schema-mapping.argument-value>>.
+
+| `@Arguments`
+| For access to all field arguments bound to a higher-level, typed Object.
+
+See <<controllers.schema-mapping.arguments>>.
+
+| `@Arguments Map<String, Object>`
+| For access to the raw map of arguments.
+
+| `@ProjectedPayload` Interface
+| For access to field arguments through a project interface.
+
+See <<controllers.schema-mapping.projectedpayload.argument>>.
+
+| "Source"
+| For access to the source (i.e. parent/container) instance of the field.
+
+See <<controllers.schema-mapping.source>>.
+
+| `Subrange` and `ScrollSubrange`
+| For access to pagination arguments.
+
+See <<execution.pagination>>, <<data.pagination.scroll>>, <<controllers.schema-mapping.subrange>>.
+
+| `Sort`
+| For access to sort details.
+
+See <<execution.pagination>>, <<controllers.schema-mapping.sort>>.
+
+| `DataLoader`
+| For access to a `DataLoader` in the `DataLoaderRegistry`.
+
+See <<controllers.schema-mapping.data-loader>>.
+
+| `@ContextValue`
+| For access to an attribute from the main `GraphQLContext` in `DataFetchingEnvironment`.
+
+| `@LocalContextValue`
+| For access to an attribute from the local `GraphQLContext` in `DataFetchingEnvironment`.
+
+| `GraphQLContext`
+| For access to the context from the `DataFetchingEnvironment`.
+
+| `java.security.Principal`
+| Obtained from the Spring Security context, if available.
+
+| `@AuthenticationPrincipal`
+| For access to `Authentication#getPrincipal()` from the Spring Security context.
+
+| `DataFetchingFieldSelectionSet`
+| For access to the selection set for the query through the `DataFetchingEnvironment`.
+
+| `Locale`, `Optional<Locale>`
+| For access to the `Locale` from the `DataFetchingEnvironment`.
+
+| `DataFetchingEnvironment`
+| For direct access to the underlying `DataFetchingEnvironment`.
+
+|===
+
+Schema mapping handler methods can return:
+
+- A resolved value of any type.
+- `Mono` and `Flux` for asynchronous value(s). Supported for controller methods and for
+  any `DataFetcher` as described in <<execution.reactive-datafetcher>>.
+- `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
+  For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
+
+
+[[controllers.schema-mapping.argument]]
+=== `@Argument`
+
+In GraphQL Java, `DataFetchingEnvironment` provides access to a map of field-specific
+argument values. The values can be simple scalar values (e.g. String, Long), a `Map` of
+values for more complex input, or a `List` of values.
+
+Use the `@Argument` annotation to have an argument bound to a target object and
+injected into the handler method. Binding is performed by mapping argument values to a
+primary data constructor of the expected method parameter type, or by using a default
+constructor to create the object and then map argument values to its properties. This is
+repeated recursively, using all nested argument values and creating nested target objects
+accordingly. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInput bookInput) {
+			// ...
+		}
+	}
+----
+
+TIP: If the target object doesn't have setters, and you can't change that, you can use a
+property on `AnnotatedControllerConfigurer` to allow falling back on binding via direct
+field access.
+
+By default, if the method parameter name is available (requires the `-parameters` compiler
+flag with Java 8+ or debugging info from the compiler), it is used to look up the argument.
+If needed, you can customize the name through the annotation, e.g. `@Argument("bookInput")`.
+
+TIP: The `@Argument` annotation does not have a "required" flag, nor the option to
+specify a default value. Both of these can be specified at the GraphQL schema level and
+are enforced by GraphQL Java.
+
+If binding fails, a `BindException` is raised with binding issues accumulated as field
+errors where the `field` of each error is the argument path where the issue occurred.
+
+You can use `@Argument` with a `Map<String, Object>` argument, to obtain the raw value of
+the argument. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@MutationMapping
+		public Book addBook(@Argument Map<String, Object> bookInput) {
+			// ...
+		}
+	}
+----
+
+NOTE: Prior to 1.2, `@Argument Map<String, Object>` returned the full arguments map if
+the annotation did not specify a name. After 1.2, `@Argument` with
+`Map<String, Object>` always returns the raw argument value, matching either to the name
+specified in the annotation, or to the parameter name. For access to the full arguments
+map, please use <<controllers.schema-mapping.arguments>> instead.
+
+
+[[controllers.schema-mapping.argument-value]]
+=== `ArgumentValue`
+
+By default, input arguments in GraphQL are nullable and optional, which means an argument
+can be set to the `null` literal, or not provided at all. This distinction is useful for
+partial updates with a mutation where the underlying data may also be, either set to
+`null` or not changed at all accordingly. When using <<controllers.schema-mapping.argument>>
+there is no way to make such a distinction, because you would get `null` or an empty
+`Optional` in both cases.
+
+If you want to know not whether a value was not provided at all, you can declare an
+`ArgumentValue` method parameter, which is a simple container for the resulting value,
+along with a flag to indicate whether the input argument was omitted altogether. You
+can use this instead of `@Argument`, in which case the argument name is determined from
+the method parameter name, or together with `@Argument` to specify the argument name.
+
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@MutationMapping
+		public void addBook(ArgumentValue<BookInput> bookInput) {
+			if (!bookInput.isOmitted()) {
+				BookInput value = bookInput.value();
+				// ...
+			}
+		}
+	}
+----
+
+`ArgumentValue` is also supported as a field within the object structure of an `@Argument`
+method parameter, either initialized via a constructor argument or via a setter, including
+as a field of an object nested at any level below the top level object.
+
+
+[[controllers.schema-mapping.arguments]]
+=== `@Arguments`
+
+Use the `@Arguments` annotation, if you want to bind the full arguments map onto a single
+target Object, in contrast to `@Argument`, which binds a specific, named argument.
+
+For example, `@Argument BookInput bookInput` uses the value of the argument "bookInput"
+to initialize `BookInput`, while `@Arguments` uses the full arguments map and in that
+case, top-level arguments are bound to `BookInput` properties.
+
+You can use `@Arguments` with a `Map<String, Object>` argument, to obtain the raw map of
+all argument values.
+
+
+[[controllers.schema-mapping.projectedpayload.argument]]
+=== `@ProjectedPayload` Interface
+
+As an alternative to using complete Objects with <<controllers.schema-mapping.argument>>,
+you can also use a projection interface to access GraphQL request arguments through a
+well-defined, minimal interface. Argument projections are provided by
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces[Spring Data's Interface projections]
+when Spring Data is on the class path.
+
+To make use of this, create an interface annotated with `@ProjectedPayload` and declare
+it as a controller method parameter. If the parameter is annotated with `@Argument`,
+it applies to an individual argument within the `DataFetchingEnvironment.getArguments()`
+map. When declared without `@Argument`, the projection works on top-level arguments in
+the complete arguments map.
+
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(BookIdProjection bookId) {
+			// ...
+		}
+
+		@MutationMapping
+		public Book addBook(@Argument BookInputProjection bookInput) {
+			// ...
+		}
+	}
+
+	@ProjectedPayload
+	interface BookIdProjection {
+
+		Long getId();
+	}
+
+	@ProjectedPayload
+	interface BookInputProjection {
+
+		String getName();
+
+		@Value("#{target.author + ' ' + target.name}")
+		String getAuthorAndName();
+	}
+----
+
+
+
+[[controllers.schema-mapping.source]]
+=== Source
+
+In GraphQL Java, the `DataFetchingEnvironment` provides access to the source (i.e.
+parent/container) instance of the field. To access this, simply declare a method parameter
+of the expected target type.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+	}
+----
+
+The source method argument also helps to determine the type name for the mapping.
+If the simple name of the Java class matches the GraphQL type, then there is no need to
+explicitly specify the type name in the `@SchemaMapping` annotation.
+
+[TIP]
+====
+A <<controllers.batch-mapping>> handler method can batch load all authors for a query,
+given a list of source/parent books objects.
+====
+
+
+[[controllers.schema-mapping.subrange]]
+=== `Subrange`
+
+When there is a <<execution.pagination.cursor.strategy>> bean in Spring configuration,
+controller methods support a `Subrange<P>` argument where `<P>` is a relative position
+converted from a cursor. For Spring Data, `ScrollSubrange` exposes `ScrollPosition`.
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	@QueryMapping
+	public Window<Book> books(ScrollSubrange subrange) {
+		ScrollPosition position = subrange.position().orElse(OffsetScrollPosition.initial())
+		int count = subrange.count().orElse(20);
+		// ...
+	}
+
+}
+----
+
+See <<execution.pagination>> for an overview of pagination and of built-in mechanisms.
+
+
+[[controllers.schema-mapping.sort]]
+=== `Sort`
+
+When there is a <<data.pagination.scroll,SortStrategy>> bean in Spring configuration, controller
+methods support `Sort` as a method argument. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	@QueryMapping
+	public Window<Book> books(Optional<Sort> optionalSort) {
+		Sort sort = optionalSort.orElse(Sort.by(..));
+	}
+
+}
+----
+
+
+
+[[controllers.schema-mapping.data-loader]]
+=== `DataLoader`
+
+When you register a batch loading function for an entity, as explained in
+<<execution.batching>>, you can access the `DataLoader` for the entity by declaring a
+method argument of type `DataLoader` and use it to load the entity:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	public BookController(BatchLoaderRegistry registry) {
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+			// return Map<Long, Author>
+		});
+	}
+
+	@SchemaMapping
+	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
+		return loader.load(book.getAuthorId());
+	}
+
+}
+----
+
+By default, `BatchLoaderRegistry` uses the full class name of the value type (e.g. the
+class name for `Author`) for the key of the registration, and therefore simply declaring
+the `DataLoader` method argument with generic types provides enough information
+to locate it in the `DataLoaderRegistry`. As a fallback, the `DataLoader` method argument
+resolver will also try the method argument name as the key but typically that should not
+be necessary.
+
+Note that for many cases with loading related entities, where the `@SchemaMapping` simply
+delegates to a `DataLoader`, you can reduce boilerplate by using a
+<<controllers.batch-mapping,@BatchMapping>> method as described in the next section.
+
+
+[[controllers.schema-mapping.validation]]
+=== Validation
+
+When a `javax.validation.Validator` bean is found, `AnnotatedControllerConfigurer` enables support for
+{spring-framework-ref-docs}/core.html#validation-beanvalidation-overview[Bean Validation]
+on annotated controller methods. Typically, the bean is of type `LocalValidatorFactoryBean`.
+
+Bean validation lets you declare constraints on types:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+public class BookInput {
+
+	@NotNull
+	private String title;
+
+	@NotNull
+	@Size(max=13)
+	private String isbn;
+}
+----
+
+You can then annotate a controller method parameter with `@Valid` to validate it before
+method invocation:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@MutationMapping
+		public Book addBook(@Argument @Valid BookInput bookInput) {
+			// ...
+		}
+	}
+----
+
+If an error occurs during validation, a `ConstraintViolationException` is raised.
+You can use the <<execution.exceptions>> chain to decide how to present that to clients
+by turning it into an error to include in the GraphQL response.
+
+TIP: In addition to `@Valid`, you can also use Spring's `@Validated` that allows
+specifying validation groups.
+
+Bean validation is useful for <<controllers.schema-mapping.argument>>,
+<<controllers.schema-mapping.arguments>>, and
+<<controllers.schema-mapping.projectedpayload.argument,@ProjectedPayload>>
+method parameters, but applies more generally to any method parameter.
+
+[WARNING]
+.Validation and Kotlin Coroutines
+====
+Hibernate Validator is not compatible with Kotlin Coroutine methods and fails when
+introspecting their method parameters. Please see
+https://github.com/spring-projects/spring-graphql/issues/344#issuecomment-1082814093[spring-projects/spring-graphql#344 (comment)]
+for links to relevant issues and a suggested workaround.
+====
+
+
+
+[[controllers.batch-mapping]]
+== `@BatchMapping`
+
+<<execution.batching>> addresses the N+1 select problem through the use of an
+`org.dataloader.DataLoader` to defer the loading of individual entity instances, so they
+can be loaded together. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class BookController {
+
+	public BookController(BatchLoaderRegistry registry) {
+		registry.forTypePair(Long.class, Author.class).registerMappedBatchLoader((authorIds, env) -> {
+			// return Map<Long, Author>
+		});
+	}
+
+	@SchemaMapping
+	public CompletableFuture<Author> author(Book book, DataLoader<Long, Author> loader) {
+		return loader.load(book.getAuthorId());
+	}
+
+}
+----
+
+For the straight-forward case of loading an associated entity, shown above, the
+`@SchemaMapping` method does nothing more than delegate to the `DataLoader`. This is
+boilerplate that can be avoided with a `@BatchMapping` method. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@BatchMapping
+		public Mono<Map<Book, Author>> author(List<Book> books) {
+			// ...
+		}
+	}
+----
+
+The above becomes a batch loading function in the `BatchLoaderRegistry`
+where keys are `Book` instances and the loaded values their authors. In addition, a
+`DataFetcher` is also transparently bound to the `author` field of the type `Book`, which
+simply delegates to the `DataLoader` for authors, given its source/parent `Book` instance.
+
+[TIP]
+====
+To be used as a unique key, `Book` must implement `hashcode` and `equals`.
+====
+
+By default, the field name defaults to the method name, while the type name defaults to
+the simple class name of the input `List` element type. Both can be customized through
+annotation attributes. The type name can also be inherited from a class level
+`@SchemaMapping`.
+
+
+[[controllers.batch-mapping.signature]]
+=== Method Signature
+
+Batch mapping methods support the following arguments:
+
+[cols="1,2"]
+|===
+| Method Argument | Description
+
+| `List<K>`
+| The source/parent objects.
+
+| `java.security.Principal`
+| Obtained from Spring Security context, if available.
+
+| `@ContextValue`
+| For access to a value from the `GraphQLContext` of `BatchLoaderEnvironment`,
+  which is the same context as the one from the `DataFetchingEnvironment`.
+
+| `GraphQLContext`
+| For access to the context from the `BatchLoaderEnvironment`,
+  which is the same context as the one from the `DataFetchingEnvironment`.
+
+| `BatchLoaderEnvironment`
+| The environment that is available in GraphQL Java to a
+`org.dataloader.BatchLoaderWithContext`.
+
+
+|===
+
+Batch mapping methods can return:
+
+[cols="1,2"]
+|===
+| Return Type | Description
+
+| `Mono<Map<K,V>>`
+| A map with parent objects as keys, and batch loaded objects as values.
+
+| `Flux<V>`
+| A sequence of batch loaded objects that must be in the same order as the source/parent
+  objects passed into the method.
+
+| `Map<K,V>`, `Collection<V>`
+| Imperative variants, e.g. without remote calls to make.
+
+| `Callable<Map<K,V>>`, `Callable<Collection<V>>`
+| Imperative variants to be invoked asynchronously. For this to work,
+  `AnnotatedControllerConfigurer` must be configured with an `Executor`.
+
+|===
+
+
+
+[[controllers.exception-handler]]
+== `@GraphQlExceptionHandler`
+
+Use `@GraphQlExceptionHandler` methods to handle exceptions from data fetching with a
+flexible <<controllers.exception-handler.signature,method signature>>. When declared in a
+controller, exception handler methods apply to exceptions from the same controller:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			// ...
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(BindException ex) {
+			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
+		}
+
+	}
+----
+
+When declared in an `@ControllerAdvice`, exception handler methods apply across controllers:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@ControllerAdvice
+	public class GlobalExceptionHandler {
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(BindException ex) {
+			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
+		}
+
+	}
+----
+
+Exception handling via `@GraphQlExceptionHandler` methods is applied automatically to
+controller invocations. To handle exceptions from other `graphql.schema.DataFetcher`
+implementations, not based on controller methods, obtain a
+`DataFetcherExceptionResolver` from `AnnotatedControllerConfigurer`, and register it in
+`GraphQlSource.Builder` as a <<execution.exceptions,DataFetcherExceptionResolver>>.
+
+
+
+
+[[controllers.exception-handler.signature]]
+=== Method Signature
+
+Exception handler methods support a flexible method signature with method arguments
+resolved from a `DataFetchingEnvironment,` and matching to those of
+<<controllers.schema-mapping.arguments,@SchemaMapping methods>>.
+
+Supported return types are listed below:
+
+[cols="1,2"]
+|===
+| Return Type | Description
+
+| `graphql.GraphQLError`
+| Resolve the exception to a single field error.
+
+| `Collection<GraphQLError>`
+| Resolve the exception to multiple field errors.
+
+| `void`
+| Resolve the exception without response errors.
+
+| `Object`
+| Resolve the exception to a single error, to multiple errors, or none.
+  The return value must be `GraphQLError`, `Collection<GraphQLError>`, or `null`.
+
+| `Mono<T>`
+| For asynchronous resolution where `<T>` is one of the supported, synchronous, return types.
+
+|===
