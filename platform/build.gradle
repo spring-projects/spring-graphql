@@ -39,7 +39,7 @@ dependencies {
 		api("org.skyscreamer:jsonassert:1.5.1")
 
 		api("com.h2database:h2:2.1.214")
-		api("org.hibernate:hibernate-core:6.2.2.Final")
+		api("org.hibernate:hibernate-core:6.1.7.Final")
 		api("org.hibernate.validator:hibernate-validator:8.0.0.Final")
 		api("org.mongodb:bson:4.9.1")
 		api("org.mongodb:mongodb-driver-core:4.9.1")
