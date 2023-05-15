@@ -22,5 +22,5 @@
 :graphql-java-docs: 			https://www.graphql-java.com/documentation
 :javadoc: 						https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api
 // version attributes from main build.gradle
-:spring-framework-ref-docs: 	https://docs.spring.io/spring-framework/docs/{spring-framework-version}/reference/html
+:spring-framework-ref-docs: 	https://docs.spring.io/spring-framework/reference
 :spring-boot-ref-docs: 			https://docs.spring.io/spring-boot/docs/{spring-boot-version}/reference/html

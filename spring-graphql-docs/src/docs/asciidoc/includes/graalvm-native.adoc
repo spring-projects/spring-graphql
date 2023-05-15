@@ -29,7 +29,7 @@ This doesn't cover our third item in the list, as those types are provided by th
 == Native Server applications support
 
 In typical Spring for GraphQL applications, Java types tied to the GraphQL schema are exposed in `@Controller` method signatures
-as parameters or return types. During the {spring-framework-ref-docs}/core.html#core.aot[Ahead Of Time processing phase] of the build,
+as parameters or return types. During the {spring-framework-ref-docs}/core/aot.html[Ahead Of Time processing phase] of the build,
 Spring or GraphQL will use its `o.s.g.data.method.annotation.support.SchemaMappingBeanFactoryInitializationAotProcessor` to discover
 the relevant types and register reachability metadata accordingly.
 This is all done automatically for you if you are building a Spring Boot application with GraalVM support.

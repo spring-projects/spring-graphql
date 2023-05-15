@@ -31,7 +31,7 @@ Once you have a `GraphQlClient` you can begin to make <<client.requests, request
 === HTTP
 
 `HttpGraphQlClient` uses
-{spring-framework-ref-docs}/web-reactive.html#webflux-client[WebClient] to execute
+{spring-framework-ref-docs}/web/webflux-webclient.html[WebClient] to execute
 GraphQL requests over HTTP.
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -70,7 +70,7 @@ existing `HttpGraphQlClient` to create a new instance with customized settings:
 
 `WebSocketGraphQlClient` executes GraphQL requests over a shared WebSocket connection.
 It is built using the
-{spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
+{spring-framework-ref-docs}/web/webflux-websocket.html#webflux-websocket-client[WebSocketClient]
 from Spring WebFlux and you can create it as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -159,7 +159,7 @@ can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
 === RSocket
 
 `RSocketGraphQlClient` uses
-{spring-framework-ref-docs}/web-reactive.html#rsocket-requester[RSocketRequester]
+{spring-framework-ref-docs}/rsocket.html#rsocket-requester[RSocketRequester]
 to execute GraphQL requests over RSocket requests.
 
 [source,java,indent=0,subs="verbatim,quotes"]

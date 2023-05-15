@@ -507,7 +507,7 @@ delegates to a `DataLoader`, you can reduce boilerplate by using a
 === Validation
 
 When a `javax.validation.Validator` bean is found, `AnnotatedControllerConfigurer` enables support for
-{spring-framework-ref-docs}/core.html#validation-beanvalidation-overview[Bean Validation]
+{spring-framework-ref-docs}/core/validation/beanvalidation.html#validation-beanvalidation-overview[Bean Validation]
 on annotated controller methods. Typically, the bean is of type `LocalValidatorFactoryBean`.
 
 Bean validation lets you declare constraints on types:

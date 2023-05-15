@@ -61,7 +61,7 @@ options relevant to all extensions.
 === HTTP
 
 `HttpGraphQlTester` uses
-{spring-framework-ref-docs}/testing.html#webtestclient[WebTestClient] to execute
+{spring-framework-ref-docs}/testing/webtestclient.html[WebTestClient] to execute
 GraphQL requests over HTTP, with or without a live server, depending on how
 `WebTestClient` is configured.
 
@@ -136,7 +136,7 @@ existing `HttpSocketGraphQlTester` to create a new instance with customized sett
 
 `WebSocketGraphQlTester` executes GraphQL requests over a shared WebSocket connection.
 It is built using the
-{spring-framework-ref-docs}/web-reactive.html#webflux-websocket-client[WebSocketClient]
+{spring-framework-ref-docs}/web/webflux-websocket.html#webflux-websocket-client[WebSocketClient]
 from Spring WebFlux and you can create it as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]

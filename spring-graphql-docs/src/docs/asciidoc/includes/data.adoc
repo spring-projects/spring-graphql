@@ -377,7 +377,7 @@ are helpful if you cannot partially materialize the aggregate object, but you st
 want to expose a subset of properties.
 - https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces.open[Open interface projections]
 leverage Spring's `@Value` annotation and
-{spring-framework-ref-docs}/core.html#expressions[SpEL]  expressions to apply lightweight
+{spring-framework-ref-docs}/core/expressions.html[SpEL]  expressions to apply lightweight
 data transformations, such as concatenations, computations, or applying static functions
 to a property.
 
