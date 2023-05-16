@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
+import graphql.TrivialDataFetcher;
 import graphql.relay.Connection;
 import graphql.relay.DefaultConnection;
 import graphql.relay.DefaultConnectionCursor;
@@ -40,8 +41,11 @@ import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -56,6 +60,9 @@ import org.springframework.util.Assert;
  * @since 1.2.0
  */
 public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
+
+	private static Log logger = LogFactory.getLog(ConnectionFieldTypeVisitor.class);
+
 
 	private final ConnectionAdapter adapter;
 
@@ -79,7 +86,16 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		}
 
 		if (isConnectionField(fieldDefinition)) {
-			codeRegistry.dataFetcher(parent, fieldDefinition, new ConnectionDataFetcher(dataFetcher, adapter));
+			if (dataFetcher instanceof TrivialDataFetcher<?>) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Connection field " +
+							"'" + parent.getName() + ":" + fieldDefinition.getName() + "' " +
+							"is mapped to trivial data fetcher: " + dataFetcher.getClass().getName());
+				}
+			}
+			else {
+				codeRegistry.dataFetcher(parent, fieldDefinition, new ConnectionDataFetcher(dataFetcher, adapter));
+			}
 		}
 
 		return TraversalControl.CONTINUE;
@@ -138,12 +154,14 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		}
 
 		@SuppressWarnings("unchecked")
-		private <T> Connection<T> adapt(Object container) {
+		private <T> Connection<T> adapt(@Nullable Object container) {
 			if (container instanceof Connection<?> connection) {
 				return (Connection<T>) connection;
 			}
 
-			Collection<T> nodes = this.adapter.getContent(container);
+			Collection<T> nodes = (container != null ?
+					this.adapter.getContent(container) : Collections.emptyList());
+
 			if (nodes.isEmpty()) {
 				return (Connection<T>) EMPTY_CONNECTION;
 			}

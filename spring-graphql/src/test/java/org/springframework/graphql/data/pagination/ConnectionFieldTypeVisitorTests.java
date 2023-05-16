@@ -19,6 +19,7 @@ package org.springframework.graphql.data.pagination;
 import java.util.Collection;
 import java.util.List;
 
+import graphql.schema.PropertyDataFetcher;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -38,7 +39,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 
 	@Test
-	void dataFetcherDecoration() {
+	void paginationDataFetcher() {
 
 		String document = BookSource.booksConnectionQuery("");
 
@@ -69,6 +70,49 @@ public class ConnectionFieldTypeVisitorTests {
 						"\"endCursor\":\"T_36\"," +
 						"\"hasPreviousPage\":true," +
 						"\"hasNextPage\":true}" +
+						"}}"
+		);
+	}
+
+	@Test // gh-707
+	void trivialDataFetcherIsSkipped() {
+
+		TestConnectionAdapter adapter = new TestConnectionAdapter();
+		adapter.setInitialOffset(30);
+		adapter.setHasNext(true);
+
+		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.dataFetcher("Query", "books", new PropertyDataFetcher<>("books"))
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
+				.toGraphQlService()
+				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery("")));
+
+		ResponseHelper.forResponse(response).assertData("{\"books\":null}");
+	}
+
+	@Test // gh-707
+	void nullValueTreatedAsEmptyConnection() {
+
+		TestConnectionAdapter adapter = new TestConnectionAdapter();
+		adapter.setInitialOffset(30);
+		adapter.setHasNext(true);
+
+		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.dataFetcher("Query", "books", environment -> null)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
+				.toGraphQlService()
+				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery("")));
+
+		ResponseHelper.forResponse(response).assertData(
+				"{\"books\":{" +
+						"\"edges\":[]," +
+						"\"pageInfo\":{" +
+						"\"startCursor\":null," +
+						"\"endCursor\":null," +
+						"\"hasPreviousPage\":false," +
+						"\"hasNextPage\":false}" +
 						"}}"
 		);
 	}
