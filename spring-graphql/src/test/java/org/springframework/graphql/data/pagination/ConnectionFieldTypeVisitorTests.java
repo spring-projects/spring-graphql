@@ -41,9 +41,7 @@ public class ConnectionFieldTypeVisitorTests {
 	@Test
 	void paginationDataFetcher() {
 
-		String document = BookSource.booksConnectionQuery("");
-
-		TestConnectionAdapter adapter = new TestConnectionAdapter();
+		ListConnectionAdapter adapter = new ListConnectionAdapter();
 		adapter.setInitialOffset(30);
 		adapter.setHasNext(true);
 
@@ -52,22 +50,22 @@ public class ConnectionFieldTypeVisitorTests {
 				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
 				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
 
 		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +
 						"\"edges\":[" +
-						"{\"cursor\":\"T_30\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +
-						"{\"cursor\":\"T_31\",\"node\":{\"id\":\"2\",\"name\":\"The Great Gatsby\"}}," +
-						"{\"cursor\":\"T_32\",\"node\":{\"id\":\"3\",\"name\":\"Catch-22\"}}," +
-						"{\"cursor\":\"T_33\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
-						"{\"cursor\":\"T_34\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}," +
-						"{\"cursor\":\"T_35\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}," +
-						"{\"cursor\":\"T_36\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}" +
+						"{\"cursor\":\"O_30\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +
+						"{\"cursor\":\"O_31\",\"node\":{\"id\":\"2\",\"name\":\"The Great Gatsby\"}}," +
+						"{\"cursor\":\"O_32\",\"node\":{\"id\":\"3\",\"name\":\"Catch-22\"}}," +
+						"{\"cursor\":\"O_33\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
+						"{\"cursor\":\"O_34\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}," +
+						"{\"cursor\":\"O_35\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}," +
+						"{\"cursor\":\"O_36\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}" +
 						"]," +
 						"\"pageInfo\":{" +
-						"\"startCursor\":\"T_30\"," +
-						"\"endCursor\":\"T_36\"," +
+						"\"startCursor\":\"O_30\"," +
+						"\"endCursor\":\"O_36\"," +
 						"\"hasPreviousPage\":true," +
 						"\"hasNextPage\":true}" +
 						"}}"
@@ -77,16 +75,12 @@ public class ConnectionFieldTypeVisitorTests {
 	@Test // gh-707
 	void trivialDataFetcherIsSkipped() {
 
-		TestConnectionAdapter adapter = new TestConnectionAdapter();
-		adapter.setInitialOffset(30);
-		adapter.setHasNext(true);
-
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
 				.dataFetcher("Query", "books", new PropertyDataFetcher<>("books"))
 				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
-				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new ListConnectionAdapter())))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery("")));
+				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
 
 		ResponseHelper.forResponse(response).assertData("{\"books\":null}");
 	}
@@ -94,16 +88,12 @@ public class ConnectionFieldTypeVisitorTests {
 	@Test // gh-707
 	void nullValueTreatedAsEmptyConnection() {
 
-		TestConnectionAdapter adapter = new TestConnectionAdapter();
-		adapter.setInitialOffset(30);
-		adapter.setHasNext(true);
-
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
 				.dataFetcher("Query", "books", environment -> null)
 				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
-				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
+				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new ListConnectionAdapter())))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery("")));
+				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
 
 		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +
@@ -118,7 +108,7 @@ public class ConnectionFieldTypeVisitorTests {
 	}
 
 
-	private static class TestConnectionAdapter implements ConnectionAdapter {
+	private static class ListConnectionAdapter implements ConnectionAdapter {
 
 		private int initialOffset = 0;
 
@@ -137,9 +127,10 @@ public class ConnectionFieldTypeVisitorTests {
 			return Collection.class.isAssignableFrom(containerType);
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
-		public <T> Collection<T> getContent(Object container) {
-			return (Collection<T>) container;
+		public <T> List<T> getContent(Object container) {
+			return (List<T>) container;
 		}
 
 		@Override
@@ -154,7 +145,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 		@Override
 		public String cursorAt(Object container, int index) {
-			return "T_" + (this.initialOffset + index);
+			return "O_" + (this.initialOffset + index);
 		}
 
 	}

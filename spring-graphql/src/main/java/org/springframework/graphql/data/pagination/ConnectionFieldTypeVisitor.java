@@ -61,7 +61,7 @@ import org.springframework.util.Assert;
  */
 public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 
-	private static Log logger = LogFactory.getLog(ConnectionFieldTypeVisitor.class);
+	private static final Log logger = LogFactory.getLog(ConnectionFieldTypeVisitor.class);
 
 
 	private final ConnectionAdapter adapter;
