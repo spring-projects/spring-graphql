@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,8 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.GraphQlSetup;
-import org.springframework.graphql.TestExecutionRequest;
+import org.springframework.graphql.ResponseHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -85,7 +84,7 @@ public class ClassNameTypeResolverTests {
 
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup.queryFetcher("animals", env -> animalList)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		for (int i = 0; i < animalList.size(); i++) {
@@ -128,7 +127,7 @@ public class ClassNameTypeResolverTests {
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
 				.typeResolver(typeResolver)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		for (int i = 0; i < animalAndPlantList.size(); i++) {

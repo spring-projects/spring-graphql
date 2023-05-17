@@ -27,8 +27,6 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
-import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 
 /**
  * Unit tests for {@link ConnectionFieldTypeVisitor}.
@@ -49,7 +47,7 @@ public class ConnectionFieldTypeVisitorTests {
 				.dataFetcher("Query", "books", env -> BookSource.books())
 				.connectionSupport(adapter)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
+				.execute(BookSource.booksConnectionQuery(null));
 
 		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +
@@ -78,7 +76,7 @@ public class ConnectionFieldTypeVisitorTests {
 				.dataFetcher("Query", "books", new PropertyDataFetcher<>("books"))
 				.connectionSupport(new ListConnectionAdapter())
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
+				.execute(BookSource.booksConnectionQuery(null));
 
 		ResponseHelper.forResponse(response).assertData("{\"books\":null}");
 	}
@@ -90,7 +88,7 @@ public class ConnectionFieldTypeVisitorTests {
 				.dataFetcher("Query", "books", environment -> null)
 				.connectionSupport(new ListConnectionAdapter())
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
+				.execute(BookSource.booksConnectionQuery(null));
 
 		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +

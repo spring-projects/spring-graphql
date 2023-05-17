@@ -40,9 +40,9 @@ import org.springframework.graphql.BookCriteria;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
@@ -80,7 +80,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		Book book = ResponseHelper.forResponse(responseMono).toEntity("bookById", Book.class);
 		assertThat(book.getId()).isEqualTo(1);
@@ -100,7 +100,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -117,7 +117,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedArguments", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -134,7 +134,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		List<Book> bookList = ResponseHelper.forResponse(responseMono).toList("booksByProjectedCriteria", Book.class);
 		assertThat(bookList).hasSize(2);
@@ -179,7 +179,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		Author author = ResponseHelper.forResponse(responseMono).toEntity("addAuthor", Author.class);
 		assertThat(author.getId()).isEqualTo(99);
@@ -196,7 +196,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));
@@ -222,8 +222,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono =
-				graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
 		assertThat(responseHelper.errorCount()).isEqualTo(1);
@@ -246,12 +245,12 @@ public class SchemaMappingInvocationTests {
 								.message("Rejected: " + ex.getMessage())
 								.build()));
 
-		ExecutionGraphQlService service = graphQlService((configurer, setup) -> {
+		TestExecutionGraphQlService service = graphQlService((configurer, setup) -> {
 			setup.exceptionResolver(configurer.getExceptionResolver()); // First @ControllerAdvice (no match)
 			setup.exceptionResolver(resolver); // Then resolver
 		});
 
-		Mono<ExecutionGraphQlResponse> responseMono = service.execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = service.execute(document);
 
 		ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
 		assertThat(responseHelper.errorCount()).isEqualTo(1);
@@ -268,8 +267,7 @@ public class SchemaMappingInvocationTests {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono =
-				graphQlService().execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(document);
 
 		Flux<Book> bookFlux = ResponseHelper.forSubscription(responseMono)
 				.map(response -> response.toEntity("bookSearch", Book.class));
@@ -286,11 +284,11 @@ public class SchemaMappingInvocationTests {
 	}
 
 
-	private ExecutionGraphQlService graphQlService() {
+	private TestExecutionGraphQlService graphQlService() {
 		return graphQlService((configurer, setup) -> {});
 	}
 
-	private ExecutionGraphQlService graphQlService(BiConsumer<AnnotatedControllerConfigurer, GraphQlSetup> consumer) {
+	private TestExecutionGraphQlService graphQlService(BiConsumer<AnnotatedControllerConfigurer, GraphQlSetup> consumer) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();

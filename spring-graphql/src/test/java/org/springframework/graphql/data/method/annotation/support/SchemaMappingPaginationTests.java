@@ -27,10 +27,9 @@ import org.springframework.data.domain.Window;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
+import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
@@ -50,9 +49,8 @@ public class SchemaMappingPaginationTests {
 	@Test
 	void forwardPagination() {
 
-		String query = BookSource.booksConnectionQuery("first:2, after:\"O_3\"");
-
-		Mono<ExecutionGraphQlResponse> response = graphQlService().execute(TestExecutionRequest.forDocument(query));
+		String document = BookSource.booksConnectionQuery("first:2, after:\"O_3\"");
+		Mono<ExecutionGraphQlResponse> response = graphQlService().execute(document);
 
 		ResponseHelper.forResponse(response).assertData(
 						"{\"books\":{" +
@@ -68,7 +66,7 @@ public class SchemaMappingPaginationTests {
 								"}}}");
 	}
 
-	private ExecutionGraphQlService graphQlService() {
+	private TestExecutionGraphQlService graphQlService() {
 
 		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
 

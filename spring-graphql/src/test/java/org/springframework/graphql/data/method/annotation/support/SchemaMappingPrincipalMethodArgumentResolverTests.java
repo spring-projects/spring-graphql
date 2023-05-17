@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,9 @@ import reactor.util.context.Context;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.ExecutionGraphQlResponse;
-import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
+import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.lang.Nullable;
@@ -156,12 +155,12 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		context.registerBean(GreetingController.class, () -> greetingController);
 		context.refresh();
 
-		ExecutionGraphQlService graphQlService = GraphQlSetup.schemaContent(schema)
+		TestExecutionGraphQlService graphQlService = GraphQlSetup.schemaContent(schema)
 				.runtimeWiringForAnnotatedControllers(context)
 				.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
-				.flatMap(aLong -> graphQlService.execute(TestExecutionRequest.forDocument(document)))
+				.flatMap(aLong -> graphQlService.execute(document))
 				.contextWrite(contextWriter);
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.stereotype.Controller;
 
@@ -72,8 +71,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(controller)
-				.execute(TestExecutionRequest.forDocument(query));
+		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(controller).execute(query);
 
 		List<Course> actualCourses = ResponseHelper.forResponse(responseMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
@@ -105,8 +103,7 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(controller)
-				.execute(TestExecutionRequest.forDocument(document));
+		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(controller).execute(document);
 
 		List<Course> actualCourses = ResponseHelper.forResponse(responseMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();

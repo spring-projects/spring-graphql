@@ -66,7 +66,7 @@ class GraphQlObservationInstrumentationTests {
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.queryFetcher("bookById", dataFetcher)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 
 		String name = response.rawValue("bookById.name");
@@ -101,7 +101,7 @@ class GraphQlObservationInstrumentationTests {
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
@@ -127,7 +127,7 @@ class GraphQlObservationInstrumentationTests {
 				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
 				.dataFetcher("Book", "author", env -> BookSource.getAuthor(101L))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
@@ -169,7 +169,7 @@ class GraphQlObservationInstrumentationTests {
 				.queryFetcher("bookById", env ->
 						CompletableFuture.failedStage(new IllegalStateException("book fetching failure")))
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		assertThat(response.error(0).message()).isEqualTo("Resolved error: book fetching failure");
 
@@ -207,15 +207,15 @@ class GraphQlObservationInstrumentationTests {
 					}
 				}
 				""";
-		ExecutionGraphQlRequest graphQlRequest = TestExecutionRequest.forDocument(document);
+		ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
 		Observation incoming = Observation.start("incoming", ObservationRegistry.create());
-		graphQlRequest.configureExecutionInput((input, builder) ->
+		request.configureExecutionInput((input, builder) ->
 				builder.graphQLContext(contextBuilder -> contextBuilder.of(ObservationThreadLocalAccessor.KEY, incoming)).build());
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.queryFetcher("bookById", env -> BookSource.getBookWithoutAuthor(1L))
 				.toGraphQlService()
-				.execute(graphQlRequest);
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+				.execute(request);
+		ResponseHelper.forResponse(responseMono);
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasParentObservationEqualTo(incoming);
@@ -235,8 +235,8 @@ class GraphQlObservationInstrumentationTests {
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.queryFetcher("bookById", dataFetcher)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+				.execute(document);
+		ResponseHelper.forResponse(responseMono);
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
@@ -275,8 +275,8 @@ class GraphQlObservationInstrumentationTests {
 				.queryFetcher("bookById", bookDataFetcher)
 				.dataFetcher("Book", "author", authorDataFetcher)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+				.execute(document);
+		ResponseHelper.forResponse(responseMono);
 	}
 
 }

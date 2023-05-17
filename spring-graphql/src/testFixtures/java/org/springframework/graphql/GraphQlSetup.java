@@ -154,11 +154,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 		return this;
 	}
 
-	public ExecutionGraphQlService toGraphQlService() {
+	public TestExecutionGraphQlService toGraphQlService() {
 		GraphQlSource source = graphQlSourceBuilder.build();
 		DefaultExecutionGraphQlService service = new DefaultExecutionGraphQlService(source);
 		this.dataLoaderRegistrars.forEach(service::addDataLoaderRegistrar);
-		return service;
+		return new TestExecutionGraphQlService(service);
 	}
 
 

@@ -34,7 +34,6 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
 
 /**
  * Unit tests for {@link ConnectionTypeDefinitionConfigurer}.
@@ -57,7 +56,7 @@ public class ConnectionTypeDefinitionConfigurerTests {
 		Mono<ExecutionGraphQlResponse> response = initGraphQlSetup()
 				.dataFetcher("Query", "books", dataFetcher)
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument(document));
+				.execute(document);
 
 		ResponseHelper.forResponse(response).assertData(
 				"{\"books\":{" +
