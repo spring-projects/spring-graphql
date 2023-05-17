@@ -201,8 +201,7 @@ class QueryByExampleDataFetcherReactiveMongoDbTests {
 
 	private static GraphQlSetup paginationSetup(ScrollPositionCursorStrategy cursorStrategy) {
 		return GraphQlSetup.schemaResource(BookSource.paginationSchema)
-				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
-				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
+				.connectionSupport(new WindowConnectionAdapter(cursorStrategy));
 	}
 
 	private static RuntimeWiringConfigurer createRuntimeWiringConfigurer(ReactiveQueryByExampleExecutor<?> executor) {

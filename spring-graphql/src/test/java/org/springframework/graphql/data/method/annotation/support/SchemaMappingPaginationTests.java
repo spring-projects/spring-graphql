@@ -32,12 +32,10 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
 import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.graphql.data.query.WindowConnectionAdapter;
-import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.stereotype.Controller;
 
 /**
@@ -83,9 +81,9 @@ public class SchemaMappingPaginationTests {
 		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 
-		GraphQlSetup setup = GraphQlSetup.schemaResource(BookSource.paginationSchema).runtimeWiring(configurer);
-		setup.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
-		setup.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new WindowConnectionAdapter(cursorStrategy))));
+		GraphQlSetup setup = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.runtimeWiring(configurer)
+				.connectionSupport(new WindowConnectionAdapter(cursorStrategy));
 
 		return setup.toGraphQlService();
 	}

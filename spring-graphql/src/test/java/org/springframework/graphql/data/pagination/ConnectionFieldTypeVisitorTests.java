@@ -47,8 +47,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
 				.dataFetcher("Query", "books", env -> BookSource.books())
-				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
-				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(adapter)))
+				.connectionSupport(adapter)
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
 
@@ -77,8 +76,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
 				.dataFetcher("Query", "books", new PropertyDataFetcher<>("books"))
-				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
-				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new ListConnectionAdapter())))
+				.connectionSupport(new ListConnectionAdapter())
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
 
@@ -90,8 +88,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
 				.dataFetcher("Query", "books", environment -> null)
-				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
-				.typeVisitor(ConnectionFieldTypeVisitor.create(List.of(new ListConnectionAdapter())))
+				.connectionSupport(new ListConnectionAdapter())
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(BookSource.booksConnectionQuery(null)));
 

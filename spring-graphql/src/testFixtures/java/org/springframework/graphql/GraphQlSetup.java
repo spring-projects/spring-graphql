@@ -30,6 +30,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
+import org.springframework.graphql.data.pagination.ConnectionAdapter;
+import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataLoaderRegistrar;
 import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
@@ -96,6 +99,12 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 		return runtimeWiring(configurer);
+	}
+
+	public GraphQlSetup connectionSupport(ConnectionAdapter connectionAdapter) {
+		typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
+		typeVisitor(ConnectionFieldTypeVisitor.create(List.of(connectionAdapter)));
+		return this;
 	}
 
 	public GraphQlSetup exceptionResolver(DataFetcherExceptionResolver... resolvers) {
