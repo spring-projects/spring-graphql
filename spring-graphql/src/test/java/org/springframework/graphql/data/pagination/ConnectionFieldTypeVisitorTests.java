@@ -19,14 +19,28 @@ package org.springframework.graphql.data.pagination;
 import java.util.Collection;
 import java.util.List;
 
+import graphql.schema.DataFetcher;
+import graphql.schema.FieldCoordinates;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLSchema;
 import graphql.schema.PropertyDataFetcher;
+import graphql.schema.SchemaTransformer;
+import graphql.schema.idl.RuntimeWiring;
+import graphql.schema.idl.SchemaGenerator;
+import graphql.schema.idl.SchemaParser;
+import graphql.schema.idl.TypeDefinitionRegistry;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.io.Resource;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link ConnectionFieldTypeVisitor}.
@@ -70,18 +84,6 @@ public class ConnectionFieldTypeVisitorTests {
 	}
 
 	@Test // gh-707
-	void trivialDataFetcherIsSkipped() {
-
-		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
-				.dataFetcher("Query", "books", new PropertyDataFetcher<>("books"))
-				.connectionSupport(new ListConnectionAdapter())
-				.toGraphQlService()
-				.execute(BookSource.booksConnectionQuery(null));
-
-		ResponseHelper.forResponse(response).assertData("{\"books\":null}");
-	}
-
-	@Test // gh-707
 	void nullValueTreatedAsEmptyConnection() {
 
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
@@ -101,6 +103,85 @@ public class ConnectionFieldTypeVisitorTests {
 						"}}"
 		);
 	}
+
+
+	@Nested
+	class DecorationTests {
+
+		@Test // gh-707
+		void trivialDataFetcherIsNotDecorated() throws Exception {
+
+			FieldCoordinates coordinates = FieldCoordinates.coordinates("Query", "books");
+			DataFetcher<?> dataFetcher = new PropertyDataFetcher<>("books");
+
+			DataFetcher<?> actual =
+					applyConnectionFieldTypeVisitor(BookSource.paginationSchema, coordinates, dataFetcher);
+
+			assertThat(actual).isSameAs(dataFetcher);
+		}
+
+		@Test // gh-709
+		void connectionTypeWithoutEdgesIsNotDecorated() throws Exception {
+
+			String schemaContent = """
+				type Query {
+					puzzles: PuzzleConnection
+				}
+				type PuzzleConnection {
+					pageInfo: PuzzlePageInfo!
+					puzzles: [PuzzleEdge]
+				}
+				type PuzzlePageInfo {
+					total: Int!
+				}
+				type PuzzleEdge {
+					puzzle: Puzzle
+					cursor: String!
+				}
+				type Puzzle {
+					title: String!
+				}
+				""";
+
+			FieldCoordinates coordinates = FieldCoordinates.coordinates("Query", "puzzles");
+			DataFetcher<?> dataFetcher = env -> null;
+
+			DataFetcher<?> actual = applyConnectionFieldTypeVisitor(schemaContent, coordinates, dataFetcher);
+
+			assertThat(actual).isSameAs(dataFetcher);
+		}
+
+		private static DataFetcher<?> applyConnectionFieldTypeVisitor(
+				Object schemaSource, FieldCoordinates coordinates, DataFetcher<?> fetcher) throws Exception {
+
+			TypeDefinitionRegistry registry;
+			if (schemaSource instanceof Resource resource) {
+				registry = new SchemaParser().parse(resource.getInputStream());
+			}
+			else if (schemaSource instanceof String schemaContent) {
+				registry = new SchemaParser().parse(schemaContent);
+			}
+			else {
+				throw new IllegalArgumentException();
+			}
+
+			new ConnectionTypeDefinitionConfigurer().configure(registry);
+
+			GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(
+					registry, RuntimeWiring.newRuntimeWiring()
+							.type(coordinates.getTypeName(), b -> b.dataFetcher(coordinates.getFieldName(), fetcher))
+							.build());
+
+			ConnectionFieldTypeVisitor visitor =
+					ConnectionFieldTypeVisitor.create(List.of(new ListConnectionAdapter()));
+
+			schema = new SchemaTransformer().transform(schema, visitor);
+			GraphQLFieldDefinition field = schema.getFieldDefinition(coordinates);
+			return schema.getCodeRegistry().getDataFetcher(coordinates, field);
+		}
+
+	}
+
 
 
 	private static class ListConnectionAdapter implements ConnectionAdapter {

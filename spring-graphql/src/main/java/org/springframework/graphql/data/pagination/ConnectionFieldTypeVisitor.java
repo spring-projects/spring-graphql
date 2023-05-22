@@ -34,8 +34,10 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
+import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeVisitorStub;
@@ -101,14 +103,54 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		return TraversalControl.CONTINUE;
 	}
 
-	private static boolean isConnectionField(GraphQLFieldDefinition fieldDefinition) {
-		GraphQLType returnType = fieldDefinition.getType();
-		if (returnType instanceof GraphQLNonNull nonNullType) {
-			returnType = nonNullType.getWrappedType();
+	private static boolean isConnectionField(GraphQLFieldDefinition field) {
+		GraphQLObjectType type = getAsObjectType(field);
+		if (type == null || !type.getName().endsWith("Connection")) {
+			return false;
 		}
-		return (returnType instanceof GraphQLObjectType objectType &&
-				objectType.getName().endsWith("Connection") &&
-				objectType.getField("pageInfo") != null);
+
+		GraphQLObjectType edgeType = getEdgeType(type.getField("edges"));
+		if (edgeType == null || !edgeType.getName().endsWith("Edge")) {
+			return false;
+		}
+		if (edgeType.getField("node") == null || edgeType.getField("cursor") == null) {
+			return false;
+		}
+
+		GraphQLObjectType pageInfoType = getAsObjectType(type.getField("pageInfo"));
+		if (pageInfoType == null || !pageInfoType.getName().equals("PageInfo")) {
+			return false;
+		}
+		if (pageInfoType.getField("hasPreviousPage") == null || pageInfoType.getField("hasNextPage") == null ||
+				pageInfoType.getField("startCursor") == null || pageInfoType.getField("endCursor") == null) {
+			return false;
+		}
+
+		return true;
+	}
+
+	@Nullable
+	private static GraphQLObjectType getAsObjectType(@Nullable GraphQLFieldDefinition field) {
+		return (getType(field) instanceof GraphQLObjectType type ? type : null);
+	}
+
+	@Nullable
+	private static GraphQLObjectType getEdgeType(@Nullable GraphQLFieldDefinition field) {
+		if (getType(field) instanceof GraphQLList listType) {
+			if (listType.getWrappedType() instanceof GraphQLObjectType type) {
+				return type;
+			}
+		}
+		return null;
+	}
+
+	@Nullable
+	private static GraphQLType getType(@Nullable GraphQLFieldDefinition field) {
+		if (field == null) {
+			return null;
+		}
+		GraphQLOutputType type = field.getType();
+		return (type instanceof GraphQLNonNull nonNullType ? nonNullType.getWrappedType() : type);
 	}
 
 
