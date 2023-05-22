@@ -195,19 +195,24 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 		}
 
-		@SuppressWarnings("unchecked")
-		private <T> Connection<T> adapt(@Nullable Object container) {
-			if (container instanceof Connection<?> connection) {
-				return (Connection<T>) connection;
+		private <T> Object adapt(@Nullable Object container) {
+			if (container == null) {
+				return EMPTY_CONNECTION;
 			}
 
-			Collection<T> nodes = (container != null ?
-					this.adapter.getContent(container) : Collections.emptyList());
-
-			if (nodes.isEmpty()) {
-				return (Connection<T>) EMPTY_CONNECTION;
+			if (container instanceof Connection<?>) {
+				return container;
 			}
 
+			if (!this.adapter.supports(container.getClass())) {
+				if (container.getClass().getName().endsWith("Connection")) {
+					return container;
+				}
+				throw new IllegalStateException(
+						"No ConnectionAdapter for: " + container.getClass().getName());
+			}
+
+			Collection<T> nodes = this.adapter.getContent(container);
 			int index = 0;
 			List<Edge<T>> edges = new ArrayList<>(nodes.size());
 			for (T node : nodes) {

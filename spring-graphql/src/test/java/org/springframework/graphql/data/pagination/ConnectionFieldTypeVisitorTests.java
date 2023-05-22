@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.io.Resource;
+import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
@@ -51,7 +52,7 @@ public class ConnectionFieldTypeVisitorTests {
 
 
 	@Test
-	void paginationDataFetcher() {
+	void paginatedTypeIsAdapted() {
 
 		ListConnectionAdapter adapter = new ListConnectionAdapter();
 		adapter.setInitialOffset(30);
@@ -77,6 +78,39 @@ public class ConnectionFieldTypeVisitorTests {
 						"\"pageInfo\":{" +
 						"\"startCursor\":\"O_30\"," +
 						"\"endCursor\":\"O_36\"," +
+						"\"hasPreviousPage\":true," +
+						"\"hasNextPage\":true}" +
+						"}}"
+		);
+	}
+
+	@Test // gh-709
+	void customConnectionTypeIsPassedThrough() {
+
+		List<MyEdge<Book>> edges = BookSource.books().stream().map(book -> new MyEdge<>("0_" + book.getId(), book)).toList();
+		MyPageInfo pageInfo = new MyPageInfo(edges.get(0).cursor(), edges.get(edges.size() - 1).cursor, true, true);
+		MyConnection<Book> connection = new MyConnection<>(edges, pageInfo);
+
+		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.dataFetcher("Query", "books", env -> connection)
+				.connectionSupport(new ListConnectionAdapter())
+				.toGraphQlService()
+				.execute(BookSource.booksConnectionQuery(null));
+
+		ResponseHelper.forResponse(response).assertData(
+				"{\"books\":{" +
+						"\"edges\":[" +
+						"{\"cursor\":\"0_1\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +
+						"{\"cursor\":\"0_2\",\"node\":{\"id\":\"2\",\"name\":\"The Great Gatsby\"}}," +
+						"{\"cursor\":\"0_3\",\"node\":{\"id\":\"3\",\"name\":\"Catch-22\"}}," +
+						"{\"cursor\":\"0_4\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
+						"{\"cursor\":\"0_5\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}," +
+						"{\"cursor\":\"0_53\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}," +
+						"{\"cursor\":\"0_42\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}" +
+						"]," +
+						"\"pageInfo\":{" +
+						"\"startCursor\":\"0_1\"," +
+						"\"endCursor\":\"0_42\"," +
 						"\"hasPreviousPage\":true," +
 						"\"hasNextPage\":true}" +
 						"}}"
@@ -224,6 +258,16 @@ public class ConnectionFieldTypeVisitorTests {
 			return "O_" + (this.initialOffset + index);
 		}
 
+	}
+
+
+	private record MyConnection<T>(List<MyEdge<T>> edges, MyPageInfo pageInfo) {
+	}
+
+	private record MyEdge<T>(String cursor, T node) {
+	}
+
+	private record MyPageInfo(String startCursor, String endCursor, boolean hasPreviousPage, boolean hasNextPage) {
 	}
 
 }

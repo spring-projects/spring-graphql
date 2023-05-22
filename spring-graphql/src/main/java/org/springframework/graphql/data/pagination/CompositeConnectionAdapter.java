@@ -62,15 +62,15 @@ final class CompositeConnectionAdapter implements ConnectionAdapter {
 	}
 
 	private ConnectionAdapter getRequiredAdapter(Object container) {
-		ConnectionAdapter adapter = getAdapter(container);
+		ConnectionAdapter adapter = getAdapter(container.getClass());
 		Assert.notNull(adapter, "No ConnectionAdapter for: " + container.getClass().getName());
 		return adapter;
 	}
 
 	@Nullable
-	private ConnectionAdapter getAdapter(Object container) {
+	private ConnectionAdapter getAdapter(Class<?> containerType) {
 		for (ConnectionAdapter adapter : this.adapters) {
-			if (adapter.supports(container.getClass())) {
+			if (adapter.supports(containerType)) {
 				return adapter;
 			}
 		}
