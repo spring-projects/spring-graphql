@@ -42,6 +42,7 @@ import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandle
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
@@ -168,22 +169,24 @@ final class AnnotatedControllerExceptionResolver {
 
 		Object controllerOrAdvice = null;
 		MethodHolder methodHolder = null;
+		Class<?> controllerType = null;
 
 		if (controller != null) {
-			MethodResolver methodResolver = this.controllerCache.get(controller.getClass());
+			controllerType = ClassUtils.getUserClass(controller.getClass());
+			MethodResolver methodResolver = this.controllerCache.get(controllerType);
 			if (methodResolver != null) {
 				controllerOrAdvice = controller;
 				methodHolder = methodResolver.resolveMethod(ex);
 			}
 			else if (logger.isWarnEnabled()) {
-				logger.warn("No registration for controller type: " + controller.getClass().getName());
+				logger.warn("No registration for controller type: " + controllerType.getName());
 			}
 		}
 
 		if (methodHolder == null) {
 			for (Map.Entry<ControllerAdviceBean, MethodResolver> entry : this.controllerAdviceCache.entrySet()) {
 				ControllerAdviceBean advice = entry.getKey();
-				if (controller == null || advice.isApplicableToBeanType(controller.getClass())) {
+				if (controller == null || advice.isApplicableToBeanType(controllerType)) {
 					methodHolder = entry.getValue().resolveMethod(ex);
 					if (methodHolder != null) {
 						controllerOrAdvice = advice.resolveBean();

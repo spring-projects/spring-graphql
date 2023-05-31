@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
@@ -125,6 +127,20 @@ public class AnnotatedControllerExceptionResolverTests {
 				exceptionResolver().registerController(InvalidReturnTypeController.class));
 	}
 
+	@Test // gh-710
+	void controllerWithProxy() {
+		TestController controller = new TestController();
+		AnnotatedControllerExceptionResolver resolver = exceptionResolver();
+		resolver.registerController(controller.getClass());
+
+		Exception ex = new IllegalArgumentException("Bad input");
+		Object proxy = ProxyFactory.getProxy(new SingletonTargetSource(controller));
+		List<GraphQLError> actual = resolver.resolveException(ex, this.environment, proxy).block();
+
+		assertThat(actual).hasSize(1);
+		assertThat(actual.get(0).getMessage()).isEqualTo("handleToSingleError: Bad input");
+	}
+
 	private void testResolve(Throwable ex, TestController controller, List<String> expected) {
 
 		AnnotatedControllerExceptionResolver resolver = exceptionResolver();
@@ -156,7 +172,7 @@ public class AnnotatedControllerExceptionResolverTests {
 
 	@SuppressWarnings("unused")
 	@Controller
-	private static class TestController {
+	static class TestController {
 
 		@GraphQlExceptionHandler
 		GraphQLError handleToSingleError(IllegalArgumentException ex) {
