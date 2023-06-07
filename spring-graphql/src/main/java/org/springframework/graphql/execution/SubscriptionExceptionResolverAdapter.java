@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import graphql.GraphQLError;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.context.ThreadLocalAccessor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,6 +50,8 @@ import org.springframework.lang.Nullable;
 public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
 
     protected final Log logger = LogFactory.getLog(getClass());
+
+    protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
     private boolean threadLocalContextAware;
 
@@ -83,7 +86,7 @@ public abstract class SubscriptionExceptionResolverAdapter implements Subscripti
     public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
         if (this.threadLocalContextAware) {
             return Mono.deferContextual(contextView -> {
-                ContextSnapshot snapshot = ContextSnapshot.captureFrom(contextView);
+                ContextSnapshot snapshot = snapshotFactory.captureFrom(contextView);
                 try {
                     List<GraphQLError> errors = snapshot.wrap(() -> resolveToMultipleErrors(exception)).call();
                     return Mono.justOrEmpty(errors);

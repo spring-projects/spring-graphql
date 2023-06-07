@@ -29,6 +29,7 @@ import graphql.execution.DataFetcherExceptionHandlerResult;
 import graphql.execution.ExecutionId;
 import graphql.schema.DataFetchingEnvironment;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
@@ -46,6 +47,8 @@ import org.springframework.util.Assert;
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
 	private static final Log logger = LogFactory.getLog(ExceptionResolversExceptionHandler.class);
+
+	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private final List<DataFetcherExceptionResolver> resolvers;
 
@@ -70,7 +73,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(DataFetcherExceptionHandlerParameters params) {
 		Throwable exception = unwrapException(params);
 		DataFetchingEnvironment env = params.getDataFetchingEnvironment();
-		ContextSnapshot snapshot = ContextSnapshot.captureFrom(env.getGraphQlContext());
+		ContextSnapshot snapshot = snapshotFactory.captureFrom(env.getGraphQlContext());
 		try {
 			return Flux.fromIterable(this.resolvers)
 					.flatMap(resolver -> resolver.resolveException(exception, env))

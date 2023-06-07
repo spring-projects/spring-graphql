@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.BatchLoaderEnvironment;
 import org.dataloader.BatchLoaderWithContext;
@@ -52,11 +53,14 @@ import org.springframework.util.StringUtils;
  */
 public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
+	private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
+
 	private final List<ReactorBatchLoader<?,?>> loaders = new ArrayList<>();
 
 	private final List<ReactorMappedBatchLoader<?,?>> mappedLoaders = new ArrayList<>();
 
 	private final Supplier<DataLoaderOptions> defaultOptionsSupplier;
+
 
 
 	/**
@@ -230,7 +234,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = SNAPSHOT_FACTORY.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)
@@ -280,7 +284,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = SNAPSHOT_FACTORY.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)
