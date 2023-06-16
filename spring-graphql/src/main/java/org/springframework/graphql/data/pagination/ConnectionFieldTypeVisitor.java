@@ -47,6 +47,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.execution.TypeVisitorHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -79,11 +80,13 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 	public TraversalControl visitGraphQLFieldDefinition(
 			GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
 
+		TypeVisitorHelper visitorHelper = context.getVarFromParents(TypeVisitorHelper.class);
 		GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
+
 		GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 		DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
-		if (parent.getName().equalsIgnoreCase("mutation") || parent.getName().equalsIgnoreCase("subscription")) {
+		if (visitorHelper != null && visitorHelper.isSubscriptionType(parent)) {
 			return TraversalControl.ABORT;
 		}
 
