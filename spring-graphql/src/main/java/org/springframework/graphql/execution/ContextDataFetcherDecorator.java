@@ -25,8 +25,6 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.GraphQLTypeVisitorStub;
@@ -114,25 +112,24 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	 * Static factory method to create {@link GraphQLTypeVisitor} that wraps
 	 * data fetchers with the {@link ContextDataFetcherDecorator}.
 	 */
-	static GraphQLTypeVisitor createVisitor(
-			GraphQLSchema schema, List<SubscriptionExceptionResolver> resolvers) {
-
-		GraphQLObjectType subscriptionType = schema.getSubscriptionType();
-		String subscriptionTypeName = (subscriptionType != null ? subscriptionType.getName() : null);
+	static GraphQLTypeVisitor createVisitor(List<SubscriptionExceptionResolver> resolvers) {
 
 		SubscriptionExceptionResolver exceptionResolver = new CompositeSubscriptionExceptionResolver(resolvers);
 
 		return new GraphQLTypeVisitorStub() {
+
 			@Override
 			public TraversalControl visitGraphQLFieldDefinition(
 					GraphQLFieldDefinition fieldDefinition, TraverserContext<GraphQLSchemaElement> context) {
 
+				TypeVisitorHelper visitorHelper = context.getVarFromParents(TypeVisitorHelper.class);
 				GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
+
 				GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 				DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
 				if (applyDecorator(dataFetcher)) {
-					boolean handlesSubscription = parent.getName().equals(subscriptionTypeName);
+					boolean handlesSubscription = visitorHelper.isSubscriptionType(parent);
 					dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, exceptionResolver);
 					codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 				}

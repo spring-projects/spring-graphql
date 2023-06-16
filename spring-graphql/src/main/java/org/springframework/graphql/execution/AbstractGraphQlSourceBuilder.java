@@ -17,7 +17,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -132,17 +132,19 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 	}
 
 	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
-		GraphQLTypeVisitor visitor = ContextDataFetcherDecorator.createVisitor(schema, this.subscriptionExceptionResolvers);
-		List<GraphQLTypeVisitor> visitors = new ArrayList<>(this.typeVisitors);
-		visitors.add(visitor);
 
-		GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
-		Map<Class<?>, Object> vars = Collections.singletonMap(GraphQLCodeRegistry.Builder.class, codeRegistry);
+		GraphQLCodeRegistry.Builder outputCodeRegistry =
+				GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
 
-		SchemaTraverser traverser = new SchemaTraverser();
-		traverser.depthFirstFullSchema(visitors, schema, vars);
+		Map<Class<?>, Object> vars = new HashMap<>(2);
+		vars.put(GraphQLCodeRegistry.Builder.class, outputCodeRegistry);
+		vars.put(TypeVisitorHelper.class, TypeVisitorHelper.create(schema));
 
-		return schema.transformWithoutTypes(builder -> builder.codeRegistry(codeRegistry));
+		List<GraphQLTypeVisitor> visitorsToUse = new ArrayList<>(this.typeVisitors);
+		visitorsToUse.add(ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers));
+
+		new SchemaTraverser().depthFirstFullSchema(visitorsToUse, schema, vars);
+		return schema.transformWithoutTypes(builder -> builder.codeRegistry(outputCodeRegistry));
 	}
 
 
