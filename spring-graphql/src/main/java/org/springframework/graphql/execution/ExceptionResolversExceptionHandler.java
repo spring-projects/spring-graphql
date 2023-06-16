@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,13 +61,6 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		this.resolvers = new ArrayList<>(resolvers);
 	}
 
-	@Override
-	@Deprecated
-	public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters handlerParameters) {
-		// This is not expected to be called but needs to be implemented until removed:
-		// https://github.com/graphql-java/graphql-java/issues/2545
-		throw new UnsupportedOperationException();
-	}
 
 	@Override
 	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(DataFetcherExceptionHandlerParameters params) {
