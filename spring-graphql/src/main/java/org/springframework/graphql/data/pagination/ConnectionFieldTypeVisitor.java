@@ -93,13 +93,14 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		if (isConnectionField(fieldDefinition)) {
 			if (dataFetcher instanceof TrivialDataFetcher<?>) {
 				if (logger.isDebugEnabled()) {
-					logger.debug("Connection field " +
+					logger.debug("Skipping connection field " +
 							"'" + parent.getName() + ":" + fieldDefinition.getName() + "' " +
-							"is mapped to trivial data fetcher: " + dataFetcher.getClass().getName());
+							"because it is mapped to trivial data fetcher: " + dataFetcher.getClass().getName());
 				}
 			}
 			else {
-				codeRegistry.dataFetcher(parent, fieldDefinition, new ConnectionDataFetcher(dataFetcher, adapter));
+				dataFetcher = new ConnectionDataFetcher(dataFetcher, this.adapter);
+				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 			}
 		}
 
