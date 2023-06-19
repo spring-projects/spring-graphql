@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
-import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
@@ -45,8 +44,6 @@ import org.springframework.util.Assert;
 public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 	private static final Object NO_VALUE = new Object();
-
-	private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
 
 
 	private final boolean hasCallableReturnValue;
@@ -112,12 +109,13 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	}
 
 	@Nullable
+	@SuppressWarnings("deprecation")
 	private Object handleReturnValue(GraphQLContext graphQLContext, @Nullable Object result) {
 		if (this.hasCallableReturnValue && result != null) {
 			return CompletableFuture.supplyAsync(
 					() -> {
 						try {
-							return SNAPSHOT_FACTORY.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
+							return ContextSnapshot.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
 						}
 						catch (Exception ex) {
 							throw new IllegalStateException(
