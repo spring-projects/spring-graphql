@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.function.Function;
 
 import graphql.GraphQLError;
 import io.micrometer.context.ContextSnapshot;
-import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.context.ThreadLocalAccessor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,8 +49,6 @@ import org.springframework.lang.Nullable;
 public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
 
     protected final Log logger = LogFactory.getLog(getClass());
-
-    protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
     private boolean threadLocalContextAware;
 
@@ -81,12 +78,12 @@ public abstract class SubscriptionExceptionResolverAdapter implements Subscripti
     }
 
 
-    @SuppressWarnings({"unused", "try"})
+    @SuppressWarnings({"unused", "try", "deprecation"})
     @Override
     public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
         if (this.threadLocalContextAware) {
             return Mono.deferContextual(contextView -> {
-                ContextSnapshot snapshot = snapshotFactory.captureFrom(contextView);
+                ContextSnapshot snapshot = ContextSnapshot.captureFrom(contextView);
                 try {
                     List<GraphQLError> errors = snapshot.wrap(() -> resolveToMultipleErrors(exception)).call();
                     return Mono.justOrEmpty(errors);

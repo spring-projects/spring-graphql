@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import graphql.GraphQL;
 import graphql.GraphQLContext;
 import graphql.execution.ExecutionIdProvider;
 import io.micrometer.context.ContextSnapshot;
-import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
 
@@ -46,7 +45,6 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	private static final BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> RESET_EXECUTION_ID_CONFIGURER =
 			(executionInput, builder) -> builder.executionId(null).build();
 
-	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private final GraphQlSource graphQlSource;
 
@@ -73,13 +71,14 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 
 	@Override
+	@SuppressWarnings("deprecation")
 	public final Mono<ExecutionGraphQlResponse> execute(ExecutionGraphQlRequest request) {
 		return Mono.deferContextual((contextView) -> {
 			if (!this.isDefaultExecutionIdProvider && request.getExecutionId() == null) {
 				request.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
 			}
 			ExecutionInput executionInput = request.toExecutionInput();
-			snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
+			ContextSnapshot.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
 			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
 					.map(result -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
