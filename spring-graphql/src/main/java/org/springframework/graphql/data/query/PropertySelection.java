@@ -21,13 +21,13 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.SelectedField;
 
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Utility to compute {@link PropertyPath property paths} from
@@ -46,90 +46,60 @@ class PropertySelection {
 
 	private final List<PropertyPath> propertyPaths;
 
+
 	private PropertySelection(List<PropertyPath> propertyPaths) {
 		this.propertyPaths = propertyPaths;
 	}
 
-	/**
-	 * Create a property selection for the given {@link TypeInformation type} and
-	 * {@link  DataFetchingFieldSelectionSet}.
-	 *
-	 * @param typeInformation the type to inspect
-	 * @param selectionSet    the field selection to apply
-	 * @return a property selection holding all selectable property paths.
-	 */
-	public static PropertySelection create(TypeInformation<?> typeInformation,
-			DataFetchingFieldSelectionSet selectionSet) {
-		return create(typeInformation, new DataFetchingFieldSelection(selectionSet));
-	}
-
-	private static PropertySelection create(TypeInformation<?> typeInformation, FieldSelection selection) {
-		List<PropertyPath> propertyPaths = collectPropertyPaths(typeInformation,
-				selection,
-				path -> PropertyPath.from(path, typeInformation));
-		return new PropertySelection(propertyPaths);
-	}
-
-	private static List<PropertyPath> collectPropertyPaths(TypeInformation<?> typeInformation,
-			FieldSelection selection, Function<String, PropertyPath> propertyPathFactory) {
-		List<PropertyPath> propertyPaths = new ArrayList<>();
-
-		for (SelectedField selectedField : selection) {
-
-			String propertyName = selectedField.getName();
-			TypeInformation<?> property = typeInformation.getProperty(propertyName);
-
-			if (property == null) {
-				continue;
-			}
-
-			PropertyPath propertyPath = propertyPathFactory.apply(propertyName);
-			FieldSelection nestedSelection = selection.select(selectedField);
-
-			List<PropertyPath> pathsToAdd = Collections.singletonList(propertyPath);
-
-			if (!nestedSelection.isEmpty() && property.getActualType() != null) {
-				List<PropertyPath> nestedPaths = collectPropertyPaths(property.getRequiredActualType(),
-						nestedSelection, propertyPath::nested);
-
-				if (!nestedPaths.isEmpty()) {
-					pathsToAdd = nestedPaths;
-				}
-			}
-
-			propertyPaths.addAll(pathsToAdd);
-		}
-
-		return propertyPaths;
-	}
 
 	/**
 	 * @return the property paths as list.
 	 */
 	public List<String> toList() {
-		return this.propertyPaths.stream().map(PropertyPath::toDotPath).collect(Collectors.toList());
+		return this.propertyPaths.stream().map(PropertyPath::toDotPath).toList();
 	}
 
 
-	enum EmptyFieldSelection implements FieldSelection {
+	/**
+	 * Create a property selection for the given {@link TypeInformation type} and
+	 * {@link  DataFetchingFieldSelectionSet}.
+	 *
+	 * @param typeInfo the type to inspect
+	 * @param selectionSet    the field selection to apply
+	 * @return a property selection holding all selectable property paths.
+	 */
+	public static PropertySelection create(TypeInformation<?> typeInfo, DataFetchingFieldSelectionSet selectionSet) {
+		FieldSelection selection = new DataFetchingFieldSelection(selectionSet);
+		List<PropertyPath> paths = getPropertyPaths(typeInfo, selection, path -> PropertyPath.from(path, typeInfo));
+		return new PropertySelection(paths);
+	}
 
-		INSTANCE;
+	private static List<PropertyPath> getPropertyPaths(
+			TypeInformation<?> typeInfo, FieldSelection selection, Function<String, PropertyPath> pathFactory) {
 
-		@Override
-		public boolean isEmpty() {
-			return true;
+		List<PropertyPath> result = new ArrayList<>();
+
+		for (SelectedField selectedField : selection) {
+			String propertyName = selectedField.getName();
+			TypeInformation<?> propertyTypeInfo = typeInfo.getProperty(propertyName);
+			if (propertyTypeInfo == null) {
+				continue;
+			}
+
+			PropertyPath propertyPath = pathFactory.apply(propertyName);
+
+			List<PropertyPath> nestedPaths = null;
+			FieldSelection nestedSelection = selection.select(selectedField);
+			if (!nestedSelection.isEmpty() && propertyTypeInfo.getActualType() != null) {
+				TypeInformation<?> actualType = propertyTypeInfo.getRequiredActualType();
+				nestedPaths = getPropertyPaths(actualType, nestedSelection, propertyPath::nested);
+			}
+
+			result.addAll(CollectionUtils.isEmpty(nestedPaths) ?
+					Collections.singletonList(propertyPath) : nestedPaths);
 		}
 
-		@Override
-		public FieldSelection select(SelectedField field) {
-			return INSTANCE;
-		}
-
-		@Override
-		public Iterator<SelectedField> iterator() {
-			return Collections.emptyIterator();
-		}
-
+		return result;
 	}
 
 
@@ -155,7 +125,7 @@ class PropertySelection {
 	}
 
 
-	static class DataFetchingFieldSelection implements FieldSelection {
+	private static class DataFetchingFieldSelection implements FieldSelection {
 
 		private final List<SelectedField> selectedFields;
 
@@ -166,8 +136,7 @@ class PropertySelection {
 			this.allFields = selectionSet.getFields();
 		}
 
-		private DataFetchingFieldSelection(List<SelectedField> selectedFields,
-				List<SelectedField> allFields) {
+		private DataFetchingFieldSelection(List<SelectedField> selectedFields, List<SelectedField> allFields) {
 			this.selectedFields = selectedFields;
 			this.allFields = allFields;
 		}
@@ -179,21 +148,45 @@ class PropertySelection {
 
 		@Override
 		public FieldSelection select(SelectedField field) {
-			List<SelectedField> selectedFields = new ArrayList<>();
+			List<SelectedField> selectedFields = null;
 
-			for (SelectedField selectedField : allFields) {
+			for (SelectedField selectedField : this.allFields) {
 				if (field.equals(selectedField.getParentField())) {
+					selectedFields = (selectedFields != null ? selectedFields : new ArrayList<>());
 					selectedFields.add(selectedField);
 				}
 			}
 
-			return (selectedFields.isEmpty() ? EmptyFieldSelection.INSTANCE
-					: new DataFetchingFieldSelection(selectedFields, allFields));
+			return (selectedFields != null ?
+					new DataFetchingFieldSelection(selectedFields, this.allFields) :
+					EmptyFieldSelection.INSTANCE);
 		}
 
 		@Override
 		public Iterator<SelectedField> iterator() {
 			return this.selectedFields.iterator();
+		}
+
+	}
+
+
+	enum EmptyFieldSelection implements FieldSelection {
+
+		INSTANCE;
+
+		@Override
+		public boolean isEmpty() {
+			return true;
+		}
+
+		@Override
+		public FieldSelection select(SelectedField field) {
+			return INSTANCE;
+		}
+
+		@Override
+		public Iterator<SelectedField> iterator() {
+			return Collections.emptyIterator();
 		}
 
 	}
