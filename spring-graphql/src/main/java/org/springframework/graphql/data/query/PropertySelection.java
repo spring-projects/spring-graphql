@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import graphql.schema.DataFetchingFieldSelectionSet;
+import graphql.schema.GraphQLNamedOutputType;
 import graphql.schema.SelectedField;
 
 import org.springframework.data.mapping.PropertyPath;
@@ -83,6 +84,12 @@ class PropertySelection {
 			String propertyName = selectedField.getName();
 			TypeInformation<?> propertyTypeInfo = typeInfo.getProperty(propertyName);
 			if (propertyTypeInfo == null) {
+				if (isConnectionEdges(selectedField)) {
+					getConnectionPropertyPaths(typeInfo, selection, pathFactory, selectedField, result);
+				}
+				else if (isConnectionEdgeNode(selectedField)) {
+					getConnectionPropertyPaths(typeInfo, selection, pathFactory, selectedField, result);
+				}
 				continue;
 			}
 
@@ -100,6 +107,30 @@ class PropertySelection {
 		}
 
 		return result;
+	}
+
+	private static boolean isConnectionEdges(SelectedField selectedField) {
+		return selectedField.getName().equals("edges") &&
+			   selectedField.getParentField().getType() instanceof GraphQLNamedOutputType namedType &&
+			   namedType.getName().endsWith("Connection");
+	}
+
+	private static boolean isConnectionEdgeNode(SelectedField selectedField) {
+		return selectedField.getName().equals("node") && isConnectionEdges(selectedField.getParentField());
+	}
+
+	private static void getConnectionPropertyPaths(
+			TypeInformation<?> typeInfo, FieldSelection selection, Function<String, PropertyPath> pathFactory,
+			SelectedField selectedField, List<PropertyPath> result) {
+
+		FieldSelection nestedSelection = selection.select(selectedField);
+		if (!nestedSelection.isEmpty()) {
+			TypeInformation<?> actualType = typeInfo.getRequiredActualType();
+			List<PropertyPath> paths = getPropertyPaths(actualType, nestedSelection, pathFactory);
+			if (!CollectionUtils.isEmpty(paths)) {
+				result.addAll(paths);
+			}
+		}
 	}
 
 
