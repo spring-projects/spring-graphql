@@ -84,8 +84,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
 			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale) {
 
-		super(getKey("query", body), getKey("operationName", body), getKey("variables", body),
-				getKey("extensions", body), id, locale);
+		super(getQuery(body), getOperation(body), getMap("variables", body), getMap("extensions", body), id, locale);
 
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
@@ -96,12 +95,31 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 		this.attributes = Collections.unmodifiableMap(attributes);
 	}
 
-	@SuppressWarnings("unchecked")
-	private static <T> T getKey(String key, Map<String, Object> body) {
-		if (key.equals("query") && !StringUtils.hasText((String) body.get(key))) {
-			throw new ServerWebInputException("No \"query\" in the request document");
+	private static String getQuery(Map<String, Object> body) {
+		Object value = body.get("query");
+		if (!(value instanceof String query) || !StringUtils.hasText(query)) {
+			throw new ServerWebInputException("Invalid value for 'query'");
 		}
-		return (T) body.get(key);
+		return (String) value;
+	}
+
+	@Nullable
+	private static String getOperation(Map<String, Object> body) {
+		Object value = body.get("operation");
+		if (value != null && !(value instanceof String)) {
+			throw new ServerWebInputException("Invalid value for 'operation'");
+		}
+		return (String) value;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Nullable
+	private static Map<String, Object> getMap(String key, Map<String, Object> body) {
+		Object value = body.get(key);
+		if (value != null && !(value instanceof Map)) {
+			throw new ServerWebInputException("Invalid value for '" + key + "'");
+		}
+		return (Map<String, Object>) value;
 	}
 
 
