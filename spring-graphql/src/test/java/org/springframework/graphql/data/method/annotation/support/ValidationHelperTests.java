@@ -27,6 +27,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validation;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.IterableAssert;
@@ -34,6 +35,7 @@ import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.validation.annotation.Validated;
 
@@ -68,6 +70,9 @@ class ValidationHelperTests {
 
 		BiConsumer<Object, Object[]> validator2 = createValidator(MyBean.class, "myValidatedParameterMethod");
 		assertViolation(() -> validator2.accept(bean, new Object[] {new ConstrainedInput(100)}), "integerValue");
+
+		BiConsumer<Object, Object[]> validator3 = createValidator(MyBean.class, "myValidArgumentValue");
+		assertViolation(() -> validator3.accept(bean, new Object[] {ArgumentValue.ofNullable("")}), "myValidArgumentValue.arg0");
 	}
 
 	@Test
@@ -152,6 +157,10 @@ class ValidationHelperTests {
 		}
 
 		public Object myValidatedParameterMethod(@Validated ConstrainedInput input) {
+			return null;
+		}
+
+		public Object myValidArgumentValue(@Valid ArgumentValue<@NotBlank String> arg0) {
 			return null;
 		}
 	}
