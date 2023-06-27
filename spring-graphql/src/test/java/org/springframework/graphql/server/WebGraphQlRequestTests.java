@@ -39,7 +39,7 @@ public class WebGraphQlRequestTests {
 	void invalidBody() {
 		testInvalidBody(Map.of());
 		testInvalidBody(Map.of("query", Collections.emptyMap()));
-		testInvalidBody(Map.of("query", "query { foo }", "operation", Collections.emptyMap()));
+		testInvalidBody(Map.of("query", "query { foo }", "operationName", Collections.emptyMap()));
 		testInvalidBody(Map.of("query", "query { foo }", "variables", "not-a-map"));
 		testInvalidBody(Map.of("query", "query { foo }", "extensions", "not-a-map"));
 	}
