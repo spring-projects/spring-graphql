@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,8 @@ public class RSocketGraphQlRequest extends DefaultExecutionGraphQlRequest implem
 	 * @param locale the locale from the HTTP request, if any
 	 */
 	public RSocketGraphQlRequest(Map<String, Object> body, String id, @Nullable Locale locale) {
-		super(getKey("query", body), getKey("operationName", body), getKey("variables", body),
-				getKey("extensions", body), id, locale);
+		super(getKey(QUERY_KEY, body), getKey(OPERATION_NAME_KEY, body),
+				getKey(VARIABLES_KEY, body), getKey(EXTENSIONS_KEY, body), id, locale);
 	}
 
 	@SuppressWarnings("unchecked")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,8 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	public WebGraphQlRequest(
 			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
 
-		super(getQuery(body), getOperation(body), getMap("variables", body), getMap("extensions", body), id, locale);
+		super(getQuery(body), getOperation(body),
+				getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
 
 		Assert.notNull(uri, "URI is required'");
 		Assert.notNull(headers, "HttpHeaders is required'");
@@ -68,18 +69,18 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	}
 
 	private static String getQuery(Map<String, Object> body) {
-		Object value = body.get("query");
+		Object value = body.get(QUERY_KEY);
 		if (!(value instanceof String) || !StringUtils.hasText((String) value)) {
-			throw new ServerWebInputException("Invalid value for 'query'");
+			throw new ServerWebInputException("Invalid value for '" + QUERY_KEY + "'");
 		}
 		return (String) value;
 	}
 
 	@Nullable
 	private static String getOperation(Map<String, Object> body) {
-		Object value = body.get("operation");
+		Object value = body.get(OPERATION_NAME_KEY);
 		if (value != null && !(value instanceof String)) {
-			throw new ServerWebInputException("Invalid value for 'operation'");
+			throw new ServerWebInputException("Invalid value for '" + OPERATION_NAME_KEY + "'");
 		}
 		return (String) value;
 	}

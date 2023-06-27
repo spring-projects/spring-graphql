@@ -24,7 +24,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.server.ServerWebInputException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,17 +38,21 @@ public class WebGraphQlRequestTests {
 	@Test  // gh-726
 	void invalidBody() {
 		testInvalidBody(new HashMap<>());
+
 		Map<String, Object> empty = new HashMap<>();
 		empty.put("query", Collections.emptyMap());
 		testInvalidBody(empty);
+
 		Map<String, Object> emptyOperations = new HashMap<>();
 		emptyOperations.put("query", "query { foo }");
 		emptyOperations.put("operation", Collections.emptyMap());
 		testInvalidBody(emptyOperations);
+
 		Map<String, Object> invalidVariables = new HashMap<>();
 		invalidVariables.put("query", "query { foo }");
 		invalidVariables.put("variables", "not-a-map");
 		testInvalidBody(invalidVariables);
+
 		Map<String, Object> invalidExtensions = new HashMap<>();
 		invalidExtensions.put("query", "query { foo }");
 		invalidExtensions.put("extensions", "not-a-map");
