@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,15 @@ import org.springframework.util.ObjectUtils;
  * @since 1.0.0
  */
 public class DefaultGraphQlRequest implements GraphQlRequest {
+
+	protected static final String QUERY_KEY = "query";
+
+	protected static final String OPERATION_NAME_KEY = "operationName";
+
+	protected static final String VARIABLES_KEY = "variables";
+
+	protected static final String EXTENSIONS_KEY = "extensions";
+
 
 	private final String document;
 
@@ -96,15 +105,15 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 	@Override
 	public Map<String, Object> toMap() {
 		Map<String, Object> map = new LinkedHashMap<>(3);
-		map.put("query", getDocument());
+		map.put(QUERY_KEY, getDocument());
 		if (getOperationName() != null) {
-			map.put("operationName", getOperationName());
+			map.put(OPERATION_NAME_KEY, getOperationName());
 		}
 		if (!CollectionUtils.isEmpty(getVariables())) {
-			map.put("variables", new LinkedHashMap<>(getVariables()));
+			map.put(VARIABLES_KEY, new LinkedHashMap<>(getVariables()));
 		}
 		if (!CollectionUtils.isEmpty(getExtensions())) {
-			map.put("extensions", new LinkedHashMap<>(getExtensions()));
+			map.put(EXTENSIONS_KEY, new LinkedHashMap<>(getExtensions()));
 		}
 		return map;
 	}
