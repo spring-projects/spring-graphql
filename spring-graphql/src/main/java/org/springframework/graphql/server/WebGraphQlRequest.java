@@ -105,9 +105,9 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	@Nullable
 	private static String getOperation(Map<String, Object> body) {
-		Object value = body.get("operation");
+		Object value = body.get("operationName");
 		if (value != null && !(value instanceof String)) {
-			throw new ServerWebInputException("Invalid value for 'operation'");
+			throw new ServerWebInputException("Invalid value for 'operationName'");
 		}
 		return (String) value;
 	}
