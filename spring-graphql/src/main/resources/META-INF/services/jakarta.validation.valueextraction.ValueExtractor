@@ -1,1 +1,1 @@
-org.springframework.graphql.data.ArgumentValueExtractor
+org.springframework.graphql.data.method.annotation.support.ArgumentValueExtractor
