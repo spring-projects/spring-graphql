@@ -350,9 +350,10 @@ You can use the `GraphQlClient` <<client.graphqlclient.builder>> to customize th
 [[client.subscriptions]]
 == Subscription Requests
 
-`GraphQlClient` can execute subscriptions over transports that support it. Currently, only
-the WebSocket transport supports GraphQL streams, so you'll need to create a
-<<client.websocketgraphqlclient,WebSocketGraphQlClient>>.
+`GraphQlClient` can execute subscriptions over transports that support it. Only
+the WebSocket and RSocket transports support GraphQL subscriptions, so you'll need to
+create a <<client.websocketgraphqlclient,WebSocketGraphQlClient>> or
+<<client.rsocketgraphqlclient,RSocketGraphQlClient>>.
 
 
 
@@ -370,18 +371,20 @@ responses, each decoded to some data:
 			.toEntity(String.class);
 ----
 
-A subscription stream may end with:
+The `Flux` may terminate with `SubscriptionErrorException` if the subscription  ends from
+the server side with an "error" message. The exception provides access to GraphQL errors
+decoded from the "error" message.
 
-- `SubscriptionErrorException` if the server ends the
-subscription with an explicit "error" message that contains one or more GraphQL errors.
-The exception provides access to the GraphQL errors decoded from that message.
-- `GraphQlTransportException` such as `WebSocketDisconnectedException` if the underlying
-connection is closed or lost in which case you can use the `retry` operator to reestablish
-the connection and start the subscription again.
+The `Flux` may termiate with `GraphQlTransportException` such as
+`WebSocketDisconnectedException` if the underlying connection is closed or lost. In that
+case you can use the `retry` operator to restart the subscription.
 
-
-
-
+To end the subscription from the client side, the `Flux` must be cancelled, and in turn
+the WebSocket transport sends a "complete" message to the server. How to cancel the
+`Flux` depends on how it is used. Some operators such as `take` or `timeout` themselves
+cancel the `Flux`. If you subscribe to the `Flux` with a `Subscriber`, you can get a
+reference to the `Subscription` and cancel through it. The `onSubscribe` operator also
+provides access to the `Subscription`.
 
 
 [[client.subscriptions.execute]]
