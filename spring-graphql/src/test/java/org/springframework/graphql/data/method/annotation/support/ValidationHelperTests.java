@@ -26,6 +26,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -56,22 +57,21 @@ class ValidationHelperTests {
 
 	@Test
 	void shouldIgnoreMethodsWithoutAnnotations() {
-		BiConsumer<Object, Object[]> validator = createValidator(MyBean.class, "notValidatedMethod");
-		assertThat(validator).isNull();
+		assertThat(validateFunction(MyBean.class, "notValidatedMethod")).isNull();
 	}
 
 	@Test
 	void shouldRaiseValidationErrorForAnnotatedParams() {
 		MyBean bean = new MyBean();
 
-		BiConsumer<Object, Object[]> validator1 = createValidator(MyBean.class, "myValidMethod");
+		BiConsumer<Object, Object[]> validator1 = validateFunction(MyBean.class, "myValidMethod");
 		assertViolation(() -> validator1.accept(bean, new Object[] {null, 2}), "myValidMethod.arg0");
 		assertViolation(() -> validator1.accept(bean, new Object[] {"test", 12}), "myValidMethod.arg1");
 
-		BiConsumer<Object, Object[]> validator2 = createValidator(MyBean.class, "myValidatedParameterMethod");
+		BiConsumer<Object, Object[]> validator2 = validateFunction(MyBean.class, "myValidatedParameterMethod");
 		assertViolation(() -> validator2.accept(bean, new Object[] {new ConstrainedInput(100)}), "integerValue");
 
-		BiConsumer<Object, Object[]> validator3 = createValidator(MyBean.class, "myValidArgumentValue");
+		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidArgumentValue");
 		assertViolation(() -> validator3.accept(bean, new Object[] {ArgumentValue.ofNullable("")}), "myValidArgumentValue.arg0");
 	}
 
@@ -79,31 +79,32 @@ class ValidationHelperTests {
 	void shouldRaiseValidationErrorForAnnotatedParamsWithGroups() {
 		MyValidationGroupsBean bean = new MyValidationGroupsBean();
 
-		BiConsumer<Object, Object[]> validator1 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroup");
+		BiConsumer<Object, Object[]> validator1 = validateFunction(MyValidationGroupsBean.class, "myValidMethodWithGroup");
 		assertViolation(() -> validator1.accept(bean, new Object[] {null}), "myValidMethodWithGroup.arg0");
 
-		BiConsumer<Object, Object[]> validator2 = createValidator(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
+		BiConsumer<Object, Object[]> validator2 = validateFunction(MyValidationGroupsBean.class, "myValidMethodWithGroupOnType");
 		assertViolation(() -> validator2.accept(bean, new Object[] {null}), "myValidMethodWithGroupOnType.arg0");
 	}
 
 	@Test
 	void shouldRecognizeMethodsThatRequireValidation() {
-		BiConsumer<Object, Object[]> validator1 = createValidator(RequiresValidationBean.class, "processConstrainedValue");
+		BiConsumer<Object, Object[]> validator1 = validateFunction(RequiresValidationBean.class, "processConstrainedValue");
 		assertThat(validator1).isNotNull();
 
-		BiConsumer<Object, Object[]> validator2 = createValidator(RequiresValidationBean.class, "processValidInput");
+		BiConsumer<Object, Object[]> validator2 = validateFunction(RequiresValidationBean.class, "processValidInput");
 		assertThat(validator2).isNotNull();
 
-		BiConsumer<Object, Object[]> validator3 = createValidator(RequiresValidationBean.class, "processValidatedInput");
+		BiConsumer<Object, Object[]> validator3 = validateFunction(RequiresValidationBean.class, "processValidatedInput");
 		assertThat(validator3).isNotNull();
 
-		BiConsumer<Object, Object[]> validator4 = createValidator(RequiresValidationBean.class, "processValue");
+		BiConsumer<Object, Object[]> validator4 = validateFunction(RequiresValidationBean.class, "processValue");
 		assertThat(validator4).isNull();
 	}
 
-	private BiConsumer<Object, Object[]> createValidator(Class<?> handlerType, String methodName) {
-		return ValidationHelper.create(Validation.buildDefaultValidatorFactory().getValidator())
-				.getValidationHelperFor(findHandlerMethod(handlerType, methodName));
+	private BiConsumer<Object, Object[]> validateFunction(Class<?> handlerType, String methodName) {
+		Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+		ValidationHelper helper = ValidationHelper.create(validator);
+		return helper.getValidationHelperFor(findHandlerMethod(handlerType, methodName));
 	}
 
 	private HandlerMethod findHandlerMethod(Class<?> handlerType, String methodName) {
