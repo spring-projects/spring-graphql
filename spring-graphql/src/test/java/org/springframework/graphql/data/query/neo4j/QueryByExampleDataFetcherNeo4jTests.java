@@ -64,7 +64,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link QueryByExampleDataFetcher}.
+ * Integration tests for {@link QueryByExampleDataFetcher} with Neo4j repository.
  */
 @SpringJUnitConfig
 @Testcontainers(disabledWithoutDocker = true)
@@ -272,7 +272,9 @@ class QueryByExampleDataFetcherNeo4jTests {
 
 		@Bean
 		public Driver driver() {
-			return GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic("neo4j", neo4jContainer.getAdminPassword()));
+			return GraphDatabase.driver(
+					neo4jContainer.getBoltUrl(),
+					AuthTokens.basic("neo4j", neo4jContainer.getAdminPassword()));
 		}
 	}
 

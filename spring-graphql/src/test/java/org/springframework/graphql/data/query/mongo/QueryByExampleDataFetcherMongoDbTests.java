@@ -65,7 +65,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link QueryByExampleDataFetcher}.
+ * Integration tests for {@link QueryByExampleDataFetcher} with MongoDB repository.
  */
 @SpringJUnitConfig
 @Testcontainers(disabledWithoutDocker = true)

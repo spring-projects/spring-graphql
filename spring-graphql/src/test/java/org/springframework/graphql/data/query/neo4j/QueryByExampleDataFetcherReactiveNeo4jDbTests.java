@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link QueryByExampleDataFetcher}.
+ * Integration tests for {@link QueryByExampleDataFetcher} with reactive Neo4j repository.
  */
 @SpringJUnitConfig
 @Testcontainers(disabledWithoutDocker = true)

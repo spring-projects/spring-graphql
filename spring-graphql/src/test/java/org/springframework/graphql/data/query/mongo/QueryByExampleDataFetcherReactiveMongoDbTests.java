@@ -44,12 +44,10 @@ import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.data.pagination.ConnectionFieldTypeVisitor;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher;
 import org.springframework.graphql.data.query.ScrollPositionCursorStrategy;
 import org.springframework.graphql.data.query.ScrollSubrange;
 import org.springframework.graphql.data.query.WindowConnectionAdapter;
-import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
@@ -61,7 +59,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link QueryByExampleDataFetcher}.
+ * Integration tests for {@link QueryByExampleDataFetcher} with reactive MongoDB repository.
  */
 @SpringJUnitConfig
 @Testcontainers(disabledWithoutDocker = true)
