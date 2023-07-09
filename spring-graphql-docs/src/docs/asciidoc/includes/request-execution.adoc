@@ -95,7 +95,7 @@ You can use `RuntimeWiringConfigurer` to register:
 - <<execution.graphqlsource.directives>> handling code.
 - Default <<execution.graphqlsource.default-type-resolver>> for interface and union types.
 - `DataFetcher` for a field although applications will typically use <<controllers>>, and
-those are detected and registered as `DataFetcher`s by `AnnotatedControllerConfigurer`,
+those are detected and registered as ``DataFetcher``s by `AnnotatedControllerConfigurer`,
 which is a `RuntimeWiringConfigurer`. The <<boot-starter>> automatically registers
 `AnnotatedControllerConfigurer`.
 
