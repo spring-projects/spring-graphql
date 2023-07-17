@@ -8,7 +8,7 @@ javaPlatform {
 
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	api(platform("com.fasterxml.jackson:jackson-bom:2.15.0"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.15.2"))
 	api(platform("io.projectreactor:reactor-bom:2022.0.9"))
 	api(platform("io.micrometer:micrometer-bom:1.11.2"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.1.2"))
@@ -18,9 +18,9 @@ dependencies {
 	api(platform("io.rsocket:rsocket-bom:1.1.4"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
-	api(platform("org.junit:junit-bom:5.9.2"))
-	api(platform("org.mockito:mockito-bom:5.3.0"))
-	api(platform("org.testcontainers:testcontainers-bom:1.18.0"))
+	api(platform("org.junit:junit-bom:5.9.3"))
+	api(platform("org.mockito:mockito-bom:5.4.0"))
+	api(platform("org.testcontainers:testcontainers-bom:1.18.3"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.20.0"))
 
 	constraints {
@@ -35,12 +35,12 @@ dependencies {
 		api("com.google.code.findbugs:jsr305:3.0.2")
 
 		api("org.assertj:assertj-core:3.24.2")
-		api("com.jayway.jsonpath:json-path:2.7.0")
+		api("com.jayway.jsonpath:json-path:2.8.0")
 		api("org.skyscreamer:jsonassert:1.5.1")
 
 		api("com.h2database:h2:2.1.214")
-		api("org.hibernate:hibernate-core:6.2.2.Final")
-		api("org.hibernate.validator:hibernate-validator:8.0.0.Final")
+		api("org.hibernate:hibernate-core:6.2.6.Final")
+		api("org.hibernate.validator:hibernate-validator:8.0.1.Final")
 		api("org.mongodb:bson:4.9.1")
 		api("org.mongodb:mongodb-driver-core:4.9.1")
 		api("org.mongodb:mongodb-driver-reactivestreams:4.9.1")
