@@ -33,6 +33,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ExceptionDepthComparator;
+import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -370,7 +371,11 @@ final class AnnotatedControllerExceptionResolver {
 		 */
 		static ReturnValueAdapter createFor(MethodParameter returnType) {
 			Class<?> parameterType = returnType.getParameterType();
-			if (parameterType == void.class) {
+			Method method = returnType.getMethod();
+			if (method != null && KotlinDetector.isSuspendingFunction(method)) {
+				return createForMono(returnType);
+			}
+			else if (parameterType == void.class) {
 				return forVoid;
 			}
 			else if (parameterType.equals(GraphQLError.class)) {
@@ -382,18 +387,7 @@ final class AnnotatedControllerExceptionResolver {
 				}
 			}
 			else if (Mono.class.isAssignableFrom(parameterType)) {
-				returnType = returnType.nested();
-				Class<?> nestedType = returnType.getNestedParameterType();
-				if (nestedType == Void.class) {
-					return forMonoVoid;
-				}
-				if (Collection.class.isAssignableFrom(nestedType)) {
-					returnType = returnType.nested();
-					nestedType = returnType.getNestedParameterType();
-				}
-				if (nestedType.equals(GraphQLError.class) || nestedType.equals(Object.class)) {
-					return forMono;
-				}
+				return createForMono(returnType.nested());
 			}
 			else if (parameterType.equals(Object.class)) {
 				return forObject;
@@ -401,6 +395,23 @@ final class AnnotatedControllerExceptionResolver {
 			throw new IllegalStateException(
 					"Invalid return type for @GraphQlExceptionHandler method: " + returnType);
 		}
+
+		private static ReturnValueAdapter createForMono(MethodParameter returnType) {
+			Class<?> nestedType = returnType.getNestedParameterType();
+			if (nestedType == Void.class) {
+				return forMonoVoid;
+			}
+			if (Collection.class.isAssignableFrom(nestedType)) {
+				returnType = returnType.nested();
+				nestedType = returnType.getNestedParameterType();
+			}
+			if (nestedType.equals(GraphQLError.class) || nestedType.equals(Object.class)) {
+				return forMono;
+			}
+			throw new IllegalStateException(
+					"Invalid return type for @GraphQlExceptionHandler method: " + returnType);
+		}
+
 
 		/** Adapter for void */
 		ReturnValueAdapter forVoid = (result, returnType, ex) -> Mono.just(Collections.emptyList());
