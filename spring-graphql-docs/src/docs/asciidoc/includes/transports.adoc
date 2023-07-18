@@ -6,7 +6,7 @@ RSocket.
 
 
 [[server.transports.http]]
-= HTTP
+== HTTP
 
 `GraphQlHttpHandler` handles GraphQL over HTTP requests and delegates to the
 <<server.interception>> chain for request execution. There are two variants, one for
