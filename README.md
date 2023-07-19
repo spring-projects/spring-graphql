@@ -9,7 +9,7 @@ This project is governed by the [Spring Code of Conduct](CODE_OF_CONDUCT.adoc). 
 ## Documentation
 
 This project has reference documentation ([published](https://docs.spring.io/spring-graphql/reference/) and [source](spring-graphql-docs/modules/ROOT)), an
-[API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/api/). The are [samples](https://github.com/spring-projects/spring-graphql/tree/1.0.x/samples) in the 1.0.x branch that will be [moved out](https://github.com/spring-projects/spring-graphql/issues/208) into a separate repository.
+[API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/api/). There are [samples](https://github.com/spring-projects/spring-graphql/tree/1.0.x/samples) in the 1.0.x branch that will be [moved out](https://github.com/spring-projects/spring-graphql/issues/208) into a separate repository.
 
 ## Continuous Integration Builds
 
