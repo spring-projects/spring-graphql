@@ -55,7 +55,7 @@ following extensions:
 To create a `GraphQlTester` that performs tests on the server side, without a client:
 
 - xref:testing.adoc#testing.graphqlservicetester[ExecutionGraphQlServiceTester]
-- xref:testing.adoc#testing.webgraphqltester[WebGraphQlServiceTester]
+- xref:testing.adoc#testing.webgraphqltester[WebGraphQlTester]
 
 Each defines a `Builder` with options relevant to the transport. All builders extend
 from a common, base GraphQlTester xref:testing.adoc#testing.graphqltester.builder[`Builder`] with
@@ -269,8 +269,13 @@ The builder for this extension allows you to define HTTP request details:
 			.build();
 ----
 
+<<<<<<< HEAD:spring-graphql-docs/modules/ROOT/pages/testing.adoc
 Once `WebGraphQlServiceTester` is created, you can begin to
 xref:testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
+=======
+Once `WebGraphQlTester` is created, you can begin to
+<<testing.requests, execute requests>> using the same API, independent of the underlying
+>>>>>>> 37f3f4a9 (Change WebGraphQlServiceTester to WebGraphQlTester):spring-graphql-docs/src/docs/asciidoc/includes/testing.adoc
 transport.
 
 
