@@ -155,13 +155,13 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 								throw new CompletionException(error);
 							}
 							dataFetcherObservation.stop();
-							return wrapAsDataFetcherResult(result, dataFetcherObservation, environment);
+							return wrapAsDataFetcherResult(result, dataFetcherObservation, environment.getLocalContext());
 						});
 					}
 					else {
 						observationContext.setValue(value);
 						dataFetcherObservation.stop();
-						return wrapAsDataFetcherResult(value, dataFetcherObservation, environment);
+						return wrapAsDataFetcherResult(value, dataFetcherObservation, environment.getLocalContext());
 					}
 				}
 				catch (Throwable throwable) {
@@ -188,7 +188,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	private static DataFetcherResult<?> wrapAsDataFetcherResult(Object value, Observation dataFetcherObservation,
-                    DataFetchingEnvironment environment) {
+                    @Nullable GraphQLContext dataFetcherLocalContext) {
 		if (value instanceof DataFetcherResult<?> result) {
 			if (result.getLocalContext() == null) {
 				return result.transform(builder -> builder.localContext(GraphQLContext.newContext().of(ObservationThreadLocalAccessor.KEY, dataFetcherObservation).build()));
@@ -202,8 +202,8 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 			return result;
 		}
 		else {
-			GraphQLContext localContext = environment.getLocalContext() == null ?
-					GraphQLContext.getDefault() : environment.getLocalContext();
+			GraphQLContext localContext = dataFetcherLocalContext == null ?
+					GraphQLContext.getDefault() : dataFetcherLocalContext;
 			return DataFetcherResult.newResult()
 					.data(value)
 					.localContext(localContext.put(ObservationThreadLocalAccessor.KEY, dataFetcherObservation))
