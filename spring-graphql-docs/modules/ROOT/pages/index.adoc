@@ -1,7 +1,6 @@
 [[spring-for-graphql-documentation]]
 = Spring for GraphQL Documentation
 Brian Clozel; Andreas Marek; Rossen Stoyanchev; Mark Paluch
-include::attributes.adoc[]
 
 
 [[overview]]
@@ -25,19 +24,15 @@ To get started, see the <<boot-starter>> and <<samples>> sections.
 
 
 
-include::includes/transports.adoc[leveloffset=+1]
 
 
 
-include::includes/request-execution.adoc[leveloffset=+1]
 
 
 
-include::includes/data.adoc[leveloffset=+1]
 
 
 
-include::includes/controllers.adoc[leveloffset=+1]
 
 
 
@@ -60,23 +55,18 @@ The 1.0.x branch of this repository contains samples for
 
 
 
-include::includes/observability.adoc[leveloffset=+1]
 
 
 
-include::includes/graalvm-native.adoc[leveloffset=+1]
 
 
 
-include::includes/client.adoc[leveloffset=+1]
 
 
 
-include::includes/graphiql.adoc[leveloffset=+1]
 
 
 
-include::includes/testing.adoc[leveloffset=+1]
 
 
 
