@@ -1,6 +1,7 @@
 plugins {
 	id 'java-library'
-	id 'org.asciidoctor.jvm.convert' version '3.3.2'
+	id 'org.antora' version '1.0.0'
+	id 'io.spring.antora.generate-antora-yml' version '0.0.1'
 }
 
 description = "Spring for GraphQL reference documentation"
@@ -12,7 +13,6 @@ configurations {
 		visible = false
 	}
 	matching { it.name.endsWith("Classpath") }.all { it.extendsFrom(dependencyManagement) }
-	asciidoctorExtensions
 }
 
 dependencies {
@@ -25,7 +25,6 @@ dependencies {
 	api 'org.springframework:spring-messaging'
 	api 'org.springframework.data:spring-data-commons'
 	api 'com.querydsl:querydsl-core'
-	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.4'
 }
 
 jar {
@@ -77,41 +76,41 @@ task api(type: Javadoc) {
 	destinationDir = file("$buildDir/docs/javadoc")
 }
 
-
-/**
- * Generate the Spring for GraphQL Reference documentation from "src/docs/asciidoc"
- * in "build/docs/reference/html".
- */
-asciidoctor {
-	configurations 'asciidoctorExtensions'
-	baseDirFollowsSourceDir()
-	sources {
-		include 'index.adoc'
-	}
-	logDocuments = true
-	outputOptions {
-		backends "spring-html"
-	}
-	outputDir "$buildDir/docs/reference/html"
-	attributes 'spring-graphql-version': project.version,
-			'spring-boot-version': springBootVersion,
-			'spring-framework-version': springFrameworkVersion
+antora {
+	options = [clean: true, fetch: !project.gradle.startParameter.offline, stacktrace: true]
+	environment = [
+			'ALGOLIA_API_KEY': '9d489079e5ec46dbb238909fee5c9c29',
+			'ALGOLIA_APP_ID': 'WB1FQYI187',
+			'ALGOLIA_INDEX_NAME': 'springsecurity',
+	]
+	dependencies = [
+			'@antora/atlas-extension': '1.0.0-alpha.1',
+			'@antora/collector-extension': '1.0.0-alpha.3',
+			'@asciidoctor/tabs': '1.0.0-beta.3',
+			'@springio/antora-extensions': '1.4.2',
+			'@springio/asciidoctor-extensions': '1.0.0-alpha.8',
+	]
 }
 
-asciidoctor.mustRunAfter "check"
+tasks.named("generateAntoraYml") {
+	asciidocAttributes = project.provider( { ['spring-graphql-version': project.version,
+		'spring-boot-version': springBootVersion,
+		'spring-framework-version': springFrameworkVersion] } )
+}
+
+tasks.named("antora") {
+	mustRunAfter "check"
+}
 
 /**
  * Zip all docs into a single archive
  */
-task docsZip(type: Zip, dependsOn: ['api', 'asciidoctor']) {
+task docsZip(type: Zip, dependsOn: ['api']) {
 	group = "Distribution"
 	description = "Builds -${archiveClassifier} archive containing api and reference " +
 			"for deployment at https://docs.spring.io/spring-graphql/docs."
 	from (api) {
 		into "api"
-	}
-	from ("$asciidoctor.outputDir") {
-		into "reference/html"
 	}
 }
 
