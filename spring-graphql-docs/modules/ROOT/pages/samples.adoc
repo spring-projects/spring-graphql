@@ -1,0 +1,15 @@
+[[samples]]
+= Samples
+
+Check out the https://spring.io/guides/gs/graphql-server/["Building a GraphQL service"] Getting Started Guide.
+
+In addition, the 1.0.x branch of this repository contains {github-10x-branch}/samples[sample applications] for various scenarios.
+Those samples do not exist in the `main` branch and are planned to be
+https://github.com/spring-projects/spring-graphql/issues/208[moved out] into a separate repository.
+To run those samples, check out the 1.0.x branch run their main application classes from your IDE,
+or from the command line:
+
+[source,bash,indent=0,subs="verbatim,quotes"]
+----
+$ ./gradlew :samples:{sample-directory-name}:bootRun
+----

@@ -36,7 +36,7 @@ class, indicating its role as a data fetching component in a GraphQL application
 `AnnotatedControllerConfigurer` detects `@Controller` beans and registers their
 annotated handler methods as ``DataFetcher``s via `RuntimeWiring.Builder`. It is an
 implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource.Builder`.
-The xref:index.adoc#boot-starter[Boot Starter] automatically declares `AnnotatedControllerConfigurer` as a bean
+The xref:boot-starter.adoc[Boot Starter] automatically declares `AnnotatedControllerConfigurer` as a bean
 and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
 support for annotated ``DataFetcher``s, see the
 {spring-boot-ref-docs}/web.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
@@ -136,23 +136,23 @@ Schema mapping handler methods can have any of the following method arguments:
 | `@Argument`
 | For access to a named field argument bound to a higher-level, typed Object.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.argument[`@Argument`].
+See xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`].
 
 | `@Argument Map<String, Object>`
 | For access to the raw argument value.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.argument[`@Argument`].
+See xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`].
 
 | `ArgumentValue`
 | For access to a named field argument bound to a higher-level, typed Object along
 with a flag to indicate if the input argument was omitted vs set to `null`.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.argument-value[`ArgumentValue`].
+See xref:controllers.adoc#controllers.schema-mapping.argument-value[`ArgumentValue`].
 
 | `@Arguments`
 | For access to all field arguments bound to a higher-level, typed Object.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`].
+See xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`].
 
 | `@Arguments Map<String, Object>`
 | For access to the raw map of arguments.
@@ -160,27 +160,27 @@ See xref:includes/controllers.adoc#controllers.schema-mapping.arguments[`@Argume
 | `@ProjectedPayload` Interface
 | For access to field arguments through a project interface.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.projectedpayload.argument[`@ProjectedPayload` Interface].
+See xref:controllers.adoc#controllers.schema-mapping.projectedpayload.argument[`@ProjectedPayload` Interface].
 
 | "Source"
 | For access to the source (i.e. parent/container) instance of the field.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.source[Source].
+See xref:controllers.adoc#controllers.schema-mapping.source[Source].
 
 | `Subrange` and `ScrollSubrange`
 | For access to pagination arguments.
 
-See xref:includes/request-execution.adoc#execution.pagination[Pagination], xref:includes/data.adoc#data.pagination.scroll[Scroll], xref:includes/controllers.adoc#controllers.schema-mapping.subrange[`Subrange`].
+See xref:request-execution.adoc#execution.pagination[Pagination], xref:data.adoc#data.pagination.scroll[Scroll], xref:controllers.adoc#controllers.schema-mapping.subrange[`Subrange`].
 
 | `Sort`
 | For access to sort details.
 
-See xref:includes/request-execution.adoc#execution.pagination[Pagination], xref:includes/controllers.adoc#controllers.schema-mapping.sort[`Sort`].
+See xref:request-execution.adoc#execution.pagination[Pagination], xref:controllers.adoc#controllers.schema-mapping.sort[`Sort`].
 
 | `DataLoader`
 | For access to a `DataLoader` in the `DataLoaderRegistry`.
 
-See xref:includes/controllers.adoc#controllers.schema-mapping.data-loader[`DataLoader`].
+See xref:controllers.adoc#controllers.schema-mapping.data-loader[`DataLoader`].
 
 | `@ContextValue`
 | For access to an attribute from the main `GraphQLContext` in `DataFetchingEnvironment`.
@@ -212,7 +212,7 @@ Schema mapping handler methods can return:
 
 - A resolved value of any type.
 - `Mono` and `Flux` for asynchronous value(s). Supported for controller methods and for
-  any `DataFetcher` as described in xref:includes/request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`].
+  any `DataFetcher` as described in xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`].
 - `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
   For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
@@ -282,7 +282,7 @@ NOTE: Prior to 1.2, `@Argument Map<String, Object>` returned the full arguments 
 the annotation did not specify a name. After 1.2, `@Argument` with
 `Map<String, Object>` always returns the raw argument value, matching either to the name
 specified in the annotation, or to the parameter name. For access to the full arguments
-map, please use xref:includes/controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
+map, please use xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
 
 
 [[controllers.schema-mapping.argument-value]]
@@ -291,7 +291,7 @@ map, please use xref:includes/controllers.adoc#controllers.schema-mapping.argume
 By default, input arguments in GraphQL are nullable and optional, which means an argument
 can be set to the `null` literal, or not provided at all. This distinction is useful for
 partial updates with a mutation where the underlying data may also be, either set to
-`null` or not changed at all accordingly. When using xref:includes/controllers.adoc#controllers.schema-mapping.argument[`@Argument`]
+`null` or not changed at all accordingly. When using xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`]
 there is no way to make such a distinction, because you would get `null` or an empty
 `Optional` in both cases.
 
@@ -340,7 +340,7 @@ all argument values.
 [[controllers.schema-mapping.projectedpayload.argument]]
 === `@ProjectedPayload` Interface
 
-As an alternative to using complete Objects with xref:includes/controllers.adoc#controllers.schema-mapping.argument[`@Argument`],
+As an alternative to using complete Objects with xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`],
 you can also use a projection interface to access GraphQL request arguments through a
 well-defined, minimal interface. Argument projections are provided by
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections.interfaces[Spring Data's Interface projections]
@@ -413,7 +413,7 @@ explicitly specify the type name in the `@SchemaMapping` annotation.
 
 [TIP]
 ====
-A xref:includes/controllers.adoc#controllers.batch-mapping[`@BatchMapping`] handler method can batch load all authors for a query,
+A xref:controllers.adoc#controllers.batch-mapping[`@BatchMapping`] handler method can batch load all authors for a query,
 given a list of source/parent books objects.
 ====
 
@@ -421,7 +421,7 @@ given a list of source/parent books objects.
 [[controllers.schema-mapping.subrange]]
 === `Subrange`
 
-When there is a xref:includes/request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] bean in Spring configuration,
+When there is a xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] bean in Spring configuration,
 controller methods support a `Subrange<P>` argument where `<P>` is a relative position
 converted from a cursor. For Spring Data, `ScrollSubrange` exposes `ScrollPosition`.
 For example:
@@ -441,13 +441,13 @@ public class BookController {
 }
 ----
 
-See xref:includes/request-execution.adoc#execution.pagination[Pagination] for an overview of pagination and of built-in mechanisms.
+See xref:request-execution.adoc#execution.pagination[Pagination] for an overview of pagination and of built-in mechanisms.
 
 
 [[controllers.schema-mapping.sort]]
 === `Sort`
 
-When there is a xref:includes/data.adoc#data.pagination.scroll[SortStrategy] bean in Spring configuration, controller
+When there is a xref:data.adoc#data.pagination.scroll[SortStrategy] bean in Spring configuration, controller
 methods support `Sort` as a method argument. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -469,7 +469,7 @@ public class BookController {
 === `DataLoader`
 
 When you register a batch loading function for an entity, as explained in
-xref:includes/request-execution.adoc#execution.batching[Batch Loading], you can access the `DataLoader` for the entity by declaring a
+xref:request-execution.adoc#execution.batching[Batch Loading], you can access the `DataLoader` for the entity by declaring a
 method argument of type `DataLoader` and use it to load the entity:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -500,7 +500,7 @@ be necessary.
 
 Note that for many cases with loading related entities, where the `@SchemaMapping` simply
 delegates to a `DataLoader`, you can reduce boilerplate by using a
-xref:includes/controllers.adoc#controllers.batch-mapping[@BatchMapping] method as described in the next section.
+xref:controllers.adoc#controllers.batch-mapping[@BatchMapping] method as described in the next section.
 
 
 [[controllers.schema-mapping.validation]]
@@ -541,15 +541,15 @@ method invocation:
 ----
 
 If an error occurs during validation, a `ConstraintViolationException` is raised.
-You can use the xref:includes/request-execution.adoc#execution.exceptions[Exceptions] chain to decide how to present that to clients
+You can use the xref:request-execution.adoc#execution.exceptions[Exceptions] chain to decide how to present that to clients
 by turning it into an error to include in the GraphQL response.
 
 TIP: In addition to `@Valid`, you can also use Spring's `@Validated` that allows
 specifying validation groups.
 
-Bean validation is useful for xref:includes/controllers.adoc#controllers.schema-mapping.argument[`@Argument`],
-xref:includes/controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`], and
-xref:includes/controllers.adoc#controllers.schema-mapping.projectedpayload.argument[@ProjectedPayload]
+Bean validation is useful for xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`],
+xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`], and
+xref:controllers.adoc#controllers.schema-mapping.projectedpayload.argument[@ProjectedPayload]
 method parameters, but applies more generally to any method parameter.
 
 [WARNING]
@@ -566,7 +566,7 @@ for links to relevant issues and a suggested workaround.
 [[controllers.batch-mapping]]
 == `@BatchMapping`
 
-xref:includes/request-execution.adoc#execution.batching[Batch Loading] addresses the N+1 select problem through the use of an
+xref:request-execution.adoc#execution.batching[Batch Loading] addresses the N+1 select problem through the use of an
 `org.dataloader.DataLoader` to defer the loading of individual entity instances, so they
 can be loaded together. For example:
 
@@ -679,7 +679,7 @@ Batch mapping methods can return:
 == `@GraphQlExceptionHandler`
 
 Use `@GraphQlExceptionHandler` methods to handle exceptions from data fetching with a
-flexible xref:includes/controllers.adoc#controllers.exception-handler.signature[method signature]. When declared in a
+flexible xref:controllers.adoc#controllers.exception-handler.signature[method signature]. When declared in a
 controller, exception handler methods apply to exceptions from the same controller:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -719,7 +719,7 @@ Exception handling via `@GraphQlExceptionHandler` methods is applied automatical
 controller invocations. To handle exceptions from other `graphql.schema.DataFetcher`
 implementations, not based on controller methods, obtain a
 `DataFetcherExceptionResolver` from `AnnotatedControllerConfigurer`, and register it in
-`GraphQlSource.Builder` as a xref:includes/request-execution.adoc#execution.exceptions[DataFetcherExceptionResolver].
+`GraphQlSource.Builder` as a xref:request-execution.adoc#execution.exceptions[DataFetcherExceptionResolver].
 
 
 
@@ -729,7 +729,7 @@ implementations, not based on controller methods, obtain a
 
 Exception handler methods support a flexible method signature with method arguments
 resolved from a `DataFetchingEnvironment,` and matching to those of
-xref:includes/controllers.adoc#controllers.schema-mapping.arguments[@SchemaMapping methods].
+xref:controllers.adoc#controllers.schema-mapping.arguments[@SchemaMapping methods].
 
 Supported return types are listed below:
 

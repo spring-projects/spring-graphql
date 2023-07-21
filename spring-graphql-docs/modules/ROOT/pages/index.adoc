@@ -1,10 +1,5 @@
-[[spring-for-graphql-documentation]]
-= Spring for GraphQL Documentation
-Brian Clozel; Andreas Marek; Rossen Stoyanchev; Mark Paluch
-
-
 [[overview]]
-== Overview
+= Spring for GraphQL
 
 Spring for GraphQL provides support for Spring applications built on
 https://www.graphql-java.com/[GraphQL Java]. It is a joint collaboration between the
@@ -20,92 +15,4 @@ to report a problem, discuss a design issue, or to request a feature.
 Check the https://github.com/spring-projects/spring-graphql/wiki[Wiki].
 for what's new, baseline requirements, and upgrade notes, and other cross-version information.
 
-To get started, see the xref:index.adoc#boot-starter[Boot Starter] and xref:index.adoc#samples[Samples] sections.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-[[security]]
-== Security
-
-The path to a xref:includes/transports.adoc#server.transports.http[Web] GraphQL endpoint can be secured with HTTP
-URL security to ensure that only authenticated users can access it. This does not,
-however, differentiate among different GraphQL requests on such a shared endpoint on
-a single URL.
-
-To apply more fine-grained security, add Spring Security annotations such as
-`@PreAuthorize` or `@Secured` to service methods involved in fetching specific parts of
-the GraphQL response. This should work due to xref:includes/request-execution.adoc#execution.context[Context Propagation] that aims to make
-Security, and other context, available at the data fetching level.
-
-The 1.0.x branch of this repository contains samples for
-{github-10x-branch}/samples/webmvc-http-security[Spring MVC] and for
-{github-10x-branch}/samples/webflux-security[WebFlux].
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-[[boot-starter]]
-== Boot Starter
-
-Spring Boot provides a starter for building GraphQL applications with Spring for GraphQL.
-For version information, see the
-https://github.com/spring-projects/spring-graphql/wiki/Spring-for-GraphQL-Versions[Spring for GraphQL Versions] wiki page.
-
-The easiest way to get started is via https://start.spring.io by selecting
-"Spring for GraphQL" along with an underlying transport such as Spring MVC of WebFlux over
-HTTP or WebSocket, or over RSocket. Refer to the
-https://docs.spring.io/spring-boot/docs/current/reference/html/web.html#web.graphql[Spring for GraphQL Starter]
-section in the Spring Boot reference for details on supported transports, auto-configuration related
-features, and more. For testing support, see
-https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.spring-graphql-tests[Auto-Configured GraphQL Tests].
-
-For further reference, check the following GraphQL related:
-
-- https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html#actuator.metrics.supported.spring-graphql[Metrics]
-- https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.web[Properties]
-- https://docs.spring.io/spring-boot/docs/current/reference/html/auto-configuration-classes.html#appendix.auto-configuration-classes.core[Auto-Configuration Classes]
-
-
-
-
-[[samples]]
-== Samples
-
-Check out the https://spring.io/guides/gs/graphql-server/["Building a GraphQL service"] Getting Started Guide.
-
-In addition, the 1.0.x branch of this repository contains {github-10x-branch}/samples[sample applications] for various scenarios.
-Those samples do not exist in the `main` branch and are planned to be
-https://github.com/spring-projects/spring-graphql/issues/208[moved out] into a separate repository.
-To run those samples, check out the 1.0.x branch run their main application classes from your IDE,
-or from the command line:
-
-[source,bash,indent=0,subs="verbatim,quotes"]
-----
-$ ./gradlew :samples:{sample-directory-name}:bootRun
-----
+To get started, see the xref:boot-starter.adoc[Boot Starter] and xref:samples.adoc[Samples] sections.

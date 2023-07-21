@@ -47,7 +47,7 @@ Then use it to create a `DataFetcher`:
 ----
 
 You can now register the above `DataFetcher` through a
-xref:includes/request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`].
+xref:request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`].
 
 The `DataFetcher` builds a Querydsl `Predicate` from GraphQL arguments, and uses it to
 fetch data. Spring Data supports `QuerydslPredicateExecutor` for JPA, MongoDB, Neo4j, and LDAP.
@@ -140,7 +140,7 @@ each available property. To customize that, you can use `QuerydslDataFetcher` bu
 methods to provide a `QuerydslBinderCustomizer`.
 
 A repository may itself be an instance of `QuerydslBinderCustomizer`. This is auto-detected
-and transparently applied during xref:includes/data.adoc#data.querydsl.registration[Auto-Registration]. However, when manually
+and transparently applied during xref:data.adoc#data.querydsl.registration[Auto-Registration]. However, when manually
 building a `QuerydslDataFetcher` you will need to use builder methods to apply it.
 
 `QuerydslDataFetcher` supports interface and DTO projections to transform query results
@@ -148,7 +148,7 @@ before returning these for further GraphQL processing.
 
 TIP: To learn what projections are, please refer to the
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data docs].
-To understand how to use projections in GraphQL, please see xref:includes/data.adoc#data.projections[Selection Set vs Projections].
+To understand how to use projections in GraphQL, please see xref:data.adoc#data.projections[Selection Set vs Projections].
 
 To use Spring Data projections with Querydsl repositories, create either a projection interface
 or a target DTO class and configure it through the `projectAs` method to obtain a
@@ -187,7 +187,7 @@ or a target DTO class and configure it through the `projectAs` method to obtain 
 If a repository is annotated with `@GraphQlRepository`, it is automatically registered
 for queries that do not already have a registered `DataFetcher` and whose return type
 matches that of the repository domain type. This includes single value queries, multi-value
-queries, and xref:includes/request-execution.adoc#execution.pagination[paginated] queries.
+queries, and xref:request-execution.adoc#execution.pagination[paginated] queries.
 
 By default, the name of the GraphQL type returned by the query must match the simple name
 of the repository domain type. If needed, you can use the `typeName` attribute of
@@ -202,11 +202,11 @@ Auto-registration detects if a given repository implements `QuerydslBinderCustom
 transparently applies that through `QuerydslDataFetcher` builder methods.
 
 Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
-obtained from `QuerydslDataFetcher`. The xref:index.adoc#boot-starter[Boot Starter] automatically
+obtained from `QuerydslDataFetcher`. The xref:boot-starter.adoc[Boot Starter] automatically
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
 
-Auto-registration applies xref:includes/data.adoc#data.querybyexample.customizations[customizations]
+Auto-registration applies xref:data.adoc#data.querybyexample.customizations[customizations]
 by calling `customize(Builder)` on the repository instance if your repository
 implements `QuerydslBuilderCustomizer` or `ReactiveQuerydslBuilderCustomizer`
 respectively.
@@ -247,7 +247,7 @@ Use `QueryByExampleDataFetcher` to turn the repository into a `DataFetcher`:
 ----
 
 You can now register the above `DataFetcher` through a
-xref:includes/request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`].
+xref:request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`].
 
 The `DataFetcher` uses the GraphQL arguments map to create the domain type of the
 repository and use that as the example object to fetch data with. Spring Data supports
@@ -276,7 +276,7 @@ results before returning these for further GraphQL processing.
 
 TIP: To learn what projections are, please refer to the
 https://docs.spring.io/spring-data/commons/docs/current/reference/html/#projections[Spring Data documentation].
-To understand the role of projections in GraphQL, please see xref:includes/data.adoc#data.projections[Selection Set vs Projections].
+To understand the role of projections in GraphQL, please see xref:data.adoc#data.projections[Selection Set vs Projections].
 
 To use Spring Data projections with Query by Example repositories, create either a projection interface
 or a target DTO class and configure it through the `projectAs` method to obtain a
@@ -314,7 +314,7 @@ or a target DTO class and configure it through the `projectAs` method to obtain 
 If a repository is annotated with `@GraphQlRepository`, it is automatically registered
 for queries that do not already have a registered `DataFetcher` and whose return type
 matches that of the repository domain type. This includes single value queries, multi-value
-queries, and xref:includes/request-execution.adoc#execution.pagination[paginated] queries.
+queries, and xref:request-execution.adoc#execution.pagination[paginated] queries.
 
 By default, the name of the GraphQL type returned by the query must match the simple name
 of the repository domain type. If needed, you can use the `typeName` attribute of
@@ -326,11 +326,11 @@ For paginated queries, the simple name of the repository domain type must match 
 per page.
 
 Auto-registration is performed through a built-in `RuntimeWiringConfigurer` that can be
-obtained from `QueryByExampleDataFetcher`. The xref:index.adoc#boot-starter[Boot Starter] automatically
+obtained from `QueryByExampleDataFetcher`. The xref:boot-starter.adoc[Boot Starter] automatically
 detects `@GraphQlRepository` beans and uses them to initialize the
 `RuntimeWiringConfigurer` with.
 
-Auto-registration applies xref:includes/data.adoc#data.querybyexample.customizations[customizations]
+Auto-registration applies xref:data.adoc#data.querybyexample.customizations[customizations]
 by calling `customize(Builder)` on the repository instance if your repository
 implements `QueryByExampleBuilderCustomizer` or
 `ReactiveQueryByExampleBuilderCustomizer` respectively.
@@ -359,7 +359,7 @@ aggregate functionality.
 In Spring Data you can choose whether you want your aggregate be exposed as is, or
 whether to apply transformations to the data model before returning it as a GraphQL
 result. Sometimes it's enough to do the former, and by default the
-xref:includes/data.adoc#data.querydsl[Querydsl] and the xref:includes/data.adoc#data.querybyexample[Query by Example] integrations turn the GraphQL
+xref:data.adoc#data.querydsl[Querydsl] and the xref:data.adoc#data.querybyexample[Query by Example] integrations turn the GraphQL
 selection set into property path hints that the underlying Spring Data module uses to
 limit the selection.
 
@@ -394,7 +394,7 @@ required fields (or columns) are part of the database query result.
 [[data.pagination.scroll]]
 == Scroll
 
-As explained in xref:includes/request-execution.adoc#execution.pagination[Pagination], the GraphQL Cursor Connection spec defines a
+As explained in xref:request-execution.adoc#execution.pagination[Pagination], the GraphQL Cursor Connection spec defines a
 mechanism for pagination with `Connection`, `Edge`, and `PageInfo` schema types, while
 GraphQL Java provides the equivalent Java type representations.
 
@@ -423,11 +423,11 @@ GraphQlSource.schemaResourceBuilder()
 <3> Register the type visitor.
 
 On the request side, a controller method can declare a
-xref:includes/controllers.adoc#controllers.schema-mapping.subrange[ScrollSubrange] method argument to paginate forward
-or backward. For this to work, you must declare a xref:includes/request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`]
+xref:controllers.adoc#controllers.schema-mapping.subrange[ScrollSubrange] method argument to paginate forward
+or backward. For this to work, you must declare a xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`]
 supports `ScrollPosition` as a bean.
 
-The xref:index.adoc#boot-starter[Boot Starter] declares a `CursorStrategy<ScrollPosition>` bean, and registers the
+The xref:boot-starter.adoc[Boot Starter] declares a `CursorStrategy<ScrollPosition>` bean, and registers the
 `ConnectionFieldTypeVisitor` as shown above if Spring Data is on the classpath.
 
 

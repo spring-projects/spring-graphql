@@ -1,0 +1,21 @@
+[[boot-starter]]
+= Boot Starter
+
+Spring Boot provides a starter for building GraphQL applications with Spring for GraphQL.
+For version information, see the
+https://github.com/spring-projects/spring-graphql/wiki/Spring-for-GraphQL-Versions[Spring for GraphQL Versions] wiki page.
+
+The easiest way to get started is via https://start.spring.io by selecting
+"Spring for GraphQL" along with an underlying transport such as Spring MVC of WebFlux over
+HTTP or WebSocket, or over RSocket. Refer to the
+https://docs.spring.io/spring-boot/docs/current/reference/html/web.html#web.graphql[Spring for GraphQL Starter]
+section in the Spring Boot reference for details on supported transports, auto-configuration related
+features, and more. For testing support, see
+https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.spring-graphql-tests[Auto-Configured GraphQL Tests].
+
+For further reference, check the following GraphQL related:
+
+- https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html#actuator.metrics.supported.spring-graphql[Metrics]
+- https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.web[Properties]
+- https://docs.spring.io/spring-boot/docs/current/reference/html/auto-configuration-classes.html#appendix.auto-configuration-classes.core[Auto-Configuration Classes]
+
