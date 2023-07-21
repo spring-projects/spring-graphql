@@ -68,8 +68,11 @@ https://querydsl.com/static/querydsl/latest/reference/html/ch02.html[official re
 
 For example:
 
+[tabs]
+======
+Gradle::
++
 [source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
-.Gradle
 ----
 dependencies {
 	//...
@@ -83,8 +86,10 @@ compileJava {
 	 options.annotationProcessorPath = configurations.annotationProcessor
 }
 ----
+
+Maven::
++
 [source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
-.Maven
 ----
 <dependencies>
 	<!-- ... -->
@@ -126,6 +131,7 @@ compileJava {
 	</plugin>
 </plugins>
 ----
+======
 
 The {github-10x-branch}/samples/webmvc-http[webmvc-http] sample uses Querydsl for
 `artifactRepositories`.
