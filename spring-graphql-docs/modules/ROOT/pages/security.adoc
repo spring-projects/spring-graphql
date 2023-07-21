@@ -1,0 +1,23 @@
+[[security]]
+= Security
+
+The path to a xref:transports.adoc#server.transports.http[Web] GraphQL endpoint can be secured with HTTP
+URL security to ensure that only authenticated users can access it. This does not,
+however, differentiate among different GraphQL requests on such a shared endpoint on
+a single URL.
+
+To apply more fine-grained security, add Spring Security annotations such as
+`@PreAuthorize` or `@Secured` to service methods involved in fetching specific parts of
+the GraphQL response. This should work due to xref:request-execution.adoc#execution.context[Context Propagation] that aims to make
+Security, and other context, available at the data fetching level.
+
+The 1.0.x branch of this repository contains samples for
+{github-10x-branch}/samples/webmvc-http-security[Spring MVC] and for
+{github-10x-branch}/samples/webflux-security[WebFlux].
+
+
+
+
+
+
+

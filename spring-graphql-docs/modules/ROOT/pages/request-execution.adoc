@@ -2,7 +2,7 @@
 = Request Execution
 
 `ExecutionGraphQlService` is the main Spring abstraction to call GraphQL Java to execute
-requests. Underlying transports, such as the xref:includes/transports.adoc#server.transports.http[HTTP], delegate to
+requests. Underlying transports, such as the xref:transports.adoc#server.transports.http[HTTP], delegate to
 `ExecutionGraphQlService` to handle requests.
 
 The main implementation, `DefaultExecutionGraphQlService`, is configured with a
@@ -17,15 +17,15 @@ The main implementation, `DefaultExecutionGraphQlService`, is configured with a
 includes a builder API to build that instance. The default builder is available via
 `GraphQlSource.schemaResourceBuilder()`.
 
-The xref:index.adoc#boot-starter[Boot Starter] creates an instance of this builder and further initializes it
-to xref:includes/request-execution.adoc#execution.graphqlsource.schema-resources[load schema files] from a configurable location,
+The xref:boot-starter.adoc[Boot Starter] creates an instance of this builder and further initializes it
+to xref:request-execution.adoc#execution.graphqlsource.schema-resources[load schema files] from a configurable location,
 to {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[expose properties]
 to apply to `GraphQlSource.Builder`, to detect
-xref:includes/request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`] beans,
+xref:request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`] beans,
 https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
 {spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics],
 and `DataFetcherExceptionResolver` and `SubscriptionExceptionResolver`  beans for
-xref:includes/request-execution.adoc#execution.exceptions[exception resolution]. For further customizations, you can also
+xref:request-execution.adoc#execution.exceptions[exception resolution]. For further customizations, you can also
 declare a `GraphQlSourceBuilderCustomizer` bean, for example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -80,7 +80,7 @@ builder.schemaResources(..)
 		})
 ----
 
-The xref:includes/request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
+The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
 
 For an example with Apollo Federation, see
 https://github.com/apollographql/federation-jvm-spring-example[federation-jvm-spring-example].
@@ -92,11 +92,11 @@ https://github.com/apollographql/federation-jvm-spring-example[federation-jvm-sp
 You can use `RuntimeWiringConfigurer` to register:
 
 - Custom scalar types.
-- xref:includes/request-execution.adoc#execution.graphqlsource.directives[Directives] handling code.
-- Default xref:includes/request-execution.adoc#execution.graphqlsource.default-type-resolver[`TypeResolver`] for interface and union types.
-- `DataFetcher` for a field although applications will typically use xref:includes/controllers.adoc[Annotated Controllers], and
+- xref:request-execution.adoc#execution.graphqlsource.directives[Directives] handling code.
+- Default xref:request-execution.adoc#execution.graphqlsource.default-type-resolver[`TypeResolver`] for interface and union types.
+- `DataFetcher` for a field although applications will typically use xref:controllers.adoc[Annotated Controllers], and
 those are detected and registered as ``DataFetcher``s by `AnnotatedControllerConfigurer`,
-which is a `RuntimeWiringConfigurer`. The xref:index.adoc#boot-starter[Boot Starter] automatically registers
+which is a `RuntimeWiringConfigurer`. The xref:boot-starter.adoc[Boot Starter] automatically registers
 `AnnotatedControllerConfigurer`.
 
 NOTE: GraphQL Java, server applications use Jackson only for serialization to and from maps of data.
@@ -104,7 +104,7 @@ Client input is parsed into a map. Server output is assembled into a map based o
 This means you can't rely on Jackson serialization/deserialization annotations.
 Instead, you can use https://www.graphql-java.com/documentation/scalars/[custom scalar types].
 
-The xref:index.adoc#boot-starter[Boot Starter] detects beans of type `RuntimeWiringConfigurer` and
+The xref:boot-starter.adoc[Boot Starter] detects beans of type `RuntimeWiringConfigurer` and
 registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
 something like the following in your configuration:
 
@@ -139,7 +139,7 @@ number of factories that are then invoked in sequence.
 
 `GraphQlSource.Builder` registers `ClassNameTypeResolver` as the default `TypeResolver`
 to use for GraphQL Interfaces and Unions that don't already have such a registration
-through a xref:includes/request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`]. The purpose of
+through a xref:request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`]. The purpose of
 a `TypeResolver` in GraphQL Java is to determine the GraphQL Object type for values
 returned from the `DataFetcher` for a GraphQL Interface or Union field.
 
@@ -159,7 +159,7 @@ classNameTypeResolver.setClassNameExtractor((klass) -> {
 builder.defaultTypeResolver(classNameTypeResolver);
 ----
 
-The xref:includes/request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
+The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
 
 
 [[execution.graphqlsource.directives]]
@@ -175,7 +175,7 @@ and handle directives. For more details, see
 GraphQL Java documentation.
 
 In Spring GraphQL you can register a `SchemaDirectiveWiring` through a
-xref:includes/request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`]. The xref:index.adoc#boot-starter[Boot Starter] detects
+xref:request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`]. The xref:boot-starter.adoc[Boot Starter] detects
 such beans, so you might have something like:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -202,7 +202,7 @@ library.
 You can register a `graphql.schema.GraphQLTypeVisitor` via
 `builder.schemaResources(..).typeVisitorsToTransformSchema(..)` if you want to traverse
 and transform the schema after it is created, and make changes to the schema. Keep in mind
-that this is more expensive than xref:includes/request-execution.adoc#execution.graphqlsource.schema-traversal[Schema Traversal] so generally
+that this is more expensive than xref:request-execution.adoc#execution.graphqlsource.schema-traversal[Schema Traversal] so generally
 prefer traversal to transformation unless you need to make schema changes.
 
 
@@ -213,7 +213,7 @@ You can register a `graphql.schema.GraphQLTypeVisitor` via
 `builder.schemaResources(..).typeVisitors(..)` if you want to traverse the schema after
 it is created, and possibly apply changes to the `GraphQLCodeRegistry`. Keep in mind,
 however, that such a visitor cannot change the schema. See
-xref:includes/request-execution.adoc#execution.graphqlsource.schema-transformation[Schema Transformation], if you need to make changes to the schema.
+xref:request-execution.adoc#execution.graphqlsource.schema-transformation[Schema Transformation], if you need to make changes to the schema.
 
 
 [[execution.graphqlsource.schema-mapping-inspection]]
@@ -234,8 +234,8 @@ structure.
 
 Spring for GraphQL defines the `SelfDescribingDataFetcher` interface to allow a
 `DataFetcher` to expose return type information. All Spring `DataFetcher` implementations
-implement this interface. That includes those for xref:includes/controllers.adoc[Annotated Controllers], and those for
-xref:includes/data.adoc#data.querydsl[Querydsl] and xref:includes/data.adoc#data.querybyexample[Query by Example] Spring Data repositories. For annotated
+implement this interface. That includes those for xref:controllers.adoc[Annotated Controllers], and those for
+xref:data.adoc#data.querydsl[Querydsl] and xref:data.adoc#data.querybyexample[Query by Example] Spring Data repositories. For annotated
 controllers, the return type is derived from the declared return type on a
 `@SchemaMapping` method.
 
@@ -315,7 +315,7 @@ builder.schemaResources(..)
 		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
 ----
 
-The xref:includes/request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
+The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
 
 
 
@@ -330,7 +330,7 @@ GraphQL responses.
 
 A reactive `DataFetcher` can rely on access to Reactor context propagated from the
 transport layer, such as from a WebFlux request handling, see
-xref:includes/request-execution.adoc#execution.context.webflux[WebFlux Context].
+xref:request-execution.adoc#execution.context.webflux[WebFlux Context].
 
 
 
@@ -338,7 +338,7 @@ xref:includes/request-execution.adoc#execution.context.webflux[WebFlux Context].
 == Context Propagation
 
 Spring for GraphQL provides support to transparently propagate context from the
-xref:includes/transports.adoc#server.transports.http[HTTP], through GraphQL Java, and to `DataFetcher` and other components it
+xref:transports.adoc#server.transports.http[HTTP], through GraphQL Java, and to `DataFetcher` and other components it
 invokes. This includes both `ThreadLocal` context from the Spring MVC request handling
 thread and Reactor `Context` from the WebFlux processing pipeline.
 
@@ -348,7 +348,7 @@ thread and Reactor `Context` from the WebFlux processing pipeline.
 
 A `DataFetcher` and other components invoked by GraphQL Java may not always execute on
 the same thread as the Spring MVC handler, for example if an asynchronous
-xref:includes/transports.adoc#server.interception[`WebGraphQlInterceptor`] or `DataFetcher` switches to a
+xref:transports.adoc#server.interception[`WebGraphQlInterceptor`] or `DataFetcher` switches to a
 different thread.
 
 Spring for GraphQL supports propagating `ThreadLocal` values from the Servlet container
@@ -392,9 +392,9 @@ automatically through the `java.util.ServiceLoader` mechanism.
 [[execution.context.webflux]]
 === WebFlux
 
-A xref:includes/request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`] can rely on access to Reactor context that
+A xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`] can rely on access to Reactor context that
 originates from the WebFlux request handling chain. This includes Reactor context
-added by xref:includes/transports.adoc#server.interception[WebGraphQlInterceptor] components.
+added by xref:transports.adoc#server.interception[WebGraphQlInterceptor] components.
 
 
 
@@ -407,16 +407,16 @@ single handler only.
 
 Spring for GraphQL registers a `DataFetcherExceptionHandler` that provides default
 handling and enables the `DataFetcherExceptionResolver` contract. An application can
-register any number of resolvers via xref:includes/request-execution.adoc#execution.graphqlsource[`GraphQLSource`] builder and those are in
+register any number of resolvers via xref:request-execution.adoc#execution.graphqlsource[`GraphQLSource`] builder and those are in
 order until one them resolves the `Exception` to a `List<graphql.GraphQLError>`.
 The Spring Boot starter detects beans of this type.
 
 `DataFetcherExceptionResolverAdapter` is a convenient base class with protected methods
 `resolveToSingleError` and `resolveToMultipleErrors`.
 
-The xref:includes/controllers.adoc[Annotated Controllers] programming model enables handling data fetching exceptions with
+The xref:controllers.adoc[Annotated Controllers] programming model enables handling data fetching exceptions with
 annotated exception handler methods with a flexible method signature, see
-xref:includes/controllers.adoc#controllers.exception-handler[`@GraphQlExceptionHandler`] for details.
+xref:controllers.adoc#controllers.exception-handler[`@GraphQlExceptionHandler`] for details.
 
 A `GraphQLError` can be assigned to a category based on the GraphQL Java
 `graphql.ErrorClassification`, or the Spring GraphQL `ErrorType`, which defines the following:
@@ -448,7 +448,7 @@ having a field path.
 `DataFetcherExceptionResolver` cannot handle such global errors because they are raised
 before execution begins and before any `DataFetcher` is invoked. An application can use
 transport level interceptors to inspect and transform errors in the `ExecutionResult`.
-See examples under xref:includes/transports.adoc#server.interception.web[`WebGraphQlInterceptor`].
+See examples under xref:transports.adoc#server.interception.web[`WebGraphQlInterceptor`].
 
 
 [[execution.exceptions.subscription]]
@@ -537,13 +537,13 @@ and the following type definitions will be transparently added to the schema:
 	}
 ----
 
-The xref:index.adoc#boot-starter[Boot Starter] registers `ConnectionTypeDefinitionConfigurer` by default.
+The xref:boot-starter.adoc[Boot Starter] registers `ConnectionTypeDefinitionConfigurer` by default.
 
 
 [[execution.pagination.adapters]]
 === `ConnectionAdapter`
 
-Once xref:includes/request-execution.adoc#execution.pagination.types[Connection Types] are available in the schema, you also need
+Once xref:request-execution.adoc#execution.pagination.types[Connection Types] are available in the schema, you also need
 equivalent Java types. GraphQL Java provides those, including generic `Connection` and
 `Edge`, as well as a `PageInfo`.
 
@@ -571,11 +571,11 @@ GraphQlSource.schemaResourceBuilder()
 <1> Create type visitor with one or more ``ConnectionAdapter``s.
 <2> Resister the type visitor.
 
-There are xref:includes/data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s for Spring Data's
+There are xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s for Spring Data's
 `Window` and `Slice`. You can also create your own custom adapter. `ConnectionAdapter`
-implementations rely on a xref:includes/request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] to
+implementations rely on a xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] to
 create cursors for returned items. The same strategy is also used to support the
-xref:includes/controllers.adoc#controllers.schema-mapping.subrange[`Subrange`] controller method argument that contains
+xref:controllers.adoc#controllers.schema-mapping.subrange[`Subrange`] controller method argument that contains
 pagination input.
 
 
@@ -586,16 +586,16 @@ pagination input.
 position of an item within a large result set. The cursor can be based on an index or
 on a keyset.
 
-A xref:includes/request-execution.adoc#execution.pagination.adapters[`ConnectionAdapter`] uses this to encode cursors for returned items.
-xref:includes/controllers.adoc[Annotated Controllers] methods, xref:includes/data.adoc#data.querydsl[Querydsl] repositories, and xref:includes/data.adoc#data.querybyexample[Query by Example]
+A xref:request-execution.adoc#execution.pagination.adapters[`ConnectionAdapter`] uses this to encode cursors for returned items.
+xref:controllers.adoc[Annotated Controllers] methods, xref:data.adoc#data.querydsl[Querydsl] repositories, and xref:data.adoc#data.querybyexample[Query by Example]
 repositories use it to decode cursors from pagination requests, and create a `Subrange`.
 
 `CursorEncoder` is a related contract that further encodes and decodes String cursors to
 make them opaque to clients. `EncodingCursorStrategy` combines `CursorStrategy` with a
 `CursorEncoder`. You can use `Base64CursorEncoder`, `NoOpEncoder` or create your own.
 
-There is a xref:includes/data.adoc#data.pagination.scroll[built-in] `CursorStrategy` for the Spring Data
-`ScrollPosition`. The xref:index.adoc#boot-starter[Boot Starter] registers a `CursorStrategy<ScrollPosition>` with
+There is a xref:data.adoc#data.pagination.scroll[built-in] `CursorStrategy` for the Spring Data
+`ScrollPosition`. The xref:boot-starter.adoc[Boot Starter] registers a `CursorStrategy<ScrollPosition>` with
 `Base64Encoder` when Spring Data is present.
 
 
@@ -606,7 +606,7 @@ There is no standard way to provide sort information in a GraphQL request. Howev
 pagination depends on a stable sort order. You can use a default order, or otherwise
 expose input types and extract sort details from GraphQL arguments.
 
-There is xref:includes/data.adoc#data.pagination.sort[built-in] support for Spring Data's `Sort` as a controller
+There is xref:data.adoc#data.pagination.sort[built-in] support for Spring Data's `Sort` as a controller
 method argument. For this to work, you need to have a `SortStrategy` bean.
 
 
@@ -663,14 +663,14 @@ public class MyConfig {
 }
 ----
 
-The xref:index.adoc#boot-starter[Boot Starter] declares a `BatchLoaderRegistry` bean that you can inject into
+The xref:boot-starter.adoc[Boot Starter] declares a `BatchLoaderRegistry` bean that you can inject into
 your configuration, as shown above, or into any component such as a controller in order
 register batch loading functions. In turn the `BatchLoaderRegistry` is injected into
 `DefaultExecutionGraphQlService` where it ensures `DataLoader` registrations per request.
 
 By default, the `DataLoader` name is based on the class name of the target entity.
 This allows an `@SchemaMapping` method to declare a
-xref:includes/controllers.adoc#controllers.schema-mapping.data-loader[DataLoader argument] with a generic type, and
+xref:controllers.adoc#controllers.schema-mapping.data-loader[DataLoader argument] with a generic type, and
 without the need for specifying a name. The name, however, can be customized through the
 `BatchLoaderRegistry` builder, if necessary, along with other `DataLoaderOptions`.
 
@@ -679,12 +679,12 @@ registration, you can override Boot's `BatchLoaderRegistry` bean and use the con
 for `DefaultBatchLoaderRegistry` that accepts `Supplier<DataLoaderOptions>`.
 
 For many cases, when loading related entities, you can use
-xref:includes/controllers.adoc#controllers.batch-mapping[@BatchMapping] controller methods, which are a shortcut
+xref:controllers.adoc#controllers.batch-mapping[@BatchMapping] controller methods, which are a shortcut
 for and replace the need to use `BatchLoaderRegistry` and `DataLoader` directly.
 
 `BatchLoaderRegistry` provides other important benefits too. It supports access to
 the same `GraphQLContext` from batch loading functions and from `@BatchMapping` methods,
-as well as ensures xref:includes/request-execution.adoc#execution.context[Context Propagation] to them. This is why applications are expected
+as well as ensures xref:request-execution.adoc#execution.context[Context Propagation] to them. This is why applications are expected
 to use it. It is possible to perform your own `DataLoader` registrations directly but
 such registrations would forgo the above benefits.
 
