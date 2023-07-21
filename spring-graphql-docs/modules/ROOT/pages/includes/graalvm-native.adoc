@@ -37,7 +37,7 @@ This is all done automatically for you if you are building a Spring Boot applica
 If your application is "manually" registering data fetchers, some types are not discoverable as a result.
 You should then register them with Spring Framework's `@RegisterReflectionForBinding`:
 
-include::code:GraphQlConfiguration[]
+include-code:GraphQlConfiguration[]
 <1> This application declares a `RuntimeWiringConfigurer` that "manually" adds a `DataFetcher`
 <2> Through this `DataFetcher`, the `BookRepository` will expose a `Book` type
 <3> `@RegisterReflectionForBinding` will register the relevant hints for the `Book` type and all types exposed as fields
@@ -50,7 +50,7 @@ The `AotProcessor` strategy described in the section above cannot be used as a r
 For client support, Spring for GraphQL embeds the {github-main-branch}/spring-graphql/src/main/resources/META-INF/native-image/org.springframework.graphql/spring-graphql[relevant reachability metadata for the client infrastructure].
 When it comes to Java types used by the application, applications should use a similar strategy as "manual" data fetchers using `@RegisterReflectionForBinding`:
 
-include::code:ProjectService[]
+include-code:ProjectService[]
 <1> In a Native image, we need to ensure that reflection can be performed on `Project` at runtime
 <2> `@RegisterReflectionForBinding` will register the relevant hints for the `Project` type and all types exposed as fields
 
