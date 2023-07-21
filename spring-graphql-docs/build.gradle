@@ -76,25 +76,8 @@ task api(type: Javadoc) {
 	destinationDir = file("$buildDir/docs/javadoc")
 }
 
-//antora {
-//	playbook = 'cached-antora-playbook.yml'
-//	playbookProvider {
-//		repository = 'spring-projects/spring-security'
-//		branch = 'docs-build'
-//		path = 'lib/antora/templates/per-branch-antora-playbook.yml'
-//		checkLocalBranch = true
-//	}
-//	options = [clean: true, fetch: !project.gradle.startParameter.offline, stacktrace: true]
-//}
-
-
 antora {
-	playbookProvider {
-		repository = 'spring-projects/spring-security'
-		branch = 'docs-build'
-		path = 'lib/antora/templates/per-branch-antora-playbook.yml'
-		checkLocalBranch = true
-	}
+	version = '3.2.0-alpha.2'
 	options = [clean: true, fetch: !project.gradle.startParameter.offline, stacktrace: true]
 		environment = [
 			'ALGOLIA_API_KEY': '9d489079e5ec46dbb238909fee5c9c29',
