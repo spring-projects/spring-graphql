@@ -42,17 +42,17 @@ specific is configured at build time.
 To create a `GraphQlTester` that performs requests through a client, you need one of the
 following extensions:
 
-- <<testing.httpgraphqltester, HttpGraphQlTester>>
-- <<testing.websocketgraphqltester, WebSocketGraphQlTester>>
-- <<testing.rsocketgraphqltester, RSocketGraphQlTester>>
+- xref:includes/testing.adoc#testing.httpgraphqltester[HttpGraphQlTester]
+- xref:includes/testing.adoc#testing.websocketgraphqltester[WebSocketGraphQlTester]
+- xref:includes/testing.adoc#testing.rsocketgraphqltester[RSocketGraphQlTester]
 
 To create a `GraphQlTester` that performs tests on the server side, without a client:
 
-- <<testing.graphqlservicetester, ExecutionGraphQlServiceTester>>
-- <<testing.webgraphqltester, WebGraphQlServiceTester>>
+- xref:includes/testing.adoc#testing.graphqlservicetester[ExecutionGraphQlServiceTester]
+- xref:includes/testing.adoc#testing.webgraphqltester[WebGraphQlServiceTester]
 
 Each defines a `Builder` with options relevant to the transport. All builders extend
-from a common, base GraphQlTester <<testing.graphqltester.builder, `Builder`>> with
+from a common, base GraphQlTester xref:includes/testing.adoc#testing.graphqltester.builder[`Builder`] with
 options relevant to all extensions.
 
 
@@ -109,7 +109,7 @@ Or to test against a live server running on a port:
 ----
 
 Once `HttpGraphQlTester` is created, you can begin to
-<<testing.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpSocketGraphQlTester` to create a new instance with customized settings:
 
@@ -152,7 +152,7 @@ its own single, shared connection for all requests. Typically, you'll want to us
 instance only per server.
 
 Once `WebSocketGraphQlTester` is created, you can begin to
-<<testing.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `WebSocketGraphQlTester` to create a new instance with customized settings:
 
@@ -202,7 +202,7 @@ instance only per server. You can use the `stop()` method on the tester to close
 session explicitly.
 
 Once `RSocketGraphQlTester` is created, you can begin to
-<<testing.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
 transport.
 
 
@@ -220,7 +220,7 @@ client to send requests over a transport protocol. To test directly against a
 ----
 
 Once `ExecutionGraphQlServiceTester` is created, you can begin to
-<<testing.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
 transport.
 
 `ExecutionGraphQlServiceTester.Builder` provides an option to customize `ExecutionInput` details:
@@ -238,7 +238,7 @@ transport.
 [[testing.webgraphqltester]]
 === `WebGraphQlHandler`
 
-The <<testing.graphqlservicetester>> extension lets you test on the server side, without
+The xref:includes/testing.adoc#testing.graphqlservicetester[`GraphQlService`] extension lets you test on the server side, without
 a client. However, in some cases it's useful to involve server side transport
 handling with given mock transport input.
 
@@ -264,7 +264,7 @@ The builder for this extension allows you to define HTTP request details:
 ----
 
 Once `WebGraphQlServiceTester` is created, you can begin to
-<<testing.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
 transport.
 
 
@@ -355,7 +355,7 @@ instead of `execute` to verify there are no errors in the response:
 	graphQlTester.query(query).executeAndVerify();
 ----
 
-See <<testing.errors>> for more details on error handling.
+See xref:includes/testing.adoc#testing.errors[Errors] for more details on error handling.
 
 
 
@@ -399,9 +399,9 @@ of responses and then use `StepVerifier` from Project Reactor to inspect the str
 			.verifyComplete();
 ----
 
-Subscriptions are supported only with <<testing.websocketgraphqltester,
-WebSocketGraphQlTester>>, or with the server side
-<<testing.graphqlservicetester>> and <<testing.webgraphqltester>> extensions.
+Subscriptions are supported only with xref:includes/testing.adoc#testing.websocketgraphqltester[WebSocketGraphQlTester]
+, or with the server side
+xref:includes/testing.adoc#testing.graphqlservicetester[`GraphQlService`] and xref:includes/testing.adoc#testing.webgraphqltester[`WebGraphQlHandler`] extensions.
 
 
 
