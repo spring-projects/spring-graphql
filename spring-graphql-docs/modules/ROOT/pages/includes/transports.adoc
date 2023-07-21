@@ -105,7 +105,7 @@ handled as `request-stream`.
 `GraphQlRSocketHandler` can be used a delegate from an `@Controller` that is mapped to
 the route for GraphQL requests. For example:
 
-include::code:GraphQlRSocketController[]
+include-code:GraphQlRSocketController[]
 
 
 
@@ -132,13 +132,13 @@ incoming requests and do one of the following:
 
 For example, an interceptor can pass an HTTP request header to a `DataFetcher`:
 
-include::code:RequestHeaderInterceptor[]
+include-code:RequestHeaderInterceptor[]
 <1> Interceptor adds HTTP request header value into GraphQLContext
 <2> Data controller method accesses the value
 
 Reversely, an interceptor can access values added to the `GraphQLContext` by a controller:
 
-include::code:ResponseHeaderInterceptor[]
+include-code:ResponseHeaderInterceptor[]
 <1> Controller adds value to the `GraphQLContext`
 <2> Interceptor uses the value to add an HTTP response header
 
@@ -146,7 +146,7 @@ include::code:ResponseHeaderInterceptor[]
 request validation errors that are raised before execution begins and which cannot be
 handled with a `DataFetcherExceptionResolver`:
 
-include::code:RequestErrorInterceptor[]
+include-code:RequestErrorInterceptor[]
 <1> Return the same if `ExecutionResult` has a "data" key with non-null value
 <2> Check and transform the GraphQL errors
 <3> Update the `ExecutionResult` with the modified errors

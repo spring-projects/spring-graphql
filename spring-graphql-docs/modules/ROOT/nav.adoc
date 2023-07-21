@@ -1,5 +1,4 @@
 * xref:index.adoc[]
-* xref:attributes.adoc[]
 ** xref:includes/transports.adoc[]
 ** xref:includes/request-execution.adoc[]
 ** xref:includes/data.adoc[]
