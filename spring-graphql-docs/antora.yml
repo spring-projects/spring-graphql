@@ -16,7 +16,7 @@ asciidoc:
     attribute-missing: 'warn'
     chomp: 'all'
     docs-site: https://docs.spring.io
-    import-java: 'example$docs-src/main/java/org/springframework/graphql/docs'
+    include-java: 'example$docs-src/main/java/org/springframework/graphql/docs'
     github-tag: main
     github-repo: spring-projects/spring-graphql
     github-raw: https://raw.githubusercontent.com/{github-repo}/{github-tag}

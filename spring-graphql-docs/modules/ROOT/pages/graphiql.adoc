@@ -29,7 +29,7 @@ Alternatively, you can integrate the JavaScript build in your project as a separ
 
 Once a GraphiQL build is available on the classpath, you can expose it as an endpoint with the {spring-framework-ref-docs}/web/webmvc-functional.html#webmvc-fn-router-functions[functional web frameworks].
 
-include-code:GraphiQlConfiguration[]
+include-code::GraphiQlConfiguration[]
 <1> Load the GraphiQL page from the classpath (here, we are using the version shipped with Spring for GraphQL)
 <2> Configure a web handler for processing HTTP requests; you can implement a custom `HandlerFunction` depending on your use case
 <3> Finally, map the handler to a specific HTTP endpoint
