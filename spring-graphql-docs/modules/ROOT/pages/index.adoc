@@ -20,7 +20,7 @@ to report a problem, discuss a design issue, or to request a feature.
 Check the https://github.com/spring-projects/spring-graphql/wiki[Wiki].
 for what's new, baseline requirements, and upgrade notes, and other cross-version information.
 
-To get started, see the <<boot-starter>> and <<samples>> sections.
+To get started, see the xref:index.adoc#boot-starter[Boot Starter] and xref:index.adoc#samples[Samples] sections.
 
 
 
@@ -39,14 +39,14 @@ To get started, see the <<boot-starter>> and <<samples>> sections.
 [[security]]
 == Security
 
-The path to a <<server.transports.http, Web>> GraphQL endpoint can be secured with HTTP
+The path to a xref:includes/transports.adoc#server.transports.http[Web] GraphQL endpoint can be secured with HTTP
 URL security to ensure that only authenticated users can access it. This does not,
 however, differentiate among different GraphQL requests on such a shared endpoint on
 a single URL.
 
 To apply more fine-grained security, add Spring Security annotations such as
 `@PreAuthorize` or `@Secured` to service methods involved in fetching specific parts of
-the GraphQL response. This should work due to <<execution.context>> that aims to make
+the GraphQL response. This should work due to xref:includes/request-execution.adoc#execution.context[Context Propagation] that aims to make
 Security, and other context, available at the data fetching level.
 
 The 1.0.x branch of this repository contains samples for

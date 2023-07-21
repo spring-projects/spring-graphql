@@ -16,15 +16,15 @@ build time.
 
 To create a `GraphQlClient` you need one of the following extensions:
 
-- <<client.httpgraphqlclient, HttpGraphQlClient>>
-- <<client.websocketgraphqlclient, WebSocketGraphQlClient>>
-- <<client.rsocketgraphqlclient, RSocketGraphQlClient>>
+- xref:includes/client.adoc#client.httpgraphqlclient[HttpGraphQlClient]
+- xref:includes/client.adoc#client.websocketgraphqlclient[WebSocketGraphQlClient]
+- xref:includes/client.adoc#client.rsocketgraphqlclient[RSocketGraphQlClient]
 
 Each defines a `Builder` with options relevant to the transport. All builders extend
-from a common, base GraphQlClient <<client.graphqlclient.builder, `Builder`>> with options
+from a common, base GraphQlClient xref:includes/client.adoc#client.graphqlclient.builder[`Builder`] with options
 relevant to all extensions.
 
-Once you have a `GraphQlClient` you can begin to make <<client.requests, requests>>.
+Once you have a `GraphQlClient` you can begin to make xref:includes/client.adoc#client.requests[requests].
 
 
 [[client.httpgraphqlclient]]
@@ -41,7 +41,7 @@ HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
 ----
 
 Once `HttpGraphQlClient` is created, you can begin to
-<<client.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/client.adoc#client.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpGraphQlClient` to create a new instance with customized settings:
 
@@ -97,7 +97,7 @@ single, shared connection for all requests to that server. Each client instance
 establishes its own connection and that is typically not the intent for a single server.
 
 Once `WebSocketGraphQlClient` is created, you can begin to
-<<client.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/client.adoc#client.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `WebSocketGraphQlClient` to create a new instance with customized settings:
 
@@ -149,7 +149,7 @@ For WebSocket transport specific interception, you can create a
 	}
 ----
 
-<<client.interception,Register>> the above interceptor as any other
+xref:includes/client.adoc#client.interception[Register] the above interceptor as any other
 `GraphQlClientInterceptor` and use it also to intercept GraphQL requests, but note there
 can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
 
@@ -187,7 +187,7 @@ single, shared session for all requests to that server. Each client instance
 establishes its own connection and that is typically not the intent for a single server.
 
 Once `RSocketGraphQlClient` is created, you can begin to
-<<client.requests, execute requests>> using the same API, independent of the underlying
+xref:includes/client.adoc#client.requests[execute requests] using the same API, independent of the underlying
 transport.
 
 
@@ -199,7 +199,7 @@ transport.
 builders of all extensions. Currently, it has lets you configure:
 
 - `DocumentSource` strategy to load the document for a request from a file
-- <<client.interception>> of executed requests
+- xref:includes/client.adoc#client.interception[Interception] of executed requests
 
 
 
@@ -207,8 +207,8 @@ builders of all extensions. Currently, it has lets you configure:
 [[client.requests]]
 == Requests
 
-Once you have a <<client.graphqlclient>>, you can begin to perform requests via
-<<client.requests.retrieve, retrieve()>> or <<client.requests.execute, execute()>>
+Once you have a xref:includes/client.adoc#client.graphqlclient[`GraphQlClient`], you can begin to perform requests via
+xref:includes/client.adoc#client.requests.retrieve[retrieve()] or xref:includes/client.adoc#client.requests.execute[execute()]
 where the former is only a shortcut for the latter.
 
 
@@ -239,7 +239,7 @@ The below retrieves and decodes the data for a query:
 
 The input document is a `String` that could be a literal or produced through a code
 generated request object. You can also define documents in files and use a
-<<client.requests.document-source>> to resole them by file name.
+xref:includes/client.adoc#client.requests.document-source[Document Source] to resole them by file name.
 
 The path is relative to the "data" key and uses a simple dot (".") separated notation
 for nested fields with optional array indices for list elements, e.g. `"project.name"`
@@ -267,7 +267,7 @@ response and the field:
 [[client.requests.execute]]
 === Execute
 
-<<client.requests.retrieve>> is only a shortcut to decode from a single path in the
+xref:includes/client.adoc#client.requests.retrieve[Retrieve] is only a shortcut to decode from a single path in the
 response map. For more control, use the `execute` method and handle the response:
 
 For example:
@@ -341,7 +341,7 @@ You can then:
 
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
 
-You can use the `GraphQlClient` <<client.graphqlclient.builder>> to customize the
+You can use the `GraphQlClient` xref:includes/client.adoc#client.graphqlclient.builder[Builder] to customize the
 `DocumentSource` for loading documents by names.
 
 
@@ -352,8 +352,8 @@ You can use the `GraphQlClient` <<client.graphqlclient.builder>> to customize th
 
 `GraphQlClient` can execute subscriptions over transports that support it. Only
 the WebSocket and RSocket transports support GraphQL subscriptions, so you'll need to
-create a <<client.websocketgraphqlclient,WebSocketGraphQlClient>> or
-<<client.rsocketgraphqlclient,RSocketGraphQlClient>>.
+create a xref:includes/client.adoc#client.websocketgraphqlclient[WebSocketGraphQlClient] or
+xref:includes/client.adoc#client.rsocketgraphqlclient[RSocketGraphQlClient].
 
 
 
@@ -361,7 +361,7 @@ create a <<client.websocketgraphqlclient,WebSocketGraphQlClient>> or
 === Retrieve
 
 To start a subscription stream, use `retrieveSubscription` which is similar to
-<<client.requests.retrieve,retrieve>> for a single response but returning a stream of
+xref:includes/client.adoc#client.requests.retrieve[retrieve] for a single response but returning a stream of
 responses, each decoded to some data:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -390,7 +390,7 @@ provides access to the `Subscription`.
 [[client.subscriptions.execute]]
 === Execute
 
-<<client.subscriptions.retrieve>> is only a shortcut to decode from a single path in each
+xref:includes/client.adoc#client.subscriptions.retrieve[Retrieve] is only a shortcut to decode from a single path in each
 response map. For more control, use the `executeSubscription` method and handle each
 response directly:
 
