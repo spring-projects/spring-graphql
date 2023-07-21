@@ -1,3 +1,4 @@
+[[spring-for-graphql-documentation]]
 = Spring for GraphQL Documentation
 Brian Clozel; Andreas Marek; Rossen Stoyanchev; Mark Paluch
 include::attributes.adoc[]
