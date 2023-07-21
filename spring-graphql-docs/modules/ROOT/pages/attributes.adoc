@@ -2,8 +2,6 @@
 :docs-site:                     https://docs.spring.io
 :idprefix:
 :idseparator: 					-
-:toc:							left
-:toclevels:						4
 :tabsize:						4
 :numbered:
 :sectanchors:
