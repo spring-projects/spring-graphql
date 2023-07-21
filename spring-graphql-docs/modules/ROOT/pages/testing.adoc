@@ -6,16 +6,21 @@ WebSocket, and RSocket, as well as for testing directly against a server.
 
 To make use of this, add `spring-graphql-test` to your build:
 
+[tabs]
+======
+Gradle::
++
 [source,groovy,indent=0,subs="verbatim,quotes,attributes",role="primary"]
-.Gradle
 ----
 dependencies {
 	// ...
 	testImplementation 'org.springframework.graphql:spring-graphql-test:{spring-graphql-version}'
 }
 ----
+
+Maven::
++
 [source,xml,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
-.Maven
 ----
 <dependencies>
 	<!-- ... -->
@@ -27,6 +32,7 @@ dependencies {
 	</dependency>
 </dependencies>
 ----
+======
 
 
 
