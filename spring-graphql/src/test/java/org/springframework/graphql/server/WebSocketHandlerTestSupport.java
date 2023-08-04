@@ -73,7 +73,7 @@ public abstract class WebSocketHandlerTestSupport {
 				.subscriptionFetcher("bookSearch", environment -> {
 					String author = environment.getArgument("author");
 					return Flux.fromIterable(BookSource.books())
-							.filter((book) -> book.getAuthor().getFullName().contains(author));
+							.filter(book -> book.getAuthor().getFullName().contains(author));
 				})
 				.interceptor(interceptors)
 				.toWebGraphQlHandler();

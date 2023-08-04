@@ -80,8 +80,8 @@ public class DataLoaderMethodArgumentResolver implements HandlerMethodArgumentRe
 			ParameterizedType parameterizedType = (ParameterizedType) genericType;
 			if (parameterizedType.getActualTypeArguments().length == 2) {
 				Type valueType = parameterizedType.getActualTypeArguments()[1];
-				return (valueType instanceof Class ?
-						(Class<?>) valueType : ResolvableType.forType(valueType).resolve());
+				return valueType instanceof Class ?
+						(Class<?>) valueType : ResolvableType.forType(valueType).resolve();
 			}
 		}
 		return null;

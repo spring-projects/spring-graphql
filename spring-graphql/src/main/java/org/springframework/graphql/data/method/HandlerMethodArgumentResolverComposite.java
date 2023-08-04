@@ -62,7 +62,7 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	 */
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return (getArgumentResolver(parameter) != null);
+		return getArgumentResolver(parameter) != null;
 	}
 
 	/**

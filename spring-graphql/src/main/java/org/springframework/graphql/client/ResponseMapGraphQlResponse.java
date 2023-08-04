@@ -60,14 +60,14 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 	@SuppressWarnings("unchecked")
 	private static List<ResponseError> wrapErrors(Map<String, Object> map) {
 		List<Map<String, Object>> errors = (List<Map<String, Object>>) map.get("errors");
-		errors = (errors != null ? errors : Collections.emptyList());
+		errors = errors != null ? errors : Collections.emptyList();
 		return errors.stream().map(MapResponseError::new).collect(Collectors.toList());
 	}
 
 
 	@Override
 	public boolean isValid() {
-		return (this.responseMap.containsKey("data") && this.responseMap.get("data") != null);
+		return this.responseMap.containsKey("data") && this.responseMap.get("data") != null;
 	}
 
 	@Override
@@ -94,8 +94,8 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
 	@Override
 	public boolean equals(Object other) {
-		return (other instanceof ResponseMapGraphQlResponse &&
-				this.responseMap.equals(((ResponseMapGraphQlResponse) other).responseMap));
+		return other instanceof ResponseMapGraphQlResponse &&
+				this.responseMap.equals(((ResponseMapGraphQlResponse) other).responseMap);
 	}
 
 	@Override
@@ -193,10 +193,10 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 				return false;
 			}
 			ResponseError other = (ResponseError) o;
-			return (ObjectUtils.nullSafeEquals(getMessage(), other.getMessage()) &&
+			return ObjectUtils.nullSafeEquals(getMessage(), other.getMessage()) &&
 					ObjectUtils.nullSafeEquals(getLocations(), other.getLocations()) &&
 					ObjectUtils.nullSafeEquals(getParsedPath(), other.getParsedPath()) &&
-					getErrorType() == other.getErrorType());
+					getErrorType() == other.getErrorType();
 		}
 
 		@Override

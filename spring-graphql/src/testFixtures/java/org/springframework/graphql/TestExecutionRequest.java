@@ -27,7 +27,7 @@ import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
  *
  * @author Rossen Stoyanchev
  */
-public class TestExecutionRequest extends DefaultExecutionGraphQlRequest {
+public final class TestExecutionRequest extends DefaultExecutionGraphQlRequest {
 
 	private static final AtomicLong idIndex = new AtomicLong();
 

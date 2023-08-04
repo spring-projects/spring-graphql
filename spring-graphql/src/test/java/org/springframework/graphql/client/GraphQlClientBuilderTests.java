@@ -49,7 +49,7 @@ public class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
 	@Test
 	void mutateDocumentSource() {
 
-		DocumentSource documentSource = name -> name.equals("name") ?
+		DocumentSource documentSource = name -> "name".equals(name) ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
 		getGraphQlService().setDataAsJson(DOCUMENT, "{}");

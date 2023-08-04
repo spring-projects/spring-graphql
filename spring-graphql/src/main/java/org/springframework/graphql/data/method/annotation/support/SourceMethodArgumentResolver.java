@@ -47,12 +47,12 @@ public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolv
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (!isExcludedSimpleValueType(type) && !type.isArray() && !Collection.class.isAssignableFrom(type));
+		return !isExcludedSimpleValueType(type) && !type.isArray() && !Collection.class.isAssignableFrom(type);
 	}
 
 	private static boolean isExcludedSimpleValueType(Class<?> type) {
 		// Same as BeanUtils.isSimpleValueType except for CharSequence and Number
-		return (Void.class != type && void.class != type &&
+		return Void.class != type && void.class != type &&
 				(ClassUtils.isPrimitiveOrWrapper(type) ||
 						Enum.class.isAssignableFrom(type) ||
 						Date.class.isAssignableFrom(type) ||
@@ -60,7 +60,7 @@ public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolv
 						URI.class == type ||
 						URL.class == type ||
 						Locale.class == type ||
-						Class.class == type));
+						Class.class == type);
 	}
 
 	@Override

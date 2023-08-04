@@ -70,8 +70,8 @@ public class CompositeSubscriptionExceptionResolverTests {
 				.block(TIMEOUT);
 
 		StepVerifier.create(flux)
-				.consumeNextWith((helper) -> assertThat(helper.toEntity("greetings", String.class)).isEqualTo("a"))
-				.consumeErrorWith((ex) -> {
+				.consumeNextWith(helper -> assertThat(helper.toEntity("greetings", String.class)).isEqualTo("a"))
+				.consumeErrorWith(ex -> {
 					SubscriptionPublisherException theEx = (SubscriptionPublisherException) ex;
 					List<GraphQLError> errors = theEx.getErrors();
 					assertThat(errors).hasSize(1);
@@ -117,8 +117,8 @@ public class CompositeSubscriptionExceptionResolverTests {
 					.subscribeOn(Schedulers.boundedElastic()); // restore on different thread for SubscriptionExceptionResolver
 
 			StepVerifier.create(flux)
-					.consumeNextWith((helper) -> assertThat(helper.toEntity("greetings", String.class)).isEqualTo("a"))
-					.consumeErrorWith((ex) -> {
+					.consumeNextWith(helper -> assertThat(helper.toEntity("greetings", String.class)).isEqualTo("a"))
+					.consumeErrorWith(ex -> {
 						SubscriptionPublisherException theEx = (SubscriptionPublisherException) ex;
 						List<GraphQLError> errors = theEx.getErrors();
 						assertThat(errors).hasSize(1);

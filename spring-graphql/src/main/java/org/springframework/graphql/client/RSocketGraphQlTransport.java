@@ -50,7 +50,7 @@ import org.springframework.util.Assert;
 final class RSocketGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<>() {};
 
 	private static final ResolvableType LIST_TYPE = ResolvableType.forClass(List.class);
 

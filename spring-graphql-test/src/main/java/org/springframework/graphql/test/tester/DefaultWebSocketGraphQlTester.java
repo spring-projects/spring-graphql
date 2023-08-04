@@ -120,7 +120,7 @@ final class DefaultWebSocketGraphQlTesterBuilder
 	/**
 	 * Default {@link WebSocketGraphQlTester} implementation.
 	 */
-	private static class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTester implements WebSocketGraphQlTester {
+	private static final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTester implements WebSocketGraphQlTester {
 
 		private final WebSocketGraphQlClient client;
 

@@ -131,7 +131,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					if (connectionInitPayload == null) {
 						return;
 					}
-					int statusCode = (closeStatus != null ? closeStatus.getCode() : 1005);
+					int statusCode = closeStatus != null ? closeStatus.getCode() : 1005;
 					this.webSocketInterceptor.handleConnectionClosed(sessionInfo, statusCode, connectionInitPayload);
 				})
 				.subscribe();
@@ -205,7 +205,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 			// Subscription
 			responseFlux = Flux.from((Publisher<ExecutionResult>) response.getData())
 					.map(ExecutionResult::toSpecification)
-					.doOnSubscribe((subscription) -> {
+					.doOnSubscribe(subscription -> {
 							Subscription previous = subscriptions.putIfAbsent(id, subscription);
 							if (previous != null) {
 								throw new SubscriptionExistsException();
@@ -247,7 +247,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	}
 
 
-	private static class WebFluxSessionInfo implements WebSocketSessionInfo {
+	private static final class WebFluxSessionInfo implements WebSocketSessionInfo {
 
 		private final WebSocketSession session;
 

@@ -53,7 +53,7 @@ import org.springframework.web.reactive.socket.adapter.AbstractWebSocketSession;
  */
 public final class TestWebSocketConnection {
 
-	private static Log logger = LogFactory.getLog(TestWebSocketConnection.class);
+	private static final Log logger = LogFactory.getLog(TestWebSocketConnection.class);
 
 	private static final AtomicLong connectionIndex = new AtomicLong();
 
@@ -100,7 +100,7 @@ public final class TestWebSocketConnection {
 	 * Return {@code true} if both client and server sessions are open.
 	 */
 	public boolean isOpen() {
-		return (this.clientSession.isOpen() && this.serverSession.isOpen());
+		return this.clientSession.isOpen() && this.serverSession.isOpen();
 	}
 
 	/**
@@ -267,7 +267,7 @@ public final class TestWebSocketConnection {
 			}
 			else {
 				this.closeStatusSink.tryEmitEmpty();
-			};
+			}
 		}
 
 		@Override

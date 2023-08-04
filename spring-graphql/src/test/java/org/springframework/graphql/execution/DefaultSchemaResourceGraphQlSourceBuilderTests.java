@@ -91,7 +91,7 @@ public class DefaultSchemaResourceGraphQlSourceBuilderTests {
 			public TraversalControl visitGraphQLObjectType(
 					GraphQLObjectType node, TraverserContext<GraphQLSchemaElement> context) {
 
-				if (node.getName().equals("Person")) {
+				if ("Person".equals(node.getName())) {
 					node = node.transform(builder -> builder.field(
 							GraphQLFieldDefinition.newFieldDefinition()
 									.name("lastName")
@@ -198,8 +198,8 @@ public class DefaultSchemaResourceGraphQlSourceBuilderTests {
 
 		@Override
 		public boolean providesDataFetcher(FieldWiringEnvironment environment) {
-			return (environment.getParentType().getName().equals("Query") &&
-					environment.getFieldDefinition().getName().equals(this.queryName));
+			return "Query".equals(environment.getParentType().getName()) &&
+					environment.getFieldDefinition().getName().equals(this.queryName);
 		}
 
 		@Override

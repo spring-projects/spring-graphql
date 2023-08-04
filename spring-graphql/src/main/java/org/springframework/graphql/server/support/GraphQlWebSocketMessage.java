@@ -122,7 +122,7 @@ public class GraphQlWebSocketMessage {
 
 	@Override
 	public int hashCode() {
-		int hashCode = (this.type != null ? this.type.hashCode() : 0);
+		int hashCode = this.type != null ? this.type.hashCode() : 0;
 		hashCode = 31 * hashCode + ObjectUtils.nullSafeHashCode(this.id);
 		hashCode = 31 * hashCode + ObjectUtils.nullSafeHashCode(this.payload);
 		return hashCode;
@@ -134,9 +134,9 @@ public class GraphQlWebSocketMessage {
 			return false;
 		}
 		GraphQlWebSocketMessage other = (GraphQlWebSocketMessage) o;
-		return (ObjectUtils.nullSafeEquals(this.type, other.type) &&
+		return ObjectUtils.nullSafeEquals(this.type, other.type) &&
 				(ObjectUtils.nullSafeEquals(this.id, other.id) || (this.id == null && other.id == null)) &&
-				(ObjectUtils.nullSafeEquals(getPayload(), other.getPayload())));
+				(ObjectUtils.nullSafeEquals(getPayload(), other.getPayload()));
 	}
 
 	@Override

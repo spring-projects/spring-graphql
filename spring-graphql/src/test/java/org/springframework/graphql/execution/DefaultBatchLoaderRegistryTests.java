@@ -42,10 +42,9 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 public class DefaultBatchLoaderRegistryTests {
 
 	private final BatchLoaderRegistry batchLoaderRegistry =
-			new DefaultBatchLoaderRegistry(() -> {
+			new DefaultBatchLoaderRegistry(() ->
 				// Disable batching, so we can test loading immediately
-				return DataLoaderOptions.newOptions().setBatchingEnabled(false);
-			});
+				DataLoaderOptions.newOptions().setBatchingEnabled(false));
 
 	private final DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
 

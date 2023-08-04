@@ -50,7 +50,7 @@ import org.springframework.util.ClassUtils;
  */
 public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+	private static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
@@ -164,7 +164,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	}
 
 	private boolean doesNotHaveAsyncArgs(Object[] args) {
-		return Arrays.stream(args).noneMatch(arg -> arg instanceof Mono);
+		return Arrays.stream(args).noneMatch(Mono.class::isInstance);
 	}
 
 	@SuppressWarnings("unchecked")

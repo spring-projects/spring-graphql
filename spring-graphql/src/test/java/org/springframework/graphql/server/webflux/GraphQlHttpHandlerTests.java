@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GraphQlHttpHandlerTests {
 
 	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-			.queryFetcher("greeting", (env) -> "Hello").toHttpHandlerWebFlux();
+			.queryFetcher("greeting", env -> "Hello").toHttpHandlerWebFlux();
 
 
 	@Test
@@ -86,7 +86,7 @@ public class GraphQlHttpHandlerTests {
 	@Test
 	void locale() {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
+				.queryFetcher("greeting", env -> "Hello in " + env.getLocale())
 				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
@@ -103,7 +103,7 @@ public class GraphQlHttpHandlerTests {
 	@Test
 	void shouldSetExecutionId() {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { showId: String }")
-				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
+				.queryFetcher("showId", env -> env.getExecutionId().toString())
 				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")

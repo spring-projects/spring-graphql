@@ -55,20 +55,20 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
  */
 class AuthenticationPrincipalArgumentResolverTests {
 
-	private final static Class<String> STRING_CLASS = String.class;
+	private static final Class<String> STRING_CLASS = String.class;
 
-	private final static Class<UserDetails> USER_DETAILS_CLASS = UserDetails.class;
+	private static final Class<UserDetails> USER_DETAILS_CLASS = UserDetails.class;
 
-	private final static Class<?> MONO_USER_DETAILS_CLASS =
+	private static final Class<?> MONO_USER_DETAILS_CLASS =
 			ResolvableType.forClassWithGenerics(Mono.class, UserDetails.class).getRawClass();
 
-	private final static Class<?> MONO_STRING_CLASS =
+	private static final Class<?> MONO_STRING_CLASS =
 			ResolvableType.forClassWithGenerics(Mono.class, String.class).getRawClass();
 
-	private final static Class<?> PUBLISHER_USER_DETAILS_CLASS =
+	private static final Class<?> PUBLISHER_USER_DETAILS_CLASS =
 			ResolvableType.forClassWithGenerics(Publisher.class, UserDetails.class).getRawClass();
 
-	private final static Class<?> TESTPUBLISHER_USER_DETAILS_CLASS =
+	private static final Class<?> TESTPUBLISHER_USER_DETAILS_CLASS =
 			ResolvableType.forClassWithGenerics(TestPublisher.class, UserDetails.class).getRawClass();
 
 
@@ -284,7 +284,7 @@ class AuthenticationPrincipalArgumentResolverTests {
 	}
 
 	private static Function<Context, Context> authenticationContext() {
-		return (context) -> ReactiveSecurityContextHolder.withAuthentication(usernamePasswordAuthentication());
+		return context -> ReactiveSecurityContextHolder.withAuthentication(usernamePasswordAuthentication());
 	}
 
 	private static Authentication usernamePasswordAuthentication() {

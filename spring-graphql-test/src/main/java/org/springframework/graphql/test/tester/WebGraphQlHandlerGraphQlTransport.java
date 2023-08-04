@@ -51,7 +51,7 @@ final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTrans
 	WebGraphQlHandlerGraphQlTransport(
 			@Nullable URI url, HttpHeaders headers, WebGraphQlHandler handler, CodecConfigurer configurer) {
 
-		this.url = (url != null ? url : URI.create(""));
+		this.url = url != null ? url : URI.create("");
 		this.headers.addAll(headers);
 		this.graphQlHandler = handler;
 		this.codecConfigurer = configurer;

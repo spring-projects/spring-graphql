@@ -95,16 +95,16 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	private static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
 		return configurer.getReaders().stream()
-				.filter((reader) -> reader.canRead(MAP_TYPE, MediaType.APPLICATION_JSON))
-				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
+				.filter(reader -> reader.canRead(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
 	}
 
 	private static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
 		return configurer.getWriters().stream()
-				.filter((writer) -> writer.canWrite(MAP_TYPE, MediaType.APPLICATION_JSON))
-				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
+				.filter(writer -> writer.canWrite(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder())
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
 	}
@@ -128,7 +128,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	public Map<String, Object> fromCursor(String cursor) {
 		DataBuffer buffer = this.bufferFactory.wrap(cursor.getBytes(StandardCharsets.UTF_8));
 		Map<String, Object> map = ((Decoder<Map<String, Object>>) this.decoder).decode(buffer, MAP_TYPE, null, null);
-		return (map != null ? map : Collections.emptyMap());
+		return map != null ? map : Collections.emptyMap();
 	}
 
 

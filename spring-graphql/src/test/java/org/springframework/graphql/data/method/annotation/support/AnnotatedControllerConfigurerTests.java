@@ -64,7 +64,7 @@ public class AnnotatedControllerConfigurerTests {
 		configurer.afterPropertiesSet();
 
 		List<HandlerMethodArgumentResolver> resolvers = configurer.getArgumentResolvers().getResolvers();
-		assertThat(resolvers.stream().filter(r -> r instanceof SortMethodArgumentResolver).findFirst()).isPresent();
+		assertThat(resolvers.stream().filter(SortMethodArgumentResolver.class::isInstance).findFirst()).isPresent();
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class AnnotatedControllerConfigurerTests {
 		configurer.afterPropertiesSet();
 
 		List<HandlerMethodArgumentResolver> resolvers = configurer.getArgumentResolvers().getResolvers();
-		assertThat(resolvers.stream().filter(r -> r instanceof SortMethodArgumentResolver).findFirst()).isNotPresent();
+		assertThat(resolvers.stream().filter(SortMethodArgumentResolver.class::isInstance).findFirst()).isNotPresent();
 	}
 
 }

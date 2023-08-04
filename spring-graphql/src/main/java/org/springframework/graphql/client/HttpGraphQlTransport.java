@@ -42,7 +42,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 final class HttpGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<>() {};
 
 	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
 	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
@@ -64,7 +64,7 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 		HttpHeaders headers = new HttpHeaders();
 		webClient.mutate().defaultHeaders(headers::putAll);
 		MediaType contentType = headers.getContentType();
-		return (contentType != null ? contentType : MediaType.APPLICATION_JSON);
+		return contentType != null ? contentType : MediaType.APPLICATION_JSON;
 	}
 
 

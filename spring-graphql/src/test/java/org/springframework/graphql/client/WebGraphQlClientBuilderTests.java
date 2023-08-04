@@ -152,7 +152,7 @@ public class WebGraphQlClientBuilderTests {
 	@MethodSource("argumentSource")
 	void mutateDocumentSource(ClientBuilderSetup builderSetup) {
 
-		DocumentSource documentSource = name -> name.equals("name") ?
+		DocumentSource documentSource = name -> "name".equals(name) ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
 		// Original

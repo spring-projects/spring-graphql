@@ -75,8 +75,8 @@ class RepositoryUtils {
 			return null;
 		}
 
-		return (StringUtils.hasText(annotation.typeName()) ?
-				annotation.typeName() : RepositoryUtils.getDomainType(repository).getSimpleName());
+		return StringUtils.hasText(annotation.typeName()) ?
+				annotation.typeName() : RepositoryUtils.getDomainType(repository).getSimpleName();
 	}
 
 
@@ -95,7 +95,7 @@ class RepositoryUtils {
 		boolean forward = !environment.getArguments().containsKey("last");
 		Integer count = environment.getArgument(forward ? "first" : "last");
 		String cursor = environment.getArgument(forward ? "after" : "before");
-		ScrollPosition position = (cursor != null ? cursorStrategy.fromCursor(cursor) : null);
+		ScrollPosition position = cursor != null ? cursorStrategy.fromCursor(cursor) : null;
 		return new ScrollSubrange(position, count, forward);
 	}
 

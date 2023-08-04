@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
  */
 public class WebSocketGraphQlTransportTests {
 
-	private final static Duration TIMEOUT = Duration.ofSeconds(5);
+	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
 	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate(ClientCodecConfigurer.create());
 
@@ -345,7 +345,7 @@ public class WebSocketGraphQlTransportTests {
 	/**
 	 * Server handler that inserts a "ping" after the "connection_ack".
 	 */
-	private static class PingResponseHandler implements WebSocketHandler {
+	private static final class PingResponseHandler implements WebSocketHandler {
 
 		private final GraphQlResponse response;
 
@@ -392,9 +392,9 @@ public class WebSocketGraphQlTransportTests {
 				String id = inputMessage.getId();
 
 				GraphQlWebSocketMessage outputMessage =
-						(inputMessage.resolvedType() == GraphQlWebSocketMessageType.CONNECTION_INIT ?
+						inputMessage.resolvedType() == GraphQlWebSocketMessageType.CONNECTION_INIT ?
 								GraphQlWebSocketMessage.connectionAck(null) :
-								GraphQlWebSocketMessage.subscribe(id, new DefaultGraphQlRequest("")));
+								GraphQlWebSocketMessage.subscribe(id, new DefaultGraphQlRequest(""));
 
 				return Flux.just(this.codecDelegate.encode(session, outputMessage));
 			}));

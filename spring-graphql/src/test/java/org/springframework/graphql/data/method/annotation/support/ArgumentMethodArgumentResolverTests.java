@@ -104,7 +104,7 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 		assertThat(result).isNotNull()
 				.isInstanceOf(List.class).asList()
-				.allMatch(item -> item instanceof Book)
+				.allMatch(Book.class::isInstance)
 				.extracting("name").containsExactly("first", "second");
 	}
 
@@ -195,7 +195,7 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 
 	@SuppressWarnings("unused")
-	static class Keyword {
+	static final class Keyword {
 
 		String term;
 

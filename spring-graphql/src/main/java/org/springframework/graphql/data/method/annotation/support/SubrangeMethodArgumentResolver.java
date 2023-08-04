@@ -46,8 +46,8 @@ public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentR
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return (parameter.getParameterType().equals(Subrange.class) &&
-				this.cursorStrategy.supports(parameter.nested().getNestedParameterType()));
+		return parameter.getParameterType().equals(Subrange.class) &&
+				this.cursorStrategy.supports(parameter.nested().getNestedParameterType());
 	}
 
 	@Override
@@ -55,7 +55,7 @@ public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentR
 		boolean forward = !environment.getArguments().containsKey("last");
 		Integer count = environment.getArgument(forward ? "first" : "last");
 		String cursor = environment.getArgument(forward ? "after" : "before");
-		P position = (cursor != null ? this.cursorStrategy.fromCursor(cursor) : null);
+		P position = cursor != null ? this.cursorStrategy.fromCursor(cursor) : null;
 		return createSubrange(position, count, forward);
 	}
 

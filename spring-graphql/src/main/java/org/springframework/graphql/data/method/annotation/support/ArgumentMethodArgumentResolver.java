@@ -60,8 +60,8 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return (parameter.getParameterAnnotation(Argument.class) != null ||
-				parameter.getParameterType() == ArgumentValue.class);
+		return parameter.getParameterAnnotation(Argument.class) != null ||
+				parameter.getParameterType() == ArgumentValue.class;
 	}
 
 	@Override

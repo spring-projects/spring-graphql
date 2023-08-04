@@ -86,7 +86,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 
 	@Override
 	public B errorFilter(Predicate<ResponseError> predicate) {
-		this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
+		this.errorFilter = this.errorFilter != null ? errorFilter.and(predicate) : predicate;
 		return self();
 	}
 
@@ -206,7 +206,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 		}
 
 		private static <T> boolean isDefault(@Nullable T provider, Class<? extends T> defaultProviderType) {
-			return (provider == null || defaultProviderType.isInstance(provider));
+			return provider == null || defaultProviderType.isInstance(provider);
 		}
 
 	}

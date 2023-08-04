@@ -73,7 +73,7 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 		if (context.getError() != null || context.getExecutionResult() == null) {
 			return OUTCOME_INTERNAL_ERROR;
 		}
-		else if (context.getExecutionResult().getErrors().size() > 0) {
+		else if (!context.getExecutionResult().getErrors().isEmpty()) {
 			return OUTCOME_REQUEST_ERROR;
 		}
 		return OUTCOME_SUCCESS;

@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class ResponseHelper {
+public final class ResponseHelper {
 
 	private static final Log logger = LogFactory.getLog(ResponseHelper.class);
 

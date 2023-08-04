@@ -66,10 +66,10 @@ public class ContextDataFetcherDecoratorTests {
 	@Test
 	void monoDataFetcher() throws Exception {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
-				.queryFetcher("greeting", (env) ->
-						Mono.deferContextual((context) -> {
+				.queryFetcher("greeting", env ->
+						Mono.deferContextual(context -> {
 							Object name = context.get("name");
-							return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
+							return Mono.delay(Duration.ofMillis(50)).map(aLong -> "Hello " + name);
 						}))
 				.toGraphQl();
 
@@ -85,11 +85,11 @@ public class ContextDataFetcherDecoratorTests {
 	@Test
 	void fluxDataFetcher() throws Exception {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
-				.queryFetcher("greetings", (env) ->
+				.queryFetcher("greetings", env ->
 						Mono.delay(Duration.ofMillis(50))
-								.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
+								.flatMapMany(aLong -> Flux.deferContextual(context -> {
 									String name = context.get("name");
-									return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
+									return Flux.just("Hi", "Bonjour", "Hola").map(s -> s + " " + name);
 								})))
 				.toGraphQl();
 
@@ -105,11 +105,11 @@ public class ContextDataFetcherDecoratorTests {
 	@Test
 	void fluxDataFetcherSubscription() throws Exception {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
-				.subscriptionFetcher("greetings", (env) ->
+				.subscriptionFetcher("greetings", env ->
 						Mono.delay(Duration.ofMillis(50))
-								.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
+								.flatMapMany(aLong -> Flux.deferContextual(context -> {
 									String name = context.get("name");
-									return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
+									return Flux.just("Hi", "Bonjour", "Hola").map(s -> s + " " + name);
 								})))
 				.toGraphQl();
 
@@ -140,7 +140,7 @@ public class ContextDataFetcherDecoratorTests {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
 				.subscriptionExceptionResolvers(resolver)
 				.subscriptionFetcher("greetings",
-						(env) -> Mono.delay(Duration.ofMillis(50))
+						env -> Mono.delay(Duration.ofMillis(50))
 								.handle((aLong, sink) -> {
 									sink.next("Hi!");
 									sink.error(new RuntimeException("Example Error"));
@@ -174,14 +174,14 @@ public class ContextDataFetcherDecoratorTests {
 		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
 		try {
 			GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
-					.queryFetcher("greeting", (env) -> "Hello " + threadLocal.get())
+					.queryFetcher("greeting", env -> "Hello " + threadLocal.get())
 					.toGraphQl();
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
 			ContextSnapshot.captureAll().updateContext(input.getGraphQLContext());
 
 			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
-					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
+					.flatMap(aLong -> Mono.fromFuture(graphQl.executeAsync(input)));
 
 			String greeting = ResponseHelper.forResult(resultMono).toEntity("greeting", String.class);
 			assertThat(greeting).isEqualTo("Hello 007");

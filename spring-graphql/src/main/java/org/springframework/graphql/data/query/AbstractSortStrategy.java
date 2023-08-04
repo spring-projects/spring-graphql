@@ -41,7 +41,7 @@ public abstract class AbstractSortStrategy implements SortStrategy {
 		List<String> properties = getProperties(environment);
 		if (!ObjectUtils.isEmpty(properties)) {
 			Sort.Direction direction = getDirection(environment);
-			direction = (direction != null ? direction : Sort.DEFAULT_DIRECTION);
+			direction = direction != null ? direction : Sort.DEFAULT_DIRECTION;
 			List<Sort.Order> sortOrders = new ArrayList<>(properties.size());
 			for (String property : properties) {
 				sortOrders.add(new Sort.Order(direction, property));

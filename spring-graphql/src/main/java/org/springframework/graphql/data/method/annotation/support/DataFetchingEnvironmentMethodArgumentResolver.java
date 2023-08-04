@@ -42,9 +42,9 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (type.equals(DataFetchingEnvironment.class) || type.equals(GraphQLContext.class) ||
+		return type.equals(DataFetchingEnvironment.class) || type.equals(GraphQLContext.class) ||
 				type.equals(DataFetchingFieldSelectionSet.class) ||
-				type.equals(Locale.class) || isOptionalLocale(parameter));
+				type.equals(Locale.class) || isOptionalLocale(parameter);
 	}
 
 	private static boolean isOptionalLocale(MethodParameter parameter) {

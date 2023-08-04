@@ -74,9 +74,9 @@ import static org.mockito.Mockito.mock;
  */
 class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
-	private GenerationContext generationContext = new TestGenerationContext();
+	private final GenerationContext generationContext = new TestGenerationContext();
 
-	private SchemaMappingBeanFactoryInitializationAotProcessor processor = new SchemaMappingBeanFactoryInitializationAotProcessor();
+	private final SchemaMappingBeanFactoryInitializationAotProcessor processor = new SchemaMappingBeanFactoryInitializationAotProcessor();
 
 	@Test
 	void processorIsRegisteredInAotFactories() {

@@ -53,7 +53,7 @@ public class GraphQlHttpHandlerTests {
 			Collections.singletonList(new MappingJackson2HttpMessageConverter());
 
 	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-			.queryFetcher("greeting", (env) -> "Hello").toHttpHandler();
+			.queryFetcher("greeting", env -> "Hello").toHttpHandler();
 
 	@Test
 	void shouldProduceApplicationJsonByDefault() throws Exception {
@@ -79,7 +79,7 @@ public class GraphQlHttpHandlerTests {
 	@Test
 	void locale() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
+				.queryFetcher("greeting", env -> "Hello in " + env.getLocale())
 				.toHttpHandler();
 		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
 		LocaleContextHolder.setLocale(Locale.FRENCH);
@@ -98,7 +98,7 @@ public class GraphQlHttpHandlerTests {
 	@Test
 	void shouldSetExecutionId() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { showId: ID! }")
-				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
+				.queryFetcher("showId", env -> env.getExecutionId().toString())
 				.toHttpHandler();
 
 		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ showId }\"}", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);

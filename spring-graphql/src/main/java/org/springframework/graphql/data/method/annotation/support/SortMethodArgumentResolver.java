@@ -57,11 +57,11 @@ public class SortMethodArgumentResolver implements HandlerMethodArgumentResolver
 		Sort sort = this.sortStrategy.extract(environment);
 
 		if (parameter.isOptional()) {
-			sort = (sort == Sort.unsorted() ? null : sort);
+			sort = sort == Sort.unsorted() ? null : sort;
 			return Optional.ofNullable(sort);
 		}
 
-		return (sort != null ? sort : Sort.unsorted());
+		return sort != null ? sort : Sort.unsorted();
 	}
 
 }

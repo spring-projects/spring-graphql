@@ -53,7 +53,7 @@ import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings("unused")
-public class GraphQlSetup implements GraphQlServiceSetup {
+public final class GraphQlSetup implements GraphQlServiceSetup {
 
 	private final GraphQlSource.SchemaResourceBuilder graphQlSourceBuilder;
 

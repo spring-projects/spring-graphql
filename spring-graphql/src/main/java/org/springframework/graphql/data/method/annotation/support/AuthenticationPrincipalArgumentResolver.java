@@ -98,12 +98,12 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		return getCurrentAuthentication()
 				.flatMap(auth -> Mono.justOrEmpty(resolvePrincipal(parameter, auth.getPrincipal())))
-				.transform((argument) -> isParameterMonoAssignable(parameter) ? Mono.just(argument) : argument);
+				.transform(argument -> isParameterMonoAssignable(parameter) ? Mono.just(argument) : argument);
 	}
 
 	private static boolean isParameterMonoAssignable(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (Publisher.class.equals(type) || Mono.class.equals(type));
+		return Publisher.class.equals(type) || Mono.class.equals(type);
 	}
 
 	private Mono<Authentication> getCurrentAuthentication() {

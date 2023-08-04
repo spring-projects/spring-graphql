@@ -46,7 +46,7 @@ import org.springframework.util.Assert;
  */
 class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer {
 
-	private final static Log logger = LogFactory.getLog(AutoRegistrationRuntimeWiringConfigurer.class);
+	private static final Log logger = LogFactory.getLog(AutoRegistrationRuntimeWiringConfigurer.class);
 
 
 	private final Map<String, DataFetcherFactory> dataFetcherFactories;
@@ -111,15 +111,15 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 				return false;
 			}
 
-			if (!environment.getParentType().getName().equals("Query")) {
+			if (!"Query".equals(environment.getParentType().getName())) {
 				return false;
 			}
 
 			String outputTypeName = getOutputTypeName(environment);
 
-			boolean result = (outputTypeName != null &&
+			boolean result = outputTypeName != null &&
 					dataFetcherFactories.containsKey(outputTypeName) &&
-					!hasDataFetcherFor(environment.getFieldDefinition()));
+					!hasDataFetcherFor(environment.getFieldDefinition());
 
 			if (!result) {
 				// This may be called multiples times on success, so log only rejections from here
@@ -150,13 +150,13 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 		}
 
 		private GraphQLType removeNonNullWrapper(GraphQLType outputType) {
-			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
+			return outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType;
 		}
 
 		private boolean isConnectionType(GraphQLType type) {
-			return (type instanceof GraphQLObjectType objectType &&
+			return type instanceof GraphQLObjectType objectType &&
 					objectType.getName().endsWith("Connection") &&
-					objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
+					objectType.getField("edges") != null && objectType.getField("pageInfo") != null;
 		}
 
 		private boolean hasDataFetcherFor(FieldDefinition fieldDefinition) {
@@ -186,8 +186,8 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			Assert.notNull(factory, "Expected DataFetcher factory for typeName '" + outputTypeName + "'");
 
 			GraphQLType type = removeNonNullWrapper(environment.getFieldType());
-			return (isConnectionType(type) ? factory.scrollable() :
-					(type instanceof GraphQLList ? factory.many() : factory.single()));
+			return isConnectionType(type) ? factory.scrollable() :
+					(type instanceof GraphQLList ? factory.many() : factory.single());
 		}
 
 	}

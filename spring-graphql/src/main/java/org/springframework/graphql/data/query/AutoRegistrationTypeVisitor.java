@@ -67,13 +67,13 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 
 		GraphQLType fieldType = fieldDefinition.getType();
 		GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
-		if (!parent.getName().equals("Query")) {
+		if (!"Query".equals(parent.getName())) {
 			return TraversalControl.ABORT;
 		}
 
-		DataFetcher<?> dataFetcher = (fieldType instanceof GraphQLList ?
+		DataFetcher<?> dataFetcher = fieldType instanceof GraphQLList ?
 				getDataFetcher(((GraphQLList) fieldType).getWrappedType(), false) :
-				getDataFetcher(fieldType, true));
+				getDataFetcher(fieldType, true);
 
 		if (dataFetcher != null) {
 			GraphQLCodeRegistry.Builder registry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
@@ -102,7 +102,7 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 			GraphQLFieldDefinition fieldDefinition) {
 
 		DataFetcher<?> fetcher = registry.getDataFetcher(parent, fieldDefinition);
-		return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
+		return fetcher != null && !(fetcher instanceof PropertyDataFetcher);
 	}
 
 }

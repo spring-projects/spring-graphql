@@ -130,14 +130,14 @@ final class DefaultWebSocketGraphQlClientBuilder
 	private WebSocketGraphQlClientInterceptor getInterceptor() {
 
 		List<WebSocketGraphQlClientInterceptor> interceptors = getInterceptors().stream()
-				.filter(interceptor -> interceptor instanceof WebSocketGraphQlClientInterceptor)
-				.map(interceptor -> (WebSocketGraphQlClientInterceptor) interceptor)
+				.filter(WebSocketGraphQlClientInterceptor.class::isInstance)
+				.map(WebSocketGraphQlClientInterceptor.class::cast)
 				.toList();
 
 		Assert.state(interceptors.size() <= 1,
 				"Only a single interceptor of type WebSocketGraphQlClientInterceptor may be configured");
 
-		return (!interceptors.isEmpty() ? interceptors.get(0) : new WebSocketGraphQlClientInterceptor() {});
+		return !interceptors.isEmpty() ? interceptors.get(0) : new WebSocketGraphQlClientInterceptor() {};
 	}
 
 

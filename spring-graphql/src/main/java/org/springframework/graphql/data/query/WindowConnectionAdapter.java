@@ -53,7 +53,7 @@ public final class WindowConnectionAdapter
 	@Override
 	public boolean hasPrevious(Object container) {
 		Window<?> window = window(container);
-		return (window.size() > 0 && !window.positionAt(0).isInitial());
+		return window.size() > 0 && !window.positionAt(0).isInitial();
 	}
 
 	@Override

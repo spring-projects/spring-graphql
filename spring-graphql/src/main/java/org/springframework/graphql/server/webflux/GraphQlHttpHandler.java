@@ -48,7 +48,7 @@ public class GraphQlHttpHandler {
 			new MediaType("application", "graphql-response+json");
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<>() {};
 
 	@SuppressWarnings("removal")
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =

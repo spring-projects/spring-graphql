@@ -86,15 +86,15 @@ public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigu
 
 	private static Set<String> findConnectionTypeNames(TypeDefinitionRegistry registry) {
 		return registry.types().values().stream()
-				.filter(definition -> definition instanceof ImplementingTypeDefinition)
+				.filter(ImplementingTypeDefinition.class::isInstance)
 				.flatMap(definition -> {
 					ImplementingTypeDefinition<?> typeDefinition = (ImplementingTypeDefinition<?>) definition;
 					return typeDefinition.getFieldDefinitions().stream()
 							.map(fieldDefinition -> {
 								Type<?> type = fieldDefinition.getType();
-								return (type instanceof NonNullType ? ((NonNullType) type).getType() : type);
+								return type instanceof NonNullType ? ((NonNullType) type).getType() : type;
 							})
-							.filter(type -> type instanceof TypeName)
+							.filter(TypeName.class::isInstance)
 							.map(type -> ((TypeName) type).getName())
 							.filter(name -> name.endsWith("Connection"))
 							.filter(name -> registry.getType(name).isEmpty())

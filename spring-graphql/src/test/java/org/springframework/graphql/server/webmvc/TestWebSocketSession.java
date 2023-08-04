@@ -49,7 +49,7 @@ public class TestWebSocketSession implements WebSocketSession {
 
 	private final Sinks.Many<WebSocketMessage<?>> messagesSink = Sinks.many().unicast().onBackpressureBuffer();
 
-	private Sinks.One<CloseStatus> statusSink = Sinks.one();
+	private final Sinks.One<CloseStatus> statusSink = Sinks.one();
 
 	private boolean closed;
 
@@ -152,7 +152,7 @@ public class TestWebSocketSession implements WebSocketSession {
 
 	@Nullable
 	public CloseStatus getCloseStatus() {
-		return (this.closed ? this.statusSink.asMono().block() : null);
+		return this.closed ? this.statusSink.asMono().block() : null;
 	}
 
 	public Mono<CloseStatus> closeStatus() {

@@ -44,7 +44,7 @@ public class Subrange<P> {
 	 */
 	public Subrange(@Nullable P position, @Nullable Integer count, boolean forward) {
 		this.position = Optional.ofNullable(position);
-		this.count = (count != null ? OptionalInt.of(count) : OptionalInt.empty());
+		this.count = count != null ? OptionalInt.of(count) : OptionalInt.empty();
 		this.forward = forward;
 	}
 

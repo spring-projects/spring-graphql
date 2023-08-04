@@ -50,7 +50,7 @@ final class DefaultTransportGraphQlTesterBuilder
 	/**
 	 * {@link GraphQlTester} with a given transport.
 	 */
-	private static class DefaultTransportGraphQlTester extends AbstractDelegatingGraphQlTester {
+	private static final class DefaultTransportGraphQlTester extends AbstractDelegatingGraphQlTester {
 
 		private final GraphQlTransport transport;
 

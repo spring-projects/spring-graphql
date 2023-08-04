@@ -84,7 +84,7 @@ import static org.springframework.core.annotation.MergedAnnotations.SearchStrate
  */
 class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryInitializationAotProcessor {
 
-	private final static boolean springDataPresent = ClassUtils.isPresent(
+	private static final boolean springDataPresent = ClassUtils.isPresent(
 			"org.springframework.data.projection.SpelAwareProxyProjectionFactory",
 			SchemaMappingBeanFactoryInitializationAotProcessor.class.getClassLoader());
 

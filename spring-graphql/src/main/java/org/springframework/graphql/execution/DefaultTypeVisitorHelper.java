@@ -40,7 +40,7 @@ final class DefaultTypeVisitorHelper implements TypeVisitorHelper {
 	 */
 	DefaultTypeVisitorHelper(GraphQLSchema schema) {
 		GraphQLObjectType subscriptionType = schema.getSubscriptionType();
-		this.subscriptionTypeName = (subscriptionType != null ? subscriptionType.getName() : null);
+		this.subscriptionTypeName = subscriptionType != null ? subscriptionType.getName() : null;
 	}
 
 
@@ -49,7 +49,7 @@ final class DefaultTypeVisitorHelper implements TypeVisitorHelper {
 	 */
 	@Override
 	public boolean isSubscriptionType(GraphQLNamedType type) {
-		return (type.getName().equals(this.subscriptionTypeName));
+		return type.getName().equals(this.subscriptionTypeName);
 	}
 
 }

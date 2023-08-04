@@ -143,8 +143,8 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer) {
-			this.optionsConsumer = (this.optionsConsumer != null ?
-					this.optionsConsumer.andThen(optionsConsumer) : optionsConsumer);
+			this.optionsConsumer = this.optionsConsumer != null ?
+					this.optionsConsumer.andThen(optionsConsumer) : optionsConsumer;
 			return this;
 		}
 
@@ -173,7 +173,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 			}
 
 			Supplier<DataLoaderOptions> optionsSupplier =
-					(this.options != null ? () -> this.options : defaultOptionsSupplier);
+					this.options != null ? () -> this.options : defaultOptionsSupplier;
 
 			if (this.optionsConsumer == null) {
 				return optionsSupplier;
@@ -191,7 +191,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 				return this.name;
 			}
 			Assert.notNull(this.valueType, "Value type not available to select a default DataLoader name.");
-			return (StringUtils.hasText(this.name) ? this.name : this.valueType.getName());
+			return StringUtils.hasText(this.name) ? this.name : this.valueType.getName();
 		}
 	}
 
@@ -200,7 +200,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	 * {@link BatchLoaderWithContext} that delegates to a {@link Flux} batch
 	 * loading function and exposes Reactor context to it.
 	 */
-	private static class ReactorBatchLoader<K, V> implements BatchLoaderWithContext<K, V> {
+	private static final class ReactorBatchLoader<K, V> implements BatchLoaderWithContext<K, V> {
 
 		private final String name;
 
@@ -224,7 +224,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Nullable
 		public DataLoaderOptions getOptions() {
-			return (this.optionsSupplier != null ? this.optionsSupplier.get() : null);
+			return this.optionsSupplier != null ? this.optionsSupplier.get() : null;
 		}
 
 		@Override
@@ -251,7 +251,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	 * {@link MappedBatchLoaderWithContext} that delegates to a {@link Mono}
 	 * batch loading function and exposes Reactor context to it.
 	 */
-	private static class ReactorMappedBatchLoader<K, V> implements MappedBatchLoaderWithContext<K, V> {
+	private static final class ReactorMappedBatchLoader<K, V> implements MappedBatchLoaderWithContext<K, V> {
 
 		private final String name;
 
@@ -275,7 +275,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Nullable
 		public DataLoaderOptions getOptions() {
-			return (this.optionsSupplier != null ? this.optionsSupplier.get() : null);
+			return this.optionsSupplier != null ? this.optionsSupplier.get() : null;
 		}
 
 		@Override

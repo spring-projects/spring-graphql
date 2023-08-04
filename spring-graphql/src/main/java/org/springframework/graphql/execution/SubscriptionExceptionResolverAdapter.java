@@ -107,7 +107,7 @@ public abstract class SubscriptionExceptionResolverAdapter implements Subscripti
     @Nullable
     protected List<GraphQLError> resolveToMultipleErrors(Throwable exception) {
         GraphQLError error = resolveToSingleError(exception);
-        return (error != null ? Collections.singletonList(error) : null);
+        return error != null ? Collections.singletonList(error) : null;
     }
 
     /**

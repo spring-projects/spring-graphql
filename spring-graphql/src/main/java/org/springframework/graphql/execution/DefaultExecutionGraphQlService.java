@@ -56,7 +56,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	public DefaultExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
 		this.isDefaultExecutionIdProvider =
-				(graphQlSource.graphQl().getIdProvider() == ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER);
+				graphQlSource.graphQl().getIdProvider() == ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER;
 	}
 
 
@@ -73,7 +73,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	@Override
 	@SuppressWarnings("deprecation")
 	public final Mono<ExecutionGraphQlResponse> execute(ExecutionGraphQlRequest request) {
-		return Mono.deferContextual((contextView) -> {
+		return Mono.deferContextual(contextView -> {
 			if (!this.isDefaultExecutionIdProvider && request.getExecutionId() == null) {
 				request.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
 			}

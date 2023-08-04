@@ -324,9 +324,11 @@ public class SchemaMappingInvocationTests {
 
 		@QueryMapping
 		public List<Book> booksByCriteria(@Argument BookCriteria criteria) {
-			switch (criteria.getAuthor()) {
-				case "Fitzgerald" -> throw new IllegalArgumentException("Bad input");
-				case "Heller" -> throw new IllegalStateException("Fetch failure");
+			if ("Fitzgerald".equals(criteria.getAuthor())) {
+				throw new IllegalArgumentException("Bad input");
+			}
+			else if ("Heller".equals(criteria.getAuthor())) {
+				throw new IllegalStateException("Fetch failure");
 			}
 			return BookSource.findBooksByAuthor(criteria.getAuthor());
 		}
@@ -362,9 +364,9 @@ public class SchemaMappingInvocationTests {
 
 		@SubscriptionMapping
 		public Flux<Book> bookSearch(@Argument String author) {
-			return (author.equalsIgnoreCase("Fitzgerald") ?
+			return "Fitzgerald".equalsIgnoreCase(author) ?
 					Flux.error(new IllegalArgumentException("Bad input")) :
-					Flux.fromIterable(BookSource.findBooksByAuthor(author)));
+					Flux.fromIterable(BookSource.findBooksByAuthor(author));
 		}
 
 		@GraphQlExceptionHandler

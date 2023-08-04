@@ -106,7 +106,7 @@ import org.springframework.util.MultiValueMap;
  */
 public abstract class QuerydslDataFetcher<T> {
 
-	private final static Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
+	private static final Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
 
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
@@ -159,7 +159,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 		for (Map.Entry<String, Object> entry : getArgumentValues(environment).entrySet()) {
 			Object value = entry.getValue();
-			List<Object> values = (value instanceof List ? (List<Object>) value : Collections.singletonList(value));
+			List<Object> values = value instanceof List ? (List<Object>) value : Collections.singletonList(value);
 			parameters.put(entry.getKey(), values);
 		}
 
@@ -399,9 +399,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 	@SuppressWarnings("rawtypes")
 	private static QuerydslBinderCustomizer customizer(Object executor) {
-		return (executor instanceof QuerydslBinderCustomizer<?> ?
+		return executor instanceof QuerydslBinderCustomizer<?> ?
 				(QuerydslBinderCustomizer<? extends EntityPath<?>>) executor :
-				NO_OP_BINDER_CUSTOMIZER);
+				NO_OP_BINDER_CUSTOMIZER;
 	}
 
 

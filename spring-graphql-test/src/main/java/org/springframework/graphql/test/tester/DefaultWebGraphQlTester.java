@@ -114,7 +114,7 @@ final class DefaultWebGraphQlTesterBuilder
 	/**
 	 * Default {@link WebGraphQlTester} implementation.
 	 */
-	private static class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
+	private static final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
 
 		private final WebGraphQlHandlerGraphQlTransport transport;
 

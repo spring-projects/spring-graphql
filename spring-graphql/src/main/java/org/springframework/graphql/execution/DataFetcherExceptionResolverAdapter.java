@@ -118,7 +118,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	@Nullable
 	protected List<GraphQLError> resolveToMultipleErrors(Throwable ex, DataFetchingEnvironment env) {
 		GraphQLError error = resolveToSingleError(ex, env);
-		return (error != null ? Collections.singletonList(error) : null);
+		return error != null ? Collections.singletonList(error) : null;
 	}
 
 	/**

@@ -488,7 +488,7 @@ public interface GraphQlTester {
 		 * {@code reactor.test.StepVerifier}
 		 */
 		default <T> Flux<T> toFlux(String path, Class<T> entityType) {
-			return toFlux().map((spec) -> spec.path(path).entity(entityType).get());
+			return toFlux().map(spec -> spec.path(path).entity(entityType).get());
 		}
 
 		/**

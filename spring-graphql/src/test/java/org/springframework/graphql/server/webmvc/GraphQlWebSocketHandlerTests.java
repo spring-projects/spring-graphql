@@ -85,8 +85,8 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new TextMessage(BOOK_QUERY));
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
-				.consumeNextWith((message) -> {
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> {
 					GraphQlWebSocketMessage actual = decode(message);
 					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
@@ -95,7 +95,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 							.extractingByKey("bookById", as(InstanceOfAssertFactories.map(String.class, Object.class)))
 							.containsEntry("name", "Nineteen Eighty-Four");
 				})
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
 				.then(this.session::close) // Complete output Flux
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -116,10 +116,10 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		};
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
-				.consumeNextWith((message) -> bookPayloadAssertion.accept(message, "1"))
-				.consumeNextWith((message) -> bookPayloadAssertion.accept(message, "5"))
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> bookPayloadAssertion.accept(message, "1"))
+				.consumeNextWith(message -> bookPayloadAssertion.accept(message, "5"))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
 				.then(this.session::close)// Complete output Flux
 				.expectComplete()
 				.verify(TIMEOUT);
@@ -133,7 +133,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		// No message type
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
 				.expectComplete()
 				.verify(TIMEOUT);
 
@@ -147,7 +147,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new TextMessage("{\"type\":\"subscribe\", \"payload\":{}}")); // No message id
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
 				.expectComplete()
 				.verify(TIMEOUT);
 
@@ -170,7 +170,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new TextMessage("{\"type\":\"connection_init\",\"payload\":{\"key\":\"A\"}}"));
 
 		StepVerifier.create(session.getOutput())
-				.consumeNextWith((webSocketMessage) -> {
+				.consumeNextWith(webSocketMessage -> {
 					GraphQlWebSocketMessage message = decode(webSocketMessage);
 					assertThat(message.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.CONNECTION_ACK);
 					assertThat(message.<Map<String, Object>>getPayload()).containsEntry("key", "A acknowledged");
@@ -259,7 +259,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new TextMessage("{\"type\":\"connection_init\"}"));
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
 				.expectComplete()
 				.verify(TIMEOUT);
 
@@ -286,7 +286,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		// Collect messages until session closed
 		List<GraphQlWebSocketMessage> messages = new ArrayList<>();
-		this.session.getOutput().subscribe((message) -> messages.add(decode(message)));
+		this.session.getOutput().subscribe(message -> messages.add(decode(message)));
 
 		StepVerifier.create(this.session.closeStatus())
 				.expectNext(new CloseStatus(4409, "Subscriber for " + SUBSCRIPTION_ID + " already exists"))
@@ -307,7 +307,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new TextMessage(BOOK_SUBSCRIPTION));
 
 		String completeMessage = "{\"id\":\"" + SUBSCRIPTION_ID + "\",\"type\":\"complete\"}";
-		Consumer<String> messageSender = (body) -> {
+		Consumer<String> messageSender = body -> {
 			try {
 				handler.handleTextMessage(this.session, new TextMessage(body));
 			}
@@ -317,12 +317,12 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		};
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.NEXT))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.NEXT))
 				.then(() -> messageSender.accept(completeMessage))
 				.as("Second subscription with same id is possible only if the first was properly removed")
 				.then(() -> messageSender.accept(BOOK_SUBSCRIPTION))
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.NEXT))
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.NEXT))
 				.then(() -> messageSender.accept(completeMessage))
 				.verifyTimeout(Duration.ofMillis(500));
 	}
@@ -346,15 +346,15 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				new TextMessage(GREETING_QUERY));
 
 		StepVerifier.create(this.session.getOutput())
-				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
-				.consumeNextWith((message) -> {
+				.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith(message -> {
 					GraphQlWebSocketMessage actual = decode(message);
 					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
 					assertThat(actual.<Map<String, Object>>getPayload())
 							.containsEntry("data", Collections.singletonMap("greetings", "a"));
 				})
-				.consumeNextWith((message) -> {
+				.consumeNextWith(message -> {
 					GraphQlWebSocketMessage actual = decode(message);
 					assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
 					assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.ERROR);
@@ -400,7 +400,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 			StepVerifier.create(this.session.getOutput())
 					.expectNextCount(2)
-					.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
+					.consumeNextWith(message -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
 					.then(this.session::close) // Complete output Flux
 					.expectComplete()
 					.verify(TIMEOUT);

@@ -118,10 +118,10 @@ public class BatchMappingTestSupport {
 
 			this.id = id;
 			this.name = name;
-			this.instructorId = (instructor != null ? instructor.id() : -1);
-			this.studentIds = (students != null ?
+			this.instructorId = instructor != null ? instructor.id() : -1;
+			this.studentIds = students != null ?
 					students.stream().map(Person::id).collect(Collectors.toList()) :
-					Collections.emptyList());
+					Collections.emptyList();
 		}
 
 		public Course(Long id, String name, Long instructorId, List<Long> studentIds) {

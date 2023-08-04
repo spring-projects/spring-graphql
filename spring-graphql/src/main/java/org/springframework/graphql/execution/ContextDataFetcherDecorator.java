@@ -123,7 +123,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	/**
 	 * Type visitor to apply {@link ContextDataFetcherDecorator}.
 	 */
-	private static class ContextTypeVisitor extends GraphQLTypeVisitorStub {
+	private static final class ContextTypeVisitor extends GraphQLTypeVisitorStub {
 
 		private final SubscriptionExceptionResolver exceptionResolver;
 
@@ -154,8 +154,8 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 			Class<?> type = dataFetcher.getClass();
 			String packageName = type.getPackage().getName();
 			if (packageName.startsWith("graphql.")) {
-				return (type.getSimpleName().startsWith("DataFetcherFactories") ||
-						packageName.startsWith("graphql.validation"));
+				return type.getSimpleName().startsWith("DataFetcherFactories") ||
+						packageName.startsWith("graphql.validation");
 			}
 			return true;
 		}

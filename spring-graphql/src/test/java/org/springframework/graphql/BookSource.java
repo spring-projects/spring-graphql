@@ -83,7 +83,7 @@ public class BookSource {
 	@SuppressWarnings("ConstantConditions")
 	public static List<Book> findBooksByAuthor(String author) {
 		return Flux.fromIterable(books())
-				.filter((book) -> book.getAuthor().getFullName().contains(author))
+				.filter(book -> book.getAuthor().getFullName().contains(author))
 				.collectList()
 				.block();
 	}

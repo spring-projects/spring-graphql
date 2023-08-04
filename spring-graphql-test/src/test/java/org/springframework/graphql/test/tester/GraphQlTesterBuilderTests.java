@@ -59,7 +59,7 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 	@Test
 	void mutateDocumentSource() {
 
-		DocumentSource documentSource = name -> name.equals("name") ?
+		DocumentSource documentSource = name -> "name".equals(name) ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
 		getGraphQlService().setDataAsJson(DOCUMENT, "{}");
@@ -127,7 +127,7 @@ public class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 				GraphqlErrorBuilder.newError().message("some other error").build());
 
 		graphQlTesterBuilder()
-				.errorFilter((error) -> error.getMessage().startsWith("some "))
+				.errorFilter(error -> error.getMessage().startsWith("some "))
 				.build()
 				.document(document)
 				.execute()

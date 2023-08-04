@@ -75,13 +75,13 @@ final class EncoderDecoderMappingProvider implements MappingProvider {
 
 	private static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
 		return findJsonEncoder(configurer.getWriters().stream()
-				.filter(writer -> writer instanceof EncoderHttpMessageWriter)
+				.filter(EncoderHttpMessageWriter.class::isInstance)
 				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder()));
 	}
 
 	private static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
 		return findJsonDecoder(configurer.getReaders().stream()
-				.filter(reader -> reader instanceof DecoderHttpMessageReader)
+				.filter(DecoderHttpMessageReader.class::isInstance)
 				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder()));
 	}
 

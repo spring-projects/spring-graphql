@@ -65,7 +65,7 @@ public final class ArgumentValue<T> {
 	 * Return {@code true} if a non-null value is present, and {@code false} otherwise.
 	 */
 	public boolean isPresent() {
-		return (this.value != null);
+		return this.value != null;
 	}
 
 	/**

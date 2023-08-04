@@ -81,8 +81,8 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 			@Override
 			public WebSocketGraphQlInterceptor getWebSocketInterceptor() {
-				return (webSocketInterceptor != null ?
-						webSocketInterceptor : new WebSocketGraphQlInterceptor() {});
+				return webSocketInterceptor != null ?
+						webSocketInterceptor : new WebSocketGraphQlInterceptor() {};
 			}
 
 			@Override

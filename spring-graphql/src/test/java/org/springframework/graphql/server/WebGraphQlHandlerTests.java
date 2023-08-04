@@ -55,15 +55,15 @@ public class WebGraphQlHandlerTests {
 
 	@Test
 	void reactorContextPropagation() {
-		DataFetcher<Object> dataFetcher = (env) -> Mono.deferContextual((context) -> {
+		DataFetcher<Object> dataFetcher = env -> Mono.deferContextual(context -> {
 			Object name = context.get("name");
-			return Mono.delay(Duration.ofMillis(50)).map((aLong) -> "Hello " + name);
+			return Mono.delay(Duration.ofMillis(50)).map(aLong -> "Hello " + name);
 		});
 
 		Mono<WebGraphQlResponse> responseMono =
 				this.graphQlSetup.queryFetcher("greeting", dataFetcher).toWebGraphQlHandler()
 						.handleRequest(webInput)
-						.contextWrite((context) -> context.put("name", "007"));
+						.contextWrite(context -> context.put("name", "007"));
 
 		String greeting = ResponseHelper.forResponse(responseMono).toEntity("greeting", String.class);
 		assertThat(greeting).isEqualTo("Hello 007");
@@ -72,7 +72,7 @@ public class WebGraphQlHandlerTests {
 	@Test
 	void reactorContextPropagationToExceptionResolver() {
 		DataFetcherExceptionResolver exceptionResolver =
-				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+				(ex, env) -> Mono.deferContextual(view -> Mono.just(Collections.singletonList(
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 								.errorType(ErrorType.BAD_REQUEST)
@@ -82,7 +82,7 @@ public class WebGraphQlHandlerTests {
 				.exceptionResolver(exceptionResolver)
 				.toWebGraphQlHandler()
 				.handleRequest(webInput)
-				.contextWrite((cxt) -> cxt.put("name", "007"));
+				.contextWrite(cxt -> cxt.put("name", "007"));
 
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
 		assertThat(response.errorCount()).isEqualTo(1);
@@ -100,7 +100,7 @@ public class WebGraphQlHandlerTests {
 		try {
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup
 					.queryFetcher("greeting", env -> "Hello " + threadLocal.get())
-					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap(aLong -> next.next(input)))
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
 
@@ -127,7 +127,7 @@ public class WebGraphQlHandlerTests {
 
 			Mono<WebGraphQlResponse> responseMono = this.graphQlSetup.queryFetcher("greeting", this.errorDataFetcher)
 					.exceptionResolver(exceptionResolver)
-					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap((aLong) -> next.next(input)))
+					.interceptor((input, next) -> Mono.delay(Duration.ofMillis(10)).flatMap(aLong -> next.next(input)))
 					.toWebGraphQlHandler()
 					.handleRequest(webInput);
 

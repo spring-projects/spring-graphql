@@ -60,7 +60,7 @@ public class GraphQlClientTestSupport {
 	}
 
 
-	private static class MockTransport implements GraphQlTransport {
+	private static final class MockTransport implements GraphQlTransport {
 
 		private final ExecutionGraphQlService graphQlService;
 

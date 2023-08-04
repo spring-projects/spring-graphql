@@ -165,8 +165,8 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	protected GraphQlClient buildGraphQlClient(GraphQlTransport transport) {
 
 		if (jackson2Present) {
-			this.jsonEncoder = (this.jsonEncoder == null ? DefaultJackson2Codecs.encoder() : this.jsonEncoder);
-			this.jsonDecoder = (this.jsonDecoder == null ? DefaultJackson2Codecs.decoder() : this.jsonDecoder);
+			this.jsonEncoder = this.jsonEncoder == null ? DefaultJackson2Codecs.encoder() : this.jsonEncoder;
+			this.jsonDecoder = this.jsonDecoder == null ? DefaultJackson2Codecs.decoder() : this.jsonDecoder;
 		}
 
 		return new DefaultGraphQlClient(
@@ -191,7 +191,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 		return this.interceptors.stream()
 				.reduce(GraphQlClientInterceptor::andThen)
-				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, chain))
+				.map(GraphQlClientInterceptor.Chain.class::cast)
 				.orElse(chain);
 	}
 
@@ -202,7 +202,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 		return this.interceptors.stream()
 				.reduce(GraphQlClientInterceptor::andThen)
-				.map(interceptor -> (SubscriptionChain) (request) -> interceptor.interceptSubscription(request, chain))
+				.map(GraphQlClientInterceptor.SubscriptionChain.class::cast)
 				.orElse(chain);
 	}
 

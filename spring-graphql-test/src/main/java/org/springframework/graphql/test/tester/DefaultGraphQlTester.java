@@ -175,7 +175,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {
-			return (assertion) -> {
+			return assertion -> {
 				try {
 					assertion.run();
 				}
@@ -191,7 +191,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	/**
 	 * Container for GraphQL response data and errors along with convenience methods.
 	 */
-	private final static class ResponseDelegate {
+	private static final class ResponseDelegate {
 
 		private final DocumentContext jsonDoc;
 
@@ -463,7 +463,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private static String joinPaths(@Nullable String basePath, String path) {
-			return (basePath != null ? basePath + "." + path : path);
+			return basePath != null ? basePath + "." + path : path;
 		}
 
 

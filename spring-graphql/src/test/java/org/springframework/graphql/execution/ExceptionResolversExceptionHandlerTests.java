@@ -42,7 +42,7 @@ public class ExceptionResolversExceptionHandlerTests {
 
 	private final GraphQlSetup graphQlSetup =
 			GraphQlSetup.schemaContent("type Query { greeting: String }")
-					.queryFetcher("greeting", (env) -> {
+					.queryFetcher("greeting", env -> {
 						throw new IllegalArgumentException("Invalid greeting");
 					});
 
@@ -72,7 +72,7 @@ public class ExceptionResolversExceptionHandlerTests {
 	@Test
 	void resolveExceptionWithReactorContext() throws Exception {
 		DataFetcherExceptionResolver resolver =
-				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+				(ex, env) -> Mono.deferContextual(view -> Mono.just(Collections.singletonList(
 						GraphqlErrorBuilder.newError(env)
 								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
 								.errorType(ErrorType.BAD_REQUEST).build())));
@@ -103,7 +103,7 @@ public class ExceptionResolversExceptionHandlerTests {
 			resolver.setThreadLocalContextAware(true);
 			ContextSnapshot.captureAll().updateContext(this.input.getGraphQLContext());
 
-			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap((aLong) ->
+			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap(aLong ->
 					Mono.fromFuture(this.graphQlSetup.exceptionResolver(resolver).toGraphQl().executeAsync(this.input)));
 
 			ResponseHelper response = ResponseHelper.forResult(result);

@@ -40,7 +40,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return (parameter.getParameterAnnotation(ContextValue.class) != null);
+		return parameter.getParameterAnnotation(ContextValue.class) != null;
 	}
 
 	@Override
@@ -72,7 +72,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 			@Nullable GraphQLContext graphQlContext) {
 
 		Class<?> parameterType = parameter.getParameterType();
-		Object value = (graphQlContext != null ? graphQlContext.get(contextValueName) : null);
+		Object value = graphQlContext != null ? graphQlContext.get(contextValueName) : null;
 
 		boolean isOptional = parameterType.equals(Optional.class);
 		boolean isMono = parameterType.equals(Mono.class);
@@ -92,7 +92,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 		}
 
 		if (isOptional) {
-			return (value instanceof Optional ? value : Optional.ofNullable(value));
+			return value instanceof Optional ? value : Optional.ofNullable(value);
 		}
 
 		return value;

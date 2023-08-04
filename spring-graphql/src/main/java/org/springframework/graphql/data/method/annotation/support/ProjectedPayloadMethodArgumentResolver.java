@@ -93,39 +93,39 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		Class<?> type = getTargetType(parameter);
-		return (type.isInterface() && AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null);
+		return type.isInterface() && AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null;
 	}
 
 	private static Class<?> getTargetType(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (type.equals(Optional.class) || type.equals(ArgumentValue.class) ?
-				parameter.nested().getNestedParameterType() : parameter.getParameterType());
+		return type.equals(Optional.class) || type.equals(ArgumentValue.class) ?
+				parameter.nested().getNestedParameterType() : parameter.getParameterType();
 	}
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 
-		String name = (parameter.hasParameterAnnotation(Argument.class) ?
-				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null);
+		String name = parameter.hasParameterAnnotation(Argument.class) ?
+				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null;
 
 		Class<?> targetType = parameter.getParameterType();
-		boolean isOptional = (targetType == Optional.class);
-		boolean isArgumentValue = (targetType == ArgumentValue.class);
+		boolean isOptional = targetType == Optional.class;
+		boolean isArgumentValue = targetType == ArgumentValue.class;
 
 		if (isOptional || isArgumentValue) {
 			targetType = parameter.nested().getNestedParameterType();
 		}
 
 		Map<String, Object> arguments = environment.getArguments();
-		Object rawValue = (name != null ? arguments.get(name) : arguments);
-		Object value = (rawValue != null ? createProjection(targetType, rawValue) : null);
+		Object rawValue = name != null ? arguments.get(name) : arguments;
+		Object value = rawValue != null ? createProjection(targetType, rawValue) : null;
 
 		if (isOptional) {
 			return Optional.ofNullable(value);
 		}
 		else if (isArgumentValue) {
-			return (name != null && arguments.containsKey(name) ?
-					ArgumentValue.ofNullable(value) : ArgumentValue.omitted());
+			return name != null && arguments.containsKey(name) ?
+					ArgumentValue.ofNullable(value) : ArgumentValue.omitted();
 		}
 		else {
 			return value;

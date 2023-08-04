@@ -78,7 +78,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	@Override
 	public boolean isValid() {
-		return (this.result.isDataPresent() && this.result.getData() != null);
+		return this.result.isDataPresent() && this.result.getData() != null;
 	}
 
 	@Nullable
@@ -94,7 +94,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	@Override
 	public Map<Object, Object> getExtensions() {
-		return (this.result.getExtensions() != null ? this.result.getExtensions() : Collections.emptyMap());
+		return this.result.getExtensions() != null ? this.result.getExtensions() : Collections.emptyMap();
 	}
 
 	@Override
@@ -138,12 +138,12 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 		@Override
 		public List<Object> getParsedPath() {
-			return (this.delegate.getPath() != null ? this.delegate.getPath() : Collections.emptyList());
+			return this.delegate.getPath() != null ? this.delegate.getPath() : Collections.emptyList();
 		}
 
 		@Override
 		public Map<String, Object> getExtensions() {
-			return (this.delegate.getExtensions() != null ? this.delegate.getExtensions() : Collections.emptyMap());
+			return this.delegate.getExtensions() != null ? this.delegate.getExtensions() : Collections.emptyMap();
 		}
 
 		@Override
@@ -157,7 +157,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 	/**
 	 * Builder to transform the response's {@link ExecutionResult}.
 	 */
-	public static abstract class Builder<B extends Builder<B, R>, R extends ExecutionGraphQlResponse> {
+	public abstract static class Builder<B extends Builder<B, R>, R extends ExecutionGraphQlResponse> {
 
 		private final R original;
 

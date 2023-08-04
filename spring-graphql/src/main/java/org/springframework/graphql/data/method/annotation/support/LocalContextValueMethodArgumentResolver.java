@@ -35,7 +35,7 @@ public class LocalContextValueMethodArgumentResolver implements HandlerMethodArg
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return (parameter.getParameterAnnotation(LocalContextValue.class) != null);
+		return parameter.getParameterAnnotation(LocalContextValue.class) != null;
 	}
 
 	@Override

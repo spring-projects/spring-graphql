@@ -110,7 +110,7 @@ public class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport
 		@Override
 		protected Sort.Direction getDirection(DataFetchingEnvironment env) {
 			String direction = env.getArgument("sortDirection");
-			return (direction != null ? Sort.Direction.valueOf(direction) : null);
+			return direction != null ? Sort.Direction.valueOf(direction) : null;
 		}
 
 	}

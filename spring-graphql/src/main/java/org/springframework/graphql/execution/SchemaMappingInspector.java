@@ -210,13 +210,13 @@ final class SchemaMappingInspector {
 	}
 
 	private GraphQLType unwrapIfNonNull(GraphQLType type) {
-		return (type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type);
+		return type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type;
 	}
 
 	private boolean isPaginatedType(GraphQLType type) {
-		return (type instanceof GraphQLObjectType objectType &&
+		return type instanceof GraphQLObjectType objectType &&
 				objectType.getName().endsWith("Connection") &&
-				objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
+				objectType.getField("edges") != null && objectType.getField("pageInfo") != null;
 	}
 
 	private GraphQLType getPaginatedType(GraphQLObjectType type) {
@@ -270,11 +270,11 @@ final class SchemaMappingInspector {
 	}
 
 	private static String typeNameToString(GraphQLType type) {
-		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
+		return type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString();
 	}
 
 	private boolean addAndCheckIfAlreadyInspected(GraphQLType type) {
-		return (type instanceof GraphQLNamedOutputType outputType && !this.inspectedTypes.add(outputType.getName()));
+		return type instanceof GraphQLNamedOutputType outputType && !this.inspectedTypes.add(outputType.getName());
 	}
 
 	private static boolean isNotScalarOrEnumType(GraphQLType type) {
@@ -284,7 +284,7 @@ final class SchemaMappingInspector {
 	private boolean hasProperty(ResolvableType resolvableType, String fieldName) {
 		try {
 			Class<?> clazz = resolvableType.resolve(Object.class);
-			return (BeanUtils.getPropertyDescriptor(clazz, fieldName) != null);
+			return BeanUtils.getPropertyDescriptor(clazz, fieldName) != null;
 		}
 		catch (BeansException ex) {
 			throw new IllegalStateException(

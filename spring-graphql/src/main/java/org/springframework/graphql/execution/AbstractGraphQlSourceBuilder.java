@@ -52,7 +52,7 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
-	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
+	private Consumer<GraphQL.Builder> graphQlConfigurers = builder -> {
 	};
 
 
