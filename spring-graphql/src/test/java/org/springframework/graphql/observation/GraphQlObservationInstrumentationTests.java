@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.observation;
 
+import graphql.GraphQLContext;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.AsyncDataFetcher;
@@ -277,6 +278,41 @@ class GraphQlObservationInstrumentationTests {
 				.toGraphQlService()
 				.execute(TestExecutionRequest.forDocument(document));
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+	}
+
+	@Test
+	void shouldNotOverrideExistingLocalContext() {
+		
+		String document = """
+				{
+					bookById(id: 1) {
+						author {
+							firstName,
+							lastName
+						}
+					}
+				}
+				""";
+		DataFetcher<DataFetcherResult<Object>> bookDataFetcher = environment -> DataFetcherResult.newResult()
+				.data(BookSource.getBook(1L))
+				.localContext(GraphQLContext.newContext().of("test", "value").build())
+				.build();
+		DataFetcher<Author> authorDataFetcher = environment -> BookSource.getAuthor(101L);
+		DataFetcher<String> authorFirstNameDataFetcher = environment -> {
+			GraphQLContext context = environment.getLocalContext();
+			String value = context.get("test");
+			assertThat(value).isEqualTo("value");
+			return BookSource.getAuthor(101L).getFirstName();
+		};
+
+        ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.queryFetcher("bookById", bookDataFetcher)
+				.dataFetcher("Book", "author", authorDataFetcher)
+				.dataFetcher("Author", "firstName", authorFirstNameDataFetcher)
+				.toGraphQlService()
+				.execute(request);
+		ResponseHelper.forResponse(responseMono);
 	}
 
 }

@@ -203,7 +203,7 @@ public class GraphQlObservationInstrumentation extends SimpleInstrumentation {
 		}
 		else {
 			GraphQLContext localContext = dataFetcherLocalContext == null ?
-					GraphQLContext.getDefault() : dataFetcherLocalContext;
+					GraphQLContext.newContext().build() : GraphQLContext.newContext().of(dataFetcherLocalContext).build();
 			return DataFetcherResult.newResult()
 					.data(value)
 					.localContext(localContext.put(ObservationThreadLocalAccessor.KEY, dataFetcherObservation))
