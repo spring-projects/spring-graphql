@@ -21,6 +21,7 @@ import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.AsyncDataFetcher;
 import graphql.schema.DataFetcher;
+import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
@@ -262,13 +263,15 @@ class GraphQlObservationInstrumentationTests {
 				}
 				""";
 		DataFetcher<Book> bookDataFetcher = environment -> {
-			assertThat(observationRegistry.getCurrentObservation().getContext())
-					.isInstanceOf(ExecutionRequestObservationContext.class);
+			Observation.Context context = observationRegistry.getCurrentObservation().getContext();
+			assertThat(context).isInstanceOf(DataFetcherObservationContext.class);
+			assertThat(context.getLowCardinalityKeyValues()).contains(KeyValue.of("graphql.field.name", "bookById"));
 			return BookSource.getBookWithoutAuthor(1L);
 		};
 		DataFetcher<Author> authorDataFetcher = environment -> {
-			assertThat(observationRegistry.getCurrentObservation().getContext())
-					.isInstanceOf(DataFetcherObservationContext.class);
+			Observation.Context context = observationRegistry.getCurrentObservation().getContext();
+			assertThat(context).isInstanceOf(DataFetcherObservationContext.class);
+			assertThat(context.getLowCardinalityKeyValues()).contains(KeyValue.of("graphql.field.name", "author"));
 			return BookSource.getAuthor(101L);
 		};
 
