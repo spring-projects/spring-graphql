@@ -30,19 +30,17 @@
     const wsPath = params.get("wsPath") || "/graphql";
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const subscriptionUrl = `${wsProtocol}//${location.host}${wsPath}`;
-
-    const gqlFetcher = GraphiQL.createFetcher({
-        url,
-        subscriptionUrl,
-    });
-
+    const gqlFetcher = GraphiQL.createFetcher({'url': url, 'subscriptionUrl': subscriptionUrl});
     const explorerPlugin = GraphiQLPluginExplorer.explorerPlugin();
+    const xsrfToken = document.cookie.match(new RegExp('(?:^| )XSRF-TOKEN=([^;]+)'));
+    const headers = xsrfToken ? `{ "X-XSRF-TOKEN" : "${ xsrfToken[1] }" }` : `{}`;
     ReactDOM.render(
         React.createElement(GraphiQL, {
             fetcher: gqlFetcher,
             defaultVariableEditorOpen: true,
             headerEditorEnabled: true,
             shouldPersistHeaders: true,
+            headers: headers,
             plugins: [explorerPlugin]
         }),
         document.getElementById('graphiql'),
