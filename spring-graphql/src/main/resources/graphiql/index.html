@@ -18,15 +18,15 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/graphiql/graphiql.min.js" type="application/javascript"></script>
     <link rel="stylesheet" href="https://unpkg.com/graphiql/graphiql.min.css" />
+    <script src="https://unpkg.com/@graphiql/plugin-explorer/dist/index.umd.js" crossorigin></script>
+    <link rel="stylesheet" href="https://unpkg.com/@graphiql/plugin-explorer/dist/style.css"/>
 </head>
 <body>
 <div id="graphiql">Loading...</div>
 <script>
     const params = new URLSearchParams(window.location.search);
-
     const path = params.get("path") || "/graphql";
     const url = `${location.protocol}//${location.host}${path}`;
-
     const wsPath = params.get("wsPath") || "/graphql";
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const subscriptionUrl = `${wsProtocol}//${location.host}${wsPath}`;
@@ -36,12 +36,14 @@
         subscriptionUrl,
     });
 
+    const explorerPlugin = GraphiQLPluginExplorer.explorerPlugin();
     ReactDOM.render(
         React.createElement(GraphiQL, {
             fetcher: gqlFetcher,
             defaultVariableEditorOpen: true,
             headerEditorEnabled: true,
-            shouldPersistHeaders: true
+            shouldPersistHeaders: true,
+            plugins: [explorerPlugin]
         }),
         document.getElementById('graphiql'),
     );
