@@ -147,9 +147,15 @@ public class GraphQlObservationInstrumentation extends SimpleInstrumentation {
 						return completion.handle((result, error) -> {
 							observationContext.setValue(result);
 							if (error != null) {
-								dataFetcherObservation.error(error);
-								dataFetcherObservation.stop();
-								throw new CompletionException(error);
+								if (error instanceof CompletionException completionException) {
+									dataFetcherObservation.error(error.getCause());
+									dataFetcherObservation.stop();
+									throw completionException;
+								} else {
+									dataFetcherObservation.error(error);
+									dataFetcherObservation.stop();
+									throw new CompletionException(error);
+								}
 							}
 							dataFetcherObservation.stop();
 							return result;
