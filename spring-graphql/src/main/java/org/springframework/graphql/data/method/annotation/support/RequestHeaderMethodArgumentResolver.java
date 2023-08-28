@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.ValueConstants;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -59,13 +60,18 @@ public class RequestHeaderMethodArgumentResolver implements HandlerMethodArgumen
             }
         }
 
-        if (annotation.required()) {
+
+
+        boolean isDefault = annotation.defaultValue().equals(ValueConstants.DEFAULT_NONE);
+        boolean isRequired = annotation.required();
+
+        if (isDefault && isRequired) {
             throw new IllegalStateException(
                     "Missing header '" + annotation.value() + "' for method parameter of type " +
                             parameter.getNestedParameterType().getSimpleName());
         }
 
-        return annotation.defaultValue();
+        return isDefault ? null : annotation.defaultValue();
     }
 
 }
