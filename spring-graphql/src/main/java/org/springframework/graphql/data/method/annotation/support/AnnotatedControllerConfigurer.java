@@ -279,6 +279,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());
 		resolvers.addResolver(new LocalContextValueMethodArgumentResolver());
+		resolvers.addResolver(new RequestHeaderMethodArgumentResolver());
 
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
