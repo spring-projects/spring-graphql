@@ -37,6 +37,7 @@ import org.springframework.graphql.execution.ErrorType;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -168,8 +169,7 @@ class GraphQlObservationInstrumentationTests {
 								.errorType(ErrorType.BAD_REQUEST).build());
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.exceptionResolver(resolver)
-				.queryFetcher("bookById", env ->
-						CompletableFuture.failedStage(new IllegalStateException("book fetching failure")))
+				.queryFetcher("bookById", dataFetcher)
 				.toGraphQlService()
 				.execute(document);
 		ResponseHelper response = ResponseHelper.forResponse(responseMono);
@@ -190,13 +190,14 @@ class GraphQlObservationInstrumentationTests {
 	}
 
 	static Stream<Arguments> failureDataFetchers() {
-		DataFetcher<Book> bookDataFetcher = environment -> {
-			throw new IllegalStateException("book fetching failure");
-		};
 		return Stream.of(
-				Arguments.of(bookDataFetcher),
+				Arguments.of((DataFetcher<?>) environment -> {
+					throw new IllegalStateException("book fetching failure");
+				}),
 				Arguments.of((DataFetcher<?>) environment ->
-						CompletableFuture.failedStage(new IllegalStateException("book fetching failure")))
+						CompletableFuture.failedStage(new IllegalStateException("book fetching failure"))),
+				Arguments.of((DataFetcher<?>) environment ->
+						CompletableFuture.failedStage(new CompletionException(new IllegalStateException("book fetching failure"))))
 		);
 	}
 
