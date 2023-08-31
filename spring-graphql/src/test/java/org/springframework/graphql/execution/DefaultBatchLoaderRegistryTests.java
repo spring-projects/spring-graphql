@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -101,7 +102,41 @@ public class DefaultBatchLoaderRegistryTests {
 	}
 
 	@Test
-	void batchLoaderWithCustomNameAndOptions() {
+	void dataLoaderOptions() throws Exception {
+
+		DataLoaderOptions defaultOptions = DataLoaderOptions.newOptions().setBatchingEnabled(false);
+		DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry(() -> defaultOptions);
+
+		AtomicInteger counter = new AtomicInteger(1);
+
+		batchLoaderRegistry.forName("loader1")
+				.withOptions(options -> options.setCachingEnabled(false))
+				.registerBatchLoader((keys, environment) -> Flux.just(counter.getAndIncrement()));
+
+		batchLoaderRegistry.forName("loader2")
+				.withOptions(options -> options.setCachingEnabled(true))
+				.registerBatchLoader((keys, environment) -> Flux.just(counter.getAndIncrement()));
+
+		GraphQLContext graphQLContext = GraphQLContext.newContext().build();
+		batchLoaderRegistry.registerDataLoaders(this.dataLoaderRegistry, graphQLContext);
+
+		DataLoader<Long, Integer> loader1 =
+				(DataLoader<Long, Integer>) this.dataLoaderRegistry.getDataLoadersMap().get("loader1");
+
+		assertThat(loader1.load(1L).get()).isEqualTo(1);
+		assertThat(loader1.load(1L).get()).isEqualTo(2);
+		assertThat(loader1.load(1L).get()).isEqualTo(3);
+
+		DataLoader<Long, Integer> loader2 =
+				(DataLoader<Long, Integer>) this.dataLoaderRegistry.getDataLoadersMap().get("loader2");
+
+		assertThat(loader2.load(1L).get()).isEqualTo(4);
+		assertThat(loader2.load(1L).get()).isEqualTo(4);
+		assertThat(loader2.load(1L).get()).isEqualTo(4);
+	}
+
+	@Test
+	void batchLoaderOptionsConsumer() {
 		String name = "myLoader";
 		StatisticsCollector collector = new NoOpStatisticsCollector();
 
