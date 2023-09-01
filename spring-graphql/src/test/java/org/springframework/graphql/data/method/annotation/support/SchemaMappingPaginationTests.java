@@ -66,6 +66,23 @@ public class SchemaMappingPaginationTests {
 								"}}}");
 	}
 
+	@Test // gh-775
+	void zeroResults() {
+
+		String document = BookSource.booksConnectionQuery("first:0, after:\"O_3\"");
+		Mono<ExecutionGraphQlResponse> response = graphQlService().execute(document);
+
+		ResponseHelper.forResponse(response).assertData("""
+				{"books":{\
+				"edges":[],\
+				"pageInfo":{\
+				"startCursor":null,\
+				"endCursor":null,\
+				"hasPreviousPage":false,\
+				"hasNextPage":false}}}"""
+		);
+	}
+
 	private TestExecutionGraphQlService graphQlService() {
 
 		ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();

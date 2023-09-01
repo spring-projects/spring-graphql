@@ -217,6 +217,10 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 
 			Collection<T> nodes = this.adapter.getContent(container);
+			if (nodes.isEmpty()) {
+				return EMPTY_CONNECTION;
+			}
+
 			int index = 0;
 			List<Edge<T>> edges = new ArrayList<>(nodes.size());
 			for (T node : nodes) {
