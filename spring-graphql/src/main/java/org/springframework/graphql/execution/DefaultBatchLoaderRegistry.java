@@ -176,15 +176,16 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		private Supplier<DataLoaderOptions> initOptionsSupplier() {
 
-			Supplier<DataLoaderOptions> optionsSupplier = (this.options != null ?
-					() -> this.options : DefaultBatchLoaderRegistry.this.defaultOptionsSupplier);
+			Supplier<DataLoaderOptions> optionsSupplier = () ->
+					new DataLoaderOptions(this.options != null ?
+							this.options : DefaultBatchLoaderRegistry.this.defaultOptionsSupplier.get());
 
 			if (this.optionsConsumer == null) {
 				return optionsSupplier;
 			}
 
 			return () -> {
-				DataLoaderOptions options = new DataLoaderOptions(optionsSupplier.get());
+				DataLoaderOptions options = optionsSupplier.get();
 				this.optionsConsumer.accept(options);
 				return options;
 			};
