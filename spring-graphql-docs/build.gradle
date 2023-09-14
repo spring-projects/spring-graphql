@@ -18,7 +18,7 @@ javadoc {
 }
 
 dependencies {
-	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.2'
+	asciidoctorExtensions 'io.spring.asciidoctor.backends:spring-asciidoctor-backends:0.0.4'
 }
 
 repositories {
