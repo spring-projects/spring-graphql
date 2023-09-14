@@ -16,15 +16,19 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.security.Principal;
+import java.util.function.Function;
 
 import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import reactor.core.publisher.Mono;
 
 /**
  * Resolver to obtain {@link Principal} from Spring Security context via
@@ -50,13 +54,29 @@ public class PrincipalMethodArgumentResolver implements HandlerMethodArgumentRes
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
-		return doResolve();
+		return doResolve(parameter.isOptional());
 	}
 
-	static Object doResolve() {
+	static Object doResolve(boolean optional) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		return (authentication != null ? authentication :
-				ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication));
+
+		if (authentication != null) {
+			return authentication;
+		}
+
+		return ReactiveSecurityContextHolder.getContext()
+				.switchIfEmpty(optional ? Mono.empty() : Mono.error(new AuthenticationCredentialsNotFoundException("SecurityContext not available")))
+				.handle((context, sink) -> {
+					Authentication auth = context.getAuthentication();
+
+					if (auth != null) {
+						sink.next(auth);
+					} else if (!optional) {
+						sink.error(new AuthenticationCredentialsNotFoundException("An Authentication object was not found in the SecurityContext"));
+					} else {
+						sink.complete();
+					}
+				});
 	}
 
 }

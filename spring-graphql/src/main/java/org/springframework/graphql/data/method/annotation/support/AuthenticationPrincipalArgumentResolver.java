@@ -96,7 +96,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
-		return getCurrentAuthentication()
+		return getCurrentAuthentication(parameter.isOptional())
 				.flatMap(auth -> Mono.justOrEmpty(resolvePrincipal(parameter, auth.getPrincipal())))
 				.transform((argument) -> isParameterMonoAssignable(parameter) ? Mono.just(argument) : argument);
 	}
@@ -106,9 +106,16 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return (Publisher.class.equals(type) || Mono.class.equals(type));
 	}
 
-	private Mono<Authentication> getCurrentAuthentication() {
-		return Mono.justOrEmpty(SecurityContextHolder.getContext().getAuthentication())
-				.switchIfEmpty(ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication));
+	@SuppressWarnings("unchecked")
+	private Mono<Authentication> getCurrentAuthentication(boolean optional) {
+		Object principal = PrincipalMethodArgumentResolver.doResolve(optional);
+		if (principal instanceof Authentication) {
+			return Mono.just((Authentication) principal);
+		}
+		else if (principal instanceof Mono) {
+			return (Mono<Authentication>) principal;
+		}
+		return Mono.error(new IllegalStateException("Unexpected return value: " + principal));
 	}
 
 	@Nullable

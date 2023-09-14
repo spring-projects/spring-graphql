@@ -20,11 +20,14 @@ import java.security.Principal;
 import java.time.Duration;
 import java.util.function.Function;
 
+import graphql.GraphqlErrorBuilder;
 import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.graphql.execution.DataFetcherExceptionResolver;
+import org.springframework.graphql.execution.ErrorType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -63,6 +66,9 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 	private final Function<Context, Context> reactiveContextWriter = context ->
 			ReactiveSecurityContextHolder.withAuthentication(this.authentication);
 
+	private final Function<Context, Context> reactiveContextWriterWithoutAuthentication = context ->
+			ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextHolder.createEmptyContext()));
+
 	private final Function<Context, Context> threadLocalContextWriter = context ->
 			ContextSnapshot.captureAll().updateContext(context);
 
@@ -98,6 +104,68 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 			finally {
 				SecurityContextHolder.clearContext();
 			}
+		}
+
+		@Test
+		void nullablePrincipalDoesntRequireSecurityContext() {
+			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
+					"type Query { greetingMonoNullable: String }", "{ greetingMonoNullable }",
+					context -> context);
+
+			ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+
+			assertThat(responseHelper.errorCount()).isEqualTo(0);
+		}
+
+		@Test
+		void nonNullPrincipalRequiresSecurityContext() {
+			DataFetcherExceptionResolver exceptionResolver =
+				DataFetcherExceptionResolver.forSingleError((ex, env) -> GraphqlErrorBuilder.newError(env)
+									.message("Resolved error: " + ex.getMessage())
+									.errorType(ErrorType.UNAUTHORIZED)
+									.build());
+
+			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
+					"type Query { greetingMono: String }", "{ greetingMono }",
+					context -> context,
+					exceptionResolver);
+
+			ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+
+			assertThat(responseHelper.errorCount()).isEqualTo(1);
+			assertThat(responseHelper.error(0).errorType()).isEqualTo("UNAUTHORIZED");
+			assertThat(responseHelper.error(0).message()).isEqualTo("Resolved error: SecurityContext not available");
+		}
+
+		@Test
+		void nonNullPrincipalRequiresAuthentication() {
+			DataFetcherExceptionResolver exceptionResolver =
+				DataFetcherExceptionResolver.forSingleError((ex, env) -> GraphqlErrorBuilder.newError(env)
+									.message("Resolved error: " + ex.getMessage())
+									.errorType(ErrorType.UNAUTHORIZED)
+									.build());
+
+			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
+					"type Query { greetingMono: String }", "{ greetingMono }",
+					reactiveContextWriterWithoutAuthentication,
+					exceptionResolver);
+
+			ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+
+			assertThat(responseHelper.errorCount()).isEqualTo(1);
+			assertThat(responseHelper.error(0).errorType()).isEqualTo("UNAUTHORIZED");
+			assertThat(responseHelper.error(0).message()).isEqualTo("Resolved error: An Authentication object was not found in the SecurityContext");
+		}
+
+		@Test
+		void nullablePrincipalDoesntRequireAuthentication() {
+			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
+					"type Query { greetingMonoNullable: String }", "{ greetingMonoNullable }",
+					reactiveContextWriterWithoutAuthentication);
+
+			ResponseHelper responseHelper = ResponseHelper.forResponse(responseMono);
+
+			assertThat(responseHelper.errorCount()).isEqualTo(0);
 		}
 
 		private void testQuery(String field, Function<Context, Context> contextWriter) {
@@ -150,14 +218,24 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 	private Mono<ExecutionGraphQlResponse> executeAsync(
 			String schema, String document, Function<Context, Context> contextWriter) {
+		return executeAsync(schema, document, contextWriter, null);
+	}
+
+	private Mono<ExecutionGraphQlResponse> executeAsync(
+			String schema, String document, Function<Context, Context> contextWriter, @Nullable DataFetcherExceptionResolver exceptionResolver) {
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.registerBean(GreetingController.class, () -> greetingController);
 		context.refresh();
 
-		TestExecutionGraphQlService graphQlService = GraphQlSetup.schemaContent(schema)
-				.runtimeWiringForAnnotatedControllers(context)
-				.toGraphQlService();
+		GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent(schema)
+				.runtimeWiringForAnnotatedControllers(context);
+
+		if (exceptionResolver != null) {
+			graphQlSetup.exceptionResolver(exceptionResolver);
+		}
+
+		TestExecutionGraphQlService graphQlService = graphQlSetup.toGraphQlService();
 
 		return Mono.delay(Duration.ofMillis(10))
 				.flatMap(aLong -> graphQlService.execute(document))
@@ -193,6 +271,12 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 		@QueryMapping
 		Mono<String> greetingMono(Principal principal) {
+			this.principal = principal;
+			return Mono.just("Hello");
+		}
+
+		@QueryMapping
+		Mono<String> greetingMonoNullable(@Nullable Principal principal) {
 			this.principal = principal;
 			return Mono.just("Hello");
 		}

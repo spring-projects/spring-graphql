@@ -145,7 +145,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			return null;
 		}
 		else if (springSecurityPresent && Principal.class.isAssignableFrom(parameter.getParameterType())) {
-			return PrincipalMethodArgumentResolver.doResolve();
+			return PrincipalMethodArgumentResolver.doResolve(parameter.isOptional());
 		}
 		else {
 			throw new IllegalStateException(formatArgumentError(parameter, "Unexpected argument type."));
