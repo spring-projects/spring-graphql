@@ -26,11 +26,11 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
-import org.springframework.data.util.KotlinReflectionUtils;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
+import org.springframework.data.util.KotlinReflectionUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -82,18 +82,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		Method method = getBridgedMethod();
 		try {
 			if (KotlinDetector.isSuspendingFunction(method)) {
-				Object result = CoroutinesUtils.invokeSuspendingFunction(method, getBean(), argValues);
-
-				Class<?> returnType = KotlinReflectionUtils.getReturnType(method);
-
-				if (CompletableFuture.class.isAssignableFrom(returnType)) {
-					@SuppressWarnings("unchecked")
-					Mono<CompletableFuture<?>> mono = (Mono<CompletableFuture<?>>)result;
-					// Unwrap nested CompletableFuture
-					return mono.flatMap(Mono::fromFuture);
-				}
-
-				return result;
+				return invokeSuspendingFunction(getBean(), method, argValues);
 			}
 			Object result = method.invoke(getBean(), argValues);
 			return handleReturnValue(graphQLContext, result);
@@ -117,6 +106,19 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		catch (Throwable ex) {
 			return Mono.error(ex);
 		}
+	}
+
+	@SuppressWarnings({"ReactiveStreamsUnusedPublisher", "unchecked"})
+	private static Object invokeSuspendingFunction(Object bean, Method method, Object[] argValues) {
+		Object result = CoroutinesUtils.invokeSuspendingFunction(method, bean, argValues);
+
+		// Support DataLoader use
+		Class<?> returnType = KotlinReflectionUtils.getReturnType(method);
+		if (CompletableFuture.class.isAssignableFrom(returnType)) {
+			return ((Mono<CompletableFuture<?>>) result).flatMap(Mono::fromFuture);
+		}
+
+		return result;
 	}
 
 	@Nullable
