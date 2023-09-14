@@ -64,12 +64,16 @@ public class PrincipalMethodArgumentResolver implements HandlerMethodArgumentRes
 		Mono<Authentication> authMono =
 				ReactiveSecurityContextHolder.getContext().mapNotNull(SecurityContext::getAuthentication);
 
-		if (!parameter.isOptional()) {
+		if (isRequired(parameter)) {
 			authMono = authMono.switchIfEmpty(
 					Mono.error(new AuthenticationCredentialsNotFoundException("No Authentication")));
 		}
 
 		return authMono;
+	}
+
+	private static boolean isRequired(MethodParameter parameter) {
+		return (!parameter.isOptional() && !Mono.class.isAssignableFrom(parameter.getParameterType()));
 	}
 
 }

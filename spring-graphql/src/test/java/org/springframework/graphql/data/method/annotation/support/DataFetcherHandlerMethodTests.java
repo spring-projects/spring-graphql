@@ -36,7 +36,10 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComp
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.lang.Nullable;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.util.ClassUtils;
 
@@ -93,16 +96,22 @@ public class DataFetcherHandlerMethodTests {
 
 		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
 		resolvers.addResolver(new AuthenticationPrincipalArgumentResolver((beanName, context) -> null));
-		resolvers.addResolver(new ArgumentMethodArgumentResolver(new GraphQlArgumentBinder()));
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				handlerMethodFor(new TestController(), "handleAndReturnFuture"), resolvers,
 				null, null, false);
 
-		Object result = handlerMethod.invoke(DataFetchingEnvironmentImpl.newDataFetchingEnvironment().build());
+		SecurityContextHolder.setContext(new SecurityContextImpl(new TestingAuthenticationToken("usr", "pwd")));
+		try {
+			Object result = handlerMethod.invoke(
+					DataFetchingEnvironmentImpl.newDataFetchingEnvironment().build());
 
-		assertThat(result).isInstanceOf(Mono.class);
-		assertThat(((Mono<String>) result).block()).isEqualTo("B");
+			assertThat(result).isInstanceOf(Mono.class);
+			assertThat(((Mono<String>) result).block()).isEqualTo("B");
+		}
+		finally {
+			SecurityContextHolder.clearContext();
+		}
 	}
 
 	private static HandlerMethod handlerMethodFor(Object controller, String methodName) {

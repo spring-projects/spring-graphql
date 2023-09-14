@@ -33,6 +33,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -322,7 +323,7 @@ class AuthenticationPrincipalArgumentResolverTests {
 		}
 
 		@QueryMapping
-		public UserDetails currentUser(@CurrentUser UserDetails userDetails) {
+		public UserDetails currentUser(@CurrentUser @Nullable UserDetails userDetails) {
 			return userDetails;
 		}
 
