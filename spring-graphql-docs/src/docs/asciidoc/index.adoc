@@ -60,6 +60,25 @@ The 1.0.x branch of this repository contains a Spring MVC
 {github-10x-branch}/samples/webmvc-http[HTTP sample] application.
 
 
+[[server.transports.http.fileupload]]
+==== File Upload
+
+As a protocol GraphQL focuses on the exchange of textual data. This doesn't include binary
+data such as images, but there is a separate, informal
+https://github.com/jaydenseric/graphql-multipart-request-spec[graphql-multipart-request-spec]
+that allows file uploads with GraphQL over HTTP.
+
+Spring for GraphQL does not support the `graphql-multipart-request-spec` directly.
+While the spec does provide the benefit of a unified GraphQL API, the actual experince has
+led to a number of issues, and best practice recommendations have evolved, see
+https://www.apollographql.com/blog/backend/file-uploads/file-upload-best-practices/[Apollo Server File Upload Best Practices]
+for a more detailed discussion.
+
+If you would like to use `graphql-multipart-request-spec` in your application, you can
+do so through the library
+https://github.com/nkonev/multipart-spring-graphql[multipart-spring-graphql].
+
+
 
 [[server.transports.websocket]]
 === WebSocket
