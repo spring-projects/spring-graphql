@@ -134,7 +134,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 			assertThat(responseHelper.errorCount()).isEqualTo(1);
 			assertThat(responseHelper.error(0).errorType()).isEqualTo("UNAUTHORIZED");
-			assertThat(responseHelper.error(0).message()).isEqualTo("Resolved error: SecurityContext not available");
+			assertThat(responseHelper.error(0).message()).isEqualTo("Resolved error: No Authentication");
 		}
 
 		@Test
@@ -154,7 +154,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 			assertThat(responseHelper.errorCount()).isEqualTo(1);
 			assertThat(responseHelper.error(0).errorType()).isEqualTo("UNAUTHORIZED");
-			assertThat(responseHelper.error(0).message()).isEqualTo("Resolved error: An Authentication object was not found in the SecurityContext");
+			assertThat(responseHelper.error(0).message()).isEqualTo("Resolved error: No Authentication");
 		}
 
 		@Test

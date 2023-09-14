@@ -16,7 +16,6 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.security.Principal;
-import java.util.function.Function;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -24,7 +23,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,7 +42,7 @@ import reactor.core.publisher.Mono;
 public class PrincipalMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
 	/**
-	 * Return "true" if the argument is {@link Principal} or a sub-type.
+	 * Return "true" if the argument is {@link Principal} or a subtype.
 	 */
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
@@ -54,29 +52,24 @@ public class PrincipalMethodArgumentResolver implements HandlerMethodArgumentRes
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
-		return doResolve(parameter.isOptional());
+		return resolveAuthentication(parameter);
 	}
 
-	static Object doResolve(boolean optional) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-		if (authentication != null) {
-			return authentication;
+	static Object resolveAuthentication(MethodParameter parameter) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null) {
+			return auth;
 		}
 
-		return ReactiveSecurityContextHolder.getContext()
-				.switchIfEmpty(optional ? Mono.empty() : Mono.error(new AuthenticationCredentialsNotFoundException("SecurityContext not available")))
-				.handle((context, sink) -> {
-					Authentication auth = context.getAuthentication();
+		Mono<Authentication> authMono =
+				ReactiveSecurityContextHolder.getContext().mapNotNull(SecurityContext::getAuthentication);
 
-					if (auth != null) {
-						sink.next(auth);
-					} else if (!optional) {
-						sink.error(new AuthenticationCredentialsNotFoundException("An Authentication object was not found in the SecurityContext"));
-					} else {
-						sink.complete();
-					}
-				});
+		if (!parameter.isOptional()) {
+			authMono = authMono.switchIfEmpty(
+					Mono.error(new AuthenticationCredentialsNotFoundException("No Authentication")));
+		}
+
+		return authMono;
 	}
 
 }

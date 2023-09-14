@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,26 +96,20 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
-		return getCurrentAuthentication(parameter.isOptional())
-				.flatMap(auth -> Mono.justOrEmpty(resolvePrincipal(parameter, auth.getPrincipal())))
-				.transform((argument) -> isParameterMonoAssignable(parameter) ? Mono.just(argument) : argument);
+		return getCurrentAuthentication(parameter)
+				.mapNotNull(auth -> resolvePrincipal(parameter, auth.getPrincipal()))
+				.transform((argument) -> isPublisherOrMono(parameter) ? Mono.just(argument) : argument);
 	}
 
-	private static boolean isParameterMonoAssignable(MethodParameter parameter) {
+	private static boolean isPublisherOrMono(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
 		return (Publisher.class.equals(type) || Mono.class.equals(type));
 	}
 
 	@SuppressWarnings("unchecked")
-	private Mono<Authentication> getCurrentAuthentication(boolean optional) {
-		Object principal = PrincipalMethodArgumentResolver.doResolve(optional);
-		if (principal instanceof Authentication) {
-			return Mono.just((Authentication) principal);
-		}
-		else if (principal instanceof Mono) {
-			return (Mono<Authentication>) principal;
-		}
-		return Mono.error(new IllegalStateException("Unexpected return value: " + principal));
+	private Mono<Authentication> getCurrentAuthentication(MethodParameter parameter) {
+		Object value = PrincipalMethodArgumentResolver.resolveAuthentication(parameter);
+		return (value instanceof Authentication auth ? Mono.just(auth) : (Mono<Authentication>) value);
 	}
 
 	@Nullable
@@ -144,7 +138,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 			return false;
 		}
 		Class<?> typeToCheck = parameter.getParameterType();
-		if (isParameterMonoAssignable(parameter)) {
+		if (isPublisherOrMono(parameter)) {
 			Class<?> genericType = parameter.nested().getNestedParameterType();
 			if (genericType.equals(Object.class)) {
 				return false;
