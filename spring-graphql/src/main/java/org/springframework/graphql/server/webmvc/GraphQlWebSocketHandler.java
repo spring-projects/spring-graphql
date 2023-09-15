@@ -213,7 +213,15 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						.publishOn(state.getScheduler()) // Serial blocking send via single thread
 						.subscribe(new SendMessageSubscriber(id, session, state));
 			}
-			case PING -> session.sendMessage(encode(GraphQlWebSocketMessage.pong(null)));
+			case PING ->
+					state.getScheduler().schedule(() -> {
+						try {
+							session.sendMessage(encode(GraphQlWebSocketMessage.pong(null)));
+						}
+						catch (IOException ex) {
+							ExceptionWebSocketHandlerDecorator.tryCloseWithError(session, ex, logger);
+						}
+					});
 			case COMPLETE -> {
 				if (id != null) {
 					Subscription subscription = state.getSubscriptions().remove(id);
