@@ -439,7 +439,7 @@ You can register an error filter at the builder level, to apply to all tests:
 ----
 
 If you want to verify that an error does exist, and in contrast to `filter`, throw an
-assertion error if it doesn't, then use `exepect` instead:
+assertion error if it doesn't, then use `expect` instead:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
