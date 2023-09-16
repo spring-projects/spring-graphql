@@ -69,7 +69,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	private static String getQuery(Map<String, Object> body) {
 		Object value = body.get("query");
-		if (!(value instanceof String query) || !StringUtils.hasText(query)) {
+		if (!(value instanceof String) || !StringUtils.hasText((String) value)) {
 			throw new ServerWebInputException("Invalid value for 'query'");
 		}
 		return (String) value;

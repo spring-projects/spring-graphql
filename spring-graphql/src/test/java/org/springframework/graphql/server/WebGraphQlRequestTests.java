@@ -18,6 +18,7 @@ package org.springframework.graphql.server;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -37,18 +38,28 @@ public class WebGraphQlRequestTests {
 
 	@Test  // gh-726
 	void invalidBody() {
-		testInvalidBody(Map.of());
-		testInvalidBody(Map.of("query", Collections.emptyMap()));
-		testInvalidBody(Map.of("query", "query { foo }", "operation", Collections.emptyMap()));
-		testInvalidBody(Map.of("query", "query { foo }", "variables", "not-a-map"));
-		testInvalidBody(Map.of("query", "query { foo }", "extensions", "not-a-map"));
+		testInvalidBody(new HashMap<>());
+		Map<String, Object> empty = new HashMap<>();
+		empty.put("query", Collections.emptyMap());
+		testInvalidBody(empty);
+		Map<String, Object> emptyOperations = new HashMap<>();
+		emptyOperations.put("query", "query { foo }");
+		emptyOperations.put("operation", Collections.emptyMap());
+		testInvalidBody(emptyOperations);
+		Map<String, Object> invalidVariables = new HashMap<>();
+		invalidVariables.put("query", "query { foo }");
+		invalidVariables.put("variables", "not-a-map");
+		testInvalidBody(invalidVariables);
+		Map<String, Object> invalidExtensions = new HashMap<>();
+		invalidExtensions.put("query", "query { foo }");
+		invalidExtensions.put("extensions", "not-a-map");
+		testInvalidBody(invalidExtensions);
 	}
 
 	private void testInvalidBody(Map<String, Object> body) {
 		assertThatThrownBy(() ->
 				new WebGraphQlRequest(
-						URI.create("/graphql"), new HttpHeaders(), new LinkedMultiValueMap<>(),
-						Collections.emptyMap(), body, "1", null))
+						URI.create("/graphql"), new HttpHeaders(), body, "1", null))
 				.isInstanceOf(ServerWebInputException.class);
 	}
 
