@@ -18,14 +18,14 @@ dependencies {
 	api(platform("io.rsocket:rsocket-bom:1.1.3"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
-	api(platform("org.junit:junit-bom:5.9.2"))
+	api(platform("org.junit:junit-bom:5.9.3"))
 	api(platform("org.mockito:mockito-bom:4.8.1"))
 	api(platform("org.testcontainers:testcontainers-bom:1.17.6"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.19.0"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
-		api("io.micrometer:context-propagation:1.0.3")
+		api("io.micrometer:context-propagation:1.0.5")
 
 		api("jakarta.annotation:jakarta.annotation-api:2.1.1")
 		api("jakarta.servlet:jakarta.servlet-api:6.0.0")
