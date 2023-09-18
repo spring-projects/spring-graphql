@@ -15,9 +15,11 @@
  */
 package org.springframework.graphql.execution;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import graphql.language.FieldDefinition;
 import graphql.language.ImplementingTypeDefinition;
@@ -85,7 +87,9 @@ public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigu
 	}
 
 	private static Set<String> findConnectionTypeNames(TypeDefinitionRegistry registry) {
-		return registry.types().values().stream()
+		return Stream.concat(
+						registry.types().values().stream(),
+						registry.objectTypeExtensions().values().stream().flatMap(Collection::stream))
 				.filter(definition -> definition instanceof ImplementingTypeDefinition)
 				.flatMap(definition -> {
 					ImplementingTypeDefinition<?> typeDefinition = (ImplementingTypeDefinition<?>) definition;

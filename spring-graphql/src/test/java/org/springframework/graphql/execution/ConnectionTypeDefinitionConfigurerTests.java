@@ -45,7 +45,29 @@ public class ConnectionTypeDefinitionConfigurerTests {
 
 	@Test
 	void connectionTypeGeneration() {
+		GraphQlSetup graphQlSetup = GraphQlSetup.schemaResource(BookSource.paginationSchema);
+		testConnectionTypeGeneration(graphQlSetup);
+	}
 
+	@Test
+	void connectionTypeGenerationWithObjectExtension() {
+		String schema = """
+				type Query {
+					bookById(id:ID): Book
+				}
+				type Book {
+					id: ID
+					name: String
+				}
+				extend type Query {
+					books(first:Int, after:String): BookConnection
+				}
+				""";
+		GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent(schema);
+		testConnectionTypeGeneration(graphQlSetup);
+	}
+
+	private static void testConnectionTypeGeneration(GraphQlSetup graphQlSetup) {
 		List<Book> books = BookSource.books();
 
 		DataFetcher<?> dataFetcher = environment ->
@@ -53,7 +75,8 @@ public class ConnectionTypeDefinitionConfigurerTests {
 
 		String document = BookSource.booksConnectionQuery("");
 
-		Mono<ExecutionGraphQlResponse> response = initGraphQlSetup()
+		Mono<ExecutionGraphQlResponse> response = graphQlSetup
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
 				.dataFetcher("Query", "books", dataFetcher)
 				.toGraphQlService()
 				.execute(document);
@@ -76,11 +99,6 @@ public class ConnectionTypeDefinitionConfigurerTests {
 						"\"hasNextPage\":false}" +
 						"}}"
 		);
-	}
-
-	private GraphQlSetup initGraphQlSetup() {
-		return GraphQlSetup.schemaResource(BookSource.paginationSchema)
-				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
 	}
 
 	private static <N> Connection<N> createConnection(
