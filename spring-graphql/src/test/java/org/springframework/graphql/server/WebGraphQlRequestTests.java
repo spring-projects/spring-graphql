@@ -45,7 +45,7 @@ public class WebGraphQlRequestTests {
 
 		Map<String, Object> emptyOperations = new HashMap<>();
 		emptyOperations.put("query", "query { foo }");
-		emptyOperations.put("operation", Collections.emptyMap());
+		emptyOperations.put("operationName", Collections.emptyMap());
 		testInvalidBody(emptyOperations);
 
 		Map<String, Object> invalidVariables = new HashMap<>();
