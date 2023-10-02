@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import graphql.GraphQLError;
@@ -36,6 +37,7 @@ import org.springframework.core.ExceptionDepthComparator;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.OrderComparator;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -80,7 +82,7 @@ final class AnnotatedControllerExceptionResolver {
 
 	private final Map<Class<?>, MethodResolver> controllerCache = new ConcurrentHashMap<>(64);
 
-	private final Map<ControllerAdviceBean, MethodResolver> controllerAdviceCache = new ConcurrentHashMap<>(64);
+	private final Map<ControllerAdviceBean, MethodResolver> controllerAdviceCache = new TreeMap<>(OrderComparator.INSTANCE);
 
 
 	AnnotatedControllerExceptionResolver(HandlerMethodArgumentResolverComposite resolvers) {

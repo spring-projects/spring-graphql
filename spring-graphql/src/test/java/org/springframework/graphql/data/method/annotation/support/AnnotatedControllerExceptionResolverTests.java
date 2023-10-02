@@ -31,6 +31,8 @@ import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
 import org.springframework.lang.Nullable;
@@ -119,6 +121,20 @@ public class AnnotatedControllerExceptionResolverTests {
 
 		assertThat(actual).hasSize(1);
 		assertThat(actual.get(0).getMessage()).isEqualTo("handle: Bad input");
+	}
+
+	@Test
+	void resolveWithOrderedControllerAdvice() {
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.register(TestControllerAdvice.class);
+		context.register(OrderedTestControllerAdvice.class);
+		context.refresh();
+
+		Exception ex = new IllegalArgumentException("Bad input");
+		List<GraphQLError> actual = exceptionResolver(context).resolveException(ex, this.environment, null).block();
+
+		assertThat(actual).hasSize(1);
+		assertThat(actual.get(0).getMessage()).isEqualTo("ordered handle: Bad input");
 	}
 
 	@Test
@@ -230,6 +246,19 @@ public class AnnotatedControllerExceptionResolverTests {
 		@GraphQlExceptionHandler
 		GraphQLError handle(IllegalArgumentException ex) {
 			return GraphQLError.newError().message("handle: " + ex.getMessage()).build();
+		}
+
+	}
+
+
+	@SuppressWarnings("unused")
+	@ControllerAdvice
+	@Order(Ordered.HIGHEST_PRECEDENCE)
+	private static class OrderedTestControllerAdvice {
+
+		@GraphQlExceptionHandler
+		GraphQLError handle(IllegalArgumentException ex) {
+			return GraphQLError.newError().message("ordered handle: " + ex.getMessage()).build();
 		}
 
 	}
