@@ -12,7 +12,7 @@
     "allDeclaredMethods":true,
     "allDeclaredConstructors":true,
     "condition": {
-      "typeReachable": "org.springframework.graphql.client.DefaultRSocketGraphQlClientBuilder"
+      "typeReachable": "org.springframework.graphql.client.AbstractGraphQlClientBuilder"
     }
   },
   {
@@ -21,7 +21,7 @@
     "allDeclaredMethods":true,
     "allDeclaredConstructors":true,
     "condition": {
-      "typeReachable": "org.springframework.graphql.client.DefaultWebSocketGraphQlClientBuilder"
+      "typeReachable": "org.springframework.graphql.server.webflux.GraphQlWebSocketHandler"
     }
   }
 ]
