@@ -24,6 +24,7 @@ import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
 import graphql.execution.ExecutionIdProvider;
+import graphql.execution.instrumentation.dataloader.DataLoaderDispatcherInstrumentationState;
 import io.micrometer.context.ContextSnapshot;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
@@ -88,12 +89,21 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
 		if (!this.dataLoaderRegistrars.isEmpty()) {
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
-			DataLoaderRegistry previousRegistry = executionInput.getDataLoaderRegistry();
-			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().registerAll(previousRegistry).build();
-			this.dataLoaderRegistrars.forEach(registrar -> registrar.registerDataLoaders(newRegistry, graphQLContext));
-			executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+			DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
+			if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
+				DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
+				applyDataLoaderRegistrars(newRegistry, graphQLContext);
+				executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+			}
+			else {
+				applyDataLoaderRegistrars(existingRegistry, graphQLContext);
+			}
 		}
 		return executionInput;
+	}
+
+	private void applyDataLoaderRegistrars(DataLoaderRegistry registry, GraphQLContext graphQLContext) {
+		this.dataLoaderRegistrars.forEach(registrar -> registrar.registerDataLoaders(registry, graphQLContext));
 	}
 
 }
