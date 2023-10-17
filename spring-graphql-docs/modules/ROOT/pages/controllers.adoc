@@ -433,7 +433,7 @@ public class BookController {
 
 	@QueryMapping
 	public Window<Book> books(ScrollSubrange subrange) {
-		ScrollPosition position = subrange.position().orElse(OffsetScrollPosition.initial())
+		ScrollPosition position = subrange.position().orElse(ScrollPosition.offset());
 		int count = subrange.count().orElse(20);
 		// ...
 	}
