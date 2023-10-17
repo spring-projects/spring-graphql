@@ -68,7 +68,7 @@ public class Subrange<P> {
 
 	/**
 	 * Whether the subrange is forward or backward from ths position, depending
-	 * on whether the argument sent "fist" or "last".
+	 * on whether the argument sent "first" or "last".
 	 * <p><strong>Note:</strong> The direction may not always match the original
 	 * value. For backward pagination, for example, an offset cursor could be
 	 * adjusted down by the count of elements, switching backward to forward.
