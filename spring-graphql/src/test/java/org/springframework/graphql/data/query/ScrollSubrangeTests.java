@@ -41,13 +41,13 @@ public class ScrollSubrangeTests {
 		ScrollPosition position = ScrollPosition.offset(30);
 		int count = 10;
 
-		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
+		ScrollSubrange subrange = ScrollSubrange.create(position, count, true);
 		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 
-		subrange = new ScrollSubrange(position, count, false);
-		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(20);
+		subrange = ScrollSubrange.create(position, count, false);
+		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(19);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -62,14 +62,14 @@ public class ScrollSubrangeTests {
 		ScrollPosition position = ScrollPosition.forward(keys);
 		int count = 10;
 
-		ScrollSubrange subrange = new ScrollSubrange(position, count, true);
+		ScrollSubrange subrange = ScrollSubrange.create(position, count, true);
 		KeysetScrollPosition actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
 		assertThat(actualPosition.getDirection()).isEqualTo(Direction.FORWARD);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 
-		subrange = new ScrollSubrange(position, count, false);
+		subrange = ScrollSubrange.create(position, count, false);
 		actualPosition = (KeysetScrollPosition) subrange.position().get();
 		assertThat(actualPosition.getKeys()).isEqualTo(keys);
 		assertThat(actualPosition.getDirection()).isEqualTo(Direction.BACKWARD);
@@ -79,7 +79,7 @@ public class ScrollSubrangeTests {
 
 	@Test
 	void nullInput() {
-		ScrollSubrange subrange = new ScrollSubrange(null, null, true);
+		ScrollSubrange subrange = ScrollSubrange.create(null, null, true);
 
 		assertThat(subrange.position()).isNotPresent();
 		assertThat(subrange.count()).isNotPresent();
@@ -87,9 +87,29 @@ public class ScrollSubrangeTests {
 	}
 
 	@Test
-	void offsetBackwardPaginationNullSize() {
+	void offsetBackwardPaginationWithInsufficientCount() {
+		ScrollPosition position = ScrollPosition.offset(5);
+		ScrollSubrange subrange = ScrollSubrange.create(position, 10, false);
+
+		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(0);
+		assertThat(subrange.count().getAsInt()).isEqualTo(4);
+		assertThat(subrange.forward()).isTrue();
+	}
+
+	@Test
+	void offsetBackwardPaginationWithOffsetZero() {
+		ScrollPosition position = ScrollPosition.offset(0);
+		ScrollSubrange subrange = ScrollSubrange.create(position, 10, false);
+
+		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(0);
+		assertThat(subrange.count().getAsInt()).isEqualTo(0);
+		assertThat(subrange.forward()).isTrue();
+	}
+
+	@Test
+	void offsetBackwardPaginationWithNullCount() {
 		ScrollPosition position = ScrollPosition.offset(30);
-		ScrollSubrange subrange = new ScrollSubrange(position, null, false);
+		ScrollSubrange subrange = ScrollSubrange.create(position, null, false);
 
 		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);
 		assertThat(subrange.count()).isNotPresent();

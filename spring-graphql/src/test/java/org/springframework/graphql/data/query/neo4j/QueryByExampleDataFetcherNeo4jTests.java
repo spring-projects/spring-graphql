@@ -235,7 +235,7 @@ class QueryByExampleDataFetcherNeo4jTests {
 				(executor != null ? Collections.singletonList(executor) : Collections.emptyList()),
 				Collections.emptyList(),
 				new ScrollPositionCursorStrategy(),
-				new ScrollSubrange(ScrollPosition.offset(), 10, true));
+				ScrollSubrange.create(ScrollPosition.offset(), 10, true));
 	}
 
 	private WebGraphQlRequest request(String query) {

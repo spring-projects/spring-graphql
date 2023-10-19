@@ -62,8 +62,8 @@ public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentR
 	/**
 	 * Allows subclasses to create an extension of {@link Subrange}.
 	 */
-	protected Subrange<P> createSubrange(@Nullable P pos, @Nullable Integer size, boolean forward) {
-		return new Subrange<>(pos, size, forward);
+	protected Subrange<P> createSubrange(@Nullable P pos, @Nullable Integer count, boolean forward) {
+		return new Subrange<>(pos, count, forward);
 	}
 
 }

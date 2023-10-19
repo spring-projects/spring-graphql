@@ -85,7 +85,7 @@ class RepositoryUtils {
 	}
 
 	public static ScrollSubrange defaultScrollSubrange() {
-		return new ScrollSubrange(ScrollPosition.offset(), 20, true);
+		return ScrollSubrange.create(ScrollPosition.offset(), 20, true);
 	}
 
 	public static ScrollSubrange buildScrollSubrange(
@@ -96,7 +96,7 @@ class RepositoryUtils {
 		Integer count = environment.getArgument(forward ? "first" : "last");
 		String cursor = environment.getArgument(forward ? "after" : "before");
 		ScrollPosition position = (cursor != null ? cursorStrategy.fromCursor(cursor) : null);
-		return new ScrollSubrange(position, count, forward);
+		return ScrollSubrange.create(position, count, forward);
 	}
 
 }

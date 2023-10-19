@@ -44,8 +44,9 @@ public class ScrollSubrangeMethodArgumentResolver extends SubrangeMethodArgument
 		return parameter.getParameterType().equals(ScrollSubrange.class);
 	}
 
-	protected ScrollSubrange createSubrange(@Nullable ScrollPosition pos, @Nullable Integer size, boolean forward) {
-		return new ScrollSubrange(pos, size, forward);
+	@Override
+	protected ScrollSubrange createSubrange(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
+		return ScrollSubrange.create(pos, count, forward);
 	}
 
 }
