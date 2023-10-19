@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import graphql.TrivialDataFetcher;
+import graphql.execution.DataFetcherResult;
 import graphql.relay.Connection;
 import graphql.relay.DefaultConnection;
 import graphql.relay.DefaultConnectionCursor;
@@ -189,17 +190,30 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		public Object get(DataFetchingEnvironment environment) throws Exception {
 			Object result = this.delegate.get(environment);
 			if (result instanceof Mono<?> mono) {
-				return mono.map(this::adapt);
+				return mono.map(this::adaptDataFetcherResult);
 			}
 			else if (result instanceof CompletionStage<?> stage) {
-				return stage.thenApply(this::adapt);
+				return stage.thenApply(this::adaptDataFetcherResult);
 			}
 			else {
-				return adapt(result);
+				return adaptDataFetcherResult(result);
 			}
 		}
 
-		private <T> Object adapt(@Nullable Object container) {
+		private Object adaptDataFetcherResult(@Nullable Object value) {
+			if (value instanceof DataFetcherResult<?> dataFetcherResult) {
+				Object adapted = adaptDataContainer(dataFetcherResult.getData());
+				return DataFetcherResult.newResult()
+						.data(adapted)
+						.errors(dataFetcherResult.getErrors())
+						.localContext(dataFetcherResult.getLocalContext()).build();
+			}
+			else {
+				return adaptDataContainer(value);
+			}
+		}
+
+		private <T> Object adaptDataContainer(@Nullable Object container) {
 			if (container == null) {
 				return EMPTY_CONNECTION;
 			}

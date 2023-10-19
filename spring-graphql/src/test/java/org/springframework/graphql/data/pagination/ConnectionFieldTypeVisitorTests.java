@@ -18,7 +18,9 @@ package org.springframework.graphql.data.pagination;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLFieldDefinition;
@@ -52,36 +54,41 @@ public class ConnectionFieldTypeVisitorTests {
 
 
 	@Test
-	void paginatedTypeIsAdapted() {
+	void adaptPaginatedType() {
 
-		ListConnectionAdapter adapter = new ListConnectionAdapter();
-		adapter.setInitialOffset(30);
-		adapter.setHasNext(true);
+		Consumer<DataFetcher<Object>> testConsumer = booksDataFetcher -> {
+			ListConnectionAdapter adapter = new ListConnectionAdapter();
+			adapter.setInitialOffset(30);
+			adapter.setHasNext(true);
 
-		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
-				.dataFetcher("Query", "books", env -> BookSource.books())
-				.connectionSupport(adapter)
-				.toGraphQlService()
-				.execute(BookSource.booksConnectionQuery(null));
+			Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+					.dataFetcher("Query", "books", booksDataFetcher)
+					.connectionSupport(adapter)
+					.toGraphQlService()
+					.execute(BookSource.booksConnectionQuery(null));
 
-		ResponseHelper.forResponse(response).assertData(
-				"{\"books\":{" +
-						"\"edges\":[" +
-						"{\"cursor\":\"O_30\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +
-						"{\"cursor\":\"O_31\",\"node\":{\"id\":\"2\",\"name\":\"The Great Gatsby\"}}," +
-						"{\"cursor\":\"O_32\",\"node\":{\"id\":\"3\",\"name\":\"Catch-22\"}}," +
-						"{\"cursor\":\"O_33\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
-						"{\"cursor\":\"O_34\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}," +
-						"{\"cursor\":\"O_35\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}," +
-						"{\"cursor\":\"O_36\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}" +
-						"]," +
-						"\"pageInfo\":{" +
-						"\"startCursor\":\"O_30\"," +
-						"\"endCursor\":\"O_36\"," +
-						"\"hasPreviousPage\":true," +
-						"\"hasNextPage\":true}" +
-						"}}"
-		);
+			ResponseHelper.forResponse(response).assertData(
+					"{\"books\":{" +
+							"\"edges\":[" +
+							"{\"cursor\":\"O_30\",\"node\":{\"id\":\"1\",\"name\":\"Nineteen Eighty-Four\"}}," +
+							"{\"cursor\":\"O_31\",\"node\":{\"id\":\"2\",\"name\":\"The Great Gatsby\"}}," +
+							"{\"cursor\":\"O_32\",\"node\":{\"id\":\"3\",\"name\":\"Catch-22\"}}," +
+							"{\"cursor\":\"O_33\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
+							"{\"cursor\":\"O_34\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}," +
+							"{\"cursor\":\"O_35\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}," +
+							"{\"cursor\":\"O_36\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}" +
+							"]," +
+							"\"pageInfo\":{" +
+							"\"startCursor\":\"O_30\"," +
+							"\"endCursor\":\"O_36\"," +
+							"\"hasPreviousPage\":true," +
+							"\"hasNextPage\":true}" +
+							"}}"
+			);
+		};
+
+		testConsumer.accept(env -> BookSource.books());
+		testConsumer.accept(env -> DataFetcherResult.newResult().data(BookSource.books()).build());
 	}
 
 	@Test // gh-709
