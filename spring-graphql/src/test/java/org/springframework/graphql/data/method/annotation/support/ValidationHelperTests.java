@@ -73,6 +73,18 @@ class ValidationHelperTests {
 
 		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidArgumentValue");
 		assertViolation(() -> validator3.accept(bean, new Object[] {ArgumentValue.ofNullable("")}), "myValidArgumentValue.arg0");
+
+		// Validate that an explicit null value is validated.
+		assertViolation(() -> validator3.accept(bean, new Object[] {ArgumentValue.ofNullable(null)}), "myValidArgumentValue.arg0");
+	}
+
+	@Test
+	void shouldNotRaiseValidationErrorForOmittedArgumentValue() {
+		MyBean bean = new MyBean();
+
+		// Validate that an omitted value is allowed.
+		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidArgumentValue");
+		validator3.accept(bean, new Object[] {ArgumentValue.omitted()});
 	}
 
 	@Test
