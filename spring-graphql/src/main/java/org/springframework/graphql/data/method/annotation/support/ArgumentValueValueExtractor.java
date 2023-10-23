@@ -32,7 +32,7 @@ public final class ArgumentValueValueExtractor implements ValueExtractor<Argumen
 
     @Override
     public void extractValues(ArgumentValue<?> argumentValue, ValueReceiver receiver) {
-        if (argumentValue.isPresent()) {
+        if (!argumentValue.isOmitted()) {
             receiver.value(null, argumentValue.value());
         }
     }
