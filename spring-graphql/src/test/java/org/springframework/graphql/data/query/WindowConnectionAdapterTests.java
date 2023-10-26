@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.data.query;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,30 @@ public class WindowConnectionAdapterTests {
 		assertThat(this.adapter.hasNext(window)).isFalse();
 		assertThat(this.adapter.hasPrevious(window)).isFalse();
 		assertThat(this.adapter.cursorAt(window, 3)).isEqualTo("O_3");
+	}
+
+	@Test
+	void hasNextPreviousWithKeysetScrollForward() {
+
+		Window<Book> window = Window.from(
+				BookSource.books(),
+				index -> ScrollPosition.of(Collections.singletonMap("id", index), ScrollPosition.Direction.FORWARD),
+				true);
+
+		assertThat(this.adapter.hasPrevious(window)).isFalse();
+		assertThat(this.adapter.hasNext(window)).isEqualTo(true);
+	}
+
+	@Test
+	void hasNextPreviousWithKeysetScrollBackward() {
+
+		Window<Book> window = Window.from(
+				BookSource.books(),
+				index -> ScrollPosition.of(Collections.singletonMap("id", index), ScrollPosition.Direction.BACKWARD),
+				true);
+
+		assertThat(this.adapter.hasPrevious(window)).isEqualTo(true);
+		assertThat(this.adapter.hasNext(window)).isFalse();
 	}
 
 }

@@ -18,6 +18,7 @@ package org.springframework.graphql.data.query;
 
 import java.util.Collection;
 
+import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.data.pagination.ConnectionAdapter;
@@ -53,12 +54,31 @@ public final class WindowConnectionAdapter
 	@Override
 	public boolean hasPrevious(Object container) {
 		Window<?> window = window(container);
-		return (window.size() > 0 && !window.positionAt(0).isInitial());
+		if (!window.isEmpty()) {
+			ScrollPosition position = window.positionAt(0);
+			if (position instanceof KeysetScrollPosition keysetPosition) {
+				return (keysetPosition.scrollsBackward() && window.hasNext());
+			}
+			else {
+				return !position.isInitial();
+			}
+		}
+		return false;
 	}
 
 	@Override
 	public boolean hasNext(Object container) {
-		return window(container).hasNext();
+		Window<?> window = window(container);
+		if (!window.isEmpty()) {
+			ScrollPosition pos = window.positionAt(0);
+			if (pos instanceof KeysetScrollPosition keysetPos) {
+				return (keysetPos.scrollsForward() && window.hasNext());
+			}
+			else {
+				return window.hasNext();
+			}
+		}
+		return false;
 	}
 
 	@Override
