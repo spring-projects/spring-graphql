@@ -96,10 +96,15 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				return Mono.error(new IllegalStateException("WebSocketGraphQlTransport has been stopped"));
 			}
 
-			client.execute(uri, headers, handler)
-					.subscribe(aVoid -> {}, handler::handleWebSocketSessionError, () -> {});
+			// Get the session Mono before connecting
+			Mono<GraphQlSession> sessionMono = handler.getGraphQlSession();
 
-			return handler.getGraphQlSession();
+			client.execute(uri, headers, handler)
+					.subscribe(aVoid -> {},
+							handler::handleWebSocketSessionError,
+							handler::handleWebSocketSessionClosed);
+
+			return sessionMono;
 		});
 	}
 
@@ -311,10 +316,6 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						}
 						graphQlSession.terminateRequests(closeStatusMessage, closeStatus);
 					})
-					.doOnTerminate(() -> {
-						// Reset GraphQlSession sink to be ready to connect again
-						this.graphQlSessionSink = Sinks.unsafe().one();
-					})
 					.subscribe();
 		}
 
@@ -356,6 +357,15 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 
 			this.graphQlSessionSink.tryEmitError(ex);
+			this.graphQlSessionSink = Sinks.unsafe().one();
+		}
+
+		/**
+		 * This must be called from code that calls the {@code WebSocketClient}
+		 * when execution completes.
+		 */
+		public void handleWebSocketSessionClosed() {
+			this.graphQlSessionSink = Sinks.unsafe().one();
 		}
 
 	}
