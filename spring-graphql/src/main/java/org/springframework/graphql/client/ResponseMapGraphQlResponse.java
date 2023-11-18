@@ -133,10 +133,10 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 		private static List<SourceLocation> initLocations(Map<String, Object> errorMap) {
 			return ((List<Map<String, Object>>) errorMap.getOrDefault("locations", Collections.emptyList())).stream()
 					.map(map -> new SourceLocation(
-              objectAsInt(map.get("line")),
-              objectAsInt(map.get("column")),
-              Objects.toString(map.get("sourceName"))
-          ))
+						objectAsInt(map.get("line")),
+						objectAsInt(map.get("column")),
+						Objects.toString(map.get("sourceName"))
+					))
 					.collect(Collectors.toList());
 		}
 
