@@ -16,9 +16,11 @@
 
 package org.springframework.graphql.client;
 
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import graphql.ErrorClassification;
@@ -130,8 +132,23 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 		@SuppressWarnings("unchecked")
 		private static List<SourceLocation> initLocations(Map<String, Object> errorMap) {
 			return ((List<Map<String, Object>>) errorMap.getOrDefault("locations", Collections.emptyList())).stream()
-					.map(map -> new SourceLocation((int) map.get("line"), (int) map.get("column"), (String) map.get("sourceName")))
+					.map(map -> new SourceLocation(
+              objectAsInt(map.get("line")),
+              objectAsInt(map.get("column")),
+              Objects.toString(map.get("sourceName"))
+          ))
 					.collect(Collectors.toList());
+		}
+
+		private static int objectAsInt(Object value) {
+
+			if (value instanceof BigInteger bigInteger) {
+				return bigInteger.intValue();
+			} else if (value instanceof Number number) {
+				return number.intValue();
+			} else {
+				return -1;
+			}
 		}
 
 		@SuppressWarnings("unchecked")
