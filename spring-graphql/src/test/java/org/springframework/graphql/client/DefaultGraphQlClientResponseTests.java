@@ -16,16 +16,18 @@
 
 package org.springframework.graphql.client;
 
+import graphql.language.SourceLocation;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.ResultPath;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.DeserializationFeature;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.graphql.ResponseError;
@@ -136,27 +138,54 @@ public class DefaultGraphQlClientResponseTests {
 		assertThat(errors.get(2).getPath()).isEqualTo("me.friends[0].name");
 	}
 
-	private GraphQLError createError(@Nullable String errorPath, String message) {
+	@Test
+	void errorWithBigIntegerNumbers() throws IOException {
+
+		String path = "me.friends";
+
+		GraphQLError error0 = createError("/me", "fail-me", new SourceLocation(100, 100));
+
+		ObjectMapper objectMapper = new ObjectMapper().enable(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS);
+		String error0string = objectMapper.writeValueAsString(error0);
+		Map<?, ?> error0Map = objectMapper.readValue(error0string, Map.class);
+
+		List<?> list = List.of(error0Map);
+
+		ClientGraphQlResponse response = createResponse(Collections.singletonMap("errors", list));
+		ClientResponseField field =  response.field(path);
+
+		List<ResponseError> errors = field.getErrors();
+
+		assertThat(errors).hasSize(1);
+		assertThat(errors.get(0).getPath()).isEqualTo("me");
+		assertThat(errors.get(0).getLocations().get(0).getLine()).isEqualTo(100);
+		assertThat(errors.get(0).getLocations().get(0).getColumn()).isEqualTo(100);
+	}
+
+	private GraphQLError createError(@Nullable String errorPath, String message, SourceLocation... locations) {
 		GraphqlErrorBuilder<?> builder = GraphqlErrorBuilder.newError().message(message);
 		if (errorPath != null) {
 			builder = builder.path(ResultPath.parse(errorPath));
+		}
+		if (locations.length > 0) {
+			builder = builder.locations(List.of(locations));
 		}
 		return builder.build();
 	}
 
 	private ClientResponseField getFieldOnDataResponse(String path, String dataJson) throws Exception {
 		Map<?, ?> dataMap = mapper.readValue(dataJson, Map.class);
-		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("data", dataMap));
+		ClientGraphQlResponse response = createResponse(Collections.singletonMap("data", dataMap));
 		return response.field(path);
 	}
 
 	private ClientResponseField getFieldOnErrorResponse(String path, GraphQLError... errors) {
 		List<?> list = Arrays.stream(errors).map(GraphQLError::toSpecification).toList();
-		ClientGraphQlResponse response = creatResponse(Collections.singletonMap("errors", list));
+		ClientGraphQlResponse response = createResponse(Collections.singletonMap("errors", list));
 		return response.field(path);
 	}
 
-	private ClientGraphQlResponse creatResponse(Map<String, Object> responseMap) {
+	private ClientGraphQlResponse createResponse(Map<String, Object> responseMap) {
 		return new DefaultClientGraphQlResponse(
 				new DefaultClientGraphQlRequest("{test}", null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap()),
 				new ResponseMapGraphQlResponse(responseMap),
