@@ -7,6 +7,7 @@
 * xref:observability.adoc[]
 * xref:graalvm-native.adoc[]
 * xref:client.adoc[]
+* xref:codegen.adoc[]
 * xref:graphiql.adoc[]
 * xref:testing.adoc[]
 * xref:boot-starter.adoc[]

@@ -1,0 +1,55 @@
+[[codegen]]
+= Code Generation
+
+You can use tools such as
+https://netflix.github.io/dgs/generating-code-from-schema/[DGS Code Generation] to generate
+Java types from the GraphQL schema. The following can be generated:
+
+1. Client types for requests (e.g. queries, mutations) input types, and other types to
+express the response selection set.
+2. Data types.
+3. Server handling classes (e.g. controllers).
+
+Code generation provides convenience initially, but is not ideal for your own application
+domain types over which you'll typically want control. For client types, however, code
+generation can be very useful since you typically don't need to manually change generated
+request types, input types, and selection set types. Response types could be imported,
+if you have access to them, or otherwise could also be generated.
+
+Client generated types can be used with Spring's `GraphQlClient`. Start by following the
+instructions for the DGS code generation plugin to generate client API types. Then, given
+a schema like this:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+    type Query {
+        books: [Book]
+    }
+
+    type Book {
+        id: ID
+        name: String
+    }
+----
+
+DGS Codegen will generate a `BooksGraphQLQuery` and `BooksProjectionRoot` classes.
+You can then use those with Spring's `GraphQlClient` along with your own `Book` class
+for the response:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    HttpGraphQlClient client =
+            HttpGraphQlClient.create(WebClient.create("http://localhost:8080/graphql"));
+
+    BooksGraphQLQuery query = new BooksGraphQLQuery();
+    String document = new GraphQLQueryRequest(query, new BooksProjectionRoot<>().id().name()).serialize();
+
+    List<Book> books = client.document(document)
+            .retrieve(query.getOperationName())
+            .toEntityList(Book.class)
+            .block();
+----
+
+NOTE: Spring Initializer at https://start.spring.io is scheduled to add support for the DGS
+Code Generation with Gradle and Maven. See
+https://github.com/spring-io/start.spring.io/pull/1348[start.spring.io#1348].
