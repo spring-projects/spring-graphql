@@ -16,11 +16,9 @@
 
 package org.springframework.graphql.client;
 
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import graphql.ErrorClassification;
@@ -125,29 +123,28 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 		MapResponseError(Map<String, Object> errorMap) {
 			Assert.notNull(errorMap, "'errorMap' is required");
 			this.errorMap = errorMap;
-			this.locations = initLocations(errorMap);
+			this.locations = initSourceLocations(errorMap);
 			this.path = initPath(errorMap);
 		}
 
 		@SuppressWarnings("unchecked")
-		private static List<SourceLocation> initLocations(Map<String, Object> errorMap) {
-			return ((List<Map<String, Object>>) errorMap.getOrDefault("locations", Collections.emptyList())).stream()
-					.map(map -> new SourceLocation(
-						objectAsInt(map.get("line")),
-						objectAsInt(map.get("column")),
-						Objects.toString(map.get("sourceName"))
-					))
+		private static List<SourceLocation> initSourceLocations(Map<String, Object> errorMap) {
+			List<Map<String, Object>> locations = (List<Map<String, Object>>) errorMap.get("locations");
+			if (locations == null) {
+				return Collections.emptyList();
+			}
+			return locations.stream()
+					.map(m -> new SourceLocation(getInt(m, "line"), getInt(m, "column"), (String) m.get("sourceName")))
 					.collect(Collectors.toList());
 		}
 
-		private static int objectAsInt(Object value) {
-
-			if (value instanceof BigInteger bigInteger) {
-				return bigInteger.intValue();
-			} else if (value instanceof Number number) {
+		private static int getInt(Map<String, Object> map, String key) {
+			if (map.get(key) instanceof Number number) {
 				return number.intValue();
-			} else {
-				return -1;
+			}
+			else {
+				throw new IllegalArgumentException(
+						"Expected integer value: " + ObjectUtils.nullSafeClassName(map.get(key)));
 			}
 		}
 
@@ -161,6 +158,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 					(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
 					(s, s2) -> null);
 		}
+
 
 		@Override
 		@Nullable

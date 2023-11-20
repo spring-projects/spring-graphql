@@ -138,24 +138,19 @@ public class DefaultGraphQlClientResponseTests {
 		assertThat(errors.get(2).getPath()).isEqualTo("me.friends[0].name");
 	}
 
-	@Test
+	@Test // gh-849
 	void errorWithBigIntegerNumbers() throws IOException {
 
 		String path = "me.friends";
+		GraphQLError error = createError("/me", "fail-me", new SourceLocation(100, 100));
 
-		GraphQLError error0 = createError("/me", "fail-me", new SourceLocation(100, 100));
+		ObjectMapper mapper = new ObjectMapper().enable(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS);
+		Map<?, ?> errorMap = mapper.readValue(mapper.writeValueAsString(error), Map.class);
 
-		ObjectMapper objectMapper = new ObjectMapper().enable(DeserializationFeature.USE_BIG_INTEGER_FOR_INTS);
-		String error0string = objectMapper.writeValueAsString(error0);
-		Map<?, ?> error0Map = objectMapper.readValue(error0string, Map.class);
-
-		List<?> list = List.of(error0Map);
-
-		ClientGraphQlResponse response = createResponse(Collections.singletonMap("errors", list));
+		ClientGraphQlResponse response = createResponse(Collections.singletonMap("errors", List.of(errorMap)));
 		ClientResponseField field =  response.field(path);
 
 		List<ResponseError> errors = field.getErrors();
-
 		assertThat(errors).hasSize(1);
 		assertThat(errors.get(0).getPath()).isEqualTo("me");
 		assertThat(errors.get(0).getLocations().get(0).getLine()).isEqualTo(100);
