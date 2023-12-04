@@ -16,21 +16,33 @@
 
 package org.springframework.graphql.data.pagination;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLTypeVisitor;
+import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.schema.PropertyDataFetcher;
 import graphql.schema.SchemaTransformer;
+import graphql.schema.SchemaTraverser;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.util.TraversalControl;
+import graphql.util.TraverserContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -42,6 +54,7 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;
+import org.springframework.graphql.execution.TypeVisitorHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -221,6 +234,61 @@ public class ConnectionFieldTypeVisitorTests {
 			return schema.getCodeRegistry().getDataFetcher(coordinates, field);
 		}
 
+	}
+
+	@Nested
+	class TypeVisitorTests {
+
+
+		@Test // gh-861
+		void shouldNotAbortTraverseForSubscriptions() {
+			String schemaContent = """
+				type Query {
+					greeting: String
+				}
+				type Subscription {
+					puzzles: Puzzle
+				}
+				type Puzzle {
+					title: String!
+					author: Author
+				}
+				type Author {
+					name: String!
+				}
+				""";
+
+			ConnectionFieldTypeVisitor connectionFieldTypeVisitor = ConnectionFieldTypeVisitor.create(List.of(new ListConnectionAdapter()));
+			TrackingTypeVisitor trackingTypeVisitor = new TrackingTypeVisitor();
+			visitSchema(schemaContent, connectionFieldTypeVisitor, trackingTypeVisitor);
+			assertThat(trackingTypeVisitor.visitedDefinitions).contains("puzzles", "title", "author", "name");
+		}
+
+		private static void visitSchema(String schemaContent, GraphQLTypeVisitor... typeVisitors) {
+			TypeDefinitionRegistry registry = new SchemaParser().parse(schemaContent);
+			new ConnectionTypeDefinitionConfigurer().configure(registry);
+			GraphQLSchema schema = new SchemaGenerator().makeExecutableSchema(registry, RuntimeWiring.newRuntimeWiring().build());
+
+			GraphQLCodeRegistry.Builder outputCodeRegistry =
+					GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
+			Map<Class<?>, Object> vars = new HashMap<>(2);
+			vars.put(GraphQLCodeRegistry.Builder.class, outputCodeRegistry);
+			vars.put(TypeVisitorHelper.class, TypeVisitorHelper.create(schema));
+
+			List<GraphQLTypeVisitor> visitorsToUse = Arrays.asList(typeVisitors);
+			new SchemaTraverser().depthFirstFullSchema(visitorsToUse, schema, vars);
+		}
+
+		static class TrackingTypeVisitor extends GraphQLTypeVisitorStub {
+
+			Set<String> visitedDefinitions = new HashSet<>();
+
+			@Override
+			public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition node, TraverserContext<GraphQLSchemaElement> context) {
+				this.visitedDefinitions.add(node.getName());
+				return TraversalControl.CONTINUE;
+			}
+		}
 	}
 
 

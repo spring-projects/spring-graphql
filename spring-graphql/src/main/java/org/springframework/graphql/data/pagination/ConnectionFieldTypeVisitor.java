@@ -87,8 +87,8 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
 		DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
 
-		if (visitorHelper != null && visitorHelper.isSubscriptionType(parent)) {
-			return TraversalControl.ABORT;
+		if (visitorHelper != null && isUnderSubscriptionOperation(visitorHelper, context)) {
+			return TraversalControl.CONTINUE;
 		}
 
 		if (isConnectionField(fieldDefinition)) {
@@ -106,6 +106,13 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		}
 
 		return TraversalControl.CONTINUE;
+	}
+
+	private static boolean isUnderSubscriptionOperation(TypeVisitorHelper visitorHelper, TraverserContext<GraphQLSchemaElement> context) {
+		return context.getBreadcrumbs().stream()
+				.filter(GraphQLFieldsContainer.class::isInstance)
+				.map(GraphQLFieldsContainer.class::cast)
+				.anyMatch(visitorHelper::isSubscriptionType);
 	}
 
 	private static boolean isConnectionField(GraphQLFieldDefinition field) {
