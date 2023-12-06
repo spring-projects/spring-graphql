@@ -9,16 +9,13 @@ You can use tools such as
 https://netflix.github.io/dgs/generating-code-from-schema/[DGS Code Generation] to generate
 Java types from the GraphQL schema. The following can be generated:
 
-1. Client types for requests (e.g. queries, mutations) input types, and other types to
-express the response selection set.
-2. Data types.
-3. Server handling classes (e.g. controllers).
+1. Client types for requests (e.g. queries, mutations) input types, and response selection types.
+2. Data types corresponding to GraphQL schema types.
 
-Code generation provides convenience initially, but is not ideal for your own application
-domain types over which you'll typically want control. For client types, however, code
-generation can be very useful since you typically don't need to manually change generated
-request types, input types, and selection set types. Response types could be imported,
-if you have access to them, or otherwise could also be generated.
+Code generation may not be ideal for your own application's data types especially if you
+want to add logic to them. Code generation, however, is a good fit for client types since
+those define the request, and don't need to have other logic. As a client, you may also
+choose to generate the data types for the response.
 
 Client generated types can be used with Spring's `GraphQlClient`. Start by following the
 instructions for the DGS code generation plugin to generate client API types. Then, given
@@ -36,9 +33,8 @@ a schema like this:
     }
 ----
 
-DGS Codegen will generate a `BooksGraphQLQuery` and `BooksProjectionRoot` classes.
-You can then use those with Spring's `GraphQlClient` along with your own `Book` class
-for the response:
+DGS Codegen generates `BooksGraphQLQuery` and `BooksProjectionRoot` that you can use with
+`GraphQlClient` over HTTP (or any supported transport) as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -50,10 +46,12 @@ for the response:
 
     List<Book> books = client.document(document)
             .retrieve(query.getOperationName())
-            .toEntityList(Book.class)
+            .toEntityList(Book.class)  // possibly also generated or imported if available
             .block();
 ----
 
-NOTE: Spring Initializer at https://start.spring.io is scheduled to add support for the DGS
-Code Generation with Gradle and Maven. See
-https://github.com/spring-io/start.spring.io/pull/1348[start.spring.io#1348].
+TIP: We intend to further simplify the above code in
+https://github.com/spring-projects/spring-graphql/issues/846[spring-graphql#846].
+
+You can use Spring Initializer at https://start.spring.io to create a Spring project with
+the DGS Code Generation Gradle or Maven plugin.
