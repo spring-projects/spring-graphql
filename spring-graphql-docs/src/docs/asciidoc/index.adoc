@@ -1690,6 +1690,11 @@ include::includes/graalvm-native.adoc[leveloffset=+1]
 
 
 
+include::codegen.adoc[leveloffset=+1]
+
+
+
+
 include::includes/client.adoc[leveloffset=+1]
 
 

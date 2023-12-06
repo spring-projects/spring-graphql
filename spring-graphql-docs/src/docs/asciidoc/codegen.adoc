@@ -1,0 +1,57 @@
+include::attributes.adoc[]
+
+
+
+[[codegen]]
+= Code Generation
+
+You can use tools such as
+https://netflix.github.io/dgs/generating-code-from-schema/[DGS Code Generation] to generate
+Java types from the GraphQL schema. The following can be generated:
+
+1. Client types for requests (e.g. queries, mutations) input types, and response selection types.
+2. Data types corresponding to GraphQL schema types.
+
+Code generation may not be ideal for your own application's data types especially if you
+want to add logic to them. Code generation, however, is a good fit for client types since
+those define the request, and don't need to have other logic. As a client, you may also
+choose to generate the data types for the response.
+
+Client generated types can be used with Spring's `GraphQlClient`. Start by following the
+instructions for the DGS code generation plugin to generate client API types. Then, given
+a schema like this:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+    type Query {
+        books: [Book]
+    }
+
+    type Book {
+        id: ID
+        name: String
+    }
+----
+
+DGS Codegen generates `BooksGraphQLQuery` and `BooksProjectionRoot` that you can use with
+`GraphQlClient` over HTTP (or any supported transport) as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    HttpGraphQlClient client =
+            HttpGraphQlClient.create(WebClient.create("http://localhost:8080/graphql"));
+
+    BooksGraphQLQuery query = new BooksGraphQLQuery();
+    String document = new GraphQLQueryRequest(query, new BooksProjectionRoot<>().id().name()).serialize();
+
+    List<Book> books = client.document(document)
+            .retrieve(query.getOperationName())
+            .toEntityList(Book.class)  // possibly also generated or imported if available
+            .block();
+----
+
+TIP: We intend to further simplify the above code in
+https://github.com/spring-projects/spring-graphql/issues/846[spring-graphql#846].
+
+You can use Spring Initializer at https://start.spring.io to create a Spring project with
+the DGS Code Generation Gradle or Maven plugin.
