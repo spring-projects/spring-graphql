@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import graphql.schema.FieldCoordinates;
@@ -96,6 +97,23 @@ class SchemaMappingInspectorTests {
 							name: String
 							missing: Boolean
 					 	}
+					""";
+			SchemaReport report = inspectSchema(schema, BookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
+		}
+
+		@Test
+		void reportWorksForQueryWithOptional() {
+			String schema = """
+						type Query {
+							optionalBook: Book
+						}
+
+						type Book {
+							id: ID
+							name: String
+							missing: Boolean
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
@@ -593,6 +611,11 @@ class SchemaMappingInspectorTests {
 		@QueryMapping
 		public Book bookById(@Argument Long id) {
 			return new Book();
+		}
+
+		@QueryMapping
+		public Optional<Book> optionalBook() {
+			return Optional.of(new Book());
 		}
 
 		@SchemaMapping

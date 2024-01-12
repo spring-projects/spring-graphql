@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import graphql.schema.DataFetcher;
@@ -181,7 +182,7 @@ final class SchemaMappingInspector {
 			resolvableType = nestForList(resolvableType, (parent == this.schema.getSubscriptionType()));
 		}
 		else {
-			resolvableType = nestIfReactive(resolvableType);
+			resolvableType = nestIfWrappedType(resolvableType);
 		}
 
 		// Type already inspected?
@@ -230,15 +231,21 @@ final class SchemaMappingInspector {
 		if (type == ResolvableType.NONE) {
 			return type;
 		}
-		type = nestIfReactive(type);
+		type = nestIfWrappedType(type);
 		if (logger.isDebugEnabled() && type.getGenerics().length != 1) {
 			logger.debug("Expected Connection type to have a generic parameter: " + type);
 		}
 		return type.getNested(2);
 	}
 
-	private ResolvableType nestIfReactive(ResolvableType type) {
+	private ResolvableType nestIfWrappedType(ResolvableType type) {
 		Class<?> clazz = type.resolve(Object.class);
+		if (Optional.class.isAssignableFrom(clazz)) {
+			if (logger.isDebugEnabled() && type.getGeneric(0).resolve() == null) {
+				logger.debug("Expected Optional type to have a generic parameter: " + type);
+			}
+			return type.getNested(2);
+		}
 		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(clazz);
 		if (adapter != null) {
 			if (logger.isDebugEnabled() && adapter.isNoValue()) {
