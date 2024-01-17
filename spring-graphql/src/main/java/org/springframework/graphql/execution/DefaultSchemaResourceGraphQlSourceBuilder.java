@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import graphql.GraphQL;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.GraphQLSchema;
@@ -74,6 +75,9 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	@Nullable
 	private Consumer<SchemaReport> schemaReportConsumer;
+
+	@Nullable
+	private Consumer<GraphQLSchema> schemaReportRunner;
 
 
 	@Override
@@ -147,11 +151,10 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		// visitors may transform the schema, for example to add Connection types.
 
 		if (this.schemaReportConsumer != null) {
-			configureGraphQl(builder -> {
-				GraphQLSchema schema = builder.build().getGraphQLSchema();
+			this.schemaReportRunner = schema -> {
 				SchemaReport report = SchemaMappingInspector.inspect(schema, runtimeWiring);
 				this.schemaReportConsumer.accept(report);
-			});
+			};
 		}
 
 		return (this.schemaFactory != null ?
@@ -194,6 +197,15 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	private TypeResolver initTypeResolver() {
 		return (this.typeResolver != null ? this.typeResolver : new ClassNameTypeResolver());
+	}
+
+	@Override
+	protected void applyGraphQlConfigurers(GraphQL.Builder builder) {
+		super.applyGraphQlConfigurers(builder);
+		if (this.schemaReportRunner != null) {
+			GraphQLSchema schema = builder.build().getGraphQLSchema();
+			this.schemaReportRunner.accept(schema);
+		}
 	}
 
 }

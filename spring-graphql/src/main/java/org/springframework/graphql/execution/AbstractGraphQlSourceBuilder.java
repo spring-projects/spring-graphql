@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,8 @@ import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTransformer;
 import graphql.schema.SchemaTraverser;
 
+import org.springframework.lang.Nullable;
+
 
 /**
  * Implementation of {@link GraphQlSource.Builder} that leaves it to subclasses
@@ -52,8 +54,8 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
-	private Consumer<GraphQL.Builder> graphQlConfigurers = (builder) -> {
-	};
+	@Nullable
+	private Consumer<GraphQL.Builder> graphQlConfigurer;
 
 
 	@Override
@@ -88,7 +90,8 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 
 	@Override
 	public B configureGraphQl(Consumer<GraphQL.Builder> configurer) {
-		this.graphQlConfigurers = this.graphQlConfigurers.andThen(configurer);
+		this.graphQlConfigurer = (this.graphQlConfigurer != null ?
+				this.graphQlConfigurer.andThen(configurer) : configurer);
 		return self();
 	}
 
@@ -112,7 +115,7 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 			builder = builder.instrumentation(new ChainedInstrumentation(this.instrumentations));
 		}
 
-		this.graphQlConfigurers.accept(builder);
+		applyGraphQlConfigurers(builder);
 
 		return new FixedGraphQlSource(builder.build(), schema);
 	}
@@ -145,6 +148,18 @@ abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> 
 
 		new SchemaTraverser().depthFirstFullSchema(visitorsToUse, schema, vars);
 		return schema.transformWithoutTypes(builder -> builder.codeRegistry(outputCodeRegistry));
+	}
+
+	/**
+	 * Protected method to apply the
+	 * {@link #configureGraphQl(Consumer) configured graphQlConfigurer}'s.
+	 * Subclasses can use this to customize {@link GraphQL.Builder} further.
+	 * @since 1.2.5
+	 */
+	protected void applyGraphQlConfigurers(GraphQL.Builder builder) {
+		if (this.graphQlConfigurer != null) {
+			this.graphQlConfigurer.accept(builder);
+		}
 	}
 
 
