@@ -42,7 +42,7 @@ import org.springframework.lang.Nullable;
  * @author Brian Clozel
  * @since 1.0.0
  */
-abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> implements GraphQlSource.Builder<B> {
+public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> implements GraphQlSource.Builder<B> {
 
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
