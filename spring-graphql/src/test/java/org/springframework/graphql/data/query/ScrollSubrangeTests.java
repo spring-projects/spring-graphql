@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ public class ScrollSubrangeTests {
 		ScrollPosition position = ScrollPosition.offset(5);
 		ScrollSubrange subrange = ScrollSubrange.create(position, 10, false);
 
-		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(0);
+		assertThat(subrange.position()).isNotPresent();
 		assertThat(subrange.count().getAsInt()).isEqualTo(4);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -101,7 +101,7 @@ public class ScrollSubrangeTests {
 		ScrollPosition position = ScrollPosition.offset(0);
 		ScrollSubrange subrange = ScrollSubrange.create(position, 10, false);
 
-		assertThat(((OffsetScrollPosition) subrange.position().get()).getOffset()).isEqualTo(0);
+		assertThat(subrange.position()).isNotPresent();
 		assertThat(subrange.count().getAsInt()).isEqualTo(0);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -111,7 +111,7 @@ public class ScrollSubrangeTests {
 		ScrollPosition position = ScrollPosition.offset(30);
 		ScrollSubrange subrange = ScrollSubrange.create(position, null, false);
 
-		assertThat(((OffsetScrollPosition) subrange.position().get())).isEqualTo(position);
+		assertThat(subrange.position()).hasValue(ScrollPosition.offset(29));
 		assertThat(subrange.count()).isNotPresent();
 		assertThat(subrange.forward()).isTrue();
 	}

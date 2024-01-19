@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,6 +81,9 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 	 * @since 1.2.4
 	 */
 	public static ScrollSubrange create(@Nullable ScrollPosition position, @Nullable Integer count, boolean forward) {
+		if (count != null && count < 0) {
+			count = null;
+		}
 		if (position instanceof OffsetScrollPosition offsetScrollPosition) {
 			return initFromOffsetPosition(offsetScrollPosition, count, forward);
 		}
@@ -96,18 +99,16 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 			OffsetScrollPosition position, @Nullable Integer count, boolean forward) {
 
 		if (!forward) {
-			if (count != null) {
-				if (position.getOffset() == 0) {
-					count = 0;
-				}
-				else if (count >= position.getOffset()) {
-					count = (int) (position.getOffset() - 1);
-				}
-				position = position.advanceBy(-count - 1);
+			int countOrZero = (count != null ? count : 0);
+			if (countOrZero < position.getOffset()) {
+				position = position.advanceBy(-countOrZero-1);
 			}
-			forward = true;
+			else {
+				count = (position.getOffset() > 0 ? (int) (position.getOffset() - 1) : 0);
+				position = null;
+			}
 		}
-		return new ScrollSubrange(position, count, forward, null);
+		return new ScrollSubrange(position, count, true, null);
 	}
 
 	private static ScrollSubrange initFromKeysetPosition(
