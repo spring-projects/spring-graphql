@@ -80,7 +80,7 @@ import org.springframework.util.MultiValueMap;
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
-final class SchemaMappingInspector {
+public class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
 
