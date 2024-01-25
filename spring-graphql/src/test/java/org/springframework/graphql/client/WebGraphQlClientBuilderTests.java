@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.client;
 
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
@@ -40,14 +42,25 @@ import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpInputMessage;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.lang.Nullable;
+import org.springframework.mock.http.client.MockClientHttpRequest;
+import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
@@ -81,7 +94,7 @@ public class WebGraphQlClientBuilderTests {
 
 
 	public static Stream<ClientBuilderSetup> argumentSource() {
-		return Stream.of(new HttpBuilderSetup(), new WebSocketBuilderSetup());
+		return Stream.of(new HttpBuilderSetup(), new RestClientBuilderSetup(), new WebSocketBuilderSetup());
 	}
 
 
@@ -209,9 +222,15 @@ public class WebGraphQlClientBuilderTests {
 	void codecConfigurerRegistersJsonPathMappingProvider(ClientBuilderSetup builderSetup) {
 
 		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+		TestJackson2JsonConverter testConverter = new TestJackson2JsonConverter();
 
-		WebGraphQlClient.Builder<?> builder = builderSetup.initBuilder()
-				.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
+		WebGraphQlClient.Builder<?> builder = builderSetup.initBuilder();
+		if (builder instanceof RestClientGraphQlClient.Builder<?> restClientBuilder) {
+			restClientBuilder.messageConverters(converters -> converters.add(0, testConverter));
+		}
+		else {
+			builder.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
+		}
 
 		String document = "{me {name}}";
 		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
@@ -224,11 +243,16 @@ public class WebGraphQlClientBuilderTests {
 		ClientGraphQlResponse response = client.document(document).execute().block(TIMEOUT);
 
 		testDecoder.resetLastValue();
+		testConverter.resetLastValue();
 		assertThat(testDecoder.getLastValue()).isNull();
 
 		assertThat(response).isNotNull();
 		assertThat(response.field("me").toEntity(MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
-		assertThat(testDecoder.getLastValue()).isEqualTo(character);
+
+		Object lastValue = (builder instanceof RestClientGraphQlClient.Builder<?> ?
+				testConverter.getLastValue() : testDecoder.getLastValue());
+
+		assertThat(lastValue).isEqualTo(character);
 	}
 
 	@Test
@@ -291,7 +315,19 @@ public class WebGraphQlClientBuilderTests {
 	}
 
 
-	private static class HttpBuilderSetup extends AbstractBuilderSetup {
+	private abstract static class AbstractHttpBuilderSetup extends AbstractBuilderSetup {
+
+		protected WebClient.Builder initWebClientBuilder() {
+			GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler());
+			RouterFunction<ServerResponse> routerFunction = route().POST("/**", handler::handleRequest).build();
+			HttpHandler httpHandler = RouterFunctions.toHttpHandler(routerFunction, HandlerStrategies.withDefaults());
+			return WebClient.builder().clientConnector(new HttpHandlerConnector(httpHandler));
+		}
+
+	}
+
+
+	private static class HttpBuilderSetup extends AbstractHttpBuilderSetup {
 
 		private final Map<String, Object> clientAttributes = new ConcurrentHashMap<>();
 
@@ -301,18 +337,26 @@ public class WebGraphQlClientBuilderTests {
 
 		@Override
 		public HttpGraphQlClient.Builder<?> initBuilder() {
-			GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler());
-			RouterFunction<ServerResponse> routerFunction = route().POST("/**", handler::handleRequest).build();
-			HttpHandler httpHandler = RouterFunctions.toHttpHandler(routerFunction, HandlerStrategies.withDefaults());
-			HttpHandlerConnector connector = new HttpHandlerConnector(httpHandler);
-			return HttpGraphQlClient.builder(WebClient.builder()
-					.clientConnector(connector).filter(this::updateAttributes));
+			WebClient client = initWebClientBuilder().filter(this::updateAttributes).build();
+			return HttpGraphQlClient.builder(client);
 		}
 
 		private Mono<ClientResponse> updateAttributes(ClientRequest request, ExchangeFunction next) {
 			this.clientAttributes.clear();
 			this.clientAttributes.putAll(request.attributes());
 			return next.exchange(request);
+		}
+
+	}
+
+
+	private static class RestClientBuilderSetup extends AbstractHttpBuilderSetup {
+
+		@Override
+		public RestClientGraphQlClient.Builder<?> initBuilder() {
+			WebClient webClient = initWebClientBuilder().build();
+			WebClientHttpRequestFactoryAdapter requestFactory = new WebClientHttpRequestFactoryAdapter(webClient);
+			return RestClientGraphQlClient.builder(RestClient.builder().requestFactory(requestFactory));
 		}
 
 	}
@@ -325,6 +369,37 @@ public class WebGraphQlClientBuilderTests {
 			ClientCodecConfigurer configurer = ClientCodecConfigurer.create();
 			WebSocketHandler handler = new GraphQlWebSocketHandler(webGraphQlHandler(), configurer, Duration.ofSeconds(5));
 			return WebSocketGraphQlClient.builder(URI.create(""), new TestWebSocketClient(handler));
+		}
+
+	}
+
+
+	private record WebClientHttpRequestFactoryAdapter(WebClient webClient) implements ClientHttpRequestFactory {
+
+		@Override
+		public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) {
+			return new MockClientHttpRequest(httpMethod, uri) {
+				@Override
+				protected ClientHttpResponse executeInternal() {
+					return getClientHttpResponse(httpMethod, uri, getHeaders(), getBodyAsBytes());
+				}
+			};
+		}
+
+		private ClientHttpResponse getClientHttpResponse(
+				HttpMethod httpMethod, URI uri, HttpHeaders requestHeaders, byte[] requestBody) {
+
+			ResponseEntity<byte[]> entity = this.webClient.method(httpMethod).uri(uri)
+					.headers(headers -> headers.putAll(requestHeaders))
+					.bodyValue(requestBody)
+					.retrieve()
+					.toEntity(byte[].class)
+					.block();
+
+			byte[] body = (entity.getBody() != null ? entity.getBody() : new byte[0]);
+			MockClientHttpResponse response = new MockClientHttpResponse(body, entity.getStatusCode());
+			response.getHeaders().putAll(entity.getHeaders());
+			return response;
 		}
 
 	}
@@ -354,5 +429,29 @@ public class WebGraphQlClientBuilderTests {
 
 	}
 
+
+	private static class TestJackson2JsonConverter extends MappingJackson2HttpMessageConverter {
+
+		@Nullable
+		private Object lastValue;
+
+		@Nullable
+		Object getLastValue() {
+			return this.lastValue;
+		}
+
+		@Override
+		public Object read(Type type, Class<?> contextClass, HttpInputMessage inputMessage)
+				throws IOException, HttpMessageNotReadableException {
+
+			this.lastValue = super.read(type, contextClass, inputMessage);
+			return this.lastValue;
+		}
+
+		void resetLastValue() {
+			this.lastValue = null;
+		}
+
+	}
 
 }
