@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,15 @@
  */
 package org.springframework.graphql.client;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlResponse;
@@ -69,7 +72,7 @@ public interface GraphQlClient {
 	 * Return a builder initialized from the configuration of "this" client
 	 * to use to build a new, independently configured client instance.
 	 */
-	GraphQlClient.Builder<?> mutate();
+	BaseBuilder<?> mutate();
 
 
 	/**
@@ -86,9 +89,77 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Defines a builder for creating {@link GraphQlClient} instances.
+	 * Base builder to create a {@link GraphQlClient}.
+	 * @since 1.3
 	 */
-	interface Builder<B extends Builder<B>> {
+	interface BaseBuilder<B extends BaseBuilder<B>> {
+
+		/**
+		 * Configure a {@link DocumentSource} for use with
+		 * {@link #documentName(String)} for resolving a document by name.
+		 * <p>By default, this is set to {@link ResourceDocumentSource} with
+		 * classpath location {@code "graphql-documents/"} and
+		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
+		 */
+		B documentSource(DocumentSource contentLoader);
+
+		/**
+		 * Configure a timeout to use for blocking execution.
+		 * <p>By default this is not set, in which case the behavior depends on
+		 * connection and request timeout settings of the underlying transport.
+		 * We recommend configuring timeout values directly on the underlying
+		 * transport, which provides more control over such settings.
+		 * @param blockingTimeout the timeout to use
+		 */
+		B blockingTimeout(@Nullable Duration blockingTimeout);
+
+		/**
+		 * Build the {@code GraphQlClient} instance.
+		 */
+		GraphQlClient build();
+
+	}
+
+
+	/**
+	 * Builder to create a {@link GraphQlClient} instance with a
+	 * synchronous transport and interceptors.
+	 * @since 1.3
+	 * @see SyncGraphQlTransport
+	 */
+	interface SyncBuilder<B extends SyncBuilder<B>> extends BaseBuilder<B> {
+
+		/**
+		 * Configure interceptors to be invoked before delegating to the
+		 * {@link SyncGraphQlTransport} to perform the request.
+		 * @param interceptors the interceptors to add
+		 * @return this builder
+		 */
+		B interceptor(SyncGraphQlClientInterceptor... interceptors);
+
+		/**
+		 * Customize the list of interceptors. The provided list is "live", so
+		 * the consumer can inspect and insert interceptors accordingly.
+		 * @param interceptorsConsumer consumer to customize the interceptors with
+		 * @return this builder
+		 */
+		B interceptors(Consumer<List<SyncGraphQlClientInterceptor>> interceptorsConsumer);
+
+		/**
+		 * The scheduler to use for non-blocking execution with
+		 * {@link RequestSpec#execute()} and {@link RequestSpec#retrieve(String)}.
+		 * <p>By default this is set to {@link Schedulers#boundedElastic()}.
+		 * @param scheduler the scheduler
+		 */
+		B scheduler(Scheduler scheduler);
+	}
+
+
+	/**
+	 * Builder to create {@link GraphQlClient} instances with a non-blocking
+	 * {@link GraphQlTransport} and interceptors.
+	 */
+	interface Builder<B extends Builder<B>> extends BaseBuilder<B> {
 
 		/**
 		 * Configure interceptors to be invoked before delegating to the
@@ -105,20 +176,6 @@ public interface GraphQlClient {
 		 * @return this builder
 		 */
 		B interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer);
-
-		/**
-		 * Configure a {@link DocumentSource} for use with
-		 * {@link #documentName(String)} for resolving a document by name.
-		 * <p>By default, this is set to {@link ResourceDocumentSource} with
-		 * classpath location {@code "graphql-documents/"} and
-		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
-		 */
-		B documentSource(DocumentSource contentLoader);
-
-		/**
-		 * Build the {@code GraphQlClient} instance.
-		 */
-		GraphQlClient build();
 
 	}
 
@@ -193,6 +250,19 @@ public interface GraphQlClient {
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the field has any field errors,
 		 * including errors at, above or below the field path.
+		 * @since 1.3
+		 */
+		RetrieveSyncSpec retrieveSync(String path);
+
+		/**
+		 * Shortcut for {@link #execute()} with a field path to decode from.
+		 * <p>If you want to decode the full data instead, use {@link #execute()}:
+		 * <pre>
+		 * client.document("..").execute().map(response -> response.toEntity(..))
+		 * </pre>
+		 * @return a spec with decoding options
+		 * @throws FieldAccessException if the field has any field errors,
+		 * including errors at, above or below the field path.
 		 */
 		RetrieveSpec retrieve(String path);
 
@@ -210,9 +280,19 @@ public interface GraphQlClient {
 		/**
 		 * Execute request with a single response, e.g. "query" or "mutation", and
 		 * return a response for further options.
+		 * @return a {@code ClientGraphQlResponse} for further decoding of the response.
+		 * @throws GraphQlTransportException in case of errors due to transport or
+		 * other issues related to encoding and decoding the request and response.
+		 * @since 1.3
+		 */
+		ClientGraphQlResponse executeSync();
+
+		/**
+		 * Execute request with a single response, e.g. "query" or "mutation", and
+		 * return a response for further options.
 		 * @return a {@code Mono} with a {@code ClientGraphQlResponse} for further
-		 * decoding of the response. The {@code Mono} may end wth an error due
-		 * to transport level issues.
+		 * decoding of the response. The {@code Mono} may end with a
+		 * .
 		 */
 		Mono<ClientGraphQlResponse> execute();
 
@@ -231,6 +311,44 @@ public interface GraphQlClient {
 		 * subscription stream.
 		 */
 		Flux<ClientGraphQlResponse> executeSubscription();
+
+	}
+
+
+	/**
+	 * Declares options to decode a field for a single response operation.
+	 */
+	interface RetrieveSyncSpec {
+
+		/**
+		 * Decode the field to an entity of the given type.
+		 * @param entityType the type to convert to
+		 * @return {@code Mono} with the decoded entity; completes with
+		 * {@link FieldAccessException} in case of {@link ResponseField field
+		 * errors} or an {@link GraphQlResponse#isValid() invalid} response;
+		 * completes empty if the field is {@code null} but has no errors.
+		 * @see ResponseField#getErrors()
+		 */
+		@Nullable
+		<D> D toEntity(Class<D> entityType);
+
+		/**
+		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
+		 */
+		@Nullable
+		<D> D toEntity(ParameterizedTypeReference<D> entityType);
+
+		/**
+		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
+		 * @param elementType the type of elements in the list
+		 */
+		<D> List<D> toEntityList(Class<D> elementType);
+
+		/**
+		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
+		 * @param elementType the type of elements in the list
+		 */
+		<D> List<D> toEntityList(ParameterizedTypeReference<D> elementType);
 
 	}
 

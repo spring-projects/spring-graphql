@@ -16,9 +16,11 @@
 
 package org.springframework.graphql.client;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.client.RestClient;
 
@@ -29,7 +31,7 @@ import org.springframework.web.client.RestClient;
  * @author Rossen Stoyanchev
  * @since 1.3
  */
-public interface RestClientGraphQlClient extends WebGraphQlClient {
+public interface HttpSyncGraphQlClient extends GraphQlClient {
 
 
 	@Override
@@ -37,17 +39,17 @@ public interface RestClientGraphQlClient extends WebGraphQlClient {
 
 
 	/**
-	 * Create an {@link RestClientGraphQlClient} that uses the given {@link RestClient}.
+	 * Create an {@link HttpSyncGraphQlClient} that uses the given {@link RestClient}.
 	 */
-	static RestClientGraphQlClient create(RestClient client) {
+	static HttpSyncGraphQlClient create(RestClient client) {
 		return builder(client.mutate()).build();
 	}
 
 	/**
-	 * Return a builder to initialize an {@link RestClientGraphQlClient} with.
+	 * Return a builder to initialize an {@link HttpSyncGraphQlClient} with.
 	 */
 	static Builder<?> builder() {
-		return new DefaultRestClientGraphQlClientBuilder();
+		return new DefaultSyncHttpGraphQlClientBuilder();
 	}
 
 	/**
@@ -63,14 +65,40 @@ public interface RestClientGraphQlClient extends WebGraphQlClient {
 	 * to mutate and customize further through the returned builder.
 	 */
 	static Builder<?> builder(RestClient.Builder builder) {
-		return new DefaultRestClientGraphQlClientBuilder(builder);
+		return new DefaultSyncHttpGraphQlClientBuilder(builder);
 	}
 
 
 	/**
 	 * Builder for the GraphQL over HTTP client.
 	 */
-	interface Builder<B extends Builder<B>> extends WebGraphQlClient.Builder<B> {
+	interface Builder<B extends Builder<B>> extends GraphQlClient.SyncBuilder<B> {
+
+		/**
+		 * Set the GraphQL endpoint URL as a String.
+		 * @param url the url to send HTTP requests to or connect over WebSocket
+		 */
+		B url(String url);
+
+		/**
+		 * Set the GraphQL endpoint URL.
+		 * @param url the url to send HTTP requests to or connect over WebSocket
+		 */
+		B url(URI url);
+
+		/**
+		 * Add the given header to HTTP requests or to the WebSocket handshake request.
+		 * @param name the header name
+		 * @param values the header values
+		 */
+		B header(String name, String... values);
+
+		/**
+		 * Variant of {@link #header(String, String...)} that provides access
+		 * to the underlying headers to inspect or modify directly.
+		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
+		 */
+		B headers(Consumer<HttpHeaders> headersConsumer);
 
 		/**
 		 * Configure message converters for all JSON encoding and decoding needs.
@@ -93,7 +121,7 @@ public interface RestClientGraphQlClient extends WebGraphQlClient {
 		 * Build the {@code RestClientGraphQlClient} instance.
 		 */
 		@Override
-		RestClientGraphQlClient build();
+		HttpSyncGraphQlClient build();
 
 	}
 

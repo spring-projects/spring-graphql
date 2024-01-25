@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.client;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.function.Consumer;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.support.DocumentSource;
@@ -40,22 +42,60 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final DocumentSource documentSource;
 
-	private final GraphQlClientInterceptor.Chain executeChain;
+	private final SyncGraphQlClientInterceptor.Chain blockingChain;
+
+	private final GraphQlClientInterceptor.Chain nonBlockingChain;
 
 	private final GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain;
 
+	@Nullable
+	private final Duration blockingTimeout;
+
 
 	DefaultGraphQlClient(
-			DocumentSource documentSource, GraphQlClientInterceptor.Chain executeChain,
-			GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain) {
+			DocumentSource documentSource, SyncGraphQlClientInterceptor.Chain blockingChain,
+			Scheduler scheduler, @Nullable Duration blockingTimeout) {
 
 		Assert.notNull(documentSource, "DocumentSource is required");
-		Assert.notNull(executeChain, "GraphQlClientInterceptor.Chain is required");
-		Assert.notNull(executeSubscriptionChain, "GraphQlClientInterceptor.SubscriptionChain is required");
+		Assert.notNull(blockingChain, "Execution chain is required");
+		Assert.notNull(scheduler, "Scheduler is required");
 
 		this.documentSource = documentSource;
-		this.executeChain = executeChain;
-		this.executeSubscriptionChain = executeSubscriptionChain;
+		this.blockingChain = blockingChain;
+		this.nonBlockingChain = adaptToNonBlockingChain(blockingChain, scheduler);
+		this.executeSubscriptionChain = request -> Flux.error(new IllegalStateException("Subscriptions on supported"));
+		this.blockingTimeout = blockingTimeout;
+	}
+
+	DefaultGraphQlClient(
+			DocumentSource documentSource,
+			GraphQlClientInterceptor.Chain nonBlockingChain,
+			GraphQlClientInterceptor.SubscriptionChain subscriptionChain,
+			@Nullable Duration blockingTimeout) {
+
+		Assert.notNull(documentSource, "DocumentSource is required");
+		Assert.notNull(nonBlockingChain, "Execution chain is required");
+		Assert.notNull(subscriptionChain, "Subscription execution chain is required");
+
+		this.documentSource = documentSource;
+		this.blockingChain = adaptToBlockingChain(nonBlockingChain, blockingTimeout);
+		this.nonBlockingChain = nonBlockingChain;
+		this.executeSubscriptionChain = subscriptionChain;
+		this.blockingTimeout = blockingTimeout;
+	}
+
+	private static GraphQlClientInterceptor.Chain adaptToNonBlockingChain(
+			SyncGraphQlClientInterceptor.Chain blockingChain, Scheduler scheduler) {
+
+		return request -> Mono.fromCallable(() -> blockingChain.next(request)).subscribeOn(scheduler);
+	}
+
+	@SuppressWarnings("DataFlowIssue")
+	private static SyncGraphQlClientInterceptor.Chain adaptToBlockingChain(
+			GraphQlClientInterceptor.Chain executeChain, @Nullable Duration blockingTimeout) {
+
+		return (request -> blockingTimeout != null ?
+				executeChain.next(request).block(blockingTimeout) : executeChain.next(request).block());
 	}
 
 
@@ -120,7 +160,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
-		public RequestSpec extension(String name, Object value) {
+		public RequestSpec extension(String name, @Nullable Object value) {
 			this.extensions.put(name, value);
 			return this;
 		}
@@ -144,6 +184,12 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
+		public RetrieveSyncSpec retrieveSync(String path) {
+			ClientGraphQlResponse response = executeSync();
+			return new DefaultRetrieveSyncSpec(response, path);
+		}
+
+		@Override
 		public RetrieveSpec retrieve(String path) {
 			return new DefaultRetrieveSpec(execute(), path);
 		}
@@ -153,9 +199,17 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			return new DefaultRetrieveSubscriptionSpec(executeSubscription(), path);
 		}
 
+		@SuppressWarnings("DataFlowIssue")
+		@Override
+		public ClientGraphQlResponse executeSync() {
+			Mono<ClientGraphQlRequest> mono = initRequest();
+			ClientGraphQlRequest request = (blockingTimeout != null ? mono.block(blockingTimeout) : mono.block());
+			return blockingChain.next(request);
+		}
+
 		@Override
 		public Mono<ClientGraphQlResponse> execute() {
-			return initRequest().flatMap(request -> executeChain.next(request)
+			return initRequest().flatMap(request -> nonBlockingChain.next(request)
 					.onErrorResume(
 							ex -> !(ex instanceof GraphQlClientException),
 							ex -> Mono.error(new GraphQlTransportException(ex, request))));
@@ -170,8 +224,8 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		private Mono<ClientGraphQlRequest> initRequest() {
-			return this.documentMono.map(document ->
-					new DefaultClientGraphQlRequest(document, this.operationName, this.variables, this.extensions, this.attributes));
+			return this.documentMono.map(document -> new DefaultClientGraphQlRequest(
+					document, this.operationName, this.variables, this.extensions, this.attributes));
 		}
 
 	}
@@ -199,6 +253,42 @@ final class DefaultGraphQlClient implements GraphQlClient {
 						((DefaultClientGraphQlResponse) response).getRequest(), response, field);
 			}
 			return (field.getValue() != null ? field : null);
+		}
+
+	}
+
+
+	private static class DefaultRetrieveSyncSpec extends RetrieveSpecSupport implements RetrieveSyncSpec {
+
+		private final ClientGraphQlResponse response;
+
+		DefaultRetrieveSyncSpec(ClientGraphQlResponse response, String path) {
+			super(path);
+			this.response = response;
+		}
+
+		@Override
+		public <D> D toEntity(Class<D> entityType) {
+			ClientResponseField field = getValidField(this.response);
+			return (field != null ? field.toEntity(entityType) : null);
+		}
+
+		@Override
+		public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
+			ClientResponseField field = getValidField(this.response);
+			return (field != null ? field.toEntity(entityType) : null);
+		}
+
+		@Override
+		public <D> List<D> toEntityList(Class<D> elementType) {
+			ClientResponseField field = getValidField(this.response);
+			return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
+		}
+
+		@Override
+		public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
+			ClientResponseField field = getValidField(this.response);
+			return (field != null ? field.toEntityList(elementType) : Collections.emptyList());
 		}
 
 	}

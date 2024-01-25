@@ -97,7 +97,8 @@ public class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
 
 		// Mutate
 		savedAttributes.clear();
-		client = client.mutate().interceptors(interceptors -> interceptors.add(0, changingInterceptor)).build();
+		builder = (GraphQlClient.Builder<?>) client.mutate();
+		client = builder.interceptors(interceptors -> interceptors.add(0, changingInterceptor)).build();
 		response = client.document(DOCUMENT).attribute(name, value).execute().block(TIMEOUT);
 
 		assertThat(response).isNotNull();

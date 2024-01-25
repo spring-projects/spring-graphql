@@ -48,26 +48,18 @@ import org.springframework.util.MimeType;
 
 
 /**
- * Helper class to adapt JSON {@link HttpMessageConverter} to
- * {@link Encoder} and {@link Decoder}.
+ * {@link DefaultClientGraphQlResponse} uses {@link Encoder} and {@link Decoder}
+ * to encode the response map to JSON and then encode it into higher level
+ * objects. This delegate helps with finding an {@link HttpMessageConverter}
+ * for JSON and adapt it to {@link Encoder} and {@link Decoder}.
  *
  * @author Rossen Stoyanchev
  * @since 1.3
  */
 final class HttpMessageConverterDelegate {
 
-	static Encoder<?> getJsonEncoder(List<HttpMessageConverter<?>> converters) {
-		HttpMessageConverter<Object> converter = findJsonConverter(converters);
-		return new HttpMessageConverterEncoder(converter);
-	}
-
-	static Decoder<?> getJsonDecoder(List<HttpMessageConverter<?>> converters) {
-		HttpMessageConverter<Object> converter = findJsonConverter(converters);
-		return new HttpMessageConverterDecoder(converter);
-	}
-
 	@SuppressWarnings("unchecked")
-	private static HttpMessageConverter<Object> findJsonConverter(List<HttpMessageConverter<?>> converters) {
+	static HttpMessageConverter<Object> findJsonConverter(List<HttpMessageConverter<?>> converters) {
 		return (HttpMessageConverter<Object>) converters.stream()
 				.filter(converter -> converter.canRead(Map.class, MediaType.APPLICATION_JSON))
 				.findFirst()
@@ -80,6 +72,14 @@ final class HttpMessageConverterDelegate {
 			return mediaType;
 		}
 		return (mimeType != null ? new MediaType(mimeType) : null);
+	}
+
+	static HttpMessageConverterEncoder asEncoder(HttpMessageConverter<Object> converter) {
+		return new HttpMessageConverterEncoder(converter);
+	}
+
+	static HttpMessageConverterDecoder asDecoder(HttpMessageConverter<Object> converter) {
+		return new HttpMessageConverterDecoder(converter);
 	}
 
 

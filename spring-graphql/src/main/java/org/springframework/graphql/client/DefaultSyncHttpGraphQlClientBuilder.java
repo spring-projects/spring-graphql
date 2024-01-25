@@ -21,10 +21,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -33,124 +30,107 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 
 /**
- * Default {@link RestClientGraphQlClient.Builder} implementation, a simple wrapper
+ * Default {@link HttpSyncGraphQlClient.Builder} implementation, a simple wrapper
  * around a {@link RestClient.Builder}.
  *
  * @author Rossen Stoyanchev
  * @since 1.3
  */
-final class DefaultRestClientGraphQlClientBuilder
-		extends AbstractGraphQlClientBuilder<DefaultRestClientGraphQlClientBuilder>
-		implements RestClientGraphQlClient.Builder<DefaultRestClientGraphQlClientBuilder>  {
+final class DefaultSyncHttpGraphQlClientBuilder
+		extends AbstractGraphQlClientSyncBuilder<DefaultSyncHttpGraphQlClientBuilder>
+		implements HttpSyncGraphQlClient.Builder<DefaultSyncHttpGraphQlClientBuilder>  {
 
 	private final RestClient.Builder restClientBuilder;
 
-	@Nullable
-	private CodecConfigurer codecConfigurer;
 
 	/**
 	 * Constructor to start without a RestClient instance.
 	 */
-	DefaultRestClientGraphQlClientBuilder() {
+	DefaultSyncHttpGraphQlClientBuilder() {
 		this(RestClient.builder());
 	}
 
 	/**
 	 * Constructor to start with a pre-configured {@code RestClient}.
 	 */
-	DefaultRestClientGraphQlClientBuilder(RestClient client) {
+	DefaultSyncHttpGraphQlClientBuilder(RestClient client) {
 		this(client.mutate());
 	}
 
 	/**
 	 * Constructor to start with a pre-configured {@code RestClient}.
 	 */
-	DefaultRestClientGraphQlClientBuilder(RestClient.Builder clientBuilder) {
+	DefaultSyncHttpGraphQlClientBuilder(RestClient.Builder clientBuilder) {
 		this.restClientBuilder = clientBuilder;
 	}
 
 
 	@Override
-	public DefaultRestClientGraphQlClientBuilder url(String url) {
+	public DefaultSyncHttpGraphQlClientBuilder url(String url) {
 		this.restClientBuilder.baseUrl(url);
 		return this;
 	}
 
 	@Override
-	public DefaultRestClientGraphQlClientBuilder url(URI url) {
+	public DefaultSyncHttpGraphQlClientBuilder url(URI url) {
 		UriBuilderFactory factory = new DefaultUriBuilderFactory(UriComponentsBuilder.fromUri(url));
 		this.restClientBuilder.uriBuilderFactory(factory);
 		return this;
 	}
 
 	@Override
-	public DefaultRestClientGraphQlClientBuilder header(String name, String... values) {
+	public DefaultSyncHttpGraphQlClientBuilder header(String name, String... values) {
 		this.restClientBuilder.defaultHeader(name, values);
 		return this;
 	}
 
 	@Override
-	public DefaultRestClientGraphQlClientBuilder headers(Consumer<HttpHeaders> headersConsumer) {
+	public DefaultSyncHttpGraphQlClientBuilder headers(Consumer<HttpHeaders> headersConsumer) {
 		this.restClientBuilder.defaultHeaders(headersConsumer);
 		return this;
 	}
 
 	@Override
-	public DefaultRestClientGraphQlClientBuilder codecConfigurer(Consumer<CodecConfigurer> codecConsumer) {
-		if (this.codecConfigurer == null) {
-			this.codecConfigurer = ClientCodecConfigurer.create();
-		}
-		codecConsumer.accept(this.codecConfigurer);
-		return this;
-	}
-
-	@Override
-	public DefaultRestClientGraphQlClientBuilder messageConverters(Consumer<List<HttpMessageConverter<?>>> configurer) {
+	public DefaultSyncHttpGraphQlClientBuilder messageConverters(Consumer<List<HttpMessageConverter<?>>> configurer) {
 		this.restClientBuilder.messageConverters(configurer);
 		return this;
 	}
 
 	@Override
-	public DefaultRestClientGraphQlClientBuilder restClient(Consumer<RestClient.Builder> configurer) {
+	public DefaultSyncHttpGraphQlClientBuilder restClient(Consumer<RestClient.Builder> configurer) {
 		configurer.accept(this.restClientBuilder);
 		return this;
 	}
 
 	@Override
-	public RestClientGraphQlClient build() {
+	public HttpSyncGraphQlClient build() {
 
-		// Pass the codecs to the parent for response decoding
-		if (this.codecConfigurer != null) {
-			setJsonEncoder(CodecDelegate.findJsonEncoder(this.codecConfigurer));
-			setJsonDecoder(CodecDelegate.findJsonDecoder(this.codecConfigurer));
-		}
-		else {
-			this.restClientBuilder.messageConverters(converters -> {
-				setJsonEncoder(HttpMessageConverterDelegate.getJsonEncoder(converters));
-				setJsonDecoder(HttpMessageConverterDelegate.getJsonDecoder(converters));
-			});
-		}
+		this.restClientBuilder.messageConverters(converters -> {
+			HttpMessageConverter<Object> converter = HttpMessageConverterDelegate.findJsonConverter(converters);
+			setJsonConverter(converter);
+		});
 
 		RestClient restClient = this.restClientBuilder.build();
+		HttpSyncGraphQlTransport syncTransport = new HttpSyncGraphQlTransport(restClient);
 
-		GraphQlClient graphQlClient = super.buildGraphQlClient(new RestClientGraphQlTransport(restClient, null));
-		return new DefaultRestClientGraphQlClient(graphQlClient, restClient, getBuilderInitializer());
+		GraphQlClient graphQlClient = super.buildGraphQlClient(syncTransport);
+		return new DefaultHttpSyncGraphQlClient(graphQlClient, restClient, getBuilderInitializer());
 	}
 
 
 	/**
 	 * Default {@link HttpGraphQlClient} implementation.
 	 */
-	private static class DefaultRestClientGraphQlClient
-			extends AbstractDelegatingGraphQlClient implements RestClientGraphQlClient {
+	private static class DefaultHttpSyncGraphQlClient
+			extends AbstractDelegatingGraphQlClient implements HttpSyncGraphQlClient {
 
 		private final RestClient restClient;
 
-		private final Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer;
+		private final Consumer<AbstractGraphQlClientSyncBuilder<?>> builderInitializer;
 
-		DefaultRestClientGraphQlClient(
+		DefaultHttpSyncGraphQlClient(
 				GraphQlClient delegate, RestClient restClient,
-				Consumer<AbstractGraphQlClientBuilder<?>> builderInitializer) {
+				Consumer<AbstractGraphQlClientSyncBuilder<?>> builderInitializer) {
 
 			super(delegate);
 
@@ -161,8 +141,8 @@ final class DefaultRestClientGraphQlClientBuilder
 			this.builderInitializer = builderInitializer;
 		}
 
-		public DefaultRestClientGraphQlClientBuilder mutate() {
-			DefaultRestClientGraphQlClientBuilder builder = new DefaultRestClientGraphQlClientBuilder(this.restClient);
+		public DefaultSyncHttpGraphQlClientBuilder mutate() {
+			DefaultSyncHttpGraphQlClientBuilder builder = new DefaultSyncHttpGraphQlClientBuilder(this.restClient);
 			this.builderInitializer.accept(builder);
 			return builder;
 		}

@@ -16,8 +16,6 @@
 
 package org.springframework.graphql.client;
 
-import java.io.IOException;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
@@ -42,25 +40,14 @@ import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpInputMessage;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.http.client.MockClientHttpRequest;
-import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
@@ -75,14 +62,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
 /**
- * Tests for the builders of Web {@code GraphQlClient} extensions, using a
- * {@link WebGraphQlInterceptor} to capture the WebInput on the server
- * side, and optionally returning a mock response, or an empty response.
- *
+ * Tests for the builders of web {@code GraphQlClient}'s performing requests as follows:
  * <ul>
  * <li>{@link HttpGraphQlClient} via {@link HttpHandlerConnector} to {@link GraphQlHttpHandler}
  * <li>{@link WebSocketGraphQlClient} via a {@link TestWebSocketConnection} to {@link GraphQlWebSocketHandler}
  * </ul>
+ *
+ * <p>GraphQL requests are handled with a {@link MockExecutionGraphQlService} that
+ * always returns an empty GraphQL response. The main goal however is to capture
+ * the WebInput on the server side through a {@link WebGraphQlInterceptor}.
+ *
+ * <p>See also {@link HttpSyncGraphQlClientBuilderTests} for the same tests with
+ * {@link HttpSyncGraphQlClient}.
  *
  * @author Rossen Stoyanchev
  */
@@ -94,25 +85,25 @@ public class WebGraphQlClientBuilderTests {
 
 
 	public static Stream<ClientBuilderSetup> argumentSource() {
-		return Stream.of(new HttpBuilderSetup(), new RestClientBuilderSetup(), new WebSocketBuilderSetup());
+		return Stream.of(new HttpBuilderSetup(), new WebSocketBuilderSetup());
 	}
 
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void mutateUrlHeaders(ClientBuilderSetup builderSetup) {
+	void mutateUrlHeaders(ClientBuilderSetup setup) {
 
 		String url = "/graphql-one";
 
 		// Original
-		WebGraphQlClient.Builder<?> builder = builderSetup.initBuilder()
+		WebGraphQlClient.Builder<?> builder = setup.initBuilder()
 				.url(url)
 				.headers(headers -> headers.add("h", "one"));
 
 		WebGraphQlClient client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		WebGraphQlRequest request = builderSetup.getActualRequest();
+		WebGraphQlRequest request = setup.getActualRequest();
 		assertThat(request.getUri().toString()).isEqualTo(url);
 		assertThat(request.getHeaders().get("h")).containsExactly("one");
 
@@ -120,14 +111,14 @@ public class WebGraphQlClientBuilderTests {
 		builder = client.mutate().headers(headers -> headers.add("h", "two"));
 		client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
-		assertThat(builderSetup.getActualRequest().getHeaders().get("h")).containsExactly("one", "two");
+		assertThat(setup.getActualRequest().getHeaders().get("h")).containsExactly("one", "two");
 
 		// Mutate to replace header
 		builder = client.mutate().header("h", "three", "four");
 		client = builder.build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		request = builderSetup.getActualRequest();
+		request = setup.getActualRequest();
 		assertThat(request.getUri().toString()).isEqualTo(url);
 		assertThat(request.getHeaders().get("h")).containsExactly("three", "four");
 	}
@@ -163,35 +154,35 @@ public class WebGraphQlClientBuilderTests {
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void mutateDocumentSource(ClientBuilderSetup builderSetup) {
+	void mutateDocumentSource(ClientBuilderSetup setup) {
 
 		DocumentSource documentSource = name -> name.equals("name") ?
 				Mono.just(DOCUMENT) : Mono.error(new IllegalArgumentException());
 
 		// Original
-		WebGraphQlClient.Builder<?> builder = builderSetup.initBuilder().documentSource(documentSource);
+		WebGraphQlClient.Builder<?> builder = setup.initBuilder().documentSource(documentSource);
 		WebGraphQlClient client = builder.build();
 		client.documentName("name").execute().block(TIMEOUT);
 
-		WebGraphQlRequest request = builderSetup.getActualRequest();
+		WebGraphQlRequest request = setup.getActualRequest();
 		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 
 		// Mutate
 		client = client.mutate().build();
 		client.documentName("name").execute().block(TIMEOUT);
 
-		request = builderSetup.getActualRequest();
+		request = setup.getActualRequest();
 		assertThat(request.getDocument()).isEqualTo(DOCUMENT);
 	}
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void urlEncoding(ClientBuilderSetup builderSetup) {
+	void urlEncoding(ClientBuilderSetup setup) {
 
-		WebGraphQlClient client = builderSetup.initBuilder().url("/graphql one").build();
+		WebGraphQlClient client = setup.initBuilder().url("/graphql one").build();
 		client.document(DOCUMENT).execute().block(TIMEOUT);
 
-		assertThat(builderSetup.getActualRequest().getUri().toString()).isEqualTo("/graphql%20one");
+		assertThat(setup.getActualRequest().getUri().toString()).isEqualTo("/graphql%20one");
 	}
 
 	@Test
@@ -219,22 +210,16 @@ public class WebGraphQlClientBuilderTests {
 
 	@ParameterizedTest
 	@MethodSource("argumentSource")
-	void codecConfigurerRegistersJsonPathMappingProvider(ClientBuilderSetup builderSetup) {
+	void codecConfigurerRegistersJsonPathMappingProvider(ClientBuilderSetup setup) {
 
 		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
-		TestJackson2JsonConverter testConverter = new TestJackson2JsonConverter();
 
-		WebGraphQlClient.Builder<?> builder = builderSetup.initBuilder();
-		if (builder instanceof RestClientGraphQlClient.Builder<?> restClientBuilder) {
-			restClientBuilder.messageConverters(converters -> converters.add(0, testConverter));
-		}
-		else {
-			builder.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
-		}
+		WebGraphQlClient.Builder<?> builder = setup.initBuilder();
+		builder.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
 
 		String document = "{me {name}}";
 		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
-		builderSetup.getGraphQlService().setResponse(document,
+		setup.getGraphQlService().setResponse(document,
 				ExecutionResultImpl.newExecutionResult()
 						.data(Collections.singletonMap("me", character))
 						.build());
@@ -243,34 +228,28 @@ public class WebGraphQlClientBuilderTests {
 		ClientGraphQlResponse response = client.document(document).execute().block(TIMEOUT);
 
 		testDecoder.resetLastValue();
-		testConverter.resetLastValue();
 		assertThat(testDecoder.getLastValue()).isNull();
 
 		assertThat(response).isNotNull();
 		assertThat(response.field("me").toEntity(MovieCharacter.class).getName()).isEqualTo("Luke Skywalker");
-
-		Object lastValue = (builder instanceof RestClientGraphQlClient.Builder<?> ?
-				testConverter.getLastValue() : testDecoder.getLastValue());
-
-		assertThat(lastValue).isEqualTo(character);
 	}
 
 	@Test
 	void attributes() {
 
-		HttpBuilderSetup builderSetup = new HttpBuilderSetup();
+		HttpBuilderSetup setup = new HttpBuilderSetup();
 
-		builderSetup.initBuilder().url("/graphql-one").headers(headers -> headers.add("h", "one")).build()
+		setup.initBuilder().url("/graphql-one").headers(headers -> headers.add("h", "one")).build()
 				.document(DOCUMENT)
 				.attribute("id", 123)
 				.execute()
 				.block(TIMEOUT);
 
-		assertThat(builderSetup.getClientAttributes()).containsEntry("id", 123);
+		assertThat(setup.getClientAttributes()).containsEntry("id", 123);
 	}
 
 
-	private interface ClientBuilderSetup {
+	interface ClientBuilderSetup {
 
 		MockExecutionGraphQlService getGraphQlService();
 
@@ -315,19 +294,7 @@ public class WebGraphQlClientBuilderTests {
 	}
 
 
-	private abstract static class AbstractHttpBuilderSetup extends AbstractBuilderSetup {
-
-		protected WebClient.Builder initWebClientBuilder() {
-			GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler());
-			RouterFunction<ServerResponse> routerFunction = route().POST("/**", handler::handleRequest).build();
-			HttpHandler httpHandler = RouterFunctions.toHttpHandler(routerFunction, HandlerStrategies.withDefaults());
-			return WebClient.builder().clientConnector(new HttpHandlerConnector(httpHandler));
-		}
-
-	}
-
-
-	private static class HttpBuilderSetup extends AbstractHttpBuilderSetup {
+	private static class HttpBuilderSetup extends AbstractBuilderSetup {
 
 		private final Map<String, Object> clientAttributes = new ConcurrentHashMap<>();
 
@@ -347,18 +314,12 @@ public class WebGraphQlClientBuilderTests {
 			return next.exchange(request);
 		}
 
-	}
-
-
-	private static class RestClientBuilderSetup extends AbstractHttpBuilderSetup {
-
-		@Override
-		public RestClientGraphQlClient.Builder<?> initBuilder() {
-			WebClient webClient = initWebClientBuilder().build();
-			WebClientHttpRequestFactoryAdapter requestFactory = new WebClientHttpRequestFactoryAdapter(webClient);
-			return RestClientGraphQlClient.builder(RestClient.builder().requestFactory(requestFactory));
+		private WebClient.Builder initWebClientBuilder() {
+			GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler());
+			RouterFunction<ServerResponse> routerFunction = route().POST("/**", handler::handleRequest).build();
+			HttpHandler httpHandler = RouterFunctions.toHttpHandler(routerFunction, HandlerStrategies.withDefaults());
+			return WebClient.builder().clientConnector(new HttpHandlerConnector(httpHandler));
 		}
-
 	}
 
 
@@ -369,37 +330,6 @@ public class WebGraphQlClientBuilderTests {
 			ClientCodecConfigurer configurer = ClientCodecConfigurer.create();
 			WebSocketHandler handler = new GraphQlWebSocketHandler(webGraphQlHandler(), configurer, Duration.ofSeconds(5));
 			return WebSocketGraphQlClient.builder(URI.create(""), new TestWebSocketClient(handler));
-		}
-
-	}
-
-
-	private record WebClientHttpRequestFactoryAdapter(WebClient webClient) implements ClientHttpRequestFactory {
-
-		@Override
-		public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) {
-			return new MockClientHttpRequest(httpMethod, uri) {
-				@Override
-				protected ClientHttpResponse executeInternal() {
-					return getClientHttpResponse(httpMethod, uri, getHeaders(), getBodyAsBytes());
-				}
-			};
-		}
-
-		private ClientHttpResponse getClientHttpResponse(
-				HttpMethod httpMethod, URI uri, HttpHeaders requestHeaders, byte[] requestBody) {
-
-			ResponseEntity<byte[]> entity = this.webClient.method(httpMethod).uri(uri)
-					.headers(headers -> headers.putAll(requestHeaders))
-					.bodyValue(requestBody)
-					.retrieve()
-					.toEntity(byte[].class)
-					.block();
-
-			byte[] body = (entity.getBody() != null ? entity.getBody() : new byte[0]);
-			MockClientHttpResponse response = new MockClientHttpResponse(body, entity.getStatusCode());
-			response.getHeaders().putAll(entity.getHeaders());
-			return response;
 		}
 
 	}
@@ -420,31 +350,6 @@ public class WebGraphQlClientBuilderTests {
 				@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) throws DecodingException {
 
 			this.lastValue = super.decode(dataBuffer, targetType, mimeType, hints);
-			return this.lastValue;
-		}
-
-		void resetLastValue() {
-			this.lastValue = null;
-		}
-
-	}
-
-
-	private static class TestJackson2JsonConverter extends MappingJackson2HttpMessageConverter {
-
-		@Nullable
-		private Object lastValue;
-
-		@Nullable
-		Object getLastValue() {
-			return this.lastValue;
-		}
-
-		@Override
-		public Object read(Type type, Class<?> contextClass, HttpInputMessage inputMessage)
-				throws IOException, HttpMessageNotReadableException {
-
-			this.lastValue = super.read(type, contextClass, inputMessage);
 			return this.lastValue;
 		}
 
