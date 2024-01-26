@@ -9,19 +9,19 @@ javaPlatform {
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
 	api(platform("com.fasterxml.jackson:jackson-bom:2.15.3"))
-	api(platform("io.projectreactor:reactor-bom:2022.0.13"))
-	api(platform("io.micrometer:micrometer-bom:1.11.6"))
-	api(platform("io.micrometer:micrometer-tracing-bom:1.1.7"))
-	api(platform("org.springframework.data:spring-data-bom:2023.0.6"))
-	api(platform("org.springframework.security:spring-security-bom:6.1.5"))
+	api(platform("io.projectreactor:reactor-bom:2023.0.2"))
+	api(platform("io.micrometer:micrometer-bom:1.12.2"))
+	api(platform("io.micrometer:micrometer-tracing-bom:1.2.2"))
+	api(platform("org.springframework.data:spring-data-bom:2023.1.2"))
+	api(platform("org.springframework.security:spring-security-bom:6.2.1"))
 	api(platform("com.querydsl:querydsl-bom:5.0.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.4"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
-	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
-	api(platform("org.junit:junit-bom:5.9.3"))
-	api(platform("org.mockito:mockito-bom:5.4.0"))
-	api(platform("org.testcontainers:testcontainers-bom:1.18.3"))
-	api(platform("org.apache.logging.log4j:log4j-bom:2.20.0"))
+	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.7.3"))
+	api(platform("org.junit:junit-bom:5.10.1"))
+	api(platform("org.mockito:mockito-bom:5.8.0"))
+	api(platform("org.testcontainers:testcontainers-bom:1.19.4"))
+	api(platform("org.apache.logging.log4j:log4j-bom:2.22.1"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
@@ -39,12 +39,12 @@ dependencies {
 		api("org.skyscreamer:jsonassert:1.5.1")
 
 		api("com.h2database:h2:2.1.214")
-		api("org.hibernate:hibernate-core:6.2.8.Final")
+		api("org.hibernate:hibernate-core:6.4.2.Final")
 		api("org.hibernate.validator:hibernate-validator:8.0.1.Final")
-		api("org.mongodb:bson:4.9.1")
-		api("org.mongodb:mongodb-driver-core:4.9.1")
-		api("org.mongodb:mongodb-driver-reactivestreams:4.9.1")
-		api("org.mongodb:mongodb-driver-sync:4.9.1")
+		api("org.mongodb:bson:4.11.1")
+		api("org.mongodb:mongodb-driver-core:4.11.1")
+		api("org.mongodb:mongodb-driver-reactivestreams:4.11.1")
+		api("org.mongodb:mongodb-driver-sync:4.11.1")
 	}
 
 }

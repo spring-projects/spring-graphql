@@ -2,9 +2,9 @@ description = "Spring for GraphQL"
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
-	springFrameworkVersion = "6.0.14"
-	graphQlJavaVersion = "20.7"
-	springBootVersion = "3.1.5"
+	springFrameworkVersion = "6.1.3"
+	graphQlJavaVersion = "21.3"
+	springBootVersion = "3.2.2"
 }
 
 subprojects {
@@ -53,7 +53,7 @@ configure(moduleProjects) {
 
 	ext.javadocLinks = [
 			"https://docs.oracle.com/en/java/javase/17/docs/api/",
-			"https://docs.spring.io/spring-framework/docs/6.0.x/javadoc-api/",
+			"https://docs.spring.io/spring-framework/docs/6.1.x/javadoc-api/",
 			"https://javadoc.io/doc/com.graphql-java/graphql-java/20.7/"
 	] as String[]
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import graphql.relay.DefaultPageInfo;
 import graphql.relay.Edge;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
@@ -85,7 +86,8 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 
 		GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
-		DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
+		FieldCoordinates fieldCoordinates = FieldCoordinates.coordinates(parent, fieldDefinition);
+		DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(fieldCoordinates, fieldDefinition);
 
 		if (visitorHelper != null && isUnderSubscriptionOperation(visitorHelper, context)) {
 			return TraversalControl.CONTINUE;
@@ -101,7 +103,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 			else {
 				dataFetcher = new ConnectionDataFetcher(dataFetcher, this.adapter);
-				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
+				codeRegistry.dataFetcher(fieldCoordinates, dataFetcher);
 			}
 		}
 
