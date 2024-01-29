@@ -17,7 +17,8 @@
 package org.springframework.graphql.client;
 
 /**
- * Interceptor of {@link GraphQlClient} requests.
+ * Interceptor of {@link GraphQlClient} requests for use in a blocking execution
+ * chain with a {@link SyncGraphQlTransport}.
  *
  * @author Rossen Stoyanchev
  * @since 1.3
@@ -27,19 +28,19 @@ public interface SyncGraphQlClientInterceptor {
 	/**
 	 * Intercept a single response request (query and mutation operations), and
 	 * delegate to the rest of the chain including other interceptors followed
-	 * by the {@link GraphQlTransport}.
+	 * by the {@link SyncGraphQlTransport}.
 	 * @param request the request to perform
 	 * @param chain the rest of the chain to perform the request
 	 * @return the response
-	 * @see GraphQlClient.RequestSpec#execute()
+	 * @see GraphQlClient.RequestSpec#executeSync()
 	 */
 	default ClientGraphQlResponse intercept(ClientGraphQlRequest request, Chain chain) {
 		return chain.next(request);
 	}
 
 	/**
-	 * Return a new {@link SyncGraphQlClientInterceptor} that invokes the current
-	 * interceptor first and then the one that is passed in.
+	 * Return a new interceptor that invokes the current interceptor first and
+	 * then the one that is passed in.
 	 * @param interceptor the interceptor to delegate to after "this"
 	 * @return the new interceptor instance
 	 */
@@ -56,7 +57,7 @@ public interface SyncGraphQlClientInterceptor {
 
 
 	/**
-	 * Contract to delegate to the rest of the chain.
+	 * Contract to delegate to the rest of a blocking execution chain.
 	 */
 	interface Chain {
 
@@ -66,6 +67,7 @@ public interface SyncGraphQlClientInterceptor {
 		 * @return the GraphQL response
 		 * @throws GraphQlTransportException in case of errors due to transport or
 		 * other issues related to encoding and decoding the request and response.
+		 * @see GraphQlClient.RequestSpec#executeSync()
 		 */
 		ClientGraphQlResponse next(ClientGraphQlRequest request);
 

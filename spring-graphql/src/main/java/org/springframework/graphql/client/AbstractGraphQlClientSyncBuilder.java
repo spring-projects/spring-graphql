@@ -100,8 +100,8 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	}
 
 	@Override
-	public B documentSource(DocumentSource contentLoader) {
-		this.documentSource = contentLoader;
+	public B documentSource(DocumentSource documentSource) {
+		this.documentSource = documentSource;
 		return self();
 	}
 

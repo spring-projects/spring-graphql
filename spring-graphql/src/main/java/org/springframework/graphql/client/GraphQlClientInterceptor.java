@@ -21,10 +21,12 @@ import reactor.core.publisher.Mono;
 
 
 /**
- * Interceptor for {@link GraphQlClient} requests.
+ * Interceptor for {@link GraphQlClient} requests for use in a non-blocking
+ * execution chain with a non-blocking {@link GraphQlTransport}..
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
+ * @see GraphQlClient.Builder
  */
 public interface GraphQlClientInterceptor {
 
@@ -54,8 +56,8 @@ public interface GraphQlClientInterceptor {
 	}
 
 	/**
-	 * Return a new {@link GraphQlClientInterceptor} that invokes the current
-	 * interceptor first and then the one that is passed in.
+	 * Return a new interceptor that invokes the current interceptor first and
+	 * then the one that is passed in.
 	 * @param interceptor the interceptor to delegate to after "this"
 	 * @return the new {@code GraphQlClientInterceptor}
 	 */
@@ -78,7 +80,7 @@ public interface GraphQlClientInterceptor {
 
 
 	/**
-	 * Contract for delegation of single response requests to the rest of the chain.
+	 * Contract to delegate to the rest of a non-blocking execution chain.
 	 */
 	interface Chain {
 

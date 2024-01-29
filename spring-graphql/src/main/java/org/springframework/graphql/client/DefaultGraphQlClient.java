@@ -46,7 +46,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final GraphQlClientInterceptor.Chain nonBlockingChain;
 
-	private final GraphQlClientInterceptor.SubscriptionChain executeSubscriptionChain;
+	private final GraphQlClientInterceptor.SubscriptionChain subscriptionChain;
 
 	@Nullable
 	private final Duration blockingTimeout;
@@ -63,7 +63,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		this.documentSource = documentSource;
 		this.blockingChain = blockingChain;
 		this.nonBlockingChain = adaptToNonBlockingChain(blockingChain, scheduler);
-		this.executeSubscriptionChain = request -> Flux.error(new IllegalStateException("Subscriptions on supported"));
+		this.subscriptionChain = request -> Flux.error(new IllegalStateException("Subscriptions on supported"));
 		this.blockingTimeout = blockingTimeout;
 	}
 
@@ -80,7 +80,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		this.documentSource = documentSource;
 		this.blockingChain = adaptToBlockingChain(nonBlockingChain, blockingTimeout);
 		this.nonBlockingChain = nonBlockingChain;
-		this.executeSubscriptionChain = subscriptionChain;
+		this.subscriptionChain = subscriptionChain;
 		this.blockingTimeout = blockingTimeout;
 	}
 
@@ -217,7 +217,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		@Override
 		public Flux<ClientGraphQlResponse> executeSubscription() {
-			return initRequest().flatMapMany(request -> executeSubscriptionChain.next(request)
+			return initRequest().flatMapMany(request -> subscriptionChain.next(request)
 					.onErrorResume(
 							ex -> !(ex instanceof GraphQlClientException),
 							ex -> Mono.error(new GraphQlTransportException(ex, request))));

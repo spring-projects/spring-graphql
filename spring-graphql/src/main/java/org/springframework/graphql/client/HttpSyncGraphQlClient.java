@@ -26,10 +26,12 @@ import org.springframework.web.client.RestClient;
 
 
 /**
- * GraphQL over HTTP client that uses {@link RestClient}.
+ * GraphQL over HTTP client with that uses {@link RestClient} in a blocking
+ * execution chain.
  *
  * @author Rossen Stoyanchev
  * @since 1.3
+ * @see SyncGraphQlTransport
  */
 public interface HttpSyncGraphQlClient extends GraphQlClient {
 
@@ -70,24 +72,24 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 
 
 	/**
-	 * Builder for the GraphQL over HTTP client.
+	 * Builder for the GraphQL over HTTP client with a blocking execution chain.
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlClient.SyncBuilder<B> {
 
 		/**
 		 * Set the GraphQL endpoint URL as a String.
-		 * @param url the url to send HTTP requests to or connect over WebSocket
+		 * @param url the url to send HTTP requests to
 		 */
 		B url(String url);
 
 		/**
 		 * Set the GraphQL endpoint URL.
-		 * @param url the url to send HTTP requests to or connect over WebSocket
+		 * @param url the url to send HTTP requests to
 		 */
 		B url(URI url);
 
 		/**
-		 * Add the given header to HTTP requests or to the WebSocket handshake request.
+		 * Add the given header to HTTP requests.
 		 * @param name the header name
 		 * @param values the header values
 		 */
@@ -101,14 +103,16 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 		B headers(Consumer<HttpHeaders> headersConsumer);
 
 		/**
-		 * Configure message converters for all JSON encoding and decoding needs.
+		 * Configure message converters for JSON for use in the
+		 * {@link org.springframework.graphql.GraphQlResponse} to convert response
+		 * data to higher level objects.
 		 * @param configurer the configurer to apply
 		 * @return this builder
 		 */
 		B messageConverters(Consumer<List<HttpMessageConverter<?>>> configurer);
 
 		/**
-		 * Customize the {@code RestClient} to use.
+		 * Customize the underlying {@code RestClient}.
 		 * <p>Note that some properties of {@code RestClient.Builder} like the base URL,
 		 * headers, and message converters can be customized through this builder.
 		 * @see #url(String)
@@ -118,7 +122,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 		B restClient(Consumer<RestClient.Builder> builderConsumer);
 
 		/**
-		 * Build the {@code RestClientGraphQlClient} instance.
+		 * Build the {@code HttpSyncGraphQlClient} instance.
 		 */
 		@Override
 		HttpSyncGraphQlClient build();

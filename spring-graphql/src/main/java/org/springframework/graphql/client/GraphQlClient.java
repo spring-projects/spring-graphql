@@ -89,14 +89,14 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Base builder to create a {@link GraphQlClient}.
+	 * Base builder for creating and initializing a {@link GraphQlClient}.
 	 * @since 1.3
 	 */
 	interface BaseBuilder<B extends BaseBuilder<B>> {
 
 		/**
-		 * Configure a {@link DocumentSource} for use with
-		 * {@link #documentName(String)} for resolving a document by name.
+		 * Configure a {@link DocumentSource} strategy to resolve a document by
+		 * name. For use within {@link #documentName(String)}.
 		 * <p>By default, this is set to {@link ResourceDocumentSource} with
 		 * classpath location {@code "graphql-documents/"} and
 		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
@@ -107,8 +107,9 @@ public interface GraphQlClient {
 		 * Configure a timeout to use for blocking execution.
 		 * <p>By default this is not set, in which case the behavior depends on
 		 * connection and request timeout settings of the underlying transport.
-		 * We recommend configuring timeout values directly on the underlying
-		 * transport, which provides more control over such settings.
+		 * We recommend configuring timeout values directly if possible on the
+		 * underlying transport library such an HTTP client library as that can
+		 * provide more control over such settings.
 		 * @param blockingTimeout the timeout to use
 		 */
 		B blockingTimeout(@Nullable Duration blockingTimeout);
@@ -123,7 +124,7 @@ public interface GraphQlClient {
 
 	/**
 	 * Builder to create a {@link GraphQlClient} instance with a
-	 * synchronous transport and interceptors.
+	 * synchronous execution chain and transport.
 	 * @since 1.3
 	 * @see SyncGraphQlTransport
 	 */
@@ -156,8 +157,8 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Builder to create {@link GraphQlClient} instances with a non-blocking
-	 * {@link GraphQlTransport} and interceptors.
+	 * Builder to create a {@link GraphQlClient} with a non-blocking execution
+	 * chain and transport.
 	 */
 	interface Builder<B extends Builder<B>> extends BaseBuilder<B> {
 
@@ -242,10 +243,10 @@ public interface GraphQlClient {
 		RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer);
 
 		/**
-		 * Shortcut for {@link #execute()} with a field path to decode from.
-		 * <p>If you want to decode the full data instead, use {@link #execute()}:
+		 * Shortcut for {@link #executeSync()} with a field path to decode from.
+		 * <p>If you want to decode the full data instead, use:
 		 * <pre>
-		 * client.document("..").execute().map(response -> response.toEntity(..))
+		 * client.document("..").executeSync()
 		 * </pre>
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the field has any field errors,
@@ -256,9 +257,9 @@ public interface GraphQlClient {
 
 		/**
 		 * Shortcut for {@link #execute()} with a field path to decode from.
-		 * <p>If you want to decode the full data instead, use {@link #execute()}:
+		 * <p>If you want to decode the full data instead, use:
 		 * <pre>
-		 * client.document("..").execute().map(response -> response.toEntity(..))
+		 * client.document("..").execute().map(response -> ...)
 		 * </pre>
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the field has any field errors,
@@ -269,9 +270,9 @@ public interface GraphQlClient {
 		/**
 		 * Shortcut for {@link #executeSubscription()} with a field path to
 		 * decode from for each result.
-		 * <p>If you want to decode the full data, use {@link #executeSubscription()}:
+		 * <p>If you want to decode the full data, use:
 		 * <pre>
-		 * client.document("..").executeSubscription().map(response -> response.toEntity(..))
+		 * client.document("..").executeSubscription().map(response -> ...)
 		 * </pre>
 		 * @return a spec with decoding options
 		 */
@@ -291,8 +292,8 @@ public interface GraphQlClient {
 		 * Execute request with a single response, e.g. "query" or "mutation", and
 		 * return a response for further options.
 		 * @return a {@code Mono} with a {@code ClientGraphQlResponse} for further
-		 * decoding of the response. The {@code Mono} may end with a
-		 * .
+		 * decoding of the response. The {@code Mono} may end with an error due
+		 * to transport level issues.
 		 */
 		Mono<ClientGraphQlResponse> execute();
 
@@ -316,17 +317,17 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Declares options to decode a field for a single response operation.
+	 * Declares options to decode a field in a single response.
+	 * @since 1.3
 	 */
 	interface RetrieveSyncSpec {
 
 		/**
 		 * Decode the field to an entity of the given type.
 		 * @param entityType the type to convert to
-		 * @return {@code Mono} with the decoded entity; completes with
-		 * {@link FieldAccessException} in case of {@link ResponseField field
+		 * @return the entity or null if the field is {@code null} and has no errors.
+		 * @throws FieldAccessException in case of {@link ResponseField field
 		 * errors} or an {@link GraphQlResponse#isValid() invalid} response;
-		 * completes empty if the field is {@code null} but has no errors.
 		 * @see ResponseField#getErrors()
 		 */
 		@Nullable
@@ -345,8 +346,7 @@ public interface GraphQlClient {
 		<D> List<D> toEntityList(Class<D> elementType);
 
 		/**
-		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
-		 * @param elementType the type of elements in the list
+		 * Variant of {@link #toEntityList(Class)} with a {@link ParameterizedTypeReference}.
 		 */
 		<D> List<D> toEntityList(ParameterizedTypeReference<D> elementType);
 
@@ -354,7 +354,7 @@ public interface GraphQlClient {
 
 
 	/**
-	 * Declares options to decode a field for a single response operation.
+	 * Declares options to decode a field in a single response.
 	 */
 	interface RetrieveSpec {
 
@@ -381,8 +381,7 @@ public interface GraphQlClient {
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
 		/**
-		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
-		 * @param elementType the type of elements in the list
+		 * Variant of {@link #toEntityList(Class)} with a {@link ParameterizedTypeReference}.
 		 */
 		<D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
 

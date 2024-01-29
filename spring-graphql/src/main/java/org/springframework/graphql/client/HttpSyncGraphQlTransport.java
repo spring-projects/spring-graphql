@@ -29,10 +29,7 @@ import org.springframework.web.client.RestClient;
 
 
 /**
- * Transport for executing GraphQL over HTTP requests via {@link RestClient}.
- *
- * <p>Supports only single-response requests over HTTP POST. For subscriptions,
- * see {@link WebSocketGraphQlTransport} and {@link RSocketGraphQlTransport}.
+ * Transport for GraphQL over HTTP requests executed with {@link RestClient}.
  *
  * @author Rossen Stoyanchev
  * @since 1.3
@@ -63,12 +60,14 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 
 	@Override
 	public GraphQlResponse execute(GraphQlRequest request) {
+
 		Map<String, Object> body = this.restClient.post()
 				.contentType(this.contentType)
 				.accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL_RESPONSE)
 				.body(request.toMap())
 				.retrieve()
 				.body(MAP_TYPE);
+
 		return new ResponseMapGraphQlResponse(body != null ? body : Collections.emptyMap());
 	}
 

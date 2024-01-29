@@ -66,14 +66,6 @@ final class HttpMessageConverterDelegate {
 				.orElseThrow(() -> new IllegalArgumentException("No JSON HttpMessageConverter"));
 	}
 
-	@Nullable
-	private static MediaType toMediaType(@Nullable MimeType mimeType) {
-		if (mimeType instanceof MediaType mediaType) {
-			return mediaType;
-		}
-		return (mimeType != null ? new MediaType(mimeType) : null);
-	}
-
 	static HttpMessageConverterEncoder asEncoder(HttpMessageConverter<Object> converter) {
 		return new HttpMessageConverterEncoder(converter);
 	}
@@ -82,7 +74,18 @@ final class HttpMessageConverterDelegate {
 		return new HttpMessageConverterDecoder(converter);
 	}
 
+	@Nullable
+	private static MediaType toMediaType(@Nullable MimeType mimeType) {
+		if (mimeType instanceof MediaType mediaType) {
+			return mediaType;
+		}
+		return (mimeType != null ? new MediaType(mimeType) : null);
+	}
 
+
+	/**
+	 * Partial Encoder implementation to encode a single value through an HttpMessageConverter.
+	 */
 	private static class HttpMessageConverterEncoder implements Encoder<Object> {
 
 		private final HttpMessageConverter<Object> converter;
@@ -134,6 +137,9 @@ final class HttpMessageConverterDelegate {
 	}
 
 
+	/**
+	 * Partial Decoder implementation to decode a single buffer through an HttpMessageConverter.
+	 */
 	private static class HttpMessageConverterDecoder implements Decoder<Object> {
 
 		private final HttpMessageConverter<Object> converter;

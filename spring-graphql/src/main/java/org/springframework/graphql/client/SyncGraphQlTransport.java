@@ -25,6 +25,7 @@ import org.springframework.graphql.GraphQlResponse;
  *
  * @author Rossen Stoyanchev
  * @since 1.3
+ * @see GraphQlClient.SyncBuilder
  */
 public interface SyncGraphQlTransport {
 

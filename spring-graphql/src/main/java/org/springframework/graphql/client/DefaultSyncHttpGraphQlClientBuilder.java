@@ -111,15 +111,15 @@ final class DefaultSyncHttpGraphQlClientBuilder
 		});
 
 		RestClient restClient = this.restClientBuilder.build();
-		HttpSyncGraphQlTransport syncTransport = new HttpSyncGraphQlTransport(restClient);
+		HttpSyncGraphQlTransport transport = new HttpSyncGraphQlTransport(restClient);
 
-		GraphQlClient graphQlClient = super.buildGraphQlClient(syncTransport);
+		GraphQlClient graphQlClient = super.buildGraphQlClient(transport);
 		return new DefaultHttpSyncGraphQlClient(graphQlClient, restClient, getBuilderInitializer());
 	}
 
 
 	/**
-	 * Default {@link HttpGraphQlClient} implementation.
+	 * Default {@link HttpSyncGraphQlClient} implementation.
 	 */
 	private static class DefaultHttpSyncGraphQlClient
 			extends AbstractDelegatingGraphQlClient implements HttpSyncGraphQlClient {

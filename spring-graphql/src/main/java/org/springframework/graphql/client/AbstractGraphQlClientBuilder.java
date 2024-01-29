@@ -99,8 +99,8 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	}
 
 	@Override
-	public B documentSource(DocumentSource contentLoader) {
-		this.documentSource = contentLoader;
+	public B documentSource(DocumentSource documentSource) {
+		this.documentSource = documentSource;
 		return self();
 	}
 
@@ -195,8 +195,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	private Chain createExecuteChain(GraphQlTransport transport) {
 
-		Chain chain = request -> transport
-				.execute(request)
+		Chain chain = request -> transport.execute(request)
 				.map(response -> new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
 
 		return this.interceptors.stream()
