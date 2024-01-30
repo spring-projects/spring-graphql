@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -287,6 +287,21 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		getGraphQlService().setError(document, builder -> builder.message("Invalid query"));
 
 		assertThatThrownBy(() -> graphQlTester().document(document).execute().path("me"))
+				.hasMessageContaining("Response has 1 unexpected error(s)");
+
+		assertThat(getActualRequestDocument()).contains(document);
+	}
+
+	@Test // gh-891
+	void errorsCheckedOnTraverseWithConsumer() {
+
+		String document = "{me {name, friends}}";
+		getGraphQlService().setError(document, builder -> builder.message("Invalid query"));
+
+		assertThatThrownBy(() ->
+				graphQlTester().document(document)
+						.execute()
+						.path("me", it -> it.path("name").hasValue()))
 				.hasMessageContaining("Response has 1 unexpected error(s)");
 
 		assertThat(getActualRequestDocument()).contains(document);
