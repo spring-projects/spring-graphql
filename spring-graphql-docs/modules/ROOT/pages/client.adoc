@@ -1,7 +1,7 @@
 [[client]]
 = Client
 
-Spring for GraphQL includes client support for executing GraphQL requests over HTTP,
+Spring for GraphQL includes client support to execute GraphQL requests over HTTP,
 WebSocket, and RSocket.
 
 
@@ -9,22 +9,60 @@ WebSocket, and RSocket.
 [[client.graphqlclient]]
 == `GraphQlClient`
 
-`GraphQlClient` is a contract that declares a common workflow for GraphQL requests that is
-independent of the underlying transport. That means requests are executed with the same API
-no matter what the underlying transport, and anything transport specific is configured at
-build time.
+`GraphQlClient` defines a common workflow for GraphQL requests independent of the underlying
+transport, so the way you perform requests is the same no matter what transport is in use.
 
-To create a `GraphQlClient` you need one of the following extensions:
+The following transport specific `GraphQlClient` extensions are available:
 
+- xref:client.adoc#client.httpsyncgraphqlclient[HttpSyncGraphQlClient]
 - xref:client.adoc#client.httpgraphqlclient[HttpGraphQlClient]
 - xref:client.adoc#client.websocketgraphqlclient[WebSocketGraphQlClient]
 - xref:client.adoc#client.rsocketgraphqlclient[RSocketGraphQlClient]
 
 Each defines a `Builder` with options relevant to the transport. All builders extend
-from a common, base GraphQlClient xref:client.adoc#client.graphqlclient.builder[`Builder`] with options
-relevant to all extensions.
+from a common, base GraphQlClient xref:client.adoc#client.graphqlclient.builder[`Builder`]
+with options applicable to all transports.
 
-Once you have a `GraphQlClient` you can begin to make xref:client.adoc#client.requests[requests].
+Once `GraphQlClient` is built you can begin to make xref:client.adoc#client.requests[requests].
+
+
+[[client.httpsyncgraphqlclient]]
+=== HTTP Sync
+
+`HttpSyncGraphQlClient` uses
+{spring-framework-ref-docs}/integration/rest-clients.html#rest-restclient[RestClient]
+to execute GraphQL requests over HTTP through a blocking transport contract and chain of
+interceptors.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+RestClient restClient = ... ;
+HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.create(restClient);
+----
+
+Once `HttpSyncGraphQlClient` is created, you can begin to
+xref:client.adoc#client.requests[execute requests] using the same API, independent of the underlying
+transport. If you need to change any transport specific details, use `mutate()` on an
+existing `HttpSyncGraphQlClient` to create a new instance with customized settings:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    RestClient restClient = ... ;
+
+	HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.builder(restClient)
+			.headers(headers -> headers.setBasicAuth("joe", "..."))
+			.build();
+
+	// Perform requests with graphQlClient...
+
+	HttpSyncGraphQlClient anotherGraphQlClient = graphQlClient.mutate()
+			.headers(headers -> headers.setBasicAuth("peter", "..."))
+			.build();
+
+	// Perform requests with anotherGraphQlClient...
+
+----
+
 
 
 [[client.httpgraphqlclient]]
@@ -32,7 +70,8 @@ Once you have a `GraphQlClient` you can begin to make xref:client.adoc#client.re
 
 `HttpGraphQlClient` uses
 {spring-framework-ref-docs}/web/webflux-webclient.html[WebClient] to execute
-GraphQL requests over HTTP.
+GraphQL requests over HTTP through a non-blocking transport contract and chain of
+interceptors.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -195,12 +234,16 @@ transport.
 [[client.graphqlclient.builder]]
 === Builder
 
-`GraphQlClient` defines a parent `Builder` with common configuration options for the
+`GraphQlClient` defines a parent `BaseBuilder` with common configuration options for the
 builders of all extensions. Currently, it has lets you configure:
 
 - `DocumentSource` strategy to load the document for a request from a file
 - xref:client.adoc#client.interception[Interception] of executed requests
 
+`BaseBuilder` is further extended by the following:
+
+- `SyncBuilder` - blocking execution stack with a chain of ``SyncGraphQlInterceptor``'s.
+- `Builder` - non-blocking execution stack with chain of ``GraphQlInterceptor``'s.
 
 
 
@@ -208,8 +251,8 @@ builders of all extensions. Currently, it has lets you configure:
 == Requests
 
 Once you have a xref:client.adoc#client.graphqlclient[`GraphQlClient`], you can begin to perform requests via
-xref:client.adoc#client.requests.retrieve[retrieve()] or xref:client.adoc#client.requests.execute[execute()]
-where the former is only a shortcut for the latter.
+xref:client.adoc#client.requests.retrieve[retrieve] or xref:client.adoc#client.requests.execute[execute]
+methods.
 
 
 
@@ -218,7 +261,29 @@ where the former is only a shortcut for the latter.
 
 The below retrieves and decodes the data for a query:
 
-[source,java,indent=0,subs="verbatim,quotes"]
+[tabs]
+======
+Sync::
++
+[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+----
+	String document = "{" +
+			"  project(slug:\"spring-framework\") {" +
+			"	name" +
+			"	releases {" +
+			"	  version" +
+			"	}"+
+			"  }" +
+			"}";
+
+	Project project = graphQlClient.document(document) <1>
+			.retrieveSync("project") <2>
+			.toEntity(Project.class); <3>
+----
+
+Non-Blocking::
++
+[source,java,indent=0,subs="verbatim,quotes",role="secondary"]
 ----
 	String document = "{" +
 			"  project(slug:\"spring-framework\") {" +
@@ -233,6 +298,8 @@ The below retrieves and decodes the data for a query:
 			.retrieve("project") <2>
 			.toEntity(Project.class); <3>
 ----
+======
+
 <1> The operation to perform.
 <2> The path under the "data" key in the response map to decode from.
 <3> Decode the data at the path to the target type.
@@ -249,7 +316,28 @@ Decoding can result in `FieldAccessException` if the given path is not present, 
 field value is `null` and has an error. `FieldAccessException` provides access to the
 response and the field:
 
-[source,java,indent=0,subs="verbatim,quotes"]
+[tabs]
+======
+Sync::
++
+[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+----
+	try {
+		Project project = graphQlClient.document(document)
+				.retrieveSync("project")
+				.toEntity(Project.class);
+	}
+	catch (FieldAccessException ex) {
+		ClientGraphQlResponse response = ex.getResponse();
+		// ...
+		ClientResponseField field = ex.getField();
+		// ...
+	}
+----
+
+Non-Blocking::
++
+[source,java,indent=0,subs="verbatim,quotes",role="secondary"]
 ----
 	Mono<Project> projectMono = graphQlClient.document(document)
 			.retrieve("project")
@@ -261,6 +349,7 @@ response and the field:
 				// ...
 			});
 ----
+======
 
 
 
@@ -272,9 +361,35 @@ response map. For more control, use the `execute` method and handle the response
 
 For example:
 
-[source,java,indent=0,subs="verbatim,quotes"]
+[tabs]
+======
+Sync::
++
+[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+----
+	ClientGraphQlResponse response = graphQlClient.document(document).executeSync();
+
+	if (!response.isValid()) {
+		// Request failure... <1>
+	}
+
+	ClientResponseField field = response.field("project");
+	if (!field.hasValue()) {
+		if (field.getError() != null) {
+			// Field failure... <2>
+		}
+		else {
+			// Optional field set to null... <3>
+		}
+	}
+
+	Project project = field.toEntity(Project.class); <4>
 ----
 
+Non-Blocking::
++
+[source,java,indent=0,subs="verbatim,quotes",role="secondary"]
+----
 	Mono<Project> projectMono = graphQlClient.document(document)
 			.execute()
 			.map(response -> {
@@ -295,6 +410,8 @@ For example:
 				return field.toEntity(Project.class); <4>
 			});
 ----
+======
+
 <1> The response does not have data, only errors
 <2> Field that is `null` and has an associated error
 <3> Field that was set to `null` by its `DataFetcher`
@@ -331,9 +448,9 @@ You can then:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	Mono<Project> projectMono = graphQlClient.documentName("projectReleases") <1>
+	Project project = graphQlClient.documentName("projectReleases") <1>
 			.variable("slug", "spring-framework") <2>
-			.retrieve()
+			.retrieveSync()
 			.toEntity(Project.class);
 ----
 <1> Load the document from "projectReleases.graphql"
@@ -423,7 +540,23 @@ response directly:
 [[client.interception]]
 == Interception
 
-You create a `GraphQlClientInterceptor` to intercept all requests through a client:
+For blocking transports created with the `GraphQlClient.SyncBuilder`, you create a
+`SyncGraphQlClientInterceptor` to intercept all requests through the client:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+static class MyInterceptor implements SyncGraphQlClientInterceptor {
+
+	@Override
+	public ClientGraphQlResponse intercept(ClientGraphQlRequest request, Chain chain) {
+		// ...
+		return chain.next(request);
+	}
+}
+----
+
+For non-blocking transports created with `GraphQlClient.Builder`, you create a
+`GraphQlClientInterceptor` to intercept all requests through the client:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -444,7 +577,7 @@ static class MyInterceptor implements GraphQlClientInterceptor {
 }
 ----
 
-Once the interceptor is created, register it through the client builder:
+Once the interceptor is created, register it through the client builder. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
