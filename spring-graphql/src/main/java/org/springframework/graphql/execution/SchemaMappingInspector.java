@@ -80,6 +80,7 @@ import org.springframework.util.MultiValueMap;
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
+@SuppressWarnings("rawtypes")
 public class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
@@ -87,7 +88,7 @@ public class SchemaMappingInspector {
 
 	private final GraphQLSchema schema;
 
-	private final RuntimeWiring runtimeWiring;
+	private final Map<String, Map<String, DataFetcher>> dataFetchers;
 
 	private final Set<String> inspectedTypes = new HashSet<>();
 
@@ -99,11 +100,11 @@ public class SchemaMappingInspector {
 	private SchemaReport report;
 
 
-	private SchemaMappingInspector(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
+	private SchemaMappingInspector(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers) {
 		Assert.notNull(schema, "GraphQLSchema is required");
-		Assert.notNull(runtimeWiring, "RuntimeWiring is required");
+		Assert.notNull(dataFetchers, "DataFetcher map is required");
 		this.schema = schema;
-		this.runtimeWiring = runtimeWiring;
+		this.dataFetchers = dataFetchers;
 	}
 
 
@@ -140,11 +141,10 @@ public class SchemaMappingInspector {
 	 * @param resolvableType the Java type to match against, or {@code null} if
 	 * not applicable such as for Query, Mutation, or Subscription
 	 */
-	@SuppressWarnings("rawtypes")
 	private void checkFieldsContainer(GraphQLFieldsContainer fieldContainer, @Nullable ResolvableType resolvableType) {
 
 		String typeName = fieldContainer.getName();
-		Map<String, DataFetcher> dataFetcherMap = this.runtimeWiring.getDataFetcherForType(typeName);
+		Map<String, DataFetcher> dataFetcherMap = this.dataFetchers.getOrDefault(typeName, Collections.emptyMap());
 
 		for (GraphQLFieldDefinition field : fieldContainer.getFieldDefinitions()) {
 			String fieldName = field.getName();
@@ -307,9 +307,8 @@ public class SchemaMappingInspector {
 		}
 	}
 
-	@SuppressWarnings("rawtypes")
 	private void checkDataFetcherRegistrations() {
-		this.runtimeWiring.getDataFetchers().forEach((typeName, registrations) ->
+		this.dataFetchers.forEach((typeName, registrations) ->
 				registrations.forEach((fieldName, dataFetcher) -> {
 					FieldCoordinates coordinates = FieldCoordinates.coordinates(typeName, fieldName);
 					if (this.schema.getFieldDefinition(coordinates) == null) {
@@ -326,7 +325,16 @@ public class SchemaMappingInspector {
 	 * @return the created report
 	 */
 	public static SchemaReport inspect(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
-		return new SchemaMappingInspector(schema, runtimeWiring).getOrCreateReport();
+		return inspect(schema, runtimeWiring.getDataFetchers());
+	}
+
+	/**
+	 * Variant of {@link #inspect(GraphQLSchema, RuntimeWiring)} with a map of
+	 * {@code DataFetcher} registrations.
+	 * @since 1.2.5
+	 */
+	public static SchemaReport inspect(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers) {
+		return new SchemaMappingInspector(schema, dataFetchers).getOrCreateReport();
 	}
 
 
@@ -403,8 +411,8 @@ public class SchemaMappingInspector {
 		@Override
 		@Nullable
 		public DataFetcher<?> dataFetcher(FieldCoordinates coordinates) {
-			return SchemaMappingInspector.this.runtimeWiring
-					.getDataFetcherForType(coordinates.getTypeName())
+			return SchemaMappingInspector.this.dataFetchers
+					.getOrDefault(coordinates.getTypeName(), Collections.emptyMap())
 					.get(coordinates.getFieldName());
 		}
 
