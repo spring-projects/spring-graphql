@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,9 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
@@ -40,29 +36,19 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.dataloader.DataLoader;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.aop.support.AopUtils;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.core.KotlinDetector;
-import org.springframework.core.MethodIntrospector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.data.domain.ScrollPosition;
-import org.springframework.format.FormatterRegistrar;
-import org.springframework.format.support.DefaultFormattingConversionService;
-import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -83,14 +69,11 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
 
+
 /**
  * {@link RuntimeWiringConfigurer} that finds {@link SchemaMapping @SchemaMapping}
- * annotated handler methods in {@link Controller @Controller} classes declared in
- * Spring configuration, and registers them as {@link DataFetcher}s.
- *
- * <p>In addition to initializing a {@link RuntimeWiring.Builder}, this class, also
- * provides an option to {@link #configure(GraphQLCodeRegistry.Builder) configure}
- * data fetchers on a {@link GraphQLCodeRegistry.Builder}.
+ * and {@link BatchMapping @BatchMapping} methods in {@link Controller @Controller}
+ * classes, and registers them as {@link DataFetcher}s.
  *
  * <p>This class detects the following strategies in Spring configuration,
  * expecting to find a single, unique bean of that type:
@@ -103,13 +86,17 @@ import org.springframework.validation.DataBinder;
  * is configured for use.
  * </ul>
  *
- *
+ * <p>In addition to initializing a {@link RuntimeWiring.Builder}, this class, also
+ * provides an option to {@link #configure(GraphQLCodeRegistry.Builder) configure}
+ * data fetchers on a {@link GraphQLCodeRegistry.Builder}.
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class AnnotatedControllerConfigurer implements ApplicationContextAware, InitializingBean, RuntimeWiringConfigurer {
+public class AnnotatedControllerConfigurer
+		extends AnnotatedControllerDetectionSupport<DataFetcherMappingInfo>
+		implements RuntimeWiringConfigurer {
 
 	private static final ClassLoader classLoader = AnnotatedControllerConfigurer.class.getClassLoader();
 
@@ -123,29 +110,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			"jakarta.validation.executable.ExecutableValidator", classLoader);
 
 
-	private final static Log logger = LogFactory.getLog(AnnotatedControllerConfigurer.class);
-
-	/**
-	 * Bean name prefix for target beans behind scoped proxies. Used to exclude those
-	 * targets from handler method detection, in favor of the corresponding proxies.
-	 * <p>We're not checking the autowire-candidate status here, which is how the
-	 * proxy target filtering problem is being handled at the autowiring level,
-	 * since autowire-candidate may have been turned to {@code false} for other
-	 * reasons, while still expecting the bean to be eligible for handler methods.
-	 * <p>Originally defined in {@link org.springframework.aop.scope.ScopedProxyUtils}
-	 * but duplicated here to avoid a hard dependency on the spring-aop module.
-	 */
-	private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
-
-
-	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
-
-	private boolean fallBackOnDirectFieldAccess;
-
 	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
-
-	@Nullable
-	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
 	@Nullable
 	private ValidationHelper validationHelper;
@@ -153,33 +118,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	@Nullable
 	private AnnotatedControllerExceptionResolver exceptionResolver;
 
-	@Nullable
-	private Executor executor;
-
-	@Nullable
-	private ApplicationContext applicationContext;
-
-
-	/**
-	 * Add a {@code FormatterRegistrar} to customize the {@link ConversionService}
-	 * that assists in binding GraphQL arguments onto
-	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
-	 * annotated method parameters.
-	 */
-	public void addFormatterRegistrar(FormatterRegistrar registrar) {
-		registrar.registerFormatters(this.conversionService);
-	}
-
-	/**
-	 * Whether binding GraphQL arguments onto
-	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
-	 * should falls back to direct field access in case the target object does
-	 * not use accessor methods.
-	 * @since 1.2.0
-	 */
-	public void setFallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
-		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
-	}
 
 	/**
 	 * Add a {@link HandlerMethodArgumentResolver} for custom controller method
@@ -191,12 +129,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 */
 	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
 		this.customArgumentResolvers.add(resolver);
-	}
-
-	HandlerMethodArgumentResolverComposite getArgumentResolvers() {
-		Assert.notNull(this.argumentResolvers,
-				"HandlerMethodArgumentResolverComposite is not yet initialized, was afterPropertiesSet called?");
-		return this.argumentResolvers;
 	}
 
 	/**
@@ -230,31 +162,14 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> consumer) {
 	}
 
-	/**
-	 * Configure an {@link Executor} to use for asynchronous handling of
-	 * {@link Callable} return values from controller methods.
-	 * <p>By default, this is not set in which case controller methods with a
-	 * {@code Callable} return value cannot be registered.
-	 * @param executor the executor to use
-	 */
-	public void setExecutor(Executor executor) {
-		this.executor = executor;
-	}
-
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) {
-		this.applicationContext = applicationContext;
-	}
-
 
 	@Override
 	public void afterPropertiesSet() {
+		super.afterPropertiesSet();
 
-		this.argumentResolvers = initArgumentResolvers();
-
-		this.exceptionResolver = new AnnotatedControllerExceptionResolver(this.argumentResolvers);
-		if (this.applicationContext != null) {
-			this.exceptionResolver.registerControllerAdvice(this.applicationContext);
+		this.exceptionResolver = new AnnotatedControllerExceptionResolver(getArgumentResolvers());
+		if (getApplicationContext() != null) {
+			this.exceptionResolver.registerControllerAdvice(getApplicationContext());
 		}
 
 		if (beanValidationPresent) {
@@ -262,7 +177,8 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		}
 	}
 
-	private HandlerMethodArgumentResolverComposite initArgumentResolvers() {
+	@Override
+	protected HandlerMethodArgumentResolverComposite initArgumentResolvers() {
 
 		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
 
@@ -273,7 +189,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		}
 
 		GraphQlArgumentBinder argumentBinder =
-				new GraphQlArgumentBinder(this.conversionService, this.fallBackOnDirectFieldAccess);
+				new GraphQlArgumentBinder(getConversionService(), isFallBackOnDirectFieldAccess());
 
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
@@ -332,90 +248,28 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		}
 	}
 
-	protected final ApplicationContext obtainApplicationContext() {
-		Assert.state(this.applicationContext != null, "No ApplicationContext");
-		return this.applicationContext;
-	}
-
 
 	@Override
 	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
-		Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
 		Assert.state(this.exceptionResolver != null, "`exceptionResolver` is not initialized");
 
-		findHandlerMethods().forEach((info) -> {
+		detectHandlerMethods().forEach(info -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
 				dataFetcher = new SchemaMappingDataFetcher(
-						info, this.argumentResolvers, this.validationHelper, this.exceptionResolver, this.executor);
+						info, getArgumentResolvers(), this.validationHelper, this.exceptionResolver, getExecutor());
 			}
 			else {
 				dataFetcher = registerBatchLoader(info);
 			}
-			runtimeWiringBuilder.type(info.getCoordinates().getTypeName(), typeBuilder ->
-					typeBuilder.dataFetcher(info.getCoordinates().getFieldName(), dataFetcher));
+			FieldCoordinates coordinates = info.getCoordinates();
+			runtimeWiringBuilder.type(coordinates.getTypeName(), typeBuilder ->
+					typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
 		});
 	}
 
-	/**
-	 * Scan beans in the ApplicationContext, detect and prepare a map of handler methods.
-	 */
-	private Collection<MappingInfo> findHandlerMethods() {
-		ApplicationContext context = obtainApplicationContext();
-		Map<FieldCoordinates, MappingInfo> result = new HashMap<>();
-		for (String beanName : context.getBeanNamesForType(Object.class)) {
-			if (beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
-				continue;
-			}
-			Class<?> beanType = null;
-			try {
-				beanType = context.getType(beanName);
-			}
-			catch (Throwable ex) {
-				// An unresolvable bean type, probably from a lazy bean - let's ignore it.
-				if (logger.isTraceEnabled()) {
-					logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
-				}
-			}
-			if (beanType == null || !AnnotatedElementUtils.hasAnnotation(beanType, Controller.class)) {
-				continue;
-			}
-			Class<?> beanClass = context.getType(beanName);
-			findHandlerMethods(beanName, beanClass).forEach((info) -> {
-				HandlerMethod handlerMethod = info.getHandlerMethod();
-				MappingInfo existing = result.put(info.getCoordinates(), info);
-				if (existing != null && !existing.getHandlerMethod().equals(handlerMethod)) {
-					throw new IllegalStateException(
-							"Ambiguous mapping. Cannot map '" + handlerMethod.getBean() + "' method \n" +
-									handlerMethod + "\nto " + info.getCoordinates() + ": There is already '" +
-									existing.getHandlerMethod().getBean() + "' bean method\n" + existing + " mapped.");
-				}
-			});
-		}
-		return result.values();
-	}
-
-	private Collection<MappingInfo> findHandlerMethods(Object handler, @Nullable Class<?> handlerClass) {
-		if (handlerClass == null) {
-			return Collections.emptyList();
-		}
-
-		Class<?> userClass = ClassUtils.getUserClass(handlerClass);
-		Map<Method, MappingInfo> map = MethodIntrospector.selectMethods(
-				userClass, (Method method) -> getMappingInfo(method, handler, userClass));
-
-		Collection<MappingInfo> mappingInfos = map.values();
-
-		if (logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
-			logger.trace(formatMappings(userClass, mappingInfos));
-		}
-
-		return mappingInfos;
-	}
-
-	@Nullable
-	private MappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
-
+	@Override
+	protected DataFetcherMappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
 		Set<Annotation> annotations = AnnotatedElementUtils.findAllMergedAnnotations(
 				method, new LinkedHashSet<>(Arrays.asList(BatchMapping.class, SchemaMapping.class)));
 
@@ -457,8 +311,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		if (!StringUtils.hasText(typeName)) {
 			for (MethodParameter parameter : handlerMethod.getMethodParameters()) {
 				if (!batchMapping) {
-					Assert.state(this.argumentResolvers != null, "`argumentResolvers` is not initialized");
-					HandlerMethodArgumentResolver resolver = this.argumentResolvers.getArgumentResolver(parameter);
+					HandlerMethodArgumentResolver resolver = getArgumentResolvers().getArgumentResolver(parameter);
 					if (resolver instanceof SourceMethodArgumentResolver) {
 						typeName = parameter.getParameterType().getSimpleName();
 						break;
@@ -477,32 +330,15 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 				"No parentType specified, and a source/parent method argument was also not found: " +
 						handlerMethod.getShortLogMessage());
 
-		return new MappingInfo(typeName, field, batchMapping, batchSize, handlerMethod);
+		return new DataFetcherMappingInfo(typeName, field, batchMapping, batchSize, handlerMethod);
 	}
 
-	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {
-		Method theMethod = AopUtils.selectInvocableMethod(method, handlerType);
-		return (handler instanceof String ?
-				new HandlerMethod((String) handler, obtainApplicationContext().getAutowireCapableBeanFactory(), theMethod) :
-				new HandlerMethod(handler, theMethod));
+	@Override
+	protected HandlerMethod getHandlerMethod(DataFetcherMappingInfo mappingInfo) {
+		return mappingInfo.getHandlerMethod();
 	}
 
-	private String formatMappings(Class<?> handlerType, Collection<MappingInfo> infos) {
-		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
-				.map(p -> p.substring(0, 1))
-				.collect(Collectors.joining(".", "", "." + handlerType.getSimpleName()));
-		return infos.stream()
-				.map(mappingInfo -> {
-					Method method = mappingInfo.getHandlerMethod().getMethod();
-					String methodParameters = Arrays.stream(method.getGenericParameterTypes())
-							.map(Type::getTypeName)
-							.collect(Collectors.joining(",", "(", ")"));
-					return mappingInfo.getCoordinates() + " => " + method.getName() + methodParameters;
-				})
-				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
-	}
-
-	private DataFetcher<Object> registerBatchLoader(MappingInfo info) {
+	private DataFetcher<Object> registerBatchLoader(DataFetcherMappingInfo info) {
 		if (!info.isBatchMapping()) {
 			throw new IllegalArgumentException("Not a @BatchMapping method: " + info);
 		}
@@ -515,7 +351,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		}
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
-		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, this.executor);
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, getExecutor());
 
 		MethodParameter returnType = handlerMethod.getReturnType();
 		Class<?> clazz = returnType.getParameterType();
@@ -567,56 +403,12 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	}
 
 
-	private static class MappingInfo {
-
-		private final FieldCoordinates coordinates;
-
-		private final boolean batchMapping;
-
-		private final int maxBatchSize;
-
-		private final HandlerMethod handlerMethod;
-
-		public MappingInfo(
-				String typeName, String field, boolean batchMapping, int maxBatchSize,
-				HandlerMethod handlerMethod) {
-
-			this.coordinates = FieldCoordinates.coordinates(typeName, field);
-			this.batchMapping = batchMapping;
-			this.maxBatchSize = maxBatchSize;
-			this.handlerMethod = handlerMethod;
-		}
-
-		public FieldCoordinates getCoordinates() {
-			return this.coordinates;
-		}
-
-		@SuppressWarnings("BooleanMethodIsAlwaysInverted")
-		public boolean isBatchMapping() {
-			return this.batchMapping;
-		}
-
-		public int getMaxBatchSize() {
-			return this.maxBatchSize;
-		}
-
-		public HandlerMethod getHandlerMethod() {
-			return this.handlerMethod;
-		}
-
-		@Override
-		public String toString() {
-			return this.coordinates + " -> " + this.handlerMethod;
-		}
-	}
-
-
 	/**
 	 * {@link DataFetcher} that wrap and invokes a {@link HandlerMethod}.
 	 */
 	static class SchemaMappingDataFetcher implements SelfDescribingDataFetcher<Object> {
 
-		private final MappingInfo info;
+		private final DataFetcherMappingInfo mappingInfo;
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
@@ -631,11 +423,11 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		private final boolean subscription;
 
 		SchemaMappingDataFetcher(
-				MappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
+				DataFetcherMappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
 				@Nullable ValidationHelper helper, AnnotatedControllerExceptionResolver exceptionResolver,
 				@Nullable Executor executor) {
 
-			this.info = info;
+			this.mappingInfo = info;
 			this.argumentResolvers = argumentResolvers;
 
 			this.methodValidationHelper =
@@ -648,24 +440,24 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			this.exceptionResolver = exceptionResolver;
 
 			this.executor = executor;
-			this.subscription = this.info.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
+			this.subscription = this.mappingInfo.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
 
 		@Override
 		public String getDescription() {
-			return this.info.getHandlerMethod().getShortLogMessage();
+			return this.mappingInfo.getHandlerMethod().getShortLogMessage();
 		}
 
 		@Override
 		public ResolvableType getReturnType() {
-			return ResolvableType.forMethodReturnType(this.info.getHandlerMethod().getMethod());
+			return ResolvableType.forMethodReturnType(this.mappingInfo.getHandlerMethod().getMethod());
 		}
 
 		/**
 		 * Return the {@link HandlerMethod} used to fetch data.
 		 */
 		public HandlerMethod getHandlerMethod() {
-			return this.info.getHandlerMethod();
+			return this.mappingInfo.getHandlerMethod();
 		}
 
 		@Override
@@ -728,21 +520,21 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 
 	static class BatchMappingDataFetcher implements DataFetcher<Object>, SelfDescribingDataFetcher<Object> {
 
-		private final MappingInfo info;
+		private final DataFetcherMappingInfo mappingInfo;
 
 		private final ResolvableType returnType;
 
 		private final String dataLoaderKey;
 
-		BatchMappingDataFetcher(MappingInfo info, ResolvableType valueType, String dataLoaderKey) {
-			this.info = info;
+		BatchMappingDataFetcher(DataFetcherMappingInfo info, ResolvableType valueType, String dataLoaderKey) {
+			this.mappingInfo = info;
 			this.returnType = ResolvableType.forClassWithGenerics(CompletableFuture.class, valueType);
 			this.dataLoaderKey = dataLoaderKey;
 		}
 
 		@Override
 		public String getDescription() {
-			return "@BatchMapping " + this.info.getHandlerMethod().getShortLogMessage();
+			return "@BatchMapping " + this.mappingInfo.getHandlerMethod().getShortLogMessage();
 		}
 
 		@Override

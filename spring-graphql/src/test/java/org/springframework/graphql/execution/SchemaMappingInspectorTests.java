@@ -530,7 +530,7 @@ class SchemaMappingInspectorTests {
 
 		@Test
 		void reportUnmappedField() {
-			 String schema = """
+			String schema = """
 						type Query {
 							allBooks: [Book]
 						}
@@ -550,13 +550,13 @@ class SchemaMappingInspectorTests {
 							id: ID
 						}
 					""";
-			 SchemaReport report = inspectSchema(schema, BookController.class);
+			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).hasSkippedTypeCount(0);
-			 assertThat(report.toString())
-					 .contains("GraphQL schema inspection:", "Unmapped fields: {Book=[missing]}", "Unmapped registrations:",
-							 "{Book.fetcher=BookController#fetcher[1 args]", " Query.paginatedBooks=BookController#paginatedBooks[0 args]",
-							 "Query.bookObject=BookController#bookObject[1 args]", "Query.bookById=BookController#bookById[1 args]",
-							 "Skipped types: []");
+			assertThat(report.toString())
+					.contains("GraphQL schema inspection:", "Unmapped fields: {Book=[missing]}", "Unmapped registrations:",
+							"Book.fetcher=BookController#fetcher[1 args]", " Query.paginatedBooks=BookController#paginatedBooks[0 args]",
+							"Query.bookObject=BookController#bookObject[1 args]", "Query.bookById=BookController#bookById[1 args]",
+							"Skipped types: []");
 		 }
 
 	}
