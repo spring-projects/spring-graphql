@@ -73,7 +73,7 @@ import org.springframework.web.method.ControllerAdviceBean;
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
-final class AnnotatedControllerExceptionResolver {
+final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherExceptionResolver {
 
 	private static final Log logger = LogFactory.getLog(AnnotatedControllerExceptionResolver.class);
 
@@ -121,7 +121,7 @@ final class AnnotatedControllerExceptionResolver {
 		}
 		if (logger.isDebugEnabled()) {
 			logger.debug("@GraphQlException methods in ControllerAdvice beans: " +
-					(this.controllerAdviceCache.size() == 0 ? "none" : this.controllerAdviceCache.size()));
+					(this.controllerAdviceCache.isEmpty() ? "none" : this.controllerAdviceCache.size()));
 		}
 	}
 
@@ -167,6 +167,7 @@ final class AnnotatedControllerExceptionResolver {
 	 * @return a {@code Mono} with resolved {@code GraphQLError}s as specified in
 	 * {@link DataFetcherExceptionResolver#resolveException(Throwable, DataFetchingEnvironment)}
 	 */
+	@Override
 	public Mono<List<GraphQLError>> resolveException(
 			Throwable ex, DataFetchingEnvironment environment, @Nullable Object controller) {
 

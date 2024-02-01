@@ -21,12 +21,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import graphql.schema.DataFetcher;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -42,6 +44,7 @@ import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
+import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -80,6 +83,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
 
 	private boolean fallBackOnDirectFieldAccess;
+
+	@Nullable
+	private AnnotatedControllerExceptionResolver exceptionResolver;
 
 	@Nullable
 	private Executor executor;
@@ -121,6 +127,25 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	}
 
 	/**
+	 * Return a {@link DataFetcherExceptionResolver} that resolves exceptions with
+	 * {@code @GraphQlExceptionHandler} methods in {@code @ControllerAdvice}
+	 * classes declared in Spring configuration. This is useful primarily for
+	 * exceptions from non-controller {@link DataFetcher}s since exceptions from
+	 * {@code @SchemaMapping} controller methods are handled automatically at
+	 * the point of invocation.
+	 *
+	 * @return a resolver instance that can be plugged into
+	 * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
+	 * GraphQlSource.Builder}
+	 *
+	 * @since 1.2.0
+	 */
+	public HandlerDataFetcherExceptionResolver getExceptionResolver() {
+		Assert.notNull(this.exceptionResolver, "afterPropertiesSet not called yet");
+		return this.exceptionResolver;
+	}
+
+	/**
 	 * Configure an {@link Executor} to use for asynchronous handling of
 	 * {@link Callable} return values from controller methods.
 	 * <p>By default, this is not set in which case controller methods with a
@@ -140,7 +165,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	 * Return the configured argument resolvers.
 	 */
 	protected HandlerMethodArgumentResolverComposite getArgumentResolvers() {
-		Assert.notNull(this.argumentResolvers, "Not yet initialized, was afterPropertiesSet called?");
+		Assert.notNull(this.argumentResolvers, "afterPropertiesSet not called yet");
 		return this.argumentResolvers;
 	}
 
@@ -163,6 +188,11 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	@Override
 	public void afterPropertiesSet() {
 		this.argumentResolvers = initArgumentResolvers();
+
+		this.exceptionResolver = new AnnotatedControllerExceptionResolver(this.argumentResolvers);
+		if (getApplicationContext() != null) {
+			this.exceptionResolver.registerControllerAdvice(getApplicationContext());
+		}
 	}
 
 	protected abstract HandlerMethodArgumentResolverComposite initArgumentResolvers();
@@ -192,17 +222,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 				continue;
 			}
 			Class<?> beanClass = context.getType(beanName);
-			findHandlerMethods(beanName, beanClass).forEach(info -> {
-				HandlerMethod handlerMethod = getHandlerMethod(info);
-				M existing = results.stream().filter(o -> o.equals(info)).findFirst().orElse(null);
-				if (existing != null && !getHandlerMethod(existing).equals(handlerMethod)) {
-					throw new IllegalStateException(
-							"Ambiguous mapping. Cannot map '" + handlerMethod.getBean() + "' method \n" +
-									handlerMethod + "\n" + ": There is already '" +
-									getHandlerMethod(existing).getBean() + "' bean method\n" + existing + " mapped.");
-				}
-				results.add(info);
-			});
+			findHandlerMethods(beanName, beanClass).forEach(info -> registerHandlerMethod(info, results));
 		}
 		return results;
 	}
@@ -230,13 +250,6 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	@Nullable
 	protected abstract M getMappingInfo(Method method, Object handler, Class<?> handlerType);
 
-	protected HandlerMethod createHandlerMethod(Method originalMethod, Object handler, Class<?> handlerType) {
-		Method method = AopUtils.selectInvocableMethod(originalMethod, handlerType);
-		return (handler instanceof String beanName ?
-				new HandlerMethod(beanName, obtainApplicationContext().getAutowireCapableBeanFactory(), method) :
-				new HandlerMethod(handler, method));
-	}
-
 	private String formatMappings(Class<?> handlerType, Collection<M> infos) {
 		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
 				.map(p -> p.substring(0, 1))
@@ -250,6 +263,27 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 					return info + methodParameters;
 				})
 				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
+	}
+
+	private void registerHandlerMethod(M info, Set<M> results) {
+		Assert.state(this.exceptionResolver != null, "afterPropertiesSet not called");
+		HandlerMethod handlerMethod = getHandlerMethod(info);
+		M existing = results.stream().filter(o -> o.equals(info)).findFirst().orElse(null);
+		if (existing != null && !getHandlerMethod(existing).equals(handlerMethod)) {
+			throw new IllegalStateException(
+					"Ambiguous mapping. Cannot map '" + handlerMethod.getBean() + "' method \n" +
+							handlerMethod + "\n" + ": There is already '" +
+							getHandlerMethod(existing).getBean() + "' bean method\n" + existing + " mapped.");
+		}
+		results.add(info);
+		this.exceptionResolver.registerController(handlerMethod.getBeanType());
+	}
+
+	protected HandlerMethod createHandlerMethod(Method originalMethod, Object handler, Class<?> handlerType) {
+		Method method = AopUtils.selectInvocableMethod(originalMethod, handlerType);
+		return (handler instanceof String beanName ?
+				new HandlerMethod(beanName, obtainApplicationContext().getAutowireCapableBeanFactory(), method) :
+				new HandlerMethod(handler, method));
 	}
 
 }

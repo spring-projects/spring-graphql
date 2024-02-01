@@ -58,7 +58,6 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.SortStrategy;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
-import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
@@ -115,9 +114,6 @@ public class AnnotatedControllerConfigurer
 	@Nullable
 	private ValidationHelper validationHelper;
 
-	@Nullable
-	private AnnotatedControllerExceptionResolver exceptionResolver;
-
 
 	/**
 	 * Add a {@link HandlerMethodArgumentResolver} for custom controller method
@@ -129,26 +125,6 @@ public class AnnotatedControllerConfigurer
 	 */
 	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
 		this.customArgumentResolvers.add(resolver);
-	}
-
-	/**
-	 * Return a {@link DataFetcherExceptionResolver} that resolves exceptions with
-	 * {@code @GraphQlExceptionHandler} methods in {@code @ControllerAdvice}
-	 * classes declared in Spring configuration. This is useful primarily for
-	 * exceptions from non-controller {@link DataFetcher}s since exceptions from
-	 * {@code @SchemaMapping} controller methods are handled automatically at
-	 * the point of invocation.
-	 *
-	 * @return a resolver instance that can be plugged into
-	 * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
-	 * GraphQlSource.Builder}
-	 *
-	 * @since 1.2.0
-	 */
-	public DataFetcherExceptionResolver getExceptionResolver() {
-		Assert.notNull(this.exceptionResolver,
-				"DataFetcherExceptionResolver is not yet initialized, was afterPropertiesSet called?");
-		return (ex, env) -> this.exceptionResolver.resolveException(ex, env, null);
 	}
 
 	/**
@@ -166,11 +142,6 @@ public class AnnotatedControllerConfigurer
 	@Override
 	public void afterPropertiesSet() {
 		super.afterPropertiesSet();
-
-		this.exceptionResolver = new AnnotatedControllerExceptionResolver(getArgumentResolvers());
-		if (getApplicationContext() != null) {
-			this.exceptionResolver.registerControllerAdvice(getApplicationContext());
-		}
 
 		if (beanValidationPresent) {
 			this.validationHelper = ValidationHelper.createIfValidatorPresent(obtainApplicationContext());
@@ -251,13 +222,11 @@ public class AnnotatedControllerConfigurer
 
 	@Override
 	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
-		Assert.state(this.exceptionResolver != null, "`exceptionResolver` is not initialized");
-
 		detectHandlerMethods().forEach(info -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
 				dataFetcher = new SchemaMappingDataFetcher(
-						info, getArgumentResolvers(), this.validationHelper, this.exceptionResolver, getExecutor());
+						info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(), getExecutor());
 			}
 			else {
 				dataFetcher = registerBatchLoader(info);
@@ -415,7 +384,7 @@ public class AnnotatedControllerConfigurer
 		@Nullable
 		private final BiConsumer<Object, Object[]> methodValidationHelper;
 
-		private final AnnotatedControllerExceptionResolver exceptionResolver;
+		private final HandlerDataFetcherExceptionResolver exceptionResolver;
 
 		@Nullable
 		private final Executor executor;
@@ -424,7 +393,7 @@ public class AnnotatedControllerConfigurer
 
 		SchemaMappingDataFetcher(
 				DataFetcherMappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
-				@Nullable ValidationHelper helper, AnnotatedControllerExceptionResolver exceptionResolver,
+				@Nullable ValidationHelper helper, HandlerDataFetcherExceptionResolver exceptionResolver,
 				@Nullable Executor executor) {
 
 			this.mappingInfo = info;
@@ -432,10 +401,6 @@ public class AnnotatedControllerConfigurer
 
 			this.methodValidationHelper =
 					(helper != null ? helper.getValidationHelperFor(info.getHandlerMethod()) : null);
-
-			// Register controllers early to validate exception handler return types
-			Class<?> controllerType = info.getHandlerMethod().getBeanType();
-			exceptionResolver.registerController(controllerType);
 
 			this.exceptionResolver = exceptionResolver;
 
