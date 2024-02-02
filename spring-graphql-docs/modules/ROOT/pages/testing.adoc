@@ -352,7 +352,7 @@ You can then use:
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
 ====
 
-If a request does not have any response data, e.g. mutation, use `executeAndVerify`
+If the response of a request is not relevant for the test, you can use `executeAndVerify`
 instead of `execute` to verify there are no errors in the response:
 
 [source,java,indent=0,subs="verbatim,quotes"]
