@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.BindException;
 
 /**
  * Resolver for a method parameter that is annotated with
@@ -58,6 +60,14 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	}
 
 
+	/**
+	 * Return the configured {@link GraphQlArgumentBinder}.
+	 * @since 1.3
+	 */
+	public GraphQlArgumentBinder getArgumentBinder() {
+		return this.argumentBinder;
+	}
+
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		return (parameter.getParameterAnnotation(Argument.class) != null ||
@@ -67,8 +77,19 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		String name = getArgumentName(parameter);
-		ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
-		return this.argumentBinder.bind(environment, name, resolvableType);
+		ResolvableType targetType = ResolvableType.forMethodParameter(parameter);
+		return doBind(environment, name, targetType);
+	}
+
+	/**
+	 * Perform the binding with the configured {@link #getArgumentBinder() binder}.
+	 * @since 1.3
+	 */
+	@Nullable
+	protected Object doBind(
+			DataFetchingEnvironment environment, String name, ResolvableType targetType) throws BindException {
+
+		return this.argumentBinder.bind(environment, name, targetType);
 	}
 
 	static String getArgumentName(MethodParameter parameter) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,6 +141,19 @@ public class GraphQlArgumentBinder {
 
 		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
 		boolean isOmitted = (name != null && !environment.getArguments().containsKey(name));
+
+		return bind(name, rawValue, isOmitted, targetType);
+	}
+
+	/**
+	 * Variant of {@link #bind(DataFetchingEnvironment, String, ResolvableType)}
+	 * with a pre-extracted raw value to bind from.
+	 * @since 1.3
+	 */
+	@Nullable
+	public Object bind(
+			@Nullable String name, @Nullable Object rawValue, boolean isOmitted, ResolvableType targetType)
+			throws BindException {
 
 		ArgumentsBindingResult bindingResult = new ArgumentsBindingResult(targetType);
 
