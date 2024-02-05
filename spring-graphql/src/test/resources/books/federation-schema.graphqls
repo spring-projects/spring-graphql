@@ -1,0 +1,10 @@
+type Book @key(fields: "id") @extends {
+    id: ID! @external
+    author: Author
+}
+
+type Author {
+    id: ID
+    firstName: String
+    lastName: String
+}

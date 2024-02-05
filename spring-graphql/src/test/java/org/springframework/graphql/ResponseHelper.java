@@ -28,6 +28,7 @@ import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import graphql.execution.ResultPath;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
@@ -184,6 +185,11 @@ public class ResponseHelper {
 
 		public String errorType() {
 			return ResponseHelper.this.errors.get(index).getErrorType().toString();
+		}
+
+		public String path() {
+			List<Object> path = ResponseHelper.this.errors.get(index).getPath();
+			return ResultPath.fromList(path).toString();
 		}
 
 		public Map<String, Object> extensions() {

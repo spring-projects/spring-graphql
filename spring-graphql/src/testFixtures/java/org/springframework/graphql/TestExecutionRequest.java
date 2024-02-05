@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 
 package org.springframework.graphql;
 
+import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
@@ -32,13 +34,17 @@ public class TestExecutionRequest extends DefaultExecutionGraphQlRequest {
 	private static final AtomicLong idIndex = new AtomicLong();
 
 
-	private TestExecutionRequest(String document) {
-		super(document, null, null, null, String.valueOf(idIndex.incrementAndGet()), Locale.ENGLISH);
+	private TestExecutionRequest(String document, Map<String, Object> vars) {
+		super(document, null, vars, null, String.valueOf(idIndex.incrementAndGet()), Locale.ENGLISH);
 	}
 
 
 	public static ExecutionGraphQlRequest forDocument(String document) {
-		return new TestExecutionRequest(document);
+		return new TestExecutionRequest(document, Collections.emptyMap());
+	}
+
+	public static ExecutionGraphQlRequest forDocumentAndVars(String document, Map<String, Object> vars) {
+		return new TestExecutionRequest(document, vars);
 	}
 
 }
