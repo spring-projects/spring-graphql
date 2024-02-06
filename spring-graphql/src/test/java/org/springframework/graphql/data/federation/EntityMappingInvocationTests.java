@@ -155,7 +155,12 @@ public class EntityMappingInvocationTests {
 
 		@Nullable
 		@EntityMapping
-		public Book book(@Argument int id) {
+		public Book book(@Argument int id, Map<String, Object> map) {
+
+			assertThat(map).hasSize(2)
+					.containsEntry("__typename", Book.class.getSimpleName())
+					.containsEntry("id", String.valueOf(id));
+
 			return switch (id) {
 				case -97 -> throw new IllegalArgumentException("handled");
 				case -98 -> throw new IllegalStateException("not handled");

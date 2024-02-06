@@ -1,0 +1,117 @@
+[[federation]]
+= Federation
+
+Spring for GraphQL provides a small integration layer for the
+https://github.com/apollographql/federation-jvm[federation-jvm] library that in turn builds
+on GraphQL Java, and helps to initialize the `graphql.schema.GraphQLSchema` for a GraphQL
+Java application that is a sub-graph within a federated graph. For more details, see
+https://www.apollographql.com/docs/federation/[Apollo Federation] and the
+https://www.apollographql.com/docs/federation/subgraph-spec[Subgraph spec].
+
+To use the support you can declare a `FederationSchemaFactory` bean in your config, and plug
+it into `GraphQlSource.Builder`. In a Spring Boot application you can do this through a
+`GraphQlSourceBuilderCustomizer` as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Configuration
+	public class FederationConfig {
+
+		@Bean
+		public FederationSchemaFactory schemaFactory() {
+			return new FederationSchemaFactory();
+		}
+
+		@Bean
+		public GraphQlSourceBuilderCustomizer customizer(FederationSchemaFactory factory) {
+			return builder -> builder.schemaFactory(factory::createGraphQLSchema);
+		}
+
+	}
+----
+
+Now your sub-graph schema can extend federated types:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+type Book @key(fields: "id") @extends {
+    id: ID! @external
+    author: Author
+}
+
+type Author {
+    id: ID
+    firstName: String
+    lastName: String
+}
+----
+
+To assist with resolving federated types as part of an
+https://www.apollographql.com/docs/federation/subgraph-spec/#understanding-query_entities[_entities]
+query, you can use `@EntityMapping` methods side by side with `@SchemaMapping` methods
+for the data that the subgraph application owns. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	private static class BookController {
+
+		@EntityMapping
+		public Book book(@Argument int id) {
+			// ...
+		}
+
+		@SchemaMapping
+		public Author author(Book book) {
+			// ...
+		}
+
+	}
+----
+
+The `@Argument` method parameters is resolved from the "representation"input map for the entity.
+You can also inject the full `Map<String, Object>`. The below shows all supported arguments:
+
+[cols="1,2"]
+|===
+| Method Argument | Description
+
+| `@Argument`
+| For access to a named value from the "representation" input map, also converted to typed Object.
+
+| `Map<String, Object>`
+| The full "representation" input map for the entity.
+
+| `@ContextValue`
+| For access to an attribute from the main `GraphQLContext` in `DataFetchingEnvironment`.
+
+| `@LocalContextValue`
+| For access to an attribute from the local `GraphQLContext` in `DataFetchingEnvironment`.
+
+| `GraphQLContext`
+| For access to the context from the `DataFetchingEnvironment`.
+
+| `java.security.Principal`
+| Obtained from the Spring Security context, if available.
+
+| `@AuthenticationPrincipal`
+| For access to `Authentication#getPrincipal()` from the Spring Security context.
+
+| `DataFetchingFieldSelectionSet`
+| For access to the selection set for the query through the `DataFetchingEnvironment`.
+
+| `Locale`, `Optional<Locale>`
+| For access to the `Locale` from the `DataFetchingEnvironment`.
+
+| `DataFetchingEnvironment`
+| For direct access to the underlying `DataFetchingEnvironment`.
+
+|===
+
+`@EntityMapping` methods can return `Mono`, `CompletableFuture`, `Callable`, or the actual entity.
+
+You can use `@GraphQlExceptionHandler` methods to map exceptions from `@EntityMapping`
+methods to ``GraphQLError``'s. The errors will be included in the response of the
+"_entities" query. Exception handler methods can be in the same controller or in an
+`@ControllerAdvice` class.
+

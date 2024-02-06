@@ -67,7 +67,8 @@ locations, e.g. across multiple modules.
 
 By default, `GraphQlSource.Builder` uses the GraphQL Java `SchemaGenerator` to create the
 `graphql.schema.GraphQLSchema`. This works for typical use, but if you need to use a
-different generator, e.g. for federation, you can register a `schemaFactory` callback:
+different generator, e.g. for xref:federation.adoc[federation], you can register a
+`schemaFactory` callback:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----

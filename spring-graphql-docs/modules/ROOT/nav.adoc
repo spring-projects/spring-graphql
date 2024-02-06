@@ -6,6 +6,7 @@
 * xref:security.adoc[]
 * xref:observability.adoc[]
 * xref:graalvm-native.adoc[]
+* xref:federation.adoc[]
 * xref:client.adoc[]
 * xref:codegen.adoc[]
 * xref:graphiql.adoc[]
