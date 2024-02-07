@@ -138,6 +138,21 @@ public class AnnotatedControllerExceptionResolverTests {
 	}
 
 	@Test
+	void resolveWithMultipleControllerAdvices() {
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.register(TestControllerAdvice.class);
+		context.register(UnsupportedOperationAdvice.class);
+		context.register(OrderedTestControllerAdvice.class);
+		context.refresh();
+
+		Exception ex = new UnsupportedOperationException("Wrong operation");
+		List<GraphQLError> actual = exceptionResolver(context).resolveException(ex, this.environment, null).block();
+
+		assertThat(actual).hasSize(1);
+		assertThat(actual.get(0).getMessage()).isEqualTo("handle: Wrong operation");
+	}
+
+	@Test
 	void invalidReturnType() {
 		assertThatIllegalStateException().isThrownBy(() ->
 				exceptionResolver().registerController(InvalidReturnTypeController.class));
@@ -245,6 +260,16 @@ public class AnnotatedControllerExceptionResolverTests {
 
 		@GraphQlExceptionHandler
 		GraphQLError handle(IllegalArgumentException ex) {
+			return GraphQLError.newError().message("handle: " + ex.getMessage()).build();
+		}
+
+	}
+
+	@SuppressWarnings("unused")
+	@ControllerAdvice
+	private static class UnsupportedOperationAdvice {
+		@GraphQlExceptionHandler
+		GraphQLError handle(UnsupportedOperationException ex) {
 			return GraphQLError.newError().message("handle: " + ex.getMessage()).build();
 		}
 

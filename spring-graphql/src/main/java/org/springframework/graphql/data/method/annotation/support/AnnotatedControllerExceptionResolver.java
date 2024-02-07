@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import graphql.GraphQLError;
@@ -82,7 +81,7 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 
 	private final Map<Class<?>, MethodResolver> controllerCache = new ConcurrentHashMap<>(64);
 
-	private final Map<ControllerAdviceBean, MethodResolver> controllerAdviceCache = new TreeMap<>(OrderComparator.INSTANCE);
+	private final Map<ControllerAdviceBean, MethodResolver> controllerAdviceCache = new ConcurrentHashMap<>(64);
 
 
 	AnnotatedControllerExceptionResolver(HandlerMethodArgumentResolverComposite resolvers) {
@@ -188,7 +187,11 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 		}
 
 		if (methodHolder == null) {
-			for (Map.Entry<ControllerAdviceBean, MethodResolver> entry : this.controllerAdviceCache.entrySet()) {
+			List<Map.Entry<ControllerAdviceBean, MethodResolver>> sortedControllerAdviceEntries =
+					this.controllerAdviceCache.entrySet().stream()
+							.sorted(Map.Entry.comparingByKey(OrderComparator.INSTANCE))
+							.toList();
+			for (Map.Entry<ControllerAdviceBean, MethodResolver> entry : sortedControllerAdviceEntries) {
 				ControllerAdviceBean advice = entry.getKey();
 				if (controller == null || advice.isApplicableToBeanType(controllerType)) {
 					methodHolder = entry.getValue().resolveMethod(ex);
