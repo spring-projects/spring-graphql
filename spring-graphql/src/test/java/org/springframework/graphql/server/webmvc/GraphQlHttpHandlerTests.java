@@ -122,7 +122,10 @@ public class GraphQlHttpHandlerTests {
 			MockHttpServletRequest servletRequest, GraphQlHttpHandler handler) throws ServletException, IOException {
 
 		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
-		ServerResponse response = ((AsyncServerResponse) handler.handleRequest(request)).block();
+		ServerResponse response = handler.handleRequest(request);
+		if (response instanceof AsyncServerResponse asyncServerResponse) {
+			asyncServerResponse.block();
+		}
 
 		MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 		response.writeTo(servletRequest, servletResponse, new DefaultContext());

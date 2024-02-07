@@ -17,6 +17,7 @@
 package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,12 @@ public class GraphQlHttpHandler {
 					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.body(response.toMap());
-				});
+				})
+				.cache();
+
+		try {
+			return responseMono.block(Duration.ZERO);
+		} catch (IllegalStateException ignored) {}
 
 		return ServerResponse.async(responseMono);
 	}
@@ -138,5 +144,4 @@ public class GraphQlHttpHandler {
 		}
 		return MediaType.APPLICATION_JSON;
 	}
-
 }
