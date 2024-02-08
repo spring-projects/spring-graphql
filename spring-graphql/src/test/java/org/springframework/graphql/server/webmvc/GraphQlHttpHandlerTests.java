@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -122,7 +122,10 @@ public class GraphQlHttpHandlerTests {
 			MockHttpServletRequest servletRequest, GraphQlHttpHandler handler) throws ServletException, IOException {
 
 		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
-		ServerResponse response = ((AsyncServerResponse) handler.handleRequest(request)).block();
+		ServerResponse response = handler.handleRequest(request);
+		if (response instanceof AsyncServerResponse asyncResponse) {
+			asyncResponse.block();
+		}
 
 		MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 		response.writeTo(servletRequest, servletResponse, new DefaultContext());

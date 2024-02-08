@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,13 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Mono;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ParameterizedTypeReference;
@@ -44,7 +45,7 @@ import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 /**
- * GraphQL handler to expose as a WebMvc.fn endpoint via
+ * GraphQL handler to expose as a WebMvc functional endpoint via
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
  *
  * @author Rossen Stoyanchev
@@ -56,7 +57,7 @@ public class GraphQlHttpHandler {
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<>() {};
 
 	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
 	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
@@ -97,7 +98,7 @@ public class GraphQlHttpHandler {
 			logger.debug("Executing: " + graphQlRequest);
 		}
 
-		Mono<ServerResponse> responseMono = this.graphQlHandler.handleRequest(graphQlRequest)
+		CompletableFuture<ServerResponse> future = this.graphQlHandler.handleRequest(graphQlRequest)
 				.map(response -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
@@ -106,9 +107,22 @@ public class GraphQlHttpHandler {
 					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.body(response.toMap());
-				});
+				})
+				.toFuture();
 
-		return ServerResponse.async(responseMono);
+		if (future.isDone()) {
+			try {
+				return future.get();
+			}
+			catch (ExecutionException ex) {
+				throw new ServletException(ex.getCause());
+			}
+			catch (InterruptedException ex) {
+				throw new ServletException(ex);
+			}
+		}
+
+		return ServerResponse.async(future);
 	}
 
 	private static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
