@@ -30,8 +30,10 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.MediaType;
 import org.springframework.util.AlternativeJdkIdGenerator;
@@ -135,9 +137,9 @@ public class GraphQlHttpHandler {
 		return target;
 	}
 
-	private static Map<String, Object> readBody(ServerRequest request) throws ServletException {
+	private static GraphQlRequest readBody(ServerRequest request) throws ServletException {
 		try {
-			return request.body(MAP_PARAMETERIZED_TYPE_REF);
+			return request.body(SerializableGraphQlRequest.class);
 		}
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);

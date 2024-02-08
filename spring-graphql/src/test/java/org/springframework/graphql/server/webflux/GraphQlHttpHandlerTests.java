@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,15 @@ package org.springframework.graphql.server.webflux;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageWriter;
@@ -55,8 +56,9 @@ public class GraphQlHttpHandlerTests {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.ALL).build();
 
+		String document = "{greeting}";
 		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
+				httpRequest, this.greetingHandler, initRequest(document));
 
 		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
 	}
@@ -67,7 +69,7 @@ public class GraphQlHttpHandlerTests {
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
+				httpRequest, this.greetingHandler, initRequest("{greeting}"));
 
 		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_RESPONSE);
 	}
@@ -78,7 +80,7 @@ public class GraphQlHttpHandlerTests {
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, this.greetingHandler, Collections.singletonMap("query", "{greeting}"));
+				httpRequest, this.greetingHandler, initRequest("{greeting}"));
 
 		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
 	}
@@ -94,7 +96,7 @@ public class GraphQlHttpHandlerTests {
 				.acceptLanguageAsLocales(Locale.FRENCH).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, handler, Collections.singletonMap("query", "{greeting}"));
+				httpRequest, handler, initRequest("{greeting}"));
 
 		assertThat(httpResponse.getBodyAsString().block())
 				.isEqualTo("{\"data\":{\"greeting\":\"Hello in fr\"}}");
@@ -110,15 +112,21 @@ public class GraphQlHttpHandlerTests {
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
 
 		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, handler, Collections.singletonMap("query", "{showId}"));
+				httpRequest, handler, initRequest("{showId}"));
 
 		DocumentContext document = JsonPath.parse(httpResponse.getBodyAsString().block());
 		String id = document.read("data.showId", String.class);
 		assertThat(id).isEqualTo(httpRequest.getId());
 	}
 
+	private static SerializableGraphQlRequest initRequest(String document) {
+		SerializableGraphQlRequest request = new SerializableGraphQlRequest();
+		request.setQuery(document);
+		return request;
+	}
+
 	private MockServerHttpResponse handleRequest(
-			MockServerHttpRequest httpRequest, GraphQlHttpHandler handler, Map<String, String> body) {
+			MockServerHttpRequest httpRequest, GraphQlHttpHandler handler, GraphQlRequest body) {
 
 		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
 
@@ -127,7 +135,7 @@ public class GraphQlHttpHandlerTests {
 				.uri(((ServerWebExchange) exchange).getRequest().getURI())
 				.method(((ServerWebExchange) exchange).getRequest().getMethod())
 				.headers(((ServerWebExchange) exchange).getRequest().getHeaders())
-				.body(Mono.just((Object) body));
+				.body(Mono.just(body));
 
 		handler.handleRequest(serverRequest)
 				.flatMap(response -> response.writeTo(exchange, new DefaultContext()))

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -71,7 +72,7 @@ public class GraphQlHttpHandler {
 	 * @return the HTTP response
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
-		return serverRequest.bodyToMono(MAP_PARAMETERIZED_TYPE_REF)
+		return serverRequest.bodyToMono(SerializableGraphQlRequest.class)
 				.flatMap(body -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
