@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
-import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.context.ThreadLocalAccessor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -51,6 +51,8 @@ import org.springframework.lang.Nullable;
 public abstract class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
 
 	protected final Log logger = LogFactory.getLog(getClass());
+
+	protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private boolean threadLocalContextAware;
 
@@ -93,13 +95,12 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	}
 
 	@Nullable
-	@SuppressWarnings("deprecation")
 	private List<GraphQLError> resolveInternal(Throwable exception, DataFetchingEnvironment env) {
 		if (!this.threadLocalContextAware) {
 			return resolveToMultipleErrors(exception, env);
 		}
 		try {
-			return ContextSnapshot.captureFrom(env.getGraphQlContext())
+			return snapshotFactory.captureFrom(env.getGraphQlContext())
 					.wrap(() -> resolveToMultipleErrors(exception, env))
 					.call();
 		}

@@ -32,6 +32,7 @@ import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -58,6 +59,8 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
 
+	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
+
 	private ContextDataFetcherDecorator(
 			DataFetcher<?> delegate, boolean subscription,
 			SubscriptionExceptionResolver subscriptionExceptionResolver) {
@@ -70,21 +73,15 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
 	public Object get(DataFetchingEnvironment environment) throws Exception {
 
-		GraphQLContext context;
-		// temporarily merge global and local graphql context until https://github.com/micrometer-metrics/context-propagation/pull/98
+		ContextSnapshot snapshot;
 		if (environment.getLocalContext() instanceof GraphQLContext localContext) {
-			context = GraphQLContext.newContext()
-					.of(environment.getGraphQlContext())
-					.of(localContext)
-					.build();
+			snapshot = snapshotFactory.captureFrom(environment.getGraphQlContext(), localContext);
 		}
 		else {
-			context = environment.getGraphQlContext();
+			snapshot = snapshotFactory.captureFrom(environment.getGraphQlContext());
 		}
-		ContextSnapshot snapshot = ContextSnapshot.captureFrom(context);
 		Object value = snapshot.wrap(() -> this.delegate.get(environment)).call();
 
 		if (this.subscription) {

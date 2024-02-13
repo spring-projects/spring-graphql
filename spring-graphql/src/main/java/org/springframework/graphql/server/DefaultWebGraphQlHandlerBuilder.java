@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
@@ -70,6 +71,8 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
+		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
+
 		Chain endOfChain = request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
 		Chain executionChain = this.interceptors.stream()
@@ -86,9 +89,8 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			}
 
 			@Override
-			@SuppressWarnings("deprecation")
 			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
-				ContextSnapshot snapshot = ContextSnapshot.captureAll();
+				ContextSnapshot snapshot = snapshotFactory.captureAll();
 				return executionChain.next(request).contextWrite(snapshot::updateContext);
 			}
 		};

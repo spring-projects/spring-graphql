@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.BatchLoaderEnvironment;
 import org.dataloader.BatchLoaderWithContext;
@@ -52,11 +53,14 @@ import org.springframework.util.StringUtils;
  */
 public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
+	private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
+
 	private final List<ReactorBatchLoader<?,?>> loaders = new ArrayList<>();
 
 	private final List<ReactorMappedBatchLoader<?,?>> mappedLoaders = new ArrayList<>();
 
 	private final Supplier<DataLoaderOptions> defaultOptionsSupplier;
+
 
 
 	/**
@@ -223,10 +227,9 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		}
 
 		@Override
-		@SuppressWarnings("deprecation")
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = SNAPSHOT_FACTORY.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)
@@ -272,10 +275,9 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		}
 
 		@Override
-		@SuppressWarnings("deprecation")
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = SNAPSHOT_FACTORY.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)

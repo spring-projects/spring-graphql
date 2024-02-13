@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,13 +72,31 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
+	public void setValue() {
+		this.delegate.setValue();
+	}
+
+	@Override
+	@Deprecated
 	public void reset() {
 		this.delegate.reset();
 	}
 
-	
-	@SuppressWarnings("deprecation")
+	@Override
+	public void restore(Object previousValue) {
+		restoreInternal(previousValue);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <V> void restoreInternal(Object previousValue) {
+		((ThreadLocalAccessor<V>) this.delegate).restore((V) previousValue);
+	}
+
+	@Override
+	public void restore() {
+		this.delegate.restore();
+	}
+
 	private static class DelegateAccessor implements ThreadLocalAccessor<Object> {
 
 		@Override
@@ -97,6 +115,22 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 		}
 
 		@Override
+		public void setValue() {
+			SecurityContextHolder.clearContext();
+		}
+
+		@Override
+		public void restore(Object previousValue) {
+			SecurityContextHolder.setContext((SecurityContext) previousValue);
+		}
+
+		@Override
+		public void restore() {
+			SecurityContextHolder.clearContext();
+		}
+
+		@Override
+		@Deprecated
 		public void reset() {
 			SecurityContextHolder.clearContext();
 		}
@@ -104,7 +138,6 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 	}
 
 
-	@SuppressWarnings("deprecation")
 	private static class NoOpAccessor implements ThreadLocalAccessor<Object> {
 
 		@Override
@@ -122,6 +155,19 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 		}
 
 		@Override
+		public void setValue() {
+		}
+
+		@Override
+		public void restore(Object previousValue) {
+		}
+
+		@Override
+		public void restore() {
+		}
+
+		@Override
+		@Deprecated
 		public void reset() {
 		}
 
