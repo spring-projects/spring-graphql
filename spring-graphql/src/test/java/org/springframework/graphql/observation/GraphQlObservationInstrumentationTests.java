@@ -23,6 +23,7 @@ import graphql.schema.AsyncDataFetcher;
 import graphql.schema.DataFetcher;
 import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationHandler;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import io.micrometer.observation.tck.TestObservationRegistry;
@@ -36,6 +37,8 @@ import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
@@ -317,6 +320,50 @@ class GraphQlObservationInstrumentationTests {
 				.toGraphQlService()
 				.execute(request);
 		ResponseHelper.forResponse(responseMono);
+	}
+
+	@Test
+	void shouldRecordGraphQlErrorsAsTraceEvents() {
+		EventListeningObservationHandler observationHandler = new EventListeningObservationHandler();
+		this.observationRegistry.observationConfig().observationHandler(observationHandler);
+
+		String document = "invalid{}";
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.toGraphQlService()
+				.execute(document);
+		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).errorType()).isEqualTo("InvalidSyntax");
+		assertThat(response.error(0).message()).startsWith("Invalid syntax with offending token 'invalid'");
+
+		assertThat(observationHandler.getEvents()).hasSize(1);
+		Observation.Event errorEvent = observationHandler.getEvents().get(0);
+		assertThat(errorEvent.getName()).isEqualTo("InvalidSyntax");
+		assertThat(errorEvent.getContextualName()).startsWith("Invalid syntax with offending token 'invalid'");
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
+	}
+
+	static class EventListeningObservationHandler implements ObservationHandler<ExecutionRequestObservationContext> {
+
+		private final List<Observation.Event> events = new ArrayList<>();
+
+		@Override
+		public boolean supportsContext(Observation.Context context) {
+			return context instanceof ExecutionRequestObservationContext;
+		}
+
+		@Override
+		public void onEvent(Observation.Event event, ExecutionRequestObservationContext context) {
+			this.events.add(event);
+		}
+
+		public List<Observation.Event> getEvents() {
+			return this.events;
+		}
 	}
 
 }

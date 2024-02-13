@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,8 +63,10 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	private final ObservationRegistry observationRegistry;
 
+	@Nullable
 	private final ExecutionRequestObservationConvention requestObservationConvention;
 
+	@Nullable
 	private final DataFetcherObservationConvention dataFetcherObservationConvention;
 
 	/**
@@ -74,9 +76,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	 * @param observationRegistry the registry to use for recording observations
 	 */
 	public GraphQlObservationInstrumentation(ObservationRegistry observationRegistry) {
-		this.observationRegistry = observationRegistry;
-		this.requestObservationConvention = new DefaultExecutionRequestObservationConvention();
-		this.dataFetcherObservationConvention = new DefaultDataFetcherObservationConvention();
+		this(observationRegistry, null, null);
 	}
 
 	/**
@@ -87,8 +87,8 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	 * @param dateFetcherObservationConvention the convention to use for data fetcher observations
 	 */
 	public GraphQlObservationInstrumentation(ObservationRegistry observationRegistry,
-			ExecutionRequestObservationConvention requestObservationConvention,
-			DataFetcherObservationConvention dateFetcherObservationConvention) {
+				@Nullable ExecutionRequestObservationConvention requestObservationConvention,
+				@Nullable DataFetcherObservationConvention dateFetcherObservationConvention) {
 		this.observationRegistry = observationRegistry;
 		this.requestObservationConvention = requestObservationConvention;
 		this.dataFetcherObservationConvention = dateFetcherObservationConvention;
@@ -112,6 +112,10 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 				@Override
 				public void onCompleted(ExecutionResult result, Throwable exc) {
 					observationContext.setExecutionResult(result);
+					result.getErrors().forEach(graphQLError -> {
+						Observation.Event event = Observation.Event.of(graphQLError.getErrorType().toString(), graphQLError.getMessage());
+						requestObservation.event(event);
+					});
 					if (exc != null) {
 						requestObservation.error(exc);
 					}

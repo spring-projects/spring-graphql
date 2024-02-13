@@ -41,6 +41,16 @@ The `graphql.outcome` KeyValue will be `"SUCCESS"` if a valid GraphQL response h
 |`graphql.execution.id` _(required)_|`graphql.execution.ExecutionId` of the GraphQL request.
 |===
 
+Spring for GraphQL also contributes Events for Server Request Observations.
+https://docs.micrometer.io/micrometer/reference/observation/components.html#micrometer-observation-events[Micrometer Observation Events] are usually handled as span annotations in traces.
+This instrumentation records errors listed in the GraphQL response as events.
+
+.Observation Events
+[cols="a,a"]
+|===
+|Name | Contextual Name
+|the GraphQL error type, e.g. `InvalidSyntax`|the full GraphQL error message, e.g. `"Invalid syntax with offending token 'invalid'..."`
+|===
 
 
 [[observability.server.datafetcher]]
