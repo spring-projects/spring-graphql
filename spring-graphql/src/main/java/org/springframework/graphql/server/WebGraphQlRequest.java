@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
@@ -62,15 +63,6 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	/**
 	 * Create an instance.
-	 * @deprecated as of 1.1.3 in favor of the constructor with cookies
-	 */
-	@Deprecated
-	public WebGraphQlRequest(URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
-		this(uri, headers, null, Collections.emptyMap(), body, id, locale);
-	}
-
-	/**
-	 * Create an instance.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param cookies the HTTP request cookies
@@ -78,22 +70,27 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	 * @param body the deserialized content of the GraphQL request
 	 * @param id an identifier for the GraphQL request
 	 * @param locale the locale from the HTTP request, if any
+	 * @since 1.2.5
+	 */
+	public WebGraphQlRequest(
+			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+			Map<String, Object> attributes, GraphQlRequest body, String id, @Nullable Locale locale) {
+
+		this(uri, headers, cookies, attributes, body.getDocument(),
+				body.getOperationName(), body.getVariables(), body.getExtensions(), id, locale);
+	}
+
+	/**
+	 * Variant of {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
+	 * with a Map for the request body.
 	 * @since 1.1.3
 	 */
 	public WebGraphQlRequest(
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
 			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale) {
 
-		super(getQuery(body), getOperation(body),
+		this(uri, headers, cookies, attributes, getQuery(body), getOperation(body),
 				getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
-
-		Assert.notNull(uri, "URI is required'");
-		Assert.notNull(headers, "HttpHeaders is required'");
-
-		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
-		this.headers = headers;
-		this.cookies = (cookies != null ? CollectionUtils.unmodifiableMultiValueMap(cookies) : EMPTY_COOKIES);
-		this.attributes = Collections.unmodifiableMap(attributes);
 	}
 
 	private static String getQuery(Map<String, Object> body) {
@@ -121,6 +118,33 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 			throw new ServerWebInputException("Invalid value for '" + key + "'");
 		}
 		return (Map<String, Object>) value;
+	}
+
+	/**
+	 * Create an instance.
+	 * @deprecated as of 1.1.3 in favor of
+	 * {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
+	 */
+	@Deprecated(since = "1.1.3", forRemoval = true)
+	public WebGraphQlRequest(URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
+		this(uri, headers, null, Collections.emptyMap(), body, id, locale);
+	}
+
+	private WebGraphQlRequest(
+			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+			Map<String, Object> attributes, String document, @Nullable String operationName,
+			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions,
+			String id, @Nullable Locale locale) {
+
+		super(document, operationName, variables, extensions, id, locale);
+
+		Assert.notNull(uri, "URI is required'");
+		Assert.notNull(headers, "HttpHeaders is required'");
+
+		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
+		this.headers = headers;
+		this.cookies = (cookies != null ? CollectionUtils.unmodifiableMultiValueMap(cookies) : EMPTY_COOKIES);
+		this.attributes = Collections.unmodifiableMap(attributes);
 	}
 
 

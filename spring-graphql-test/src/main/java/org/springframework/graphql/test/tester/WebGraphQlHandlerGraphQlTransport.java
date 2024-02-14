@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTrans
 	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest executionRequest) {
 
 		WebGraphQlRequest request = new WebGraphQlRequest(
-				this.url, this.headers, null,  Collections.emptyMap(), executionRequest.toMap(),
+				this.url, this.headers, null,  Collections.emptyMap(), executionRequest,
 				idGenerator.generateId().toString(), null);
 
 		return this.graphQlHandler.handleRequest(request).cast(ExecutionGraphQlResponse.class);
