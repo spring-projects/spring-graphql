@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,15 +107,9 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private final GraphQlArgumentBinder argumentBinder;
 
-	@Nullable
-	private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-
-	QueryByExampleDataFetcher(
-			TypeInformation<T> domainType, @Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
-
+	QueryByExampleDataFetcher(TypeInformation<T> domainType) {
 		this.domainType = domainType;
-		this.cursorStrategy = cursorStrategy;
 		this.argumentBinder = new GraphQlArgumentBinder();
 	}
 
@@ -172,11 +166,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return PropertySelection.create(this.domainType, selection).toList();
 		}
 		return Collections.emptyList();
-	}
-
-	protected ScrollSubrange buildScrollSubrange(DataFetchingEnvironment environment) {
-		Assert.state(this.cursorStrategy != null, "Expected CursorStrategy");
-		return RepositoryUtils.buildScrollSubrange(environment, this.cursorStrategy);
 	}
 
 	@Override
@@ -434,7 +423,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		/**
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
-		 * <p>By default, this is {@link OffsetScrollPosition#initial()} with a
+		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
@@ -468,7 +457,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * Build a {@link DataFetcher} to fetch many object instances.
 		 */
 		public DataFetcher<Iterable<R>> many() {
-			return new ManyEntityFetcher<>(this.executor, this.domainType, this.resultType, null, this.sort);
+			return new ManyEntityFetcher<>(this.executor, this.domainType, this.resultType, this.sort);
 		}
 
 		/**
@@ -581,7 +570,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		/**
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
-		 * <p>By default, this is {@link OffsetScrollPosition#initial()} with a
+		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
@@ -666,7 +655,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		SingleEntityFetcher(
 				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType, Sort sort) {
 
-			super(domainType, null);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -712,10 +701,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final Sort sort;
 
 		ManyEntityFetcher(
-				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				@Nullable CursorStrategy<ScrollPosition> cursorStrategy, Sort sort) {
+				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
+				Class<R> resultType, Sort sort) {
 
-			super(domainType, cursorStrategy);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -756,23 +745,24 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	private static class ScrollableEntityFetcher<T, R> extends ManyEntityFetcher<T, R> {
 
+		private final CursorStrategy<ScrollPosition> cursorStrategy;
+
 		private final ScrollSubrange defaultSubrange;
 
 		private final ResolvableType scrollableResultType;
 
 		ScrollableEntityFetcher(
 				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				CursorStrategy<ScrollPosition> cursorStrategy,
-				ScrollSubrange defaultSubrange,
-				Sort sort) {
+				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultSubrange, Sort sort) {
 
-			super(executor, domainType, resultType, cursorStrategy, sort);
+			super(executor, domainType, resultType, sort);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
 			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
 			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
 			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
 
+			this.cursorStrategy = cursorStrategy;
 			this.defaultSubrange = defaultSubrange;
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Window.class, resultType);
 		}
@@ -785,10 +775,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@SuppressWarnings("OptionalGetWithoutIsPresent")
 		@Override
 		protected Iterable<R> getResult(FluentQuery.FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
-			ScrollSubrange subrange = buildScrollSubrange(env);
-			int limit = subrange.count().orElse(this.defaultSubrange.count().getAsInt());
-			ScrollPosition position = subrange.position().orElse(this.defaultSubrange.position().get());
-			return queryToUse.limit(limit).scroll(position);
+			ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
+			int count = range.count().getAsInt();
+			ScrollPosition position = range.position().get();
+			return queryToUse.limit(count).scroll(position);
 		}
 
 	}
@@ -807,7 +797,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
 
-			super(domainType, null);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -855,7 +845,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType,
 				Class<R> resultType, Sort sort) {
 
-			super(domainType, null);
+			super(domainType);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -899,6 +889,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final ResolvableType scrollableResultType;
 
+		private final CursorStrategy<ScrollPosition> cursorStrategy;
+
 		private final ScrollSubrange defaultSubrange;
 
 		private final Sort sort;
@@ -907,7 +899,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
 				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultSubrange, Sort sort) {
 
-			super(domainType, cursorStrategy);
+			super(domainType);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
 			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
@@ -917,6 +909,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Iterable.class, resultType);
+			this.cursorStrategy = cursorStrategy;
 			this.defaultSubrange = defaultSubrange;
 			this.sort = sort;
 		}
@@ -943,11 +936,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
-				ScrollSubrange subrange = buildScrollSubrange(env);
-				int limit = subrange.count().orElse(this.defaultSubrange.count().getAsInt());
-				ScrollPosition position = subrange.position().orElse(this.defaultSubrange.position().get());
-
-				return queryToUse.limit(limit).scroll(position).map(Function.identity());
+				ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
+				int count = range.count().getAsInt();
+				ScrollPosition position = range.position().get();
+				return queryToUse.limit(count).scroll(position).map(Function.identity());
 			});
 		}
 

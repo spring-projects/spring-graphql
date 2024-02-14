@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,17 +120,10 @@ public abstract class QuerydslDataFetcher<T> {
 
 	private final QuerydslBinderCustomizer<EntityPath<?>> customizer;
 
-	@Nullable
-	private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-
-	QuerydslDataFetcher(
-			TypeInformation<T> domainType, QuerydslBinderCustomizer<EntityPath<?>> customizer,
-			@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
-
+	QuerydslDataFetcher(TypeInformation<T> domainType, QuerydslBinderCustomizer<EntityPath<?>> customizer) {
 		this.domainType = domainType;
 		this.customizer = customizer;
-		this.cursorStrategy = cursorStrategy;
 	}
 
 
@@ -196,11 +189,6 @@ public abstract class QuerydslDataFetcher<T> {
 			return PropertySelection.create(this.domainType, selection).toList();
 		}
 		return Collections.emptyList();
-	}
-
-	protected ScrollSubrange buildScrollSubrange(DataFetchingEnvironment environment) {
-		Assert.state(this.cursorStrategy != null, "Expected CursorStrategy");
-		return RepositoryUtils.buildScrollSubrange(environment, this.cursorStrategy);
 	}
 
 	@Override
@@ -481,7 +469,7 @@ public abstract class QuerydslDataFetcher<T> {
 		/**
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
-		 * <p>By default, this is {@link OffsetScrollPosition#initial()} with a
+		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
@@ -536,7 +524,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public DataFetcher<Iterable<R>> many() {
 			return new ManyEntityFetcher<>(
-					this.executor, this.domainType, this.resultType, null, this.sort, this.customizer);
+					this.executor, this.domainType, this.resultType, this.sort, this.customizer);
 		}
 
 		/**
@@ -653,7 +641,7 @@ public abstract class QuerydslDataFetcher<T> {
 		/**
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
-		 * <p>By default, this is {@link OffsetScrollPosition#initial()} with a
+		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
@@ -758,13 +746,11 @@ public abstract class QuerydslDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		SingleEntityFetcher(QuerydslPredicateExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+		SingleEntityFetcher(
+				QuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
-			super(domainType, (QuerydslBinderCustomizer) customizer, null);
+			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -810,13 +796,11 @@ public abstract class QuerydslDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ManyEntityFetcher(QuerydslPredicateExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				@Nullable CursorStrategy<ScrollPosition> cursorStrategy,
-				Sort sort,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
-			super(domainType, (QuerydslBinderCustomizer) customizer, cursorStrategy);
+		ManyEntityFetcher(
+				QuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+
+			super(domainType, (QuerydslBinderCustomizer) customizer);
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -857,6 +841,8 @@ public abstract class QuerydslDataFetcher<T> {
 
 	private static class ScrollableEntityFetcher<T, R> extends ManyEntityFetcher<T, R> {
 
+		private final CursorStrategy<ScrollPosition> cursorStrategy;
+
 		private final ScrollSubrange defaultSubrange;
 
 		ScrollableEntityFetcher(QuerydslPredicateExecutor<T> executor,
@@ -867,23 +853,24 @@ public abstract class QuerydslDataFetcher<T> {
 				Sort sort,
 				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
-			super(executor, domainType, resultType, cursorStrategy, sort, customizer);
+			super(executor, domainType, resultType, sort, customizer);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
 			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
 			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
 			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
 
+			this.cursorStrategy = cursorStrategy;
 			this.defaultSubrange = defaultSubrange;
 		}
 
 		@SuppressWarnings("OptionalGetWithoutIsPresent")
 		@Override
 		protected Iterable<R> getResult(FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
-			ScrollSubrange subrange = buildScrollSubrange(env);
-			int limit = subrange.count().orElse(this.defaultSubrange.count().getAsInt());
-			ScrollPosition position = subrange.position().orElse(this.defaultSubrange.position().get());
-			return queryToUse.limit(limit).scroll(position);
+			ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
+			int count = range.count().getAsInt();
+			ScrollPosition position = range.position().get();
+			return queryToUse.limit(count).scroll(position);
 		}
 
 	}
@@ -899,13 +886,12 @@ public abstract class QuerydslDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ReactiveSingleEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+		ReactiveSingleEntityFetcher(
+				ReactiveQuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
-			super(domainType, (QuerydslBinderCustomizer) customizer, null);
+			super(domainType, (QuerydslBinderCustomizer) customizer);
+
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -950,13 +936,12 @@ public abstract class QuerydslDataFetcher<T> {
 		private final Sort sort;
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
-		ReactiveManyEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
-				TypeInformation<T> domainType,
-				Class<R> resultType,
-				Sort sort,
-				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
+		ReactiveManyEntityFetcher(
+				ReactiveQuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
+				Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
-			super(domainType, (QuerydslBinderCustomizer) customizer, null);
+			super(domainType, (QuerydslBinderCustomizer) customizer);
+
 			this.executor = executor;
 			this.resultType = resultType;
 			this.sort = sort;
@@ -1000,6 +985,8 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final ResolvableType scrollableResultType;
 
+		private final CursorStrategy<ScrollPosition> cursorStrategy;
+
 		private final ScrollSubrange defaultSubrange;
 
 		private final Sort sort;
@@ -1012,7 +999,7 @@ public abstract class QuerydslDataFetcher<T> {
 				Sort sort,
 				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
-			super(domainType, (QuerydslBinderCustomizer) customizer, cursorStrategy);
+			super(domainType, (QuerydslBinderCustomizer) customizer);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
 			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
@@ -1022,6 +1009,7 @@ public abstract class QuerydslDataFetcher<T> {
 			this.executor = executor;
 			this.resultType = resultType;
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Iterable.class, resultType);
+			this.cursorStrategy = cursorStrategy;
 			this.defaultSubrange = defaultSubrange;
 			this.sort = sort;
 		}
@@ -1048,11 +1036,10 @@ public abstract class QuerydslDataFetcher<T> {
 					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
-				ScrollSubrange subrange = buildScrollSubrange(env);
-				int limit = subrange.count().orElse(this.defaultSubrange.count().getAsInt());
-				ScrollPosition position = subrange.position().orElse(this.defaultSubrange.position().get());
-
-				return queryToUse.limit(limit).scroll(position).map(Function.identity());
+				ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
+				int count = range.count().getAsInt();
+				ScrollPosition position = range.position().get();
+				return queryToUse.limit(count).scroll(position).map(Function.identity());
 			});
 		}
 
