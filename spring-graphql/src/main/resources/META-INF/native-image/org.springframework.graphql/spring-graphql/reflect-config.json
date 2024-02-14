@@ -12,7 +12,7 @@
     "allDeclaredMethods":true,
     "allDeclaredConstructors":true,
     "condition": {
-      "typeReachable": "org.springframework.graphql.client.AbstractGraphQlClientBuilder"
+      "typeReachable": "org.springframework.graphql.client.CodecDelegate"
     }
   },
   {
@@ -21,7 +21,25 @@
     "allDeclaredMethods":true,
     "allDeclaredConstructors":true,
     "condition": {
-      "typeReachable": "org.springframework.graphql.server.webflux.GraphQlWebSocketHandler"
+      "typeReachable": "org.springframework.graphql.server.webflux.CodecDelegate"
+    }
+  },
+  {
+    "name":"org.springframework.graphql.server.support.SerializableGraphQlRequest",
+    "allDeclaredFields":true,
+    "allDeclaredMethods":true,
+    "allDeclaredConstructors":true,
+    "condition": {
+      "typeReachable": "org.springframework.graphql.server.webflux.GraphQlHttpHandler"
+    }
+  },
+  {
+    "name":"org.springframework.graphql.server.support.SerializableGraphQlRequest",
+    "allDeclaredFields":true,
+    "allDeclaredMethods":true,
+    "allDeclaredConstructors":true,
+    "condition": {
+      "typeReachable": "org.springframework.graphql.server.webmvc.GraphQlHttpHandler"
     }
   }
 ]
