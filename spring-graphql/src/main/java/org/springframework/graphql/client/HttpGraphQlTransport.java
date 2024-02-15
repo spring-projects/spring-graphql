@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -37,12 +38,16 @@ import org.springframework.web.reactive.function.client.WebClient;
  * see {@link WebSocketGraphQlTransport} and {@link RSocketGraphQlTransport}.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.0.0
  */
 final class HttpGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
 			new ParameterizedTypeReference<Map<String, Object>>() {};
+
+	private static final ParameterizedTypeReference<ServerSentEvent<Map<String, Object>>> SSE_TYPE =
+			new ParameterizedTypeReference<ServerSentEvent<Map<String, Object>>>() {};
 
 	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
 	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
@@ -87,7 +92,19 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 
 	@Override
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-		throw new UnsupportedOperationException("Subscriptions not supported over HTTP");
+		return this.webClient.post()
+				.contentType(this.contentType)
+				.accept(MediaType.TEXT_EVENT_STREAM)
+				.bodyValue(request.toMap())
+				.attributes(attributes -> {
+					if (request instanceof ClientGraphQlRequest clientRequest) {
+						attributes.putAll(clientRequest.getAttributes());
+					}
+				})
+				.retrieve()
+				.bodyToFlux(SSE_TYPE)
+				.takeWhile(event -> "next".equals(event.event()))
+				.map(event -> new ResponseMapGraphQlResponse(event.data()));
 	}
 
 }

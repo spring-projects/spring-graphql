@@ -16,33 +16,18 @@
 
 package org.springframework.graphql.server.webmvc;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.support.SerializableGraphQlRequest;
-import org.springframework.http.HttpCookie;
 import org.springframework.http.MediaType;
-import org.springframework.util.AlternativeJdkIdGenerator;
-import org.springframework.util.Assert;
-import org.springframework.util.IdGenerator;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -54,32 +39,19 @@ import org.springframework.web.servlet.function.ServerResponse;
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class GraphQlHttpHandler {
-
-	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
-
-	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<>() {};
-
-	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
-	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
-			new MediaType("application", "graphql-response+json");
+public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
 
 	@SuppressWarnings("removal")
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
-			Arrays.asList(APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL);
+			Arrays.asList(MediaType.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL);
 
-	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
-
-	private final WebGraphQlHandler graphQlHandler;
 
 	/**
 	 * Create a new instance.
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler) {
-		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-		this.graphQlHandler = graphQlHandler;
+		super(graphQlHandler);
 	}
 
 	/**
@@ -125,25 +97,6 @@ public class GraphQlHttpHandler {
 		}
 
 		return ServerResponse.async(future);
-	}
-
-	private static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
-		MultiValueMap<String, Cookie> source = serverRequest.cookies();
-		MultiValueMap<String, HttpCookie> target = new LinkedMultiValueMap<>(source.size());
-		source.values().forEach(cookieList -> cookieList.forEach(cookie -> {
-			HttpCookie httpCookie = new HttpCookie(cookie.getName(), cookie.getValue());
-			target.add(cookie.getName(), httpCookie);
-		}));
-		return target;
-	}
-
-	private static GraphQlRequest readBody(ServerRequest request) throws ServletException {
-		try {
-			return request.body(SerializableGraphQlRequest.class);
-		}
-		catch (IOException ex) {
-			throw new ServerWebInputException("I/O error while reading request body", null, ex);
-		}
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {

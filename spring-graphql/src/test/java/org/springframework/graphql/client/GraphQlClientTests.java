@@ -230,4 +230,21 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 				.path(ResultPath.parse(errorPath).toList()).build();
 	}
 
+	@Test
+	void executeSubscription() {
+		String document = "subscriptionRequest";
+		getGraphQlService().setDataAsJsonStream(document,
+				"{\"friend\": {\"name\":\"Luke Skywalker\"}}",
+				"{\"friend\": {\"name\":\"Han Solo\"}}",
+				"{\"friend\": {\"name\":\"Leia Organa\"}}");
+
+		List<MovieCharacter> movieCharacters = graphQlClient().document(document)
+				.executeSubscription()
+				.map(response -> response.field("friend").toEntity(MovieCharacter.class))
+				.collectList().block(TIMEOUT);
+
+		assertThat(movieCharacters).contains(MovieCharacter.create("Luke Skywalker"), MovieCharacter.create("Han Solo"),
+				MovieCharacter.create("Leia Organa"));
+	}
+
 }

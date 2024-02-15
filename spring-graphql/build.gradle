@@ -37,6 +37,7 @@ dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
 	testImplementation 'org.mockito:mockito-core'
+	testImplementation 'org.awaitility:awaitility'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.springframework:spring-core-test'
 	testImplementation 'org.springframework:spring-messaging'
@@ -63,13 +64,13 @@ dependencies {
 	testImplementation 'com.querydsl:querydsl-core'
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'jakarta.servlet:jakarta.servlet-api'
-	testImplementation 'com.squareup.okhttp3:mockwebserver:3.14.9'
+	testImplementation 'com.squareup.okhttp3:mockwebserver'
 	testImplementation 'io.rsocket:rsocket-transport-local'
 	testImplementation 'jakarta.persistence:jakarta.persistence-api'
 	testImplementation 'jakarta.validation:jakarta.validation-api'
 	testImplementation 'com.jayway.jsonpath:json-path'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
-	testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+	testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-el:10.0.21'
 	testImplementation 'com.apollographql.federation:federation-graphql-java-support'
 
@@ -77,6 +78,8 @@ dependencies {
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
 
 	testFixturesApi 'org.springframework:spring-webflux'
+	testFixturesApi 'org.junit.jupiter:junit-jupiter-engine'
+	testFixturesApi 'com.squareup.okhttp3:mockwebserver'
 	testFixturesApi 'com.fasterxml.jackson.core:jackson-databind'
 }
 

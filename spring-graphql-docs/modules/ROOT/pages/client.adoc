@@ -467,10 +467,12 @@ You can use the `GraphQlClient` xref:client.adoc#client.graphqlclient.builder[Bu
 [[client.subscriptions]]
 == Subscription Requests
 
-`GraphQlClient` can execute subscriptions over transports that support it. Only
-the WebSocket and RSocket transports support GraphQL subscriptions, so you'll need to
-create a xref:client.adoc#client.websocketgraphqlclient[WebSocketGraphQlClient] or
-xref:client.adoc#client.rsocketgraphqlclient[RSocketGraphQlClient].
+Subscription requests require a client transport that is capable of streaming data.
+You will need to create a `GraphQlClient` that support this:
+
+- xref:client.adoc#client.httpgraphqlclient[HttpGraphQlClient] with Server-Sent Events
+- xref:client.adoc#client.websocketgraphqlclient[WebSocketGraphQlClient] with WebSocket
+- xref:client.adoc#client.rsocketgraphqlclient[RSocketGraphQlClient] with RSocket
 
 
 

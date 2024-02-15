@@ -18,8 +18,10 @@ package org.springframework.graphql.execution;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +30,7 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
@@ -83,6 +86,13 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 	}
 
 	/**
+	 * Set a "data"-stream response for the given document.
+	 */
+	public void setDataAsJsonStream(String document, String... dataJson) {
+		setResponseStream(document, Arrays.stream(dataJson).map(this::decode));
+	}
+
+	/**
 	 * Set an "errors" response for the given document.
 	 */
 	public void setErrors(String document, GraphQLError... errors) {
@@ -126,6 +136,19 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 	public void setResponse(String document, ExecutionResult result) {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query(document).build();
 		this.responses.put(document, new DefaultExecutionGraphQlResponse(input, result));
+	}
+
+	/**
+	 * Set a response stream for the given document.
+	 */
+	@SuppressWarnings("unused")
+	public void setResponseStream(String document, Stream<Map<String, Object>> dataStream) {
+		ExecutionInput input = ExecutionInput.newExecutionInput().query(document).build();
+		List<DefaultExecutionGraphQlResponse> resultList = dataStream
+				.map(data -> ExecutionResult.newExecutionResult().data(data).build())
+				.map(result -> new DefaultExecutionGraphQlResponse(input, result)).toList();
+		this.responses.put(document, new DefaultExecutionGraphQlResponse(input,
+				ExecutionResult.newExecutionResult().data(Flux.fromIterable(resultList)).build()));
 	}
 
 	@SuppressWarnings("unchecked")

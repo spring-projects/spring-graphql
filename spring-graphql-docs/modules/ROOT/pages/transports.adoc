@@ -32,6 +32,27 @@ it contains, for the actual config.
 The 1.0.x branch of this repository contains a Spring MVC
 {github-10x-branch}/samples/webmvc-http[HTTP sample] application.
 
+
+[[server.transports.sse]]
+== Server-Sent Events
+
+`GraphQlSseHandler` is very similar to the HTTP handler listed above, but this time handling GraphQL requests over HTTP
+using the Server-Sent Events protocol. With this transport, clients must send HTTP POST requests to the endpoint with
+`"application/json"` as content type and GraphQL request details included as JSON in the request body; the only
+difference with the vanilla HTTP variant is that the client must send `"text/event-stream"` as the `"Accept"` request
+header. The response will be sent as one or more Server-Sent Event(s).
+
+This is also defined in the proposed
+https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md[GraphQL over HTTP] specification.
+Spring for GraphQL only implements the "Distinct connections mode", so applications must consider scalability concerns
+and whether adopting HTTP/2 as the underlying transport would help.
+
+The main use case for `GraphQlSseHandler` is an alternative to the
+xref:transports.adoc#server.transports.websocket[WebSocket transport], receiving a stream of items as a response to a
+subscription operation. Other types of operations, like queries and mutations, are not supported here and should be
+using the plain JSON over HTTP transport variant.
+
+
 [[server.transports.http.fileupload]]
 === File Upload
 
