@@ -554,7 +554,7 @@ class SchemaMappingInspectorTests {
 			assertThatReport(report).hasUnmappedFieldCount(1).hasSkippedTypeCount(0);
 			assertThat(report.toString())
 					.contains("GraphQL schema inspection:", "Unmapped fields: {Book=[missing]}", "Unmapped registrations:",
-							"Book.fetcher=BookController#fetcher[1 args]", " Query.paginatedBooks=BookController#paginatedBooks[0 args]",
+							"Book.fetcher=BookController#fetcher[1 args]", "Query.paginatedBooks=BookController#paginatedBooks[0 args]",
 							"Query.bookObject=BookController#bookObject[1 args]", "Query.bookById=BookController#bookById[1 args]",
 							"Skipped types: []");
 		 }
