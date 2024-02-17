@@ -17,10 +17,10 @@ dependencies {
 	api(platform("com.querydsl:querydsl-bom:5.0.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.4"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
-	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.7.3"))
+	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.0"))
 	api(platform("org.junit:junit-bom:5.10.2"))
 	api(platform("org.mockito:mockito-bom:5.8.0"))
-	api(platform("org.testcontainers:testcontainers-bom:1.19.4"))
+	api(platform("org.testcontainers:testcontainers-bom:1.19.5"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.22.1"))
 
 	constraints {
@@ -43,7 +43,7 @@ dependencies {
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
 
 		api("com.h2database:h2:2.1.214")
-		api("org.hibernate:hibernate-core:6.4.2.Final")
+		api("org.hibernate:hibernate-core:6.4.4.Final")
 		api("org.hibernate.validator:hibernate-validator:8.0.1.Final")
 		api("org.mongodb:bson:4.11.1")
 		api("org.mongodb:mongodb-driver-core:4.11.1")
