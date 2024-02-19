@@ -25,6 +25,12 @@ with options applicable to all transports.
 
 Once `GraphQlClient` is built you can begin to make xref:client.adoc#client.requests[requests].
 
+Typically, the GraphQL operation for a request is provided as text. Alternatively, you
+can use https://github.com/Netflix/dgs-codegen[DGS Codegen] client API classes through
+xref:client.adoc#client.dgsgraphqlclient[DgsGraphQlClient], which can wrap any of the
+above `GraphQlClient` extensions.
+
+
 
 [[client.httpsyncgraphqlclient]]
 === HTTP Sync
@@ -244,6 +250,7 @@ builders of all extensions. Currently, it has lets you configure:
 
 - `SyncBuilder` - blocking execution stack with a chain of ``SyncGraphQlInterceptor``'s.
 - `Builder` - non-blocking execution stack with chain of ``GraphQlInterceptor``'s.
+
 
 
 
@@ -591,3 +598,47 @@ Once the interceptor is created, register it through the client builder. For exa
 			.build();
 ----
 
+
+
+
+[[client.dgsgraphqlclient]]
+== DGS Codegen
+
+As an alternative to providing the operation such as a mutation, query, or subscription as
+text, you can use the https://github.com/Netflix/dgs-codegen[DGS Codegen] library to
+generate client API classes that let you use a fluent API to define the request.
+
+Spring for GraphQL provides xref:client.adoc#client.dgsgraphqlclient[DgsGraphQlClient]
+that wraps any `GraphQlClient` and helps to prepare the request with generated client
+API classes.
+
+For example, given the following schema:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+    type Query {
+        books: [Book]
+    }
+
+    type Book {
+        id: ID
+        name: String
+    }
+----
+
+You can perform a request as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	HttpGraphQlClient client = ... ;
+	DgsGraphQlClient dgsClient = DgsGraphQlClient.create(client); // <1>
+
+	List<Book> books = dgsClient.request(new BooksGraphQLQuery()) // <2>
+			.projection(new BooksProjectionRoot<>().id().name()) // <3>
+			.retrieveSync()
+			.toEntityList(Book.class);
+----
+
+<1> - Create `DgsGraphQlClient` by wrapping any `GraphQlClient`.
+<2> - Specify the operation for the request.
+<3> - Define the selection set.

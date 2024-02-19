@@ -32,7 +32,11 @@ dependencies {
 
 	compileOnly 'com.fasterxml.jackson.core:jackson-databind'
 
-	compileOnly 'com.apollographql.federation:federation-graphql-java-support'
+	compileOnly('com.apollographql.federation:federation-graphql-java-support')
+	compileOnly('com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core') {
+		exclude group: "com.apollographql.federation", module: "federation-graphql-java-support"
+		exclude group: "com.graphql-java", module: "graphql-java"
+	}
 
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
