@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import graphql.GraphQLError;
@@ -71,6 +71,7 @@ import org.springframework.web.method.ControllerAdviceBean;
  * non-controller {@link graphql.schema.DataFetcher}s.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.2.0
  */
 final class AnnotatedControllerExceptionResolver {
@@ -82,7 +83,7 @@ final class AnnotatedControllerExceptionResolver {
 
 	private final Map<Class<?>, MethodResolver> controllerCache = new ConcurrentHashMap<>(64);
 
-	private final Map<ControllerAdviceBean, MethodResolver> controllerAdviceCache = new TreeMap<>(OrderComparator.INSTANCE);
+	private final Map<ControllerAdviceBean, MethodResolver> controllerAdviceCache = new LinkedHashMap<>();
 
 
 	AnnotatedControllerExceptionResolver(HandlerMethodArgumentResolverComposite resolvers) {
@@ -110,15 +111,19 @@ final class AnnotatedControllerExceptionResolver {
 	 * @param context the context to look into
 	 */
 	public void registerControllerAdvice(ApplicationContext context) {
+		Map<ControllerAdviceBean, MethodResolver> detectedControllerAdvice = new HashMap<>();
 		for (ControllerAdviceBean bean : ControllerAdviceBean.findAnnotatedBeans(context)) {
 			Class<?> beanType = bean.getBeanType();
 			if (beanType != null) {
 				Map<Class<? extends Throwable>, Method> methods = findExceptionHandlers(beanType);
 				if (!methods.isEmpty()) {
-					this.controllerAdviceCache.put(bean, new MethodResolver(methods));
+					detectedControllerAdvice.put(bean, new MethodResolver(methods));
 				}
 			}
 		}
+		detectedControllerAdvice.keySet().stream().sorted(OrderComparator.INSTANCE).forEach(bean -> {
+			this.controllerAdviceCache.put(bean, detectedControllerAdvice.get(bean));
+		});
 		if (logger.isDebugEnabled()) {
 			logger.debug("@GraphQlException methods in ControllerAdvice beans: " +
 					(this.controllerAdviceCache.size() == 0 ? "none" : this.controllerAdviceCache.size()));
