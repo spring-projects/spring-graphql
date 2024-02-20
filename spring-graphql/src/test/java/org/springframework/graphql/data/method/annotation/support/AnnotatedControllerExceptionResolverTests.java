@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  * Unit tests for {@link AnnotatedControllerExceptionResolver}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2.0
+ * @author Brian Clozel
  */
 public class AnnotatedControllerExceptionResolverTests {
 
@@ -136,6 +136,25 @@ public class AnnotatedControllerExceptionResolverTests {
 		assertThat(actual).hasSize(1);
 		assertThat(actual.get(0).getMessage()).isEqualTo("ordered handle: Bad input");
 	}
+
+	@Test
+	void resolveWithMultipleControllerAdviceAtSameOrder() {
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		context.register(TestControllerAdvice.class);
+		context.register(OtherTestControllerAdvice.class);
+		context.refresh();
+
+		Exception ex = new IllegalArgumentException("Bad input");
+		List<GraphQLError> actual = exceptionResolver(context).resolveException(ex, this.environment, null).block();
+		assertThat(actual).hasSize(1);
+		assertThat(actual.get(0).getMessage()).isEqualTo("handle: Bad input");
+
+		ex = new IllegalStateException("Bad state");
+		actual = exceptionResolver(context).resolveException(ex, this.environment, null).block();
+		assertThat(actual).hasSize(1);
+		assertThat(actual.get(0).getMessage()).isEqualTo("handle: Bad state");
+	}
+
 
 	@Test
 	void invalidReturnType() {
@@ -245,6 +264,17 @@ public class AnnotatedControllerExceptionResolverTests {
 
 		@GraphQlExceptionHandler
 		GraphQLError handle(IllegalArgumentException ex) {
+			return GraphQLError.newError().message("handle: " + ex.getMessage()).build();
+		}
+
+	}
+
+	@SuppressWarnings("unused")
+	@ControllerAdvice
+	private static class OtherTestControllerAdvice {
+
+		@GraphQlExceptionHandler
+		GraphQLError handle(IllegalStateException ex) {
 			return GraphQLError.newError().message("handle: " + ex.getMessage()).build();
 		}
 
