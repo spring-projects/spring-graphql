@@ -87,26 +87,30 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			if (!this.isDefaultExecutionIdProvider && request.getExecutionId() == null) {
 				request.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
 			}
+
 			ExecutionInput executionInput = request.toExecutionInput();
-			ContextSnapshot.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
-			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
+
+			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
+			ContextSnapshot.captureFrom(contextView).updateContext(graphQLContext);
+
+			ExecutionInput updatedExecutionInput =
+					(this.hasDataLoaderRegistrations ? registerDataLoaders(executionInput) : executionInput);
+
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
 					.map(result -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
 		});
 	}
 
 	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
-		if (this.hasDataLoaderRegistrations) {
-			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
-			DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
-			if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
-				DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
-				applyDataLoaderRegistrars(newRegistry, graphQLContext);
-				executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
-			}
-			else {
-				applyDataLoaderRegistrars(existingRegistry, graphQLContext);
-			}
+		GraphQLContext graphQLContext = executionInput.getGraphQLContext();
+		DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
+		if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
+			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
+			applyDataLoaderRegistrars(newRegistry, graphQLContext);
+			executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+		}
+		else {
+			applyDataLoaderRegistrars(existingRegistry, graphQLContext);
 		}
 		return executionInput;
 	}
