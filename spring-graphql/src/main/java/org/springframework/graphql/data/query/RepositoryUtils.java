@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.springframework.graphql.data.query;
 
 import java.lang.reflect.Type;
+import java.util.function.Function;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -84,22 +85,25 @@ class RepositoryUtils {
 		return CursorStrategy.withEncoder(new ScrollPositionCursorStrategy(), CursorEncoder.base64());
 	}
 
+	public static int defaultScrollCount() {
+		return 20;
+	}
+
+	public static Function<Boolean, ScrollPosition> defaultScrollPosition() {
+		return forward -> ScrollPosition.offset();
+	}
+
 	public static ScrollSubrange defaultScrollSubrange() {
 		return ScrollSubrange.create(ScrollPosition.offset(), 20, true);
 	}
 
 	public static ScrollSubrange getScrollSubrange(
-			DataFetchingEnvironment env, CursorStrategy<ScrollPosition> strategy,
-			ScrollSubrange defaultSubrange) {
+			DataFetchingEnvironment env, CursorStrategy<ScrollPosition> strategy) {
 
 		boolean forward = !env.getArguments().containsKey("last");
-
 		Integer count = env.getArgument(forward ? "first" : "last");
-		count = (count != null ? count : defaultSubrange.count().getAsInt());
-
 		String cursor = env.getArgument(forward ? "after" : "before");
-		ScrollPosition position = (cursor != null ? strategy.fromCursor(cursor) : defaultSubrange.position().get());
-
+		ScrollPosition position = (cursor != null ? strategy.fromCursor(cursor) : null);
 		return ScrollSubrange.create(position, count, forward);
 	}
 

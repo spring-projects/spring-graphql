@@ -37,8 +37,6 @@ public class RepositoryUtilsTests {
 
 	private final CursorStrategy<ScrollPosition> cursorStrategy = RepositoryUtils.defaultCursorStrategy();
 
-	private final ScrollSubrange defaultSubrange = ScrollSubrange.create(ScrollPosition.offset(50), 20, true);
-
 
 	@Test
 	void buildScrollSubrangeForward() {
@@ -48,7 +46,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(
 				Map.of("first", count, "after", cursorStrategy.toCursor(offset)));
 
-		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
 		assertThat(range.position().get()).isEqualTo(ScrollPosition.offset(11));
 		assertThat(range.count().getAsInt()).isEqualTo(count);
@@ -63,7 +61,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(
 				Map.of("last", count, "before", cursorStrategy.toCursor(offset)));
 
-		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
 		assertThat(range.position().get()).isEqualTo(ScrollPosition.offset(5));
 		assertThat(range.count().getAsInt()).isEqualTo(count);
@@ -71,34 +69,41 @@ public class RepositoryUtilsTests {
 	}
 
 	@Test
-	void buildScrollSubrangeForwardWithDefaultScrollSubrange() {
+	void noInput() {
 		DataFetchingEnvironment env = environment(Collections.emptyMap());
-		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertThat(range.position().get()).isEqualTo(getDefaultPosition().advanceBy(1));
-		assertThat(range.count().getAsInt()).isEqualTo(this.defaultSubrange.count().getAsInt());
+		assertThat(range.position()).isNotPresent();
+		assertThat(range.count()).isNotPresent();
 		assertThat(range.forward()).isTrue();
 	}
 
-	@Test // gh-900
-	void buildScrollSubrangeBackwardFromDefaultPosition() {
+	@Test
+	void buildScrollSubrangeForwardWithoutPosition() {
 		int count = 5;
-		DataFetchingEnvironment env = environment(Map.of("last", count));
-		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
+		DataFetchingEnvironment env = environment(Map.of("first", count));
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertThat(range.position().get()).isEqualTo(getDefaultPosition().advanceBy(-count));
+		assertThat(range.position()).isNotPresent();
 		assertThat(range.count().getAsInt()).isEqualTo(count);
 		assertThat(range.forward()).isTrue();
+	}
+
+	@Test
+	void buildScrollSubrangeBackwardWithoutPosition() {
+		int count = 5;
+		DataFetchingEnvironment env = environment(Map.of("last", count));
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
+
+		assertThat(range.position()).isNotPresent();
+		assertThat(range.count().getAsInt()).isEqualTo(count);
+		assertThat(range.forward()).isFalse();
 	}
 
 	private static DataFetchingEnvironment environment(Map<String, Object> arguments) {
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
 				.arguments(arguments)
 				.build();
-	}
-
-	private OffsetScrollPosition getDefaultPosition() {
-		return (OffsetScrollPosition) defaultSubrange.position().get();
 	}
 
 }

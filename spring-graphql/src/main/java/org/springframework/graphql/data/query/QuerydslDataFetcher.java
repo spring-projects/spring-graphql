@@ -36,6 +36,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
@@ -412,7 +413,10 @@ public abstract class QuerydslDataFetcher<T> {
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
 		@Nullable
-		private final ScrollSubrange defaultSubrange;
+		private final Integer defaultScrollCount;
+
+		@Nullable
+		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
@@ -421,18 +425,20 @@ public abstract class QuerydslDataFetcher<T> {
 		@SuppressWarnings("unchecked")
 		Builder(QuerydslPredicateExecutor<T> executor, Class<R> domainType) {
 			this(executor, TypeInformation.of((Class<T>) domainType),
-					domainType, null, null, Sort.unsorted(), NO_OP_BINDER_CUSTOMIZER);
+					domainType, null, null, null, Sort.unsorted(), NO_OP_BINDER_CUSTOMIZER);
 		}
 
 		Builder(QuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				@Nullable CursorStrategy<ScrollPosition> cursorStrategy, @Nullable ScrollSubrange defaultSubrange,
+				@Nullable CursorStrategy<ScrollPosition> cursorStrategy,
+				@Nullable Integer defaultScrollCount, @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition,
 				Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultScrollCount = defaultScrollCount;
+			this.defaultScrollPosition = defaultScrollPosition;
 			this.sort = sort;
 			this.customizer = customizer;
 		}
@@ -449,7 +455,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public <P> Builder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
 			return new Builder<>(this.executor, this.domainType, projectionType,
-					this.cursorStrategy, this.defaultSubrange, this.sort, this.customizer);
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					this.sort, this.customizer);
 		}
 
 		/**
@@ -463,21 +470,43 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public Builder<T, R> cursorStrategy(@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
 			return new Builder<>(this.executor, this.domainType, this.resultType,
-					cursorStrategy, this.defaultSubrange, this.sort, this.customizer);
+					cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					this.sort, this.customizer);
+		}
+
+		/**
+		 * Configure a default scroll count to use, and function to return a default
+		 * {@link ScrollPosition} for forward vs backward pagination.
+		 * <p>For offset scrolling, use {@link ScrollPosition#offset()} to scroll
+		 * from the beginning. Currently, it is not possible to go back from the end.
+		 * <p>For keyset scrolling, use {@link ScrollPosition#keyset()} to scroll
+		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
+		 * to go back from the end.
+		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @since 1.2.5
+		 */
+		public Builder<T, R> defaultScrollSubrange(
+				int defaultCount, Function<Boolean, ScrollPosition> defaultPosition) {
+
+			return new Builder<>(this.executor, this.domainType, this.resultType,
+					this.cursorStrategy, defaultCount, defaultPosition, this.sort, this.customizer);
 		}
 
 		/**
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
-		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
-		 * count of 20.
-		 * @return a new {@link Builder} instance with all previously configured
-		 * options and {@code Sort} applied
+		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a count of 20.
+		 * @return a new {@link Builder} instance
 		 * @since 1.2.0
+		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
 		 */
+		@SuppressWarnings("OptionalGetWithoutIsPresent")
+		@Deprecated(since = "1.2.5", forRemoval = true)
 		public Builder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
-			return new Builder<>(this.executor, this.domainType, this.resultType,
-					this.cursorStrategy, defaultSubrange, this.sort, this.customizer);
+			return new Builder<>(this.executor, this.domainType, this.resultType, this.cursorStrategy,
+					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
+					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					this.sort, this.customizer);
 		}
 
 		/**
@@ -489,7 +518,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public Builder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
 			return new Builder<>(this.executor, this.domainType, this.resultType,
-					this.cursorStrategy, this.defaultSubrange, sort, customizer);
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					sort, customizer);
 		}
 
 		/**
@@ -508,7 +538,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public Builder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
 			return new Builder<>(this.executor, this.domainType, this.resultType,
-					this.cursorStrategy, this.defaultSubrange, this.sort, customizer);
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					this.sort, customizer);
 		}
 
 		/**
@@ -536,7 +567,8 @@ public abstract class QuerydslDataFetcher<T> {
 			return new ScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
 					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultSubrange != null ? this.defaultSubrange : RepositoryUtils.defaultScrollSubrange()),
+					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
+					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
 					this.sort, this.customizer);
 		}
 
@@ -583,7 +615,10 @@ public abstract class QuerydslDataFetcher<T> {
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
 		@Nullable
-		private final ScrollSubrange defaultSubrange;
+		private final Integer defaultScrollCount;
+
+		@Nullable
+		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
@@ -592,19 +627,21 @@ public abstract class QuerydslDataFetcher<T> {
 		@SuppressWarnings("unchecked")
 		ReactiveBuilder(ReactiveQuerydslPredicateExecutor<T> executor, Class<R> domainType) {
 			this(executor, TypeInformation.of((Class<T>) domainType),
-					domainType, null, null, Sort.unsorted(), NO_OP_BINDER_CUSTOMIZER);
+					domainType, null, null, null, Sort.unsorted(), NO_OP_BINDER_CUSTOMIZER);
 		}
 
 		ReactiveBuilder(
 				ReactiveQuerydslPredicateExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				@Nullable CursorStrategy<ScrollPosition> cursorStrategy, @Nullable ScrollSubrange defaultSubrange,
+				@Nullable CursorStrategy<ScrollPosition> cursorStrategy,
+				@Nullable Integer defaultScrollCount, @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition,
 				Sort sort, QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultScrollCount = defaultScrollCount;
+			this.defaultScrollPosition = defaultScrollPosition;
 			this.sort = sort;
 			this.customizer = customizer;
 		}
@@ -621,7 +658,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
 			return new ReactiveBuilder<>(this.executor, this.domainType, projectionType,
-					this.cursorStrategy, this.defaultSubrange, this.sort, this.customizer);
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					this.sort, this.customizer);
 		}
 
 		/**
@@ -635,21 +673,44 @@ public abstract class QuerydslDataFetcher<T> {
 		 */
 		public ReactiveBuilder<T, R> cursorStrategy(@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
-					cursorStrategy, this.defaultSubrange, this.sort, this.customizer);
+					cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					this.sort, this.customizer);
+		}
+
+		/**
+		 * Configure a default scroll count to use, and function to return a default
+		 * {@link ScrollPosition} for forward vs backward pagination.
+		 * <p>For offset scrolling, use {@link ScrollPosition#offset()} to scroll
+		 * from the beginning. Currently, it is not possible to go back from the end.
+		 * <p>For keyset scrolling, use {@link ScrollPosition#keyset()} to scroll
+		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
+		 * to go back from the end.
+		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @since 1.2.5
+		 */
+		public ReactiveBuilder<T, R> defaultScrollSubrange(
+				int defaultCount, Function<Boolean, ScrollPosition> defaultPosition) {
+
+			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
+					this.cursorStrategy, defaultCount, defaultPosition, this.sort, this.customizer);
 		}
 
 		/**
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
-		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
-		 * count of 20.
-		 * @return a new {@link Builder} instance with all previously configured
-		 * options and {@code Sort} applied
+		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a count of 20.
+		 * @return a new {@link Builder} instance
 		 * @since 1.2.0
+		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
 		 */
+		@SuppressWarnings("OptionalGetWithoutIsPresent")
+		@Deprecated(since = "1.2.5", forRemoval = true)
 		public ReactiveBuilder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
-					this.cursorStrategy, defaultSubrange, this.sort, this.customizer);
+					this.cursorStrategy,
+					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
+					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					this.sort, this.customizer);
 		}
 
 		/**
@@ -661,7 +722,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public ReactiveBuilder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
-					this.cursorStrategy, this.defaultSubrange, sort, this.customizer);
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					sort, this.customizer);
 		}
 
 		/**
@@ -680,7 +742,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public ReactiveBuilder<T, R> customizer(QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 			Assert.notNull(customizer, "QuerydslBinderCustomizer must not be null");
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
-					this.cursorStrategy, this.defaultSubrange, this.sort, customizer);
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
+					this.sort, customizer);
 		}
 
 		/**
@@ -708,7 +771,8 @@ public abstract class QuerydslDataFetcher<T> {
 			return new ReactiveScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
 					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultSubrange != null ? this.defaultSubrange : RepositoryUtils.defaultScrollSubrange()),
+					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
+					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
 					this.sort, this.customizer);
 		}
 
@@ -843,33 +907,35 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-		private final ScrollSubrange defaultSubrange;
+		private final int defaultCount;
+
+		private final Function<Boolean, ScrollPosition> defaultPosition;
 
 		ScrollableEntityFetcher(QuerydslPredicateExecutor<T> executor,
 				TypeInformation<T> domainType,
 				Class<R> resultType,
 				CursorStrategy<ScrollPosition> cursorStrategy,
-				ScrollSubrange defaultSubrange,
+				int defaultCount,
+				Function<Boolean, ScrollPosition> defaultPosition,
 				Sort sort,
 				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			super(executor, domainType, resultType, sort, customizer);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
-			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
-			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
-			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
+			Assert.notNull(defaultPosition, "'defaultPosition' is required");
 
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultCount = defaultCount;
+			this.defaultPosition = defaultPosition;
 		}
 
-		@SuppressWarnings("OptionalGetWithoutIsPresent")
 		@Override
 		protected Iterable<R> getResult(FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
-			ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
-			int count = range.count().getAsInt();
-			ScrollPosition position = range.position().get();
+			ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy);
+			int count = range.count().orElse(this.defaultCount);
+			ScrollPosition position = (range.position().isPresent() ?
+					range.position().get() : this.defaultPosition.apply(range.forward()));
 			return queryToUse.limit(count).scroll(position);
 		}
 
@@ -987,7 +1053,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-		private final ScrollSubrange defaultSubrange;
+		private final int defaultCount;
+
+		private final Function<Boolean, ScrollPosition> defaultPosition;
 
 		private final Sort sort;
 
@@ -995,22 +1063,23 @@ public abstract class QuerydslDataFetcher<T> {
 		ReactiveScrollableEntityFetcher(ReactiveQuerydslPredicateExecutor<T> executor,
 				TypeInformation<T> domainType,
 				Class<R> resultType,
-				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultSubrange,
+				CursorStrategy<ScrollPosition> cursorStrategy,
+				int defaultCount,
+				Function<Boolean, ScrollPosition> defaultPosition,
 				Sort sort,
 				QuerydslBinderCustomizer<? extends EntityPath<T>> customizer) {
 
 			super(domainType, (QuerydslBinderCustomizer) customizer);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
-			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
-			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
-			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
+			Assert.notNull(defaultPosition, "'defaultPosition' is required");
 
 			this.executor = executor;
 			this.resultType = resultType;
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Iterable.class, resultType);
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultCount = defaultCount;
+			this.defaultPosition = defaultPosition;
 			this.sort = sort;
 		}
 
@@ -1020,7 +1089,7 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		@Override
-		@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+		@SuppressWarnings("unchecked")
 		public Mono<Iterable<R>> get(DataFetchingEnvironment env) {
 			return this.executor.findBy(buildPredicate(env), query -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
@@ -1036,9 +1105,10 @@ public abstract class QuerydslDataFetcher<T> {
 					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
-				ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
-				int count = range.count().getAsInt();
-				ScrollPosition position = range.position().get();
+				ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy);
+				int count = range.count().orElse(this.defaultCount);
+				ScrollPosition position = (range.position().isPresent() ?
+						range.position().get() : this.defaultPosition.apply(range.forward()));
 				return queryToUse.limit(count).scroll(position).map(Function.identity());
 			});
 		}
