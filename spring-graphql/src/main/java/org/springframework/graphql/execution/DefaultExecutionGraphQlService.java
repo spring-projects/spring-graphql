@@ -52,6 +52,8 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
+	private boolean hasDataLoaderRegistrations;
+
 	private final boolean isDefaultExecutionIdProvider;
 
 
@@ -69,6 +71,13 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	 */
 	public void addDataLoaderRegistrar(DataLoaderRegistrar registrar) {
 		this.dataLoaderRegistrars.add(registrar);
+		this.hasDataLoaderRegistrations = (this.hasDataLoaderRegistrations || hasRegistrations(registrar));
+	}
+
+	private static boolean hasRegistrations(DataLoaderRegistrar registrar) {
+		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();
+		registrar.registerDataLoaders(registry, GraphQLContext.newContext().build());
+		return !registry.getDataLoaders().isEmpty();
 	}
 
 
@@ -78,26 +87,30 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			if (!this.isDefaultExecutionIdProvider && request.getExecutionId() == null) {
 				request.configureExecutionInput(RESET_EXECUTION_ID_CONFIGURER);
 			}
+
 			ExecutionInput executionInput = request.toExecutionInput();
+
+			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 			snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
-			ExecutionInput updatedExecutionInput = registerDataLoaders(executionInput);
+
+			ExecutionInput updatedExecutionInput =
+					(this.hasDataLoaderRegistrations ? registerDataLoaders(executionInput) : executionInput);
+
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
 					.map(result -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
 		});
 	}
 
 	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
-		if (!this.dataLoaderRegistrars.isEmpty()) {
-			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
-			DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
-			if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
-				DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
-				applyDataLoaderRegistrars(newRegistry, graphQLContext);
-				executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
-			}
-			else {
-				applyDataLoaderRegistrars(existingRegistry, graphQLContext);
-			}
+		GraphQLContext graphQLContext = executionInput.getGraphQLContext();
+		DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
+		if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
+			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
+			applyDataLoaderRegistrars(newRegistry, graphQLContext);
+			executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+		}
+		else {
+			applyDataLoaderRegistrars(existingRegistry, graphQLContext);
 		}
 		return executionInput;
 	}
