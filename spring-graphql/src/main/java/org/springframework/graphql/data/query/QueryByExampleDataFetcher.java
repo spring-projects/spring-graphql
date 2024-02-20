@@ -35,6 +35,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.data.domain.Example;
+import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
@@ -370,24 +371,29 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
 		@Nullable
-		private final ScrollSubrange defaultSubrange;
+		private final Integer defaultScrollCount;
+
+		@Nullable
+		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
 		@SuppressWarnings("unchecked")
 		Builder(QueryByExampleExecutor<T> executor, Class<R> domainType) {
-			this(executor, TypeInformation.of((Class<T>) domainType), domainType, null, null, Sort.unsorted());
+			this(executor, TypeInformation.of((Class<T>) domainType), domainType, null, null, null, Sort.unsorted());
 		}
 
 		Builder(QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				@Nullable CursorStrategy<ScrollPosition> cursorStrategy, @Nullable ScrollSubrange defaultSubrange,
+				@Nullable CursorStrategy<ScrollPosition> cursorStrategy,
+				@Nullable Integer defaultScrollCount, @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition,
 				Sort sort) {
 
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultScrollCount = defaultScrollCount;
+			this.defaultScrollPosition = defaultScrollPosition;
 			this.sort = sort;
 		}
 
@@ -402,8 +408,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 */
 		public <P> Builder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new Builder<>(this.executor, this.domainType,
-					projectionType, this.cursorStrategy, this.defaultSubrange, this.sort);
+			return new Builder<>(this.executor, this.domainType, projectionType,
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, this.sort);
 		}
 
 		/**
@@ -416,8 +422,26 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * @since 1.2.0
 		 */
 		public Builder<T, R> cursorStrategy(@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
+			return new Builder<>(this.executor, this.domainType, this.resultType,
+					cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, this.sort);
+		}
+
+		/**
+		 * Configure a default scroll count to use, and function to return a default
+		 * {@link ScrollPosition} for forward vs backward pagination.
+		 * <p>For offset scrolling, use {@link ScrollPosition#offset()} to scroll
+		 * from the beginning. Currently, it is not possible to go back from the end.
+		 * <p>For keyset scrolling, use {@link ScrollPosition#keyset()} to scroll
+		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
+		 * to go back from the end.
+		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @since 1.2.5
+		 */
+		public Builder<T, R> defaultScrollSubrange(
+				int defaultCount, Function<Boolean, ScrollPosition> defaultPosition) {
+
 			return new Builder<>(this.executor, this.domainType,
-					this.resultType, cursorStrategy, this.defaultSubrange, this.sort);
+					this.resultType, this.cursorStrategy, defaultCount, defaultPosition, this.sort);
 		}
 
 		/**
@@ -427,11 +451,16 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
-		 * @since 1.2.0
+		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
 		 */
+		@SuppressWarnings("OptionalGetWithoutIsPresent")
+		@Deprecated(since = "1.2.5", forRemoval = true)
 		public Builder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new Builder<>(this.executor, this.domainType,
-					this.resultType, this.cursorStrategy, defaultSubrange, this.sort);
+					this.resultType, this.cursorStrategy,
+					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
+					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					this.sort);
 		}
 
 		/**
@@ -442,8 +471,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 */
 		public Builder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
-			return new Builder<>(this.executor, this.domainType,
-					this.resultType, this.cursorStrategy, this.defaultSubrange, sort);
+			return new Builder<>(this.executor, this.domainType, this.resultType,
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, sort);
 		}
 
 		/**
@@ -469,7 +498,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return new ScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
 					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultSubrange != null ? this.defaultSubrange : RepositoryUtils.defaultScrollSubrange()),
+					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
+					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
 					this.sort);
 		}
 
@@ -516,25 +546,30 @@ public abstract class QueryByExampleDataFetcher<T> {
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
 		@Nullable
-		private final ScrollSubrange defaultSubrange;
+		private final Integer defaultScrollCount;
+
+		@Nullable
+		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
 		@SuppressWarnings("unchecked")
 		ReactiveBuilder(ReactiveQueryByExampleExecutor<T> executor, Class<R> domainType) {
-			this(executor, TypeInformation.of((Class<T>) domainType), domainType, null, null, Sort.unsorted());
+			this(executor, TypeInformation.of((Class<T>) domainType), domainType, null, null, null, Sort.unsorted());
 		}
 
 		ReactiveBuilder(
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				@Nullable CursorStrategy<ScrollPosition> cursorStrategy, @Nullable ScrollSubrange defaultSubrange,
+				@Nullable CursorStrategy<ScrollPosition> cursorStrategy,
+				@Nullable Integer defaultScrollCount, @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition,
 				Sort sort) {
 
 			this.executor = executor;
 			this.domainType = domainType;
 			this.resultType = resultType;
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultScrollCount = defaultScrollCount;
+			this.defaultScrollPosition = defaultScrollPosition;
 			this.sort = sort;
 		}
 
@@ -550,7 +585,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
 			return new ReactiveBuilder<>(this.executor, this.domainType, 
-					projectionType, this.cursorStrategy, this.defaultSubrange, this.sort);
+					projectionType, this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, this.sort);
 		}
 
 		/**
@@ -563,8 +598,26 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * @since 1.2.0
 		 */
 		public ReactiveBuilder<T, R> cursorStrategy(@Nullable CursorStrategy<ScrollPosition> cursorStrategy) {
+			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
+					cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, this.sort);
+		}
+
+		/**
+		 * Configure a default scroll count to use, and function to return a default
+		 * {@link ScrollPosition} for forward vs backward pagination.
+		 * <p>For offset scrolling, use {@link ScrollPosition#offset()} to scroll
+		 * from the beginning. Currently, it is not possible to go back from the end.
+		 * <p>For keyset scrolling, use {@link ScrollPosition#keyset()} to scroll
+		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
+		 * to go back from the end.
+		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @since 1.2.5
+		 */
+		public ReactiveBuilder<T, R> defaultScrollSubrange(
+				int defaultCount, Function<Boolean, ScrollPosition> defaultPosition) {
+
 			return new ReactiveBuilder<>(this.executor, this.domainType,
-					this.resultType, cursorStrategy, this.defaultSubrange, this.sort);
+					this.resultType, this.cursorStrategy, defaultCount, defaultPosition, this.sort);
 		}
 
 		/**
@@ -574,11 +627,16 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * count of 20.
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
-		 * @since 1.2.0
+		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
 		 */
+		@SuppressWarnings("OptionalGetWithoutIsPresent")
+		@Deprecated(since = "1.2.5", forRemoval = true)
 		public ReactiveBuilder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new ReactiveBuilder<>(this.executor, this.domainType,
-					this.resultType, this.cursorStrategy, defaultSubrange, this.sort);
+					this.resultType, this.cursorStrategy,
+					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
+					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					this.sort);
 		}
 
 		/**
@@ -589,8 +647,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 */
 		public ReactiveBuilder<T, R> sortBy(Sort sort) {
 			Assert.notNull(sort, "Sort must not be null");
-			return new ReactiveBuilder<>(this.executor, this.domainType, 
-					this.resultType, this.cursorStrategy, this.defaultSubrange, sort);
+			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
+					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, sort);
 		}
 
 		/**
@@ -616,7 +674,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return new ReactiveScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
 					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultSubrange != null ? this.defaultSubrange : RepositoryUtils.defaultScrollSubrange()),
+					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
+					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
 					this.sort);
 		}
 
@@ -747,23 +806,27 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-		private final ScrollSubrange defaultSubrange;
+		private final int defaultCount;
+
+		private final Function<Boolean, ScrollPosition> defaultPosition;
 
 		private final ResolvableType scrollableResultType;
 
 		ScrollableEntityFetcher(
 				QueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultSubrange, Sort sort) {
+				CursorStrategy<ScrollPosition> cursorStrategy,
+				int defaultCount,
+				Function<Boolean, ScrollPosition> defaultPosition,
+				Sort sort) {
 
 			super(executor, domainType, resultType, sort);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
-			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
-			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
-			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
+			Assert.notNull(defaultPosition, "'defaultPosition' is required");
 
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultCount = defaultCount;
+			this.defaultPosition = defaultPosition;
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Window.class, resultType);
 		}
 
@@ -772,12 +835,12 @@ public abstract class QueryByExampleDataFetcher<T> {
 			return ResolvableType.forClassWithGenerics(Iterable.class, this.scrollableResultType);
 		}
 
-		@SuppressWarnings("OptionalGetWithoutIsPresent")
 		@Override
 		protected Iterable<R> getResult(FluentQuery.FetchableFluentQuery<R> queryToUse, DataFetchingEnvironment env) {
-			ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
-			int count = range.count().getAsInt();
-			ScrollPosition position = range.position().get();
+			ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy);
+			int count = range.count().orElse(this.defaultCount);
+			ScrollPosition position = (range.position().isPresent() ?
+					range.position().get() : this.defaultPosition.apply(range.forward()));
 			return queryToUse.limit(count).scroll(position);
 		}
 
@@ -891,26 +954,30 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final CursorStrategy<ScrollPosition> cursorStrategy;
 
-		private final ScrollSubrange defaultSubrange;
+		private final int defaultCount;
+
+		private final Function<Boolean, ScrollPosition> defaultPosition;
 
 		private final Sort sort;
 
 		ReactiveScrollableEntityFetcher(
 				ReactiveQueryByExampleExecutor<T> executor, TypeInformation<T> domainType, Class<R> resultType,
-				CursorStrategy<ScrollPosition> cursorStrategy, ScrollSubrange defaultSubrange, Sort sort) {
+				CursorStrategy<ScrollPosition> cursorStrategy,
+				int defaultCount,
+				Function<Boolean, ScrollPosition> defaultPosition,
+				Sort sort) {
 
 			super(domainType);
 
 			Assert.notNull(cursorStrategy, "CursorStrategy is required");
-			Assert.notNull(defaultSubrange, "Default ScrollSubrange is required");
-			Assert.isTrue(defaultSubrange.position().isPresent(), "Default ScrollPosition is required");
-			Assert.isTrue(defaultSubrange.count().isPresent(), "Default scroll limit is required");
+			Assert.notNull(defaultPosition, "'defaultPosition' is required");
 
 			this.executor = executor;
 			this.resultType = resultType;
 			this.scrollableResultType = ResolvableType.forClassWithGenerics(Iterable.class, resultType);
 			this.cursorStrategy = cursorStrategy;
-			this.defaultSubrange = defaultSubrange;
+			this.defaultCount = defaultCount;
+			this.defaultPosition = defaultPosition;
 			this.sort = sort;
 		}
 
@@ -920,7 +987,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		}
 
 		@Override
-		@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+		@SuppressWarnings("unchecked")
 		public Mono<Iterable<R>> get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), query -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
@@ -936,9 +1003,10 @@ public abstract class QueryByExampleDataFetcher<T> {
 					queryToUse = queryToUse.project(buildPropertyPaths(env.getSelectionSet(), this.resultType));
 				}
 
-				ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy, this.defaultSubrange);
-				int count = range.count().getAsInt();
-				ScrollPosition position = range.position().get();
+				ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, this.cursorStrategy);
+				int count = range.count().orElse(this.defaultCount);
+				ScrollPosition position = (range.position().isPresent() ?
+						range.position().get() : this.defaultPosition.apply(range.forward()));
 				return queryToUse.limit(count).scroll(position).map(Function.identity());
 			});
 		}

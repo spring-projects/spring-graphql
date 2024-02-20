@@ -139,12 +139,12 @@ class QuerydslDataFetcherTests {
 			ResponseHelper.forResponse(response).assertData(
 					"{\"books\":{" +
 					"\"edges\":[" +
-					"{\"cursor\":\"O_4\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}," +
-					"{\"cursor\":\"O_5\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}" +
+					"{\"cursor\":\"O_0\",\"node\":{\"id\":\"42\",\"name\":\"Hitchhiker's Guide to the Galaxy\"}}," +
+					"{\"cursor\":\"O_1\",\"node\":{\"id\":\"53\",\"name\":\"Breaking Bad\"}}" +
 					"]," +
 					"\"pageInfo\":{" +
-					"\"startCursor\":\"O_4\"," +
-					"\"endCursor\":\"O_5\"," +
+					"\"startCursor\":\"O_0\"," +
+					"\"endCursor\":\"O_1\"," +
 					"\"hasPreviousPage\":true," +
 					"\"hasNextPage\":false" +
 					"}}}"
