@@ -71,16 +71,20 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 
 
 	/**
-	 * Create a {@link ScrollSubrange} instance.
-	 * @param position the position relative to which to scroll, or {@code null}
-	 * for scrolling from the beginning
-	 * @param count the number of elements requested
-	 * @param forward whether to return elements after (true) or before (false)
-	 * the element at the given position
-	 * @return the created subrange
+	 * Create a {@link ScrollSubrange} from the given inputs.
+	 * <p>Pagination with offset-based scrolling is always forward and inclusive
+	 * of the referenced item. Therefore, an {@link OffsetScrollPosition} is
+	 * adjusted as follows. For forward pagination, advanced by 1. For backward
+	 * pagination, advanced back by the count, and switched to forward.
+	 * @param position the reference position, or {@code null} if not specified
+	 * @param count how many to return, or {@code null} if not specified
+	 * @param forward whether scroll forward (true) or backward (false)
+	 * @return the created instance
 	 * @since 1.2.4
 	 */
-	public static ScrollSubrange create(@Nullable ScrollPosition position, @Nullable Integer count, boolean forward) {
+	public static ScrollSubrange create(
+			@Nullable ScrollPosition position, @Nullable Integer count, boolean forward) {
+
 		if (count != null && count < 0) {
 			count = null;
 		}
@@ -98,16 +102,24 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 	private static ScrollSubrange initFromOffsetPosition(
 			OffsetScrollPosition position, @Nullable Integer count, boolean forward) {
 
-		if (!forward) {
+		// Offset is inclusive, adapt to exclusive:
+		//  - for forward, add 1 to return items after position
+		//  - for backward, subtract count to get items before position
+
+		if (forward) {
+			position = position.advanceBy(1);
+		}
+		else {
 			int countOrZero = (count != null ? count : 0);
-			if (countOrZero < position.getOffset()) {
-				position = position.advanceBy(-countOrZero-1);
+			if (position.getOffset() >= countOrZero) {
+				position = position.advanceBy(-countOrZero);
 			}
 			else {
-				count = (position.getOffset() > 0 ? (int) (position.getOffset() - 1) : 0);
-				position = null;
+				count = (int) position.getOffset();
+				position = ScrollPosition.offset();
 			}
 		}
+
 		return new ScrollSubrange(position, count, true, null);
 	}
 

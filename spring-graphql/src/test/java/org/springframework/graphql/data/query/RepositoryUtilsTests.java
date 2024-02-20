@@ -50,7 +50,7 @@ public class RepositoryUtilsTests {
 
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
 
-		assertThat(range.position().get()).isEqualTo(offset);
+		assertThat(range.position().get()).isEqualTo(ScrollPosition.offset(11));
 		assertThat(range.count().getAsInt()).isEqualTo(count);
 		assertThat(range.forward()).isTrue();
 	}
@@ -65,7 +65,7 @@ public class RepositoryUtilsTests {
 
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
 
-		assertThat(range.position().get()).isEqualTo(offset.advanceBy(-count-1));
+		assertThat(range.position().get()).isEqualTo(ScrollPosition.offset(5));
 		assertThat(range.count().getAsInt()).isEqualTo(count);
 		assertThat(range.forward()).isTrue();
 	}
@@ -75,7 +75,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Collections.emptyMap());
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
 
-		assertThat(range.position().get()).isEqualTo(getDefaultPosition());
+		assertThat(range.position().get()).isEqualTo(getDefaultPosition().advanceBy(1));
 		assertThat(range.count().getAsInt()).isEqualTo(this.defaultSubrange.count().getAsInt());
 		assertThat(range.forward()).isTrue();
 	}
@@ -86,7 +86,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Map.of("last", count));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy, defaultSubrange);
 
-		assertThat(range.position().get()).isEqualTo(getDefaultPosition().advanceBy(-count-1));
+		assertThat(range.position().get()).isEqualTo(getDefaultPosition().advanceBy(-count));
 		assertThat(range.count().getAsInt()).isEqualTo(count);
 		assertThat(range.forward()).isTrue();
 	}

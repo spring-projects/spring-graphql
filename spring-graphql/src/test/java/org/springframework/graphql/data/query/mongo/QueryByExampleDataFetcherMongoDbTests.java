@@ -134,7 +134,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 			Mono<WebGraphQlResponse> response = graphQlSetup
 					.toWebGraphQlHandler()
-					.handleRequest(request(BookSource.booksConnectionQuery("first:2, after:\"O_3\"")));
+					.handleRequest(request(BookSource.booksConnectionQuery("first:2, after:\"O_2\"")));
 
 			List<Map<String, Object>> edges = ResponseHelper.forResponse(response).toEntity("books.edges", List.class);
 			assertThat(edges.size()).isEqualTo(2);
