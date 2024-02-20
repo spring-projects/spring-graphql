@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,8 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
+	private boolean hasDataLoaderRegistrations;
+
 	private final boolean isDefaultExecutionIdProvider;
 
 
@@ -68,6 +70,13 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	 */
 	public void addDataLoaderRegistrar(DataLoaderRegistrar registrar) {
 		this.dataLoaderRegistrars.add(registrar);
+		this.hasDataLoaderRegistrations = (this.hasDataLoaderRegistrations || hasRegistrations(registrar));
+	}
+
+	private static boolean hasRegistrations(DataLoaderRegistrar registrar) {
+		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();
+		registrar.registerDataLoaders(registry, GraphQLContext.newContext().build());
+		return !registry.getDataLoaders().isEmpty();
 	}
 
 
@@ -87,7 +96,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	}
 
 	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
-		if (!this.dataLoaderRegistrars.isEmpty()) {
+		if (this.hasDataLoaderRegistrations) {
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 			DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
 			if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {

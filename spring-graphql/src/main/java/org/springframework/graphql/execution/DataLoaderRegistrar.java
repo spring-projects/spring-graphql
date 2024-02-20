@@ -17,7 +17,6 @@ package org.springframework.graphql.execution;
 
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
-import org.dataloader.BatchLoaderContextProvider;
 import org.dataloader.DataLoaderRegistry;
 
 /**
