@@ -190,15 +190,19 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	private static DataFetchingEnvironment wrapDataFetchingEnvironment(DataFetchingEnvironment environment, Observation dataFetcherObservation) {
-		GraphQLContext.Builder localContextBuilder = GraphQLContext.newContext();
-		if (environment.getLocalContext() instanceof GraphQLContext localContext) {
-			localContextBuilder.of(localContext);
+		if (environment.getLocalContext() == null || environment.getLocalContext() instanceof GraphQLContext) {
+			GraphQLContext.Builder localContextBuilder = GraphQLContext.newContext();
+			if (environment.getLocalContext() instanceof GraphQLContext localContext) {
+				localContextBuilder.of(localContext);
+			}
+			localContextBuilder.of(ObservationThreadLocalAccessor.KEY, dataFetcherObservation);
+			return DataFetchingEnvironmentImpl
+					.newDataFetchingEnvironment(environment)
+					.localContext(localContextBuilder.build())
+					.build();
 		}
-		localContextBuilder.of(ObservationThreadLocalAccessor.KEY, dataFetcherObservation);
-		return DataFetchingEnvironmentImpl
-				.newDataFetchingEnvironment(environment)
-				.localContext(localContextBuilder.build())
-				.build();
+		// do not wrap environment, there is an existing custom context
+		return environment;
 	}
 
 
