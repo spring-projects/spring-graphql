@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.graphql.*;
+
+import org.springframework.graphql.Author;
+import org.springframework.graphql.Book;
+import org.springframework.graphql.BookSource;
+import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.graphql.ExecutionGraphQlResponse;
+import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
 import reactor.core.publisher.Mono;
@@ -364,6 +372,44 @@ class GraphQlObservationInstrumentationTests {
 		public List<Observation.Event> getEvents() {
 			return this.events;
 		}
+	}
+
+	@Test
+	void shouldNotOverrideCustomLocalContext() {
+
+		String document = """
+				{
+					bookById(id: 1) {
+						author {
+							firstName,
+							lastName
+						}
+					}
+				}
+				""";
+		DataFetcher<DataFetcherResult<Object>> bookDataFetcher = environment -> DataFetcherResult.newResult()
+				.data(BookSource.getBook(1L))
+				.localContext(new CustomLocalContext())
+				.build();
+		DataFetcher<Author> authorDataFetcher = environment -> BookSource.getAuthor(101L);
+		DataFetcher<String> authorFirstNameDataFetcher = environment -> {
+			Object context = environment.getLocalContext();
+			assertThat(context).isInstanceOf(CustomLocalContext.class);
+			return BookSource.getAuthor(101L).getFirstName();
+		};
+
+		ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.queryFetcher("bookById", bookDataFetcher)
+				.dataFetcher("Book", "author", authorDataFetcher)
+				.dataFetcher("Author", "firstName", authorFirstNameDataFetcher)
+				.toGraphQlService()
+				.execute(request);
+		ResponseHelper.forResponse(responseMono);
+	}
+
+	static class CustomLocalContext {
+
 	}
 
 }
