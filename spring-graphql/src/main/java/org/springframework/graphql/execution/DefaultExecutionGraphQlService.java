@@ -46,11 +46,12 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	private static final BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> RESET_EXECUTION_ID_CONFIGURER =
 			(executionInput, builder) -> builder.executionId(null).build();
 
-	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private final GraphQlSource graphQlSource;
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
+
+	private ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private boolean hasDataLoaderRegistrations;
 
@@ -80,6 +81,23 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 		return !registry.getDataLoaders().isEmpty();
 	}
 
+	/**
+	 * Configure the {@link ContextSnapshotFactory} instance to use to propagate
+	 * {@code TreadLocal} and Reactor context through {@link GraphQLContext}.
+	 * If not set, then an instance with default settings is used.
+	 * <p>Note that there are other components that would also need to be
+	 * configured similarly to use a single instance:
+	 * <ul>
+	 * <li>{@link GraphQlSource.Builder#contextSnapshotFactory}
+	 * <li>{@link DefaultBatchLoaderRegistry#setContextSnapshotFactory}
+	 * <li>{@link org.springframework.graphql.server.WebGraphQlHandler.Builder#contextSnapshotFactory}
+	 * </ul>
+	 * @since 1.3
+	 */
+	public void setContextSnapshotFactory(ContextSnapshotFactory snapshotFactory) {
+		this.snapshotFactory = snapshotFactory;
+	}
+
 
 	@Override
 	public final Mono<ExecutionGraphQlResponse> execute(ExecutionGraphQlRequest request) {
@@ -91,7 +109,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			ExecutionInput executionInput = request.toExecutionInput();
 
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
-			snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
+			this.snapshotFactory.captureFrom(contextView).updateContext(graphQLContext);
 
 			ExecutionInput updatedExecutionInput =
 					(this.hasDataLoaderRegistrations ? registerDataLoaders(executionInput) : executionInput);

@@ -16,9 +16,11 @@
 
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
 import graphql.schema.DataFetchingEnvironment;
+import io.micrometer.context.ContextSnapshotFactory;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
@@ -46,11 +48,31 @@ public class DataFetcherHandlerMethodSupport extends InvocableHandlerMethodSuppo
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
+	/**
+	 * @deprecated in favor of
+	 * {@link #DataFetcherHandlerMethodSupport(HandlerMethod, HandlerMethodArgumentResolverComposite, Executor, ContextSnapshotFactory)}
+	 */
+	@Deprecated(since = "1.3", forRemoval = true)
 	protected DataFetcherHandlerMethodSupport(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
 			@Nullable Executor executor) {
 
-		super(handlerMethod, executor);
+		this(handlerMethod, resolvers, executor, null);
+	}
+
+	/**
+	 * Create an instance.
+	 * @param handlerMethod the handler method
+	 * @param resolvers the argument resolvers
+	 * @param executor {@code Executor} to use for {@link Callable} methods
+	 * @param snapshotFactory for context propagation with {@link Callable} methods
+	 * @since 1.3
+	 */
+	protected DataFetcherHandlerMethodSupport(
+			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
+			@Nullable Executor executor, @Nullable ContextSnapshotFactory snapshotFactory) {
+
+		super(handlerMethod, executor, snapshotFactory);
 		this.resolvers = resolvers;
 	}
 

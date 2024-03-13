@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.function.BiFunction;
 import graphql.GraphQLError;
 import graphql.execution.DataFetcherExceptionHandler;
 import graphql.schema.DataFetchingEnvironment;
+import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 /**
@@ -101,7 +102,24 @@ public interface DataFetcherExceptionResolver {
 	 * @since 1.1.1
 	 */
 	static DataFetcherExceptionHandler createExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
-		return new ExceptionResolversExceptionHandler(resolvers);
+		return createExceptionHandler(resolvers, ContextSnapshotFactory.builder().build());
+	}
+
+	/**
+	 * Variant of {@link #createExceptionHandler(List)} with a
+	 * {@link ContextSnapshotFactory} instance to use.
+	 * @since 1.3
+	 */
+	static DataFetcherExceptionHandler createExceptionHandler(
+			List<DataFetcherExceptionResolver> resolvers, ContextSnapshotFactory snapshotFactory) {
+
+		resolvers.forEach(resolver -> {
+			if (resolver instanceof DataFetcherExceptionResolverAdapter adapter) {
+				adapter.setContextSnapshotFactory(snapshotFactory);
+			}
+		});
+
+		return new ExceptionResolversExceptionHandler(resolvers, snapshotFactory);
 	}
 
 }

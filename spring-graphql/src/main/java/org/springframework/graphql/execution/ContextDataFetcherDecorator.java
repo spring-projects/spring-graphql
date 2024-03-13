@@ -59,18 +59,22 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
 
-	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
+	private final ContextSnapshotFactory snapshotFactory;
+
 
 	private ContextDataFetcherDecorator(
 			DataFetcher<?> delegate, boolean subscription,
-			SubscriptionExceptionResolver subscriptionExceptionResolver) {
+			SubscriptionExceptionResolver subscriptionExceptionResolver,
+			ContextSnapshotFactory snapshotFactory) {
 
 		Assert.notNull(delegate, "'delegate' DataFetcher is required");
 		Assert.notNull(subscriptionExceptionResolver, "'subscriptionExceptionResolver' is required");
 		this.delegate = delegate;
 		this.subscription = subscription;
 		this.subscriptionExceptionResolver = subscriptionExceptionResolver;
+		this.snapshotFactory = snapshotFactory;
 	}
+
 
 	@Override
 	public Object get(DataFetchingEnvironment environment) throws Exception {
@@ -113,8 +117,16 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	 * Static factory method to create {@link GraphQLTypeVisitor} that wraps
 	 * data fetchers with the {@link ContextDataFetcherDecorator}.
 	 */
-	static GraphQLTypeVisitor createVisitor(List<SubscriptionExceptionResolver> resolvers) {
-		return new ContextTypeVisitor(resolvers);
+	static GraphQLTypeVisitor createVisitor(
+			List<SubscriptionExceptionResolver> resolvers, ContextSnapshotFactory snapshotFactory) {
+
+		resolvers.forEach(resolver -> {
+			if (resolver instanceof SubscriptionExceptionResolverAdapter adapter) {
+				adapter.setContextSnapshotFactory(snapshotFactory);
+			}
+		});
+
+		return new ContextTypeVisitor(resolvers, snapshotFactory);
 	}
 
 
@@ -125,8 +137,13 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		private final SubscriptionExceptionResolver exceptionResolver;
 
-		private ContextTypeVisitor(List<SubscriptionExceptionResolver> resolvers) {
+		private final ContextSnapshotFactory snapshotFactory;
+
+		private ContextTypeVisitor(
+				List<SubscriptionExceptionResolver> resolvers, ContextSnapshotFactory snapshotFactory) {
+
 			this.exceptionResolver = new CompositeSubscriptionExceptionResolver(resolvers);
+			this.snapshotFactory = snapshotFactory;
 		}
 
 		@Override
@@ -142,7 +159,8 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 			if (applyDecorator(dataFetcher)) {
 				boolean handlesSubscription = visitorHelper.isSubscriptionType(parent);
-				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, exceptionResolver);
+				dataFetcher = new ContextDataFetcherDecorator(
+						dataFetcher, handlesSubscription, this.exceptionResolver, this.snapshotFactory);
 				codeRegistry.dataFetcher(fieldCoordinates, dataFetcher);
 			}
 

@@ -46,7 +46,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 	private static final Object NO_VALUE = new Object();
 
-	private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
+	private static final ContextSnapshotFactory DEFAULT_SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
 
 
 	private final boolean hasCallableReturnValue;
@@ -54,16 +54,35 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	@Nullable
 	private final Executor executor;
 
+	private final ContextSnapshotFactory snapshotFactory;
+
+
+	/**
+	 * Create an instance for a controller method and an optional {@link Executor}
+	 * to use for {@link Callable} return values.
+	 * @deprecated in favor of
+	 * {@link #InvocableHandlerMethodSupport(HandlerMethod, Executor, ContextSnapshotFactory)}.
+	 */
+	@Deprecated(since = "1.3", forRemoval = true)
+	protected InvocableHandlerMethodSupport(HandlerMethod handlerMethod, @Nullable Executor executor) {
+		this(handlerMethod, executor, null);
+	}
 
 	/**
 	 * Create an instance.
-	 * @param handlerMethod the controller method
-	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 * @param handlerMethod the handler method
+	 * @param executor {@code Executor} to use for {@link Callable} methods
+	 * @param snapshotFactory for context propagation with {@link Callable} methods
+	 * @since 1.3
 	 */
-	protected InvocableHandlerMethodSupport(HandlerMethod handlerMethod, @Nullable Executor executor) {
+	protected InvocableHandlerMethodSupport(
+			HandlerMethod handlerMethod, @Nullable Executor executor, @Nullable ContextSnapshotFactory snapshotFactory) {
+
 		super(handlerMethod.createWithResolvedBean());
 		this.hasCallableReturnValue = getReturnType().getParameterType().equals(Callable.class);
 		this.executor = executor;
+		this.snapshotFactory = (snapshotFactory != null ? snapshotFactory : DEFAULT_SNAPSHOT_FACTORY);
+
 		Assert.isTrue(!this.hasCallableReturnValue || this.executor != null,
 				"Controller method declared with Callable return value, but no Executor configured: " +
 						handlerMethod.getBridgedMethod().toGenericString());
@@ -130,7 +149,8 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			return CompletableFuture.supplyAsync(
 					() -> {
 						try {
-							return SNAPSHOT_FACTORY.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
+							ContextSnapshot snapshot = this.snapshotFactory.captureFrom(graphQLContext);
+							return snapshot.wrap((Callable<?>) result).call();
 						}
 						catch (Exception ex) {
 							throw new IllegalStateException(

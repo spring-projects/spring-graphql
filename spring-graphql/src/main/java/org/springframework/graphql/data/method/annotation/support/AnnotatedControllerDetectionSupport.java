@@ -29,6 +29,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import graphql.schema.DataFetcher;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -89,6 +90,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	@Nullable
 	private Executor executor;
+
+	@Nullable
+	private ContextSnapshotFactory snapshotFactory;
 
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
@@ -159,6 +163,21 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	@Nullable
 	public Executor getExecutor() {
 		return this.executor;
+	}
+
+	/**
+	 * Configure the {@link ContextSnapshotFactory} instance to use to establish
+	 * {@code ThreadLocal} context for asynchronous handling with a {@link Callable}
+	 * return value. If not set, then an instance with default settings is used.
+	 * @since 1.3
+	 */
+	public void setContextSnapshotFactory(@Nullable ContextSnapshotFactory snapshotFactory) {
+		this.snapshotFactory = snapshotFactory;
+	}
+
+	@Nullable
+	public ContextSnapshotFactory getContextSnapshotFactory() {
+		return this.snapshotFactory;
 	}
 
 	/**

@@ -17,10 +17,12 @@
 package org.springframework.graphql.data.federation;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import graphql.schema.DataFetchingEnvironment;
+import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.HandlerMethod;
@@ -36,11 +38,19 @@ import org.springframework.lang.Nullable;
  */
 final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 
+	/**
+	 * Create an instance.
+	 * @param handlerMethod the handler method
+	 * @param resolvers the argument resolvers
+	 * @param executor {@code Executor} to use for {@link Callable} methods
+	 * @param snapshotFactory for context propagation with {@link Callable} methods
+	 * @since 1.3
+	 */
 	public EntityHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable Executor executor) {
+			@Nullable Executor executor, @Nullable ContextSnapshotFactory snapshotFactory) {
 
-		super(handlerMethod, resolvers, executor);
+		super(handlerMethod, resolvers, executor, snapshotFactory);
 	}
 
 

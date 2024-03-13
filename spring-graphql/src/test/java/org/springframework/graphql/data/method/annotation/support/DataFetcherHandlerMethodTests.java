@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class DataFetcherHandlerMethodTests {
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(new GraphQlArgumentBinder()));
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-				handlerMethodFor(new TestController(), "hello"), resolvers, null, null, false);
+				handlerMethodFor(new TestController(), "hello"), resolvers, null, false, null, null);
 
 		Object result = handlerMethod.invoke(
 				DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
@@ -77,7 +77,7 @@ public class DataFetcherHandlerMethodTests {
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				handlerMethodFor(new TestController(), "handleAndReturnCallable"), resolvers, null,
-				new SimpleAsyncTaskExecutor(), false);
+				false, new SimpleAsyncTaskExecutor(), null);
 
 		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl
 				.newDataFetchingEnvironment()
@@ -99,7 +99,7 @@ public class DataFetcherHandlerMethodTests {
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				handlerMethodFor(new TestController(), "handleAndReturnFuture"), resolvers,
-				null, null, false);
+				null, false, null, null);
 
 		SecurityContextHolder.setContext(new SecurityContextImpl(new TestingAuthenticationToken("usr", "pwd")));
 		try {
