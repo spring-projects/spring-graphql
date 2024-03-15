@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
  */
 
 package org.springframework.graphql.execution;
+
+import java.util.Collections;
+import java.util.Map;
 
 import graphql.schema.DataFetcher;
 
@@ -45,5 +48,14 @@ public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 	 * backed by a Spring Data repository, or other.
 	 */
 	ResolvableType getReturnType();
+
+	/**
+	 * Return a map with arguments that this {@link DataFetcher} looks up
+	 * along with the Java types they are mapped to.
+	 * @since 1.3
+	 */
+	default Map<String, ResolvableType> getArguments() {
+		return Collections.emptyMap();
+	}
 
 }

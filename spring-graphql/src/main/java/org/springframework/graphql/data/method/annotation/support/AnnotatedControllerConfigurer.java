@@ -29,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
@@ -45,15 +47,19 @@ import reactor.core.publisher.Mono;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.expression.BeanFactoryResolver;
+import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.domain.ScrollPosition;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
+import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
@@ -380,6 +386,8 @@ public class AnnotatedControllerConfigurer
 	 */
 	static class SchemaMappingDataFetcher implements SelfDescribingDataFetcher<Object> {
 
+		private static final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
+
 		private final DataFetcherMappingInfo mappingInfo;
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
@@ -422,6 +430,20 @@ public class AnnotatedControllerConfigurer
 		@Override
 		public ResolvableType getReturnType() {
 			return ResolvableType.forMethodReturnType(this.mappingInfo.getHandlerMethod().getMethod());
+		}
+
+		@Override
+		public Map<String, ResolvableType> getArguments() {
+
+			Predicate<MethodParameter> argumentPredicate = p ->
+					(p.getParameterAnnotation(Argument.class) != null || p.getParameterType() == ArgumentValue.class);
+
+			return Arrays.stream(this.mappingInfo.getHandlerMethod().getMethodParameters())
+					.filter(argumentPredicate)
+					.peek(p -> p.initParameterNameDiscovery(parameterNameDiscoverer))
+					.collect(Collectors.toMap(
+							ArgumentMethodArgumentResolver::getArgumentName,
+							ResolvableType::forMethodParameter));
 		}
 
 		/**

@@ -235,7 +235,7 @@ class SchemaMappingInspectorTests {
 	class SubscriptionTests {
 
 		@Test
-		void reportContainsUnmappedSubscription() {
+		void unmappedSubscription() {
 			String schema = """
 						type Query{
 							greeting: String
@@ -254,26 +254,7 @@ class SchemaMappingInspectorTests {
 		}
 
 		@Test
-		void reportIsEmptyWhenSubscriptionIsMapped() {
-			String schema = """
-						type Query{
-							greeting: String
-						}
-						type Subscription {
-							bookSearch(author: String) : [Book!]!
-						}
-						
-						type Book {
-							id: ID
-							name: String
-					 	}
-					""";
-			SchemaReport report = inspectSchema(schema, GreetingController.class, BookController.class);
-			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
-		}
-
-		@Test
-		void reportWorksForSubscriptionWithExtensionType() {
+		void unmappedSubscriptionWithExtensionType() {
 			String schema = """
 						type Query{
 							greeting: String
@@ -290,6 +271,26 @@ class SchemaMappingInspectorTests {
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Subscription", "bookSearch");
+		}
+
+		@Test
+		void mappedSubscriptionWithUnmappedArgument() {
+			String schema = """
+						type Query{
+							greeting: String
+						}
+						type Subscription {
+							bookSearch(author: String) : [Book!]!
+						}
+						
+						type Book {
+							id: ID
+							name: String
+					 	}
+					""";
+			SchemaReport report = inspectSchema(schema, GreetingController.class, BookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
+			assertThatReport(report).hasUnmappedArgumentCount(1).containsUnmappedArguments("myAuthor");
 		}
 
 	}
@@ -552,11 +553,16 @@ class SchemaMappingInspectorTests {
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).hasSkippedTypeCount(0);
-			assertThat(report.toString())
-					.contains("GraphQL schema inspection:", "Unmapped fields: {Book=[missing]}", "Unmapped registrations:",
-							"Book.fetcher=BookController#fetcher[1 args]", "Query.paginatedBooks=BookController#paginatedBooks[0 args]",
-							"Query.bookObject=BookController#bookObject[1 args]", "Query.bookById=BookController#bookById[1 args]",
-							"Skipped types: []");
+			assertThat(report.toString()).contains(
+					"GraphQL schema inspection:",
+					"Unmapped fields: {Book=[missing]}",
+					"Unmapped registrations:",
+					"Book.fetcher=BookController#fetcher[1 args]",
+					"Query.paginatedBooks=BookController#paginatedBooks[0 args]",
+					"Query.bookObject=BookController#bookObject[1 args]",
+					"Query.bookById=BookController#bookById[1 args]",
+					"{BookController#bookSearch[1 args]=[myAuthor]}",
+					"Skipped types: []");
 		 }
 
 	}
@@ -649,7 +655,7 @@ class SchemaMappingInspectorTests {
 		}
 
 		@SubscriptionMapping
-		public Flux<List<Book>> bookSearch(@Argument String author) {
+		public Flux<List<Book>> bookSearch(@Argument String myAuthor) {
 			return Flux.empty();
 		}
 	}
@@ -746,6 +752,14 @@ class SchemaMappingInspectorTests {
 			return this;
 		}
 
+		public SchemaInspectionReportAssert hasUnmappedArgumentCount(int expected) {
+			isNotNull();
+			if (this.actual.unmappedArguments().size() != expected) {
+				failWithMessage("Expected %s unmapped arguments, found %s.", expected, this.actual.unmappedArguments());
+			}
+			return this;
+		}
+
 		public SchemaInspectionReportAssert hasSkippedTypeCount(int expected) {
 			isNotNull();
 			if (this.actual.skippedTypes().size() != expected) {
@@ -774,6 +788,18 @@ class SchemaMappingInspectorTests {
 					.toList();
 			if (!this.actual.unmappedRegistrations().keySet().containsAll(expected)) {
 				failWithMessage("Expected unmapped DataFetchers for %s, found %s", expected, this.actual.unmappedRegistrations());
+			}
+			return this;
+		}
+
+		public SchemaInspectionReportAssert containsUnmappedArguments(String... arguments) {
+			isNotNull();
+			List<String> expected = Arrays.asList(arguments);
+			List<String> actual = this.actual.unmappedArguments().entrySet().stream()
+					.flatMap(entry -> entry.getValue().stream())
+					.toList();
+			if (!actual.containsAll(expected)) {
+				failWithMessage("Expected unmapped arguments: %s, found %s", expected, actual);
 			}
 			return this;
 		}

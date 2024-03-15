@@ -229,24 +229,25 @@ matching Java object property, will always be `null`.
 GraphQL Java does not perform checks to ensure every schema field is covered, and that
 can result in gaps that might not be discovered depending on test coverage. At runtime
 you may get a "silent" `null`, or an error if the field is not nullable. As a lower level
-library, GraphQL Java simply does not know enough about `DataFetcher` implementations and
-their return types, and therefore can't compare schema type structure against Java object
-structure.
+library, GraphQL Java simply does not have enough information about `DataFetcher`
+implementations to know their return types or what arguments they depend on, and as a result
+cannot perform such verifications.
 
 Spring for GraphQL defines the `SelfDescribingDataFetcher` interface to allow a
-`DataFetcher` to expose return type information. All Spring `DataFetcher` implementations
+`DataFetcher` to expose information about itself. All Spring `DataFetcher` implementations
 implement this interface. That includes those for xref:controllers.adoc[Annotated Controllers], and those for
-xref:data.adoc#data.querydsl[Querydsl] and xref:data.adoc#data.querybyexample[Query by Example] Spring Data repositories. For annotated
-controllers, the return type is derived from the declared return type on a
-`@SchemaMapping` method.
+xref:data.adoc#data.querydsl[Querydsl] and
+xref:data.adoc#data.querybyexample[Query by Example] Spring Data repositories.
+For annotated controllers, the return type is derived from the declared return type on
+a `@SchemaMapping` method, while arguments are dervied from `@Argument` method parameters.
 
-On startup, Spring for GraphQL can inspect schema fields, `DataFetcher` registrations,
-and the properties of Java objects returned from `DataFetcher` implementations to check
-if all schema fields are covered either by an explicitly registered `DataFetcher`, or
-a matching Java object property. The inspection also performs a reverse check looking for
-`DataFetcher` registrations against schema fields that don't exist.
+Spring for GraphQL can perform an inspection on startup to ensure the following:
 
-To enable inspection of schema mappings:
+- Schema fields have a `DataFetcher` registration or a corresponding Java property.
+- `DataFetcher` registrations refer to a schema field that does exist.
+- `DataFetcher` refers to schema arguments that exist.
+
+You can enable the inspection and take an appropriate action as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -264,14 +265,16 @@ Below is an example report:
 GraphQL schema inspection:
     Unmapped fields: {Book=[title], Author[firstName, lastName]} // <1>
     Unmapped registrations: {Book.reviews=BookController#reviews[1 args]} <2>
-    Skipped types: [BookOrAuthor] // <3>
+    Unmapped arguments: {BookController#bookSearch[1 args]=[myAuthor]} // <3>
+    Skipped types: [BookOrAuthor] // <4>
 ----
 
-<1> List of schema fields and their source types that are not mapped
-<2> List of `DataFetcher` registrations on fields that don't exist
-<3> List of schema types that are skipped, as explained next
+<1> Coordinates of schema fields that are not covered
+<2> ``DataFetcher`` registered mapped to fields that don't exist
+<3> `DataFetcher` arguments that don't exist
+<4> Schema types that have been skipped (explained next)
 
-There are limits to what schema field inspection can do, in particular when there is
+There are limits to what schema inspection can do, in particular when there is
 insufficient Java type information. This is the case if an annotated controller method is
 declared to return `java.lang.Object`, or if the return type has an unspecified generic
 parameter such as `List<?>`, or if the `DataFetcher` does not implement
