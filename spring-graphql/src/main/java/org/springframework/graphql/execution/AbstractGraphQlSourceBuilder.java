@@ -30,7 +30,6 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTransformer;
 import graphql.schema.SchemaTraverser;
-import io.micrometer.context.ContextSnapshotFactory;
 
 import org.springframework.lang.Nullable;
 
@@ -45,9 +44,6 @@ import org.springframework.lang.Nullable;
  */
 public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Builder<B>> implements GraphQlSource.Builder<B> {
 
-	private static final ContextSnapshotFactory DEFAULT_SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
-
-
 	private final List<DataFetcherExceptionResolver> exceptionResolvers = new ArrayList<>();
 
 	private final List<SubscriptionExceptionResolver> subscriptionExceptionResolvers = new ArrayList<>();
@@ -57,9 +53,6 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 	private final List<GraphQLTypeVisitor> typeVisitorsToTransformSchema = new ArrayList<>();
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
-
-	@Nullable
-	private ContextSnapshotFactory snapshotFactory;
 
 	@Nullable
 	private Consumer<GraphQL.Builder> graphQlConfigurer;
@@ -96,12 +89,6 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 	}
 
 	@Override
-	public B contextSnapshotFactory(ContextSnapshotFactory snapshotFactory) {
-		this.snapshotFactory = snapshotFactory;
-		return self();
-	}
-
-	@Override
 	public B configureGraphQl(Consumer<GraphQL.Builder> configurer) {
 		this.graphQlConfigurer = (this.graphQlConfigurer != null ?
 				this.graphQlConfigurer.andThen(configurer) : configurer);
@@ -117,15 +104,12 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 	public GraphQlSource build() {
 		GraphQLSchema schema = initGraphQlSchema();
 
-		ContextSnapshotFactory snapshotFactory =
-				(this.snapshotFactory != null ? this.snapshotFactory : DEFAULT_SNAPSHOT_FACTORY);
-
 		schema = applyTypeVisitorsToTransformSchema(schema);
-		schema = applyTypeVisitors(schema, snapshotFactory);
+		schema = applyTypeVisitors(schema);
 
 		GraphQL.Builder builder = GraphQL.newGraphQL(schema);
 		builder.defaultDataFetcherExceptionHandler(
-				DataFetcherExceptionResolver.createExceptionHandler(this.exceptionResolvers, snapshotFactory));
+				DataFetcherExceptionResolver.createExceptionHandler(this.exceptionResolvers));
 
 		if (!this.instrumentations.isEmpty()) {
 			builder = builder.instrumentation(new ChainedInstrumentation(this.instrumentations));
@@ -150,7 +134,7 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 		return schema;
 	}
 
-	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema, ContextSnapshotFactory snapshotFactory) {
+	private GraphQLSchema applyTypeVisitors(GraphQLSchema schema) {
 
 		GraphQLCodeRegistry.Builder outputCodeRegistry =
 				GraphQLCodeRegistry.newCodeRegistry(schema.getCodeRegistry());
@@ -159,11 +143,8 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 		vars.put(GraphQLCodeRegistry.Builder.class, outputCodeRegistry);
 		vars.put(TypeVisitorHelper.class, TypeVisitorHelper.create(schema));
 
-		GraphQLTypeVisitor contextDataFetcherVisitor =
-				ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers, snapshotFactory);
-
 		List<GraphQLTypeVisitor> visitorsToUse = new ArrayList<>(this.typeVisitors);
-		visitorsToUse.add(contextDataFetcherVisitor);
+		visitorsToUse.add(ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers));
 
 		new SchemaTraverser().depthFirstFullSchema(visitorsToUse, schema, vars);
 		return schema.transformWithoutTypes(builder -> builder.codeRegistry(outputCodeRegistry));

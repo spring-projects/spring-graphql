@@ -120,7 +120,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
 
 		this.graphQlHandler = graphQlHandler;
-		this.contextHandshakeInterceptor = new ContextHandshakeInterceptor(graphQlHandler.contextSnapshotFactory());
+		this.contextHandshakeInterceptor = new ContextHandshakeInterceptor();
 		this.webSocketGraphQlInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
@@ -358,18 +358,14 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		private static final String KEY = ContextSnapshot.class.getName();
 
-		private final ContextSnapshotFactory snapshotFactory;
-
-		public ContextHandshakeInterceptor(ContextSnapshotFactory snapshotFactory) {
-			this.snapshotFactory = snapshotFactory;
-		}
+		private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
 
 		@Override
 		public boolean beforeHandshake(
 				ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
 				Map<String, Object> attributes) {
 
-			attributes.put(KEY, this.snapshotFactory.captureAll());
+			attributes.put(KEY, SNAPSHOT_FACTORY.captureAll());
 			return true;
 		}
 

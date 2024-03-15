@@ -42,9 +42,6 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	private final List<WebGraphQlInterceptor> interceptors = new ArrayList<>();
 
 	@Nullable
-	private ContextSnapshotFactory snapshotFactory;
-
-	@Nullable
 	private WebSocketGraphQlInterceptor webSocketInterceptor;
 
 
@@ -72,13 +69,9 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	}
 
 	@Override
-	public WebGraphQlHandler.Builder contextSnapshotFactory(ContextSnapshotFactory snapshotFactory) {
-		this.snapshotFactory = snapshotFactory;
-		return this;
-	}
-
-	@Override
 	public WebGraphQlHandler build() {
+
+		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 		Chain endOfChain = request -> this.service.execute(request).map(WebGraphQlResponse::new);
 
@@ -87,20 +80,12 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 				.map(interceptor -> interceptor.apply(endOfChain))
 				.orElse(endOfChain);
 
-		ContextSnapshotFactory snapshotFactory =
-				(this.snapshotFactory != null ? this.snapshotFactory : ContextSnapshotFactory.builder().build());
-
 		return new WebGraphQlHandler() {
 
 			@Override
 			public WebSocketGraphQlInterceptor getWebSocketInterceptor() {
 				return (webSocketInterceptor != null ?
 						webSocketInterceptor : new WebSocketGraphQlInterceptor() {});
-			}
-
-			@Override
-			public ContextSnapshotFactory contextSnapshotFactory() {
-				return snapshotFactory;
 			}
 
 			@Override

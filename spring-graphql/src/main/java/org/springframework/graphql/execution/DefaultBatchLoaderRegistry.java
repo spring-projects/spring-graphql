@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -54,13 +53,14 @@ import org.springframework.util.StringUtils;
  */
 public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
+	private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
+
 	private final List<ReactorBatchLoader<?,?>> loaders = new ArrayList<>();
 
 	private final List<ReactorMappedBatchLoader<?,?>> mappedLoaders = new ArrayList<>();
 
 	private final Supplier<DataLoaderOptions> defaultOptionsSupplier;
 
-	private ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 
 	/**
@@ -78,26 +78,6 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	public DefaultBatchLoaderRegistry(Supplier<DataLoaderOptions> defaultOptionsSupplier) {
 		Assert.notNull(defaultOptionsSupplier, "'defaultOptionsSupplier' is required");
 		this.defaultOptionsSupplier = defaultOptionsSupplier;
-	}
-
-
-	/**
-	 * Configure the {@link ContextSnapshotFactory} instance to use to establish
-	 * {@code ThreadLocal} context for batch loader methods that return {@link Callable}.
-	 * If not set, then an instance with default settings is used.
-	 * <ul>
-	 * <li>{@link DefaultExecutionGraphQlService#setContextSnapshotFactory}
-	 * <li>{@link GraphQlSource.Builder#contextSnapshotFactory}
-	 * <li>{@link org.springframework.graphql.server.WebGraphQlHandler.Builder#contextSnapshotFactory}
-	 * </ul>
-	 * @since 1.3
-	 */
-	public void setContextSnapshotFactory(ContextSnapshotFactory snapshotFactory) {
-		this.snapshotFactory = snapshotFactory;
-	}
-
-	public ContextSnapshotFactory getContextSnapshotFactory() {
-		return this.snapshotFactory;
 	}
 
 
@@ -181,13 +161,13 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public void registerBatchLoader(BiFunction<List<K>, BatchLoaderEnvironment, Flux<V>> loader) {
 			DefaultBatchLoaderRegistry.this.loaders.add(
-					new ReactorBatchLoader<>(initName(), loader, initOptionsSupplier(), snapshotFactory));
+					new ReactorBatchLoader<>(initName(), loader, initOptionsSupplier()));
 		}
 
 		@Override
 		public void registerMappedBatchLoader(BiFunction<Set<K>, BatchLoaderEnvironment, Mono<Map<K, V>>> loader) {
 			DefaultBatchLoaderRegistry.this.mappedLoaders.add(
-					new ReactorMappedBatchLoader<>(initName(), loader, initOptionsSupplier(), snapshotFactory));
+					new ReactorMappedBatchLoader<>(initName(), loader, initOptionsSupplier()));
 		}
 
 		private String initName() {
@@ -229,16 +209,13 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		private final Supplier<DataLoaderOptions> optionsSupplier;
 
-		private final ContextSnapshotFactory snapshotFactory;
-
 		private ReactorBatchLoader(String name,
 				BiFunction<List<K>, BatchLoaderEnvironment, Flux<V>> loader,
-				Supplier<DataLoaderOptions> optionsSupplier, ContextSnapshotFactory snapshotFactory) {
+				Supplier<DataLoaderOptions> optionsSupplier) {
 
 			this.name = name;
 			this.loader = loader;
 			this.optionsSupplier = optionsSupplier;
-			this.snapshotFactory = snapshotFactory;
 		}
 
 		public String getName() {
@@ -252,7 +229,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = this.snapshotFactory.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = SNAPSHOT_FACTORY.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)
@@ -280,16 +257,13 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		private final Supplier<DataLoaderOptions> optionsSupplier;
 
-		private final ContextSnapshotFactory snapshotFactory;
-
 		private ReactorMappedBatchLoader(String name,
 				BiFunction<Set<K>, BatchLoaderEnvironment, Mono<Map<K, V>>> loader,
-				Supplier<DataLoaderOptions> optionsSupplier, ContextSnapshotFactory snapshotFactory) {
+				Supplier<DataLoaderOptions> optionsSupplier) {
 
 			this.name = name;
 			this.loader = loader;
 			this.optionsSupplier = optionsSupplier;
-			this.snapshotFactory = snapshotFactory;
 		}
 
 		public String getName() {
@@ -303,7 +277,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = this.snapshotFactory.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = SNAPSHOT_FACTORY.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)

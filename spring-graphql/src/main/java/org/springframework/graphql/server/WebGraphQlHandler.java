@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,9 @@ package org.springframework.graphql.server;
 
 import java.util.List;
 
-import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
-import org.springframework.graphql.execution.DefaultExecutionGraphQlService;
-import org.springframework.graphql.execution.GraphQlSource;
 
 
 /**
@@ -42,13 +38,6 @@ public interface WebGraphQlHandler {
 	 * interceptors.
 	 */
 	WebSocketGraphQlInterceptor getWebSocketInterceptor();
-
-	/**
-	 * Return the {@link WebGraphQlHandler.Builder#contextSnapshotFactory configured}
-	 * {@code ContextSnapshotFactory} instance to use.
-	 * @since 1.3
-	 */
-	ContextSnapshotFactory contextSnapshotFactory();
 
 	/**
 	 * Execute the given request and return the response.
@@ -96,22 +85,6 @@ public interface WebGraphQlHandler {
 		 * @return this builder
 		 */
 		Builder interceptors(List<WebGraphQlInterceptor> interceptors);
-
-		/**
-		 * Configure the {@link ContextSnapshotFactory} instance to use for
-		 * context propagation of {@code ThreadLocal}, and Reactor context
-		 * values from the transport layer to {@link DefaultExecutionGraphQlService}.
-		 * <p>Note that there are other components that would also need to be
-		 * configured similarly to use a single instance:
-		 * <ul>
-		 * <li>{@link DefaultExecutionGraphQlService#setContextSnapshotFactory}
-		 * <li>{@link DefaultBatchLoaderRegistry#setContextSnapshotFactory}
-		 * <li>{@link GraphQlSource.Builder#contextSnapshotFactory}
-		 * </ul>
-		 * If not set, then an instance with default settings is used.
-		 * @since 1.3
-		 */
-		Builder contextSnapshotFactory(ContextSnapshotFactory snapshotFactory);
 
 		/**
 		 * Build the {@link WebGraphQlHandler} instance.

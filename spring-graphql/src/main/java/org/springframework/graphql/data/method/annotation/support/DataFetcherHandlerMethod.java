@@ -16,13 +16,11 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.micrometer.context.ContextSnapshotFactory;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,34 +45,18 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 
 
 	/**
-	 * @deprecated in favor of
-	 * {@link #DataFetcherHandlerMethod(HandlerMethod, HandlerMethodArgumentResolverComposite, BiConsumer, boolean, Executor, ContextSnapshotFactory)}
+	 * Constructor with a parent handler method.
+	 * @param handlerMethod the handler method
+	 * @param resolvers the argument resolvers
+	 * @param validationHelper to apply bean validation with
+	 * @param subscription whether the field being fetched is of subscription type
 	 */
-	@Deprecated(since = "1.3", forRemoval = true)
 	public DataFetcherHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
 			@Nullable BiConsumer<Object, Object[]> validationHelper, @Nullable Executor executor,
 			boolean subscription) {
 
-		this(handlerMethod, resolvers, validationHelper, subscription, executor, null);
-	}
-
-	/**
-	 * Create an instance.
-	 * @param handlerMethod the handler method
-	 * @param resolvers the argument resolvers
-	 * @param validationHelper to apply bean validation with
-	 * @param subscription whether the field being fetched is of subscription type
-	 * @param executor {@code Executor} to use for {@link Callable} methods
-	 * @param snapshotFactory for context propagation with {@link Callable} methods
-	 * @since 1.3
-	 */
-	public DataFetcherHandlerMethod(
-			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable BiConsumer<Object, Object[]> validationHelper, boolean subscription,
-			@Nullable Executor executor, @Nullable ContextSnapshotFactory snapshotFactory) {
-
-		super(handlerMethod, resolvers, executor, snapshotFactory);
+		super(handlerMethod, resolvers, executor);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.validationHelper = (validationHelper != null ? validationHelper : (controller, args) -> {});
 		this.subscription = subscription;

@@ -215,9 +215,9 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 	private Mono<List<GraphQLError>> invokeExceptionHandler(
 			Throwable exception, DataFetchingEnvironment env, Object controllerOrAdvice, MethodHolder methodHolder) {
 
-		HandlerMethod handlerMethod = new HandlerMethod(controllerOrAdvice, methodHolder.getMethod());
-		DataFetcherHandlerMethod exceptionHandler =
-				new DataFetcherHandlerMethod(handlerMethod, this.argumentResolvers, null, false, null, null);
+		DataFetcherHandlerMethod exceptionHandler = new DataFetcherHandlerMethod(
+				new HandlerMethod(controllerOrAdvice, methodHolder.getMethod()), this.argumentResolvers,
+				null, null, false);
 
 		List<Throwable> exceptions = new ArrayList<>();
 		try {

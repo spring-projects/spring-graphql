@@ -38,7 +38,6 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
-import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.DataLoader;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -233,8 +232,7 @@ public class AnnotatedControllerConfigurer
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
 				dataFetcher = new SchemaMappingDataFetcher(
-						info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(),
-						getExecutor(), getContextSnapshotFactory());
+						info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(), getExecutor());
 			}
 			else {
 				dataFetcher = registerBatchLoader(info);
@@ -328,8 +326,7 @@ public class AnnotatedControllerConfigurer
 		}
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
-		BatchLoaderHandlerMethod invocable =
-				new BatchLoaderHandlerMethod(handlerMethod, getExecutor(), getContextSnapshotFactory());
+		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, getExecutor());
 
 		MethodParameter returnType = handlerMethod.getReturnType();
 		Class<?> clazz = returnType.getParameterType();
@@ -400,18 +397,15 @@ public class AnnotatedControllerConfigurer
 		@Nullable
 		private final Executor executor;
 
-		@Nullable final ContextSnapshotFactory snapshotFactory;
-
 		private final boolean subscription;
 
 		SchemaMappingDataFetcher(
 				DataFetcherMappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
 				@Nullable ValidationHelper helper, HandlerDataFetcherExceptionResolver exceptionResolver,
-				@Nullable Executor executor, @Nullable ContextSnapshotFactory snapshotFactory) {
+				@Nullable Executor executor) {
 
 			this.mappingInfo = info;
 			this.argumentResolvers = argumentResolvers;
-			this.snapshotFactory = snapshotFactory;
 
 			this.methodValidationHelper =
 					(helper != null ? helper.getValidationHelperFor(info.getHandlerMethod()) : null);
@@ -459,7 +453,7 @@ public class AnnotatedControllerConfigurer
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 					getHandlerMethod(), this.argumentResolvers, this.methodValidationHelper,
-					this.subscription, this.executor, this.snapshotFactory);
+					this.executor, this.subscription);
 
 			try {
 				Object result = handlerMethod.invoke(environment);

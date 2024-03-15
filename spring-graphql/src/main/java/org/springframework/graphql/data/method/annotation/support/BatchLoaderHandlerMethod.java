@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,11 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import graphql.GraphQLContext;
-import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.BatchLoaderEnvironment;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -60,27 +58,8 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
-	/**
-	 * @deprecated in favor of
-	 * {@link #BatchLoaderHandlerMethod(HandlerMethod, Executor, ContextSnapshotFactory)}.
-	 */
-	@Deprecated(since = "1.3", forRemoval = true)
 	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, @Nullable Executor executor) {
-		this(handlerMethod, executor, null);
-	}
-
-	/**
-	 * Create an instance.
-	 * @param handlerMethod the handler method
-	 * @param executor {@code Executor} to use for {@link Callable} methods
-	 * @param snapshotFactory for context propagation with {@link Callable} methods
-	 * @since 1.3
-	 */
-	public BatchLoaderHandlerMethod(
-			HandlerMethod handlerMethod, @Nullable Executor executor,
-			@Nullable ContextSnapshotFactory snapshotFactory) {
-
-		super(handlerMethod, executor, snapshotFactory);
+		super(handlerMethod, executor);
 	}
 
 

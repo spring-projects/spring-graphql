@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ public class ContextValueMethodArgumentResolverTests {
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				new HandlerMethod(new TestController(), TestController.class.getMethod("handleMono", Mono.class)),
-				resolvers, null, false, null, null);
+				resolvers, null, null, false);
 
 		GraphQLContext graphQLContext = new GraphQLContext.Builder().build();
 
@@ -146,7 +146,7 @@ public class ContextValueMethodArgumentResolverTests {
 
 		BatchLoaderHandlerMethod handlerMethod = new BatchLoaderHandlerMethod(
 				new HandlerMethod(controller,
-						TestController.class.getMethod("getAuthors", List.class, Long.class)), null, null);
+						TestController.class.getMethod("getAuthors", List.class, Long.class)), null);
 
 		GraphQLContext context = new GraphQLContext.Builder().build();
 		context.put("id", 123L);

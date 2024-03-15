@@ -48,23 +48,17 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	private static final Log logger = LogFactory.getLog(ExceptionResolversExceptionHandler.class);
 
-	private final ContextSnapshotFactory snapshotFactory;
+	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private final List<DataFetcherExceptionResolver> resolvers;
-
 
 	/**
 	 * Create an instance.
 	 * @param resolvers the resolvers to use
-	 * @param snapshotFactory the factory instance to use for context propagation
 	 */
-	ExceptionResolversExceptionHandler(
-			List<DataFetcherExceptionResolver> resolvers, ContextSnapshotFactory snapshotFactory) {
-
+	ExceptionResolversExceptionHandler(List<DataFetcherExceptionResolver> resolvers) {
 		Assert.notNull(resolvers, "'resolvers' is required");
-		Assert.notNull(resolvers, "ContextSnapshotFactory is required");
 		this.resolvers = new ArrayList<>(resolvers);
-		this.snapshotFactory = snapshotFactory;
 	}
 
 

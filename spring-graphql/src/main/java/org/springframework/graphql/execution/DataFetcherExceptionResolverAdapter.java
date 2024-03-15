@@ -50,12 +50,9 @@ import org.springframework.lang.Nullable;
  */
 public abstract class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
 
-	private static final ContextSnapshotFactory DEFAULT_SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
-
-
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	private ContextSnapshotFactory snapshotFactory = DEFAULT_SNAPSHOT_FACTORY;
+	protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private boolean threadLocalContextAware;
 
@@ -92,18 +89,6 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 		return this.threadLocalContextAware;
 	}
 
-
-	/**
-	 * Internal method to allow
-	 * via {@link DataFetcherExceptionResolver#createExceptionHandler(List, ContextSnapshotFactory)}
-	 * to set the {@link ContextSnapshotFactory} instance to use.
-	 * @since 1.3
-	 */
-	void setContextSnapshotFactory(ContextSnapshotFactory snapshotFactory) {
-		this.snapshotFactory = snapshotFactory;
-	}
-
-
 	@Override
 	public final Mono<List<GraphQLError>> resolveException(Throwable ex, DataFetchingEnvironment env) {
 		return Mono.defer(() -> Mono.justOrEmpty(resolveInternal(ex, env)));
@@ -115,7 +100,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 			return resolveToMultipleErrors(exception, env);
 		}
 		try {
-			return this.snapshotFactory.captureFrom(env.getGraphQlContext())
+			return snapshotFactory.captureFrom(env.getGraphQlContext())
 					.wrap(() -> resolveToMultipleErrors(exception, env))
 					.call();
 		}

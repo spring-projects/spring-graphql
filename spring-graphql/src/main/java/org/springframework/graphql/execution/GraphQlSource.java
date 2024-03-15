@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,12 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import graphql.GraphQL;
-import graphql.GraphQLContext;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.micrometer.context.ContextSnapshotFactory;
 
 import org.springframework.core.io.Resource;
 
@@ -140,22 +138,6 @@ public interface GraphQlSource {
 		 * @see graphql.GraphQL.Builder#instrumentation(Instrumentation)
 		 */
 		B instrumentation(List<Instrumentation> instrumentations);
-
-		/**
-		 * Configure the {@link ContextSnapshotFactory} instance to use for
-		 * context propagation of {@code ThreadLocal}, and Reactor context
-		 * values through the {@link GraphQLContext}.
-		 * <p>Note that there are other components that would also need to be
-		 * configured similarly to use a single instance:
-		 * <ul>
-		 * <li>{@link DefaultExecutionGraphQlService#setContextSnapshotFactory}
-		 * <li>{@link DefaultBatchLoaderRegistry#setContextSnapshotFactory}
-		 * <li>{@link org.springframework.graphql.server.WebGraphQlHandler.Builder#contextSnapshotFactory}
-		 * </ul>
-		 * If not set, then an instance with default settings is used.
-		 * @since 1.3
-		 */
-		B contextSnapshotFactory(ContextSnapshotFactory snapshotFactory);
 
 		/**
 		 * Configure consumers to be given access to the {@link GraphQL.Builder}
