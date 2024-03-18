@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,15 @@
  */
 package org.springframework.graphql.execution;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
+import org.springframework.graphql.TestExecutionGraphQlService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,115 +34,112 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class ClassNameTypeResolverTests {
 
-	private static final List<Animal> animalList = Arrays.asList(new Dog(), new Penguin());
+	private static final String schema = """
+			type Query {
+			    animals: [Animal!]!,
+			    sightings: [Sighting!]!
+			}
+			interface Animal {
+			    name: String!
+			}
+			type Bird implements Animal {
+			    name: String!
+			    flightless: Boolean!
+			}
+			type Mammal implements Animal {
+			    name: String!
+			    herbivore: Boolean!
+			}
+			type Plant {
+			    family: String!
+			}
+			type Vegetable {
+			    family: String!
+			}
+			union Sighting = Bird | Mammal | Plant | Vegetable
+			""";
 
-	private static final List<?> animalAndPlantList = Arrays.asList(new GrayWolf(), new GiantRedwood());
+	private static final List<Animal> animalList = new ArrayList<>();
 
-	private static final String schema = "" +
-			"type Query {" +
-			"    animals: [Animal!]!," +
-			"    sightings: [Sighting!]!" +
-			"}" +
-			"interface Animal {" +
-			"    name: String!" +
-			"}" +
-			"type Bird implements Animal {" +
-			"    name: String!" +
-			"    flightless: Boolean!" +
-			"}" +
-			"type Mammal implements Animal {" +
-			"    name: String!" +
-			"    herbivore: Boolean!" +
-			"}" +
-			"type Plant {" +
-			"    family: String!" +
-			"}" +
-			"type Vegetable {" +
-			"    family: String!" +
-			"}" +
-			"union Sighting = Bird | Mammal | Plant | Vegetable ";
+	private static final List<Object> animalAndPlantList = new ArrayList<>();
+
+	static {
+		animalList.add(new Dog());
+		animalList.add(new Penguin());
+
+		animalAndPlantList.add(new GrayWolf());
+		animalAndPlantList.add(new GiantRedwood());
+	}
+
 
 	private final GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent(schema);
 
 
 	@Test
-	void typeResolutionViaSuperHierarchy() {
-		String document = "" +
-				"query Animals {" +
-				"  animals {" +
-				"    __typename" +
-				"    name" +
-				"    ... on Bird {" +
-				"      flightless" +
-				"    }" +
-				"    ... on Mammal {" +
-				"      herbivore" +
-				"    }" +
-				"  }" +
-				"}";
+	void resolveFromInterfaceHierarchyWithClassNames() {
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup.queryFetcher("animals", env -> animalList)
-				.toGraphQlService()
-				.execute(document);
+		String document = """
+				query Animals {
+				  animals {
+					__typename
+					name
+					... on Bird {
+					  flightless
+					}
+					... on Mammal {
+					  herbivore
+					}
+				  }
+				}
+				""";
 
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
-		for (int i = 0; i < animalList.size(); i++) {
-			Animal animal = animalList.get(i);
-			if (animal instanceof Bird) {
-				Bird bird = (Bird) response.toEntity("animals[" + i + "]", animal.getClass());
-				assertThat(bird.isFlightless()).isEqualTo(((Bird) animal).isFlightless());
-			}
-			else if (animal instanceof Mammal) {
-				Mammal mammal = (Mammal) response.toEntity("animals[" + i + "]", animal.getClass());
-				assertThat(mammal.isHerbivore()).isEqualTo(((Mammal) animal).isHerbivore());
-			}
-			else {
-				throw new IllegalStateException();
-			}
-		}
+		TestExecutionGraphQlService service =
+				graphQlSetup.queryFetcher("animals", env -> animalList).toGraphQlService();
+
+		ResponseHelper response = ResponseHelper.forResponse(service.execute(document));
+
+		Mammal mammal = response.toEntity("animals[0]", Dog.class);
+		assertThat(mammal.isHerbivore()).isEqualTo(false);
+
+		Bird bird = response.toEntity("animals[1]", Penguin.class);
+		assertThat(bird.isFlightless()).isEqualTo(true);
 	}
 
 	@Test
-	void typeResolutionViaMapping() {
-		String document = "" +
-				"query Sightings {" +
-				"  sightings {" +
-				"    __typename" +
-				"    ... on Bird {" +
-				"      name" +
-				"    }" +
-				"    ... on Mammal {" +
-				"      name" +
-				"    }" +
-				"    ... on Plant {" +
-				"      family" +
-				"    }" +
-				"  }" +
-				"}";
+	void resolveWithExplicitMapping() {
 
 		ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
 		typeResolver.addMapping(Tree.class, "Plant");
 
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
-				.typeResolver(typeResolver)
-				.toGraphQlService()
-				.execute(document);
+		String document = """
+				query Sightings {
+				  sightings {
+				    __typename
+				    ... on Bird {
+				      name
+				    }
+				    ... on Mammal {
+				      name
+				    }
+				    ... on Plant {
+				      family
+				    }
+				  }
+				}
+				""";
 
-		ResponseHelper response = ResponseHelper.forResponse(responseMono);
-		for (int i = 0; i < animalAndPlantList.size(); i++) {
-			Object sighting = animalAndPlantList.get(i);
-			if (sighting instanceof Animal) {
-				Animal animal = (Animal) response.toEntity("sightings[" + i + "]", sighting.getClass());
-				assertThat(animal.getName()).isEqualTo(((Animal) sighting).getName());
-			}
-			else if (sighting instanceof Tree) {
-				Tree tree = (Tree) response.toEntity("sightings[" + i + "]", sighting.getClass());
-				assertThat(tree.getFamily()).isEqualTo(((Tree) sighting).getFamily());
-			}
-			else {
-				throw new IllegalStateException();
-			}
-		}
+		TestExecutionGraphQlService service =
+				graphQlSetup.queryFetcher("sightings", env -> animalAndPlantList)
+						.typeResolver(typeResolver)
+						.toGraphQlService();
+
+		ResponseHelper response = ResponseHelper.forResponse(service.execute(document));
+
+		Animal animal = response.toEntity("sightings[0]", GrayWolf.class);
+		assertThat(animal.getName()).isEqualTo("Gray Wolf");
+
+		Tree tree = response.toEntity("sightings[1]", GiantRedwood.class);
+		assertThat(tree.getFamily()).isEqualTo("Redwood");
 	}
 
 
