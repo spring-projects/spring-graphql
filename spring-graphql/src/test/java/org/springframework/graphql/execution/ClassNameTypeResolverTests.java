@@ -97,6 +97,7 @@ public class ClassNameTypeResolverTests {
 				graphQlSetup.queryFetcher("animals", env -> animalList).toGraphQlService();
 
 		ResponseHelper response = ResponseHelper.forResponse(service.execute(document));
+		assertThat(response.errorCount()).isEqualTo(0);
 
 		Mammal mammal = response.toEntity("animals[0]", Dog.class);
 		assertThat(mammal.isHerbivore()).isEqualTo(false);
@@ -134,6 +135,7 @@ public class ClassNameTypeResolverTests {
 						.toGraphQlService();
 
 		ResponseHelper response = ResponseHelper.forResponse(service.execute(document));
+		assertThat(response.errorCount()).isEqualTo(0);
 
 		Animal animal = response.toEntity("sightings[0]", GrayWolf.class);
 		assertThat(animal.getName()).isEqualTo("Gray Wolf");
@@ -141,6 +143,27 @@ public class ClassNameTypeResolverTests {
 		Tree tree = response.toEntity("sightings[1]", GiantRedwood.class);
 		assertThat(tree.getFamily()).isEqualTo("Redwood");
 	}
+
+	@Test
+	void javaTypeResolvesToSchemaInterfaceOnly() {
+
+		String document = """
+				query Animals {
+				  animals {
+					__typename
+					name
+				  }
+				}
+				""";
+
+		TestExecutionGraphQlService service =
+				graphQlSetup.queryFetcher("animals", env -> List.of(new BaseAnimal("Fox"))).toGraphQlService();
+
+		ResponseHelper response = ResponseHelper.forResponse(service.execute(document));
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).message()).contains("Could not determine the exact type of 'Animal'");
+	}
+
 
 
 	interface Animal {

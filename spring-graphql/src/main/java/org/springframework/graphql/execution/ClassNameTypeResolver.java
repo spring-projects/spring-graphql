@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.function.Function;
 import graphql.TypeResolutionEnvironment;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLType;
 import graphql.schema.TypeResolver;
 
 import org.springframework.lang.Nullable;
@@ -97,8 +98,9 @@ public class ClassNameTypeResolver implements TypeResolver {
 		}
 
 		name = this.classNameExtractor.apply(clazz);
-		if (schema.containsType(name)) {
-			return schema.getObjectType(name);
+		GraphQLType type = schema.getType(name);
+		if (type instanceof GraphQLObjectType objectType) {
+			return objectType;
 		}
 
 		for (Class<?> interfaceType : clazz.getInterfaces()) {
