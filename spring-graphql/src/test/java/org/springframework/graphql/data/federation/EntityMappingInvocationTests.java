@@ -23,6 +23,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -38,9 +39,11 @@ import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
-import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
+import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
@@ -130,8 +133,11 @@ public class EntityMappingInvocationTests {
 	}
 
 	private TestExecutionGraphQlService graphQlService() {
+		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
+
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.register(AuthorController.class);
+		context.registerBean(BatchLoaderRegistry.class, () -> registry);
 		context.refresh();
 
 		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
@@ -145,6 +151,7 @@ public class EntityMappingInvocationTests {
 		return GraphQlSetup.schemaResource(federationSchema)
 				.runtimeWiring(configurer)
 				.schemaFactory(schemaFactory::createGraphQLSchema)
+				.dataLoaders(registry)
 				.toGraphQlService();
 	}
 
@@ -169,10 +176,9 @@ public class EntityMappingInvocationTests {
 			};
 		}
 
-		@SchemaMapping
-		public Author author(Book book) {
-			long id = book.getId();
-			return BookSource.getBook(id).getAuthor();
+		@BatchMapping
+		public Flux<Author> author(List<Book> books) {
+			return Flux.fromIterable(books).map(book -> BookSource.getBook(book.getId()).getAuthor());
 		}
 
 		@GraphQlExceptionHandler
