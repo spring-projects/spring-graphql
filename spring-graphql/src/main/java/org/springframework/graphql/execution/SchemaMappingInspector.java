@@ -93,8 +93,6 @@ public class SchemaMappingInspector {
 
 	private final Set<String> inspectedTypes = new HashSet<>();
 
-	private final ReactiveAdapterRegistry reactiveAdapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
-
 	private final ReportBuilder reportBuilder = new ReportBuilder();
 
 	@Nullable
@@ -171,49 +169,34 @@ public class SchemaMappingInspector {
 	private void checkField(
 			GraphQLFieldsContainer parent, GraphQLFieldDefinition field, DataFetcher<?> dataFetcher) {
 
-		ResolvableType resolvableType = ResolvableType.NONE;
 		if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
-			resolvableType = selfDescribing.getReturnType();
 			checkFieldArguments(field, selfDescribing);
 		}
 
-		// Remove GraphQL type wrappers, and nest within Java generic types
-		GraphQLType outputType = unwrapIfNonNull(field.getType());
-		if (isPaginatedType(outputType)) {
-			outputType = getPaginatedType((GraphQLObjectType) outputType);
-			resolvableType = nestForConnection(resolvableType);
-		}
-		else if (outputType instanceof GraphQLList listType) {
-			outputType = unwrapIfNonNull(listType.getWrappedType());
-			resolvableType = nestForList(resolvableType, (parent == this.schema.getSubscriptionType()));
-		}
-		else {
-			resolvableType = nestIfWrappedType(resolvableType);
-		}
+		TypePair typePair = TypePair.resolveTypePair(parent, field, dataFetcher, schema);
 
 		// Type already inspected?
-		if (addAndCheckIfAlreadyInspected(outputType)) {
+		if (addAndCheckIfAlreadyInspected(typePair.outputType())) {
 			return;
 		}
 
 		// Can we inspect GraphQL type?
-		if (!(outputType instanceof GraphQLFieldsContainer fieldContainer)) {
-			if (isNotScalarOrEnumType(outputType)) {
+		if (!(typePair.outputType() instanceof GraphQLFieldsContainer fieldContainer)) {
+			if (isNotScalarOrEnumType(typePair.outputType())) {
 				FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
-				addSkippedType(outputType, coordinates, "Unsupported schema type");
+				addSkippedType(typePair.outputType(), coordinates, "Unsupported schema type");
 			}
 			return;
 		}
 
 		// Can we inspect Java type?
-		if (resolvableType.resolve(Object.class) == Object.class) {
+		if (typePair.resolvableType().resolve(Object.class) == Object.class) {
 			FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
-			addSkippedType(outputType, coordinates, "No Java type information");
+			addSkippedType(typePair.outputType(), coordinates, "No Java type information");
 			return;
 		}
 
-		// Nest within the
-		checkFieldsContainer(fieldContainer, resolvableType);
+		checkFieldsContainer(fieldContainer, typePair.resolvableType());
 	}
 
 	private void checkFieldArguments(GraphQLFieldDefinition field, SelfDescribingDataFetcher<?> dataFetcher) {
@@ -227,71 +210,7 @@ public class SchemaMappingInspector {
 		}
 	}
 
-	private GraphQLType unwrapIfNonNull(GraphQLType type) {
-		return (type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type);
-	}
 
-	private boolean isPaginatedType(GraphQLType type) {
-		return (type instanceof GraphQLObjectType objectType &&
-				objectType.getName().endsWith("Connection") &&
-				objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
-	}
-
-	private GraphQLType getPaginatedType(GraphQLObjectType type) {
-		String name = type.getName().substring(0, type.getName().length() - 10);
-		GraphQLType nodeType = this.schema.getType(name);
-		Assert.state(nodeType != null, "No node type for '" + type.getName() + "'");
-		return nodeType;
-	}
-
-	private ResolvableType nestForConnection(ResolvableType type) {
-		if (type == ResolvableType.NONE) {
-			return type;
-		}
-		type = nestIfWrappedType(type);
-		if (logger.isDebugEnabled() && type.getGenerics().length != 1) {
-			logger.debug("Expected Connection type to have a generic parameter: " + type);
-		}
-		return type.getNested(2);
-	}
-
-	private ResolvableType nestIfWrappedType(ResolvableType type) {
-		Class<?> clazz = type.resolve(Object.class);
-		if (Optional.class.isAssignableFrom(clazz)) {
-			if (logger.isDebugEnabled() && type.getGeneric(0).resolve() == null) {
-				logger.debug("Expected Optional type to have a generic parameter: " + type);
-			}
-			return type.getNested(2);
-		}
-		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(clazz);
-		if (adapter != null) {
-			if (logger.isDebugEnabled() && adapter.isNoValue()) {
-				logger.debug("Expected reactive/async return type that can produce value(s): " + type);
-			}
-			return type.getNested(2);
-		}
-		return type;
-	}
-
-	private ResolvableType nestForList(ResolvableType type, boolean subscription) {
-		if (type == ResolvableType.NONE) {
-			return type;
-		}
-		ReactiveAdapter adapter = this.reactiveAdapterRegistry.getAdapter(type.resolve(Object.class));
-		if (adapter != null) {
-			if (logger.isDebugEnabled() && adapter.isNoValue()) {
-				logger.debug("Expected List compatible type: " + type);
-			}
-			type = type.getNested(2);
-			if (adapter.isMultiValue() && !subscription) {
-				return type;
-			}
-		}
-		if (logger.isDebugEnabled() && !type.isArray() && type.getGenerics().length != 1) {
-			logger.debug("Expected List compatible type: " + type);
-		}
-		return type.getNested(2);
-	}
 
 	private static String typeNameToString(GraphQLType type) {
 		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
@@ -353,6 +272,116 @@ public class SchemaMappingInspector {
 	public static SchemaReport inspect(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers) {
 		return new SchemaMappingInspector(schema, dataFetchers).getOrCreateReport();
 	}
+
+
+	/**
+	 * Container for a GraphQL and Java type pair along with logic to resolve the
+	 * pair of types for a GraphQL field and the {@code DataFetcher} registered for it.
+	 */
+	private record TypePair(GraphQLType outputType, ResolvableType resolvableType) {
+
+		private static final ReactiveAdapterRegistry adapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
+
+		/**
+		 * Given a GraphQL field and the {@link DataFetcher} registered for it, determine
+		 * the type pair to use for schema inspection, removing list, non-null, and
+		 * connection type wrappers, and nesting within generic types in order to get
+		 * to the types to use for schema inspection.
+		 * @param parent the parent type of the field
+		 * @param field the field
+		 * @param fetcher the {@code DataFetcher} registered for the field
+		 * @param schema the GraphQL schema
+		 * @return the GraphQL type and corresponding Java type, or {@link ResolvableType#NONE} if unresolved.
+		 */
+		public static TypePair resolveTypePair(
+				GraphQLType parent, GraphQLFieldDefinition field, DataFetcher<?> fetcher, GraphQLSchema schema) {
+
+			ResolvableType resolvableType =
+					(fetcher instanceof SelfDescribingDataFetcher<?> sd ? sd.getReturnType() : ResolvableType.NONE);
+
+			// Remove GraphQL type wrappers, and nest within Java generic types
+			GraphQLType outputType = unwrapIfNonNull(field.getType());
+			if (isPaginatedType(outputType)) {
+				outputType = getPaginatedType((GraphQLObjectType) outputType, schema);
+				resolvableType = nestForConnection(resolvableType);
+			}
+			else if (outputType instanceof GraphQLList listType) {
+				outputType = unwrapIfNonNull(listType.getWrappedType());
+				resolvableType = nestForList(resolvableType, parent == schema.getSubscriptionType());
+			}
+			else {
+				resolvableType = nestIfWrappedType(resolvableType);
+			}
+			return new TypePair(outputType, resolvableType);
+		}
+
+		private static GraphQLType unwrapIfNonNull(GraphQLType type) {
+			return (type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type);
+		}
+
+		private static boolean isPaginatedType(GraphQLType type) {
+			return (type instanceof GraphQLObjectType objectType &&
+					objectType.getName().endsWith("Connection") &&
+					objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
+		}
+
+		private static GraphQLType getPaginatedType(GraphQLObjectType type, GraphQLSchema schema) {
+			String name = type.getName().substring(0, type.getName().length() - 10);
+			GraphQLType nodeType = schema.getType(name);
+			Assert.state(nodeType != null, "No node type for '" + type.getName() + "'");
+			return nodeType;
+		}
+
+		private static ResolvableType nestForConnection(ResolvableType type) {
+			if (type == ResolvableType.NONE) {
+				return type;
+			}
+			type = nestIfWrappedType(type);
+			if (logger.isDebugEnabled() && type.getGenerics().length != 1) {
+				logger.debug("Expected Connection type to have a generic parameter: " + type);
+			}
+			return type.getNested(2);
+		}
+
+		private static ResolvableType nestIfWrappedType(ResolvableType type) {
+			Class<?> clazz = type.resolve(Object.class);
+			if (Optional.class.isAssignableFrom(clazz)) {
+				if (logger.isDebugEnabled() && type.getGeneric(0).resolve() == null) {
+					logger.debug("Expected Optional type to have a generic parameter: " + type);
+				}
+				return type.getNested(2);
+			}
+			ReactiveAdapter adapter = adapterRegistry.getAdapter(clazz);
+			if (adapter != null) {
+				if (logger.isDebugEnabled() && adapter.isNoValue()) {
+					logger.debug("Expected reactive/async return type that can produce value(s): " + type);
+				}
+				return type.getNested(2);
+			}
+			return type;
+		}
+
+		private static ResolvableType nestForList(ResolvableType type, boolean subscription) {
+			if (type == ResolvableType.NONE) {
+				return type;
+			}
+			ReactiveAdapter adapter = adapterRegistry.getAdapter(type.resolve(Object.class));
+			if (adapter != null) {
+				if (logger.isDebugEnabled() && adapter.isNoValue()) {
+					logger.debug("Expected List compatible type: " + type);
+				}
+				type = type.getNested(2);
+				if (adapter.isMultiValue() && !subscription) {
+					return type;
+				}
+			}
+			if (logger.isDebugEnabled() && !type.isArray() && type.getGenerics().length != 1) {
+				logger.debug("Expected List compatible type: " + type);
+			}
+			return type.getNested(2);
+		}
+
+	};
 
 
 	/**
