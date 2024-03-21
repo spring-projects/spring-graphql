@@ -24,7 +24,7 @@ import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
 import graphql.execution.ExecutionIdProvider;
-import graphql.execution.instrumentation.dataloader.DataLoaderDispatcherInstrumentationState;
+import graphql.execution.instrumentation.dataloader.EmptyDataLoaderRegistryInstance;
 import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
@@ -90,7 +90,6 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 			ExecutionInput executionInput = request.toExecutionInput();
 
-			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 			snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
 
 			ExecutionInput updatedExecutionInput =
@@ -104,7 +103,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
 		GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 		DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
-		if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
+		if (existingRegistry == EmptyDataLoaderRegistryInstance.EMPTY_DATALOADER_REGISTRY) {
 			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
 			applyDataLoaderRegistrars(newRegistry, graphQLContext);
 			executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
