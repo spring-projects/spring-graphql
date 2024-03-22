@@ -320,6 +320,38 @@ The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] e
 
 
 
+
+[[execution.thread-model]]
+== Thread Model
+
+Most GraphQL requests benefit from concurrent execution in fetching nested fields. This is
+why most applications today rely on  GraphQL Java's `AsyncExecutionStrategy`, which allows
+data fetchers to return `CompletionStage` and to execute concurrently rather than serially.
+
+Java 21 and virtual threads add an important ability to use more threads efficiently, but
+it is still necessary to execute concurrently rather than serially in order for request
+execution to complete more quickly.
+
+Spring for GraphQL supports:
+
+- <<execution.reactive-datafetcher, Reactive data fetchers>>, and those are
+adapted to `CompletionStage` as expected by `AsyncExecutionStrategy`.
+- `CompletionStage` as return value.
+- Controller methods that are Kotlin coroutine methods.
+- xref:controllers.adoc#controllers.schema-mapping[@SchemaMapping] and
+xref:controllers.adoc#controllers.schema-mapping[@BatchMapping] methods can return
+`Callable` that is submitted to an `Executor` such as the Spring Framework
+`VirtualThreadTaskExecutor`. To enable this, you must configure an `Executor` on
+`AnnotatedControllerConfigurer`.
+
+Spring for GraphQL runs on either Spring MVC or WebFlux as the transport. Spring MVC
+uses async request execution, unless the resulting `CompletableFuture` is done
+immediately after the GraphQL Java engine returns, which would be the case if the
+request is simple enough and did not require asynchronous data fetching.
+
+
+
+
 [[execution.reactive-datafetcher]]
 == Reactive `DataFetcher`
 
@@ -339,9 +371,10 @@ xref:request-execution.adoc#execution.context.webflux[WebFlux Context].
 == Context Propagation
 
 Spring for GraphQL provides support to transparently propagate context from the
-xref:transports.adoc#server.transports.http[HTTP], through GraphQL Java, and to `DataFetcher` and other components it
-invokes. This includes both `ThreadLocal` context from the Spring MVC request handling
-thread and Reactor `Context` from the WebFlux processing pipeline.
+xref:transports.adoc#server.transports.http[HTTP] transport, through GraphQL Java, and to
+`DataFetcher` and other components it invokes. This includes both `ThreadLocal` context
+from the Spring MVC request handling thread and Reactor `Context` from the WebFlux
+processing pipeline.
 
 
 [[execution.context.webmvc]]
