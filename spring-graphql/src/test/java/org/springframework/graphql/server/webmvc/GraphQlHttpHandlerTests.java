@@ -22,10 +22,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import jakarta.servlet.ServletException;
-
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import graphql.execution.preparsed.persisted.ApolloPersistedQuerySupport;
+import graphql.execution.preparsed.persisted.InMemoryPersistedQueryCache;
+import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -108,6 +109,45 @@ public class GraphQlHttpHandlerTests {
 		String id = document.read("data.showId", String.class);
 		assertThatNoException().isThrownBy(() -> UUID.fromString(id));
 	}
+
+	@Test
+	void persistedQuery() throws Exception {
+
+		ApolloPersistedQuerySupport documentProvider =
+				new ApolloPersistedQuerySupport(new InMemoryPersistedQueryCache(Collections.emptyMap()));
+
+		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.configureGraphQl(builder -> builder.preparsedDocumentProvider(documentProvider))
+				.toHttpHandler();
+
+		String document = """
+			{
+				"query" : "{__typename}",
+				"extensions": {
+					"persistedQuery": {
+						"version":1,
+						"sha256Hash":"ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38"
+					}
+				}
+			}""";
+
+		MockHttpServletResponse servletResponse = handleRequest(createServletRequest(document, "*/*"), handler);
+		assertThat(servletResponse.getContentAsString()).isEqualTo("{\"data\":{\"__typename\":\"Query\"}}");
+
+		document = """
+			{
+				"extensions":{
+					"persistedQuery":{
+						"version":1,
+						"sha256Hash":"ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38"
+					}
+				}
+			}""";
+
+		servletResponse = handleRequest(createServletRequest(document, "*/*"), handler);
+		assertThat(servletResponse.getContentAsString()).isEqualTo("{\"data\":{\"__typename\":\"Query\"}}");
+	}
+
 
 	private MockHttpServletRequest createServletRequest(String query, String accept) {
 		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");

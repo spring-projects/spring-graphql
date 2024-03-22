@@ -308,7 +308,8 @@ In Spring GraphQL you can register a `PreparsedDocumentProvider` through
 GraphQlSource.Builder builder = ...
 
 // Create provider
-PreparsedDocumentProvider provider = ...
+PreparsedDocumentProvider provider =
+        new ApolloPersistedQuerySupport(new InMemoryPersistedQueryCache(Collections.emptyMap()));
 
 builder.schemaResources(..)
 		.configureRuntimeWiring(..)

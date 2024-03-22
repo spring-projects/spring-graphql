@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
@@ -134,6 +135,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public GraphQlSetup typeVisitorToTransformSchema(GraphQLTypeVisitor... visitors) {
 		this.graphQlSourceBuilder.typeVisitorsToTransformSchema(Arrays.asList(visitors));
+		return this;
+	}
+
+	public GraphQlSetup configureGraphQl(Consumer<GraphQL.Builder> configurer) {
+		this.graphQlSourceBuilder.configureGraphQl(configurer);
 		return this;
 	}
 
