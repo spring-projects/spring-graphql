@@ -17,6 +17,8 @@ package org.springframework.graphql.server.support;
 
 import java.util.Map;
 
+import graphql.execution.preparsed.persisted.PersistedQuerySupport;
+
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.web.server.ServerWebInputException;
@@ -85,6 +87,9 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 	@Override
 	public String getDocument() {
 		if (this.query == null) {
+			if (this.extensions != null && this.extensions.get("persistedQuery") != null) {
+				return PersistedQuerySupport.PERSISTED_QUERY_MARKER;
+			}
 			throw new ServerWebInputException("No 'query'");
 		}
 		return this.query;

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import graphql.GraphQL;
 import graphql.execution.instrumentation.Instrumentation;
@@ -143,6 +144,11 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 
 	public GraphQlSetup schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> factory) {
 		this.graphQlSourceBuilder.schemaFactory(factory);
+		return this;
+	}
+
+	public GraphQlSetup configureGraphQl(Consumer<GraphQL.Builder> configurer) {
+		this.graphQlSourceBuilder.configureGraphQl(configurer);
 		return this;
 	}
 
