@@ -221,33 +221,30 @@ xref:request-execution.adoc#execution.graphqlsource.schema-transformation[Schema
 === Schema Mapping Inspection
 
 If a query, mutation, or subscription operation does not have a `DataFetcher`, it won't
-return any data, and won't do anything useful. Likewise, fields on schema types returned
-by an operation that are covered neither explicitly through a `DataFetcher`
-registration, nor implicitly by the default `PropertyDataFetcher`, which looks for a
-matching Java object property, will always be `null`.
+return any data, and won't do anything useful. Likewise, fields of schema types that are
+neither covered explicitly through a `DataFetcher` registration, nor implicitly by the
+default `PropertyDataFetcher` that finds matching Java properties, will always be `null`.
 
-GraphQL Java does not perform checks to ensure every schema field is covered, and that
-can result in gaps that might not be discovered depending on test coverage. At runtime
-you may get a "silent" `null`, or an error if the field is not nullable. As a lower level
-library, GraphQL Java simply does not have enough information about `DataFetcher`
-implementations to know their return types or what arguments they depend on, and as a result
-cannot perform such verifications.
+GraphQL Java does not perform checks to ensure every schema field is covered, and as a
+lower level library, GraphQL Java simply does not know what a `DataFetcher` can return
+or what arguments it depends on, and therefore cannot perform such verifications. This can
+result in gaps that depending on test coverage may not be discovered until runtime when
+clients may experience "silent" `null` values, or non-null field errors.
 
-Spring for GraphQL defines the `SelfDescribingDataFetcher` interface to allow a
-`DataFetcher` to expose information about itself. All Spring `DataFetcher` implementations
-implement this interface. That includes those for xref:controllers.adoc[Annotated Controllers], and those for
-xref:data.adoc#data.querydsl[Querydsl] and
-xref:data.adoc#data.querybyexample[Query by Example] Spring Data repositories.
-For annotated controllers, the return type is derived from the declared return type on
-a `@SchemaMapping` method, while arguments are dervied from `@Argument` method parameters.
+The `SelfDescribingDataFetcher` interface in Spring for GraphQL allows a `DataFetcher` to
+expose information such as return type and expected arguments. All built-in, Spring
+`DataFetcher` implementations for xref:controllers.adoc[controller methods], for
+xref:data.adoc#data.querydsl[Querydsl] and for xref:data.adoc#data.querybyexample[Query by Example]
+are implementations of this interface. For annotated controllers, the return type and
+expected arguments are based on the controller method signature. This makes it possible
+to inspect schema mappings on startup to ensure the following:
 
-Spring for GraphQL can perform an inspection on startup to ensure the following:
+- Schema fields have either a `DataFetcher` registration or a corresponding Java property.
+- `DataFetcher` registrations refer to a schema field that exists.
+- `DataFetcher` arguments have matching schema field arguments.
 
-- Schema fields have a `DataFetcher` registration or a corresponding Java property.
-- `DataFetcher` registrations refer to a schema field that does exist.
-- `DataFetcher` refers to schema arguments that exist.
-
-You can enable the inspection and take an appropriate action as follows:
+To enable schema inspection, customize `GraphQlSource.Builder` as shown below.
+In this case the report is simply logged, but you can choose to take any action:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -259,7 +256,7 @@ builder.schemaResources(..)
 		})
 ----
 
-Below is an example report:
+An example report:
 
 ----
 GraphQL schema inspection:
@@ -269,19 +266,16 @@ GraphQL schema inspection:
     Skipped types: [BookOrAuthor] // <4>
 ----
 
-<1> Coordinates of schema fields that are not covered
-<2> ``DataFetcher`` registered mapped to fields that don't exist
-<3> `DataFetcher` arguments that don't exist
+<1> Schema fields that are not covered in any way
+<2> `DataFetcher` registrations to fields that don't exist
+<3> `DataFetcher` expected arguments that don't exist
 <4> Schema types that have been skipped (explained next)
 
-There are limits to what schema inspection can do, in particular when there is
-insufficient Java type information. This is the case if an annotated controller method is
-declared to return `java.lang.Object`, or if the return type has an unspecified generic
-parameter such as `List<?>`, or if the `DataFetcher` does not implement
-`SelfDescribingDataFetcher` and the return type is not even known. In such cases, the
-Java object type structure remains unknown, and the schema type is listed as skipped in
-the resulting report. For every skipped type, a DEBUG message is logged to indicate why
-it was skipped.
+In some cases, the Java type for a schema type is unknown. Maybe the `DataFetcher` does not
+implement `SelfDescribingDataFetcher`, or the declared return type is too general
+(e.g. `Object`) or unknown (e.g. `List<?>`), or a `DataFetcher` could be missing altogether.
+In such cases, the schema type is listed as skipped as it could not be verified. For every
+skipped type, a DEBUG message explains why it was skipped.
 
 Schema union types are always skipped because there is no way for a controller method to
 declare such a return type in Java, and the Java type structure is unknown.
