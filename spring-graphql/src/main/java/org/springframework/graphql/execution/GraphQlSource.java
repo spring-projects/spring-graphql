@@ -211,6 +211,20 @@ public interface GraphQlSource {
 		SchemaResourceBuilder inspectSchemaMappings(Consumer<SchemaReport> reportConsumer);
 
 		/**
+		 * Variant of {@link #inspectSchemaMappings(Consumer)} with the option to
+		 * initialize the {@link SchemaMappingInspector}, e.g. in order to assist
+		 * with finding Java representations of GraphQL union member types and
+		 * interface implementation types.
+		 * @param initializerConsumer callback to initialize the {@code SchemaMappingInspector}
+		 * @param reportConsumer a hook to inspect the report
+		 * @return the current builder
+		 * @since 1.3.0
+		 */
+		SchemaResourceBuilder inspectSchemaMappings(
+				Consumer<SchemaMappingInspector.Initializer> initializerConsumer,
+				Consumer<SchemaReport> reportConsumer);
+
+		/**
 		 * Configure a function to create the {@link GraphQLSchema} from the
 		 * given {@link TypeDefinitionRegistry} and {@link RuntimeWiring}.
 		 * This may be used for federation to create a combined schema.
@@ -219,7 +233,8 @@ public interface GraphQlSource {
 		 * @param schemaFactory the function to create the schema
 		 * @return the current builder
 		 */
-		SchemaResourceBuilder schemaFactory(BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
+		SchemaResourceBuilder schemaFactory(
+				BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
 
 	}
 

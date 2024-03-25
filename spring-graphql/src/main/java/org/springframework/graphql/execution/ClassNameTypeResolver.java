@@ -66,6 +66,13 @@ public class ClassNameTypeResolver implements TypeResolver {
 		this.mappings.put(clazz, graphQlTypeName);
 	}
 
+	/**
+	 * Return the map with configured {@link #addMapping(Class, String) explicit mappings}.
+	 * @since 1.3
+	 */
+	public Map<Class<?>, String> getMappings() {
+		return this.mappings;
+	}
 
 	@Override
 	@Nullable

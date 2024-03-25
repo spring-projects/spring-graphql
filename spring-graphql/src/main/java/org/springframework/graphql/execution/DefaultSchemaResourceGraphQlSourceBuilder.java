@@ -76,6 +76,8 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	@Nullable
 	private Consumer<SchemaReport> schemaReportConsumer;
 
+	private Consumer<SchemaMappingInspector.Initializer> inspectorInitializerConsumer = initializer -> {};
+
 	@Nullable
 	private Consumer<GraphQLSchema> schemaReportRunner;
 
@@ -107,6 +109,15 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	@Override
 	public GraphQlSource.SchemaResourceBuilder inspectSchemaMappings(Consumer<SchemaReport> consumer) {
 		this.schemaReportConsumer = consumer;
+		return this;
+	}
+
+	@Override
+	public GraphQlSource.SchemaResourceBuilder inspectSchemaMappings(
+			Consumer<SchemaMappingInspector.Initializer> initializerConsumer, Consumer<SchemaReport> reportConsumer) {
+
+		this.inspectorInitializerConsumer = initializerConsumer.andThen(initializerConsumer);
+		this.schemaReportConsumer = reportConsumer;
 		return this;
 	}
 
@@ -152,7 +163,12 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 		if (this.schemaReportConsumer != null) {
 			this.schemaReportRunner = schema -> {
-				SchemaReport report = SchemaMappingInspector.inspect(schema, runtimeWiring);
+				SchemaMappingInspector.Initializer initializer = SchemaMappingInspector.initializer();
+				if (this.typeResolver instanceof ClassNameTypeResolver cntr) {
+					initializer.classResolver(SchemaMappingInspector.ClassResolver.fromClassNameTypeResolver(cntr));
+				}
+				this.inspectorInitializerConsumer.accept(initializer);
+				SchemaReport report = initializer.inspect(schema, runtimeWiring.getDataFetchers());
 				this.schemaReportConsumer.accept(report);
 			};
 		}

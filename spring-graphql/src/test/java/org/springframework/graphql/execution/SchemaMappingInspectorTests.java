@@ -16,25 +16,20 @@
 
 package org.springframework.graphql.execution;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import graphql.schema.FieldCoordinates;
-import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
-import org.assertj.core.api.AbstractAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Author;
@@ -45,7 +40,6 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
-import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerConfigurer;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
  */
-class SchemaMappingInspectorTests {
+class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport{
 
 
 	@Nested
@@ -448,27 +442,6 @@ class SchemaMappingInspectorTests {
 		}
 
 		@Test
-		void reportHasSkippedUnionType() {
-			String schema = """
-						type Query {
-							fooBar: FooBar
-						}
-
-						union FooBar = Foo | Bar
-
-						type Foo {
-							name: String
-					 	}
-
-						type Bar {
-							name: String
-					 	}
-					""";
-			SchemaReport report = inspectSchema(schema, UnionController.class);
-			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("FooBar");
-		}
-
-		@Test
 		void reportHasSkippedTypeForUnknownDataFetcherType() {
 			String schemaContent = """
 						type Query {
@@ -565,33 +538,6 @@ class SchemaMappingInspectorTests {
 					"Skipped types: []");
 		 }
 
-	}
-
-	private SchemaReport inspectSchema(String schemaContent, Class<?>... controllers) {
-		GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
-		RuntimeWiring runtimeWiring = createRuntimeWiring(controllers);
-		return SchemaMappingInspector.inspect(schema, runtimeWiring);
-	}
-
-	private RuntimeWiring createRuntimeWiring(Class<?>... controllerTypes) {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		for (Class<?> controllerType : controllerTypes) {
-			context.registerBean(controllerType);
-		}
-		context.registerBean(BatchLoaderRegistry.class, () -> new DefaultBatchLoaderRegistry());
-		context.refresh();
-
-		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
-		configurer.setApplicationContext(context);
-		configurer.afterPropertiesSet();
-
-		RuntimeWiring.Builder wiringBuilder = RuntimeWiring.newRuntimeWiring();
-		configurer.configure(wiringBuilder);
-		return wiringBuilder.build();
-	}
-
-	static SchemaInspectionReportAssert assertThatReport(SchemaReport actual) {
-		return new SchemaInspectionReportAssert(actual);
 	}
 
 
@@ -703,118 +649,6 @@ class SchemaMappingInspectorTests {
 
 	record TeamMember(String name, Team team) {
 
-	}
-
-
-	@Controller
-	static class UnionController {
-
-		@QueryMapping
-		Object fooBar() {
-			return "Hello";
-		}
-	}
-
-
-	private static class SchemaInspectionReportAssert
-			extends AbstractAssert<SchemaInspectionReportAssert, SchemaReport> {
-
-		public SchemaInspectionReportAssert(SchemaReport actual) {
-			super(actual, SchemaInspectionReportAssert.class);
-		}
-
-		public void isEmpty() {
-			isNotNull();
-			if (!this.actual.unmappedFields().isEmpty()) {
-				failWithMessage("Report contains missing fields: %s", this.actual.unmappedFields());
-			}
-			if (!this.actual.unmappedRegistrations().isEmpty()) {
-				failWithMessage("Report contains missing DataFetcher registrations for %s", this.actual.unmappedRegistrations());
-			}
-			if (!this.actual.skippedTypes().isEmpty()) {
-				failWithMessage("Report contains skipped types: %s", this.actual.skippedTypes());
-			}
-		}
-
-		public SchemaInspectionReportAssert hasUnmappedFieldCount(int expected) {
-			isNotNull();
-			if (this.actual.unmappedFields().size() != expected) {
-				failWithMessage("Expected %s unmapped fields, found %s.", expected, this.actual.unmappedFields());
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert hasUnmappedDataFetcherCount(int expected) {
-			isNotNull();
-			if (this.actual.unmappedRegistrations().size() != expected) {
-				failWithMessage("Expected %s unmapped fields, found %s.", expected, this.actual.unmappedFields());
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert hasUnmappedArgumentCount(int expected) {
-			isNotNull();
-			if (this.actual.unmappedArguments().size() != expected) {
-				failWithMessage("Expected %s unmapped arguments, found %s.", expected, this.actual.unmappedArguments());
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert hasSkippedTypeCount(int expected) {
-			isNotNull();
-			if (this.actual.skippedTypes().size() != expected) {
-				failWithMessage("Expected %s skipped types, found %s.", expected, this.actual.skippedTypes());
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert containsUnmappedFields(String typeName, String... fieldNames) {
-			isNotNull();
-			List<String> expected = Arrays.asList(fieldNames);
-			List<String> actual = this.actual.unmappedFields().stream()
-					.filter(coordinates -> coordinates.getTypeName().equals(typeName))
-					.map(FieldCoordinates::getFieldName)
-					.toList();
-			if (!actual.containsAll(expected)) {
-				failWithMessage("Expected unmapped fields for %s: %s, found %s", typeName, expected, actual);
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert containsUnmappedDataFetchersFor(String typeName, String... fieldNames) {
-			isNotNull();
-			List<FieldCoordinates> expected = Arrays.stream(fieldNames)
-					.map(field -> FieldCoordinates.coordinates(typeName, field))
-					.toList();
-			if (!this.actual.unmappedRegistrations().keySet().containsAll(expected)) {
-				failWithMessage("Expected unmapped DataFetchers for %s, found %s", expected, this.actual.unmappedRegistrations());
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert containsUnmappedArguments(String... arguments) {
-			isNotNull();
-			List<String> expected = Arrays.asList(arguments);
-			List<String> actual = this.actual.unmappedArguments().entrySet().stream()
-					.flatMap(entry -> entry.getValue().stream())
-					.toList();
-			if (!actual.containsAll(expected)) {
-				failWithMessage("Expected unmapped arguments: %s, found %s", expected, actual);
-			}
-			return this;
-		}
-
-		public SchemaInspectionReportAssert containsSkippedTypes(String... fieldCoordinates) {
-			isNotNull();
-			List<String> expected = Arrays.asList(fieldCoordinates);
-			List<String> actual = this.actual.skippedTypes().stream()
-					.map(skippedType -> ((GraphQLNamedType) skippedType.type()).getName())
-					.toList();
-			if (!actual.containsAll(expected)) {
-				failWithMessage("Expected skipped types: %s, found %s", expected, actual);
-			}
-			return this;
-		}
 	}
 
 }
