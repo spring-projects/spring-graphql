@@ -253,7 +253,7 @@ GraphQlSource.Builder builder = ...
 builder.schemaResources(..)
 		.inspectSchemaMappings(report -> {
 			logger.debug(report);
-		})
+		});
 ----
 
 An example report:
@@ -277,14 +277,42 @@ implement `SelfDescribingDataFetcher`, or the declared return type is too genera
 In such cases, the schema type is listed as skipped as it could not be verified. For every
 skipped type, a DEBUG message explains why it was skipped.
 
-Schema union types are always skipped because there is no way for a controller method to
-declare such a return type in Java, and the Java type structure is unknown.
 
-Schema interface types are supported only as far as fields declared directly, which are
-compared against properties on the Java type declared by a `SelfDescribingDataFetcher`.
-Additional fields on concrete implementations are not inspected. This could be improved
-in a future release to also inspect schema `interface` implementation types and to try
-to find a match among subtypes of the declared Java return type.
+[[execution.graphqlsource.schema-mapping-inspection-unions-interfaces]]
+==== Unions and Interfaces
+
+For unions, the inspection iterates over member types and tries to find the corresponding
+Java classes. For interfaces, the inspection iterates over implementation types and looks
+for the corresponding Java classes.
+
+By default, corresponding Java class can be found if the class name matches that of the
+GraphQL union member of interface implementation type, _and_ the Java class is located in
+the same package (and/or outer class) as the return type of the controller method for the
+union or interface. In addition, if `ClassNameTypeResolver` is configured as a
+xref:request-execution.adoc#execution.graphqlsource.default-type-resolver[TypeResolver]
+with explicit class mapping registrations, those are also checked.
+
+If a union member or an interface implementation type is listed as skipped, you have
+the following additional options:
+
+- Register a function to resolve the Java class name for a given GraphQL type to account
+for class naming conventions.
+- Register a `ClassResolver` with any custom resolution logic.
+
+Use the following for such customizations:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlSource.Builder builder = ...
+
+builder.schemaResources(..)
+	.inspectSchemaMappings(
+		initializer -> initializer.classNameFunction(type -> type.getName() + "Impl")
+		report -> {
+			logger.debug(report);
+		})
+----
+
 
 
 [[execution.graphqlsource.operation-caching]]
