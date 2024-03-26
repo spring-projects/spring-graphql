@@ -22,6 +22,7 @@ import java.util.Map;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.org.checkerframework.checker.nullness.qual.Nullable;
 
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
@@ -39,33 +40,59 @@ public class RepositoryUtilsTests {
 
 
 	@Test
-	void buildScrollSubrangeForward() {
-		OffsetScrollPosition offset = ScrollPosition.offset(10);
+	void forward() {
+		OffsetScrollPosition pos = ScrollPosition.offset(10);
 		int count = 5;
-
-		DataFetchingEnvironment env = environment(
-				Map.of("first", count, "after", cursorStrategy.toCursor(offset)));
-
+		DataFetchingEnvironment env = environment(Map.of("first", count, "after", cursorStrategy.toCursor(pos)));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertThat(range.position().get()).isEqualTo(ScrollPosition.offset(11));
-		assertThat(range.count().getAsInt()).isEqualTo(count);
-		assertThat(range.forward()).isTrue();
+		assertSubrange(true, count, pos.advanceBy(1), range);
 	}
 
 	@Test
-	void buildScrollSubrangeBackward() {
-		OffsetScrollPosition offset = ScrollPosition.offset(10);
+	void backward() {
+		OffsetScrollPosition pos = ScrollPosition.offset(10);
 		int count = 5;
-
-		DataFetchingEnvironment env = environment(
-				Map.of("last", count, "before", cursorStrategy.toCursor(offset)));
-
+		DataFetchingEnvironment env = environment(Map.of("last", count, "before", cursorStrategy.toCursor(pos)));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertThat(range.position().get()).isEqualTo(ScrollPosition.offset(5));
-		assertThat(range.count().getAsInt()).isEqualTo(count);
-		assertThat(range.forward()).isTrue();
+		assertSubrange(true, count, ScrollPosition.offset(5), range);
+	}
+
+	@Test
+	void forwardWithCountOnly() {
+		int count = 5;
+		DataFetchingEnvironment env = environment(Map.of("first", count));
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
+
+		assertSubrange(true, count, null, range);
+	}
+
+	@Test
+	void forwardWithPositionOnly() {
+		OffsetScrollPosition pos = ScrollPosition.offset(10);
+		DataFetchingEnvironment env = environment(Map.of("after", cursorStrategy.toCursor(pos)));
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
+
+		assertSubrange(true, null, pos.advanceBy(1), range);
+	}
+
+	@Test
+	void backwardWithCountOnly() {
+		int count = 5;
+		DataFetchingEnvironment env = environment(Map.of("last", count));
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
+
+		assertSubrange(false, count, null, range);
+	}
+
+	@Test
+	void backwardWithPositionOnly() {
+		OffsetScrollPosition pos = ScrollPosition.offset(10);
+		DataFetchingEnvironment env = environment(Map.of("before", cursorStrategy.toCursor(pos)));
+		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
+
+		assertSubrange(true, null, pos.advanceBy(-1), range);
 	}
 
 	@Test
@@ -73,37 +100,33 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Collections.emptyMap());
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertThat(range.position()).isNotPresent();
-		assertThat(range.count()).isNotPresent();
-		assertThat(range.forward()).isTrue();
-	}
-
-	@Test
-	void buildScrollSubrangeForwardWithoutPosition() {
-		int count = 5;
-		DataFetchingEnvironment env = environment(Map.of("first", count));
-		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
-
-		assertThat(range.position()).isNotPresent();
-		assertThat(range.count().getAsInt()).isEqualTo(count);
-		assertThat(range.forward()).isTrue();
-	}
-
-	@Test
-	void buildScrollSubrangeBackwardWithoutPosition() {
-		int count = 5;
-		DataFetchingEnvironment env = environment(Map.of("last", count));
-		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
-
-		assertThat(range.position()).isNotPresent();
-		assertThat(range.count().getAsInt()).isEqualTo(count);
-		assertThat(range.forward()).isFalse();
+		assertSubrange(true, null, null, range);
 	}
 
 	private static DataFetchingEnvironment environment(Map<String, Object> arguments) {
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
 				.arguments(arguments)
 				.build();
+	}
+
+	private static void assertSubrange(
+			boolean forward, @Nullable Integer count, @Nullable ScrollPosition pos, ScrollSubrange subrange) {
+
+		assertThat(subrange.forward()).isEqualTo(forward);
+
+		if (count != null) {
+			assertThat(subrange.count().orElse(0)).isEqualTo(count);
+		}
+		else {
+			assertThat(subrange.count()).isNotPresent();
+		}
+
+		if (pos != null) {
+			assertThat(subrange.position().get()).isEqualTo(pos);
+		}
+		else {
+			assertThat(subrange.position()).isNotPresent();
+		}
 	}
 
 }

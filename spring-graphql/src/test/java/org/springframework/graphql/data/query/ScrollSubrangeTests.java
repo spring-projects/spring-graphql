@@ -121,7 +121,7 @@ public class ScrollSubrangeTests {
 	void offsetBackwardWithNullCount() {
 		ScrollSubrange subrange = ScrollSubrange.create(ScrollPosition.offset(30), null, false);
 
-		assertThat(getOffset(subrange)).isEqualTo(30);
+		assertThat(getOffset(subrange)).isEqualTo(29);
 		assertThat(subrange.count()).isNotPresent();
 		assertThat(subrange.forward()).isTrue();
 	}

@@ -110,9 +110,10 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 			position = position.advanceBy(1);
 		}
 		else {
-			int countOrZero = (count != null ? count : 0);
-			if (position.getOffset() >= countOrZero) {
-				position = position.advanceBy(-countOrZero);
+			// Advance back by 1 at least to item before position
+			int advanceCount = (count != null ? count : 1);
+			if (position.getOffset() >= advanceCount) {
+				position = position.advanceBy(-advanceCount);
 			}
 			else {
 				count = (int) position.getOffset();

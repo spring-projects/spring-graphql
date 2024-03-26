@@ -93,18 +93,21 @@ class RepositoryUtils {
 		return forward -> ScrollPosition.offset();
 	}
 
-	public static ScrollSubrange defaultScrollSubrange() {
-		return ScrollSubrange.create(ScrollPosition.offset(), 20, true);
-	}
-
 	public static ScrollSubrange getScrollSubrange(
-			DataFetchingEnvironment env, CursorStrategy<ScrollPosition> strategy) {
+			DataFetchingEnvironment env, CursorStrategy<ScrollPosition> cursorStrategy) {
 
-		boolean forward = !env.getArguments().containsKey("last");
-		Integer count = env.getArgument(forward ? "first" : "last");
-		String cursor = env.getArgument(forward ? "after" : "before");
-		ScrollPosition position = (cursor != null ? strategy.fromCursor(cursor) : null);
-		return ScrollSubrange.create(position, count, forward);
+		boolean forward = true;
+		String cursor = env.getArgument("after");
+		Integer count = env.getArgument("first");
+		if (cursor == null && count == null) {
+			cursor = env.getArgument("before");
+			count = env.getArgument("last");
+			if (cursor != null || count != null) {
+				forward = false;
+			}
+		}
+		ScrollPosition pos = (cursor != null ? cursorStrategy.fromCursor(cursor) : null);
+		return ScrollSubrange.create(pos, count, forward);
 	}
 
 }
