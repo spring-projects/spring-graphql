@@ -137,7 +137,7 @@ public class SchemaMappingInspectorTestSupport {
 			return this;
 		}
 
-		public SchemaInspectionReportAssert containsUnmappedDataFetchersFor(String typeName, String... fieldNames) {
+		public SchemaInspectionReportAssert containsUnmappedDataFetchers(String typeName, String... fieldNames) {
 			isNotNull();
 			List<FieldCoordinates> expected = Arrays.stream(fieldNames)
 					.map(field -> FieldCoordinates.coordinates(typeName, field))

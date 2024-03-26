@@ -34,6 +34,7 @@ import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.BookSource;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -51,7 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
  */
-class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport{
+class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Nested
@@ -374,7 +375,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport{
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class);
-			assertThatReport(report).hasUnmappedDataFetcherCount(1).containsUnmappedDataFetchersFor("Query", "greeting");
+			assertThatReport(report).hasUnmappedDataFetcherCount(1).containsUnmappedDataFetchers("Query", "greeting");
 		}
 
 		@Test
@@ -397,6 +398,30 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport{
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Author", "missing");
+		}
+
+		@Test
+		void reportHasUnmappedFieldOnEagerlyFetchedNestedType() {
+			String schema = """
+						type Query {
+							bookById(id: ID): Book
+						}
+						
+						type Book {
+							id: ID
+							name: String
+							author: Author
+					 	}
+					 	
+						type Author {
+							id: ID
+							firstName: String
+							lastName: String
+							missing: String
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, BookWithAuthorController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Author", "missing");
 		}
 
@@ -536,7 +561,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport{
 					"Query.bookById=BookController#bookById[1 args]",
 					"{BookController#bookSearch[1 args]=[myAuthor]}",
 					"Skipped types: []");
-		 }
+		}
 
 	}
 
@@ -623,7 +648,19 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport{
 
 
 	@Controller
+	static class BookWithAuthorController {
+
+		@QueryMapping
+		public Book bookById(@Argument Long id) {
+			return BookSource.getBook(id);
+		}
+
+	}
+
+
+	@Controller
 	static class TeamController {
+
 		@QueryMapping
 		public Team teamById(@Argument Long id) {
 			return new Team("spring", Collections.emptyList());

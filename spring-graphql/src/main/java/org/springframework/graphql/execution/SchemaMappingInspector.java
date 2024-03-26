@@ -159,7 +159,13 @@ public class SchemaMappingInspector {
 			String fieldName = field.getName();
 			DataFetcher<?> dataFetcher = dataFetcherMap.get(fieldName);
 			if (dataFetcher != null) {
-				checkField(fieldContainer, field, dataFetcher);
+				if (dataFetcher instanceof SelfDescribingDataFetcher<?> sd) {
+					checkFieldArguments(field, sd);
+					checkField(fieldContainer, field, sd.getReturnType());
+				}
+				else {
+					checkField(fieldContainer, field, ResolvableType.NONE);
+				}
 			}
 			else if (resolvableType == null || !hasProperty(resolvableType, fieldName)) {
 				this.reportBuilder.unmappedField(FieldCoordinates.coordinates(typeName, fieldName));
@@ -168,22 +174,13 @@ public class SchemaMappingInspector {
 	}
 
 	/**
-	 * Perform the following:
-	 * <ul>
-	 * <li>Resolve the field type and the {@code DataFetcher} return type, and recurse
-	 * with {@link #checkFieldsContainer} if there is sufficient type information.
-	 * <li>Resolve the arguments the {@code DataFetcher} depends on and check they
-	 * are defined in the schema.
-	 * </ul>
+	 * Resolve the field type and its associated Java type, and recurse with
+	 * {@link #checkFieldsContainer} if there is enough type information.
 	 */
 	private void checkField(
-			GraphQLFieldsContainer parent, GraphQLFieldDefinition field, DataFetcher<?> dataFetcher) {
+			GraphQLFieldsContainer parent, GraphQLFieldDefinition field, ResolvableType resolvableType) {
 
-		if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
-			checkFieldArguments(field, selfDescribing);
-		}
-
-		TypePair typePair = TypePair.resolveTypePair(parent, field, dataFetcher, schema);
+		TypePair typePair = TypePair.resolveTypePair(parent, field, resolvableType, schema);
 
 		// Type already inspected?
 		if (addAndCheckIfAlreadyInspected(typePair.outputType())) {
@@ -203,7 +200,7 @@ public class SchemaMappingInspector {
 		}
 
 		for (Map.Entry<GraphQLType, List<ResolvableType>> entry : typePairs.entrySet()) {
-			for (ResolvableType resolvableType : entry.getValue()) {
+			for (ResolvableType currentResolvableType : entry.getValue()) {
 
 				// Can we inspect GraphQL type?
 				if (!(entry.getKey() instanceof GraphQLFieldsContainer fieldContainer)) {
@@ -215,29 +212,28 @@ public class SchemaMappingInspector {
 				}
 
 				// Can we inspect Java type?
-				if (resolvableType.resolve(Object.class) == Object.class) {
+				if (currentResolvableType.resolve(Object.class) == Object.class) {
 					FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
 					addSkippedType(entry.getKey(), coordinates, "No Java type information");
 					continue;
 				}
 
-				checkFieldsContainer(fieldContainer, resolvableType);
+				checkFieldsContainer(fieldContainer, currentResolvableType);
 			}
 		}
 	}
 
 	private void checkFieldArguments(GraphQLFieldDefinition field, SelfDescribingDataFetcher<?> dataFetcher) {
-
-		List<String> arguments = dataFetcher.getArguments().keySet().stream()
-				.filter(name -> field.getArgument(name) == null)
-				.toList();
-
+		List<String> arguments = new ArrayList<>();
+		for (String name : dataFetcher.getArguments().keySet()) {
+			if (field.getArgument(name) == null) {
+				arguments.add(name);
+			}
+		}
 		if (!arguments.isEmpty()) {
 			this.reportBuilder.unmappedArgument(dataFetcher, arguments);
 		}
 	}
-
-
 
 	private static String typeNameToString(GraphQLType type) {
 		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
@@ -353,7 +349,7 @@ public class SchemaMappingInspector {
 	public interface ClassResolver {
 
 		/**
-		 *
+		 * Return Java class(es) for the given GraphQL object type.
 		 * @param objectType the {@code GraphQLObjectType} to resolve
 		 * @param interfaceOrUnionType either an interface the object implements,
 		 * or a union the object is a member of
@@ -586,21 +582,31 @@ public class SchemaMappingInspector {
 		private static final ReactiveAdapterRegistry adapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
 
 		/**
-		 * Given a GraphQL field and the {@link DataFetcher} registered for it, determine
+		 * Convenience variant of
+		 * {@link #resolveTypePair(GraphQLType, GraphQLFieldDefinition, ResolvableType, GraphQLSchema)}
+		 * with a {@link DataFetcher} to extract the return type from.
+		 */
+		public static TypePair resolveTypePair(
+				GraphQLType parent, GraphQLFieldDefinition field, DataFetcher<?> fetcher, GraphQLSchema schema) {
+
+			return resolveTypePair(parent, field,
+					fetcher instanceof SelfDescribingDataFetcher<?> sd ? sd.getReturnType() : ResolvableType.NONE,
+					schema);
+		}
+
+		/**
+		 * Given a GraphQL field and its associated Java type, determine
 		 * the type pair to use for schema inspection, removing list, non-null, and
 		 * connection type wrappers, and nesting within generic types in order to get
 		 * to the types to use for schema inspection.
 		 * @param parent the parent type of the field
 		 * @param field the field
-		 * @param fetcher the {@code DataFetcher} registered for the field
+		 * @param resolvableType the Java type associated with the field
 		 * @param schema the GraphQL schema
 		 * @return the GraphQL type and corresponding Java type, or {@link ResolvableType#NONE} if unresolved.
 		 */
 		public static TypePair resolveTypePair(
-				GraphQLType parent, GraphQLFieldDefinition field, DataFetcher<?> fetcher, GraphQLSchema schema) {
-
-			ResolvableType resolvableType =
-					(fetcher instanceof SelfDescribingDataFetcher<?> sd ? sd.getReturnType() : ResolvableType.NONE);
+				GraphQLType parent, GraphQLFieldDefinition field, ResolvableType resolvableType, GraphQLSchema schema) {
 
 			// Remove GraphQL type wrappers, and nest within Java generic types
 			GraphQLType outputType = unwrapIfNonNull(field.getType());
