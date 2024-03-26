@@ -223,7 +223,7 @@ xref:request-execution.adoc#execution.graphqlsource.schema-transformation[Schema
 If a query, mutation, or subscription operation does not have a `DataFetcher`, it won't
 return any data, and won't do anything useful. Likewise, fields of schema types that are
 neither covered explicitly through a `DataFetcher` registration, nor implicitly by the
-default `PropertyDataFetcher` that finds matching Java properties, will always be `null`.
+default `PropertyDataFetcher` that finds matching `Class` properties, will always be `null`.
 
 GraphQL Java does not perform checks to ensure every schema field is covered, and as a
 lower level library, GraphQL Java simply does not know what a `DataFetcher` can return
@@ -239,7 +239,7 @@ are implementations of this interface. For annotated controllers, the return typ
 expected arguments are based on the controller method signature. This makes it possible
 to inspect schema mappings on startup to ensure the following:
 
-- Schema fields have either a `DataFetcher` registration or a corresponding Java property.
+- Schema fields have either a `DataFetcher` registration or a corresponding `Class` property.
 - `DataFetcher` registrations refer to a schema field that exists.
 - `DataFetcher` arguments have matching schema field arguments.
 
@@ -271,7 +271,7 @@ GraphQL schema inspection:
 <3> `DataFetcher` expected arguments that don't exist
 <4> Schema types that have been skipped (explained next)
 
-In some cases, the Java type for a schema type is unknown. Maybe the `DataFetcher` does not
+In some cases, the `Class` type for a schema type is unknown. Maybe the `DataFetcher` does not
 implement `SelfDescribingDataFetcher`, or the declared return type is too general
 (e.g. `Object`) or unknown (e.g. `List<?>`), or a `DataFetcher` could be missing altogether.
 In such cases, the schema type is listed as skipped as it could not be verified. For every
@@ -282,11 +282,11 @@ skipped type, a DEBUG message explains why it was skipped.
 ==== Unions and Interfaces
 
 For unions, the inspection iterates over member types and tries to find the corresponding
-Java classes. For interfaces, the inspection iterates over implementation types and looks
-for the corresponding Java classes.
+classes. For interfaces, the inspection iterates over implementation types and looks
+for the corresponding classes.
 
-By default, corresponding Java class can be found if the class name matches that of the
-GraphQL union member of interface implementation type, _and_ the Java class is located in
+By default, corresponding `Class` can be found if the class name matches that of the
+GraphQL union member of interface implementation type, _and_ the `Class` is located in
 the same package (and/or outer class) as the return type of the controller method for the
 union or interface. In addition, if `ClassNameTypeResolver` is configured as a
 xref:request-execution.adoc#execution.graphqlsource.default-type-resolver[TypeResolver]
@@ -295,7 +295,7 @@ with explicit class mapping registrations, those are also checked.
 If a union member or an interface implementation type is listed as skipped, you have
 the following additional options:
 
-- Register a function to resolve the Java class name for a given GraphQL type to account
+- Register a function to resolve the `Class` name for a given GraphQL type to account
 for class naming conventions.
 - Register a `ClassResolver` with any custom resolution logic.
 

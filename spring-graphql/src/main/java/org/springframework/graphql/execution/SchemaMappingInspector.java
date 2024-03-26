@@ -59,28 +59,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 /**
- * Declares an {@link #inspect(GraphQLSchema, RuntimeWiring)} method that checks
- * if schema mappings.
+ * Inspect schema mappings on startup to ensure the following:
+ * <ul>
+ * <li>Schema fields have either a {@link DataFetcher} registration or a
+ * corresponding Class property.
+ * <li>{@code DataFetcher} registrations refer to a schema field that exists.
+ * <li>{@code DataFetcher} arguments have matching schema field arguments.
+ * </ul>
  *
- * <p>Schema mapping checks depend on {@code DataFetcher}s to be
- * {@link SelfDescribingDataFetcher} in order to compare schema type and Java
- * object type structure. If a {@code DataFetcher} does not implement this
- * interface, then the Java type remains unknown, and the field type is reported
- * as "skipped".
- *
- * <p>The {@code SelfDescribingDataFetcher} for an annotated controller method
- * derives type information from the controller method signature. If the declared
- * return type is {@link Object}, or an unspecified generic parameter such as
- * {@code List<?>} then the Java type structure remains unknown, and the field
- * output type is reported as skipped.
- *
- * <p>Unions are always skipped because there is no way for an annotated
- * controller method to express that in a return type, and the Java type
- * structure remains unknown.
- *
- * <p>Interfaces are supported only as far as fields declared directly on the
- * interface, which are compared against properties of the Java type declared
- * by a {@code SelfDescribingDataFetcher}.
+ * <p>Use methods of {@link GraphQlSource.SchemaResourceBuilder} to enable schema
+ * inspection on startup. For all other cases, use {@link #initializer()} as a
+ * starting point or the shortcut {@link #inspect(GraphQLSchema, Map)}.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
@@ -183,16 +172,27 @@ public class SchemaMappingInspector {
 		}
 	}
 
+	private void checkFieldArguments(GraphQLFieldDefinition field, SelfDescribingDataFetcher<?> dataFetcher) {
+		List<String> arguments = new ArrayList<>();
+		for (String name : dataFetcher.getArguments().keySet()) {
+			if (field.getArgument(name) == null) {
+				arguments.add(name);
+			}
+		}
+		if (!arguments.isEmpty()) {
+			this.reportBuilder.unmappedArgument(dataFetcher, arguments);
+		}
+	}
+
 	/**
-	 * Resolve the field type and its associated Java type, and recurse with
-	 * {@link #checkFieldsContainer} if there is enough type information.
+	 * Resolve field wrapper types (connection, list, non-null), nest into generic types,
+	 * and recurse with {@link #checkFieldsContainer} if there is enough type information.
 	 */
 	private void checkField(
 			GraphQLFieldsContainer parent, GraphQLFieldDefinition field, ResolvableType resolvableType) {
 
 		TypePair typePair = TypePair.resolveTypePair(parent, field, resolvableType, schema);
 
-		// Type already inspected?
 		if (addAndCheckIfAlreadyInspected(typePair.outputType())) {
 			return;
 		}
@@ -210,21 +210,23 @@ public class SchemaMappingInspector {
 		}
 
 		for (Map.Entry<GraphQLType, List<ResolvableType>> entry : typePairs.entrySet()) {
+			GraphQLType graphQlType = entry.getKey();
+
 			for (ResolvableType currentResolvableType : entry.getValue()) {
 
 				// Can we inspect GraphQL type?
-				if (!(entry.getKey() instanceof GraphQLFieldsContainer fieldContainer)) {
-					if (isNotScalarOrEnumType(entry.getKey())) {
+				if (!(graphQlType instanceof GraphQLFieldsContainer fieldContainer)) {
+					if (isNotScalarOrEnumType(graphQlType)) {
 						FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
-						addSkippedType(entry.getKey(), coordinates, "Unsupported schema type");
+						addSkippedType(graphQlType, coordinates, "Unsupported schema type");
 					}
 					continue;
 				}
 
-				// Can we inspect Java type?
+				// Can we inspect the Class?
 				if (currentResolvableType.resolve(Object.class) == Object.class) {
 					FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
-					addSkippedType(entry.getKey(), coordinates, "No Java type information");
+					addSkippedType(graphQlType, coordinates, "No class information");
 					continue;
 				}
 
@@ -233,20 +235,16 @@ public class SchemaMappingInspector {
 		}
 	}
 
-	private void checkFieldArguments(GraphQLFieldDefinition field, SelfDescribingDataFetcher<?> dataFetcher) {
-		List<String> arguments = new ArrayList<>();
-		for (String name : dataFetcher.getArguments().keySet()) {
-			if (field.getArgument(name) == null) {
-				arguments.add(name);
-			}
+	@Nullable
+	private PropertyDescriptor getProperty(ResolvableType resolvableType, String fieldName) {
+		try {
+			Class<?> clazz = resolvableType.resolve();
+			return (clazz != null ? BeanUtils.getPropertyDescriptor(clazz, fieldName) : null);
 		}
-		if (!arguments.isEmpty()) {
-			this.reportBuilder.unmappedArgument(dataFetcher, arguments);
+		catch (BeansException ex) {
+			throw new IllegalStateException(
+					"Failed to get property on " + resolvableType + " for field '" + fieldName + "'", ex);
 		}
-	}
-
-	private static String typeNameToString(GraphQLType type) {
-		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
 	}
 
 	private boolean addAndCheckIfAlreadyInspected(GraphQLType type) {
@@ -257,24 +255,16 @@ public class SchemaMappingInspector {
 		return !(type instanceof GraphQLScalarType || type instanceof GraphQLEnumType);
 	}
 
-	@Nullable
-	private PropertyDescriptor getProperty(ResolvableType resolvableType, String fieldName) {
-		try {
-			Class<?> clazz = resolvableType.resolve(Object.class);
-			return BeanUtils.getPropertyDescriptor(clazz, fieldName);
-		}
-		catch (BeansException ex) {
-			throw new IllegalStateException(
-					"Failed to introspect " + resolvableType + " for field '" + fieldName + "'", ex);
-		}
-	}
-
 	private void addSkippedType(GraphQLType type, FieldCoordinates coordinates, String reason) {
 		String typeName = typeNameToString(type);
 		this.reportBuilder.skippedType(type, coordinates);
 		if (logger.isDebugEnabled()) {
 			logger.debug("Skipped '" + typeName + "': " + reason);
 		}
+	}
+
+	private static String typeNameToString(GraphQLType type) {
+		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
 	}
 
 	private void checkDataFetcherRegistrations() {
