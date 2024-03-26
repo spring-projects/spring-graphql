@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,11 +52,18 @@ public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentR
 
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
-		boolean forward = !environment.getArguments().containsKey("last");
-		Integer count = environment.getArgument(forward ? "first" : "last");
-		String cursor = environment.getArgument(forward ? "after" : "before");
-		P position = (cursor != null ? this.cursorStrategy.fromCursor(cursor) : null);
-		return createSubrange(position, count, forward);
+		boolean forward = true;
+		String cursor = environment.getArgument("after");
+		Integer count = environment.getArgument("first");
+		if (cursor == null && count == null) {
+			cursor = environment.getArgument("before");
+			count = environment.getArgument("last");
+			if (cursor != null || count != null) {
+				forward = false;
+			}
+		}
+		P pos = (cursor != null ? this.cursorStrategy.fromCursor(cursor) : null);
+		return createSubrange(pos, count, forward);
 	}
 
 	/**
