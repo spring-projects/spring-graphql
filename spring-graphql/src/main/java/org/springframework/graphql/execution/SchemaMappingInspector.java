@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.execution;
 
+import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -158,18 +159,27 @@ public class SchemaMappingInspector {
 		for (GraphQLFieldDefinition field : fieldContainer.getFieldDefinitions()) {
 			String fieldName = field.getName();
 			DataFetcher<?> dataFetcher = dataFetcherMap.get(fieldName);
+
 			if (dataFetcher != null) {
-				if (dataFetcher instanceof SelfDescribingDataFetcher<?> sd) {
-					checkFieldArguments(field, sd);
-					checkField(fieldContainer, field, sd.getReturnType());
+				if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
+					checkFieldArguments(field, selfDescribing);
+					checkField(fieldContainer, field, selfDescribing.getReturnType());
 				}
 				else {
 					checkField(fieldContainer, field, ResolvableType.NONE);
 				}
+				continue;
 			}
-			else if (resolvableType == null || !hasProperty(resolvableType, fieldName)) {
-				this.reportBuilder.unmappedField(FieldCoordinates.coordinates(typeName, fieldName));
+
+			if (resolvableType != null) {
+				PropertyDescriptor descriptor = getProperty(resolvableType, fieldName);
+				if (descriptor != null) {
+					checkField(fieldContainer, field, ResolvableType.forMethodReturnType(descriptor.getReadMethod()));
+					continue;
+				}
 			}
+
+			this.reportBuilder.unmappedField(FieldCoordinates.coordinates(typeName, fieldName));
 		}
 	}
 
@@ -247,10 +257,11 @@ public class SchemaMappingInspector {
 		return !(type instanceof GraphQLScalarType || type instanceof GraphQLEnumType);
 	}
 
-	private boolean hasProperty(ResolvableType resolvableType, String fieldName) {
+	@Nullable
+	private PropertyDescriptor getProperty(ResolvableType resolvableType, String fieldName) {
 		try {
 			Class<?> clazz = resolvableType.resolve(Object.class);
-			return (BeanUtils.getPropertyDescriptor(clazz, fieldName) != null);
+			return BeanUtils.getPropertyDescriptor(clazz, fieldName);
 		}
 		catch (BeansException ex) {
 			throw new IllegalStateException(
