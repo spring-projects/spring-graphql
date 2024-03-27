@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.Book;
@@ -42,7 +43,7 @@ public class WindowConnectionAdapterTests {
 	@Test
 	void paged() {
 		List<Book> books = BookSource.books();
-		Window<Book> window = Window.from(books, offset -> ScrollPosition.offset(35 + offset), true);
+		Window<Book> window = Window.from(books, OffsetScrollPosition.positionFunction(35), true);
 
 		assertThat(this.adapter.getContent(window)).isEqualTo(books);
 		assertThat(this.adapter.hasNext(window)).isTrue();
@@ -53,7 +54,7 @@ public class WindowConnectionAdapterTests {
 	@Test
 	void unpaged() {
 		List<Book> books = BookSource.books();
-		Window<Book> window = Window.from(books, ScrollPosition::offset);
+		Window<Book> window = Window.from(books, OffsetScrollPosition.positionFunction(0));
 
 		assertThat(this.adapter.getContent(window)).isEqualTo(books);
 		assertThat(this.adapter.hasNext(window)).isFalse();

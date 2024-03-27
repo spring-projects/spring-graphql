@@ -55,13 +55,13 @@ public class SchemaMappingPaginationTests {
 		ResponseHelper.forResponse(response).assertData(
 						"{\"books\":{" +
 								"\"edges\":[" +
-								"{\"cursor\":\"O_0\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
-								"{\"cursor\":\"O_1\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}" +
+								"{\"cursor\":\"O_3\",\"node\":{\"id\":\"4\",\"name\":\"To The Lighthouse\"}}," +
+								"{\"cursor\":\"O_4\",\"node\":{\"id\":\"5\",\"name\":\"Animal Farm\"}}" +
 								"]," +
 								"\"pageInfo\":{" +
-								"\"startCursor\":\"O_0\"," +
-								"\"endCursor\":\"O_1\"," +
-								"\"hasPreviousPage\":false," +
+								"\"startCursor\":\"O_3\"," +
+								"\"endCursor\":\"O_4\"," +
+								"\"hasPreviousPage\":true," +
 								"\"hasNextPage\":false" +
 								"}}}");
 	}
@@ -113,7 +113,7 @@ public class SchemaMappingPaginationTests {
 			int offset = (int) ((OffsetScrollPosition) subrange.position().orElse(ScrollPosition.offset())).getOffset();
 			int count = subrange.count().orElse(5);
 			List<Book> books = BookSource.books().subList(offset, offset + count);
-			return Window.from(books, ScrollPosition::offset);
+			return Window.from(books, OffsetScrollPosition.positionFunction(offset));
 		}
 
 	}

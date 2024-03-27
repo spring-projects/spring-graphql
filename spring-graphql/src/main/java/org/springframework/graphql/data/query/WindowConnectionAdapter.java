@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.graphql.data.query;
 import java.util.Collection;
 
 import org.springframework.data.domain.KeysetScrollPosition;
+import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Window;
 import org.springframework.graphql.data.pagination.ConnectionAdapter;
@@ -33,6 +34,9 @@ import org.springframework.graphql.data.pagination.CursorStrategy;
  */
 public final class WindowConnectionAdapter
 		extends ConnectionAdapterSupport<ScrollPosition> implements ConnectionAdapter {
+
+	private static final long ZERO_OFFSET_ADJUSTMENT =
+			OffsetScrollPosition.positionFunction(0).apply(0).getOffset();
 
 
 	public WindowConnectionAdapter(CursorStrategy<ScrollPosition> strategy) {
@@ -55,7 +59,7 @@ public final class WindowConnectionAdapter
 	public boolean hasPrevious(Object container) {
 		Window<?> window = window(container);
 		if (!window.isEmpty()) {
-			ScrollPosition position = window.positionAt(0);
+			ScrollPosition position = positionAt(window, 0);
 			if (position instanceof KeysetScrollPosition keysetPosition) {
 				return (keysetPosition.scrollsBackward() && window.hasNext());
 			}
@@ -70,7 +74,7 @@ public final class WindowConnectionAdapter
 	public boolean hasNext(Object container) {
 		Window<?> window = window(container);
 		if (!window.isEmpty()) {
-			ScrollPosition pos = window.positionAt(0);
+			ScrollPosition pos = positionAt(window, 0);
 			if (pos instanceof KeysetScrollPosition keysetPos) {
 				return (keysetPos.scrollsForward() && window.hasNext());
 			}
@@ -83,8 +87,20 @@ public final class WindowConnectionAdapter
 
 	@Override
 	public String cursorAt(Object container, int index) {
-		ScrollPosition position = window(container).positionAt(index);
+		ScrollPosition position = positionAt(window(container), index);
 		return getCursorStrategy().toCursor(position);
+	}
+
+	private ScrollPosition positionAt(Window<?> window, int index) {
+		ScrollPosition position = window.positionAt(index);
+
+		// Workaround for OffsetScrollPosition#positionFunction adding 1 to the actual offset:
+		// See https://github.com/spring-projects/spring-data-commons/issues/3070
+		if (ZERO_OFFSET_ADJUSTMENT > 0 && position instanceof OffsetScrollPosition offsetPos) {
+			position = offsetPos.advanceBy(-ZERO_OFFSET_ADJUSTMENT);
+		}
+
+		return position;
 	}
 
 	@SuppressWarnings("unchecked")
