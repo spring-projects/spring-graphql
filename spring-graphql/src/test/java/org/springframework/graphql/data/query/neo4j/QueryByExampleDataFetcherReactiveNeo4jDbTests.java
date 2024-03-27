@@ -176,13 +176,13 @@ class QueryByExampleDataFetcherReactiveNeo4jDbTests {
 
 			List<Map<String, Object>> edges = ResponseHelper.forResponse(response).toEntity("books.edges", List.class);
 			assertThat(edges.size()).isEqualTo(2);
-			assertThat(edges.get(0).get("cursor")).isEqualTo("O_4");
-			assertThat(edges.get(1).get("cursor")).isEqualTo("O_5");
+			assertThat(edges.get(0).get("cursor")).isEqualTo("O_3");
+			assertThat(edges.get(1).get("cursor")).isEqualTo("O_4");
 
 			Map<String, Object> pageInfo = ResponseHelper.forResponse(response).toEntity("books.pageInfo", Map.class);
 			assertThat(pageInfo.size()).isEqualTo(4);
-			assertThat(pageInfo.get("startCursor")).isEqualTo("O_4");
-			assertThat(pageInfo.get("endCursor")).isEqualTo("O_5");
+			assertThat(pageInfo.get("startCursor")).isEqualTo("O_3");
+			assertThat(pageInfo.get("endCursor")).isEqualTo("O_4");
 			assertThat(pageInfo.get("hasPreviousPage")).isEqualTo(true);
 			assertThat(pageInfo.get("hasNextPage")).isEqualTo(false);
 		};
