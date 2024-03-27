@@ -327,14 +327,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 	@Override
-	public void handleTransportError(WebSocketSession session, Throwable exception) {
-		SessionState info = this.sessionInfoMap.remove(session.getId());
-		if (info != null) {
-			info.dispose();
-		}
-	}
-
-	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
 		String id = session.getId();
 		SessionState state = this.sessionInfoMap.remove(id);
