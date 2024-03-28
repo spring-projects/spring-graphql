@@ -50,7 +50,7 @@ jobs:
           signing-key: ${{ secrets.GPG_PRIVATE_KEY }}
           signing-passphrase: ${{ secrets.GPG_PASSPHRASE }}
           artifact-properties: |
-            /**/spring-graphql-docs-*.zip::zip.name=spring-graphql,zip.displayname=Spring for GraphQL,zip.type:docs,zip.deployed=false
+            /**/spring-graphql-docs-*.zip::zip.name=spring-graphql,zip.type=docs,zip.deployed=false
       - name: Send notification
         uses: ./.github/actions/send-notification
         if: always()
