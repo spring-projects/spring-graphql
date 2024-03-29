@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import graphql.schema.DataFetcher;
+import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
@@ -78,7 +79,8 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 		if (dataFetcher != null) {
 			GraphQLCodeRegistry.Builder registry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 			if (!hasDataFetcher(registry, parent, fieldDefinition)) {
-				registry.dataFetcher(parent, fieldDefinition, dataFetcher);
+				FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), fieldDefinition.getName());
+				registry.dataFetcher(coordinates, dataFetcher);
 			}
 		}
 
@@ -101,7 +103,8 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 			GraphQLCodeRegistry.Builder registry, GraphQLFieldsContainer parent,
 			GraphQLFieldDefinition fieldDefinition) {
 
-		DataFetcher<?> fetcher = registry.getDataFetcher(parent, fieldDefinition);
+		FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), fieldDefinition.getName());
+		DataFetcher<?> fetcher = registry.getDataFetcher(coordinates, fieldDefinition);
 		return (fetcher != null && !(fetcher instanceof PropertyDataFetcher));
 	}
 

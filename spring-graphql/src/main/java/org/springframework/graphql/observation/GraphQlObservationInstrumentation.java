@@ -33,6 +33,7 @@ import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import org.springframework.lang.Nullable;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
@@ -95,8 +96,8 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	@Override
-	public InstrumentationState createState(InstrumentationCreateStateParameters parameters) {
-		return RequestObservationInstrumentationState.INSTANCE;
+	public CompletableFuture<InstrumentationState> createStateAsync(InstrumentationCreateStateParameters parameters) {
+		return CompletableFuture.completedFuture(RequestObservationInstrumentationState.INSTANCE);
 	}
 
 	@Override
