@@ -71,6 +71,7 @@ class GraphQlSseHandlerTests {
                         data:{"errors":[{"message":"SSE transport only supports Subscription operations","locations":[],"extensions":{"classification":"OperationNotSupported"}}]}
                         
                         event:complete
+                        data:
                         
                         """);
     }
@@ -95,7 +96,8 @@ class GraphQlSseHandlerTests {
                         data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
                         
                         event:complete
-
+                        data:
+                        
                         """);
     }
 
@@ -121,7 +123,8 @@ class GraphQlSseHandlerTests {
                         data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
                         
                         event:complete
-
+                        data:
+                        
                         """);
     }
 

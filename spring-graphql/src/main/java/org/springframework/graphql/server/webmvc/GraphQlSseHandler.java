@@ -147,7 +147,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
         @Override
         protected void hookOnComplete() {
             try {
-                this.sseBuilder.event("complete").send();
+                this.sseBuilder.event("complete").data("");
             } catch (IOException exc) {
                 throw new RuntimeException(exc);
             }

@@ -54,7 +54,7 @@ public class GraphQlSseHandler {
 
     private static final Log logger = LogFactory.getLog(GraphQlSseHandler.class);
 
-    private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(ServerSentEvent.<Map<String, Object>>builder().event("complete").build());
+    private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
 
     private final WebGraphQlHandler graphQlHandler;
 
