@@ -148,7 +148,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * propagate context.
 	 * @deprecated as of 1.1.0 in favor of {@link #initWebSocketHttpRequestHandler(HandshakeHandler)}
 	 */
-	@Deprecated
+	@Deprecated(since = "1.1.0", forRemoval = true)
 	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
 		return initWebSocketHttpRequestHandler(handshakeHandler);
 	}

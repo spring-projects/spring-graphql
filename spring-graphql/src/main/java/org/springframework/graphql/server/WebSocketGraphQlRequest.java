@@ -45,7 +45,7 @@ public class WebSocketGraphQlRequest extends WebGraphQlRequest {
 	 * Create an instance.
 	 * @deprecated as of 1.1.3 in favor of the constructor with cookies
 	 */
-	@Deprecated
+	@Deprecated(since = "1.1.3", forRemoval = true)
 	public WebSocketGraphQlRequest(
 			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale,
 			WebSocketSessionInfo sessionInfo) {

@@ -134,24 +134,4 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	}
 
 
-	/**
-	 * Factory method to create a {@link DataFetcherExceptionResolverAdapter} that
-	 * resolves exceptions with the given {@code BiFunction}.
-	 * @param resolver the resolver function to use
-	 * @return the created instance
-	 * @deprecated as of 1.0.1, please use {@link DataFetcherExceptionResolver#forSingleError(BiFunction)}
-	 */
-	@Deprecated
-	public static DataFetcherExceptionResolverAdapter from(
-			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
-
-		return new DataFetcherExceptionResolverAdapter() {
-
-			@Override
-			protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
-				return resolver.apply(ex, env);
-			}
-		};
-	}
-
 }

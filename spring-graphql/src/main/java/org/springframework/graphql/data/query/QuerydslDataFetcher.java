@@ -28,7 +28,6 @@ import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
-import graphql.schema.GraphQLTypeVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
@@ -324,50 +323,6 @@ public abstract class QuerydslDataFetcher<T> {
 		}
 
 		return new AutoRegistrationRuntimeWiringConfigurer(factories);
-	}
-
-	/**
-	 * Return a {@link GraphQLTypeVisitor} that auto-registers the given
-	 * Querydsl repositories for queries that do not already have a registered
-	 * {@code DataFetcher} and whose return type matches the simple name of the
-	 * repository domain type.
-	 *
-	 * <p><strong>Note:</strong> Auto-registration applies only to
-	 * {@link GraphQlRepository @GraphQlRepository}-annotated repositories.
-	 * If a repository is also an instance of {@link QuerydslBinderCustomizer},
-	 * this is transparently detected and applied through the
-	 * {@code QuerydslDataFetcher} builder  methods.
-	 *
-	 * @param executors repositories to consider for registration
-	 * @param reactiveExecutors reactive repositories to consider for registration
-	 * @return the created visitor
-	 * @deprecated in favor of {@link #autoRegistrationConfigurer(List, List)}
-	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	@Deprecated
-	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
-			List<QuerydslPredicateExecutor<?>> executors,
-			List<ReactiveQuerydslPredicateExecutor<?>> reactiveExecutors) {
-
-		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
-
-		for (QuerydslPredicateExecutor<?> executor : executors) {
-			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
-			if (typeName != null) {
-				Builder<?, ?> builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
-			}
-		}
-
-		for (ReactiveQuerydslPredicateExecutor<?> executor : reactiveExecutors) {
-			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
-			if (typeName != null) {
-				ReactiveBuilder builder = customize(executor, QuerydslDataFetcher.builder(executor).customizer(customizer(executor)));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
-			}
-		}
-
-		return new AutoRegistrationTypeVisitor(factories);
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})

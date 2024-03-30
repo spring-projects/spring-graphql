@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,12 +55,6 @@ final class DefaultClientResponseField implements ClientResponseField {
 	}
 
 
-	@SuppressWarnings("deprecation")
-	@Override
-	public boolean hasValue() {
-		return (this.field.getValue() != null);
-	}
-
 	@Override
 	public String getPath() {
 		return this.field.getPath();
@@ -74,12 +68,6 @@ final class DefaultClientResponseField implements ClientResponseField {
 	@Override
 	public <T> T getValue() {
 		return this.field.getValue();
-	}
-
-	@SuppressWarnings("deprecation")
-	@Override
-	public ResponseError getError() {
-		return this.field.getError();
 	}
 
 	@Override

@@ -27,7 +27,6 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLArgument;
-import graphql.schema.GraphQLTypeVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Flux;
@@ -294,45 +293,6 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		return new AutoRegistrationRuntimeWiringConfigurer(factories);
 	}
-
-	/**
-	 * Create a {@link GraphQLTypeVisitor} that finds queries with a return type
-	 * whose name matches to the domain type name of the given repositories and
-	 * registers {@link DataFetcher}s for those queries.
-	 * <p><strong>Note:</strong> currently, this method will match only to
-	 * queries under the top-level "Query" type in the GraphQL schema.
-	 *
-	 * @param executors repositories to consider for registration
-	 * @param reactiveExecutors reactive repositories to consider for registration
-	 * @return the created visitor
-	 * @deprecated in favor of {@link #autoRegistrationConfigurer(List, List)}
-	 */
-	@Deprecated
-	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
-			List<QueryByExampleExecutor<?>> executors,
-			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
-
-		Map<String, Function<Boolean, DataFetcher<?>>> factories = new HashMap<>();
-
-		for (QueryByExampleExecutor<?> executor : executors) {
-			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
-			if (typeName != null) {
-				Builder<?, ?> builder = customize(executor, builder(executor));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
-			}
-		}
-
-		for (ReactiveQueryByExampleExecutor<?> executor : reactiveExecutors) {
-			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
-			if (typeName != null) {
-				ReactiveBuilder<?, ?> builder = customize(executor, builder(executor));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
-			}
-		}
-
-		return new AutoRegistrationTypeVisitor(factories);
-	}
-
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static Builder customize(QueryByExampleExecutor<?> executor, Builder builder) {

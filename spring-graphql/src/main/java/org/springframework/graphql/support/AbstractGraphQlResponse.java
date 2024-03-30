@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -160,31 +160,10 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 			return this.parsedPath;
 		}
 
-		@SuppressWarnings("deprecation")
-		@Override
-		public boolean hasValue() {
-			return (this.value != null);
-		}
-
 		@SuppressWarnings("unchecked")
 		@Override
 		public <T> T getValue() {
 			return (T) this.value;
-		}
-
-		@SuppressWarnings("deprecation")
-		@Override
-		public ResponseError getError() {
-			if (getValue() != null) {
-				if (!this.fieldErrors.isEmpty()) {
-					return this.fieldErrors.get(0);
-				}
-				if (!this.response.getErrors().isEmpty()) {
-					return this.response.getErrors().get(0);
-				}
-				// No errors, set to null by DataFetcher
-			}
-			return null;
 		}
 
 		@Override
