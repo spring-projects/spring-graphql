@@ -72,7 +72,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final WebSocketGraphQlInterceptor webSocketInterceptor;
 
-	private final CodecDelegate codecDelegate;
+	private final WebSocketCodecDelegate webSocketCodecDelegate;
 
 	private final Duration initTimeoutDuration;
 
@@ -91,7 +91,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 		this.graphQlHandler = graphQlHandler;
 		this.webSocketInterceptor = this.graphQlHandler.getWebSocketInterceptor();
-		this.codecDelegate = new CodecDelegate(codecConfigurer);
+		this.webSocketCodecDelegate = new WebSocketCodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
 	}
 
@@ -137,7 +137,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				.subscribe();
 
 		return session.send(session.receive().flatMap(webSocketMessage -> {
-			GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
+			GraphQlWebSocketMessage message = this.webSocketCodecDelegate.decode(webSocketMessage);
 			String id = message.getId();
 			Map<String, Object> payload = message.getPayload();
 			switch (message.resolvedType()) {
@@ -159,7 +159,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							.doOnTerminate(() -> subscriptions.remove(id));
 				}
 				case PING -> {
-					return Flux.just(this.codecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
+					return Flux.just(this.webSocketCodecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
 				}
 				case COMPLETE -> {
 					if (id != null) {
@@ -178,7 +178,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					}
 					return this.webSocketInterceptor.handleConnectionInitialization(sessionInfo, payload)
 							.defaultIfEmpty(Collections.emptyMap())
-							.map(ackPayload -> this.codecDelegate.encodeConnectionAck(session, ackPayload))
+							.map(ackPayload -> this.webSocketCodecDelegate.encodeConnectionAck(session, ackPayload))
 							.flux()
 							.onErrorResume(ex -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
 				}
@@ -218,14 +218,14 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 
 		return responseFlux
-				.map(responseMap -> this.codecDelegate.encodeNext(session, id, responseMap))
-				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeComplete(session, id)))
+				.map(responseMap -> this.webSocketCodecDelegate.encodeNext(session, id, responseMap))
+				.concatWith(Mono.fromCallable(() -> this.webSocketCodecDelegate.encodeComplete(session, id)))
 				.onErrorResume(ex -> {
 					if (ex instanceof SubscriptionExistsException) {
 						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
 						return GraphQlStatus.close(session, status);
 					}
-					return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
+					return Mono.fromCallable(() -> this.webSocketCodecDelegate.encodeError(session, id, ex));
 				});
 	}
 

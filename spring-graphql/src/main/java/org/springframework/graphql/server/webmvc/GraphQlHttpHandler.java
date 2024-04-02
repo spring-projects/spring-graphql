@@ -24,9 +24,14 @@ import java.util.concurrent.ExecutionException;
 import jakarta.servlet.ServletException;
 
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.server.ServletServerHttpResponse;
+import org.springframework.lang.Nullable;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -51,7 +56,18 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler) {
-		super(graphQlHandler);
+		super(graphQlHandler, null);
+	}
+
+	/**
+	 * Create a new instance with a custom message converter.
+	 * <p>If no converter is provided, this will use
+	 * {@link org.springframework.web.servlet.config.annotation.WebMvcConfigurer#configureMessageConverters(List) the one configured in the web framework}.
+	 * @param graphQlHandler common handler for GraphQL over HTTP requests
+	 * @param messageConverter custom {@link HttpMessageConverter} to be used for encoding and decoding GraphQL payloads
+	 */
+	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpMessageConverter<?> messageConverter) {
+		super(graphQlHandler, messageConverter);
 	}
 
 	/**
@@ -77,10 +93,17 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
+					MediaType contentType = selectResponseMediaType(serverRequest);
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
-					builder.contentType(selectResponseMediaType(serverRequest));
-					return builder.body(response.toMap());
+					builder.contentType(contentType);
+
+					if (this.messageConverter != null) {
+						return builder.build(writeFunction(contentType, response));
+					}
+					else {
+						return builder.body(response.toMap());
+					}
 				})
 				.toFuture();
 
@@ -106,6 +129,19 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
 			}
 		}
 		return MediaType.APPLICATION_JSON;
+	}
+
+	private ServerResponse.HeadersBuilder.WriteFunction writeFunction(MediaType contentType, GraphQlResponse response) {
+		return (servletRequest, servletResponse) -> {
+            if (messageConverter != null) {
+                ServletServerHttpResponse httpResponse = new ServletServerHttpResponse(servletResponse);
+                messageConverter.write(response.toMap(), contentType, httpResponse);
+				return null;
+            }
+			else {
+				throw new HttpMediaTypeNotSupportedException(contentType, SUPPORTED_MEDIA_TYPES, HttpMethod.POST);
+			}
+        };
 	}
 
 }

@@ -20,10 +20,11 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import jakarta.servlet.ServletException;
+
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
-import jakarta.servlet.ServletException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
@@ -55,7 +56,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 
     public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
-        super(graphQlHandler);
+        super(graphQlHandler, null);
     }
 
     /**

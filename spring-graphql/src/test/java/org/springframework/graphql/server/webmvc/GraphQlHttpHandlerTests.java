@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -108,6 +109,25 @@ public class GraphQlHttpHandlerTests {
 		DocumentContext document = JsonPath.parse(servletResponse.getContentAsString());
 		String id = document.read("data.showId", String.class);
 		assertThatNoException().isThrownBy(() -> UUID.fromString(id));
+	}
+
+	@Test
+	void shouldUseCustomMessageConverter() throws Exception {
+		WebGraphQlHandler webGraphQlHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler();
+		GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler, new MappingJackson2HttpMessageConverter());
+		MockHttpServletRequest servletRequest = createServletRequest("{\"query\":\"{ greeting }\"}", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
+
+		ServerRequest request = ServerRequest.create(servletRequest, Collections.emptyList());
+		ServerResponse response = handler.handleRequest(request);
+		if (response instanceof AsyncServerResponse asyncResponse) {
+			asyncResponse.block();
+		}
+		MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+		response.writeTo(servletRequest, servletResponse, new DefaultContext());
+
+		assertThat(servletResponse.getContentAsString())
+				.isEqualTo("{\"data\":{\"greeting\":\"Hello\"}}");
 	}
 
 	@Test

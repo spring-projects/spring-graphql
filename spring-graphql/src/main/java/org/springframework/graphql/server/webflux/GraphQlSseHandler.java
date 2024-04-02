@@ -32,10 +32,8 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -50,18 +48,15 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * @author Brian Clozel
  * @since 1.3.0
  */
-public class GraphQlSseHandler {
+public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
     private static final Log logger = LogFactory.getLog(GraphQlSseHandler.class);
 
     private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
 
-    private final WebGraphQlHandler graphQlHandler;
-
 
     public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
-        Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-        this.graphQlHandler = graphQlHandler;
+        super(graphQlHandler, null);
     }
 
     /**
@@ -72,7 +67,7 @@ public class GraphQlSseHandler {
      */
     @SuppressWarnings("unchecked")
     public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
-        Flux<ServerSentEvent<Map<String, Object>>> data = serverRequest.bodyToMono(SerializableGraphQlRequest.class)
+        Flux<ServerSentEvent<Map<String, Object>>> data = readRequest(serverRequest)
                 .flatMap(body -> {
                     WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
                             serverRequest.uri(), serverRequest.headers().asHttpHeaders(),

@@ -25,9 +25,8 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
-import org.springframework.util.Assert;
+import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
@@ -38,7 +37,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class GraphQlHttpHandler {
+public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
@@ -46,16 +45,24 @@ public class GraphQlHttpHandler {
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
 			Arrays.asList(MediaType.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL);
 
-	private final WebGraphQlHandler graphQlHandler;
 
 	/**
 	 * Create a new instance.
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler) {
-		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-		this.graphQlHandler = graphQlHandler;
+		super(graphQlHandler, null);
 	}
+
+	/**
+	 * Create a new instance.
+	 * @param graphQlHandler common handler for GraphQL over HTTP requests
+	 * @param codecConfigurer codec configurer for JSON encoding and decoding
+	 */
+	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer) {
+		super(graphQlHandler, new HttpCodecDelegate(codecConfigurer));
+	}
+
 
 	/**
 	 * Handle GraphQL requests over HTTP.
@@ -63,7 +70,7 @@ public class GraphQlHttpHandler {
 	 * @return the HTTP response
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
-		return serverRequest.bodyToMono(SerializableGraphQlRequest.class)
+		return readRequest(serverRequest)
 				.flatMap(body -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
@@ -82,7 +89,12 @@ public class GraphQlHttpHandler {
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
 					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(selectResponseMediaType(serverRequest));
-					return builder.bodyValue(response.toMap());
+					if (this.codecDelegate != null) {
+						return builder.bodyValue(this.codecDelegate.encode(response));
+					}
+					else {
+						return builder.bodyValue(response.toMap());
+					}
 				});
 	}
 

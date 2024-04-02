@@ -29,6 +29,11 @@ xref:boot-starter.adoc[Boot Starter] does this, see the
 details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
 it contains, for the actual config.
 
+By default, the `GraphQlHttpHandler` will serialize and deserialize JSON payloads using the `HttpMessageConverter` (Spring MVC)
+and the `DecoderHttpMessageReader/EncoderHttpMessageWriter` (WebFlux) configured in the web framework.
+In some cases, the application will configure the JSON codec for the HTTP endpoint in a way that is not compatible with the GraphQL payloads.
+Applications can instantiate `GraphQlHttpHandler` with a custom JSON codec that will be used for GraphQL payloads.
+
 The 1.0.x branch of this repository contains a Spring MVC
 {github-10x-branch}/samples/webmvc-http[HTTP sample] application.
 

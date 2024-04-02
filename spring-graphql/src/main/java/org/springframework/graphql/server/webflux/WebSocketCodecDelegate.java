@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,12 +40,12 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
- * Helper class for encoding and decoding GraphQL messages.
+ * Helper class for encoding and decoding GraphQL messages in WebSocket transport.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-final class CodecDelegate {
+final class WebSocketCodecDelegate {
 
 	private static final ResolvableType MESSAGE_TYPE = ResolvableType.forClass(GraphQlWebSocketMessage.class);
 
@@ -55,7 +55,7 @@ final class CodecDelegate {
 	private final Encoder<?> encoder;
 
 
-	CodecDelegate(CodecConfigurer codecConfigurer) {
+	WebSocketCodecDelegate(CodecConfigurer codecConfigurer) {
 		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
 		this.decoder = findJsonDecoder(codecConfigurer);
 		this.encoder = findJsonEncoder(codecConfigurer);

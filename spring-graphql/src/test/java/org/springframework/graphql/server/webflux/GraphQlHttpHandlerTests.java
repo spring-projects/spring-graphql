@@ -15,21 +15,22 @@
  */
 package org.springframework.graphql.server.webflux;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
-
+import org.springframework.core.codec.DataBufferEncoder;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageWriter;
+import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpResponse;
@@ -38,6 +39,13 @@ import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.ViewResolver;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -119,6 +127,37 @@ public class GraphQlHttpHandlerTests {
 		assertThat(id).isEqualTo(httpRequest.getId());
 	}
 
+	@Test
+	void shouldUseCustomCodec() {
+		WebGraphQlHandler webGraphQlHandler = GraphQlSetup.schemaContent("type Query { showId: String }")
+				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
+				.toWebGraphQlHandler();
+		ObjectMapper mapper = new ObjectMapper();
+		CodecConfigurer configurer = ServerCodecConfigurer.create();
+		configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+		configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+		GraphQlHttpHandler httpHandler = new GraphQlHttpHandler(webGraphQlHandler, configurer);
+
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
+
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		MockServerRequest serverRequest = MockServerRequest.builder()
+				.exchange(exchange)
+				.uri(((ServerWebExchange) exchange).getRequest().getURI())
+				.method(((ServerWebExchange) exchange).getRequest().getMethod())
+				.headers(((ServerWebExchange) exchange).getRequest().getHeaders())
+				.body(Flux.just(DefaultDataBufferFactory.sharedInstance.wrap("{\"query\":\"{showId}\"}".getBytes(StandardCharsets.UTF_8))));
+
+		httpHandler.handleRequest(serverRequest)
+				.flatMap(response -> response.writeTo(exchange, new EmptyContext()))
+				.block();
+
+		DocumentContext document = JsonPath.parse(exchange.getResponse().getBodyAsString().block());
+		String id = document.read("data.showId", String.class);
+		assertThat(id).isEqualTo(httpRequest.getId());
+	}
+
 	private static SerializableGraphQlRequest initRequest(String document) {
 		SerializableGraphQlRequest request = new SerializableGraphQlRequest();
 		request.setQuery(document);
@@ -157,6 +196,18 @@ public class GraphQlHttpHandlerTests {
 			return Collections.emptyList();
 		}
 
+	}
+
+	private static class EmptyContext implements ServerResponse.Context {
+		@Override
+		public List<HttpMessageWriter<?>> messageWriters() {
+			return List.of(new EncoderHttpMessageWriter<>(new DataBufferEncoder()));
+		}
+
+		@Override
+		public List<ViewResolver> viewResolvers() {
+			return List.of();
+		}
 	}
 
 }

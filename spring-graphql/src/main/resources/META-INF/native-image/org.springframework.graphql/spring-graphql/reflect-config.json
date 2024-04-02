@@ -21,7 +21,7 @@
     "allDeclaredMethods":true,
     "allDeclaredConstructors":true,
     "condition": {
-      "typeReachable": "org.springframework.graphql.server.webflux.CodecDelegate"
+      "typeReachable": "org.springframework.graphql.server.webflux.WebSocketCodecDelegate"
     }
   },
   {
