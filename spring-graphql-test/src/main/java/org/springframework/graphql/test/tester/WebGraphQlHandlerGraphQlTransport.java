@@ -35,7 +35,6 @@ import org.springframework.lang.Nullable;
  * {@code GraphQlTransport} that calls directly a {@link WebGraphQlHandler}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTransport {
 
@@ -51,26 +50,26 @@ final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTrans
 	WebGraphQlHandlerGraphQlTransport(
 			@Nullable URI url, HttpHeaders headers, WebGraphQlHandler handler, CodecConfigurer configurer) {
 
-		this.url = (url != null ? url : URI.create(""));
+		this.url = (url != null) ? url : URI.create("");
 		this.headers.addAll(headers);
 		this.graphQlHandler = handler;
 		this.codecConfigurer = configurer;
 	}
 
 
-	public URI getUrl() {
+	URI getUrl() {
 		return this.url;
 	}
 
-	public HttpHeaders getHeaders() {
+	HttpHeaders getHeaders() {
 		return this.headers;
 	}
 
-	public WebGraphQlHandler getGraphQlHandler() {
+	WebGraphQlHandler getGraphQlHandler() {
 		return this.graphQlHandler;
 	}
 
-	public CodecConfigurer getCodecConfigurer() {
+	CodecConfigurer getCodecConfigurer() {
 		return this.codecConfigurer;
 	}
 

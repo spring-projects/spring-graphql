@@ -41,7 +41,6 @@ import org.springframework.util.IdGenerator;
  * to a server-side GraphQL handler or service.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 
@@ -56,7 +55,7 @@ abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
 	@Override
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-		return executeInternal(toExecutionRequest(request)).flatMapMany(response -> {
+		return executeInternal(toExecutionRequest(request)).flatMapMany((response) -> {
 			try {
 				Object data = response.getData();
 				AssertionErrors.assertTrue("Not a Publisher: " + data, data instanceof Publisher);
@@ -64,7 +63,7 @@ abstract class AbstractDirectGraphQlTransport implements GraphQlTransport {
 				List<ResponseError> errors = response.getErrors();
 				AssertionErrors.assertTrue("Subscription errors: " + errors, CollectionUtils.isEmpty(errors));
 
-				return Flux.from((Publisher<ExecutionResult>) data).map(executionResult ->
+				return Flux.from((Publisher<ExecutionResult>) data).map((executionResult) ->
 						new DefaultExecutionGraphQlResponse(response.getExecutionInput(), executionResult));
 			}
 			catch (AssertionError ex) {

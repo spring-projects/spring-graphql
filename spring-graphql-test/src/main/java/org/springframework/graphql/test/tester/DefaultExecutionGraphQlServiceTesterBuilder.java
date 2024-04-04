@@ -37,7 +37,6 @@ import org.springframework.util.Assert;
  * wraps an {@code ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultExecutionGraphQlServiceTesterBuilder
 		extends AbstractGraphQlTesterBuilder<DefaultExecutionGraphQlServiceTesterBuilder>
@@ -95,7 +94,7 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 
 	private void registerJsonPathMappingProvider() {
 		if (this.encoder != null && this.decoder != null) {
-			configureJsonPathConfig(config -> {
+			configureJsonPathConfig((config) -> {
 				EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(
 						Collections.singletonList(this.encoder), Collections.singletonList(this.decoder));
 				return config.mappingProvider(provider);
@@ -111,7 +110,7 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 	/**
 	 * Default {@link ExecutionGraphQlServiceTester} implementation.
 	 */
-	private static class DefaultExecutionGraphQlServiceTester
+	private static final class DefaultExecutionGraphQlServiceTester
 			extends AbstractDelegatingGraphQlTester implements ExecutionGraphQlServiceTester {
 
 		private final GraphQlServiceGraphQlTransport transport;

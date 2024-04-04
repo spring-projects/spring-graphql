@@ -45,7 +45,6 @@ import org.springframework.util.MimeTypeUtils;
  * JSON Path {@link MappingProvider} that uses {@link Encoder} and {@link Decoder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class EncoderDecoderMappingProvider implements MappingProvider {
 
@@ -60,29 +59,29 @@ final class EncoderDecoderMappingProvider implements MappingProvider {
 	/**
 	 * Create an instance with a {@link CodecConfigurer}.
 	 */
-	public EncoderDecoderMappingProvider(CodecConfigurer configurer) {
+	EncoderDecoderMappingProvider(CodecConfigurer configurer) {
 		this.encoder = findJsonEncoder(configurer);
 		this.decoder = findJsonDecoder(configurer);
 	}
 
 	/**
-	 * Create an instance with a List of encoders and decoders>
+	 * Create an instance with a List of encoders and decoders.
 	 */
-	public EncoderDecoderMappingProvider(List<Encoder<?>> encoders, List<Decoder<?>> decoders) {
+	EncoderDecoderMappingProvider(List<Encoder<?>> encoders, List<Decoder<?>> decoders) {
 		this.encoder = findJsonEncoder(encoders);
 		this.decoder = findJsonDecoder(decoders);
 	}
 
 	private static Encoder<?> findJsonEncoder(CodecConfigurer configurer) {
 		return findJsonEncoder(configurer.getWriters().stream()
-				.filter(writer -> writer instanceof EncoderHttpMessageWriter)
-				.map(writer -> ((EncoderHttpMessageWriter<?>) writer).getEncoder()));
+				.filter((writer) -> writer instanceof EncoderHttpMessageWriter)
+				.map((writer) -> ((EncoderHttpMessageWriter<?>) writer).getEncoder()));
 	}
 
 	private static Decoder<?> findJsonDecoder(CodecConfigurer configurer) {
 		return findJsonDecoder(configurer.getReaders().stream()
-				.filter(reader -> reader instanceof DecoderHttpMessageReader)
-				.map(reader -> ((DecoderHttpMessageReader<?>) reader).getDecoder()));
+				.filter((reader) -> reader instanceof DecoderHttpMessageReader)
+				.map((reader) -> ((DecoderHttpMessageReader<?>) reader).getDecoder()));
 	}
 
 	private static Encoder<?> findJsonEncoder(List<Encoder<?>> encoders) {
@@ -95,14 +94,14 @@ final class EncoderDecoderMappingProvider implements MappingProvider {
 
 	private static Encoder<?> findJsonEncoder(Stream<Encoder<?>> stream) {
 		return stream
-				.filter(encoder -> encoder.canEncode(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.filter((encoder) -> encoder.canEncode(MAP_TYPE, MediaType.APPLICATION_JSON))
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Encoder"));
 	}
 
 	private static Decoder<?> findJsonDecoder(Stream<Decoder<?>> decoderStream) {
 		return decoderStream
-				.filter(decoder -> decoder.canDecode(MAP_TYPE, MediaType.APPLICATION_JSON))
+				.filter((decoder) -> decoder.canDecode(MAP_TYPE, MediaType.APPLICATION_JSON))
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON Decoder"));
 	}

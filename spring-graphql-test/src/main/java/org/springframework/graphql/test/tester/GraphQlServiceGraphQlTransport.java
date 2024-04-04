@@ -34,7 +34,6 @@ import org.springframework.util.Assert;
  * {@code GraphQlTransport} that calls directly a {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class GraphQlServiceGraphQlTransport extends AbstractDirectGraphQlTransport {
 
@@ -53,11 +52,11 @@ final class GraphQlServiceGraphQlTransport extends AbstractDirectGraphQlTranspor
 	}
 
 
-	public ExecutionGraphQlService getGraphQlService() {
+	ExecutionGraphQlService getGraphQlService() {
 		return this.graphQlService;
 	}
 
-	public List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> getExecutionInputConfigurers() {
+	List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> getExecutionInputConfigurers() {
 		return this.executionInputConfigurers;
 	}
 

@@ -34,12 +34,11 @@ import org.springframework.util.Assert;
  * {@code GraphQlTransport} for GraphQL over HTTP via {@link WebTestClient}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class WebTestClientTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<Map<String, Object>>() { };
 
 
 	private final WebTestClient webTestClient;
@@ -65,7 +64,7 @@ final class WebTestClientTransport implements GraphQlTransport {
 				.returnResult()
 				.getResponseBody();
 
-		responseMap = (responseMap != null ? responseMap : Collections.emptyMap());
+		responseMap = (responseMap != null) ? responseMap : Collections.emptyMap();
 		GraphQlResponse response = GraphQlTransport.createResponse(responseMap);
 		return Mono.just(response);
 	}

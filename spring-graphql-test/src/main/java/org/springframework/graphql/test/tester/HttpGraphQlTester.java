@@ -37,6 +37,7 @@ public interface HttpGraphQlTester extends WebGraphQlTester {
 
 	/**
 	 * Create an {@link HttpGraphQlTester} that uses the given {@link WebTestClient}.
+	 * @param webTestClient the {@code WebTestClient} to use
 	 */
 	static HttpGraphQlTester create(WebTestClient webTestClient) {
 		return builder(webTestClient.mutate()).build();
@@ -45,6 +46,7 @@ public interface HttpGraphQlTester extends WebGraphQlTester {
 	/**
 	 * Return a builder to initialize an {@link HttpGraphQlTester} by creating
 	 * the underlying {@link WebTestClient} through the given builder.
+	 * @param webTestClientBuilder the {@code WebTestClient} builder to use
 	 */
 	static HttpGraphQlTester.Builder<?> builder(WebTestClient.Builder webTestClientBuilder) {
 		return new DefaultHttpGraphQlTesterBuilder(webTestClientBuilder);
@@ -53,6 +55,7 @@ public interface HttpGraphQlTester extends WebGraphQlTester {
 
 	/**
 	 * Builder for the GraphQL over HTTP tester.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends WebGraphQlTester.Builder<B> {
 
@@ -60,6 +63,7 @@ public interface HttpGraphQlTester extends WebGraphQlTester {
 		 * Customize the {@code WebTestClient} to use.
 		 * <p>Note that some properties of {@code WebTestClient.Builder} like the
 		 * base URL, headers, and codecs can be customized through this builder.
+		 * @param webClient a consumer that customizes the {@code WebClient} builder
 		 * @see #url(String)
 		 * @see #header(String, String...)
 		 * @see #codecConfigurer(Consumer)

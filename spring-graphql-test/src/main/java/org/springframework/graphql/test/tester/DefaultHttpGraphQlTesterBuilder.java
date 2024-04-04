@@ -33,7 +33,6 @@ import org.springframework.web.util.UriComponentsBuilder;
  * {@link WebTestClient.Builder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultHttpGraphQlTesterBuilder
 		extends AbstractGraphQlTesterBuilder<DefaultHttpGraphQlTesterBuilder>
@@ -93,8 +92,8 @@ final class DefaultHttpGraphQlTesterBuilder
 	}
 
 	private void registerJsonPathMappingProvider() {
-		this.webTestClientBuilder.codecs(codecConfigurer ->
-				configureJsonPathConfig(config -> {
+		this.webTestClientBuilder.codecs((codecConfigurer) ->
+				configureJsonPathConfig((config) -> {
 					EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(codecConfigurer);
 					return config.mappingProvider(provider);
 				}));
@@ -105,7 +104,7 @@ final class DefaultHttpGraphQlTesterBuilder
 	 * Default {@link HttpGraphQlTester} that builds and uses a {@link WebTestClient}
 	 * for request execution.
 	 */
-	private static class DefaultHttpGraphQlTester extends AbstractDelegatingGraphQlTester implements HttpGraphQlTester {
+	private static final class DefaultHttpGraphQlTester extends AbstractDelegatingGraphQlTester implements HttpGraphQlTester {
 
 		private final WebTestClient webTestClient;
 

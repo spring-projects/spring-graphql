@@ -43,6 +43,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 
 	/**
 	 * Create a {@link WebGraphQlTester} instance.
+	 * @param graphQlHandler the web GraphQL handler to be tested
 	 */
 	static WebGraphQlTester create(WebGraphQlHandler graphQlHandler) {
 		return builder(graphQlHandler).build();
@@ -59,6 +60,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 
 	/**
 	 * Common builder for Web {@code GraphQlTester} extensions.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlTester.Builder<B> {
 
@@ -91,6 +93,7 @@ public interface WebGraphQlTester extends GraphQlTester {
 		/**
 		 * Configure the underlying {@code CodecConfigurer} to use for all JSON
 		 * encoding and decoding needs.
+		 * @param codecsConsumer a consumer that customizes the configured codecs
 		 */
 		B codecConfigurer(Consumer<CodecConfigurer> codecsConsumer);
 
