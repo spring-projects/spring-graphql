@@ -39,7 +39,7 @@ configure(moduleProjects) {
 	}
 
 	configurations {
-		dependencyManagement {6
+		dependencyManagement {
 			canBeConsumed = false
 			canBeResolved = false
 			visible = false

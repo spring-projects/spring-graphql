@@ -23,6 +23,7 @@ import org.gradle.api.plugins.JavaBasePlugin;
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
 
 import org.springframework.graphql.build.conventions.DeploymentConventions;
+import org.springframework.graphql.build.conventions.FormattingConventions;
 import org.springframework.graphql.build.conventions.JavaConventions;
 import org.springframework.graphql.build.conventions.KotlinConventions;
 
@@ -42,6 +43,7 @@ public class ConventionsPlugin implements Plugin<Project> {
 
 	@Override
 	public void apply(Project project) {
+		new FormattingConventions().apply(project);
 		new JavaConventions().apply(project);
 		new KotlinConventions().apply(project);
 		new DeploymentConventions().apply(project);
