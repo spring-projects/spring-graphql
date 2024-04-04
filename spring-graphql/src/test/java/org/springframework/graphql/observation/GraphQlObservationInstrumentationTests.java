@@ -16,6 +16,10 @@
 
 package org.springframework.graphql.observation;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Stream;
+
 import graphql.GraphQLContext;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherResult;
@@ -31,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
@@ -42,11 +47,6 @@ import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
-import reactor.core.publisher.Mono;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -294,7 +294,6 @@ class GraphQlObservationInstrumentationTests {
 
 	@Test
 	void shouldNotOverrideExistingLocalContext() {
-		
 		String document = """
 				{
 					bookById(id: 1) {
@@ -317,7 +316,7 @@ class GraphQlObservationInstrumentationTests {
 			return BookSource.getAuthor(101L).getFirstName();
 		};
 
-        ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
+		ExecutionGraphQlRequest request = TestExecutionRequest.forDocument(document);
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
 				.queryFetcher("bookById", bookDataFetcher)
 				.dataFetcher("Book", "author", authorDataFetcher)

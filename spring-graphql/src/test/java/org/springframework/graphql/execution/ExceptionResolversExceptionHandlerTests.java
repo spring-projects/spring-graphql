@@ -26,7 +26,6 @@ import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
 
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;

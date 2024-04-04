@@ -45,12 +45,11 @@ import org.springframework.util.Assert;
  * metadata extension.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class RSocketGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<Map<String, Object>>() { };
 
 	private static final ResolvableType LIST_TYPE = ResolvableType.forClass(List.class);
 
@@ -83,7 +82,7 @@ final class RSocketGraphQlTransport implements GraphQlTransport {
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 		return this.rsocketRequester.route(this.route).data(request.toMap())
 				.retrieveFlux(MAP_TYPE)
-				.onErrorResume(RejectedException.class, ex -> Flux.error(decodeErrors(request, ex)))
+				.onErrorResume(RejectedException.class, (ex) -> Flux.error(decodeErrors(request, ex)))
 				.map(ResponseMapGraphQlResponse::new);
 	}
 

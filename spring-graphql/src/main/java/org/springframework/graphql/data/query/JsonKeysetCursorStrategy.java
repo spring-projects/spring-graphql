@@ -86,6 +86,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	/**
 	 * Constructor with a {@link CodecConfigurer} in which to find the JSON
 	 * encoder and decoder to use.
+	 * @param codecConfigurer the codec configurer to be checked for JSON codec
 	 */
 	public JsonKeysetCursorStrategy(CodecConfigurer codecConfigurer) {
 		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
@@ -128,7 +129,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	public Map<String, Object> fromCursor(String cursor) {
 		DataBuffer buffer = this.bufferFactory.wrap(cursor.getBytes(StandardCharsets.UTF_8));
 		Map<String, Object> map = ((Decoder<Map<String, Object>>) this.decoder).decode(buffer, MAP_TYPE, null, null);
-		return (map != null ? map : Collections.emptyMap());
+		return (map != null) ? map : Collections.emptyMap();
 	}
 
 
@@ -136,9 +137,9 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	 * Customizes the {@link ObjectMapper} to use default typing that supports
 	 * {@link Date}, {@link Calendar}, and classes in {@code java.time}.
 	 */
-	private static class JacksonObjectMapperCustomizer {
+	private static final class JacksonObjectMapperCustomizer {
 
-		public static void customize(CodecConfigurer configurer) {
+		static void customize(CodecConfigurer configurer) {
 
 			PolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
 					.allowIfBaseType(Map.class)

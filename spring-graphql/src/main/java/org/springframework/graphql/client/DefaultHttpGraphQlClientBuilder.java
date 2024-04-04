@@ -33,7 +33,6 @@ import org.springframework.web.util.UriComponentsBuilder;
  * around a {@link WebClient.Builder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultHttpGraphQlClientBuilder
 		extends AbstractGraphQlClientBuilder<DefaultHttpGraphQlClientBuilder>
@@ -105,7 +104,7 @@ final class DefaultHttpGraphQlClientBuilder
 	public HttpGraphQlClient build() {
 
 		// Pass the codecs to the parent for response decoding
-		this.webClientBuilder.codecs(configurer ->
+		this.webClientBuilder.codecs((configurer) ->
 				setJsonCodecs(
 						CodecDelegate.findJsonEncoder(configurer),
 						CodecDelegate.findJsonDecoder(configurer)));
@@ -139,6 +138,7 @@ final class DefaultHttpGraphQlClientBuilder
 			this.builderInitializer = builderInitializer;
 		}
 
+		@Override
 		public DefaultHttpGraphQlClientBuilder mutate() {
 			DefaultHttpGraphQlClientBuilder builder = new DefaultHttpGraphQlClientBuilder(this.webClient);
 			this.builderInitializer.accept(builder);

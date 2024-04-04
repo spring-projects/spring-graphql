@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.List;
@@ -47,9 +48,9 @@ public class AnnotatedControllerConfigurerTests {
 
 		List<HandlerMethodArgumentResolver> resolvers = configurer.getArgumentResolvers().getResolvers();
 		int size = resolvers.size();
-		assertThat(resolvers).element(size -1).isInstanceOf(SourceMethodArgumentResolver.class);
-		assertThat(resolvers).element(size -2).isSameAs(customResolver2);
-		assertThat(resolvers).element(size -3).isSameAs(customResolver1);
+		assertThat(resolvers).element(size - 1).isInstanceOf(SourceMethodArgumentResolver.class);
+		assertThat(resolvers).element(size - 2).isSameAs(customResolver2);
+		assertThat(resolvers).element(size - 3).isSameAs(customResolver1);
 	}
 
 	@Test

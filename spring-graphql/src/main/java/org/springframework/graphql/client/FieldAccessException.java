@@ -38,6 +38,9 @@ public class FieldAccessException extends GraphQlClientException {
 
 	/**
 	 * Constructor with the request and response, and the accessed field.
+	 * @param request the client request
+	 * @param response  the client response
+	 * @param field the accessed field that caused the error
 	 */
 	public FieldAccessException(
 			ClientGraphQlRequest request, ClientGraphQlResponse response, ClientResponseField field) {

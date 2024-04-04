@@ -24,6 +24,7 @@ import org.springframework.core.ResolvableType;
  * Specialized {@link DataFetcher} that exposes additional details such as
  * return type information.
  *
+ * @param <T> the type of data returned by the {@code DataFetcher}
  * @author Brian Clozel
  * @author Rossen Stoyanchev
  * @since 1.2.0

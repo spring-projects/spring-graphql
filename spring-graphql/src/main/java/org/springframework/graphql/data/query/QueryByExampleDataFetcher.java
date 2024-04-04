@@ -101,7 +101,7 @@ import org.springframework.validation.BindException;
  */
 public abstract class QueryByExampleDataFetcher<T> {
 
-	private final static Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
+	private static final Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
 
 
 	private final TypeInformation<T> domainType;
@@ -147,7 +147,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		List<GraphQLArgument> definedArguments = environment.getFieldDefinition().getArguments();
 		if (definedArguments.size() == 1) {
 			String name = definedArguments.get(0).getName();
-			if (arguments.get(name) instanceof Map<?,?>) {
+			if (arguments.get(name) instanceof Map<?, ?>) {
 				return name;
 			}
 		}
@@ -202,6 +202,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * without a {@code CursorStrategy} and default {@link ScrollSubrange}.
 	 * For default values, see the respective methods on {@link Builder} and
 	 * {@link ReactiveBuilder}.
+	 * @param executors repositories to consider for registration
+	 * @param reactiveExecutors reactive repositories to consider for registration
 	 */
 	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
 			List<QueryByExampleExecutor<?>> executors,
@@ -215,10 +217,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * {@link graphql.schema.idl.WiringFactory} to find queries with a return
 	 * type whose name matches to the domain type name of the given repositories
 	 * and registers {@link DataFetcher}s for them.
-	 *
 	 * <p><strong>Note:</strong> This applies only to top-level queries and
 	 * repositories annotated with {@link GraphQlRepository @GraphQlRepository}.
-	 *
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @param cursorStrategy for decoding cursors in pagination requests;
@@ -301,13 +301,13 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * registers {@link DataFetcher}s for those queries.
 	 * <p><strong>Note:</strong> currently, this method will match only to
 	 * queries under the top-level "Query" type in the GraphQL schema.
-	 *
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @return the created visitor
-	 * @deprecated in favor of {@link #autoRegistrationConfigurer(List, List)}
+	 * @deprecated since 1.0.0, in favor of {@link #autoRegistrationConfigurer(List, List)}
 	 */
-	@Deprecated
+	@Deprecated(since = "1.0.0", forRemoval = true)
+	@SuppressWarnings("removal")
 	public static GraphQLTypeVisitor autoRegistrationTypeVisitor(
 			List<QueryByExampleExecutor<?>> executors,
 			List<ReactiveQueryByExampleExecutor<?>> reactiveExecutors) {
@@ -318,7 +318,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
 				Builder<?, ?> builder = customize(executor, builder(executor));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
+				factories.put(typeName, (single) -> single ? builder.single() : builder.many());
 			}
 		}
 
@@ -326,7 +326,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 			String typeName = RepositoryUtils.getGraphQlTypeName(executor);
 			if (typeName != null) {
 				ReactiveBuilder<?, ?> builder = customize(executor, builder(executor));
-				factories.put(typeName, single -> single ? builder.single() : builder.many());
+				factories.put(typeName, (single) -> single ? builder.single() : builder.many());
 			}
 		}
 
@@ -336,7 +336,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static Builder customize(QueryByExampleExecutor<?> executor, Builder builder) {
-		if(executor instanceof QueryByExampleBuilderCustomizer<?> customizer){
+		if (executor instanceof QueryByExampleBuilderCustomizer<?> customizer) {
 			return customizer.customize(builder);
 		}
 		return builder;
@@ -344,7 +344,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static ReactiveBuilder customize(ReactiveQueryByExampleExecutor<?> executor, ReactiveBuilder builder) {
-		if(executor instanceof ReactiveQueryByExampleBuilderCustomizer<?> customizer){
+		if (executor instanceof ReactiveQueryByExampleBuilderCustomizer<?> customizer) {
 			return customizer.customize(builder);
 		}
 		return builder;
@@ -402,6 +402,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * into the target {@code projectionType}. Projection types can be
 		 * either interfaces with property getters to expose or regular classes
 		 * outside the entity type hierarchy for DTO projections.
+		 * @param <P> the result type
 		 * @param projectionType projection type
 		 * @return a new {@link Builder} instance with all previously
 		 * configured options and {@code projectionType} applied
@@ -435,6 +436,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
 		 * to go back from the end.
 		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @param defaultCount the default scroll count to use
+		 * @param defaultPosition a function that returns the forward/backward scroll position
 		 * @since 1.2.5
 		 */
 		public Builder<T, R> defaultScrollSubrange(
@@ -449,6 +452,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * not specify a cursor and/or a count of items.
 		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
 		 * count of 20.
+		 * @param defaultSubrange the default scroll subrange to use, can be {@code null}
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
 		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
@@ -458,8 +462,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public Builder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new Builder<>(this.executor, this.domainType,
 					this.resultType, this.cursorStrategy,
-					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
-					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					(defaultSubrange != null) ? defaultSubrange.count().getAsInt() : null,
+					(defaultSubrange != null) ? (forward) -> defaultSubrange.position().get() : null,
 					this.sort);
 		}
 
@@ -497,9 +501,9 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public DataFetcher<Iterable<R>> scrollable() {
 			return new ScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
-					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
-					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
+					(this.cursorStrategy != null) ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy(),
+					(this.defaultScrollCount != null) ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount(),
+					(this.defaultScrollPosition != null) ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition(),
 					this.sort);
 		}
 
@@ -511,8 +515,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * <p>This is supported by {@link #autoRegistrationConfigurer(List, List)
 	 * Auto-registration}, which detects if a repository implements this
 	 * interface and applies it accordingly.
-	 *
-	 * @param <T>
+	 * @param <T> domain type
 	 * @since 1.1.1
 	 */
 	public interface QueryByExampleBuilderCustomizer<T> {
@@ -578,13 +581,14 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * into the target {@code projectionType}. Projection types can be
 		 * either interfaces with property getters to expose or regular classes
 		 * outside the entity type hierarchy for DTO projections.
+		 * @param <P> the result type
 		 * @param projectionType projection type
 		 * @return a new {@link ReactiveBuilder} instance with all previously
 		 * configured options and {@code projectionType} applied
 		 */
 		public <P> ReactiveBuilder<T, P> projectAs(Class<P> projectionType) {
 			Assert.notNull(projectionType, "Projection type must not be null");
-			return new ReactiveBuilder<>(this.executor, this.domainType, 
+			return new ReactiveBuilder<>(this.executor, this.domainType,
 					projectionType, this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition, this.sort);
 		}
 
@@ -611,6 +615,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
 		 * to go back from the end.
 		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @param defaultCount the default scroll count to use
+		 * @param defaultPosition a function that returns the forward/backward scroll position
 		 * @since 1.2.5
 		 */
 		public ReactiveBuilder<T, R> defaultScrollSubrange(
@@ -625,6 +631,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		 * not specify a cursor and/or a count of items.
 		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a
 		 * count of 20.
+		 * @param defaultSubrange the default scroll subrange to use, can be {@code null}
 		 * @return a new {@link Builder} instance with all previously configured
 		 * options and {@code Sort} applied
 		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
@@ -634,8 +641,8 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public ReactiveBuilder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new ReactiveBuilder<>(this.executor, this.domainType,
 					this.resultType, this.cursorStrategy,
-					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
-					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					(defaultSubrange != null) ? defaultSubrange.count().getAsInt() : null,
+					(defaultSubrange != null) ? (forward) -> defaultSubrange.position().get() : null,
 					this.sort);
 		}
 
@@ -673,9 +680,9 @@ public abstract class QueryByExampleDataFetcher<T> {
 		public DataFetcher<Mono<Iterable<R>>> scrollable() {
 			return new ReactiveScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
-					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
-					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
+					(this.cursorStrategy != null) ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy(),
+					(this.defaultScrollCount != null) ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount(),
+					(this.defaultScrollPosition != null) ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition(),
 					this.sort);
 		}
 
@@ -687,8 +694,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * <p>This is supported by {@link #autoRegistrationConfigurer(List, List)
 	 * Auto-registration}, which detects if a repository implements this
 	 * interface and applies it accordingly.
-	 *
-	 * @param <T>
+	 * @param <T> the domain type
 	 * @since 1.1.1
 	 */
 	public interface ReactiveQueryByExampleBuilderCustomizer<T> {
@@ -728,7 +734,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@Override
 		@SuppressWarnings({"ConstantConditions", "unchecked"})
 		public R get(DataFetchingEnvironment env) throws BindException {
-			return this.executor.findBy(buildExample(env), query -> {
+			return this.executor.findBy(buildExample(env), (query) -> {
 				FluentQuery.FetchableFluentQuery<R> queryToUse = (FluentQuery.FetchableFluentQuery<R>) query;
 
 				if (this.sort.isSorted()) {
@@ -777,7 +783,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Iterable<R> get(DataFetchingEnvironment env) throws BindException {
-			return this.executor.findBy(buildExample(env), query -> {
+			return this.executor.findBy(buildExample(env), (query) -> {
 				FluentQuery.FetchableFluentQuery<R> queryToUse = (FluentQuery.FetchableFluentQuery<R>) query;
 
 				if (this.sort.isSorted()) {
@@ -874,7 +880,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Mono<R> get(DataFetchingEnvironment env) throws BindException {
-			return this.executor.findBy(buildExample(env), query -> {
+			return this.executor.findBy(buildExample(env), (query) -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
 				if (this.sort.isSorted()) {
@@ -922,7 +928,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Flux<R> get(DataFetchingEnvironment env) throws BindException {
-			return this.executor.findBy(buildExample(env), query -> {
+			return this.executor.findBy(buildExample(env), (query) -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
 				if (this.sort.isSorted()) {
@@ -989,7 +995,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Mono<Iterable<R>> get(DataFetchingEnvironment env) throws BindException {
-			return this.executor.findBy(buildExample(env), query -> {
+			return this.executor.findBy(buildExample(env), (query) -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
 				if (this.sort.isSorted()) {

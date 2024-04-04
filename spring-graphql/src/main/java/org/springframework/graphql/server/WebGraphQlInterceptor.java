@@ -59,7 +59,7 @@ public interface WebGraphQlInterceptor {
 	 * @return a new interceptor that chains the two
 	 */
 	default WebGraphQlInterceptor andThen(WebGraphQlInterceptor nextInterceptor) {
-		return (request, chain) -> intercept(request, nextRequest -> {
+		return (request, chain) -> intercept(request, (nextRequest) -> {
 			if (request instanceof WebSocketGraphQlRequest) {
 				Assert.isTrue(nextRequest instanceof WebSocketGraphQlRequest,
 						"Expected WebSocketGraphQlRequest but was: " + nextRequest.getClass().getName());
@@ -74,7 +74,7 @@ public interface WebGraphQlInterceptor {
 	 * @return a new chain instance
 	 */
 	default Chain apply(Chain chain) {
-		return request -> intercept(request, chain);
+		return (request) -> intercept(request, chain);
 	}
 
 

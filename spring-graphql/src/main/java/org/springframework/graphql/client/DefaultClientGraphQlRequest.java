@@ -27,7 +27,6 @@ import org.springframework.lang.Nullable;
  * Default implementation of {@link ClientGraphQlRequest}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultClientGraphQlRequest extends DefaultGraphQlRequest implements ClientGraphQlRequest {
 

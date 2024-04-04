@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 
@@ -75,7 +76,7 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		Assert.notNull(applicationContext, "ApplicationContext must not be null");
 		this.projectionFactory.setBeanFactory(applicationContext);
 		ClassLoader classLoader = applicationContext.getClassLoader();
-		if(classLoader != null) {
+		if (classLoader != null) {
 			this.projectionFactory.setBeanClassLoader(classLoader);
 		}
 	}
@@ -98,8 +99,8 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 
 	private static Class<?> getTargetType(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (type.equals(Optional.class) || type.equals(ArgumentValue.class) ?
-				parameter.nested().getNestedParameterType() : parameter.getParameterType());
+		return (type.equals(Optional.class) || type.equals(ArgumentValue.class)) ?
+				parameter.nested().getNestedParameterType() : parameter.getParameterType();
 	}
 
 	@Override
@@ -117,15 +118,15 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		}
 
 		Map<String, Object> arguments = environment.getArguments();
-		Object rawValue = (name != null ? arguments.get(name) : arguments);
-		Object value = (rawValue != null ? createProjection(targetType, rawValue) : null);
+		Object rawValue = (name != null) ? arguments.get(name) : arguments;
+		Object value = (rawValue != null) ? createProjection(targetType, rawValue) : null;
 
 		if (isOptional) {
 			return Optional.ofNullable(value);
 		}
 		else if (isArgumentValue) {
-			return (name != null && arguments.containsKey(name) ?
-					ArgumentValue.ofNullable(value) : ArgumentValue.omitted());
+			return (name != null && arguments.containsKey(name)) ?
+					ArgumentValue.ofNullable(value) : ArgumentValue.omitted();
 		}
 		else {
 			return value;
@@ -140,7 +141,7 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 	 * or the map of arguments
 	 * @return the created project instance
 	 */
-	protected Object createProjection(Class<?> targetType, Object rawValue){
+	protected Object createProjection(Class<?> targetType, Object rawValue) {
 		return this.projectionFactory.createProjection(targetType, rawValue);
 	}
 

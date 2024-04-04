@@ -58,7 +58,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler.Builder interceptors(List<WebGraphQlInterceptor> interceptors) {
 		this.interceptors.addAll(interceptors);
-		interceptors.forEach(interceptor -> {
+		interceptors.forEach((interceptor) -> {
 			if (interceptor instanceof WebSocketGraphQlInterceptor) {
 				Assert.isNull(this.webSocketInterceptor, "There can be at most 1 WebSocketInterceptor");
 				this.webSocketInterceptor = (WebSocketGraphQlInterceptor) interceptor;
@@ -70,19 +70,21 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		Chain endOfChain = request -> this.service.execute(request).map(WebGraphQlResponse::new);
+		Chain endOfChain = (request) -> this.service.execute(request).map(WebGraphQlResponse::new);
 
 		Chain executionChain = this.interceptors.stream()
 				.reduce(WebGraphQlInterceptor::andThen)
-				.map(interceptor -> interceptor.apply(endOfChain))
+				.map((interceptor) -> interceptor.apply(endOfChain))
 				.orElse(endOfChain);
 
 		return new WebGraphQlHandler() {
 
 			@Override
 			public WebSocketGraphQlInterceptor getWebSocketInterceptor() {
-				return (webSocketInterceptor != null ?
-						webSocketInterceptor : new WebSocketGraphQlInterceptor() {});
+				return ((DefaultWebGraphQlHandlerBuilder.this.webSocketInterceptor != null) ?
+						DefaultWebGraphQlHandlerBuilder.this.webSocketInterceptor : new WebSocketGraphQlInterceptor() {
+
+				});
 			}
 
 			@Override

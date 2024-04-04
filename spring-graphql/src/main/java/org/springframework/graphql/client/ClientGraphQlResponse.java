@@ -32,10 +32,12 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 	/**
 	 * {@inheritDoc}
 	 */
+	@Override
 	ClientResponseField field(String path);
 
 	/**
 	 * Decode the full response map to the given target type.
+	 * @param <D> the target type
 	 * @param type the target class
 	 * @return the decoded value, or never {@code null}
 	 * @throws FieldAccessException if the response is not {@link #isValid() valid}
@@ -44,7 +46,8 @@ public interface ClientGraphQlResponse extends GraphQlResponse {
 
 	/**
 	 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
-	 * @param type the target type
+	 * @param <D> the target type
+	 * @param type the target parameterized type
 	 * @return the decoded value, or never {@code null}
 	 * @throws FieldAccessException if the response is not {@link #isValid() valid}
 	 */

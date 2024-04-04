@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql;
 
 import java.nio.charset.StandardCharsets;
@@ -54,7 +55,7 @@ import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings("unused")
-public class GraphQlSetup implements GraphQlServiceSetup {
+public final class GraphQlSetup implements GraphQlServiceSetup {
 
 	private final GraphQlSource.SchemaResourceBuilder graphQlSourceBuilder;
 
@@ -81,8 +82,8 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	}
 
 	public GraphQlSetup dataFetcher(String type, String field, DataFetcher<?> dataFetcher) {
-		return runtimeWiring(wiringBuilder ->
-				wiringBuilder.type(type, typeBuilder -> typeBuilder.dataFetcher(field, dataFetcher)));
+		return runtimeWiring((wiringBuilder) ->
+				wiringBuilder.type(type, (typeBuilder) -> typeBuilder.dataFetcher(field, dataFetcher)));
 	}
 
 	public GraphQlSetup typeDefinitionConfigurer(TypeDefinitionConfigurer configurer) {
@@ -161,7 +162,7 @@ public class GraphQlSetup implements GraphQlServiceSetup {
 	}
 
 	public TestExecutionGraphQlService toGraphQlService() {
-		GraphQlSource source = graphQlSourceBuilder.build();
+		GraphQlSource source = this.graphQlSourceBuilder.build();
 		DefaultExecutionGraphQlService service = new DefaultExecutionGraphQlService(source);
 		this.dataLoaderRegistrars.forEach(service::addDataLoaderRegistrar);
 		return new TestExecutionGraphQlService(service);

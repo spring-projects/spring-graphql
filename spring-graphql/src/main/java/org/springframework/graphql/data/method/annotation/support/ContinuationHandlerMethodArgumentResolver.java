@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.DataFetchingEnvironment;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 
@@ -27,14 +29,14 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
  */
 public class ContinuationHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
-    @Override
-    public boolean supportsParameter(MethodParameter parameter) {
-        return "kotlin.coroutines.Continuation".equals(parameter.getParameterType().getName());
-    }
+	@Override
+	public boolean supportsParameter(MethodParameter parameter) {
+		return "kotlin.coroutines.Continuation".equals(parameter.getParameterType().getName());
+	}
 
-    @Override
-    public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
-        return null;
-    }
+	@Override
+	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
+		return null;
+	}
 
 }

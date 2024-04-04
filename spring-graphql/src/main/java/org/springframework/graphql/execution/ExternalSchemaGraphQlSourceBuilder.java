@@ -27,7 +27,6 @@ import org.springframework.util.Assert;
  * {@link GraphQLSchema}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class ExternalSchemaGraphQlSourceBuilder
 		extends AbstractGraphQlSourceBuilder<ExternalSchemaGraphQlSourceBuilder>
@@ -36,7 +35,7 @@ final class ExternalSchemaGraphQlSourceBuilder
 	private final GraphQLSchema schema;
 
 
-	public ExternalSchemaGraphQlSourceBuilder(GraphQLSchema schema) {
+	ExternalSchemaGraphQlSourceBuilder(GraphQLSchema schema) {
 		Assert.notNull(schema, "GraphQLSchema is required");
 		this.schema = schema;
 	}

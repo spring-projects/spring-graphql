@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Locale;
@@ -27,7 +28,7 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 
 /**
  * Resolver for {@link DataFetchingEnvironment} and related values that can be
- * accessed through the {@link DataFetchingEnvironment} such as:
+ * accessed through the {@link DataFetchingEnvironment}. This includes:
  * <ul>
  * <li>{@link GraphQLContext}
  * <li>{@link DataFetchingFieldSelectionSet}

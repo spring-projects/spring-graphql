@@ -111,13 +111,13 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 				.variables(getVariables())
 				.extensions(getExtensions())
 				.locale(this.locale)
-				.executionId(this.executionId != null ? this.executionId : ExecutionId.from(this.id));
+				.executionId((this.executionId != null) ? this.executionId : ExecutionId.from(this.id));
 
 		ExecutionInput executionInput = inputBuilder.build();
 
 		for (BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> configurer : this.executionInputConfigurers) {
 			ExecutionInput current = executionInput;
-			executionInput = executionInput.transform(builder -> configurer.apply(current, builder));
+			executionInput = executionInput.transform((builder) -> configurer.apply(current, builder));
 		}
 
 		return executionInput;
@@ -125,7 +125,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 
 	@Override
 	public String toString() {
-		return super.toString() + ", id=" + getId() + (getLocale() != null ? ", Locale=" + getLocale() : "");
+		return super.toString() + ", id=" + getId() + ((getLocale() != null) ? ", Locale=" + getLocale() : "");
 	}
 
 }

@@ -44,35 +44,35 @@ import reactor.core.publisher.Mono;
 @FunctionalInterface
 public interface SubscriptionExceptionResolver {
 
-    /**
-     * Resolve the given exception to a list of {@link GraphQLError}'s to be
-     * sent in an error message to the client.
-     * @param exception the exception from the Publisher
-     * @return a {@code Mono} with the GraphQL errors to send to the client;
-     * if the {@code Mono} completes with an empty List, the exception is resolved
-     * without any errors to send; if the {@code Mono} completes empty, without
-     * emitting a List, the exception remains unresolved, and that allows other
-     * resolvers to resolve it.
-     */
-    Mono<List<GraphQLError>> resolveException(Throwable exception);
+	/**
+	 * Resolve the given exception to a list of {@link GraphQLError}'s to be
+	 * sent in an error message to the client.
+	 * @param exception the exception from the Publisher
+	 * @return a {@code Mono} with the GraphQL errors to send to the client;
+	 * if the {@code Mono} completes with an empty List, the exception is resolved
+	 * without any errors to send; if the {@code Mono} completes empty, without
+	 * emitting a List, the exception remains unresolved, and that allows other
+	 * resolvers to resolve it.
+	 */
+	Mono<List<GraphQLError>> resolveException(Throwable exception);
 
 
-    /**
-     * Factory method to create a {@link SubscriptionExceptionResolver} to
-     * resolve an exception to a single GraphQL error. Effectively, a shortcut
-     * for creating {@link SubscriptionExceptionResolverAdapter} and overriding
-     * its {@code resolveToSingleError} method.
-     * @param resolver the resolver function to map the exception
-     * @return the created instance
-     */
-    static SubscriptionExceptionResolverAdapter forSingleError(Function<Throwable, GraphQLError> resolver) {
-        return new SubscriptionExceptionResolverAdapter() {
+	/**
+	 * Factory method to create a {@link SubscriptionExceptionResolver} to
+	 * resolve an exception to a single GraphQL error. Effectively, a shortcut
+	 * for creating {@link SubscriptionExceptionResolverAdapter} and overriding
+	 * its {@code resolveToSingleError} method.
+	 * @param resolver the resolver function to map the exception
+	 * @return the created instance
+	 */
+	static SubscriptionExceptionResolverAdapter forSingleError(Function<Throwable, GraphQLError> resolver) {
+		return new SubscriptionExceptionResolverAdapter() {
 
-            @Override
-            protected GraphQLError resolveToSingleError(Throwable ex) {
-                return resolver.apply(ex);
-            }
-        };
-    }
+			@Override
+			protected GraphQLError resolveToSingleError(Throwable ex) {
+				return resolver.apply(ex);
+			}
+		};
+	}
 
 }

@@ -43,7 +43,7 @@ public interface ResponseField {
 	 * </ul>
 	 * @deprecated as of 1.0.3 in favor of checking via {@link #getValue()}
 	 */
-	@Deprecated
+	@Deprecated(since = "1.0.3", forRemoval = true)
 	boolean hasValue();
 
 	/**
@@ -90,7 +90,7 @@ public interface ResponseField {
 	 * @deprecated since 1.0.3 in favor of {@link #getErrors()}
 	 */
 	@Nullable
-	@Deprecated
+	@Deprecated(since = "1.0.3", forRemoval = true)
 	ResponseError getError();
 
 	/**

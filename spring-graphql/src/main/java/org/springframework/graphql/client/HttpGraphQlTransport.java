@@ -37,12 +37,11 @@ import org.springframework.web.reactive.function.client.WebClient;
  * see {@link WebSocketGraphQlTransport} and {@link RSocketGraphQlTransport}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class HttpGraphQlTransport implements GraphQlTransport {
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<Map<String, Object>>() { };
 
 	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
 	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
@@ -64,7 +63,7 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 		HttpHeaders headers = new HttpHeaders();
 		webClient.mutate().defaultHeaders(headers::putAll);
 		MediaType contentType = headers.getContentType();
-		return (contentType != null ? contentType : MediaType.APPLICATION_JSON);
+		return (contentType != null) ? contentType : MediaType.APPLICATION_JSON;
 	}
 
 
@@ -75,7 +74,7 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 				.contentType(this.contentType)
 				.accept(MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_GRAPHQL)
 				.bodyValue(request.toMap())
-				.attributes(attributes -> {
+				.attributes((attributes) -> {
 					if (request instanceof ClientGraphQlRequest clientRequest) {
 						attributes.putAll(clientRequest.getAttributes());
 					}

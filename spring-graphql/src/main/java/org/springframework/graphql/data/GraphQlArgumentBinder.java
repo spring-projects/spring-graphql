@@ -139,7 +139,7 @@ public class GraphQlArgumentBinder {
 			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType)
 			throws BindException {
 
-		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+		Object rawValue = (name != null) ? environment.getArgument(name) : environment.getArguments();
 		boolean isOmitted = (name != null && !environment.getArguments().containsKey(name));
 
 		ArgumentsBindingResult bindingResult = new ArgumentsBindingResult(targetType);
@@ -246,9 +246,9 @@ public class GraphQlArgumentBinder {
 
 		Constructor<?> constructor = BeanUtils.getResolvableConstructor(targetClass);
 
-		Object value = (constructor.getParameterCount() > 0 ?
+		Object value = (constructor.getParameterCount() > 0) ?
 				bindMapToObjectViaConstructor(rawMap, constructor, targetType, bindingResult) :
-				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult));
+				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult);
 
 		bindingResult.popNestedPath();
 
@@ -360,7 +360,7 @@ public class GraphQlArgumentBinder {
 		Object value = null;
 		try {
 			TypeConverter converter =
-					(this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
+					(this.typeConverter != null) ? this.typeConverter : new SimpleTypeConverter();
 
 			value = converter.convertIfNecessary(
 					rawValue, (Class<?>) clazz, new TypeDescriptor(type, null, null));
@@ -385,9 +385,9 @@ public class GraphQlArgumentBinder {
 		}
 
 		private static String initObjectName(ResolvableType targetType) {
-			return (targetType.getSource() instanceof MethodParameter methodParameter ?
+			return (targetType.getSource() instanceof MethodParameter methodParameter) ?
 					Conventions.getVariableNameForParameter(methodParameter) :
-					ClassUtils.getShortNameAsProperty(targetType.resolve(Object.class)));
+					ClassUtils.getShortNameAsProperty(targetType.resolve(Object.class));
 		}
 
 		@Override
@@ -400,7 +400,7 @@ public class GraphQlArgumentBinder {
 			return null;
 		}
 
-		public void rejectArgumentValue(
+		void rejectArgumentValue(
 				String field, @Nullable Object rawValue, String code, String defaultMessage) {
 
 			addError(new FieldError(

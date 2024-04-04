@@ -52,7 +52,6 @@ import org.springframework.util.Assert;
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
- * @since 1.0.0
  */
 final class DefaultSchemaResourceGraphQlSourceBuilder
 		extends AbstractGraphQlSourceBuilder<GraphQlSource.SchemaResourceBuilder>
@@ -141,7 +140,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		RuntimeWiring runtimeWiring = initRuntimeWiring();
 
 		TypeResolver typeResolver = initTypeResolver();
-		registry.types().values().forEach(def -> {
+		registry.types().values().forEach((def) -> {
 			if (def instanceof UnionTypeDefinition || def instanceof InterfaceTypeDefinition) {
 				runtimeWiring.getTypeResolvers().putIfAbsent(def.getName(), typeResolver);
 			}
@@ -151,15 +150,15 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		// visitors may transform the schema, for example to add Connection types.
 
 		if (this.schemaReportConsumer != null) {
-			this.schemaReportRunner = schema -> {
+			this.schemaReportRunner = (schema) -> {
 				SchemaReport report = SchemaMappingInspector.inspect(schema, runtimeWiring);
 				this.schemaReportConsumer.accept(report);
 			};
 		}
 
-		return (this.schemaFactory != null ?
+		return (this.schemaFactory != null) ?
 				this.schemaFactory.apply(registry, runtimeWiring) :
-				new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring));
+				new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
 	}
 
 	private TypeDefinitionRegistry parse(Resource schemaResource) {
@@ -180,14 +179,14 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	private RuntimeWiring initRuntimeWiring() {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder));
+		this.runtimeWiringConfigurers.forEach((configurer) -> configurer.configure(builder));
 
 		List<WiringFactory> factories = new ArrayList<>();
 		WiringFactory factory = builder.build().getWiringFactory();
 		if (!factory.getClass().equals(NoopWiringFactory.class)) {
 			factories.add(factory);
 		}
-		this.runtimeWiringConfigurers.forEach(configurer -> configurer.configure(builder, factories));
+		this.runtimeWiringConfigurers.forEach((configurer) -> configurer.configure(builder, factories));
 		if (!factories.isEmpty()) {
 			builder.wiringFactory(new CombinedWiringFactory(factories));
 		}
@@ -196,7 +195,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	}
 
 	private TypeResolver initTypeResolver() {
-		return (this.typeResolver != null ? this.typeResolver : new ClassNameTypeResolver());
+		return (this.typeResolver != null) ? this.typeResolver : new ClassNameTypeResolver();
 	}
 
 	@Override

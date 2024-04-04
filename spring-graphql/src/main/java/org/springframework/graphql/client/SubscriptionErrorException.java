@@ -38,6 +38,8 @@ public class SubscriptionErrorException extends GraphQlTransportException {
 	/**
 	 * Constructor with the request details and the errors listed in the payload
 	 * of the {@code "errors"} message.
+	 * @param request the request details
+	 * @param errors the errors listed in the payload
 	 */
 	public SubscriptionErrorException(GraphQlRequest request, List<ResponseError> errors) {
 		super("GraphQL subscription completed with an \"error\" message, " +

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method;
 
 import java.lang.reflect.InvocationTargetException;
@@ -69,6 +70,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 	/**
 	 * Invoke the handler method with the given argument values.
+	 * @param graphQLContext the GraphQL context for this data fetching operation
 	 * @param argValues the values to use to invoke the method
 	 * @return the value returned from the method or a {@code Mono<Throwable>}
 	 * if the invocation fails.
@@ -89,7 +91,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		}
 		catch (IllegalArgumentException ex) {
 			assertTargetBean(method, getBean(), argValues);
-			String text = (ex.getMessage() != null ? ex.getMessage() : "Illegal argument");
+			String text = (ex.getMessage() != null) ? ex.getMessage() : "Illegal argument";
 			return Mono.error(new IllegalStateException(formatInvokeError(text, argValues), ex));
 		}
 		catch (InvocationTargetException ex) {
@@ -143,15 +145,16 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	/**
 	 * Use this method to resolve the arguments asynchronously. This is only
 	 * useful when at least one of the values is a {@link Mono}
+	 * @param args the arguments to be resolved asynchronously
 	 */
 	@SuppressWarnings("unchecked")
 	protected Mono<Object[]> toArgsMono(Object[] args) {
 		List<Mono<Object>> monoList = new ArrayList<>();
 		for (Object arg : args) {
-			Mono<Object> argMono = (arg instanceof Mono ? (Mono<Object>) arg : Mono.justOrEmpty(arg));
+			Mono<Object> argMono = ((arg instanceof Mono) ? (Mono<Object>) arg : Mono.justOrEmpty(arg));
 			monoList.add(argMono.defaultIfEmpty(NO_VALUE));
 		}
-		return Mono.zip(monoList, values -> {
+		return Mono.zip(monoList, (values) -> {
 			for (int i = 0; i < values.length; i++) {
 				if (values[i] == NO_VALUE) {
 					values[i] = null;

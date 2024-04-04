@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.ParameterizedType;
@@ -41,7 +42,7 @@ import org.springframework.util.Assert;
  * @since 1.0.0
  */
 public class DataLoaderMethodArgumentResolver implements HandlerMethodArgumentResolver {
-	
+
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		return parameter.getParameterType().equals(DataLoader.class);
@@ -80,8 +81,8 @@ public class DataLoaderMethodArgumentResolver implements HandlerMethodArgumentRe
 			ParameterizedType parameterizedType = (ParameterizedType) genericType;
 			if (parameterizedType.getActualTypeArguments().length == 2) {
 				Type valueType = parameterizedType.getActualTypeArguments()[1];
-				return (valueType instanceof Class ?
-						(Class<?>) valueType : ResolvableType.forType(valueType).resolve());
+				return (valueType instanceof Class) ?
+						(Class<?>) valueType : ResolvableType.forType(valueType).resolve();
 			}
 		}
 		return null;
@@ -92,7 +93,7 @@ public class DataLoaderMethodArgumentResolver implements HandlerMethodArgumentRe
 			@Nullable Class<?> valueType, @Nullable String parameterName) {
 
 		String message = "Cannot resolve DataLoader for parameter" +
-				(parameterName != null ? " '" + parameterName + "'" : "[" + parameter.getParameterIndex() + "]" ) +
+				((parameterName != null) ? " '" + parameterName + "'" : "[" + parameter.getParameterIndex() + "]") +
 				" in method " + parameter.getMethod().toGenericString() + ". ";
 
 		if (valueType == null) {

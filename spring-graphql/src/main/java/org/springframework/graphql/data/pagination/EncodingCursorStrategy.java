@@ -25,6 +25,7 @@ import org.springframework.util.Assert;
  * <p>To create an instance, use
  * {@link CursorStrategy#withEncoder(CursorStrategy, CursorEncoder)}.
  *
+ * @param <T> the type of position
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */

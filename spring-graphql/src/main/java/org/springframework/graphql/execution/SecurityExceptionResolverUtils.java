@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import graphql.GraphQLError;
@@ -26,9 +27,12 @@ import org.springframework.security.core.context.SecurityContext;
  * Package private delegate class shared by the reactive and non-reactive resolver types.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
-class SecurityExceptionResolverUtils {
+final class SecurityExceptionResolverUtils {
+
+	private SecurityExceptionResolverUtils() {
+
+	}
 
 	static GraphQLError resolveUnauthorized(DataFetchingEnvironment environment) {
 		return GraphqlErrorBuilder.newError(environment)

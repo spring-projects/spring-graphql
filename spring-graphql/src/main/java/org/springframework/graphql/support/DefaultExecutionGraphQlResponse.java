@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.support;
 
 import java.util.Collections;
@@ -50,6 +51,8 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	/**
 	 * Constructor to create initial instance.
+	 * @param input the execution input for this graphql operation
+	 * @param result the execution result for this graphql operation
 	 */
 	public DefaultExecutionGraphQlResponse(ExecutionInput input, ExecutionResult result) {
 		Assert.notNull(input, "ExecutionInput is required");
@@ -60,6 +63,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	/**
 	 * Constructor to re-wrap from transport specific subclass.
+	 * @param response the execution response
 	 */
 	protected DefaultExecutionGraphQlResponse(ExecutionGraphQlResponse response) {
 		this(response.getExecutionInput(), response.getExecutionResult());
@@ -94,7 +98,7 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	@Override
 	public Map<Object, Object> getExtensions() {
-		return (this.result.getExtensions() != null ? this.result.getExtensions() : Collections.emptyMap());
+		return (this.result.getExtensions() != null) ? this.result.getExtensions() : Collections.emptyMap();
 	}
 
 	@Override
@@ -132,18 +136,18 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 		public String getPath() {
 			return getParsedPath().stream()
 					.reduce("",
-							(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
+							(s, o) -> s + ((o instanceof Integer) ? "[" + o + "]" : ((s.isEmpty()) ? o : "." + o)),
 							(s, s2) -> null);
 		}
 
 		@Override
 		public List<Object> getParsedPath() {
-			return (this.delegate.getPath() != null ? this.delegate.getPath() : Collections.emptyList());
+			return (this.delegate.getPath() != null) ? this.delegate.getPath() : Collections.emptyList();
 		}
 
 		@Override
 		public Map<String, Object> getExtensions() {
-			return (this.delegate.getExtensions() != null ? this.delegate.getExtensions() : Collections.emptyMap());
+			return (this.delegate.getExtensions() != null) ? this.delegate.getExtensions() : Collections.emptyMap();
 		}
 
 		@Override
@@ -156,8 +160,10 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 	/**
 	 * Builder to transform the response's {@link ExecutionResult}.
+	 * @param <B> the builder type
+	 * @param <R> the response type
 	 */
-	public static abstract class Builder<B extends Builder<B, R>, R extends ExecutionGraphQlResponse> {
+	public abstract static class Builder<B extends Builder<B, R>, R extends ExecutionGraphQlResponse> {
 
 		private final R original;
 
@@ -209,6 +215,8 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 
 		/**
 		 * Subclasses to create the specific response instance.
+		 * @param original  the original response instance
+		 * @param newResult the new execution result for this response
 		 */
 		protected abstract R build(R original, ExecutionResult newResult);
 

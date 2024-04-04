@@ -20,7 +20,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -37,7 +36,6 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
  * {@code WebSocketGraphQlTransport}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultWebSocketGraphQlClientBuilder
 		extends AbstractGraphQlClientBuilder<DefaultWebSocketGraphQlClientBuilder>
@@ -130,14 +128,14 @@ final class DefaultWebSocketGraphQlClientBuilder
 	private WebSocketGraphQlClientInterceptor getInterceptor() {
 
 		List<WebSocketGraphQlClientInterceptor> interceptors = getInterceptors().stream()
-				.filter(interceptor -> interceptor instanceof WebSocketGraphQlClientInterceptor)
-				.map(interceptor -> (WebSocketGraphQlClientInterceptor) interceptor)
+				.filter((interceptor) -> interceptor instanceof WebSocketGraphQlClientInterceptor)
+				.map((interceptor) -> (WebSocketGraphQlClientInterceptor) interceptor)
 				.toList();
 
 		Assert.state(interceptors.size() <= 1,
 				"Only a single interceptor of type WebSocketGraphQlClientInterceptor may be configured");
 
-		return (!interceptors.isEmpty() ? interceptors.get(0) : new WebSocketGraphQlClientInterceptor() {});
+		return (!interceptors.isEmpty() ? interceptors.get(0) : new WebSocketGraphQlClientInterceptor() { });
 	}
 
 

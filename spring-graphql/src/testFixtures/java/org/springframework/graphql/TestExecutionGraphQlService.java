@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
  * Wrap an {@link ExecutionGraphQlService} to expose an addition convenience
  * method that takes a String document, and essentially hides the call to
  * {@link TestExecutionRequest#forDocument(String)}.
+ * @author Rossen Stoyanchev
  */
 public class TestExecutionGraphQlService implements ExecutionGraphQlService {
 

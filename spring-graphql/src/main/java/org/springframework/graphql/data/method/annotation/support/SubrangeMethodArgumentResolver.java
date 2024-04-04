@@ -30,6 +30,7 @@ import org.springframework.util.Assert;
  * Resolver for a method argument of type {@link Subrange} initialized
  * from "first", "last", "before", and "after" GraphQL arguments.
  *
+ * @param <P> the type of position in the subrange
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
@@ -62,12 +63,15 @@ public class SubrangeMethodArgumentResolver<P> implements HandlerMethodArgumentR
 				forward = false;
 			}
 		}
-		P pos = (cursor != null ? this.cursorStrategy.fromCursor(cursor) : null);
+		P pos = (cursor != null) ? this.cursorStrategy.fromCursor(cursor) : null;
 		return createSubrange(pos, count, forward);
 	}
 
 	/**
 	 * Allows subclasses to create an extension of {@link Subrange}.
+	 * @param pos the position in the subrange
+	 * @param count the number of elements in the subrange
+	 * @param forward whether the scroll direction is forward or backward from this position
 	 */
 	protected Subrange<P> createSubrange(@Nullable P pos, @Nullable Integer count, boolean forward) {
 		return new Subrange<>(pos, count, forward);

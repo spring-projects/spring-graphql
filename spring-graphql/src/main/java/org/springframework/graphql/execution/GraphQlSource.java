@@ -69,6 +69,7 @@ public interface GraphQlSource {
 	/**
 	 * Return a {@link GraphQlSource} builder that uses an externally prepared
 	 * {@link GraphQLSchema}.
+	 * @param schema the GraphQL schema
 	 */
 	static Builder<?> builder(GraphQLSchema schema) {
 		return new ExternalSchemaGraphQlSourceBuilder(schema);
@@ -79,6 +80,7 @@ public interface GraphQlSource {
 	/**
 	 * Common configuration options for all {@link GraphQlSource} builders,
 	 * independent of how {@link GraphQLSchema} is created.
+	 * @param <B> the builder type
 	 */
 	interface Builder<B extends Builder<B>> {
 
@@ -125,8 +127,8 @@ public interface GraphQlSource {
 		 * {@link #typeVisitors(List)} if it's not necessary to change the schema.
 		 * @param typeVisitors the type visitors to register
 		 * @return the current builder
-		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
 		 * @since 1.1.0
+		 * @see graphql.schema.SchemaTransformer#transformSchema(GraphQLSchema, GraphQLTypeVisitor)
 		 */
 		B typeVisitorsToTransformSchema(List<GraphQLTypeVisitor> typeVisitors);
 

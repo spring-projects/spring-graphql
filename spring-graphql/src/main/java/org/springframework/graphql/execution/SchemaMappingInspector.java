@@ -81,7 +81,7 @@ import org.springframework.util.MultiValueMap;
  * @since 1.2.0
  */
 @SuppressWarnings("rawtypes")
-public class SchemaMappingInspector {
+public final class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
 
@@ -211,7 +211,7 @@ public class SchemaMappingInspector {
 	}
 
 	private GraphQLType unwrapIfNonNull(GraphQLType type) {
-		return (type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type);
+		return (type instanceof GraphQLNonNull graphQLNonNull) ? graphQLNonNull.getWrappedType() : type;
 	}
 
 	private boolean isPaginatedType(GraphQLType type) {
@@ -277,7 +277,7 @@ public class SchemaMappingInspector {
 	}
 
 	private static String typeNameToString(GraphQLType type) {
-		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
+		return (type instanceof GraphQLNamedType namedType) ? namedType.getName() : type.toString();
 	}
 
 	private boolean addAndCheckIfAlreadyInspected(GraphQLType type) {
@@ -331,6 +331,8 @@ public class SchemaMappingInspector {
 	/**
 	 * Variant of {@link #inspect(GraphQLSchema, RuntimeWiring)} with a map of
 	 * {@code DataFetcher} registrations.
+	 * @param schema the schema to inspect
+	 * @param dataFetchers the map of registered {@code DataFetcher} instances
 	 * @since 1.2.5
 	 */
 	public static SchemaReport inspect(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers) {
@@ -341,7 +343,7 @@ public class SchemaMappingInspector {
 	/**
 	 * Helps to build a {@link SchemaReport}.
 	 */
-	private class ReportBuilder {
+	private final class ReportBuilder {
 
 		private final List<FieldCoordinates> unmappedFields = new ArrayList<>();
 
@@ -349,19 +351,19 @@ public class SchemaMappingInspector {
 
 		private final List<SchemaReport.SkippedType> skippedTypes = new ArrayList<>();
 
-		public void unmappedField(FieldCoordinates coordinates) {
+		void unmappedField(FieldCoordinates coordinates) {
 			this.unmappedFields.add(coordinates);
 		}
 
-		public void unmappedRegistration(FieldCoordinates coordinates, DataFetcher<?> dataFetcher) {
+		void unmappedRegistration(FieldCoordinates coordinates, DataFetcher<?> dataFetcher) {
 			this.unmappedRegistrations.put(coordinates, dataFetcher);
 		}
 
-		public void skippedType(GraphQLType type, FieldCoordinates coordinates) {
+		void skippedType(GraphQLType type, FieldCoordinates coordinates) {
 			this.skippedTypes.add(new DefaultSkippedType(type, coordinates));
 		}
 
-		public SchemaReport build() {
+		SchemaReport build() {
 			return new DefaultSchemaReport(this.unmappedFields, this.unmappedRegistrations, this.skippedTypes);
 		}
 
@@ -379,7 +381,7 @@ public class SchemaMappingInspector {
 
 		private final List<SchemaReport.SkippedType> skippedTypes;
 
-		public DefaultSchemaReport(
+		DefaultSchemaReport(
 				List<FieldCoordinates> unmappedFields, Map<FieldCoordinates, DataFetcher<?>> unmappedRegistrations,
 				List<SkippedType> skippedTypes) {
 
@@ -426,8 +428,8 @@ public class SchemaMappingInspector {
 
 		private String formatUnmappedFields() {
 			MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-			this.unmappedFields.forEach(coordinates -> {
-				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), s -> new ArrayList<>());
+			this.unmappedFields.forEach((coordinates) -> {
+				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), (s) -> new ArrayList<>());
 				fields.add(coordinates.getFieldName());
 			});
 			return map.toString();

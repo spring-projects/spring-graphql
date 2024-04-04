@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.client;
 
-import graphql.language.SourceLocation;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +25,7 @@ import java.util.Map;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.ResultPath;
+import graphql.language.SourceLocation;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.DeserializationFeature;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;

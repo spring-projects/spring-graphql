@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
@@ -43,9 +44,8 @@ import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
  * requires bean validation.
  *
  * @author Rossen Stoyanchev
- * @since 1.2.0
  */
-class ValidationHelper {
+final class ValidationHelper {
 
 	private final Validator validator;
 
@@ -62,7 +62,7 @@ class ValidationHelper {
 	 * {@link Validated}, {@link Valid}, or {@link Constraint} annotations.
 	 */
 	@Nullable
-	public BiConsumer<Object, Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
+	BiConsumer<Object, Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
 
 		boolean requiresMethodValidation = false;
 		Class<?>[] methodValidationGroups = null;
@@ -88,18 +88,18 @@ class ValidationHelper {
 				}
 				else if (annot.annotationType().equals(Validated.class)) {
 					Class<?>[] groups = ((Validated) annot).value();
-					parameterValidator = (parameterValidator != null ?
+					parameterValidator = (parameterValidator != null) ?
 							parameterValidator.andThen(new MethodParameterValidator(i, groups)) :
-							new MethodParameterValidator(i, groups));
+							new MethodParameterValidator(i, groups);
 				}
 			}
 		}
 
-		BiConsumer<Object, Object[]> result = (requiresMethodValidation ?
-				new HandlerMethodValidator(handlerMethod, methodValidationGroups) : null);
+		BiConsumer<Object, Object[]> result = (requiresMethodValidation) ?
+				new HandlerMethodValidator(handlerMethod, methodValidationGroups) : null;
 
 		if (parameterValidator != null) {
-			return (result != null ? result.andThen(parameterValidator) : parameterValidator);
+			return (result != null) ? result.andThen(parameterValidator) : parameterValidator;
 		}
 
 		return result;
@@ -120,7 +120,7 @@ class ValidationHelper {
 	 * {@link Validator} bean declared, or {@code null} otherwise.
 	 */
 	@Nullable
-	public static ValidationHelper createIfValidatorPresent(ApplicationContext context) {
+	static ValidationHelper createIfValidatorPresent(ApplicationContext context) {
 		Validator validator = context.getBeanProvider(Validator.class).getIfAvailable();
 		if (validator instanceof LocalValidatorFactoryBean) {
 			validator = ((LocalValidatorFactoryBean) validator).getValidator();
@@ -128,13 +128,13 @@ class ValidationHelper {
 		else if (validator instanceof SpringValidatorAdapter) {
 			validator = validator.unwrap(Validator.class);
 		}
-		return (validator != null ? create(validator) : null);
+		return (validator != null) ? create(validator) : null;
 	}
 
 	/**
 	 * Factory method with a given {@link Validator} instance.
 	 */
-	public static ValidationHelper create(Validator validator) {
+	static ValidationHelper create(Validator validator) {
 		return new ValidationHelper(validator);
 	}
 
@@ -151,7 +151,7 @@ class ValidationHelper {
 		HandlerMethodValidator(HandlerMethod handlerMethod, @Nullable Class<?>[] validationGroups) {
 			Assert.notNull(handlerMethod, "HandlerMethod is required");
 			this.method = handlerMethod.getMethod();
-			this.validationGroups = (validationGroups != null ? validationGroups : new Class<?>[] {});
+			this.validationGroups = (validationGroups != null) ? validationGroups : new Class<?>[] {};
 		}
 
 		@Override
@@ -181,7 +181,7 @@ class ValidationHelper {
 
 		MethodParameterValidator(int index, @Nullable Class<?>[] validationGroups) {
 			this.index = index;
-			this.validationGroups = (validationGroups != null ? validationGroups : new Class<?>[] {});
+			this.validationGroups = (validationGroups != null) ? validationGroups : new Class<?>[] {};
 		}
 
 		@Override

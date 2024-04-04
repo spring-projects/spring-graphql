@@ -41,7 +41,6 @@ import org.springframework.util.Assert;
  * in a sequence until one returns a list of {@link GraphQLError}'s.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
@@ -67,11 +66,11 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		ContextSnapshot snapshot = ContextSnapshot.captureFrom(env.getGraphQlContext());
 		try {
 			return Flux.fromIterable(this.resolvers)
-					.flatMap(resolver -> resolver.resolveException(exception, env))
-					.map(errors -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
+					.flatMap((resolver) -> resolver.resolveException(exception, env))
+					.map((errors) -> DataFetcherExceptionHandlerResult.newResult().errors(errors).build())
 					.next()
-					.doOnNext(result -> logResolvedException(exception, result))
-					.onErrorResume(resolverEx -> Mono.just(handleResolverError(resolverEx, exception, env)))
+					.doOnNext((result) -> logResolvedException(exception, result))
+					.onErrorResume((resolverEx) -> Mono.just(handleResolverError(resolverEx, exception, env)))
 					.switchIfEmpty(Mono.fromCallable(() -> createInternalError(exception, env)))
 					.contextWrite(snapshot::updateContext)
 					.toFuture();

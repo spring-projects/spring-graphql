@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
@@ -97,7 +98,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 	@Override
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		return getCurrentAuthentication(parameter)
-				.mapNotNull(auth -> resolvePrincipal(parameter, auth.getPrincipal()))
+				.mapNotNull((auth) -> resolvePrincipal(parameter, auth.getPrincipal()))
 				.transform((argument) -> isPublisherOrMono(parameter) ? Mono.just(argument) : argument);
 	}
 
@@ -109,7 +110,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 	@SuppressWarnings("unchecked")
 	private Mono<Authentication> getCurrentAuthentication(MethodParameter parameter) {
 		Object value = PrincipalMethodArgumentResolver.resolveAuthentication(parameter);
-		return (value instanceof Authentication auth ? Mono.just(auth) : (Mono<Authentication>) value);
+		return (value instanceof Authentication auth) ? Mono.just(auth) : (Mono<Authentication>) value;
 	}
 
 	@Nullable

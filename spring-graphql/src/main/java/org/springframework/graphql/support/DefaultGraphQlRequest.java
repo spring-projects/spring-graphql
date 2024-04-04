@@ -76,8 +76,8 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 		Assert.notNull(document, "'document' is required");
 		this.document = document;
 		this.operationName = operationName;
-		this.variables = (variables != null ? variables : Collections.emptyMap());
-		this.extensions = (extensions != null ? extensions : Collections.emptyMap());
+		this.variables = (variables != null) ? variables : Collections.emptyMap();
+		this.extensions = (extensions != null) ? extensions : Collections.emptyMap();
 	}
 
 
@@ -121,7 +121,7 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 
 	@Override
 	public boolean equals(Object o) {
-		if (! (o instanceof DefaultGraphQlRequest)) {
+		if (!(o instanceof DefaultGraphQlRequest)) {
 			return false;
 		}
 		DefaultGraphQlRequest other = (DefaultGraphQlRequest) o;

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
@@ -103,8 +104,6 @@ import org.springframework.validation.DataBinder;
  * is configured for use.
  * </ul>
  *
- *
- *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  * @since 1.0.0
@@ -113,17 +112,17 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 
 	private static final ClassLoader classLoader = AnnotatedControllerConfigurer.class.getClassLoader();
 
-	private final static boolean springDataPresent = ClassUtils.isPresent(
+	private static final boolean springDataPresent = ClassUtils.isPresent(
 			"org.springframework.data.projection.SpelAwareProxyProjectionFactory", classLoader);
 
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+	private static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext", classLoader);
 
-	private final static boolean beanValidationPresent = ClassUtils.isPresent(
+	private static final boolean beanValidationPresent = ClassUtils.isPresent(
 			"jakarta.validation.executable.ExecutableValidator", classLoader);
 
 
-	private final static Log logger = LogFactory.getLog(AnnotatedControllerConfigurer.class);
+	private static final Log logger = LogFactory.getLog(AnnotatedControllerConfigurer.class);
 
 	/**
 	 * Bean name prefix for target beans behind scoped proxies. Used to exclude those
@@ -165,6 +164,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * that assists in binding GraphQL arguments onto
 	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
 	 * annotated method parameters.
+	 * @param registrar the formatter registrar
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
@@ -175,6 +175,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
 	 * should falls back to direct field access in case the target object does
 	 * not use accessor methods.
+	 * @param fallBackOnDirectFieldAccess whether we should fall back on direct field access
 	 * @since 1.2.0
 	 */
 	public void setFallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
@@ -185,7 +186,6 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * Add a {@link HandlerMethodArgumentResolver} for custom controller method
 	 * arguments. Such custom resolvers are ordered after built-in resolvers
 	 * except for {@link SourceMethodArgumentResolver}, which is always last.
-	 *
 	 * @param resolver the resolver to add.
 	 * @since 1.2.0
 	 */
@@ -206,11 +206,9 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * exceptions from non-controller {@link DataFetcher}s since exceptions from
 	 * {@code @SchemaMapping} controller methods are handled automatically at
 	 * the point of invocation.
-	 *
 	 * @return a resolver instance that can be plugged into
 	 * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
 	 * GraphQlSource.Builder}
-	 *
 	 * @since 1.2.0
 	 */
 	public DataFetcherExceptionResolver getExceptionResolver() {
@@ -352,7 +350,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			else {
 				dataFetcher = registerBatchLoader(info);
 			}
-			runtimeWiringBuilder.type(info.getCoordinates().getTypeName(), typeBuilder ->
+			runtimeWiringBuilder.type(info.getCoordinates().getTypeName(), (typeBuilder) ->
 					typeBuilder.dataFetcher(info.getCoordinates().getFieldName(), dataFetcher));
 		});
 	}
@@ -482,17 +480,17 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 
 	private HandlerMethod createHandlerMethod(Method method, Object handler, Class<?> handlerType) {
 		Method theMethod = AopUtils.selectInvocableMethod(method, handlerType);
-		return (handler instanceof String ?
+		return (handler instanceof String) ?
 				new HandlerMethod((String) handler, obtainApplicationContext().getAutowireCapableBeanFactory(), theMethod) :
-				new HandlerMethod(handler, theMethod));
+				new HandlerMethod(handler, theMethod);
 	}
 
 	private String formatMappings(Class<?> handlerType, Collection<MappingInfo> infos) {
 		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
-				.map(p -> p.substring(0, 1))
+				.map((p) -> p.substring(0, 1))
 				.collect(Collectors.joining(".", "", "." + handlerType.getSimpleName()));
 		return infos.stream()
-				.map(mappingInfo -> {
+				.map((mappingInfo) -> {
 					Method method = mappingInfo.getHandlerMethod().getMethod();
 					String methodParameters = Arrays.stream(method.getGenericParameterTypes())
 							.map(Type::getTypeName)
@@ -511,7 +509,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 		BatchLoaderRegistry.RegistrationSpec<Object, Object> registration = registry.forName(dataLoaderKey);
 		if (info.getMaxBatchSize() > 0) {
-			registration.withOptions(options -> options.setMaxBatchSize(info.getMaxBatchSize()));
+			registration.withOptions((options) -> options.setMaxBatchSize(info.getMaxBatchSize()));
 		}
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
@@ -551,6 +549,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 	 * Alternative to {@link #configure(RuntimeWiring.Builder)} that registers
 	 * data fetchers in a {@link GraphQLCodeRegistry.Builder}. This could be
 	 * used with programmatic creation of {@link graphql.schema.GraphQLSchema}.
+	 * @param codeRegistryBuilder the code registry to be processed
 	 */
 	@SuppressWarnings("rawtypes")
 	public void configure(GraphQLCodeRegistry.Builder codeRegistryBuilder) {
@@ -577,7 +576,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 
 		private final HandlerMethod handlerMethod;
 
-		public MappingInfo(
+		MappingInfo(
 				String typeName, String field, boolean batchMapping, int maxBatchSize,
 				HandlerMethod handlerMethod) {
 
@@ -587,20 +586,20 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			this.handlerMethod = handlerMethod;
 		}
 
-		public FieldCoordinates getCoordinates() {
+		FieldCoordinates getCoordinates() {
 			return this.coordinates;
 		}
 
 		@SuppressWarnings("BooleanMethodIsAlwaysInverted")
-		public boolean isBatchMapping() {
+		boolean isBatchMapping() {
 			return this.batchMapping;
 		}
 
-		public int getMaxBatchSize() {
+		int getMaxBatchSize() {
 			return this.maxBatchSize;
 		}
 
-		public HandlerMethod getHandlerMethod() {
+		HandlerMethod getHandlerMethod() {
 			return this.handlerMethod;
 		}
 
@@ -639,7 +638,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 			this.argumentResolvers = argumentResolvers;
 
 			this.methodValidationHelper =
-					(helper != null ? helper.getValidationHelperFor(info.getHandlerMethod()) : null);
+					(helper != null) ? helper.getValidationHelperFor(info.getHandlerMethod()) : null;
 
 			// Register controllers early to validate exception handler return types
 			Class<?> controllerType = info.getHandlerMethod().getBeanType();
@@ -664,7 +663,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		/**
 		 * Return the {@link HandlerMethod} used to fetch data.
 		 */
-		public HandlerMethod getHandlerMethod() {
+		HandlerMethod getHandlerMethod() {
 			return this.info.getHandlerMethod();
 		}
 
@@ -690,13 +689,13 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 				DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod, Object result) {
 
 			if (this.subscription && result instanceof Publisher<?> publisher) {
-				result = Flux.from(publisher).onErrorResume(ex -> handleSubscriptionError(ex, env, handlerMethod));
+				result = Flux.from(publisher).onErrorResume((ex) -> handleSubscriptionError(ex, env, handlerMethod));
 			}
 			else if (result instanceof Mono) {
-				result = ((Mono<T>) result).onErrorResume(ex -> (Mono<T>) handleException(ex, env, handlerMethod));
+				result = ((Mono<T>) result).onErrorResume((ex) -> (Mono<T>) handleException(ex, env, handlerMethod));
 			}
 			else if (result instanceof Flux<?>) {
-				result = ((Flux<T>) result).onErrorResume(ex -> (Mono<T>) handleException(ex, env, handlerMethod));
+				result = ((Flux<T>) result).onErrorResume((ex) -> (Mono<T>) handleException(ex, env, handlerMethod));
 			}
 			return result;
 		}
@@ -705,7 +704,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
 
 			return this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
-					.map(errors -> DataFetcherResult.newResult().errors(errors).build())
+					.map((errors) -> DataFetcherResult.newResult().errors(errors).build())
 					.switchIfEmpty(Mono.error(ex));
 		}
 
@@ -714,7 +713,7 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
 
 			return (Publisher<T>) this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
-					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)))
+					.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, ex)))
 					.switchIfEmpty(Mono.error(ex));
 		}
 

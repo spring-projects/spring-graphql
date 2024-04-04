@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.server.webmvc;
 
 import graphql.schema.idl.SchemaPrinter;
@@ -27,6 +28,7 @@ import org.springframework.web.servlet.function.ServerResponse;
  * {@link graphql.schema.GraphQLSchema} printed via {@link SchemaPrinter}.
  *
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class SchemaHandler {
 
@@ -43,7 +45,7 @@ public class SchemaHandler {
 	public ServerResponse handleRequest(ServerRequest request) {
 		return ServerResponse.ok()
 				.contentType(MediaType.TEXT_PLAIN)
-				.body(this.printer.print(graphQlSource.schema()));
+				.body(this.printer.print(this.graphQlSource.schema()));
 	}
 
 }

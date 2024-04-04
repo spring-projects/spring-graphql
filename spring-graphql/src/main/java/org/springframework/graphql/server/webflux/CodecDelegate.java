@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.server.webflux;
 
 import java.util.Collections;
@@ -43,7 +44,6 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * Helper class for encoding and decoding GraphQL messages.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class CodecDelegate {
 
@@ -79,7 +79,7 @@ final class CodecDelegate {
 
 
 	@SuppressWarnings("unchecked")
-	public <T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
+	<T> WebSocketMessage encode(WebSocketSession session, GraphQlWebSocketMessage message) {
 
 		DataBuffer buffer = ((Encoder<T>) this.encoder).encodeValue(
 				(T) message, session.bufferFactory(), MESSAGE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
@@ -88,20 +88,20 @@ final class CodecDelegate {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
+	GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
 		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
 		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}
 
-	public WebSocketMessage encodeConnectionAck(WebSocketSession session, Object ackPayload) {
+	WebSocketMessage encodeConnectionAck(WebSocketSession session, Object ackPayload) {
 		return encode(session, GraphQlWebSocketMessage.connectionAck(ackPayload));
 	}
 
-	public WebSocketMessage encodeNext(WebSocketSession session, String id, Map<String, Object> responseMap) {
+	WebSocketMessage encodeNext(WebSocketSession session, String id, Map<String, Object> responseMap) {
 		return encode(session, GraphQlWebSocketMessage.next(id, responseMap));
 	}
 
-	public WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
+	WebSocketMessage encodeError(WebSocketSession session, String id, Throwable ex) {
 		List<GraphQLError> errors = ((ex instanceof SubscriptionPublisherException) ?
 				((SubscriptionPublisherException) ex).getErrors() :
 				Collections.singletonList(GraphqlErrorBuilder.newError()
@@ -111,7 +111,7 @@ final class CodecDelegate {
 		return encode(session, GraphQlWebSocketMessage.error(id, errors));
 	}
 
-	public WebSocketMessage encodeComplete(WebSocketSession session, String id) {
+	WebSocketMessage encodeComplete(WebSocketSession session, String id) {
 		return encode(session, GraphQlWebSocketMessage.complete(id));
 	}
 

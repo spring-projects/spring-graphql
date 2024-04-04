@@ -32,14 +32,14 @@ import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.util.ClassUtils;
 
 /**
- * Base class to test resolving {@link @Argument} and {@link @Arguments}
+ * Base class to test resolving {@code @Argument} and {@code @Arguments}
  * annotated method parameters.
  *
  * @author Rossen Stoyanchev
  */
 class ArgumentResolverTestSupport {
 
-	private static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
+	private static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() { };
 
 
 	private final ObjectMapper mapper = new ObjectMapper();

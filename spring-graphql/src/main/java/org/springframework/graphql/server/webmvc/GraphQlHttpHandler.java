@@ -59,7 +59,9 @@ public class GraphQlHttpHandler {
 	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<>() {};
+			new ParameterizedTypeReference<>() {
+
+			};
 
 	// To be removed in favor of Framework's MediaType.APPLICATION_GRAPHQL_RESPONSE
 	private static final MediaType APPLICATION_GRAPHQL_RESPONSE =
@@ -101,12 +103,12 @@ public class GraphQlHttpHandler {
 		}
 
 		CompletableFuture<ServerResponse> future = this.graphQlHandler.handleRequest(graphQlRequest)
-				.map(response -> {
+				.map((response) -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.body(response.toMap());
 				})
@@ -130,7 +132,7 @@ public class GraphQlHttpHandler {
 	private static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
 		MultiValueMap<String, Cookie> source = serverRequest.cookies();
 		MultiValueMap<String, HttpCookie> target = new LinkedMultiValueMap<>(source.size());
-		source.values().forEach(cookieList -> cookieList.forEach(cookie -> {
+		source.values().forEach((cookieList) -> cookieList.forEach((cookie) -> {
 			HttpCookie httpCookie = new HttpCookie(cookie.getName(), cookie.getValue());
 			target.add(cookie.getName(), httpCookie);
 		}));

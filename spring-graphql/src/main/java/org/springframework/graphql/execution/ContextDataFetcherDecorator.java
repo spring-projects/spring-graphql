@@ -88,13 +88,13 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		if (this.subscription) {
 			Assert.state(value instanceof Publisher, "Expected Publisher for a subscription");
-			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume(exception -> {
+			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume((exception) -> {
 				// Already handled, e.g. controller methods?
 				if (exception instanceof SubscriptionPublisherException) {
 					return Mono.error(exception);
 				}
 				return this.subscriptionExceptionResolver.resolveException(exception)
-						.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, exception)));
+						.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, exception)));
 			});
 			return flux.contextWrite(snapshot::updateContext);
 		}
@@ -123,7 +123,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	/**
 	 * Type visitor to apply {@link ContextDataFetcherDecorator}.
 	 */
-	private static class ContextTypeVisitor extends GraphQLTypeVisitorStub {
+	private static final class ContextTypeVisitor extends GraphQLTypeVisitorStub {
 
 		private final SubscriptionExceptionResolver exceptionResolver;
 
@@ -143,7 +143,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 			if (applyDecorator(dataFetcher)) {
 				boolean handlesSubscription = visitorHelper.isSubscriptionType(parent);
-				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, exceptionResolver);
+				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, this.exceptionResolver);
 				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
 			}
 

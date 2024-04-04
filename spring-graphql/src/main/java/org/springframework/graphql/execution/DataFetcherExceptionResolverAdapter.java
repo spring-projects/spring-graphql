@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.Collections;
@@ -104,7 +105,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 					.call();
 		}
 		catch (Exception ex2) {
-			logger.warn("Failed to resolve " + exception, ex2);
+			this.logger.warn("Failed to resolve " + exception, ex2);
 			return null;
 		}
 	}
@@ -118,7 +119,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	@Nullable
 	protected List<GraphQLError> resolveToMultipleErrors(Throwable ex, DataFetchingEnvironment env) {
 		GraphQLError error = resolveToSingleError(ex, env);
-		return (error != null ? Collections.singletonList(error) : null);
+		return (error != null) ? Collections.singletonList(error) : null;
 	}
 
 	/**
@@ -140,7 +141,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	 * @return the created instance
 	 * @deprecated as of 1.0.1, please use {@link DataFetcherExceptionResolver#forSingleError(BiFunction)}
 	 */
-	@Deprecated
+	@Deprecated(since = "1.0.1", forRemoval = true)
 	public static DataFetcherExceptionResolverAdapter from(
 			BiFunction<Throwable, DataFetchingEnvironment, GraphQLError> resolver) {
 

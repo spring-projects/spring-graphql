@@ -39,6 +39,7 @@ public interface WebGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Base builder for GraphQL clients over a Web transport.
+	 * @param <B> the builder type
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlClient.Builder<B> {
 
@@ -71,6 +72,7 @@ public interface WebGraphQlClient extends GraphQlClient {
 		/**
 		 * Configure the underlying {@code CodecConfigurer} to use for all JSON
 		 * encoding and decoding needs.
+		 * @param codecsConsumer a consumer that configures the {@code CodecConfigurer}
 		 */
 		B codecConfigurer(Consumer<CodecConfigurer> codecsConsumer);
 

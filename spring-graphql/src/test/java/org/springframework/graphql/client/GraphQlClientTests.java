@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
 import java.util.ArrayList;
@@ -84,7 +85,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\"}}");
 
 		Map<String, MovieCharacter> map = graphQlClient().document(document)
-				.retrieve("").toEntity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
+				.retrieve("").toEntity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() { })
 				.block(TIMEOUT);
 
 		assertThat(map).containsEntry("me", MovieCharacter.create("Luke Skywalker"));

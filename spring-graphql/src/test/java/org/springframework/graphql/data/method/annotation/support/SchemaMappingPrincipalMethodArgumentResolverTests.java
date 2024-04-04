@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
@@ -26,8 +27,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.graphql.execution.DataFetcherExceptionResolver;
-import org.springframework.graphql.execution.ErrorType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -41,6 +40,8 @@ import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
+import org.springframework.graphql.execution.DataFetcherExceptionResolver;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;

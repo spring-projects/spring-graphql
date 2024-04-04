@@ -29,6 +29,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * {@link graphql.schema.GraphQLSchema} printed via {@link SchemaPrinter}.
  *
  * @author Rossen Stoyanchev
+ * @since 1.0.0
  */
 public class SchemaHandler {
 
@@ -45,7 +46,7 @@ public class SchemaHandler {
 	public Mono<ServerResponse> handleRequest(ServerRequest request) {
 		return ServerResponse.ok()
 				.contentType(MediaType.TEXT_PLAIN)
-				.bodyValue(this.printer.print(graphQlSource.schema()));
+				.bodyValue(this.printer.print(this.graphQlSource.schema()));
 	}
 
 }

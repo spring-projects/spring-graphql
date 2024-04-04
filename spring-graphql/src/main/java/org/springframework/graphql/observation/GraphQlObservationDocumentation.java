@@ -140,7 +140,7 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		},
 
 		/**
-		 * Class name of the data fetching error
+		 * Class name of the data fetching error.
 		 */
 		ERROR_TYPE {
 			@Override

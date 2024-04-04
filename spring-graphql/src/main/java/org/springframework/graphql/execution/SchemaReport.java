@@ -71,6 +71,7 @@ public interface SchemaReport {
 
 	/**
 	 * Return the {@code DataFetcher} for the given field coordinates, if registered.
+	 * @param coordinates the field coordinates
 	 */
 	@Nullable
 	DataFetcher<?> dataFetcher(FieldCoordinates coordinates);

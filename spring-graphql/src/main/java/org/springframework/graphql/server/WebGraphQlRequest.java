@@ -83,6 +83,13 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	/**
 	 * Variant of {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
 	 * with a Map for the request body.
+	 * @param uri the URL for the HTTP request or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param cookies the HTTP request cookies
+	 * @param attributes request attributes
+	 * @param body the deserialized content of the GraphQL request
+	 * @param id an identifier for the GraphQL request
+	 * @param locale the locale from the HTTP request, if any
 	 * @since 1.1.3
 	 */
 	public WebGraphQlRequest(
@@ -122,6 +129,11 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	/**
 	 * Create an instance.
+	 * @param uri the URL for the HTTP request or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param body the deserialized content of the GraphQL request
+	 * @param id an identifier for the GraphQL request
+	 * @param locale the locale from the HTTP request, if any
 	 * @deprecated as of 1.1.3 in favor of
 	 * {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
 	 */
@@ -143,7 +155,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
-		this.cookies = (cookies != null ? CollectionUtils.unmodifiableMultiValueMap(cookies) : EMPTY_COOKIES);
+		this.cookies = (cookies != null) ? CollectionUtils.unmodifiableMultiValueMap(cookies) : EMPTY_COOKIES;
 		this.attributes = Collections.unmodifiableMap(attributes);
 	}
 

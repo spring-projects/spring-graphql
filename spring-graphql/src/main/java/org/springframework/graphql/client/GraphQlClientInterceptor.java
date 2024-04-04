@@ -65,13 +65,13 @@ public interface GraphQlClientInterceptor {
 			@Override
 			public Mono<ClientGraphQlResponse> intercept(ClientGraphQlRequest request, Chain chain) {
 				return GraphQlClientInterceptor.this.intercept(
-						request, nextRequest -> interceptor.intercept(nextRequest, chain));
+						request, (nextRequest) -> interceptor.intercept(nextRequest, chain));
 			}
 
 			@Override
 			public Flux<ClientGraphQlResponse> interceptSubscription(ClientGraphQlRequest request, SubscriptionChain chain) {
 				return GraphQlClientInterceptor.this.interceptSubscription(
-						request, nextRequest -> interceptor.interceptSubscription(nextRequest, chain));
+						request, (nextRequest) -> interceptor.interceptSubscription(nextRequest, chain));
 			}
 		};
 	}

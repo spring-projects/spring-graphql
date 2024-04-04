@@ -35,6 +35,9 @@ public class WebSocketDisconnectedException extends GraphQlTransportException {
 	/**
 	 * Constructor with an explanation about the closure, along with the request
 	 * details and the status used to close the WebSocket session.
+	 * @param closeStatusMessage the message received when the connection was closed
+	 * @param request the ongoing request when the connection was closed
+	 * @param status the received close status
 	 */
 	public WebSocketDisconnectedException(String closeStatusMessage, GraphQlRequest request, CloseStatus status) {
 		super(closeStatusMessage, null, request);

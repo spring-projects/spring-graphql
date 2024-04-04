@@ -16,6 +16,9 @@
 
 package org.springframework.graphql.observation;
 
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+
 import graphql.ExecutionResult;
 import graphql.GraphQLContext;
 import graphql.execution.instrumentation.InstrumentationContext;
@@ -31,10 +34,8 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
-import org.springframework.lang.Nullable;
 
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
+import org.springframework.lang.Nullable;
 
 /**
  * {@link graphql.execution.instrumentation.Instrumentation} that creates
@@ -151,7 +152,8 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 									dataFetcherObservation.error(error.getCause());
 									dataFetcherObservation.stop();
 									throw completionException;
-								} else {
+								}
+								else {
 									dataFetcherObservation.error(error);
 									dataFetcherObservation.stop();
 									throw new CompletionException(error);

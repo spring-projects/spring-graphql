@@ -19,6 +19,7 @@ package org.springframework.graphql.observation;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import io.micrometer.observation.Observation;
+
 import org.springframework.lang.Nullable;
 
 /**
@@ -30,58 +31,58 @@ import org.springframework.lang.Nullable;
  */
 public class ExecutionRequestObservationContext extends Observation.Context {
 
-    private final ExecutionInput executionInput;
+	private final ExecutionInput executionInput;
 
-    @Nullable
-    private ExecutionResult executionResult;
+	@Nullable
+	private ExecutionResult executionResult;
 
-    public ExecutionRequestObservationContext(ExecutionInput executionInput) {
-        this.executionInput = executionInput;
-    }
+	public ExecutionRequestObservationContext(ExecutionInput executionInput) {
+		this.executionInput = executionInput;
+	}
 
-    /**
-     * Return the {@link ExecutionInput input} for the request execution.
-     * @since 1.1.4
-     */
-    public ExecutionInput getExecutionInput() {
-        return this.executionInput;
-    }
+	/**
+	 * Return the {@link ExecutionInput input} for the request execution.
+	 * @since 1.1.4
+	 */
+	public ExecutionInput getExecutionInput() {
+		return this.executionInput;
+	}
 
-    /**
-     * Return the {@link ExecutionInput input} for the request execution.
-     * @deprecated since 1.1.4 in favor of {@link #getExecutionInput()}
-     */
-    @Deprecated(since = "1.1.4", forRemoval = true)
-    public ExecutionInput getCarrier() {
-        return this.executionInput;
-    }
+	/**
+	 * Return the {@link ExecutionInput input} for the request execution.
+	 * @deprecated since 1.1.4 in favor of {@link #getExecutionInput()}
+	 */
+	@Deprecated(since = "1.1.4", forRemoval = true)
+	public ExecutionInput getCarrier() {
+		return this.executionInput;
+	}
 
-    /**
-     * Return the {@link ExecutionResult result} for the request execution.
-     * @since 1.1.4
-     */
-    @Nullable
-    public ExecutionResult getExecutionResult() {
-        return this.executionResult;
-    }
+	/**
+	 * Return the {@link ExecutionResult result} for the request execution.
+	 * @since 1.1.4
+	 */
+	@Nullable
+	public ExecutionResult getExecutionResult() {
+		return this.executionResult;
+	}
 
-    /**
-     * Set the {@link ExecutionResult result} for the request execution.
-     * @param executionResult the execution result
-     * @since 1.1.4
-     */
-    public void setExecutionResult(ExecutionResult executionResult) {
-        this.executionResult = executionResult;
-    }
+	/**
+	 * Set the {@link ExecutionResult result} for the request execution.
+	 * @param executionResult the execution result
+	 * @since 1.1.4
+	 */
+	public void setExecutionResult(ExecutionResult executionResult) {
+		this.executionResult = executionResult;
+	}
 
-    /**
-     * Return the {@link ExecutionResult result} for the request execution.
-     * @deprecated since 1.1.4 in favor of {@link #getExecutionResult()}
-     */
-    @Nullable
-    @Deprecated(since = "1.1.4", forRemoval = true)
-    public ExecutionResult getResponse() {
-        return this.executionResult;
-    }
+	/**
+	 * Return the {@link ExecutionResult result} for the request execution.
+	 * @deprecated since 1.1.4 in favor of {@link #getExecutionResult()}
+	 */
+	@Nullable
+	@Deprecated(since = "1.1.4", forRemoval = true)
+	public ExecutionResult getResponse() {
+		return this.executionResult;
+	}
 
 }

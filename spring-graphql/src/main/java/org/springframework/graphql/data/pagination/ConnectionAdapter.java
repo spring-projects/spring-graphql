@@ -30,26 +30,33 @@ public interface ConnectionAdapter {
 
 	/**
 	 * Whether the adapter supports the given Object container type.
+	 * @param containerType the container type to check for support
 	 */
 	boolean supports(Class<?> containerType);
 
 	/**
 	 * Return the contained items as a List.
+	 * @param <T> the type of objects in the collection
+	 * @param container the container of elements
 	 */
 	<T> Collection<T> getContent(Object container);
 
 	/**
 	 * Whether there are more pages before this one.
+	 * @param container the container of elements
 	 */
 	boolean hasPrevious(Object container);
 
 	/**
 	 * Whether there are more pages after this one.
+	 * @param container the container of elements
 	 */
 	boolean hasNext(Object container);
 
 	/**
 	 * Return a cursor for the item at the given index.
+	 * @param container the container of elements
+	 * @param index the index of an element in the container
 	 */
 	String cursorAt(Object container, int index);
 

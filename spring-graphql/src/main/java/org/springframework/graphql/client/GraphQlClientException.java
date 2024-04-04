@@ -36,6 +36,9 @@ public class GraphQlClientException extends NestedRuntimeException {
 
 	/**
 	 * Constructor with a message, optional cause, and the request details.
+	 * @param message the exception message to use
+	 * @param cause the original cause for the client exception
+	 * @param request the request that failed
 	 */
 	public GraphQlClientException(String message, @Nullable Throwable cause, GraphQlRequest request) {
 		super(message, cause);

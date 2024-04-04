@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
 import java.util.List;
@@ -61,6 +62,7 @@ public interface GraphQlClient {
 	 * Variant of {@link #document(String)} that uses the given key to resolve
 	 * the GraphQL document from a file with the help of the configured
 	 * {@link Builder#documentSource(DocumentSource) DocumentSource}.
+	 * @param name the document name
 	 * @throws IllegalArgumentException if the content could not be loaded
 	 */
 	RequestSpec documentName(String name);
@@ -87,6 +89,7 @@ public interface GraphQlClient {
 
 	/**
 	 * Defines a builder for creating {@link GraphQlClient} instances.
+	 * @param <B> the client builder type
 	 */
 	interface Builder<B extends Builder<B>> {
 
@@ -112,6 +115,7 @@ public interface GraphQlClient {
 		 * <p>By default, this is set to {@link ResourceDocumentSource} with
 		 * classpath location {@code "graphql-documents/"} and
 		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
+		 * @param contentLoader the document source
 		 */
 		B documentSource(DocumentSource contentLoader);
 
@@ -190,6 +194,7 @@ public interface GraphQlClient {
 		 * <pre>
 		 * client.document("..").execute().map(response -> response.toEntity(..))
 		 * </pre>
+		 * @param path the field path
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the field has any field errors,
 		 * including errors at, above or below the field path.
@@ -203,6 +208,7 @@ public interface GraphQlClient {
 		 * <pre>
 		 * client.document("..").executeSubscription().map(response -> response.toEntity(..))
 		 * </pre>
+		 * @param path the field path
 		 * @return a spec with decoding options
 		 */
 		RetrieveSubscriptionSpec retrieveSubscription(String path);
@@ -242,6 +248,7 @@ public interface GraphQlClient {
 
 		/**
 		 * Decode the field to an entity of the given type.
+		 * @param <D> the entity type
 		 * @param entityType the type to convert to
 		 * @return {@code Mono} with the decoded entity; completes with
 		 * {@link FieldAccessException} in case of {@link ResponseField field
@@ -253,17 +260,21 @@ public interface GraphQlClient {
 
 		/**
 		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
+		 * @param <D> the entity type
+		 * @param entityType the type to convert to
 		 */
 		<D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType);
 
 		/**
 		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
+		 * @param <D> the entity type
 		 * @param elementType the type of elements in the list
 		 */
 		<D> Mono<List<D>> toEntityList(Class<D> elementType);
 
 		/**
 		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.
+		 * @param <D> the entity type
 		 * @param elementType the type of elements in the list
 		 */
 		<D> Mono<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
@@ -278,6 +289,7 @@ public interface GraphQlClient {
 
 		/**
 		 * Decode the field to an entity of the given type.
+		 * @param <D> the entity type
 		 * @param entityType the type to convert to
 		 * @return {@code Mono} with the decoded entity; completes with
 		 * {@link FieldAccessException} in case of {@link ResponseField field
@@ -289,17 +301,22 @@ public interface GraphQlClient {
 
 		/**
 		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
+		 * @param <D> the entity type
+		 * @param entityType the type to convert to
 		 */
 		<D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType);
 
 		/**
 		 * Variant of {@link #toEntity(Class)} to decode each response to a List of entities.
+		 * @param <D> the entity type
 		 * @param elementType the type of elements in the list
 		 */
 		<D> Flux<List<D>> toEntityList(Class<D> elementType);
 
 		/**
 		 * Variant of {@link #toEntity(Class)} to decode each response to a List of entities.
+		 * @param <D> the entity type
+		 * @param elementType the type of elements in the list
 		 */
 		<D> Flux<List<D>> toEntityList(ParameterizedTypeReference<D> elementType);
 

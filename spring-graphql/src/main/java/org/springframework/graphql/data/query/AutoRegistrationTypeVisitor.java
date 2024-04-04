@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.query;
 
 import java.util.Map;
@@ -39,9 +40,9 @@ import org.springframework.lang.Nullable;
  * already have registrations.
  *
  * @author Rossen Stoyanchev
- * @deprecated in favor of {@link AutoRegistrationRuntimeWiringConfigurer}
+ * @deprecated since 1.0.0 in favor of {@link AutoRegistrationRuntimeWiringConfigurer}
  */
-@Deprecated
+@Deprecated(since = "1.0.0", forRemoval = true)
 class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 
 	private final Map<String, Function<Boolean, DataFetcher<?>>> dataFetcherFactories;
@@ -52,7 +53,7 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 	 * @param dataFetcherFactories map with GraphQL type names as keys and
 	 * functions as values to create a DataFetcher for single or many values
 	 */
-	public AutoRegistrationTypeVisitor(Map<String, Function<Boolean, DataFetcher<?>>> dataFetcherFactories) {
+	AutoRegistrationTypeVisitor(Map<String, Function<Boolean, DataFetcher<?>>> dataFetcherFactories) {
 		this.dataFetcherFactories = dataFetcherFactories;
 	}
 
@@ -71,9 +72,9 @@ class AutoRegistrationTypeVisitor extends GraphQLTypeVisitorStub {
 			return TraversalControl.ABORT;
 		}
 
-		DataFetcher<?> dataFetcher = (fieldType instanceof GraphQLList ?
+		DataFetcher<?> dataFetcher = (fieldType instanceof GraphQLList) ?
 				getDataFetcher(((GraphQLList) fieldType).getWrappedType(), false) :
-				getDataFetcher(fieldType, true));
+				getDataFetcher(fieldType, true);
 
 		if (dataFetcher != null) {
 			GraphQLCodeRegistry.Builder registry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);

@@ -133,6 +133,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	/**
 	 * Initialize a {@link WebSocketHttpRequestHandler} that wraps this instance
 	 * and also inserts a {@link HandshakeInterceptor} for context propagation.
+	 * @param handshakeHandler the handler for WebSocket handshake
 	 * @since 1.1.0
 	 */
 	public WebSocketHttpRequestHandler initWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
@@ -145,9 +146,10 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * Return a {@link WebSocketHttpRequestHandler} that uses this instance as
 	 * its {@link WebGraphQlHandler} and adds a {@link HandshakeInterceptor} to
 	 * propagate context.
+	 * @param handshakeHandler the handler for WebSocket handshake
 	 * @deprecated as of 1.1.0 in favor of {@link #initWebSocketHttpRequestHandler(HandshakeHandler)}
 	 */
-	@Deprecated
+	@Deprecated(since = "1.1.0", forRemoval = true)
 	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
 		return initWebSocketHttpRequestHandler(handshakeHandler);
 	}
@@ -240,7 +242,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				this.webSocketGraphQlInterceptor.handleConnectionInitialization(state.getSessionInfo(), payload)
 						.defaultIfEmpty(Collections.emptyMap())
 						.publishOn(state.getScheduler()) // Serial blocking send via single thread
-						.doOnNext(ackPayload -> {
+						.doOnNext((ackPayload) -> {
 							TextMessage outputMessage = encode(GraphQlWebSocketMessage.connectionAck(ackPayload));
 							try {
 								session.sendMessage(outputMessage);
@@ -249,7 +251,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 								throw new IllegalStateException(ex);
 							}
 						})
-						.onErrorResume(ex -> {
+						.onErrorResume((ex) -> {
 							GraphQlStatus.closeSession(session, GraphQlStatus.UNAUTHORIZED_STATUS);
 							return Mono.empty();
 						})
@@ -296,7 +298,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		}
 
 		return responseFlux
-				.map(responseMap -> encode(GraphQlWebSocketMessage.next(id, responseMap)))
+				.map((responseMap) -> encode(GraphQlWebSocketMessage.next(id, responseMap)))
 				.concatWith(Mono.fromCallable(() -> encode(GraphQlWebSocketMessage.complete(id))))
 				.onErrorResume((ex) -> {
 					if (ex instanceof SubscriptionExistsException) {
@@ -345,7 +347,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * {@code HandshakeInterceptor} that propagates ThreadLocal context through
 	 * the attributes map in {@code WebSocketSession}.
 	 */
-	private static class ContextHandshakeInterceptor implements HandshakeInterceptor {
+	private static final class ContextHandshakeInterceptor implements HandshakeInterceptor {
 
 		private static final String KEY = ContextSnapshot.class.getName();
 
@@ -365,7 +367,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				@Nullable Exception exception) {
 		}
 
-		public static AutoCloseable setThreadLocals(WebSocketSession session) {
+		static AutoCloseable setThreadLocals(WebSocketSession session) {
 			ContextSnapshot snapshot = (ContextSnapshot) session.getAttributes().get(KEY);
 			Assert.notNull(snapshot, "Expected ContextSnapshot in WebSocketSession attributes");
 			return snapshot.setThreadLocals();
@@ -373,7 +375,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 
-	private static class GraphQlStatus {
+	private static final class GraphQlStatus {
 
 		private static final CloseStatus INVALID_MESSAGE_STATUS = new CloseStatus(4400, "Invalid message");
 
@@ -414,7 +416,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	}
 
-	private static class HttpOutputMessageAdapter extends ByteArrayOutputStream implements HttpOutputMessage {
+	private static final class HttpOutputMessageAdapter extends ByteArrayOutputStream implements HttpOutputMessage {
 
 		private static final HttpHeaders noOpHeaders = new HttpHeaders();
 
@@ -445,7 +447,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + graphQlSessionId);
 		}
 
-		public WebSocketSessionInfo getSessionInfo() {
+		WebSocketSessionInfo getSessionInfo() {
 			return this.sessionInfo;
 		}
 
@@ -483,7 +485,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 
-	private static class WebMvcSessionInfo implements WebSocketSessionInfo {
+	private static final class WebMvcSessionInfo implements WebSocketSessionInfo {
 
 		private final WebSocketSession session;
 
@@ -567,7 +569,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 	@SuppressWarnings("serial")
-	private static class SubscriptionExistsException extends RuntimeException {
+	private static final class SubscriptionExistsException extends RuntimeException {
 	}
 
 }

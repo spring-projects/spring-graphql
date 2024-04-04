@@ -68,6 +68,7 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set the default response to fall back on as a "data"-only response.
+	 * @param dataJson the JSON data response
 	 */
 	public void setDefaultResponse(String dataJson) {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("").build();
@@ -77,6 +78,8 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set a "data"-only response for the given document.
+	 * @param document the graphql document
+	 * @param dataJson the JSON data for the given document
 	 */
 	public void setDataAsJson(String document, String dataJson) {
 		setResponse(document, decode(dataJson));
@@ -84,6 +87,8 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set an "errors" response for the given document.
+	 * @param document the graphql document
+	 * @param errors the errors for the given document
 	 */
 	public void setErrors(String document, GraphQLError... errors) {
 		setResponse(document, null, errors);
@@ -91,6 +96,8 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set an "errors" response for the given document.
+	 * @param document the graphql document
+	 * @param errorBuilderConsumer a consumer that builds errors for the given document
 	 */
 	public void setError(String document, Consumer<GraphqlErrorBuilder<?>> errorBuilderConsumer) {
 		GraphqlErrorBuilder<?> errorBuilder = GraphqlErrorBuilder.newError();
@@ -100,6 +107,9 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set a "data" and "errors" response for the given document.
+	 * @param document the graphql document
+	 * @param dataJson the JSON data for the given document
+	 * @param errors the errors for the given document
 	 */
 	public void setDataAsJsonAndErrors(String document, String dataJson, GraphQLError... errors) {
 		setResponse(document, decode(dataJson), errors);
@@ -107,6 +117,9 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set a "data" and "errors" response for the given document.
+	 * @param document the graphql document
+	 * @param data the map to be used as data for the response
+	 * @param errors the errors to be used for the response
 	 */
 	private void setResponse(String document, @Nullable Map<String, Object> data, GraphQLError... errors) {
 		ExecutionResultImpl.Builder builder = new ExecutionResultImpl.Builder();
@@ -121,6 +134,8 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 
 	/**
 	 * Set a response for the given document.
+	 * @param document the graphql document
+	 * @param result the execution result for the given document
 	 */
 	@SuppressWarnings("unused")
 	public void setResponse(String document, ExecutionResult result) {

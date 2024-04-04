@@ -43,9 +43,15 @@ public class WebSocketGraphQlRequest extends WebGraphQlRequest {
 
 	/**
 	 * Create an instance.
+	 * @param uri the URL for the HTTP request or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param body the deserialized content of the GraphQL request
+	 * @param id the id from the GraphQL over WebSocket {@code "subscribe"} message
+	 * @param locale the locale from the HTTP request, if any
+	 * @param sessionInfo the WebSocket session id
 	 * @deprecated as of 1.1.3 in favor of the constructor with cookies
 	 */
-	@Deprecated
+	@Deprecated(since = "1.1.3", forRemoval = true)
 	public WebSocketGraphQlRequest(
 			URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale,
 			WebSocketSessionInfo sessionInfo) {

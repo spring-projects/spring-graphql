@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,9 +41,8 @@ import org.springframework.util.CollectionUtils;
  * is considered to be a composite property without further inspection.
  *
  * @author Mark Paluch
- * @since 1.0.0
  */
-class PropertySelection {
+final class PropertySelection {
 
 	private final List<PropertyPath> propertyPaths;
 
@@ -54,9 +53,9 @@ class PropertySelection {
 
 
 	/**
-	 * @return the property paths as list.
+	 * Return the property paths as list.
 	 */
-	public List<String> toList() {
+	List<String> toList() {
 		return this.propertyPaths.stream().map(PropertyPath::toDotPath).toList();
 	}
 
@@ -64,14 +63,13 @@ class PropertySelection {
 	/**
 	 * Create a property selection for the given {@link TypeInformation type} and
 	 * {@link  DataFetchingFieldSelectionSet}.
-	 *
 	 * @param typeInfo the type to inspect
 	 * @param selectionSet    the field selection to apply
 	 * @return a property selection holding all selectable property paths.
 	 */
-	public static PropertySelection create(TypeInformation<?> typeInfo, DataFetchingFieldSelectionSet selectionSet) {
+	static PropertySelection create(TypeInformation<?> typeInfo, DataFetchingFieldSelectionSet selectionSet) {
 		FieldSelection selection = new DataFetchingFieldSelection(selectionSet);
-		List<PropertyPath> paths = getPropertyPaths(typeInfo, selection, path -> PropertyPath.from(path, typeInfo));
+		List<PropertyPath> paths = getPropertyPaths(typeInfo, selection, (path) -> PropertyPath.from(path, typeInfo));
 		return new PropertySelection(paths);
 	}
 
@@ -111,8 +109,8 @@ class PropertySelection {
 
 	private static boolean isConnectionEdges(SelectedField selectedField) {
 		return selectedField.getName().equals("edges") &&
-			   selectedField.getParentField().getType() instanceof GraphQLNamedOutputType namedType &&
-			   namedType.getName().endsWith("Connection");
+				selectedField.getParentField().getType() instanceof GraphQLNamedOutputType namedType &&
+				namedType.getName().endsWith("Connection");
 	}
 
 	private static boolean isConnectionEdgeNode(SelectedField selectedField) {
@@ -141,13 +139,12 @@ class PropertySelection {
 	interface FieldSelection extends Iterable<SelectedField> {
 
 		/**
-		 * @return {@code true} if the field selection is empty
+		 * Return {@code true} if the field selection is empty.
 		 */
 		boolean isEmpty();
 
 		/**
 		 * Obtain the field selection (nested fields) for a given {@code field}.
-		 *
 		 * @param field the field for which nested fields should be obtained
 		 * @return the field selection. Can be empty.
 		 */
@@ -174,7 +171,7 @@ class PropertySelection {
 
 		@Override
 		public boolean isEmpty() {
-			return selectedFields.isEmpty();
+			return this.selectedFields.isEmpty();
 		}
 
 		@Override
@@ -183,14 +180,14 @@ class PropertySelection {
 
 			for (SelectedField selectedField : this.allFields) {
 				if (field.equals(selectedField.getParentField())) {
-					selectedFields = (selectedFields != null ? selectedFields : new ArrayList<>());
+					selectedFields = (selectedFields != null) ? selectedFields : new ArrayList<>();
 					selectedFields.add(selectedField);
 				}
 			}
 
-			return (selectedFields != null ?
+			return (selectedFields != null) ?
 					new DataFetchingFieldSelection(selectedFields, this.allFields) :
-					EmptyFieldSelection.INSTANCE);
+					EmptyFieldSelection.INSTANCE;
 		}
 
 		@Override

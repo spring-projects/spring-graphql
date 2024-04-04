@@ -49,7 +49,7 @@ public class GraphQlHttpHandler {
 			new MediaType("application", "graphql-response+json");
 
 	private static final ParameterizedTypeReference<Map<String, Object>> MAP_PARAMETERIZED_TYPE_REF =
-			new ParameterizedTypeReference<Map<String, Object>>() {};
+			new ParameterizedTypeReference<Map<String, Object>>() { };
 
 	@SuppressWarnings("removal")
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
@@ -73,7 +73,7 @@ public class GraphQlHttpHandler {
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
 		return serverRequest.bodyToMono(SerializableGraphQlRequest.class)
-				.flatMap(body -> {
+				.flatMap((body) -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
 							serverRequest.cookies(), serverRequest.attributes(), body,
@@ -84,12 +84,12 @@ public class GraphQlHttpHandler {
 					}
 					return this.graphQlHandler.handleRequest(graphQlRequest);
 				})
-				.flatMap(response -> {
+				.flatMap((response) -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.bodyValue(response.toMap());
 				});

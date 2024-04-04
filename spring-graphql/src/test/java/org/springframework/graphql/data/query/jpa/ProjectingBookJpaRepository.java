@@ -20,13 +20,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher.Builder;
 import org.springframework.graphql.data.query.QueryByExampleDataFetcher.QueryByExampleBuilderCustomizer;
-import org.springframework.graphql.data.query.jpa.QueryByExampleDataFetcherJpaTests.BookDto;
 
 @GraphQlRepository
 public interface ProjectingBookJpaRepository extends JpaRepository<Book, Long>, QueryByExampleBuilderCustomizer<Book> {
 
 	@Override
-	default Builder<Book, ?> customize(Builder<Book, ?> builder){
+	default Builder<Book, ?> customize(Builder<Book, ?> builder) {
 		return builder.projectAs(BookProjection.class);
 	}
 }

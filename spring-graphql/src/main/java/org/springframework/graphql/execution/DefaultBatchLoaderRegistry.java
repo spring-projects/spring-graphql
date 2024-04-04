@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
@@ -52,9 +53,9 @@ import org.springframework.util.StringUtils;
  */
 public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
-	private final List<ReactorBatchLoader<?,?>> loaders = new ArrayList<>();
+	private final List<ReactorBatchLoader<?, ?>> loaders = new ArrayList<>();
 
-	private final List<ReactorMappedBatchLoader<?,?>> mappedLoaders = new ArrayList<>();
+	private final List<ReactorMappedBatchLoader<?, ?>> mappedLoaders = new ArrayList<>();
 
 	private final Supplier<DataLoaderOptions> defaultOptionsSupplier;
 
@@ -69,6 +70,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	/**
 	 * Constructor with a default {@link DataLoaderOptions} supplier to use as
 	 * a starting point for batch loader registrations.
+	 * @param defaultOptionsSupplier the supplier for data loader options
 	 * @since 1.1.0
 	 */
 	public DefaultBatchLoaderRegistry(Supplier<DataLoaderOptions> defaultOptionsSupplier) {
@@ -126,11 +128,11 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Nullable
 		private Consumer<DataLoaderOptions> optionsConsumer;
 
-		public DefaultRegistrationSpec(Class<V> valueType) {
+		DefaultRegistrationSpec(Class<V> valueType) {
 			this.valueType = valueType;
 		}
 
-		public DefaultRegistrationSpec(String name) {
+		DefaultRegistrationSpec(String name) {
 			this.name = name;
 			this.valueType = null;
 		}
@@ -143,8 +145,8 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 		@Override
 		public RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer) {
-			this.optionsConsumer = (this.optionsConsumer != null ?
-					this.optionsConsumer.andThen(optionsConsumer) : optionsConsumer);
+			this.optionsConsumer = (this.optionsConsumer != null) ?
+					this.optionsConsumer.andThen(optionsConsumer) : optionsConsumer;
 			return this;
 		}
 
@@ -177,7 +179,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		private Supplier<DataLoaderOptions> initOptionsSupplier() {
 
 			Supplier<DataLoaderOptions> optionsSupplier = () ->
-					new DataLoaderOptions(this.options != null ?
+					new DataLoaderOptions((this.options != null) ?
 							this.options : DefaultBatchLoaderRegistry.this.defaultOptionsSupplier.get());
 
 			if (this.optionsConsumer == null) {
@@ -197,7 +199,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	 * {@link BatchLoaderWithContext} that delegates to a {@link Flux} batch
 	 * loading function and exposes Reactor context to it.
 	 */
-	private static class ReactorBatchLoader<K, V> implements BatchLoaderWithContext<K, V> {
+	private static final class ReactorBatchLoader<K, V> implements BatchLoaderWithContext<K, V> {
 
 		private final String name;
 
@@ -214,11 +216,11 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 			this.optionsSupplier = optionsSupplier;
 		}
 
-		public String getName() {
+		String getName() {
 			return this.name;
 		}
 
-		public DataLoaderOptions getOptions() {
+		DataLoaderOptions getOptions() {
 			return this.optionsSupplier.get();
 		}
 
@@ -246,7 +248,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	 * {@link MappedBatchLoaderWithContext} that delegates to a {@link Mono}
 	 * batch loading function and exposes Reactor context to it.
 	 */
-	private static class ReactorMappedBatchLoader<K, V> implements MappedBatchLoaderWithContext<K, V> {
+	private static final class ReactorMappedBatchLoader<K, V> implements MappedBatchLoaderWithContext<K, V> {
 
 		private final String name;
 
@@ -263,11 +265,11 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 			this.optionsSupplier = optionsSupplier;
 		}
 
-		public String getName() {
+		String getName() {
 			return this.name;
 		}
 
-		public DataLoaderOptions getOptions() {
+		DataLoaderOptions getOptions() {
 			return this.optionsSupplier.get();
 		}
 

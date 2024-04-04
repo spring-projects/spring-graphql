@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
@@ -72,7 +73,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 			@Nullable GraphQLContext graphQlContext) {
 
 		Class<?> parameterType = parameter.getParameterType();
-		Object value = (graphQlContext != null ? graphQlContext.get(contextValueName) : null);
+		Object value = (graphQlContext != null) ? graphQlContext.get(contextValueName) : null;
 
 		boolean isOptional = parameterType.equals(Optional.class);
 		boolean isMono = parameterType.equals(Mono.class);
@@ -85,14 +86,14 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 			if (value == null) {
 				value = Mono.empty();
 			}
-			else if (!( value instanceof Mono)) {
+			else if (!(value instanceof Mono)) {
 				value = Mono.just(value);
 			}
 			return Mono.just(value);
 		}
 
 		if (isOptional) {
-			return (value instanceof Optional ? value : Optional.ofNullable(value));
+			return (value instanceof Optional) ? value : Optional.ofNullable(value);
 		}
 
 		return value;

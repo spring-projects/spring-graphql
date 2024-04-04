@@ -21,7 +21,8 @@ import org.springframework.graphql.Author;
 
 public class Book {
 
-	@Id Long id;
+	@Id
+	Long id;
 
 	String name;
 

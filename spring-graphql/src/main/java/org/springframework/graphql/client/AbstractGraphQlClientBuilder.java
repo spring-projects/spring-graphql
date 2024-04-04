@@ -46,6 +46,7 @@ import org.springframework.util.ClassUtils;
  * agnostic {@code GraphQlClient}. A transport specific extension can then wrap
  * this default tester by extending {@link AbstractDelegatingGraphQlClient}.
  *
+ * @param <B> the builder type
  * @author Rossen Stoyanchev
  * @since 1.0.0
  * @see AbstractDelegatingGraphQlClient
@@ -114,6 +115,8 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	 * Transport-specific subclasses can provide their JSON {@code Encoder} and
 	 * {@code Decoder} for use at the client level, for mapping response data
 	 * to some target entity type.
+	 * @param encoder the JSON encoder to use
+	 * @param decoder the JSON decoder to use
 	 */
 	protected void setJsonCodecs(Encoder<?> encoder, Decoder<?> decoder) {
 		this.jsonEncoder = encoder;
@@ -122,6 +125,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	/**
 	 * Variant of {@link #setJsonCodecs} for setting each codec individually.
+	 * @param encoder the JSON encoder to use
 	 */
 	protected void setJsonEncoder(Encoder<?> encoder) {
 		this.jsonEncoder = encoder;
@@ -137,6 +141,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	/**
 	 * Variant of {@link #setJsonCodecs} for setting each codec individually.
+	 * @param decoder the JSON decoder to use
 	 */
 	protected void setJsonDecoder(Decoder<?> decoder) {
 		this.jsonDecoder = decoder;
@@ -161,12 +166,13 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	/**
 	 * Build the default transport-agnostic client that subclasses can then wrap
 	 * with {@link AbstractDelegatingGraphQlClient}.
+	 * @param transport the GraphQL transport to be used by the client
 	 */
 	protected GraphQlClient buildGraphQlClient(GraphQlTransport transport) {
 
 		if (jackson2Present) {
-			this.jsonEncoder = (this.jsonEncoder == null ? DefaultJackson2Codecs.encoder() : this.jsonEncoder);
-			this.jsonDecoder = (this.jsonDecoder == null ? DefaultJackson2Codecs.decoder() : this.jsonDecoder);
+			this.jsonEncoder = (this.jsonEncoder == null) ? DefaultJackson2Codecs.encoder() : this.jsonEncoder;
+			this.jsonDecoder = (this.jsonDecoder == null) ? DefaultJackson2Codecs.decoder() : this.jsonDecoder;
 		}
 
 		return new DefaultGraphQlClient(
@@ -177,32 +183,32 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	 * Return a {@code Consumer} to initialize new builders from "this" builder.
 	 */
 	protected Consumer<AbstractGraphQlClientBuilder<?>> getBuilderInitializer() {
-		return builder -> {
-			builder.interceptors(interceptorList -> interceptorList.addAll(interceptors));
-			builder.documentSource(documentSource);
+		return (builder) -> {
+			builder.interceptors((interceptorList) -> interceptorList.addAll(this.interceptors));
+			builder.documentSource(this.documentSource);
 			builder.setJsonCodecs(getEncoder(), getDecoder());
 		};
 	}
 
 	private Chain createExecuteChain(GraphQlTransport transport) {
 
-		Chain chain = request -> transport.execute(request).map(response ->
+		Chain chain = (request) -> transport.execute(request).map((response) ->
 				new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
 
 		return this.interceptors.stream()
 				.reduce(GraphQlClientInterceptor::andThen)
-				.map(interceptor -> (Chain) (request) -> interceptor.intercept(request, chain))
+				.map((interceptor) -> (Chain) (request) -> interceptor.intercept(request, chain))
 				.orElse(chain);
 	}
 
 	private SubscriptionChain createExecuteSubscriptionChain(GraphQlTransport transport) {
 
-		SubscriptionChain chain = request -> transport.executeSubscription(request)
-				.map(response -> new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
+		SubscriptionChain chain = (request) -> transport.executeSubscription(request)
+				.map((response) -> new DefaultClientGraphQlResponse(request, response, getEncoder(), getDecoder()));
 
 		return this.interceptors.stream()
 				.reduce(GraphQlClientInterceptor::andThen)
-				.map(interceptor -> (SubscriptionChain) (request) -> interceptor.interceptSubscription(request, chain))
+				.map((interceptor) -> (SubscriptionChain) (request) -> interceptor.interceptSubscription(request, chain))
 				.orElse(chain);
 	}
 
