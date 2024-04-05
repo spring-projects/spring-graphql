@@ -106,7 +106,7 @@ import org.springframework.util.MultiValueMap;
  */
 public abstract class QuerydslDataFetcher<T> {
 
-	private final static Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
+	private static final Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
 
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
@@ -152,7 +152,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 		for (Map.Entry<String, Object> entry : getArgumentValues(environment).entrySet()) {
 			Object value = entry.getValue();
-			List<Object> values = (value instanceof List ? (List<Object>) value : Collections.singletonList(value));
+			List<Object> values = (value instanceof List) ? (List<Object>) value : Collections.singletonList(value);
 			parameters.put(entry.getKey(), values);
 		}
 
@@ -224,6 +224,8 @@ public abstract class QuerydslDataFetcher<T> {
 	 * without a {@code CursorStrategy} and default {@link ScrollSubrange}.
 	 * For default values, see the respective methods on {@link Builder} and
 	 * {@link ReactiveBuilder}.
+	 * @param executors repositories to consider for registration
+	 * @param reactiveExecutors reactive repositories to consider for registration
 	 */
 	public static RuntimeWiringConfigurer autoRegistrationConfigurer(
 			List<QuerydslPredicateExecutor<?>> executors,
@@ -243,7 +245,6 @@ public abstract class QuerydslDataFetcher<T> {
 	 * If a repository is also an instance of {@link QuerydslBinderCustomizer},
 	 * this is transparently detected and applied through the
 	 * {@code QuerydslDataFetcher} builder  methods.
-	 *
 	 * @param executors repositories to consider for registration
 	 * @param reactiveExecutors reactive repositories to consider for registration
 	 * @param cursorStrategy for decoding cursors in pagination requests;
@@ -327,7 +328,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static Builder customize(QuerydslPredicateExecutor<?> executor, Builder builder) {
-		if(executor instanceof QuerydslBuilderCustomizer<?> customizer){
+		if (executor instanceof QuerydslBuilderCustomizer<?> customizer) {
 			return customizer.customize(builder);
 		}
 		return builder;
@@ -335,7 +336,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static ReactiveBuilder customize(ReactiveQuerydslPredicateExecutor<?> executor, ReactiveBuilder builder) {
-		if(executor instanceof ReactiveQuerydslBuilderCustomizer<?> customizer){
+		if (executor instanceof ReactiveQuerydslBuilderCustomizer<?> customizer) {
 			return customizer.customize(builder);
 		}
 		return builder;
@@ -343,9 +344,9 @@ public abstract class QuerydslDataFetcher<T> {
 
 	@SuppressWarnings("rawtypes")
 	private static QuerydslBinderCustomizer customizer(Object executor) {
-		return (executor instanceof QuerydslBinderCustomizer<?> ?
+		return (executor instanceof QuerydslBinderCustomizer<?>) ?
 				(QuerydslBinderCustomizer<? extends EntityPath<?>>) executor :
-				NO_OP_BINDER_CUSTOMIZER);
+				NO_OP_BINDER_CUSTOMIZER;
 	}
 
 
@@ -403,6 +404,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * into the target {@code projectionType}. Projection types can be
 		 * either interfaces with property getters to expose or regular classes
 		 * outside the entity type hierarchy for DTO projections.
+		 * @param <P> the type of projection
 		 * @param projectionType projection type
 		 * @return a new {@link Builder} instance with all previously
 		 * configured options and {@code projectionType} applied
@@ -438,6 +440,8 @@ public abstract class QuerydslDataFetcher<T> {
 		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
 		 * to go back from the end.
 		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @param defaultCount the default element count in the subrange
+		 * @param defaultPosition the default scroll position
 		 * @since 1.2.5
 		 */
 		public Builder<T, R> defaultScrollSubrange(
@@ -451,6 +455,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
 		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a count of 20.
+		 * @param defaultSubrange the default scroll subrange
 		 * @return a new {@link Builder} instance
 		 * @since 1.2.0
 		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
@@ -459,8 +464,8 @@ public abstract class QuerydslDataFetcher<T> {
 		@Deprecated(since = "1.2.5", forRemoval = true)
 		public Builder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new Builder<>(this.executor, this.domainType, this.resultType, this.cursorStrategy,
-					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
-					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					(defaultSubrange != null) ? defaultSubrange.count().getAsInt() : null,
+					(defaultSubrange != null) ? (forward) -> defaultSubrange.position().get() : null,
 					this.sort, this.customizer);
 		}
 
@@ -474,7 +479,7 @@ public abstract class QuerydslDataFetcher<T> {
 			Assert.notNull(sort, "Sort must not be null");
 			return new Builder<>(this.executor, this.domainType, this.resultType,
 					this.cursorStrategy, this.defaultScrollCount, this.defaultScrollPosition,
-					sort, customizer);
+					sort, this.customizer);
 		}
 
 		/**
@@ -484,7 +489,6 @@ public abstract class QuerydslDataFetcher<T> {
 		 * itself, this is automatically detected and applied during
 		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
-		 *
 		 * @param customizer to customize the binding of the GraphQL request to
 		 * Querydsl Predicate
 		 * @return a new {@link Builder} instance with all previously configured
@@ -521,9 +525,9 @@ public abstract class QuerydslDataFetcher<T> {
 		public DataFetcher<Iterable<R>> scrollable() {
 			return new ScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
-					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
-					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
+					(this.cursorStrategy != null) ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy(),
+					(this.defaultScrollCount != null) ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount(),
+					(this.defaultScrollPosition != null) ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition(),
 					this.sort, this.customizer);
 		}
 
@@ -532,12 +536,12 @@ public abstract class QuerydslDataFetcher<T> {
 
 	/**
 	 * Callback interface that can be used to customize QuerydslDataFetcher
-	 * {@link Builder} to change its configuration. 
+	 * {@link Builder} to change its configuration.
 	 * <p>This is supported by {@link #autoRegistrationConfigurer(List, List)
 	 * Auto-registration}, which detects if a repository implements this
 	 * interface and applies it accordingly.
 	 *
-	 * @param <T>
+	 * @param <T> the domain type
 	 * @since 1.1.1
 	 */
 	public interface QuerydslBuilderCustomizer<T> {
@@ -606,6 +610,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * into the target {@code projectionType}. Projection types can be
 		 * either interfaces with property getters to expose or regular classes
 		 * outside the entity type hierarchy for DTO projections.
+		 * @param <P> projection type
 		 * @param projectionType projection type
 		 * @return a new {@link Builder} instance with all previously
 		 * configured options and {@code projectionType} applied
@@ -641,6 +646,8 @@ public abstract class QuerydslDataFetcher<T> {
 		 * from the beginning, or {@link KeysetScrollPosition#reverse()} the same
 		 * to go back from the end.
 		 * <p>By default a count of 20 and {@link ScrollPosition#offset()} are used.
+		 * @param defaultCount the default element count in the subrange
+		 * @param defaultPosition function that returns the default scroll position
 		 * @since 1.2.5
 		 */
 		public ReactiveBuilder<T, R> defaultScrollSubrange(
@@ -654,6 +661,7 @@ public abstract class QuerydslDataFetcher<T> {
 		 * Configure a {@link ScrollSubrange} to use when a paginated request does
 		 * not specify a cursor and/or a count of items.
 		 * <p>By default, this is {@link OffsetScrollPosition#offset()} with a count of 20.
+		 * @param defaultSubrange the default scroll subrange
 		 * @return a new {@link Builder} instance
 		 * @since 1.2.0
 		 * @deprecated in favor of {@link #defaultScrollSubrange(int, Function)}
@@ -663,8 +671,8 @@ public abstract class QuerydslDataFetcher<T> {
 		public ReactiveBuilder<T, R> defaultScrollSubrange(@Nullable ScrollSubrange defaultSubrange) {
 			return new ReactiveBuilder<>(this.executor, this.domainType, this.resultType,
 					this.cursorStrategy,
-					(defaultSubrange != null ? defaultSubrange.count().getAsInt() : null),
-					(defaultSubrange != null ? forward -> defaultSubrange.position().get() : null),
+					(defaultSubrange != null) ? defaultSubrange.count().getAsInt() : null,
+					(defaultSubrange != null) ? (forward) -> defaultSubrange.position().get() : null,
 					this.sort, this.customizer);
 		}
 
@@ -688,7 +696,6 @@ public abstract class QuerydslDataFetcher<T> {
 		 * itself, this is automatically detected and applied during
 		 * {@link #autoRegistrationConfigurer(List, List) auto-registration}.
 		 * For manual registration, you will need to use this method to apply it.
-		 *
 		 * @param customizer to customize the GraphQL query to Querydsl
 		 * Predicate binding with
 		 * @return a new {@link Builder} instance with all previously configured
@@ -725,9 +732,9 @@ public abstract class QuerydslDataFetcher<T> {
 		public DataFetcher<Mono<Iterable<R>>> scrollable() {
 			return new ReactiveScrollableEntityFetcher<>(
 					this.executor, this.domainType, this.resultType,
-					(this.cursorStrategy != null ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy()),
-					(this.defaultScrollCount != null ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount()),
-					(this.defaultScrollPosition != null ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition()),
+					(this.cursorStrategy != null) ? this.cursorStrategy : RepositoryUtils.defaultCursorStrategy(),
+					(this.defaultScrollCount != null) ? this.defaultScrollCount : RepositoryUtils.defaultScrollCount(),
+					(this.defaultScrollPosition != null) ? this.defaultScrollPosition : RepositoryUtils.defaultScrollPosition(),
 					this.sort, this.customizer);
 		}
 
@@ -740,8 +747,7 @@ public abstract class QuerydslDataFetcher<T> {
 	 * <p>This is supported by {@link #autoRegistrationConfigurer(List, List)
 	 * Auto-registration}, which detects if a repository implements this
 	 * interface and applies it accordingly.
-	 *
-	 * @param <T>
+	 * @param <T> the domain type
 	 * @since 1.1.1
 	 */
 	public interface ReactiveQuerydslBuilderCustomizer<T> {
@@ -783,15 +789,15 @@ public abstract class QuerydslDataFetcher<T> {
 		@Override
 		@SuppressWarnings({"ConstantConditions", "unchecked"})
 		public R get(DataFetchingEnvironment env) {
-			return this.executor.findBy(buildPredicate(env), query -> {
+			return this.executor.findBy(buildPredicate(env), (query) -> {
 				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) query;
 
-				if (this.sort.isSorted()){
+				if (this.sort.isSorted()) {
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
 				Class<R> resultType = this.resultType;
-				if (requiresProjection(resultType)){
+				if (requiresProjection(resultType)) {
 					queryToUse = queryToUse.as(resultType);
 				}
 				else {
@@ -833,14 +839,14 @@ public abstract class QuerydslDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Iterable<R> get(DataFetchingEnvironment env) {
-			return this.executor.findBy(buildPredicate(env), query -> {
+			return this.executor.findBy(buildPredicate(env), (query) -> {
 				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) query;
 
-				if (this.sort.isSorted()){
+				if (this.sort.isSorted()) {
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if (requiresProjection(this.resultType)){
+				if (requiresProjection(this.resultType)) {
 					queryToUse = queryToUse.as(this.resultType);
 				}
 				else {
@@ -926,14 +932,14 @@ public abstract class QuerydslDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Mono<R> get(DataFetchingEnvironment env) {
-			return this.executor.findBy(buildPredicate(env), query -> {
+			return this.executor.findBy(buildPredicate(env), (query) -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
-				if (this.sort.isSorted()){
+				if (this.sort.isSorted()) {
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if (requiresProjection(this.resultType)){
+				if (requiresProjection(this.resultType)) {
 					queryToUse = queryToUse.as(this.resultType);
 				}
 				else {
@@ -976,14 +982,14 @@ public abstract class QuerydslDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Flux<R> get(DataFetchingEnvironment env) {
-			return this.executor.findBy(buildPredicate(env), query -> {
+			return this.executor.findBy(buildPredicate(env), (query) -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
-				if (this.sort.isSorted()){
+				if (this.sort.isSorted()) {
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if (requiresProjection(this.resultType)){
+				if (requiresProjection(this.resultType)) {
 					queryToUse = queryToUse.as(this.resultType);
 				}
 				else {
@@ -1046,14 +1052,14 @@ public abstract class QuerydslDataFetcher<T> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Mono<Iterable<R>> get(DataFetchingEnvironment env) {
-			return this.executor.findBy(buildPredicate(env), query -> {
+			return this.executor.findBy(buildPredicate(env), (query) -> {
 				FluentQuery.ReactiveFluentQuery<R> queryToUse = (FluentQuery.ReactiveFluentQuery<R>) query;
 
-				if (this.sort.isSorted()){
+				if (this.sort.isSorted()) {
 					queryToUse = queryToUse.sortBy(this.sort);
 				}
 
-				if (requiresProjection(this.resultType)){
+				if (requiresProjection(this.resultType)) {
 					queryToUse = queryToUse.as(this.resultType);
 				}
 				else {

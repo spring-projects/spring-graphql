@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method;
 
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 
 	/**
 	 * Add the given {@link HandlerMethodArgumentResolver}.
+	 * @param resolver the argument resolver
 	 */
 	public void addResolver(HandlerMethodArgumentResolver resolver) {
 		this.argumentResolvers.add(resolver);
@@ -84,10 +86,11 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	/**
 	 * Find a registered {@link HandlerMethodArgumentResolver} that supports
 	 * the given method parameter.
+	 * @param parameter the method parameter
 	 */
 	@Nullable
 	public HandlerMethodArgumentResolver getArgumentResolver(MethodParameter parameter) {
-		return this.argumentResolverCache.computeIfAbsent(parameter, p -> {
+		return this.argumentResolverCache.computeIfAbsent(parameter, (p) -> {
 			for (HandlerMethodArgumentResolver resolver : this.argumentResolvers) {
 				if (resolver.supportsParameter(parameter)) {
 					return resolver;

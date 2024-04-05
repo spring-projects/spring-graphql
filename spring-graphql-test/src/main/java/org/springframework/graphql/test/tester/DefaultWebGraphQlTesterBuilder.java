@@ -34,7 +34,6 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
  * {@link WebGraphQlHandler} for request execution.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultWebGraphQlTesterBuilder
 		extends AbstractGraphQlTesterBuilder<DefaultWebGraphQlTesterBuilder>
@@ -104,7 +103,7 @@ final class DefaultWebGraphQlTesterBuilder
 	}
 
 	private void registerJsonPathMappingProvider() {
-		configureJsonPathConfig(jsonPathConfig -> {
+		configureJsonPathConfig((jsonPathConfig) -> {
 			EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(this.codecConfigurer);
 			return jsonPathConfig.mappingProvider(provider);
 		});
@@ -114,7 +113,7 @@ final class DefaultWebGraphQlTesterBuilder
 	/**
 	 * Default {@link WebGraphQlTester} implementation.
 	 */
-	private static class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
+	private static final class DefaultWebGraphQlTester extends AbstractDelegatingGraphQlTester implements WebGraphQlTester {
 
 		private final WebGraphQlHandlerGraphQlTransport transport;
 

@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -45,53 +44,52 @@ import org.springframework.web.servlet.function.ServerRequest;
  * Abstract class for GraphQL Handler implementations using the HTTP transport.
  *
  * @author Brian Clozel
- * @since 1.3.0
  */
 abstract class AbstractGraphQlHttpHandler {
 
-    protected final Log logger = LogFactory.getLog(getClass());
+	protected final Log logger = LogFactory.getLog(getClass());
 
-    protected final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
+	protected final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
-    protected final WebGraphQlHandler graphQlHandler;
+	protected final WebGraphQlHandler graphQlHandler;
 
-    @Nullable
-    protected final HttpMessageConverter<Object> messageConverter;
+	@Nullable
+	protected final HttpMessageConverter<Object> messageConverter;
 
-    @SuppressWarnings("unchecked")
-    AbstractGraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpMessageConverter<?> messageConverter) {
-        Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-        this.graphQlHandler = graphQlHandler;
-        this.messageConverter = (HttpMessageConverter<Object>) messageConverter;
-    }
+	@SuppressWarnings("unchecked")
+	AbstractGraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpMessageConverter<?> messageConverter) {
+		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
+		this.graphQlHandler = graphQlHandler;
+		this.messageConverter = (HttpMessageConverter<Object>) messageConverter;
+	}
 
-    protected static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
-        MultiValueMap<String, Cookie> source = serverRequest.cookies();
-        MultiValueMap<String, HttpCookie> target = new LinkedMultiValueMap<>(source.size());
-        source.values().forEach(cookieList -> cookieList.forEach(cookie -> {
-            HttpCookie httpCookie = new HttpCookie(cookie.getName(), cookie.getValue());
-            target.add(cookie.getName(), httpCookie);
-        }));
-        return target;
-    }
+	protected static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
+		MultiValueMap<String, Cookie> source = serverRequest.cookies();
+		MultiValueMap<String, HttpCookie> target = new LinkedMultiValueMap<>(source.size());
+		source.values().forEach((cookieList) -> cookieList.forEach((cookie) -> {
+			HttpCookie httpCookie = new HttpCookie(cookie.getName(), cookie.getValue());
+			target.add(cookie.getName(), httpCookie);
+		}));
+		return target;
+	}
 
-    protected GraphQlRequest readBody(ServerRequest request) throws ServletException {
-        try {
-            if (this.messageConverter != null) {
-                MediaType contentType = request.headers().contentType().orElse(MediaType.APPLICATION_JSON);
-                if (this.messageConverter.canRead(SerializableGraphQlRequest.class, contentType)) {
-                    return (GraphQlRequest) this.messageConverter.read(SerializableGraphQlRequest.class,
-                            new ServletServerHttpRequest(request.servletRequest()));
-                }
-                throw new HttpMediaTypeNotSupportedException(contentType, this.messageConverter.getSupportedMediaTypes(), request.method());
-            }
-            else {
-                return request.body(SerializableGraphQlRequest.class);
-            }
-        }
-        catch (IOException ex) {
-            throw new ServerWebInputException("I/O error while reading request body", null, ex);
-        }
-    }
+	protected GraphQlRequest readBody(ServerRequest request) throws ServletException {
+		try {
+			if (this.messageConverter != null) {
+				MediaType contentType = request.headers().contentType().orElse(MediaType.APPLICATION_JSON);
+				if (this.messageConverter.canRead(SerializableGraphQlRequest.class, contentType)) {
+					return (GraphQlRequest) this.messageConverter.read(SerializableGraphQlRequest.class,
+							new ServletServerHttpRequest(request.servletRequest()));
+				}
+				throw new HttpMediaTypeNotSupportedException(contentType, this.messageConverter.getSupportedMediaTypes(), request.method());
+			}
+			else {
+				return request.body(SerializableGraphQlRequest.class);
+			}
+		}
+		catch (IOException ex) {
+			throw new ServerWebInputException("I/O error while reading request body", null, ex);
+		}
+	}
 
 }

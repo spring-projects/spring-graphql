@@ -53,7 +53,7 @@ public interface RSocketGraphQlInterceptor {
 	 * @return a new interceptor that chains the two
 	 */
 	default RSocketGraphQlInterceptor andThen(RSocketGraphQlInterceptor nextInterceptor) {
-		return (request, chain) -> intercept(request, nextRequest -> nextInterceptor.intercept(nextRequest, chain));
+		return (request, chain) -> intercept(request, (nextRequest) -> nextInterceptor.intercept(nextRequest, chain));
 	}
 
 	/**
@@ -62,7 +62,7 @@ public interface RSocketGraphQlInterceptor {
 	 * @return a new chain instance
 	 */
 	default Chain apply(Chain chain) {
-		return request -> intercept(request, chain);
+		return (request) -> intercept(request, chain);
 	}
 
 

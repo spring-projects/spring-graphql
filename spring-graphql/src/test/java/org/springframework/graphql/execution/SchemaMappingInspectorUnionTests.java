@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *	  https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.List;
@@ -31,7 +32,7 @@ import org.springframework.stereotype.Controller;
  */
 public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTestSupport {
 
-	private final static String schema = """
+	private static final String schema = """
 				type Query {
 					search: [SearchResult!]!
 				}
@@ -60,9 +61,9 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		}
 
 
-		sealed interface ResultItem permits Photo, Video {}
-		record Photo() implements ResultItem {}
-		record Video() implements ResultItem {}
+		sealed interface ResultItem permits Photo, Video { }
+		record Photo() implements ResultItem { }
+		record Video() implements ResultItem { }
 
 		@Controller
 		static class SearchController {
@@ -74,7 +75,7 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		}
 	}
 
-	
+
 	@Nested
 	class GraphQlAndJavaTypeNameMismatch {
 
@@ -107,9 +108,9 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 					.hasSkippedTypeCount(1).containsSkippedTypes("Video");
 		}
 
-		sealed interface ResultItem permits PhotoImpl, VideoImpl {}
-		record PhotoImpl() implements ResultItem {}
-		record VideoImpl() implements ResultItem {}
+		sealed interface ResultItem permits PhotoImpl, VideoImpl { }
+		record PhotoImpl() implements ResultItem { }
+		record VideoImpl() implements ResultItem { }
 
 		@Controller
 		static class SearchController {
@@ -121,7 +122,7 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		}
 	}
 
-	
+
 	@Nested
 	class SkippedTypes {
 
@@ -131,7 +132,7 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 			assertThatReport(report).hasSkippedTypeCount(2).containsSkippedTypes("Photo", "Video");
 		}
 
-		interface ResultItem {}
+		interface ResultItem { }
 
 		@Controller
 		static class SearchController {

@@ -38,44 +38,43 @@ import org.springframework.util.Assert;
  *
  * @author Mykyta Ivchenko
  * @author Rossen Stoyanchev
- * @since 1.0.1
  */
 class CompositeSubscriptionExceptionResolver implements SubscriptionExceptionResolver {
 
-    private static final Log logger = LogFactory.getLog(CompositeSubscriptionExceptionResolver.class);
+	private static final Log logger = LogFactory.getLog(CompositeSubscriptionExceptionResolver.class);
 
-    private final List<SubscriptionExceptionResolver> resolvers;
-
-
-    CompositeSubscriptionExceptionResolver(List<SubscriptionExceptionResolver> resolvers) {
-        Assert.notNull(resolvers, "'resolvers' is required");
-        this.resolvers = resolvers;
-    }
+	private final List<SubscriptionExceptionResolver> resolvers;
 
 
-    @Override
-    public Mono<List<GraphQLError>> resolveException(Throwable exception) {
-        return Flux.fromIterable(this.resolvers)
-                .flatMap(resolver -> resolver.resolveException(exception))
-                .next()
-                .onErrorResume(error -> Mono.just(handleResolverException(error, exception)))
-                .defaultIfEmpty(createDefaultError());
-    }
+	CompositeSubscriptionExceptionResolver(List<SubscriptionExceptionResolver> resolvers) {
+		Assert.notNull(resolvers, "'resolvers' is required");
+		this.resolvers = resolvers;
+	}
 
-    private List<GraphQLError> handleResolverException(
-            Throwable resolverException, Throwable originalException) {
 
-        if (logger.isWarnEnabled()) {
-            logger.warn("Failure while resolving " + originalException.getClass().getName(), resolverException);
-        }
-        return createDefaultError();
-    }
+	@Override
+	public Mono<List<GraphQLError>> resolveException(Throwable exception) {
+		return Flux.fromIterable(this.resolvers)
+				.flatMap((resolver) -> resolver.resolveException(exception))
+				.next()
+				.onErrorResume((error) -> Mono.just(handleResolverException(error, exception)))
+				.defaultIfEmpty(createDefaultError());
+	}
 
-    private List<GraphQLError> createDefaultError() {
-        return Collections.singletonList(GraphqlErrorBuilder.newError()
-                .message("Subscription error")
-                .errorType(ErrorType.INTERNAL_ERROR)
-                .build());
-    }
+	private List<GraphQLError> handleResolverException(
+			Throwable resolverException, Throwable originalException) {
+
+		if (logger.isWarnEnabled()) {
+			logger.warn("Failure while resolving " + originalException.getClass().getName(), resolverException);
+		}
+		return createDefaultError();
+	}
+
+	private List<GraphQLError> createDefaultError() {
+		return Collections.singletonList(GraphqlErrorBuilder.newError()
+				.message("Subscription error")
+				.errorType(ErrorType.INTERNAL_ERROR)
+				.build());
+	}
 
 }

@@ -85,6 +85,7 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 
 	/**
 	 * Builder for a GraphQL over WebSocket client.
+	 * @param <B> the builder type
 	 */
 	interface Builder<B extends Builder<B>> extends WebGraphQlClient.Builder<B> {
 

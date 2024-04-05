@@ -26,6 +26,7 @@ import org.springframework.lang.Nullable;
  * Container for parameters that limit result elements to a subrange including a
  * relative position, number of elements, and direction.
  *
+ * @param <P> the type of position in the entire collection
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
@@ -41,10 +42,13 @@ public class Subrange<P> {
 
 	/**
 	 * Constructor with the relative position, count, and direction.
+	 * @param position the position in the entire collection
+	 * @param count the number of elements in the subrange
+	 * @param forward whether the subrange is forward or backward from ths position
 	 */
 	public Subrange(@Nullable P position, @Nullable Integer count, boolean forward) {
 		this.position = Optional.ofNullable(position);
-		this.count = (count != null ? OptionalInt.of(count) : OptionalInt.empty());
+		this.count = (count != null) ? OptionalInt.of(count) : OptionalInt.empty();
 		this.forward = forward;
 	}
 

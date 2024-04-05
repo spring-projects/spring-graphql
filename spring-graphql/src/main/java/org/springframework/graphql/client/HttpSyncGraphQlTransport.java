@@ -32,11 +32,10 @@ import org.springframework.web.client.RestClient;
  * Transport for GraphQL over HTTP requests executed with {@link RestClient}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
  */
 final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 
-	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE = new ParameterizedTypeReference<>() {};
+	private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE = new ParameterizedTypeReference<>() { };
 
 
 	private final RestClient restClient;
@@ -54,7 +53,7 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 		HttpHeaders headers = new HttpHeaders();
 		webClient.mutate().defaultHeaders(headers::putAll);
 		MediaType contentType = headers.getContentType();
-		return (contentType != null ? contentType : MediaType.APPLICATION_JSON);
+		return (contentType != null) ? contentType : MediaType.APPLICATION_JSON;
 	}
 
 
@@ -68,7 +67,7 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 				.retrieve()
 				.body(MAP_TYPE);
 
-		return new ResponseMapGraphQlResponse(body != null ? body : Collections.emptyMap());
+		return new ResponseMapGraphQlResponse((body != null) ? body : Collections.emptyMap());
 	}
 
 }

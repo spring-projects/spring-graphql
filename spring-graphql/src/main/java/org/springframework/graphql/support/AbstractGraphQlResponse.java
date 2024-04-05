@@ -126,7 +126,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 				else {
 					Assert.isTrue(value instanceof List, () -> "Invalid path " + path + ", data: " + response.getData());
 					int index = (int) segment;
-					value = (index < ((List<?>) value).size() ? ((List<?>) value).get(index) : null);
+					value = (index < ((List<?>) value).size()) ? ((List<?>) value).get(index) : null;
 				}
 			}
 			return value;
@@ -142,7 +142,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 				return Collections.emptyList();
 			}
 			return response.getErrors().stream()
-					.filter(error -> {
+					.filter((error) -> {
 						String errorPath = error.getPath();
 						return (!errorPath.isEmpty() && (errorPath.startsWith(path) || path.startsWith(errorPath)));
 					})

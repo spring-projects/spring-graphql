@@ -86,12 +86,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							allBooks: [Book]
 						}
-						
 						type Book {
 							id: ID
 							name: String
 							missing: Boolean
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
@@ -103,7 +102,6 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							optionalBook: Book
 						}
-
 						type Book {
 							id: ID
 							name: String
@@ -120,27 +118,23 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							paginatedBooks: BookConnection
 						}
-						
 						type BookConnection {
 							edges: [BookEdge]!
 							pageInfo: PageInfo!
 						}
-
 						type BookEdge {
 							cursor: String!
 							# ...
 						}
-
 						type PageInfo {
 							startCursor: String
 							# ...
 						}
-
 						type Book {
 							id: ID
 							name: String
 							missing: Boolean
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
@@ -152,8 +146,8 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 						}
 						extend type Query {
-					    	greeting: String
-					 	}
+							greeting: String
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, EmptyController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Query", "greeting");
@@ -174,11 +168,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Mutation {
 							createBook: Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Mutation", "createBook");
@@ -193,11 +186,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Mutation {
 							createBook: Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
@@ -212,12 +204,12 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Mutation {
 						}
 						extend type Mutation {
-					    	createBook: Book
-					 	}
-					 	type Book {
+							createBook: Book
+						}
+						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Mutation", "createBook");
@@ -238,11 +230,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Subscription {
 							bookSearch(author: String) : [Book!]!
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Subscription", "bookSearch");
@@ -257,12 +248,12 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Subscription {
 						}
 						extend type Subscription {
-					    	bookSearch(author: String) : [Book!]!
-					 	}
-					 	type Book {
+							bookSearch(author: String) : [Book!]!
+						}
+						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Subscription", "bookSearch");
@@ -277,11 +268,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Subscription {
 							bookSearch(author: String) : [Book!]!
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, GreetingController.class, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
@@ -300,11 +290,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
@@ -316,12 +305,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
 							fetcher: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
@@ -333,13 +321,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							books: [Book]
 						}
-						
 						type Book {
 							id: ID
 							name: String
 							author: Author
-					 	}
-					 	
+						}
 						type Author {
 							id: ID
 							firstName: String
@@ -356,12 +342,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
 							missing: Boolean
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
@@ -384,13 +369,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
 							author: Author
-					 	}
-					 	
+						}
 						type Author {
 							id: ID
 							firstName: String
@@ -407,13 +390,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
 							author: Author
-					 	}
-					 	
+						}
 						type Author {
 							id: ID
 							firstName: String
@@ -431,13 +412,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							teamById(id: ID): Team
 						}
-						
 						type Team {
 							name: String
 							members: [TeamMember]
-					 	}
-					 	
-					 	type TeamMember {
+						}
+						type TeamMember {
 							name: String
 							team: Team
 							missing: String
@@ -453,14 +432,13 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
-					 	extend type Book {
+						}
+						extend type Book {
 							missing: Boolean
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
@@ -472,11 +450,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookById(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 
 			GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
@@ -494,11 +471,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						type Query {
 							bookObject(id: ID): Book
 						}
-						
 						type Book {
 							id: ID
 							name: String
-					 	}
+						}
 					""";
 			SchemaReport report = inspectSchema(schemaContent, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(1).containsSkippedTypes("Book");
@@ -544,7 +520,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 							name: String
 							missing: Boolean
 							author: Author
-					 	}
+						}
 						type Author {
 							id: ID
 						}

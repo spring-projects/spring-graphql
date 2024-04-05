@@ -33,65 +33,66 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for {@link HttpGraphQlTransport}.
+ *
  * @author Brian Clozel
  */
 @ExtendWith(MockWebServerExtension.class)
 class HttpGraphQlTransportIntegrationTests {
 
-    @Test
-    void shouldStreamSubscriptionResultsOverSse(MockWebServer server) {
-        WebClient webClient = WebClient.create(server.url("/graphql").toString());
-        HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
-        Flux<ClientGraphQlResponse> responses = graphQlClient
-                .document("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } ")
-                .executeSubscription();
+	@Test
+	void shouldStreamSubscriptionResultsOverSse(MockWebServer server) {
+		WebClient webClient = WebClient.create(server.url("/graphql").toString());
+		HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
+		Flux<ClientGraphQlResponse> responses = graphQlClient
+				.document("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } ")
+				.executeSubscription();
 
-        server.enqueue(new MockResponse().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
-                .setBody("""
-                        event:next
-                        data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
-                        
-                        event:next
-                        data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
-                        
-                        event:complete
+		server.enqueue(new MockResponse().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
+				.setBody("""
+						event:next
+						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
-                        """));
+						event:next
+						data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
 
-        StepVerifier.create(responses)
-                .assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Nineteen Eighty-Four"))
-                .assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Animal Farm"))
-                .verifyComplete();
-    }
+						event:complete
 
-    @Test
-    void shouldStreamSubscriptionErrorsOverSse(MockWebServer server) {
-        WebClient webClient = WebClient.create(server.url("/graphql").toString());
-        HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
-        Flux<ClientGraphQlResponse> responses = graphQlClient
-                .document("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } ")
-                .executeSubscription();
+						"""));
 
-        server.enqueue(new MockResponse().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
-                .setBody("""
-                        event:next
-                        data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
-                        
-                        event:next
-                        data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
-                        
-                        event:complete
+		StepVerifier.create(responses)
+				.assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Nineteen Eighty-Four"))
+				.assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Animal Farm"))
+				.verifyComplete();
+	}
 
-                        """));
-        StepVerifier.create(responses)
-                .assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Nineteen Eighty-Four"))
-                .assertNext(item -> {
-                    assertThat(item.getErrors()).hasSize(1);
-                    assertThat(item.getErrors().get(0).getErrorType().toString()).isEqualTo("INTERNAL_ERROR");
-                    assertThat(item.getErrors().get(0).getMessage()).isEqualTo("Subscription error");
-                })
-                .verifyComplete();
-    }
+	@Test
+	void shouldStreamSubscriptionErrorsOverSse(MockWebServer server) {
+		WebClient webClient = WebClient.create(server.url("/graphql").toString());
+		HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
+		Flux<ClientGraphQlResponse> responses = graphQlClient
+				.document("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } ")
+				.executeSubscription();
+
+		server.enqueue(new MockResponse().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
+				.setBody("""
+						event:next
+						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+
+						event:next
+						data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
+
+						event:complete
+
+						"""));
+		StepVerifier.create(responses)
+				.assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Nineteen Eighty-Four"))
+				.assertNext(item -> {
+					assertThat(item.getErrors()).hasSize(1);
+					assertThat(item.getErrors().get(0).getErrorType().toString()).isEqualTo("INTERNAL_ERROR");
+					assertThat(item.getErrors().get(0).getMessage()).isEqualTo("Subscription error");
+				})
+				.verifyComplete();
+	}
 
 
 }

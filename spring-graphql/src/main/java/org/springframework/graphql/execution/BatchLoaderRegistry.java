@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.List;
@@ -55,7 +56,6 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 	 * {@code @SchemaMapping} handler methods can transparenly locate and
 	 * inject a {@code DataLoader<T>} argument based on the generic type
 	 * {@code <T>}.
-	 *
 	 * @param keyType the type of keys that will be used as input
 	 * @param valueType the type of value that will be returned as output
 	 * @param <K> the key type
@@ -71,7 +71,6 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 	 * <p><strong>Note:</strong> when this method is used, the parameter name
 	 * of a {@code DataLoader<T>} argument in a {@code @SchemaMapping} handler
 	 * method needs to match the name given here.
-	 *
 	 * @param name the name to use to register a {@code DataLoader}
 	 * @param <K> the type of keys that will be used as input
 	 * @param <V> the type of values that will be used as output

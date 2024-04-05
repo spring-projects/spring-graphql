@@ -49,6 +49,9 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 
 	/**
 	 * Public constructor.
+	 * @param pos the reference position, or {@code null} if not specified
+	 * @param count how many to return, or {@code null} if not specified
+	 * @param forward whether scroll forward (true) or backward (false)
 	 * @deprecated in favor of {@link #create}, to be removed in 1.3.
 	 */
 	@Deprecated(since = "1.2.4", forRemoval = true)
@@ -111,7 +114,7 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 		}
 		else {
 			// Advance back by 1 at least to item before position
-			int advanceCount = (count != null ? count : 1);
+			int advanceCount = (count != null) ? count : 1;
 			if (position.getOffset() >= advanceCount) {
 				position = position.advanceBy(-advanceCount);
 			}

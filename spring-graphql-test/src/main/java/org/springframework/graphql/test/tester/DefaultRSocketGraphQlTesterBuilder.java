@@ -113,9 +113,9 @@ public class DefaultRSocketGraphQlTesterBuilder
 	}
 
 	private void registerJsonPathMappingProvider() {
-		this.rsocketGraphQlClientBuilder.rsocketRequester(builder ->
-				builder.rsocketStrategies(strategiesBuilder ->
-						configureJsonPathConfig(config -> {
+		this.rsocketGraphQlClientBuilder.rsocketRequester((builder) ->
+				builder.rsocketStrategies((strategiesBuilder) ->
+						configureJsonPathConfig((config) -> {
 							RSocketStrategies strategies = strategiesBuilder.build();
 							List<Encoder<?>> encoders = strategies.encoders();
 							List<Decoder<?>> decoders = strategies.decoders();

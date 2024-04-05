@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
@@ -35,7 +36,6 @@ import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.AbstractGraphQlClientBuilder;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
-import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.lang.Nullable;
@@ -51,6 +51,7 @@ import org.springframework.util.ClassUtils;
  * agnostic {@code GraphQlTester}. A transport specific extension can then wrap
  * this default tester by extending {@link AbstractDelegatingGraphQlTester}.
  *
+ * @param <B> the type of builder
  * @author Rossen Stoyanchev
  * @since 1.0.0
  * @see AbstractDelegatingGraphQlTester
@@ -86,7 +87,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 
 	@Override
 	public B errorFilter(Predicate<ResponseError> predicate) {
-		this.errorFilter = (this.errorFilter != null ? errorFilter.and(predicate) : predicate);
+		this.errorFilter = (this.errorFilter != null) ? this.errorFilter.and(predicate) : predicate;
 		return self();
 	}
 
@@ -115,6 +116,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	/**
 	 * Allow transport-specific subclass builders to register a JSON Path
 	 * {@link MappingProvider} that matches the JSON encoding/decoding they use.
+	 * @param configurer a function applied to the JSON Path configuration
 	 */
 	protected void configureJsonPathConfig(Function<Configuration, Configuration> configurer) {
 		this.jsonPathConfig = configurer.apply(this.jsonPathConfig);
@@ -123,6 +125,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	/**
 	 * Build the default transport-agnostic client that subclasses can then wrap
 	 * with {@link AbstractDelegatingGraphQlTester}.
+	 * @param transport the graphql transport to use
 	 */
 	protected GraphQlTester buildGraphQlTester(GraphQlTransport transport) {
 
@@ -139,12 +142,12 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	 * initialize new builder instances with, based on "this" builder.
 	 */
 	protected Consumer<AbstractGraphQlTesterBuilder<?>> getBuilderInitializer() {
-		return builder -> {
+		return (builder) -> {
 			if (this.errorFilter != null) {
 				builder.errorFilter(this.errorFilter);
 			}
 			builder.documentSource(this.documentSource);
-			builder.configureJsonPathConfig(config -> this.jsonPathConfig);
+			builder.configureJsonPathConfig((config) -> this.jsonPathConfig);
 			builder.responseTimeout(this.responseTimeout);
 		};
 	}
@@ -153,6 +156,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	 * For cases where the Tester needs the {@link GraphQlTransport}, we can't use
 	 * transports directly since they are package private, but we can adapt the corresponding
 	 * {@link GraphQlClient} and adapt it to {@code GraphQlTransport}.
+	 * @param client the graphql client to use for extracting the transport
 	 */
 	protected static GraphQlTransport asTransport(GraphQlClient client) {
 		return new GraphQlTransport() {
@@ -180,7 +184,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	}
 
 
-	private static class Jackson2Configurer {
+	private static final class Jackson2Configurer {
 
 		private static final Class<?> defaultJsonProviderType;
 

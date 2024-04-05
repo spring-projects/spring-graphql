@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.query;
 
 import java.util.List;
@@ -42,11 +43,10 @@ import org.springframework.util.Assert;
  * already have registrations.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer {
 
-	private final static Log logger = LogFactory.getLog(AutoRegistrationRuntimeWiringConfigurer.class);
+	private static final Log logger = LogFactory.getLog(AutoRegistrationRuntimeWiringConfigurer.class);
 
 
 	private final Map<String, DataFetcherFactory> dataFetcherFactories;
@@ -107,7 +107,7 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 
 		@Override
 		public boolean providesDataFetcher(FieldWiringEnvironment environment) {
-			if (dataFetcherFactories.isEmpty()) {
+			if (AutoRegistrationRuntimeWiringConfigurer.this.dataFetcherFactories.isEmpty()) {
 				return false;
 			}
 
@@ -118,7 +118,7 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			String outputTypeName = getOutputTypeName(environment);
 
 			boolean result = (outputTypeName != null &&
-					dataFetcherFactories.containsKey(outputTypeName) &&
+					AutoRegistrationRuntimeWiringConfigurer.this.dataFetcherFactories.containsKey(outputTypeName) &&
 					!hasDataFetcherFor(environment.getFieldDefinition()));
 
 			if (!result) {
@@ -150,7 +150,7 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 		}
 
 		private GraphQLType removeNonNullWrapper(GraphQLType outputType) {
-			return (outputType instanceof GraphQLNonNull wrapper ? wrapper.getWrappedType() : outputType);
+			return (outputType instanceof GraphQLNonNull wrapper) ? wrapper.getWrappedType() : outputType;
 		}
 
 		private boolean isConnectionType(GraphQLType type) {
@@ -162,7 +162,7 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 		private boolean hasDataFetcherFor(FieldDefinition fieldDefinition) {
 			if (this.existingQueryDataFetcherPredicate == null) {
 				Map<String, ?> map = this.builder.build().getDataFetcherForType("Query");
-				this.existingQueryDataFetcherPredicate = fieldName -> map.get(fieldName) != null;
+				this.existingQueryDataFetcherPredicate = (fieldName) -> map.get(fieldName) != null;
 			}
 			return this.existingQueryDataFetcherPredicate.test(fieldDefinition.getName());
 		}
@@ -171,7 +171,7 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			if (logger.isTraceEnabled()) {
 				String query = environment.getFieldDefinition().getName();
 				logger.trace((match ? "Matched" : "Skipped") +
-						" output typeName " + (typeName != null ? "'" + typeName + "'" : "null") +
+						" output typeName " + ((typeName != null) ? "'" + typeName + "'" : "null") +
 						" for query '" + query + "'");
 			}
 		}
@@ -182,12 +182,12 @@ class AutoRegistrationRuntimeWiringConfigurer implements RuntimeWiringConfigurer
 			String outputTypeName = getOutputTypeName(environment);
 			logTraceMessage(environment, outputTypeName, true);
 
-			DataFetcherFactory factory = dataFetcherFactories.get(outputTypeName);
+			DataFetcherFactory factory = AutoRegistrationRuntimeWiringConfigurer.this.dataFetcherFactories.get(outputTypeName);
 			Assert.notNull(factory, "Expected DataFetcher factory for typeName '" + outputTypeName + "'");
 
 			GraphQLType type = removeNonNullWrapper(environment.getFieldType());
 			return (isConnectionType(type) ? factory.scrollable() :
-					(type instanceof GraphQLList ? factory.many() : factory.single()));
+					(type instanceof GraphQLList) ? factory.many() : factory.single());
 		}
 
 	}

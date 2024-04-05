@@ -27,7 +27,6 @@ import org.springframework.util.Assert;
  * Default {@link GraphQlTester.Builder} with a given, externally prepared transport.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultTransportGraphQlTesterBuilder
 		extends AbstractGraphQlTesterBuilder<DefaultTransportGraphQlTesterBuilder> {
@@ -50,7 +49,7 @@ final class DefaultTransportGraphQlTesterBuilder
 	/**
 	 * {@link GraphQlTester} with a given transport.
 	 */
-	private static class DefaultTransportGraphQlTester extends AbstractDelegatingGraphQlTester {
+	private static final class DefaultTransportGraphQlTester extends AbstractDelegatingGraphQlTester {
 
 		private final GraphQlTransport transport;
 

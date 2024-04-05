@@ -75,6 +75,7 @@ public final class FederationSchemaFactory
 	/**
 	 * Configure a resolver that helps to map Java to entity schema type names.
 	 * <p>By default this is {@link ClassNameTypeResolver}.
+	 * @param typeResolver the custom type resolver to use
 	 * @see SchemaTransformer#resolveEntityType(TypeResolver)
 	 */
 	public void setTypeResolver(@Nullable TypeResolver typeResolver) {
@@ -86,7 +87,7 @@ public final class FederationSchemaFactory
 	public void afterPropertiesSet() {
 		super.afterPropertiesSet();
 
-		detectHandlerMethods().forEach(info ->
+		detectHandlerMethods().forEach((info) ->
 				this.handlerMethods.put(info.typeName(),
 						new EntityHandlerMethod(info.handlerMethod(), getArgumentResolvers(), getExecutor())));
 
@@ -149,6 +150,8 @@ public final class FederationSchemaFactory
 	 * Create {@link GraphQLSchema} via {@link SchemaTransformer}, setting up
 	 * the "_entities" {@link DataFetcher} and {@link TypeResolver} for federated types.
 	 * <p>Use this to supply a {@link SchemaResourceBuilder#schemaFactory(BiFunction) schemaFactory}.
+	 * @param registry the existing type definition registry
+	 * @param wiring the existing runtime wiring
 	 */
 	public GraphQLSchema createGraphQLSchema(TypeDefinitionRegistry registry, RuntimeWiring wiring) {
 		return createSchemaTransformer(registry, wiring).build();
@@ -157,6 +160,8 @@ public final class FederationSchemaFactory
 	/**
 	 * Alternative to {@link #createGraphQLSchema(TypeDefinitionRegistry, RuntimeWiring)}
 	 * that allows calling additional methods on {@link SchemaTransformer}.
+	 * @param registry the existing type definition registry
+	 * @param wiring the existing runtime wiring
 	 */
 	public SchemaTransformer createSchemaTransformer(TypeDefinitionRegistry registry, RuntimeWiring wiring) {
 		Assert.state(this.typeResolver != null, "afterPropertiesSet not called");

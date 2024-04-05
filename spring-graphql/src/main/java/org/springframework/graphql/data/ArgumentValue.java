@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data;
 
 
@@ -39,8 +40,8 @@ import org.springframework.util.ObjectUtils;
  * object.
  * </ul>
  *
- * @author Rossen Stoyanchev
  * @param <T> the type of value contained
+ * @author Rossen Stoyanchev
  * @since 1.1.0
  * @see <a href="http://spec.graphql.org/October2021/#sec-Non-Null.Nullable-vs-Optional">Nullable vs Optional</a>
  */
@@ -115,6 +116,7 @@ public final class ArgumentValue<T> {
 	/**
 	 * Static factory method for an argument value that was provided, even if
 	 * it was set to {@literal "null}.
+	 * @param <T> the type of value
 	 * @param value the value to hold in the instance
 	 */
 	public static <T> ArgumentValue<T> ofNullable(@Nullable T value) {
@@ -123,6 +125,7 @@ public final class ArgumentValue<T> {
 
 	/**
 	 * Static factory method for an argument value that was omitted.
+	 * @param <T> the type of value
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> ArgumentValue<T> omitted() {

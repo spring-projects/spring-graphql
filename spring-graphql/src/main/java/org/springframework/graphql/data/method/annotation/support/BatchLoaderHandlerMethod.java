@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.security.Principal;
@@ -50,7 +51,7 @@ import org.springframework.util.ClassUtils;
  */
 public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+	private static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerConfigurer.class.getClassLoader());
 
@@ -66,7 +67,6 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	/**
 	 * Invoke the underlying batch loader method with a collection of keys to
 	 * return a Map of key-value pairs.
-	 *
 	 * @param keys the keys for which to load values
 	 * @param environment the environment available to batch loaders
 	 * @param <K> the type of keys in the map
@@ -80,7 +80,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			Object result = doInvoke(environment.getContext(), args);
 			return toMonoMap(result);
 		}
-		return toArgsMono(args).flatMap(argValues -> {
+		return toArgsMono(args).flatMap((argValues) -> {
 			Object result = doInvoke(environment.getContext(), argValues);
 			return toMonoMap(result);
 		});
@@ -89,7 +89,6 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	/**
 	 * Invoke the underlying batch loader method with a collection of input keys
 	 * to return a collection of matching values.
-	 *
 	 * @param keys the keys for which to load values
 	 * @param environment the environment available to batch loaders
 	 * @param <V> the type of values returned
@@ -101,7 +100,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			Object result = doInvoke(environment.getContext(), args);
 			return toFlux(result);
 		}
-		return toArgsMono(args).flatMapMany(resolvedArgs -> {
+		return toArgsMono(args).flatMapMany((resolvedArgs) -> {
 			Object result = doInvoke(environment.getContext(), resolvedArgs);
 			return toFlux(result);
 		});
@@ -164,7 +163,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	}
 
 	private boolean doesNotHaveAsyncArgs(Object[] args) {
-		return Arrays.stream(args).noneMatch(arg -> arg instanceof Mono);
+		return Arrays.stream(args).noneMatch((arg) -> arg instanceof Mono);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -176,7 +175,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 			return (Mono<Map<K, V>>) result;
 		}
 		else if (result instanceof CompletableFuture) {
-			return Mono.fromFuture((CompletableFuture<? extends Map<K,V>>) result);
+			return Mono.fromFuture((CompletableFuture<? extends Map<K, V>>) result);
 		}
 		return Mono.error(new IllegalStateException("Unexpected return value: " + result));
 	}

@@ -31,30 +31,29 @@ import org.springframework.web.reactive.function.server.ServerRequest;
  * Abstract class for GraphQL Handler implementations using the HTTP transport.
  *
  * @author Brian Clozel
- * @since 1.3.0
  */
 class AbstractGraphQlHttpHandler {
 
-    protected final WebGraphQlHandler graphQlHandler;
+	protected final WebGraphQlHandler graphQlHandler;
 
-    @Nullable
-    protected final HttpCodecDelegate codecDelegate;
+	@Nullable
+	protected final HttpCodecDelegate codecDelegate;
 
-    public AbstractGraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpCodecDelegate codecDelegate) {
-        Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
-        this.graphQlHandler = graphQlHandler;
-        this.codecDelegate = codecDelegate;
-    }
+	AbstractGraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpCodecDelegate codecDelegate) {
+		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
+		this.graphQlHandler = graphQlHandler;
+		this.codecDelegate = codecDelegate;
+	}
 
-    protected Mono<SerializableGraphQlRequest> readRequest(ServerRequest serverRequest) {
-        if (this.codecDelegate != null) {
-            MediaType contentType = serverRequest.headers().contentType().orElse(MediaType.APPLICATION_JSON);
-            return this.codecDelegate.decode(serverRequest.bodyToFlux(DataBuffer.class), contentType);
-        }
-        else {
-            return serverRequest.bodyToMono(SerializableGraphQlRequest.class);
-        }
-    }
+	protected Mono<SerializableGraphQlRequest> readRequest(ServerRequest serverRequest) {
+		if (this.codecDelegate != null) {
+			MediaType contentType = serverRequest.headers().contentType().orElse(MediaType.APPLICATION_JSON);
+			return this.codecDelegate.decode(serverRequest.bodyToFlux(DataBuffer.class), contentType);
+		}
+		else {
+			return serverRequest.bodyToMono(SerializableGraphQlRequest.class);
+		}
+	}
 
 
 }

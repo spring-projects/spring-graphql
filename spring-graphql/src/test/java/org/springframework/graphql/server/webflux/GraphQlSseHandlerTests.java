@@ -50,127 +50,127 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class GraphQlSseHandlerTests {
 
-    private static final List<HttpMessageWriter<?>> MESSAGE_WRITERS = Collections.singletonList(new ServerSentEventHttpMessageWriter(new Jackson2JsonEncoder()));
+	private static final List<HttpMessageWriter<?>> MESSAGE_WRITERS = Collections.singletonList(new ServerSentEventHttpMessageWriter(new Jackson2JsonEncoder()));
 
-    private static final DataFetcher<?> BOOK_SEARCH = environment -> {
-        String author = environment.getArgument("author");
-        return Flux.fromIterable(BookSource.books())
-                .filter((book) -> book.getAuthor().getFullName().contains(author));
-    };
+	private static final DataFetcher<?> BOOK_SEARCH = environment -> {
+		String author = environment.getArgument("author");
+		return Flux.fromIterable(BookSource.books())
+				.filter((book) -> book.getAuthor().getFullName().contains(author));
+	};
 
-    private final MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/graphql")
-            .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM).build();
-
-
-
-    @Test
-    void shouldRejectQueryOperations() {
-        SerializableGraphQlRequest request = initRequest("{ bookById(id: 42) {name} }");
-        GraphQlSseHandler sseHandler = createSseHandler(BOOK_SEARCH);
-        MockServerHttpResponse httpResponse = handleRequest(this.httpRequest, sseHandler, request);
-
-        assertThat(httpResponse.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
-        assertThat(httpResponse.getBodyAsString().block()).isEqualTo(
-                """
-                        event:next
-                        data:{"errors":[{"message":"SSE transport only supports Subscription operations","locations":[],"extensions":{"classification":"OperationNotSupported"}}]}
-                        
-                        event:complete
-                        data:{}
-                        
-                        """);
-    }
-
-    @Test
-    void shouldWriteMultipleEventsForSubscription() {
-        SerializableGraphQlRequest request = initRequest("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
-        GraphQlSseHandler sseHandler = createSseHandler(BOOK_SEARCH);
-        MockServerHttpResponse httpResponse = handleRequest(this.httpRequest, sseHandler, request);
-
-        assertThat(httpResponse.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
-        assertThat(httpResponse.getBodyAsString().block()).isEqualTo(
-                """
-                        event:next
-                        data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
-                        
-                        event:next
-                        data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
-                        
-                        event:complete
-                        data:{}
-                        
-                        """);
-    }
-
-    @Test
-    void shouldWriteEventsAndTerminalError() {
-        SerializableGraphQlRequest request = initRequest("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
-        DataFetcher<?> errorDataFetcher = env -> Flux.just(BookSource.getBook(1L))
-                .concatWith(Flux.error(new IllegalStateException("test error")));
-        GraphQlSseHandler sseHandler = createSseHandler(errorDataFetcher);
-        MockServerHttpResponse httpResponse = handleRequest(this.httpRequest, sseHandler, request);
-
-        assertThat(httpResponse.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
-        assertThat(httpResponse.getBodyAsString().block()).isEqualTo(
-                """
-                        event:next
-                        data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
-                        
-                        event:next
-                        data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
-                        
-                        event:complete
-                        data:{}
-
-                        """);
-    }
-
-    private GraphQlSseHandler createSseHandler(DataFetcher<?> subscriptionDataFetcher) {
-        return new GraphQlSseHandler(GraphQlSetup.schemaResource(BookSource.schema)
-                .queryFetcher("bookById", (env) -> BookSource.getBookWithoutAuthor(1L))
-                .subscriptionFetcher("bookSearch", subscriptionDataFetcher)
-                .toWebGraphQlHandler());
-    }
-
-    private static SerializableGraphQlRequest initRequest(String document) {
-        SerializableGraphQlRequest request = new SerializableGraphQlRequest();
-        request.setQuery(document);
-        return request;
-    }
-
-    private MockServerHttpResponse handleRequest(
-            MockServerHttpRequest httpRequest, GraphQlSseHandler handler, GraphQlRequest body) {
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
-
-        MockServerRequest serverRequest = MockServerRequest.builder()
-                .exchange(exchange)
-                .uri(((ServerWebExchange) exchange).getRequest().getURI())
-                .method(((ServerWebExchange) exchange).getRequest().getMethod())
-                .headers(((ServerWebExchange) exchange).getRequest().getHeaders())
-                .body(Mono.just(body));
-
-        handler.handleRequest(serverRequest)
-                .flatMap(response -> response.writeTo(exchange, new DefaultContext()))
-                .block();
-
-        return exchange.getResponse();
-    }
+	private final MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/graphql")
+			.contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM).build();
 
 
-    private static class DefaultContext implements ServerResponse.Context {
 
-        @Override
-        public List<HttpMessageWriter<?>> messageWriters() {
-            return MESSAGE_WRITERS;
-        }
+	@Test
+	void shouldRejectQueryOperations() {
+		SerializableGraphQlRequest request = initRequest("{ bookById(id: 42) {name} }");
+		GraphQlSseHandler sseHandler = createSseHandler(BOOK_SEARCH);
+		MockServerHttpResponse httpResponse = handleRequest(this.httpRequest, sseHandler, request);
 
-        @Override
-        public List<ViewResolver> viewResolvers() {
-            return Collections.emptyList();
-        }
+		assertThat(httpResponse.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
+		assertThat(httpResponse.getBodyAsString().block()).isEqualTo(
+				"""
+						event:next
+						data:{"errors":[{"message":"SSE transport only supports Subscription operations","locations":[],"extensions":{"classification":"OperationNotSupported"}}]}
 
-    }
+						event:complete
+						data:{}
+
+						""");
+	}
+
+	@Test
+	void shouldWriteMultipleEventsForSubscription() {
+		SerializableGraphQlRequest request = initRequest("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
+		GraphQlSseHandler sseHandler = createSseHandler(BOOK_SEARCH);
+		MockServerHttpResponse httpResponse = handleRequest(this.httpRequest, sseHandler, request);
+
+		assertThat(httpResponse.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
+		assertThat(httpResponse.getBodyAsString().block()).isEqualTo(
+				"""
+						event:next
+						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+
+						event:next
+						data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
+
+						event:complete
+						data:{}
+
+						""");
+	}
+
+	@Test
+	void shouldWriteEventsAndTerminalError() {
+		SerializableGraphQlRequest request = initRequest("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
+		DataFetcher<?> errorDataFetcher = env -> Flux.just(BookSource.getBook(1L))
+				.concatWith(Flux.error(new IllegalStateException("test error")));
+		GraphQlSseHandler sseHandler = createSseHandler(errorDataFetcher);
+		MockServerHttpResponse httpResponse = handleRequest(this.httpRequest, sseHandler, request);
+
+		assertThat(httpResponse.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
+		assertThat(httpResponse.getBodyAsString().block()).isEqualTo(
+				"""
+						event:next
+						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+
+						event:next
+						data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
+
+						event:complete
+						data:{}
+
+						""");
+	}
+
+	private GraphQlSseHandler createSseHandler(DataFetcher<?> subscriptionDataFetcher) {
+		return new GraphQlSseHandler(GraphQlSetup.schemaResource(BookSource.schema)
+				.queryFetcher("bookById", (env) -> BookSource.getBookWithoutAuthor(1L))
+				.subscriptionFetcher("bookSearch", subscriptionDataFetcher)
+				.toWebGraphQlHandler());
+	}
+
+	private static SerializableGraphQlRequest initRequest(String document) {
+		SerializableGraphQlRequest request = new SerializableGraphQlRequest();
+		request.setQuery(document);
+		return request;
+	}
+
+	private MockServerHttpResponse handleRequest(
+			MockServerHttpRequest httpRequest, GraphQlSseHandler handler, GraphQlRequest body) {
+
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+
+		MockServerRequest serverRequest = MockServerRequest.builder()
+				.exchange(exchange)
+				.uri(((ServerWebExchange) exchange).getRequest().getURI())
+				.method(((ServerWebExchange) exchange).getRequest().getMethod())
+				.headers(((ServerWebExchange) exchange).getRequest().getHeaders())
+				.body(Mono.just(body));
+
+		handler.handleRequest(serverRequest)
+				.flatMap(response -> response.writeTo(exchange, new DefaultContext()))
+				.block();
+
+		return exchange.getResponse();
+	}
+
+
+	private static class DefaultContext implements ServerResponse.Context {
+
+		@Override
+		public List<HttpMessageWriter<?>> messageWriters() {
+			return MESSAGE_WRITERS;
+		}
+
+		@Override
+		public List<ViewResolver> viewResolvers() {
+			return Collections.emptyList();
+		}
+
+	}
 
 
 }

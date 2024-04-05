@@ -32,11 +32,10 @@ import org.springframework.lang.Nullable;
  * Invokable controller method to fetch a federated entity.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
  */
 final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 
-	public EntityHandlerMethod(
+	EntityHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
 			@Nullable Executor executor) {
 
@@ -44,7 +43,7 @@ final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 	}
 
 
-	public Mono<Object> getEntity(
+	Mono<Object> getEntity(
 			DataFetchingEnvironment environment, Map<String, Object> representation, int index) {
 
 		Object[] args;

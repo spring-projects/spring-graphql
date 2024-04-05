@@ -54,8 +54,6 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 
-import static org.springframework.core.annotation.MergedAnnotations.SearchStrategy.TYPE_HIERARCHY;
-
 /**
  * {@link BeanFactoryInitializationAotProcessor} implementation for registering
  * runtime hints discoverable through GraphQL controllers, such as:
@@ -80,11 +78,10 @@ import static org.springframework.core.annotation.MergedAnnotations.SearchStrate
  *
  * @author Brian Clozel
  * @see org.springframework.graphql.data.method.HandlerMethodArgumentResolver
- * @since 1.1.0
  */
 class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryInitializationAotProcessor {
 
-	private final static boolean springDataPresent = ClassUtils.isPresent(
+	private static final boolean springDataPresent = ClassUtils.isPresent(
 			"org.springframework.data.projection.SpelAwareProxyProjectionFactory",
 			SchemaMappingBeanFactoryInitializationAotProcessor.class.getClassLoader());
 
@@ -94,8 +91,8 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		List<Class<?>> controllers = new ArrayList<>();
 		List<Class<?>> controllerAdvices = new ArrayList<>();
 		Arrays.stream(beanFactory.getBeanDefinitionNames())
-				.map(beanName -> RegisteredBean.of(beanFactory, beanName).getBeanClass())
-				.forEach(beanClass -> {
+				.map((beanName) -> RegisteredBean.of(beanFactory, beanName).getBeanClass())
+				.forEach((beanClass) -> {
 					if (isController(beanClass)) {
 						controllers.add(beanClass);
 					}
@@ -107,11 +104,11 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 	}
 
 	private boolean isController(AnnotatedElement element) {
-		return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(Controller.class);
+		return MergedAnnotations.from(element, MergedAnnotations.SearchStrategy.TYPE_HIERARCHY).isPresent(Controller.class);
 	}
 
 	private boolean isControllerAdvice(AnnotatedElement element) {
-		return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(ControllerAdvice.class);
+		return MergedAnnotations.from(element, MergedAnnotations.SearchStrategy.TYPE_HIERARCHY).isPresent(ControllerAdvice.class);
 	}
 
 
@@ -124,7 +121,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
-		public SchemaMappingBeanFactoryInitializationAotContribution(List<Class<?>> controllers, List<Class<?>> controllerAdvices) {
+		SchemaMappingBeanFactoryInitializationAotContribution(List<Class<?>> controllers, List<Class<?>> controllerAdvices) {
 			this.controllers = controllers;
 			this.controllerAdvices = controllerAdvices;
 			this.argumentResolvers = createArgumentResolvers();
@@ -141,19 +138,19 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		public void applyTo(GenerationContext context, BeanFactoryInitializationCode initializationCode) {
 			RuntimeHints runtimeHints = context.getRuntimeHints();
 			registerSpringDataSpelSupport(runtimeHints);
-			this.controllers.forEach(controller -> {
+			this.controllers.forEach((controller) -> {
 				runtimeHints.reflection().registerType(controller, MemberCategory.INTROSPECT_DECLARED_METHODS);
 				ReflectionUtils.doWithMethods(controller,
-						method -> processSchemaMappingMethod(runtimeHints, method),
+						(method) -> processSchemaMappingMethod(runtimeHints, method),
 						this::isGraphQlHandlerMethod);
 				ReflectionUtils.doWithMethods(controller,
-						method -> processExceptionHandlerMethod(runtimeHints, method),
+						(method) -> processExceptionHandlerMethod(runtimeHints, method),
 						this::isExceptionHandlerMethod);
 			});
-			this.controllerAdvices.forEach(controllerAdvice -> {
+			this.controllerAdvices.forEach((controllerAdvice) -> {
 				runtimeHints.reflection().registerType(controllerAdvice, MemberCategory.INTROSPECT_DECLARED_METHODS);
 				ReflectionUtils.doWithMethods(controllerAdvice,
-						method -> processExceptionHandlerMethod(runtimeHints, method),
+						(method) -> processExceptionHandlerMethod(runtimeHints, method),
 						this::isExceptionHandlerMethod);
 			});
 		}
@@ -163,18 +160,18 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 				runtimeHints.reflection()
 						.registerType(SpelAwareProxyProjectionFactory.class)
 						.registerType(TypeReference.of("org.springframework.data.projection.SpelEvaluatingMethodInterceptor$TargetWrapper"),
-								builder -> builder.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+								(builder) -> builder.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
 										MemberCategory.INVOKE_DECLARED_METHODS, MemberCategory.INVOKE_PUBLIC_METHODS));
 			}
 		}
 
 		private boolean isGraphQlHandlerMethod(AnnotatedElement element) {
-			MergedAnnotations annotations = MergedAnnotations.from(element, TYPE_HIERARCHY);
+			MergedAnnotations annotations = MergedAnnotations.from(element, MergedAnnotations.SearchStrategy.TYPE_HIERARCHY);
 			return annotations.isPresent(SchemaMapping.class) || annotations.isPresent(BatchMapping.class);
 		}
 
 		private boolean isExceptionHandlerMethod(AnnotatedElement element) {
-			return MergedAnnotations.from(element, TYPE_HIERARCHY).isPresent(GraphQlExceptionHandler.class);
+			return MergedAnnotations.from(element, MergedAnnotations.SearchStrategy.TYPE_HIERARCHY).isPresent(GraphQlExceptionHandler.class);
 		}
 
 		private void processSchemaMappingMethod(RuntimeHints runtimeHints, Method method) {
@@ -229,7 +226,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 	}
 
 
-	private static class NoHintsRequired implements MethodParameterRuntimeHintsRegistrar {
+	private static final class NoHintsRequired implements MethodParameterRuntimeHintsRegistrar {
 
 		@Override
 		public void apply(RuntimeHints runtimeHints) {
@@ -242,14 +239,14 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		private final MethodParameter methodParameter;
 
-		public ArgumentBindingHints(MethodParameter methodParameter) {
+		ArgumentBindingHints(MethodParameter methodParameter) {
 			this.methodParameter = methodParameter;
 		}
 
 		@Override
 		public void apply(RuntimeHints runtimeHints) {
 			Type parameterType = this.methodParameter.getGenericParameterType();
-			if (ArgumentValue.class.isAssignableFrom(methodParameter.getParameterType())) {
+			if (ArgumentValue.class.isAssignableFrom(this.methodParameter.getParameterType())) {
 				parameterType = this.methodParameter.nested().getNestedGenericParameterType();
 			}
 			bindingRegistrar.registerReflectionHints(runtimeHints.reflection(), parameterType);
@@ -261,7 +258,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		private final MethodParameter methodParameter;
 
-		public DataLoaderHints(MethodParameter methodParameter) {
+		DataLoaderHints(MethodParameter methodParameter) {
 			this.methodParameter = methodParameter;
 		}
 
@@ -277,7 +274,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		private final MethodParameter methodParameter;
 
-		public ProjectedPayloadHints(MethodParameter methodParameter) {
+		ProjectedPayloadHints(MethodParameter methodParameter) {
 			this.methodParameter = methodParameter;
 		}
 

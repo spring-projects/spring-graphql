@@ -37,9 +37,6 @@ import graphql.schema.DataFetchingFieldSelectionSet;
 import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.graphql.data.method.annotation.*;
-import org.springframework.validation.BindException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -62,7 +59,17 @@ import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
+import org.springframework.graphql.data.method.annotation.ContextValue;
+import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
+import org.springframework.graphql.data.method.annotation.LocalContextValue;
+import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -502,7 +509,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 				}
 			}
 		}
-		catch (IntrospectionException e) {
+		catch (IntrospectionException ex) {
 			// ignoring type
 		}
 		return predicate;

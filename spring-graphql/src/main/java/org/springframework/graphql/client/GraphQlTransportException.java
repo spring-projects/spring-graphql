@@ -32,6 +32,8 @@ public class GraphQlTransportException extends GraphQlClientException {
 
 	/**
 	 * Constructor with a default message.
+	 * @param cause the original cause of the transport error
+	 * @param request the request that failed at the transport level
 	 */
 	public GraphQlTransportException(@Nullable Throwable cause, GraphQlRequest request) {
 		super("GraphQlTransport error: " + cause.getMessage(), cause, request);
@@ -39,6 +41,9 @@ public class GraphQlTransportException extends GraphQlClientException {
 
 	/**
 	 * Constructor with a given message.
+	 * @param message the exception message to use
+	 * @param cause the original cause of the transport error
+	 * @param request the request that failed at the transport level
 	 */
 	public GraphQlTransportException(String message, @Nullable Throwable cause, GraphQlRequest request) {
 		super(message, cause, request);

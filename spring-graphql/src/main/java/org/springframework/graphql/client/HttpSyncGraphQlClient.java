@@ -42,6 +42,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Create an {@link HttpSyncGraphQlClient} that uses the given {@link RestClient}.
+	 * @param client the {@code RestClient} to use for HTTP requests
 	 */
 	static HttpSyncGraphQlClient create(RestClient client) {
 		return builder(client.mutate()).build();
@@ -57,6 +58,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 	/**
 	 * Variant of {@link #builder()} with a pre-configured {@code RestClient}
 	 * to mutate and customize further through the returned builder.
+	 * @param client the {@code RestClient} to use for HTTP requests
 	 */
 	static Builder<?> builder(RestClient client) {
 		return builder(client.mutate());
@@ -65,6 +67,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 	/**
 	 * Variant of {@link #builder()} with a pre-configured {@code RestClient}
 	 * to mutate and customize further through the returned builder.
+	 * @param builder the {@code RestClient} builder to use for HTTP requests
 	 */
 	static Builder<?> builder(RestClient.Builder builder) {
 		return new DefaultSyncHttpGraphQlClientBuilder(builder);
@@ -73,6 +76,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Builder for the GraphQL over HTTP client with a blocking execution chain.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlClient.SyncBuilder<B> {
 
@@ -115,6 +119,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 		 * Customize the underlying {@code RestClient}.
 		 * <p>Note that some properties of {@code RestClient.Builder} like the base URL,
 		 * headers, and message converters can be customized through this builder.
+		 * @param builderConsumer a consumer that customizes the {@code RestClient}.
 		 * @see #url(String)
 		 * @see #header(String, String...)
 		 * @see #messageConverters(Consumer)

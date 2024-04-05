@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -60,10 +60,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link QuerydslDataFetcher}.
@@ -229,7 +229,7 @@ class QuerydslDataFetcherTests {
 	void shouldFavorExplicitWiring() {
 		MockRepository mockRepository = mock(MockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
-		when(mockRepository.findBy(any(), any())).thenReturn(Optional.of(book));
+		given(mockRepository.findBy(any(), any())).willReturn(Optional.of(book));
 
 		// 1) Automatic registration only
 		WebGraphQlHandler handler = graphQlSetup(mockRepository).toWebGraphQlHandler();
@@ -286,7 +286,7 @@ class QuerydslDataFetcherTests {
 	void shouldReactivelyFetchSingleItems() {
 		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
-		when(mockRepository.findBy(any(), any())).thenReturn(Mono.just(book));
+		given(mockRepository.findBy(any(), any())).willReturn(Mono.just(book));
 
 		Consumer<GraphQlSetup> tester = setup -> {
 			WebGraphQlRequest request = request("{ bookById(id: 1) {name}}");
@@ -308,7 +308,7 @@ class QuerydslDataFetcherTests {
 		ReactiveMockRepository mockRepository = mock(ReactiveMockRepository.class);
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
-		when(mockRepository.findBy(any(), any())).thenReturn(Flux.just(book1, book2));
+		given(mockRepository.findBy(any(), any())).willReturn(Flux.just(book1, book2));
 
 		Consumer<GraphQlSetup> tester = setup -> {
 			WebGraphQlRequest request = request("{ books {name}}");
@@ -400,7 +400,7 @@ class QuerydslDataFetcherTests {
 			QuerydslBinderCustomizer<QBook> {
 
 		@Override
-		default void customize(QuerydslBindings bindings, QBook book){
+		default void customize(QuerydslBindings bindings, QBook book) {
 			bindings.bind(book.name).firstOptional((path, value) -> value.map(path::startsWith));
 		}
 

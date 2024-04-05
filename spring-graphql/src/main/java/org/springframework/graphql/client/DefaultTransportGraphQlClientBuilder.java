@@ -26,7 +26,6 @@ import org.springframework.util.Assert;
  * Default {@link GraphQlClient.Builder} with a given, externally, prepared transport.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultTransportGraphQlClientBuilder
 		extends AbstractGraphQlClientBuilder<DefaultTransportGraphQlClientBuilder> {

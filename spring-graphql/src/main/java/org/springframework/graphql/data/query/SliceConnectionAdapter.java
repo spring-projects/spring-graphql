@@ -38,6 +38,7 @@ public final class SliceConnectionAdapter
 	/**
 	 * Constructor with the {@link CursorStrategy} to use to encode the
 	 * {@code ScrollPosition} of page items.
+	 * @param strategy the cursor strategy to use
 	 */
 	public SliceConnectionAdapter(CursorStrategy<ScrollPosition> strategy) {
 		super(strategy);

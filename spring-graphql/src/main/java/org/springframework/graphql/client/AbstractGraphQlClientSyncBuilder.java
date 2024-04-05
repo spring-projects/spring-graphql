@@ -49,6 +49,7 @@ import org.springframework.util.ClassUtils;
  * agnostic {@code GraphQlClient}. A transport specific extension can then wrap
  * this default tester by extending {@link AbstractDelegatingGraphQlClient}.
  *
+ * @param <B> the type of builder
  * @author Rossen Stoyanchev
  * @since 1.3
  * @see AbstractDelegatingGraphQlClient
@@ -131,6 +132,7 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	 * Transport-specific subclasses can provide their JSON {@code Encoder} and
 	 * {@code Decoder} for use at the client level, for mapping response data
 	 * to some target entity type.
+	 * @param converter the message converter for JSON payloads
 	 */
 	protected void setJsonConverter(HttpMessageConverter<Object> converter) {
 		this.jsonConverter = converter;
@@ -140,12 +142,13 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	/**
 	 * Build the default transport-agnostic client that subclasses can then wrap
 	 * with {@link AbstractDelegatingGraphQlClient}.
+	 * @param transport the GraphQL transport to be used by the client
 	 */
 	protected GraphQlClient buildGraphQlClient(SyncGraphQlTransport transport) {
 
 		if (jackson2Present) {
-			this.jsonConverter = (this.jsonConverter == null ?
-					DefaultJacksonConverter.initialize() : this.jsonConverter);
+			this.jsonConverter = (this.jsonConverter == null) ?
+					DefaultJacksonConverter.initialize() : this.jsonConverter;
 		}
 
 		return new DefaultGraphQlClient(
@@ -156,9 +159,9 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	 * Return a {@code Consumer} to initialize new builders from "this" builder.
 	 */
 	protected Consumer<AbstractGraphQlClientSyncBuilder<?>> getBuilderInitializer() {
-		return builder -> {
-			builder.interceptors(interceptorList -> interceptorList.addAll(interceptors));
-			builder.documentSource(documentSource);
+		return (builder) -> {
+			builder.interceptors((interceptorList) -> interceptorList.addAll(this.interceptors));
+			builder.documentSource(this.documentSource);
 			builder.setJsonConverter(getJsonConverter());
 		};
 	}
@@ -168,14 +171,14 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 		Encoder<?> encoder = HttpMessageConverterDelegate.asEncoder(getJsonConverter());
 		Decoder<?> decoder = HttpMessageConverterDelegate.asDecoder(getJsonConverter());
 
-		Chain chain = request -> {
+		Chain chain = (request) -> {
 			GraphQlResponse response = transport.execute(request);
 			return new DefaultClientGraphQlResponse(request, response, encoder, decoder);
 		};
 
 		return this.interceptors.stream()
 				.reduce(SyncGraphQlClientInterceptor::andThen)
-				.map(i -> (Chain) (request) -> i.intercept(request, chain))
+				.map((i) -> (Chain) (request) -> i.intercept(request, chain))
 				.orElse(chain);
 	}
 
@@ -185,7 +188,7 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	}
 
 
-	private static class DefaultJacksonConverter {
+	private static final class DefaultJacksonConverter {
 
 		static HttpMessageConverter<Object> initialize() {
 			return new MappingJackson2HttpMessageConverter();

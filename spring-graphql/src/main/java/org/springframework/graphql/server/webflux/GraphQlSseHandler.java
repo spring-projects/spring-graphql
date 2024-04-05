@@ -50,64 +50,63 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  */
 public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
-    private static final Log logger = LogFactory.getLog(GraphQlSseHandler.class);
+	private static final Log logger = LogFactory.getLog(GraphQlSseHandler.class);
 
-    private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
+	private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
 
 
-    public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
-        super(graphQlHandler, null);
-    }
+	public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
+		super(graphQlHandler, null);
+	}
 
-    /**
-     * Handle GraphQL requests over HTTP using the Server-Sent Events protocol.
-     *
-     * @param serverRequest the incoming HTTP request
-     * @return the HTTP response
-     */
-    @SuppressWarnings("unchecked")
-    public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
-        Flux<ServerSentEvent<Map<String, Object>>> data = readRequest(serverRequest)
-                .flatMap(body -> {
-                    WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-                            serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
-                            serverRequest.cookies(), serverRequest.attributes(), body,
-                            serverRequest.exchange().getRequest().getId(),
-                            serverRequest.exchange().getLocaleContext().getLocale());
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Executing: " + graphQlRequest);
-                    }
-                    return this.graphQlHandler.handleRequest(graphQlRequest);
-                })
-                .flatMapMany(response -> {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Execution result ready"
-                                + (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
-                                + ".");
-                    }
-                    if (response.getData() instanceof Publisher) {
-                        // Subscription
-                        return Flux.from((Publisher<ExecutionResult>) response.getData()).map(ExecutionResult::toSpecification);
-                    }
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Only subscriptions are supported, DataFetcher must return a Publisher type");
-                    }
-                    // Single response (query or mutation) are not supported
-                    String errorMessage = "SSE transport only supports Subscription operations";
-                    GraphQLError unsupportedOperationError = GraphQLError.newError().errorType(ErrorType.OperationNotSupported)
-                            .message(errorMessage).build();
-                    return Flux.error(new SubscriptionPublisherException(Collections.singletonList(unsupportedOperationError),
-                            new IllegalArgumentException(errorMessage)));
-                })
-                .onErrorResume(SubscriptionPublisherException.class, exc -> {
-                    ExecutionResult errorResult = ExecutionResult.newExecutionResult().errors(exc.getErrors()).build();
-                    return Flux.just(errorResult.toSpecification());
-                })
-                .map(event -> ServerSentEvent.builder(event).event("next").build());
+	/**
+	 * Handle GraphQL requests over HTTP using the Server-Sent Events protocol.
+	 * @param serverRequest the incoming HTTP request
+	 * @return the HTTP response
+	 */
+	@SuppressWarnings("unchecked")
+	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
+		Flux<ServerSentEvent<Map<String, Object>>> data = readRequest(serverRequest)
+				.flatMap((body) -> {
+					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
+							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
+							serverRequest.cookies(), serverRequest.attributes(), body,
+							serverRequest.exchange().getRequest().getId(),
+							serverRequest.exchange().getLocaleContext().getLocale());
+					if (logger.isDebugEnabled()) {
+						logger.debug("Executing: " + graphQlRequest);
+					}
+					return this.graphQlHandler.handleRequest(graphQlRequest);
+				})
+				.flatMapMany((response) -> {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Execution result ready"
+								+ (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
+								+ ".");
+					}
+					if (response.getData() instanceof Publisher) {
+						// Subscription
+						return Flux.from((Publisher<ExecutionResult>) response.getData()).map(ExecutionResult::toSpecification);
+					}
+					if (logger.isDebugEnabled()) {
+						logger.debug("Only subscriptions are supported, DataFetcher must return a Publisher type");
+					}
+					// Single response (query or mutation) are not supported
+					String errorMessage = "SSE transport only supports Subscription operations";
+					GraphQLError unsupportedOperationError = GraphQLError.newError().errorType(ErrorType.OperationNotSupported)
+							.message(errorMessage).build();
+					return Flux.error(new SubscriptionPublisherException(Collections.singletonList(unsupportedOperationError),
+							new IllegalArgumentException(errorMessage)));
+				})
+				.onErrorResume(SubscriptionPublisherException.class, (exc) -> {
+					ExecutionResult errorResult = ExecutionResult.newExecutionResult().errors(exc.getErrors()).build();
+					return Flux.just(errorResult.toSpecification());
+				})
+				.map((event) -> ServerSentEvent.builder(event).event("next").build());
 
-        Flux<ServerSentEvent<Map<String, Object>>> body = data.concatWith(COMPLETE_EVENT);
-        return ServerResponse.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(BodyInserters.fromServerSentEvents(body))
-                .onErrorResume(Throwable.class, exc -> ServerResponse.badRequest().build());
-    }
+		Flux<ServerSentEvent<Map<String, Object>>> body = data.concatWith(COMPLETE_EVENT);
+		return ServerResponse.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(BodyInserters.fromServerSentEvents(body))
+				.onErrorResume(Throwable.class, (exc) -> ServerResponse.badRequest().build());
+	}
 
 }

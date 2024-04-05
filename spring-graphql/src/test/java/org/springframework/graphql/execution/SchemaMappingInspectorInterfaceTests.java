@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *	  https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.List;
@@ -31,7 +32,7 @@ import org.springframework.stereotype.Controller;
  */
 public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspectorTestSupport {
 
-	private final static String schema = """
+	private static final String schema = """
 				type Query {
 					vehicles: [Vehicle!]!
 				}
@@ -67,8 +68,8 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 		interface Vehicle {
 			String name();
 		}
-		record Car(String name) implements Vehicle {}
-		record Bike(String name) implements Vehicle {}
+		record Car(String name) implements Vehicle { }
+		record Bike(String name) implements Vehicle { }
 
 		@Controller
 		static class VehicleController {
@@ -116,8 +117,8 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 		interface Vehicle {
 			String name();
 		}
-		record CarImpl(String name) implements Vehicle {}
-		record BikeImpl(String name) implements Vehicle {}
+		record CarImpl(String name) implements Vehicle { }
+		record BikeImpl(String name) implements Vehicle { }
 
 		@Controller
 		static class VehicleController {

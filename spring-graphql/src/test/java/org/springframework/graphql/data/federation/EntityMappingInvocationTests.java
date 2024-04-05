@@ -60,18 +60,19 @@ public class EntityMappingInvocationTests {
 	private static final Resource federationSchema = new ClassPathResource("books/federation-schema.graphqls");
 
 	private static final String document = """
-		    query Entities($representations: [_Any!]!) {
-		        _entities(representations: $representations) {
-		        ...on Book {
-		             id
-		             author {
-		                 id
-		                 firstName
-		                 lastName
-		             }
-		         }}
-		     }
-		     """;
+			query Entities($representations: [_Any!]!) {
+				_entities(representations: $representations) {
+					...on Book {
+						id
+						author {
+							id
+							firstName
+							lastName
+						}
+					}
+				}
+			}
+			""";
 
 
 	@Test

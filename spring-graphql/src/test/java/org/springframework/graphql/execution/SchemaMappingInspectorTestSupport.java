@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.Arrays;
@@ -37,7 +38,7 @@ import org.springframework.graphql.data.method.annotation.support.AnnotatedContr
 public class SchemaMappingInspectorTestSupport {
 
 	protected SchemaReport inspectSchema(String schemaContent, Class<?>... controllers) {
-		return inspectSchema(schemaContent, initializer -> {}, controllers);
+		return inspectSchema(schemaContent, initializer -> { }, controllers);
 	}
 
 	protected SchemaReport inspectSchema(

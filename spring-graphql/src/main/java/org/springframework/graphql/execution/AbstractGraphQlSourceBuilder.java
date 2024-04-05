@@ -38,6 +38,7 @@ import org.springframework.lang.Nullable;
  * Implementation of {@link GraphQlSource.Builder} that leaves it to subclasses
  * to initialize {@link GraphQLSchema}.
  *
+ * @param <B> the builder type
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  * @since 1.0.0
@@ -90,8 +91,8 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 
 	@Override
 	public B configureGraphQl(Consumer<GraphQL.Builder> configurer) {
-		this.graphQlConfigurer = (this.graphQlConfigurer != null ?
-				this.graphQlConfigurer.andThen(configurer) : configurer);
+		this.graphQlConfigurer = (this.graphQlConfigurer != null) ?
+				this.graphQlConfigurer.andThen(configurer) : configurer;
 		return self();
 	}
 
@@ -147,13 +148,14 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 		visitorsToUse.add(ContextDataFetcherDecorator.createVisitor(this.subscriptionExceptionResolvers));
 
 		new SchemaTraverser().depthFirstFullSchema(visitorsToUse, schema, vars);
-		return schema.transformWithoutTypes(builder -> builder.codeRegistry(outputCodeRegistry));
+		return schema.transformWithoutTypes((builder) -> builder.codeRegistry(outputCodeRegistry));
 	}
 
 	/**
 	 * Protected method to apply the
 	 * {@link #configureGraphQl(Consumer) configured graphQlConfigurer}'s.
 	 * Subclasses can use this to customize {@link GraphQL.Builder} further.
+	 * @param builder the builder to be customized
 	 * @since 1.2.5
 	 */
 	protected void applyGraphQlConfigurers(GraphQL.Builder builder) {

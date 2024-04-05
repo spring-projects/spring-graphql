@@ -61,12 +61,12 @@ import org.springframework.util.MimeTypeUtils;
  *    }
  *
  *    &#064;MessageMapping("graphql")
- *    public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
+ *    public Mono&lt;Map&lt;String, Object&gt;&gt; handle(Map&lt;String, Object&gt; payload) {
  *        return this.handler.handle(payload);
  *    }
  *
  *    &#064;MessageMapping("graphql")
- *    public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
+ *    public Flux&lt;Map&lt;String, Object&gt;&gt; handleSubscription(Map&lt;String, Object&gt; payload) {
  *        return this.handler.handleSubscription(payload);
  *    }
  * }
@@ -107,17 +107,18 @@ public class GraphQlRSocketHandler {
 	}
 
 	private static Chain initChain(ExecutionGraphQlService service, List<RSocketGraphQlInterceptor> interceptors) {
-		Chain endOfChain = request -> service.execute(request).map(RSocketGraphQlResponse::new);
+		Chain endOfChain = (request) -> service.execute(request).map(RSocketGraphQlResponse::new);
 		return interceptors.isEmpty() ? endOfChain :
 				interceptors.stream()
 						.reduce(RSocketGraphQlInterceptor::andThen)
-						.map(interceptor -> interceptor.apply(endOfChain))
+						.map((interceptor) -> interceptor.apply(endOfChain))
 						.orElse(endOfChain);
 	}
 
 
 	/**
 	 * Handle a {@code Request-Response} interaction. For queries and mutations.
+	 * @param payload the decoded GraphQL request payload
 	 */
 	public Mono<Map<String, Object>> handle(Map<String, Object> payload) {
 		return handleInternal(payload).map(ExecutionGraphQlResponse::toMap);
@@ -125,10 +126,11 @@ public class GraphQlRSocketHandler {
 
 	/**
 	 * Handle a {@code Request-Stream} interaction. For subscriptions.
+	 * @param payload the decoded GraphQL request payload
 	 */
 	public Flux<Map<String, Object>> handleSubscription(Map<String, Object> payload) {
 		return handleInternal(payload)
-				.flatMapMany(response -> {
+				.flatMapMany((response) -> {
 					if (response.getData() instanceof Publisher) {
 						Publisher<ExecutionResult> publisher = response.getData();
 						return Flux.from(publisher).map(ExecutionResult::toSpecification);

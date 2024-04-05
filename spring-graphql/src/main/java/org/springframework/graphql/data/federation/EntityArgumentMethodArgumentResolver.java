@@ -34,7 +34,6 @@ import org.springframework.validation.BindException;
  * the entity uniquely.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
  */
 final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentResolver {
 
@@ -61,7 +60,7 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	/**
 	 * Wrap the environment in order to also expose the entity representation map.
 	 */
-	public static DataFetchingEnvironment wrap(DataFetchingEnvironment env, Map<String, Object> representation) {
+	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, Map<String, Object> representation) {
 		return new EntityDataFetchingEnvironment(env, representation);
 	}
 
@@ -75,7 +74,7 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 			this.representation = representation;
 		}
 
-		public Map<String, Object> getRepresentation() {
+		Map<String, Object> getRepresentation() {
 			return this.representation;
 		}
 	}

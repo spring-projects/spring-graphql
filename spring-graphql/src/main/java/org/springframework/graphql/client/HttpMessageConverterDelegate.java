@@ -54,14 +54,17 @@ import org.springframework.util.MimeType;
  * for JSON and adapt it to {@link Encoder} and {@link Decoder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
  */
 final class HttpMessageConverterDelegate {
+
+	private HttpMessageConverterDelegate() {
+
+	}
 
 	@SuppressWarnings("unchecked")
 	static HttpMessageConverter<Object> findJsonConverter(List<HttpMessageConverter<?>> converters) {
 		return (HttpMessageConverter<Object>) converters.stream()
-				.filter(converter -> converter.canRead(Map.class, MediaType.APPLICATION_JSON))
+				.filter((converter) -> converter.canRead(Map.class, MediaType.APPLICATION_JSON))
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No JSON HttpMessageConverter"));
 	}
@@ -79,14 +82,14 @@ final class HttpMessageConverterDelegate {
 		if (mimeType instanceof MediaType mediaType) {
 			return mediaType;
 		}
-		return (mimeType != null ? new MediaType(mimeType) : null);
+		return (mimeType != null) ? new MediaType(mimeType) : null;
 	}
 
 
 	/**
 	 * Partial Encoder implementation to encode a single value through an HttpMessageConverter.
 	 */
-	private static class HttpMessageConverterEncoder implements Encoder<Object> {
+	private static final class HttpMessageConverterEncoder implements Encoder<Object> {
 
 		private final HttpMessageConverter<Object> converter;
 
@@ -140,7 +143,7 @@ final class HttpMessageConverterDelegate {
 	/**
 	 * Partial Decoder implementation to decode a single buffer through an HttpMessageConverter.
 	 */
-	private static class HttpMessageConverterDecoder implements Decoder<Object> {
+	private static final class HttpMessageConverterDecoder implements Decoder<Object> {
 
 		private final HttpMessageConverter<Object> converter;
 
@@ -196,7 +199,7 @@ final class HttpMessageConverterDelegate {
 	}
 
 
-	private static class HttpInputMessageAdapter extends ByteArrayInputStream implements HttpInputMessage {
+	private static final class HttpInputMessageAdapter extends ByteArrayInputStream implements HttpInputMessage {
 
 		HttpInputMessageAdapter(DataBuffer buffer) {
 			super(toBytes(buffer));
@@ -222,7 +225,7 @@ final class HttpMessageConverterDelegate {
 	}
 
 
-	private static class HttpOutputMessageAdapter extends ByteArrayOutputStream implements HttpOutputMessage {
+	private static final class HttpOutputMessageAdapter extends ByteArrayOutputStream implements HttpOutputMessage {
 
 		private static final HttpHeaders noOpHeaders = new HttpHeaders();
 

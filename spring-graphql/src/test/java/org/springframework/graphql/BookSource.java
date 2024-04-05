@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql;
 
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ public class BookSource {
 	public static final Resource schema = new ClassPathResource("books/schema.graphqls");
 
 	public static final Resource paginationSchema = new ClassPathResource("books/pagination-schema.graphqls");
-
 
 	private static final Map<Long, Book> booksMap = new HashMap<>();
 
@@ -61,6 +61,10 @@ public class BookSource {
 		booksWithoutAuthorsMap = booksMap.values().stream()
 				.map(book -> new Book(book.getId(), book.getName(), book.getAuthorId()))
 				.collect(Collectors.toMap(Book::getId, Function.identity()));
+	}
+
+	private BookSource() {
+
 	}
 
 
@@ -95,22 +99,22 @@ public class BookSource {
 	public static String booksConnectionQuery(@Nullable String arguments) {
 		arguments = StringUtils.hasText(arguments) ? "(" + arguments + ")" : "";
 		return "{" +
-			   "	books" + arguments + " {" +
-			   "		edges {" +
-			   "			cursor," +
-			   "			node {" +
-			   "				id" +
-			   "				name" +
-			   "			}" +
-			   "		}" +
-			   "		pageInfo {" +
-			   "			startCursor," +
-			   "			endCursor," +
-			   "			hasPreviousPage," +
-			   "			hasNextPage" +
-			   "		}" +
-			   "	}" +
-			   "}";
+				"	books" + arguments + " {" +
+				"		edges {" +
+				"			cursor," +
+				"			node {" +
+				"				id" +
+				"				name" +
+				"			}" +
+				"		}" +
+				"		pageInfo {" +
+				"			startCursor," +
+				"			endCursor," +
+				"			hasPreviousPage," +
+				"			hasNextPage" +
+				"		}" +
+				"	}" +
+				"}";
 	}
 
 }

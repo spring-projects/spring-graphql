@@ -153,7 +153,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@SuppressWarnings("ConstantConditions")
 		@Override
 		public Response execute() {
-			return transport.execute(request()).map(response -> mapResponse(response, request())).block(responseTimeout);
+			return DefaultGraphQlTester.this.transport.execute(request()).map((response) -> mapResponse(response, request())).block(DefaultGraphQlTester.this.responseTimeout);
 		}
 
 		@Override
@@ -163,7 +163,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public Subscription executeSubscription() {
-			return () -> transport.executeSubscription(request()).map(result -> mapResponse(result, request()));
+			return () -> DefaultGraphQlTester.this.transport.executeSubscription(request()).map((result) -> mapResponse(result, request()));
 		}
 
 		private GraphQlRequest request() {
@@ -171,7 +171,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {
-			return new DefaultResponse(response, errorFilter, assertDecorator(request), jsonPathConfig);
+			return new DefaultResponse(response, DefaultGraphQlTester.this.errorFilter, assertDecorator(request), DefaultGraphQlTester.this.jsonPathConfig);
 		}
 
 		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {
@@ -191,7 +191,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	/**
 	 * Container for GraphQL response data and errors along with convenience methods.
 	 */
-	private final static class ResponseDelegate {
+	private static final class ResponseDelegate {
 
 		private final DocumentContext jsonDoc;
 
@@ -258,7 +258,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		void consumeErrors(Consumer<List<ResponseError>> consumer) {
-			filterErrors(error -> true);
+			filterErrors((error) -> true);
 			consumer.accept(this.errors);
 		}
 
@@ -392,7 +392,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			this.delegate.doAssert(() -> {
 				Object value = this.pathHelper.evaluateJsonPath(this.delegate.jsonContent());
 				AssertionErrors.assertNull(
-						"Expected null value at JSON path \"" + path + "\" but found " + value, value);
+						"Expected null value at JSON path \"" + this.path + "\" but found " + value, value);
 			});
 			return this;
 		}
@@ -464,7 +464,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private static String joinPaths(@Nullable String basePath, String path) {
-			return (basePath != null ? basePath + "." + path : path);
+			return (basePath != null) ? basePath + "." + path : path;
 		}
 
 
@@ -476,7 +476,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			private final D entity;
 
 			protected DefaultEntity(TypeRefAdapter<D> typeAdapter) {
-				this.entity = delegate.read(jsonPath, typeAdapter);
+				this.entity = DefaultPath.this.delegate.read(DefaultPath.this.jsonPath, typeAdapter);
 			}
 
 			protected D getEntity() {
@@ -484,57 +484,57 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			}
 
 			protected void doAssert(Runnable task) {
-				delegate.doAssert(task);
+				DefaultPath.this.delegate.doAssert(task);
 			}
 
 			protected String getPath() {
-				return path;
+				return DefaultPath.this.path;
 			}
 
 			@Override
 			public Path path(String path) {
-				return forPath(basePath, path, delegate);
+				return forPath(DefaultPath.this.basePath, path, DefaultPath.this.delegate);
 			}
 
 			@Override
 			public Path path(String path, Consumer<Path> pathConsumer) {
-				return forNestedPath(basePath, path, delegate, pathConsumer);
+				return forNestedPath(DefaultPath.this.basePath, path, DefaultPath.this.delegate, pathConsumer);
 			}
 
 			@Override
 			public <T extends S> T isEqualTo(Object expected) {
-				delegate.doAssert(() -> AssertionErrors.assertEquals(path, expected, this.entity));
+				DefaultPath.this.delegate.doAssert(() -> AssertionErrors.assertEquals(DefaultPath.this.path, expected, this.entity));
 				return self();
 			}
 
 			@Override
 			public <T extends S> T isNotEqualTo(Object other) {
-				delegate.doAssert(() -> AssertionErrors.assertNotEquals(path, other, this.entity));
+				DefaultPath.this.delegate.doAssert(() -> AssertionErrors.assertNotEquals(DefaultPath.this.path, other, this.entity));
 				return self();
 			}
 
 			@Override
 			public <T extends S> T isSameAs(Object expected) {
-				delegate.doAssert(() -> AssertionErrors.assertTrue(path, expected == this.entity));
+				DefaultPath.this.delegate.doAssert(() -> AssertionErrors.assertTrue(DefaultPath.this.path, expected == this.entity));
 				return self();
 			}
 
 			@Override
 			public <T extends S> T isNotSameAs(Object other) {
-				delegate.doAssert(() -> AssertionErrors.assertTrue(path, other != this.entity));
+				DefaultPath.this.delegate.doAssert(() -> AssertionErrors.assertTrue(DefaultPath.this.path, other != this.entity));
 				return self();
 			}
 
 			@Override
 			public <T extends S> T matches(Predicate<D> predicate) {
-				delegate
-						.doAssert(() -> AssertionErrors.assertTrue(path, predicate.test(this.entity)));
+				DefaultPath.this.delegate
+						.doAssert(() -> AssertionErrors.assertTrue(DefaultPath.this.path, predicate.test(this.entity)));
 				return self();
 			}
 
 			@Override
 			public <T extends S> T satisfies(Consumer<D> consumer) {
-				delegate.doAssert(() -> consumer.accept(this.entity));
+				DefaultPath.this.delegate.doAssert(() -> consumer.accept(this.entity));
 				return self();
 			}
 
@@ -557,7 +557,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		private final class DefaultEntityList<E>
 				extends DefaultEntity<List<E>, EntityList<E>> implements EntityList<E> {
 
-			public DefaultEntityList(TypeRefAdapter<List<E>> typeAdapter) {
+			DefaultEntityList(TypeRefAdapter<List<E>> typeAdapter) {
 				super(typeAdapter);
 			}
 

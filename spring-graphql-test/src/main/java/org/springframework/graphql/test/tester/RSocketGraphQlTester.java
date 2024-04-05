@@ -64,6 +64,7 @@ public interface RSocketGraphQlTester extends GraphQlTester {
 
 	/**
 	 * Start with a given {@link #builder()}.
+	 * @param requesterBuilder the builder to use as a baseline
 	 */
 	static RSocketGraphQlTester.Builder<?> builder(RSocketRequester.Builder requesterBuilder) {
 		return new DefaultRSocketGraphQlTesterBuilder(requesterBuilder);
@@ -72,6 +73,7 @@ public interface RSocketGraphQlTester extends GraphQlTester {
 
 	/**
 	 * Builder for a GraphQL over RSocket tester.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlTester.Builder<B> {
 
@@ -119,11 +121,12 @@ public interface RSocketGraphQlTester extends GraphQlTester {
 		 * <p>Note that some properties of {@code RSocketRequester.Builder} like the
 		 * data MimeType, and the underlying RSocket transport can be customized
 		 * through this builder.
+		 * @param requester a consumer that customizes the {@code RSocketRequester} through its builder
+		 * @return the same builder instance
 		 * @see #dataMimeType(MimeType)
 		 * @see #tcp(String, int)
 		 * @see #webSocket(URI)
 		 * @see #clientTransport(ClientTransport)
-		 * @return the same builder instance
 		 */
 		B rsocketRequester(Consumer<RSocketRequester.Builder> requester);
 

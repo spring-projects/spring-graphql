@@ -57,7 +57,7 @@ class DefaultExecutionRequestObservationConventionTests {
 	void hasContextualName() {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
 				.operationName("mutation").build();
-		ExecutionRequestObservationContext context = createObservationContext(input, builder -> {});
+		ExecutionRequestObservationContext context = createObservationContext(input, builder -> { });
 		assertThat(this.convention.getContextualName(context)).isEqualTo("graphql mutation");
 	}
 

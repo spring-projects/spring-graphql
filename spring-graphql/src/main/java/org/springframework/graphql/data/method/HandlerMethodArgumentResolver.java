@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -35,20 +36,18 @@ public interface HandlerMethodArgumentResolver {
 
 	/**
 	 * Whether this resolver supports the given {@link MethodParameter}.
+	 * @param parameter the method parameter to check for support
 	 */
 	boolean supportsParameter(MethodParameter parameter);
 
 	/**
 	 * Resolve a method parameter to a value.
-	 *
 	 * @param parameter the method parameter to resolve. This parameter must
 	 * have previously checked via {@link #supportsParameter}.
 	 * @param environment the environment to use to resolve the value
-	 *
 	 * @return the resolved value, which may be {@code null} if not resolved;
 	 * the value may also be a {@link reactor.core.publisher.Mono} if it
 	 * requires asynchronous resolution.
-	 *
 	 * @throws Exception in case of errors with the preparation of argument values
 	 */
 	@Nullable

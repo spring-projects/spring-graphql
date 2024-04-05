@@ -76,7 +76,7 @@ import org.springframework.util.MultiValueMap;
  * @since 1.2.0
  */
 @SuppressWarnings("rawtypes")
-public class SchemaMappingInspector {
+public final class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
 
@@ -191,7 +191,7 @@ public class SchemaMappingInspector {
 	private void checkField(
 			GraphQLFieldsContainer parent, GraphQLFieldDefinition field, ResolvableType resolvableType) {
 
-		TypePair typePair = TypePair.resolveTypePair(parent, field, resolvableType, schema);
+		TypePair typePair = TypePair.resolveTypePair(parent, field, resolvableType, this.schema);
 
 		if (addAndCheckIfAlreadyInspected(typePair.outputType())) {
 			return;
@@ -239,7 +239,7 @@ public class SchemaMappingInspector {
 	private PropertyDescriptor getProperty(ResolvableType resolvableType, String fieldName) {
 		try {
 			Class<?> clazz = resolvableType.resolve();
-			return (clazz != null ? BeanUtils.getPropertyDescriptor(clazz, fieldName) : null);
+			return (clazz != null) ? BeanUtils.getPropertyDescriptor(clazz, fieldName) : null;
 		}
 		catch (BeansException ex) {
 			throw new IllegalStateException(
@@ -264,7 +264,7 @@ public class SchemaMappingInspector {
 	}
 
 	private static String typeNameToString(GraphQLType type) {
-		return (type instanceof GraphQLNamedType namedType ? namedType.getName() : type.toString());
+		return (type instanceof GraphQLNamedType namedType) ? namedType.getName() : type.toString();
 	}
 
 	private void checkDataFetcherRegistrations() {
@@ -291,6 +291,8 @@ public class SchemaMappingInspector {
 	/**
 	 * Variant of {@link #inspect(GraphQLSchema, RuntimeWiring)} with a map of
 	 * {@code DataFetcher} registrations.
+	 * @param schema the schema to inspect
+	 * @param fetchers the map of {@code DataFetcher} registrations
 	 * @since 1.2.5
 	 */
 	public static SchemaReport inspect(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> fetchers) {
@@ -361,6 +363,7 @@ public class SchemaMappingInspector {
 		/**
 		 * Create a resolver by re-using the explicit, reverse mappings of
 		 * {@link ClassNameTypeResolver}.
+		 * @param resolver the type resolver using class names
 		 */
 		static ClassResolver fromClassNameTypeResolver(ClassNameTypeResolver resolver) {
 			MappingClassResolver mappingResolver = new MappingClassResolver();
@@ -380,7 +383,7 @@ public class SchemaMappingInspector {
 
 		private final List<ClassResolver> classResolvers = new ArrayList<>();
 
-		public DefaultInitializer() {
+		DefaultInitializer() {
 			this.classResolvers.add((objectType, interfaceOrUnionType) -> Collections.emptyList());
 		}
 
@@ -407,11 +410,11 @@ public class SchemaMappingInspector {
 	/**
 	 * ClassResolver with explicit mappings.
 	 */
-	private static class MappingClassResolver implements ClassResolver {
+	private static final class MappingClassResolver implements ClassResolver {
 
 		private final MultiValueMap<String, Class<?>> map = new LinkedMultiValueMap<>();
 
-		public void addMapping(String typeName, Class<?> clazz) {
+		void addMapping(String typeName, Class<?> clazz) {
 			this.map.add(typeName, clazz);
 		}
 
@@ -433,18 +436,18 @@ public class SchemaMappingInspector {
 
 		private final MultiValueMap<String, String> classPrefixes = new LinkedMultiValueMap<>();
 
-		public ReflectionClassResolver(Function<GraphQLObjectType, String> classNameFunction) {
+		ReflectionClassResolver(Function<GraphQLObjectType, String> classNameFunction) {
 			this.classNameFunction = classNameFunction;
 		}
 
-		public void addClassPrefix(String interfaceOrUnionTypeName, String classPrefix) {
+		void addClassPrefix(String interfaceOrUnionTypeName, String classPrefix) {
 			this.classPrefixes.add(interfaceOrUnionTypeName, classPrefix);
 		}
 
 		@Override
 		public List<Class<?>> resolveClass(GraphQLObjectType objectType, GraphQLNamedOutputType interfaceOrUnion) {
 			String className = this.classNameFunction.apply(objectType);
-			for (String prefix : classPrefixes.getOrDefault(interfaceOrUnion.getName(), Collections.emptyList())) {
+			for (String prefix : this.classPrefixes.getOrDefault(interfaceOrUnion.getName(), Collections.emptyList())) {
 				try {
 					Class<?> clazz = Class.forName(prefix + className);
 					return Collections.singletonList(clazz);
@@ -464,7 +467,7 @@ public class SchemaMappingInspector {
 	 */
 	private static class InterfaceUnionLookup {
 
-		private final static Predicate<String> PACKAGE_PREDICATE = name -> !name.startsWith("java.");
+		private static final Predicate<String> PACKAGE_PREDICATE = (name) -> !name.startsWith("java.");
 
 		private static final LinkedMultiValueMap<GraphQLType, ResolvableType> EMPTY_MULTI_VALUE_MAP = new LinkedMultiValueMap<>(0);
 
@@ -547,7 +550,7 @@ public class SchemaMappingInspector {
 
 			for (ResolvableType resolvableType : resolvableTypes) {
 				String name = interfaceOrUnionType.getName();
-				this.mappings.computeIfAbsent(name, n -> new LinkedMultiValueMap<>()).add(objectType, resolvableType);
+				this.mappings.computeIfAbsent(name, (n) -> new LinkedMultiValueMap<>()).add(objectType, resolvableType);
 			}
 		}
 
@@ -557,7 +560,7 @@ public class SchemaMappingInspector {
 		 * @return {@code MultiValueMap} with one or more pairs, possibly one
 		 * pair with {@link ResolvableType#NONE}.
 		 */
-		public MultiValueMap<GraphQLType, ResolvableType> resolveInterface(GraphQLInterfaceType interfaceType) {
+		MultiValueMap<GraphQLType, ResolvableType> resolveInterface(GraphQLInterfaceType interfaceType) {
 			return this.mappings.getOrDefault(interfaceType.getName(), EMPTY_MULTI_VALUE_MAP);
 		}
 
@@ -567,7 +570,7 @@ public class SchemaMappingInspector {
 		 * @return {@code MultiValueMap} with one or more pairs, possibly one
 		 * pair with {@link ResolvableType#NONE}.
 		 */
-		public MultiValueMap<GraphQLType, ResolvableType> resolveUnion(GraphQLUnionType unionType) {
+		MultiValueMap<GraphQLType, ResolvableType> resolveUnion(GraphQLUnionType unionType) {
 			return this.mappings.getOrDefault(unionType.getName(), EMPTY_MULTI_VALUE_MAP);
 		}
 
@@ -586,12 +589,16 @@ public class SchemaMappingInspector {
 		 * Convenience variant of
 		 * {@link #resolveTypePair(GraphQLType, GraphQLFieldDefinition, ResolvableType, GraphQLSchema)}
 		 * with a {@link DataFetcher} to extract the return type from.
+		 * @param parent the parent type of the field
+		 * @param field the field
+		 * @param fetcher the data fetcher associated with this field
+		 * @param schema the GraphQL schema
 		 */
 		public static TypePair resolveTypePair(
 				GraphQLType parent, GraphQLFieldDefinition field, DataFetcher<?> fetcher, GraphQLSchema schema) {
 
 			return resolveTypePair(parent, field,
-					fetcher instanceof SelfDescribingDataFetcher<?> sd ? sd.getReturnType() : ResolvableType.NONE,
+					(fetcher instanceof SelfDescribingDataFetcher<?> sd) ? sd.getReturnType() : ResolvableType.NONE,
 					schema);
 		}
 
@@ -626,7 +633,7 @@ public class SchemaMappingInspector {
 		}
 
 		private static GraphQLType unwrapIfNonNull(GraphQLType type) {
-			return (type instanceof GraphQLNonNull graphQLNonNull ? graphQLNonNull.getWrappedType() : type);
+			return (type instanceof GraphQLNonNull graphQLNonNull) ? graphQLNonNull.getWrappedType() : type;
 		}
 
 		private static boolean isPaginatedType(GraphQLType type) {
@@ -697,7 +704,7 @@ public class SchemaMappingInspector {
 	/**
 	 * Helps to build a {@link SchemaReport}.
 	 */
-	private class ReportBuilder {
+	private final class ReportBuilder {
 
 		private final List<FieldCoordinates> unmappedFields = new ArrayList<>();
 
@@ -707,23 +714,23 @@ public class SchemaMappingInspector {
 
 		private final List<SchemaReport.SkippedType> skippedTypes = new ArrayList<>();
 
-		public void unmappedField(FieldCoordinates coordinates) {
+		void unmappedField(FieldCoordinates coordinates) {
 			this.unmappedFields.add(coordinates);
 		}
 
-		public void unmappedRegistration(FieldCoordinates coordinates, DataFetcher<?> dataFetcher) {
+		void unmappedRegistration(FieldCoordinates coordinates, DataFetcher<?> dataFetcher) {
 			this.unmappedRegistrations.put(coordinates, dataFetcher);
 		}
 
-		public void unmappedArgument(DataFetcher<?> dataFetcher, List<String> arguments) {
+		void unmappedArgument(DataFetcher<?> dataFetcher, List<String> arguments) {
 			this.unmappedArguments.put(dataFetcher, arguments);
 		}
 
-		public void skippedType(GraphQLType type, FieldCoordinates coordinates) {
+		void skippedType(GraphQLType type, FieldCoordinates coordinates) {
 			this.skippedTypes.add(new DefaultSkippedType(type, coordinates));
 		}
 
-		public SchemaReport build() {
+		SchemaReport build() {
 			return new DefaultSchemaReport(
 					this.unmappedFields, this.unmappedRegistrations, this.unmappedArguments, this.skippedTypes);
 		}
@@ -744,7 +751,7 @@ public class SchemaMappingInspector {
 
 		private final List<SchemaReport.SkippedType> skippedTypes;
 
-		public DefaultSchemaReport(
+		DefaultSchemaReport(
 				List<FieldCoordinates> unmappedFields, Map<FieldCoordinates, DataFetcher<?>> unmappedRegistrations,
 				MultiValueMap<DataFetcher<?>, String> unmappedArguments, List<SkippedType> skippedTypes) {
 
@@ -798,8 +805,8 @@ public class SchemaMappingInspector {
 
 		private String formatUnmappedFields() {
 			MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-			this.unmappedFields.forEach(coordinates -> {
-				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), s -> new ArrayList<>());
+			this.unmappedFields.forEach((coordinates) -> {
+				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), (s) -> new ArrayList<>());
 				fields.add(coordinates.getFieldName());
 			});
 			return map.toString();

@@ -40,6 +40,7 @@ public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 
 	/**
 	 * Create a {@link ExecutionGraphQlServiceTester} instance.
+	 * @param service the GraphQL service to use
 	 */
 	static ExecutionGraphQlServiceTester create(ExecutionGraphQlService service) {
 		return builder(service).build();
@@ -47,6 +48,7 @@ public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 
 	/**
 	 * Return a builder for {@link ExecutionGraphQlServiceTester}.
+	 * @param service the GraphQL service to use
 	 */
 	static ExecutionGraphQlServiceTester.Builder<?> builder(ExecutionGraphQlService service) {
 		return new DefaultExecutionGraphQlServiceTesterBuilder(service);
@@ -55,12 +57,14 @@ public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 
 	/**
 	 * Default {@link ExecutionGraphQlServiceTester.Builder} implementation.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlTester.Builder<B> {
 
 		/**
 		 * Provide a {@code BiFunction} to help initialize the
 		 * {@link ExecutionInput} with.
+		 * @param configurer the function that initializes the execution input
 		 * @since 1.1.2
 		 * @see org.springframework.graphql.ExecutionGraphQlRequest#configureExecutionInput(BiFunction)
 		 */
@@ -69,12 +73,14 @@ public interface ExecutionGraphQlServiceTester extends GraphQlTester {
 		/**
 		 * Configure the JSON encoder to use for mapping response data to
 		 * higher level objects.
+		 * @param encoder the JSON encoder to use
 		 */
 		B encoder(Encoder<?> encoder);
 
 		/**
 		 * Configure the JSON decoder to use for mapping response data to
 		 * higher level objects.
+		 * @param decoder the JSON decoder to use
 		 */
 		B decoder(Decoder<?> decoder);
 

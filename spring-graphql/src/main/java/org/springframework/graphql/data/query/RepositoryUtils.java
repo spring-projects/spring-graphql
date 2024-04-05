@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.query;
 
 import java.lang.reflect.Type;
@@ -40,16 +41,19 @@ import org.springframework.util.StringUtils;
  *
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
- * @since 1.0.0
  */
-class RepositoryUtils {
+final class RepositoryUtils {
+
+	private RepositoryUtils() {
+
+	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> Class<T> getDomainType(Object executor) {
+	static <T> Class<T> getDomainType(Object executor) {
 		return (Class<T>) getRepositoryMetadata(executor).getDomainType();
 	}
 
-	public static RepositoryMetadata getRepositoryMetadata(Object executor) {
+	static RepositoryMetadata getRepositoryMetadata(Object executor) {
 		Assert.isInstanceOf(Repository.class, executor);
 
 		Type[] genericInterfaces = executor.getClass().getGenericInterfaces();
@@ -68,7 +72,7 @@ class RepositoryUtils {
 	}
 
 	@Nullable
-	public static String getGraphQlTypeName(Object repository) {
+	static String getGraphQlTypeName(Object repository) {
 		GraphQlRepository annotation =
 				AnnotatedElementUtils.findMergedAnnotation(repository.getClass(), GraphQlRepository.class);
 
@@ -81,19 +85,19 @@ class RepositoryUtils {
 	}
 
 
-	public static CursorStrategy<ScrollPosition> defaultCursorStrategy() {
+	static CursorStrategy<ScrollPosition> defaultCursorStrategy() {
 		return CursorStrategy.withEncoder(new ScrollPositionCursorStrategy(), CursorEncoder.base64());
 	}
 
-	public static int defaultScrollCount() {
+	static int defaultScrollCount() {
 		return 20;
 	}
 
-	public static Function<Boolean, ScrollPosition> defaultScrollPosition() {
-		return forward -> ScrollPosition.offset();
+	static Function<Boolean, ScrollPosition> defaultScrollPosition() {
+		return (forward) -> ScrollPosition.offset();
 	}
 
-	public static ScrollSubrange getScrollSubrange(
+	static ScrollSubrange getScrollSubrange(
 			DataFetchingEnvironment env, CursorStrategy<ScrollPosition> cursorStrategy) {
 
 		boolean forward = true;
@@ -106,7 +110,7 @@ class RepositoryUtils {
 				forward = false;
 			}
 		}
-		ScrollPosition pos = (cursor != null ? cursorStrategy.fromCursor(cursor) : null);
+		ScrollPosition pos = (cursor != null) ? cursorStrategy.fromCursor(cursor) : null;
 		return ScrollSubrange.create(pos, count, forward);
 	}
 

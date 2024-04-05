@@ -30,20 +30,20 @@ class RequestErrorInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		return chain.next(request).map(response -> {
+		return chain.next(request).map((response) -> {
 			if (response.isValid()) {
 				return response; // <1>
 			}
 
 			List<GraphQLError> errors = response.getErrors().stream() // <2>
-					.map(error -> {
+					.map((error) -> {
 						GraphqlErrorBuilder<?> builder = GraphqlErrorBuilder.newError();
 						// ...
 						return builder.build();
 					})
 					.toList();
 
-			return response.transform(builder -> builder.errors(errors).build()); // <3>
+			return response.transform((builder) -> builder.errors(errors).build()); // <3>
 		});
 	}
 }

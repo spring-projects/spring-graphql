@@ -97,6 +97,7 @@ public class GraphQlWebSocketMessage {
 	/**
 	 * Return the payload. For a deserialized message, this is typically a
 	 * {@code Map} or {@code List} for an {@code "error"} message.
+	 * @param <P> teh payload type
 	 */
 	@SuppressWarnings("unchecked")
 	public <P> P getPayload() {
@@ -121,14 +122,6 @@ public class GraphQlWebSocketMessage {
 
 
 	@Override
-	public int hashCode() {
-		int hashCode = (this.type != null ? this.type.hashCode() : 0);
-		hashCode = 31 * hashCode + ObjectUtils.nullSafeHashCode(this.id);
-		hashCode = 31 * hashCode + ObjectUtils.nullSafeHashCode(this.payload);
-		return hashCode;
-	}
-
-	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof GraphQlWebSocketMessage)) {
 			return false;
@@ -140,11 +133,19 @@ public class GraphQlWebSocketMessage {
 	}
 
 	@Override
+	public int hashCode() {
+		int hashCode = (this.type != null) ? this.type.hashCode() : 0;
+		hashCode = 31 * hashCode + ObjectUtils.nullSafeHashCode(this.id);
+		hashCode = 31 * hashCode + ObjectUtils.nullSafeHashCode(this.payload);
+		return hashCode;
+	}
+
+	@Override
 	public String toString() {
 		return "GraphQlWebSocketMessage[" +
-				(this.id != null ? "id=\"" + this.id + "\"" + ", " : "") +
+				((this.id != null) ? "id=\"" + this.id + "\"" + ", " : "") +
 				"type=\"" + this.type + "\"" +
-				(this.payload != null ? ", payload=" + this.payload : "") + "]";
+				((this.payload != null) ? ", payload=" + this.payload : "") + "]";
 	}
 
 

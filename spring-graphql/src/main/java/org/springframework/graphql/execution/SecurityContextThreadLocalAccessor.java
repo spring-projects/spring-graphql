@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import io.micrometer.context.ThreadLocalAccessor;
@@ -33,7 +34,7 @@ import org.springframework.util.ClassUtils;
  */
 public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<Object> {
 
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+	private static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			SecurityContextThreadLocalAccessor.class.getClassLoader());
 
@@ -77,7 +78,7 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 	}
 
 	@Override
-	@Deprecated
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public void reset() {
 		this.delegate.reset();
 	}
@@ -97,7 +98,7 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 		this.delegate.restore();
 	}
 
-	private static class DelegateAccessor implements ThreadLocalAccessor<Object> {
+	private static final class DelegateAccessor implements ThreadLocalAccessor<Object> {
 
 		@Override
 		public Object key() {
@@ -130,7 +131,7 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 		}
 
 		@Override
-		@Deprecated
+		@Deprecated(since = "1.3.0", forRemoval = true)
 		public void reset() {
 			SecurityContextHolder.clearContext();
 		}
@@ -138,7 +139,7 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 	}
 
 
-	private static class NoOpAccessor implements ThreadLocalAccessor<Object> {
+	private static final class NoOpAccessor implements ThreadLocalAccessor<Object> {
 
 		@Override
 		public Object key() {
@@ -167,7 +168,7 @@ public class SecurityContextThreadLocalAccessor implements ThreadLocalAccessor<O
 		}
 
 		@Override
-		@Deprecated
+		@Deprecated(since = "1.3.0", forRemoval = true)
 		public void reset() {
 		}
 

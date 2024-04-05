@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method;
 
 import java.lang.annotation.Annotation;
@@ -77,6 +78,8 @@ public class HandlerMethod {
 
 	/**
 	 * Constructor with a handler instance and a method.
+	 * @param bean the handler instance
+	 * @param method the handler method
 	 */
 	public HandlerMethod(Object bean, Method method) {
 		Assert.notNull(bean, "Bean is required");
@@ -94,6 +97,9 @@ public class HandlerMethod {
 	 * Constructor with a bean name for the handler along with a {@code BeanFactory}
 	 * to allow {@link #createWithResolvedBean() resolving} the handler instance
 	 * later.
+	 * @param beanName the bean name
+	 * @param beanFactory the bean factory to use for bean resolution
+	 * @param method the handler method
 	 */
 	public HandlerMethod(String beanName, BeanFactory beanFactory, Method method) {
 		Assert.hasText(beanName, "Bean name is required");
@@ -115,6 +121,7 @@ public class HandlerMethod {
 
 	/**
 	 * Copy constructor for use from subclasses that accept more arguments.
+	 * @param handlerMethod the handler method
 	 */
 	protected HandlerMethod(HandlerMethod handlerMethod) {
 		this(handlerMethod, handlerMethod.bean);
@@ -191,6 +198,7 @@ public class HandlerMethod {
 
 	/**
 	 * Return the actual return value type.
+	 * @param returnValue the return value instance, can be {@code null}
 	 */
 	public MethodParameter getReturnValueType(@Nullable Object returnValue) {
 		return new ReturnValueMethodParameter(returnValue);
@@ -208,6 +216,7 @@ public class HandlerMethod {
 	 * if no annotation can be found on the given method itself.
 	 * <p>Also supports <em>merged</em> composed annotations with attribute
 	 * overrides as of Spring Framework 4.3.
+	 * @param <A> the annotation type
 	 * @param annotationType the type of annotation to introspect the method for
 	 * @return the annotation, or {@code null} if none found
 	 * @see AnnotatedElementUtils#findMergedAnnotation
@@ -219,6 +228,7 @@ public class HandlerMethod {
 
 	/**
 	 * Return whether the parameter is declared with the given annotation type.
+	 * @param <A> the annotation type
 	 * @param annotationType the annotation type to look for
 	 * @see AnnotatedElementUtils#hasAnnotation
 	 */
@@ -331,6 +341,9 @@ public class HandlerMethod {
 	 * processing time may be a JDK dynamic proxy (lazy initialization, prototype
 	 * beans, and others). Endpoint classes that require proxying should prefer
 	 * class-based proxy mechanisms.
+	 * @param method the handler method
+	 * @param targetBean the bean instance
+	 * @param args the method arguments
 	 */
 	protected void assertTargetBean(Method method, Object targetBean, Object[] args) {
 		Class<?> methodDeclaringClass = method.getDeclaringClass();
@@ -347,9 +360,9 @@ public class HandlerMethod {
 	protected String formatInvokeError(String text, Object[] args) {
 
 		String formattedArgs = IntStream.range(0, args.length)
-				.mapToObj(i -> (args[i] != null ?
+				.mapToObj((i) -> (args[i] != null) ?
 						"[" + i + "] [type=" + args[i].getClass().getName() + "] [value=" + args[i] + "]" :
-						"[" + i + "] [null]"))
+						"[" + i + "] [null]")
 				.collect(Collectors.joining(",\n", " ", " "));
 
 		return text + "\n" +
@@ -401,27 +414,32 @@ public class HandlerMethod {
 						if (index < ifcAnns.length) {
 							Annotation[] paramAnns = ifcAnns[index];
 							if (paramAnns.length > 0) {
-								List<Annotation> merged = new ArrayList<>(anns.length + paramAnns.length);
-								merged.addAll(Arrays.asList(anns));
-								for (Annotation paramAnn : paramAnns) {
-									boolean existingType = false;
-									for (Annotation ann : anns) {
-										if (ann.annotationType() == paramAnn.annotationType()) {
-											existingType = true;
-											break;
-										}
-									}
-									if (!existingType) {
-										merged.add(adaptAnnotation(paramAnn));
-									}
-								}
-								anns = merged.toArray(new Annotation[0]);
+								anns = mergeAnnotations(anns, paramAnns);
 							}
 						}
 					}
 				}
 				this.combinedAnnotations = anns;
 			}
+			return anns;
+		}
+
+		private Annotation[] mergeAnnotations(Annotation[] anns, Annotation[] paramAnns) {
+			List<Annotation> merged = new ArrayList<>(anns.length + paramAnns.length);
+			merged.addAll(Arrays.asList(anns));
+			for (Annotation paramAnn : paramAnns) {
+				boolean existingType = false;
+				for (Annotation ann : anns) {
+					if (ann.annotationType() == paramAnn.annotationType()) {
+						existingType = true;
+						break;
+					}
+				}
+				if (!existingType) {
+					merged.add(adaptAnnotation(paramAnn));
+				}
+			}
+			anns = merged.toArray(new Annotation[0]);
 			return anns;
 		}
 	}
@@ -435,7 +453,7 @@ public class HandlerMethod {
 		@Nullable
 		private final Object returnValue;
 
-		public ReturnValueMethodParameter(@Nullable Object returnValue) {
+		ReturnValueMethodParameter(@Nullable Object returnValue) {
 			super(-1);
 			this.returnValue = returnValue;
 		}
@@ -447,7 +465,7 @@ public class HandlerMethod {
 
 		@Override
 		public Class<?> getParameterType() {
-			return (this.returnValue != null ? this.returnValue.getClass() : super.getParameterType());
+			return (this.returnValue != null) ? this.returnValue.getClass() : super.getParameterType();
 		}
 
 		@Override

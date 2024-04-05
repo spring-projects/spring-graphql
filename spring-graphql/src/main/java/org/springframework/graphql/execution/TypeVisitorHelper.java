@@ -33,12 +33,14 @@ public interface TypeVisitorHelper {
 
 	/**
 	 * Whether the given type is the subscription type.
+	 * @param type the GraphQL type to check
 	 */
 	boolean isSubscriptionType(GraphQLNamedType type);
 
 
 	/**
 	 * Create an instance with the given {@link GraphQLSchema}.
+	 * @param schema the GraphQL schema to use
 	 */
 	static TypeVisitorHelper create(GraphQLSchema schema) {
 		return new DefaultTypeVisitorHelper(schema);

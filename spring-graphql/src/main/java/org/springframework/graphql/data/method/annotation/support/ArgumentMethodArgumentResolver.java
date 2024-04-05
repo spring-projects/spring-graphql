@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -83,6 +84,9 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 
 	/**
 	 * Perform the binding with the configured {@link #getArgumentBinder() binder}.
+	 * @param environment for access to the arguments
+	 * @param name the name of an argument, or {@code null} to use the full map
+	 * @param targetType the type of Object to create
 	 * @since 1.3
 	 */
 	@Nullable

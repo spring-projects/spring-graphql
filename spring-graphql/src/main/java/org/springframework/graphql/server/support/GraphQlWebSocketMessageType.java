@@ -26,20 +26,44 @@ package org.springframework.graphql.server.support;
  */
 public enum GraphQlWebSocketMessageType {
 
+	/**
+	 * Indicates that the client wants to establish a connection within the existing socket.
+	 */
 	CONNECTION_INIT("connection_init", false),
 
+	/**
+	 * Expected response to the {@link #CONNECTION_INIT} message from the client acknowledging a successful connection with the server.
+	 */
 	CONNECTION_ACK("connection_ack", false),
 
+	/**
+	 * Useful for detecting failed connections, displaying latency metrics or other types of network probing.
+	 */
 	PING("ping", false),
 
+	/**
+	 * The response to the {@link #PING} message. Must be sent as soon as the {@link #PING} message is received.
+	 */
 	PONG("pong", false),
 
+	/**
+	 * Requests an operation specified in the message payload.
+	 */
 	SUBSCRIBE("subscribe", true),
 
+	/**
+	 * Operation execution result(s) from the source stream created by the binding {@link #SUBSCRIBE} message.
+	 */
 	NEXT("next", true),
 
+	/**
+	 * Operation execution error(s) in response to the {@link #SUBSCRIBE} message.
+	 */
 	ERROR("error", true),
 
+	/**
+	 * Indicates that the requested operation execution has completed.
+	 */
 	COMPLETE("complete", false),
 
 	/**

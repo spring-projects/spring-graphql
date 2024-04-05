@@ -36,7 +36,6 @@ import org.springframework.util.ObjectUtils;
  * {@link GraphQlResponse} that wraps a deserialized the GraphQL response map.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
@@ -60,7 +59,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 	@SuppressWarnings("unchecked")
 	private static List<ResponseError> wrapErrors(Map<String, Object> map) {
 		List<Map<String, Object>> errors = (List<Map<String, Object>>) map.get("errors");
-		errors = (errors != null ? errors : Collections.emptyList());
+		errors = (errors != null) ? errors : Collections.emptyList();
 		return errors.stream().map(MapResponseError::new).collect(Collectors.toList());
 	}
 
@@ -134,7 +133,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 				return Collections.emptyList();
 			}
 			return locations.stream()
-					.map(m -> new SourceLocation(getInt(m, "line"), getInt(m, "column"), (String) m.get("sourceName")))
+					.map((m) -> new SourceLocation(getInt(m, "line"), getInt(m, "column"), (String) m.get("sourceName")))
 					.collect(Collectors.toList());
 		}
 
@@ -155,7 +154,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 				return "";
 			}
 			return path.stream().reduce("",
-					(s, o) -> s + (o instanceof Integer ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
+					(s, o) -> s + ((o instanceof Integer) ? "[" + o + "]" : (s.isEmpty() ? o : "." + o)),
 					(s, s2) -> null);
 		}
 
@@ -163,7 +162,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 		@Override
 		@Nullable
 		public String getMessage() {
-			return (String) errorMap.get("message");
+			return (String) this.errorMap.get("message");
 		}
 
 		@Override

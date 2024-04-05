@@ -70,6 +70,7 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Start with a given {@link #builder()}.
+	 * @param requesterBuilder the existing request builder
 	 */
 	static Builder<?> builder(RSocketRequester.Builder requesterBuilder) {
 		return new DefaultRSocketGraphQlClientBuilder(requesterBuilder);
@@ -78,6 +79,7 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Builder for the GraphQL over HTTP client.
+	 * @param <B> the builder type
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlClient.Builder<B> {
 
@@ -146,11 +148,12 @@ public interface RSocketGraphQlClient extends GraphQlClient {
 		 * <p>Note that some properties of {@code RSocketRequester.Builder} like the
 		 * data MimeType, and the underlying RSocket transport can be customized
 		 * through this builder.
+		 * @param requester the requester to be customized
+		 * @return the same builder instance
 		 * @see #dataMimeType(MimeType)
 		 * @see #tcp(String, int)
 		 * @see #webSocket(URI)
 		 * @see #clientTransport(ClientTransport)
-		 * @return the same builder instance
 		 */
 		B rsocketRequester(Consumer<RSocketRequester.Builder> requester);
 

@@ -61,7 +61,7 @@ public interface GraphQlRequest {
 	/**
 	 * Convert the request to a {@link Map} as defined in
 	 * <a href="https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md">GraphQL over HTTP</a> and
-	 * <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket</a>:
+	 * <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket</a>.
 	 * <table>
 	 * <tr><th>Key</th><th>Value</th></tr>
 	 * <tr><td>query</td><td>{@link #getDocument() document}</td></tr>

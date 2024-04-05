@@ -70,6 +70,7 @@ public class GraphiQlHandler {
 	/**
 	 * Render the GraphiQL page as "text/html", or if the "path" query parameter
 	 * is missing, add it and redirect back to the same URL.
+	 * @param request the HTTP server request
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest request) {
 		return (request.queryParam("path").isPresent() ?

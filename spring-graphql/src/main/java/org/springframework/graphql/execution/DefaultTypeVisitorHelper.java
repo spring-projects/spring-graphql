@@ -27,7 +27,6 @@ import org.springframework.lang.Nullable;
  * against {@link GraphQLSchema}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2.1
  */
 final class DefaultTypeVisitorHelper implements TypeVisitorHelper {
 
@@ -36,11 +35,11 @@ final class DefaultTypeVisitorHelper implements TypeVisitorHelper {
 
 
 	/**
-	 * Package private constructor
+	 * Package private constructor.
 	 */
 	DefaultTypeVisitorHelper(GraphQLSchema schema) {
 		GraphQLObjectType subscriptionType = schema.getSubscriptionType();
-		this.subscriptionTypeName = (subscriptionType != null ? subscriptionType.getName() : null);
+		this.subscriptionTypeName = (subscriptionType != null) ? subscriptionType.getName() : null;
 	}
 
 

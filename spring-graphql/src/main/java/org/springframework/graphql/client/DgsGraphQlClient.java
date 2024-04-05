@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
 import java.util.HashMap;
@@ -39,8 +40,8 @@ import org.springframework.util.Assert;
  * GraphQlClient client = ... ;
  * DgsGraphQlClient dgsClient = DgsGraphQlClient.create(client);
  *
- * List<Book> books = dgsClient.request(new BooksGraphQLQuery())
- * 		.projection(new BooksProjectionRoot<>().id().name())
+ * List&lt;Book&gt; books = dgsClient.request(new BooksGraphQLQuery())
+ * 		.projection(new BooksProjectionRoot&lt;&gt;().id().name())
  * 		.retrieveSync()
  * 		.toEntityList(Book.class);
  * </pre>
@@ -67,6 +68,7 @@ public final class DgsGraphQlClient {
 
 	/**
 	 * Start defining a GraphQL request for the given {@link GraphQLQuery}.
+	 * @param query the GraphQL query
 	 */
 	public RequestSpec request(GraphQLQuery query) {
 		return new RequestSpec(query);
@@ -80,7 +82,7 @@ public final class DgsGraphQlClient {
 	public static DgsGraphQlClient create(GraphQlClient client) {
 		return new DgsGraphQlClient(client);
 	}
-	
+
 
 	/**
 	 * Declare options to gather input for a GraphQL request and execute it.
@@ -105,6 +107,7 @@ public final class DgsGraphQlClient {
 
 		/**
 		 * Provide a {@link BaseProjectionNode} that defines the response selection set.
+		 * @param projectionNode the response selection set
 		 * @return ths same builder instance
 		 */
 		public RequestSpec projection(BaseProjectionNode projectionNode) {
@@ -114,20 +117,23 @@ public final class DgsGraphQlClient {
 
 		/**
 		 * Configure {@link Coercing} for serialization of scalar types.
+		 * @param scalarType the scalar type
+		 * @param coercing the coercing function for this scalar
 		 * @return ths same builder instance
 		 */
 		public RequestSpec coercing(Class<?> scalarType, Coercing<?, ?> coercing) {
-			this.coercingMap = (this.coercingMap != null ? this.coercingMap : new LinkedHashMap<>());
+			this.coercingMap = (this.coercingMap != null) ? this.coercingMap : new LinkedHashMap<>();
 			this.coercingMap.put(scalarType, coercing);
 			return this;
 		}
 
 		/**
 		 * Configure {@link Coercing} for serialization of scalar types.
+		 * @param coercingMap the map of coercing function
 		 * @return ths same builder instance
 		 */
 		public RequestSpec coercing(Map<Class<?>, Coercing<?, ?>> coercingMap) {
-			this.coercingMap = (this.coercingMap != null ? this.coercingMap : new LinkedHashMap<>());
+			this.coercingMap = (this.coercingMap != null) ? this.coercingMap : new LinkedHashMap<>();
 			this.coercingMap.putAll(coercingMap);
 			return this;
 		}
@@ -136,10 +142,12 @@ public final class DgsGraphQlClient {
 		 * Set a client request attribute.
 		 * <p>This is purely for client side request processing, i.e. available
 		 * throughout the {@link GraphQlClientInterceptor} chain but not sent.
+		 * @param name the attribute name
+		 * @param value the attribute value
 		 * @return ths same builder instance
 		 */
 		public RequestSpec attribute(String name, Object value) {
-			this.attributes = (this.attributes != null ? this.attributes : new HashMap<>());
+			this.attributes = (this.attributes != null) ? this.attributes : new HashMap<>();
 			this.attributes.put(name, value);
 			return this;
 		}
@@ -147,10 +155,11 @@ public final class DgsGraphQlClient {
 		/**
 		 * Manipulate the client request attributes. The map provided to the consumer
 		 * is "live", so the consumer can inspect and modify attributes accordingly.
+		 * @param attributesConsumer the consumer that will manipulate request attributes
 		 * @return ths same builder instance
 		 */
 		public RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer) {
-			this.attributes = (this.attributes != null ? this.attributes : new HashMap<>());
+			this.attributes = (this.attributes != null) ? this.attributes : new HashMap<>();
 			attributesConsumer.accept(this.attributes);
 			return this;
 		}
@@ -168,6 +177,7 @@ public final class DgsGraphQlClient {
 
 		/**
 		 * Variant of {@link #executeSync()} with explicit path relative to the "data" key.
+		 * @param path the JSON path relative to the "data" key
 		 */
 		public GraphQlClient.RetrieveSyncSpec retrieveSync(String path) {
 			return initRequestSpec().retrieveSync(path);
@@ -186,6 +196,7 @@ public final class DgsGraphQlClient {
 
 		/**
 		 * Variant of {@link #retrieve()} with explicit path relative to the "data" key.
+		 * @param path the JSON path relative to the "data" key
 		 */
 		public GraphQlClient.RetrieveSpec retrieve(String path) {
 			return initRequestSpec().retrieve(path);
@@ -237,15 +248,15 @@ public final class DgsGraphQlClient {
 			Assert.state(this.projectionNode != null || this.coercingMap == null,
 					"Coercing map provided without projection");
 
-			GraphQLQueryRequest request = (this.coercingMap != null ?
+			GraphQLQueryRequest request = (this.coercingMap != null) ?
 					new GraphQLQueryRequest(this.query, this.projectionNode, this.coercingMap) :
-					new GraphQLQueryRequest(this.query, this.projectionNode));
+					new GraphQLQueryRequest(this.query, this.projectionNode);
 
-			String operationName = (this.query.getName() != null ? this.query.getName() : null);
+			String operationName = (this.query.getName() != null) ? this.query.getName() : null;
 
-			return graphQlClient.document(request.serialize())
+			return DgsGraphQlClient.this.graphQlClient.document(request.serialize())
 					.operationName(operationName)
-					.attributes(map -> {
+					.attributes((map) -> {
 						if (this.attributes != null) {
 							map.putAll(this.attributes);
 						}

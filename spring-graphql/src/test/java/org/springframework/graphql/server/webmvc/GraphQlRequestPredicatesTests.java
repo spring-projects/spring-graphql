@@ -36,131 +36,131 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class GraphQlRequestPredicatesTests {
 
-    @Nested
-    class HttpPredicatesTests {
+	@Nested
+	class HttpPredicatesTests {
 
-        RequestPredicate httpPredicate = GraphQlRequestPredicates.graphQlHttp("/graphql");
+		RequestPredicate httpPredicate = GraphQlRequestPredicates.graphQlHttp("/graphql");
 
-        @Test
-        void shouldAcceptGraphQlHttpRequest() {
-            MockHttpServletRequest request = createMatchingHttpRequest();
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(httpPredicate.test(serverRequest)).isTrue();
-        }
+		@Test
+		void shouldAcceptGraphQlHttpRequest() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isTrue();
+		}
 
-        @Test
-        void shouldAcceptCorsRequest() {
-            MockHttpServletRequest request = createMatchingHttpRequest();
-            request.setMethod("OPTIONS");
-            request.addHeader("Origin", "https://example.com");
-            request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(httpPredicate.test(serverRequest)).isTrue();
-        }
+		@Test
+		void shouldAcceptCorsRequest() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setMethod("OPTIONS");
+			request.addHeader("Origin", "https://example.com");
+			request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isTrue();
+		}
 
-        @Test
-        void shouldRejectRequestWithGetMethod() {
-            MockHttpServletRequest request = createMatchingHttpRequest();
-            request.setMethod("GET");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(httpPredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithGetMethod() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setMethod("GET");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
 
-        @Test
-        void shouldRejectRequestWithDifferentPath() {
-            MockHttpServletRequest request = createMatchingHttpRequest();
-            request.setRequestURI("/invalid");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(httpPredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithDifferentPath() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setRequestURI("/invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
 
-        @Test
-        void shouldRejectRequestWithDifferentContentType() {
-            MockHttpServletRequest request = createMatchingHttpRequest();
-            request.setContentType("text/xml");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(httpPredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithDifferentContentType() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setContentType("text/xml");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
 
-        @Test
-        void shouldRejectRequestWithIncompatibleAccept() {
-            MockHttpServletRequest request = createMatchingHttpRequest();
-            request.removeHeader("Accept");
-            request.addHeader("Accept", "text/xml");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(httpPredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithIncompatibleAccept() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.removeHeader("Accept");
+			request.addHeader("Accept", "text/xml");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
 
-        private MockHttpServletRequest createMatchingHttpRequest() {
-            MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
-            request.setContentType("application/json");
-            request.addHeader("Accept", "application/graphql-response+json");
-            return request;
-        }
+		private MockHttpServletRequest createMatchingHttpRequest() {
+			MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
+			request.setContentType("application/json");
+			request.addHeader("Accept", "application/graphql-response+json");
+			return request;
+		}
 
-    }
+	}
 
-    @Nested
-    class SsePredicatesTests {
+	@Nested
+	class SsePredicatesTests {
 
-        RequestPredicate ssePredicate = GraphQlRequestPredicates.graphQlSse("/graphql");
+		RequestPredicate ssePredicate = GraphQlRequestPredicates.graphQlSse("/graphql");
 
-        @Test
-        void shouldAcceptGraphQlSseRequest() {
-            MockHttpServletRequest request = createMatchingSseRequest();
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(ssePredicate.test(serverRequest)).isTrue();
-        }
+		@Test
+		void shouldAcceptGraphQlSseRequest() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isTrue();
+		}
 
-        @Test
-        void shouldAcceptCorsRequest() {
-            MockHttpServletRequest request = createMatchingSseRequest();
-            request.setMethod("OPTIONS");
-            request.addHeader("Origin", "https://example.com");
-            request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(ssePredicate.test(serverRequest)).isTrue();
-        }
+		@Test
+		void shouldAcceptCorsRequest() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.setMethod("OPTIONS");
+			request.addHeader("Origin", "https://example.com");
+			request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isTrue();
+		}
 
-        @Test
-        void shouldRejectRequestWithGetMethod() {
-            MockHttpServletRequest request = createMatchingSseRequest();
-            request.setMethod("GET");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(ssePredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithGetMethod() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.setMethod("GET");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isFalse();
+		}
 
-        @Test
-        void shouldRejectRequestWithDifferentPath() {
-            MockHttpServletRequest request = createMatchingSseRequest();
-            request.setRequestURI("/invalid");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(ssePredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithDifferentPath() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.setRequestURI("/invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isFalse();
+		}
 
-        @Test
-        void shouldRejectRequestWithDifferentContentType() {
-            MockHttpServletRequest request = createMatchingSseRequest();
-            request.setContentType("text/xml");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(ssePredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithDifferentContentType() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.setContentType("text/xml");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isFalse();
+		}
 
-        @Test
-        void shouldRejectRequestWithIncompatibleAccept() {
-            MockHttpServletRequest request = createMatchingSseRequest();
-            request.removeHeader("Accept");
-            request.addHeader("Accept", "text/xml");
-            ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
-            assertThat(ssePredicate.test(serverRequest)).isFalse();
-        }
+		@Test
+		void shouldRejectRequestWithIncompatibleAccept() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.removeHeader("Accept");
+			request.addHeader("Accept", "text/xml");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isFalse();
+		}
 
-        private MockHttpServletRequest createMatchingSseRequest() {
-            MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
-            request.addHeader("Content-Type", "application/json");
-            request.addHeader("Accept", "text/event-stream");
-            return request;
-        }
-    }
+		private MockHttpServletRequest createMatchingSseRequest() {
+			MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
+			request.addHeader("Content-Type", "application/json");
+			request.addHeader("Accept", "text/event-stream");
+			return request;
+		}
+	}
 
 }

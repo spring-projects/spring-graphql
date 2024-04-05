@@ -49,78 +49,78 @@ import org.springframework.lang.Nullable;
  */
 public abstract class SubscriptionExceptionResolverAdapter implements SubscriptionExceptionResolver {
 
-    protected final Log logger = LogFactory.getLog(getClass());
+	protected final Log logger = LogFactory.getLog(getClass());
 
-    protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
+	protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
-    private boolean threadLocalContextAware;
-
-
-    /**
-     * Subclasses can set this to indicate that ThreadLocal context from the
-     * transport handler (e.g. HTTP handler) should be restored when resolving
-     * exceptions.
-     * <p><strong>Note:</strong> This property is applicable only if transports
-     * use ThreadLocal's' (e.g. Spring MVC) and if a {@link ThreadLocalAccessor}
-     * is registered to extract ThreadLocal values of interest. There is no
-     * impact from setting this property otherwise.
-     * <p>By default this is set to "false" in which case there is no attempt
-     * to propagate ThreadLocal context.
-     * @param threadLocalContextAware whether this resolver needs access to
-     * ThreadLocal context or not.
-     */
-    public void setThreadLocalContextAware(boolean threadLocalContextAware) {
-        this.threadLocalContextAware = threadLocalContextAware;
-    }
-
-    /**
-     * Whether ThreadLocal context needs to be restored for this resolver.
-     */
-    public boolean isThreadLocalContextAware() {
-        return this.threadLocalContextAware;
-    }
+	private boolean threadLocalContextAware;
 
 
-    @SuppressWarnings({"unused", "try"})
-    @Override
-    public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
-        if (this.threadLocalContextAware) {
-            return Mono.deferContextual(contextView -> {
-                ContextSnapshot snapshot = snapshotFactory.captureFrom(contextView);
-                try {
-                    List<GraphQLError> errors = snapshot.wrap(() -> resolveToMultipleErrors(exception)).call();
-                    return Mono.justOrEmpty(errors);
-                }
-                catch (Exception ex2) {
-                    logger.warn("Failed to resolve " + exception, ex2);
-                    return Mono.empty();
-                }
-            });
-        }
-        else {
-            return Mono.justOrEmpty(resolveToMultipleErrors(exception));
-        }
-    }
+	/**
+	 * Subclasses can set this to indicate that ThreadLocal context from the
+	 * transport handler (e.g. HTTP handler) should be restored when resolving
+	 * exceptions.
+	 * <p><strong>Note:</strong> This property is applicable only if transports
+	 * use ThreadLocal's' (e.g. Spring MVC) and if a {@link ThreadLocalAccessor}
+	 * is registered to extract ThreadLocal values of interest. There is no
+	 * impact from setting this property otherwise.
+	 * <p>By default this is set to "false" in which case there is no attempt
+	 * to propagate ThreadLocal context.
+	 * @param threadLocalContextAware whether this resolver needs access to
+	 * ThreadLocal context or not.
+	 */
+	public void setThreadLocalContextAware(boolean threadLocalContextAware) {
+		this.threadLocalContextAware = threadLocalContextAware;
+	}
 
-    /**
-     * Override this method to resolve the Exception to multiple GraphQL errors.
-     * @param exception the exception to resolve
-     * @return the resolved errors or {@code null} if unresolved
-     */
-    @Nullable
-    protected List<GraphQLError> resolveToMultipleErrors(Throwable exception) {
-        GraphQLError error = resolveToSingleError(exception);
-        return (error != null ? Collections.singletonList(error) : null);
-    }
+	/**
+	 * Whether ThreadLocal context needs to be restored for this resolver.
+	 */
+	public boolean isThreadLocalContextAware() {
+		return this.threadLocalContextAware;
+	}
 
-    /**
-     * Override this method to resolve the Exception to a single GraphQL error.
-     * @param exception the exception to resolve
-     * @return the resolved error or {@code null} if unresolved
-     */
-    @Nullable
-    protected GraphQLError resolveToSingleError(Throwable exception) {
-        return null;
-    }
+
+	@SuppressWarnings({"unused", "try"})
+	@Override
+	public final Mono<List<GraphQLError>> resolveException(Throwable exception) {
+		if (this.threadLocalContextAware) {
+			return Mono.deferContextual((contextView) -> {
+				ContextSnapshot snapshot = this.snapshotFactory.captureFrom(contextView);
+				try {
+					List<GraphQLError> errors = snapshot.wrap(() -> resolveToMultipleErrors(exception)).call();
+					return Mono.justOrEmpty(errors);
+				}
+				catch (Exception ex2) {
+					this.logger.warn("Failed to resolve " + exception, ex2);
+					return Mono.empty();
+				}
+			});
+		}
+		else {
+			return Mono.justOrEmpty(resolveToMultipleErrors(exception));
+		}
+	}
+
+	/**
+	 * Override this method to resolve the Exception to multiple GraphQL errors.
+	 * @param exception the exception to resolve
+	 * @return the resolved errors or {@code null} if unresolved
+	 */
+	@Nullable
+	protected List<GraphQLError> resolveToMultipleErrors(Throwable exception) {
+		GraphQLError error = resolveToSingleError(exception);
+		return (error != null) ? Collections.singletonList(error) : null;
+	}
+
+	/**
+	 * Override this method to resolve the Exception to a single GraphQL error.
+	 * @param exception the exception to resolve
+	 * @return the resolved error or {@code null} if unresolved
+	 */
+	@Nullable
+	protected GraphQLError resolveToSingleError(Throwable exception) {
+		return null;
+	}
 
 }

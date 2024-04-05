@@ -85,11 +85,6 @@ public final class DataFetcherMappingInfo {
 	}
 
 	@Override
-	public int hashCode() {
-		return getCoordinates().hashCode() * 31;
-	}
-
-	@Override
 	public boolean equals(@Nullable Object other) {
 		if (this == other) {
 			return true;
@@ -98,6 +93,11 @@ public final class DataFetcherMappingInfo {
 			return false;
 		}
 		return (this.coordinates.equals(otherInfo.coordinates));
+	}
+
+	@Override
+	public int hashCode() {
+		return getCoordinates().hashCode() * 31;
 	}
 
 	@Override

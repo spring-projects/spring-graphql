@@ -50,7 +50,7 @@ public interface SyncGraphQlClientInterceptor {
 			@Override
 			public ClientGraphQlResponse intercept(ClientGraphQlRequest request, Chain chain) {
 				return SyncGraphQlClientInterceptor.this.intercept(
-						request, nextRequest -> interceptor.intercept(nextRequest, chain));
+						request, (nextRequest) -> interceptor.intercept(nextRequest, chain));
 			}
 		};
 	}

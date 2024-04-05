@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.client;
 
 import java.net.URI;
@@ -50,7 +51,6 @@ import org.springframework.web.reactive.socket.client.WebSocketClient;
  * {@link GraphQlTransport} for GraphQL over WebSocket via {@link WebSocketClient}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  * @see <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">GraphQL over WebSocket protocol</a>
  */
 final class WebSocketGraphQlTransport implements GraphQlTransport {
@@ -78,7 +78,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		Assert.notNull(interceptor, "WebSocketGraphQlClientInterceptor is required");
 
 		this.url = url;
-		this.headers.putAll(headers != null ? headers : HttpHeaders.EMPTY);
+		this.headers.putAll((headers != null) ? headers : HttpHeaders.EMPTY);
 		this.webSocketClient = client;
 
 		this.graphQlSessionHandler = new GraphQlSessionHandler(codecConfigurer, interceptor);
@@ -100,7 +100,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			Mono<GraphQlSession> sessionMono = handler.getGraphQlSession();
 
 			client.execute(uri, headers, handler)
-					.subscribe(aVoid -> {},
+					.subscribe((aVoid) -> {
+
+							},
 							handler::handleWebSocketSessionError,
 							handler::handleWebSocketSessionClosed);
 
@@ -109,19 +111,19 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	}
 
 
-	public URI getUrl() {
+	URI getUrl() {
 		return this.url;
 	}
 
-	public HttpHeaders getHeaders() {
+	HttpHeaders getHeaders() {
 		return this.headers;
 	}
 
-	public WebSocketClient getWebSocketClient() {
+	WebSocketClient getWebSocketClient() {
 		return this.webSocketClient;
 	}
 
-	public CodecConfigurer getCodecConfigurer() {
+	CodecConfigurer getCodecConfigurer() {
 		return this.graphQlSessionHandler.getCodecConfigurer();
 	}
 
@@ -132,7 +134,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 * @return {@code Mono} that completes when the WebSocket is connected and
 	 * ready to begin sending GraphQL requests
 	 */
-	public Mono<Void> start() {
+	Mono<Void> start() {
 		this.graphQlSessionHandler.setStopped(false);
 		return this.graphQlSessionMono.then();
 	}
@@ -145,19 +147,19 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 * call {@link #start()} to allow requests again.
 	 * @return {@code Mono} that completes when the underlying session is closed
 	 */
-	public Mono<Void> stop() {
+	Mono<Void> stop() {
 		this.graphQlSessionHandler.setStopped(true);
-		return this.graphQlSessionMono.flatMap(GraphQlSession::close).onErrorResume(ex -> Mono.empty());
+		return this.graphQlSessionMono.flatMap(GraphQlSession::close).onErrorResume((ex) -> Mono.empty());
 	}
 
 	@Override
 	public Mono<GraphQlResponse> execute(GraphQlRequest request) {
-		return this.graphQlSessionMono.flatMap(session -> session.execute(request));
+		return this.graphQlSessionMono.flatMap((session) -> session.execute(request));
 	}
 
 	@Override
 	public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
-		return this.graphQlSessionMono.flatMapMany(session -> session.executeSubscription(request));
+		return this.graphQlSessionMono.flatMapMany((session) -> session.executeSubscription(request));
 	}
 
 
@@ -189,7 +191,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		}
 
 
-		public CodecConfigurer getCodecConfigurer() {
+		CodecConfigurer getCodecConfigurer() {
 			return this.codecDelegate.getCodecConfigurer();
 		}
 
@@ -205,7 +207,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * the "connection_init" and "connection_ack" messages are exchanged or
 		 * returns an error if it fails for any reason.
 		 */
-		public Mono<GraphQlSession> getGraphQlSession() {
+		Mono<GraphQlSession> getGraphQlSession() {
 			return this.graphQlSessionSink.asMono();
 		}
 
@@ -213,14 +215,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * When the handler is marked "stopped", i.e. set to {@code true}, new
 		 * requests are rejected. When set to {@code true} they are allowed.
 		 */
-		public void setStopped(boolean stopped) {
+		void setStopped(boolean stopped) {
 			this.stopped.set(stopped);
 		}
 
 		/**
 		 * Whether the handler is marked {@link #setStopped(boolean) "stopped"}.
 		 */
-		public boolean isStopped() {
+		boolean isStopped() {
 			return this.stopped.get();
 		}
 
@@ -241,10 +243,10 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 			Mono<Void> sendCompletion =
 					session.send(connectionInitMono.concatWith(graphQlSession.getRequestFlux())
-							.map(message -> this.codecDelegate.encode(session, message)));
+							.map((message) -> this.codecDelegate.encode(session, message)));
 
 			Mono<Void> receiveCompletion = session.receive()
-					.flatMap(webSocketMessage -> {
+					.flatMap((webSocketMessage) -> {
 						if (sessionNotInitialized()) {
 							try {
 								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
@@ -301,14 +303,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		private void registerCloseStatusHandling(GraphQlSession graphQlSession, WebSocketSession session) {
 			session.closeStatus()
 					.defaultIfEmpty(CloseStatus.NO_STATUS_CODE)
-					.doOnNext(closeStatus -> {
+					.doOnNext((closeStatus) -> {
 						String closeStatusMessage = initCloseStatusMessage(closeStatus, null, graphQlSession);
 						if (logger.isDebugEnabled()) {
 							logger.debug(closeStatusMessage);
 						}
 						graphQlSession.terminateRequests(closeStatusMessage, closeStatus);
 					})
-					.doOnError(cause -> {
+					.doOnError((cause) -> {
 						CloseStatus closeStatus = CloseStatus.NO_STATUS_CODE;
 						String closeStatusMessage = initCloseStatusMessage(closeStatus, cause, graphQlSession);
 						if (logger.isErrorEnabled()) {
@@ -347,7 +349,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * with an error. The error is routed to subscribers of
 		 * {@link #getGraphQlSession()} which is necessary for connection issues.
 		 */
-		public void handleWebSocketSessionError(Throwable ex) {
+		void handleWebSocketSessionError(Throwable ex) {
 
 			if (logger.isDebugEnabled()) {
 				logger.debug("Session handling error: " + ex.getMessage(), ex);
@@ -364,7 +366,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * This must be called from code that calls the {@code WebSocketClient}
 		 * when execution completes.
 		 */
-		public void handleWebSocketSessionClosed() {
+		void handleWebSocketSessionClosed() {
 			this.graphQlSessionSink = Sinks.unsafe().one();
 		}
 
@@ -396,16 +398,16 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Return the {@code Flux} of GraphQL requests to send as WebSocket messages.
 		 */
-		public Flux<GraphQlWebSocketMessage> getRequestFlux() {
+		Flux<GraphQlWebSocketMessage> getRequestFlux() {
 			return this.requestSink.getRequestFlux();
 		}
 
 
 		// Outbound messages
 
-		public Mono<GraphQlResponse> execute(GraphQlRequest request) {
+		Mono<GraphQlResponse> execute(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
-			return Mono.<GraphQlResponse>create(sink -> {
+			return Mono.<GraphQlResponse>create((sink) -> {
 				SingleResponseRequestState state = new SingleResponseRequestState(request, sink);
 				this.requestStateMap.put(id, state);
 				try {
@@ -419,9 +421,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}).doOnCancel(() -> this.requestStateMap.remove(id));
 		}
 
-		public Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
+		Flux<GraphQlResponse> executeSubscription(GraphQlRequest request) {
 			String id = String.valueOf(this.requestIndex.incrementAndGet());
-			return Flux.<GraphQlResponse>create(sink -> {
+			return Flux.<GraphQlResponse>create((sink) -> {
 				SubscriptionRequestState state = new SubscriptionRequestState(request, sink);
 				this.requestStateMap.put(id, state);
 				try {
@@ -452,7 +454,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			}
 		}
 
-		public void sendPong(@Nullable Map<String, Object> payload) {
+		void sendPong(@Nullable Map<String, Object> payload) {
 			GraphQlWebSocketMessage message = GraphQlWebSocketMessage.pong(payload);
 			this.requestSink.sendRequest(message);
 		}
@@ -463,7 +465,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Handle a "next" message and route to its recipient.
 		 */
-		public void handleNext(GraphQlWebSocketMessage message) {
+		void handleNext(GraphQlWebSocketMessage message) {
 			String id = message.getId();
 			RequestState requestState = this.requestStateMap.get(id);
 			if (requestState == null) {
@@ -486,7 +488,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Handle an "error" message, turning it into an {@link GraphQlResponse}
 		 * for single responses, or signaling an error for streams.
 		 */
-		public void handleError(GraphQlWebSocketMessage message) {
+		void handleError(GraphQlWebSocketMessage message) {
 			String id = message.getId();
 			RequestState requestState = this.requestStateMap.remove(id);
 			if (requestState == null) {
@@ -512,7 +514,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		/**
 		 * Handle a "complete" message.
 		 */
-		public void handleComplete(GraphQlWebSocketMessage message) {
+		void handleComplete(GraphQlWebSocketMessage message) {
 			String id = message.getId();
 			RequestState requestState = this.requestStateMap.remove(id);
 			if (requestState == null) {
@@ -528,22 +530,22 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		 * Return a {@code Mono} that completes when the connection is closed
 		 * for any reason.
 		 */
-		public Mono<Void> notifyWhenClosed() {
+		Mono<Void> notifyWhenClosed() {
 			return this.connection.notifyWhenClosed();
 		}
 
 		/**
 		 * Close the underlying connection.
 		 */
-		public Mono<Void> close() {
+		Mono<Void> close() {
 			return this.connection.close(CloseStatus.GOING_AWAY);
 		}
 
 		/**
 		 * Terminate and clean all in-progress requests with the given error.
 		 */
-		public void terminateRequests(String message, CloseStatus status) {
-			this.requestStateMap.values().forEach(info -> info.emitDisconnectError(message, status));
+		void terminateRequests(String message, CloseStatus status) {
+			this.requestStateMap.values().forEach((info) -> info.emitDisconnectError(message, status));
 			this.requestStateMap.clear();
 		}
 
@@ -595,21 +597,21 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	/**
 	 * Holds the request {@code Flux} and associated {@link FluxSink}.
 	 */
-	private static class RequestSink {
+	private static final class RequestSink {
 
 		@Nullable
 		private FluxSink<GraphQlWebSocketMessage> requestSink;
 
-		private final Flux<GraphQlWebSocketMessage> requestFlux = Flux.create(sink -> {
+		private final Flux<GraphQlWebSocketMessage> requestFlux = Flux.create((sink) -> {
 			Assert.state(this.requestSink == null, "Expected single subscriber only for outbound messages");
 			this.requestSink = sink;
 		});
 
-		public Flux<GraphQlWebSocketMessage> getRequestFlux() {
+		Flux<GraphQlWebSocketMessage> getRequestFlux() {
 			return this.requestFlux;
 		}
 
-		public void sendRequest(GraphQlWebSocketMessage message) {
+		void sendRequest(GraphQlWebSocketMessage message) {
 			Assert.state(this.requestSink != null, "Unexpected request before Flux is subscribed to");
 			this.requestSink.next(message);
 		}

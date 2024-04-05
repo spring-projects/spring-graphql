@@ -39,6 +39,7 @@ public interface WebGraphQlClient extends GraphQlClient {
 
 	/**
 	 * Base builder for GraphQL clients over a Web transport.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends GraphQlClient.Builder<B> {
 
@@ -72,6 +73,7 @@ public interface WebGraphQlClient extends GraphQlClient {
 		 * Configure JSON encoders and decoders for use in the
 		 * {@link org.springframework.graphql.GraphQlResponse} to convert response
 		 * data to higher level objects.
+		 * @param codecsConsumer a callback that customizes the configured codecs
 		 */
 		B codecConfigurer(Consumer<CodecConfigurer> codecsConsumer);
 

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Collections;
@@ -285,7 +286,7 @@ public class SchemaMappingInvocationTests {
 
 
 	private TestExecutionGraphQlService graphQlService() {
-		return graphQlService((configurer, setup) -> {});
+		return graphQlService((configurer, setup) -> { });
 	}
 
 	private TestExecutionGraphQlService graphQlService(BiConsumer<AnnotatedControllerConfigurer, GraphQlSetup> consumer) {

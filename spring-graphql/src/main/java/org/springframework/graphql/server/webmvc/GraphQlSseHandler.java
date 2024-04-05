@@ -20,11 +20,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import jakarta.servlet.ServletException;
-
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import jakarta.servlet.ServletException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
@@ -52,109 +51,108 @@ import org.springframework.web.servlet.function.ServerResponse;
  */
 public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
-    private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
+	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
 
-    public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
-        super(graphQlHandler, null);
-    }
+	public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
+		super(graphQlHandler, null);
+	}
 
-    /**
-     * Handle GraphQL requests over HTTP using the Server-Sent Events protocol.
-     *
-     * @param serverRequest the incoming HTTP request
-     * @return the HTTP response
-     * @throws ServletException may be raised when reading the request body, e.g.
-     * {@link HttpMediaTypeNotSupportedException}.
-     */
-    public ServerResponse handleRequest(ServerRequest serverRequest) throws ServletException {
+	/**
+	 * Handle GraphQL requests over HTTP using the Server-Sent Events protocol.
+	 * @param serverRequest the incoming HTTP request
+	 * @return the HTTP response
+	 * @throws ServletException may be raised when reading the request body, e.g.
+	 * {@link HttpMediaTypeNotSupportedException}.
+	 */
+	public ServerResponse handleRequest(ServerRequest serverRequest) throws ServletException {
 
-        WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-                serverRequest.uri(), serverRequest.headers().asHttpHeaders(), initCookies(serverRequest),
-                serverRequest.attributes(), readBody(serverRequest), this.idGenerator.generateId().toString(),
-                LocaleContextHolder.getLocale());
+		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
+				serverRequest.uri(), serverRequest.headers().asHttpHeaders(), initCookies(serverRequest),
+				serverRequest.attributes(), readBody(serverRequest), this.idGenerator.generateId().toString(),
+				LocaleContextHolder.getLocale());
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Executing: " + graphQlRequest);
-        }
-        return ServerResponse.sse(sseBuilder -> {
-            this.graphQlHandler.handleRequest(graphQlRequest)
-                    .flatMapMany(this::handleResponse)
-                    .subscribe(new SendMessageSubscriber(graphQlRequest.getId(), sseBuilder));
-        });
-    }
+		if (logger.isDebugEnabled()) {
+			logger.debug("Executing: " + graphQlRequest);
+		}
+		return ServerResponse.sse((sseBuilder) -> this.graphQlHandler.handleRequest(graphQlRequest)
+				.flatMapMany(this::handleResponse)
+				.subscribe(new SendMessageSubscriber(graphQlRequest.getId(), sseBuilder)));
+	}
 
 
-    @SuppressWarnings("unchecked")
-    private Publisher<Map<String, Object>> handleResponse(WebGraphQlResponse response) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Execution result ready"
-                    + (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
-                    + ".");
-        }
-        if (response.getData() instanceof Publisher) {
-            // Subscription
-            return Flux.from((Publisher<ExecutionResult>) response.getData()).map(ExecutionResult::toSpecification);
-        }
-        if (logger.isDebugEnabled()) {
-            logger.debug("Only subscriptions are supported, DataFetcher must return a Publisher type");
-        }
-        // Single response (query or mutation) are not supported
-        String errorMessage = "SSE transport only supports Subscription operations";
-        GraphQLError unsupportedOperationError = GraphQLError.newError().errorType(ErrorType.OperationNotSupported)
-                .message(errorMessage).build();
-        return Flux.error(new SubscriptionPublisherException(Collections.singletonList(unsupportedOperationError),
-                new IllegalArgumentException(errorMessage)));
-    }
+	@SuppressWarnings("unchecked")
+	private Publisher<Map<String, Object>> handleResponse(WebGraphQlResponse response) {
+		if (logger.isDebugEnabled()) {
+			logger.debug("Execution result ready"
+					+ (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
+					+ ".");
+		}
+		if (response.getData() instanceof Publisher) {
+			// Subscription
+			return Flux.from((Publisher<ExecutionResult>) response.getData()).map(ExecutionResult::toSpecification);
+		}
+		if (logger.isDebugEnabled()) {
+			logger.debug("Only subscriptions are supported, DataFetcher must return a Publisher type");
+		}
+		// Single response (query or mutation) are not supported
+		String errorMessage = "SSE transport only supports Subscription operations";
+		GraphQLError unsupportedOperationError = GraphQLError.newError().errorType(ErrorType.OperationNotSupported)
+				.message(errorMessage).build();
+		return Flux.error(new SubscriptionPublisherException(Collections.singletonList(unsupportedOperationError),
+				new IllegalArgumentException(errorMessage)));
+	}
 
 
-    private static class SendMessageSubscriber extends BaseSubscriber<Map<String, Object>> {
+	private static class SendMessageSubscriber extends BaseSubscriber<Map<String, Object>> {
 
-        final String id;
+		final String id;
 
-        final ServerResponse.SseBuilder sseBuilder;
+		final ServerResponse.SseBuilder sseBuilder;
 
-        public SendMessageSubscriber(String id, ServerResponse.SseBuilder sseBuilder) {
-            this.id = id;
-            this.sseBuilder = sseBuilder;
-        }
+		SendMessageSubscriber(String id, ServerResponse.SseBuilder sseBuilder) {
+			this.id = id;
+			this.sseBuilder = sseBuilder;
+		}
 
-        @Override
-        protected void hookOnNext(Map<String, Object> value) {
-            writeNext(value);
-        }
+		@Override
+		protected void hookOnNext(Map<String, Object> value) {
+			writeNext(value);
+		}
 
-        @Override
-        protected void hookOnError(Throwable throwable) {
-            if (throwable instanceof SubscriptionPublisherException subscriptionException) {
-                ExecutionResult errorResult = ExecutionResult.newExecutionResult().errors(subscriptionException.getErrors()).build();
-                writeNext(errorResult.toSpecification());
-            }
-            else {
-                this.sseBuilder.error(throwable);
-            }
-            this.hookOnComplete();
-        }
+		@Override
+		protected void hookOnError(Throwable throwable) {
+			if (throwable instanceof SubscriptionPublisherException subscriptionException) {
+				ExecutionResult errorResult = ExecutionResult.newExecutionResult().errors(subscriptionException.getErrors()).build();
+				writeNext(errorResult.toSpecification());
+			}
+			else {
+				this.sseBuilder.error(throwable);
+			}
+			this.hookOnComplete();
+		}
 
-        private void writeNext(Map<String, Object> value) {
-            try {
-                this.sseBuilder.event("next");
-                this.sseBuilder.data(value);
-            } catch (IOException exception) {
-                this.onError(exception);
-            }
-        }
+		private void writeNext(Map<String, Object> value) {
+			try {
+				this.sseBuilder.event("next");
+				this.sseBuilder.data(value);
+			}
+			catch (IOException exception) {
+				this.onError(exception);
+			}
+		}
 
-        @Override
-        protected void hookOnComplete() {
-            try {
-                this.sseBuilder.event("complete").data("");
-            } catch (IOException exc) {
-                throw new RuntimeException(exc);
-            }
-            this.sseBuilder.complete();
-        }
+		@Override
+		protected void hookOnComplete() {
+			try {
+				this.sseBuilder.event("complete").data("");
+			}
+			catch (IOException exc) {
+				throw new RuntimeException(exc);
+			}
+			this.sseBuilder.complete();
+		}
 
-    }
+	}
 
 }

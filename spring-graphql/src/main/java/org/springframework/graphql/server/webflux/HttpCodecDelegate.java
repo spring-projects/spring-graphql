@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.server.webflux;
 
 import java.util.Map;
@@ -39,7 +40,6 @@ import org.springframework.util.MimeTypeUtils;
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
- * @since 1.3.0
  */
 final class HttpCodecDelegate {
 
@@ -77,13 +77,13 @@ final class HttpCodecDelegate {
 
 
 	@SuppressWarnings("unchecked")
-	public DataBuffer encode(GraphQlResponse response) {
+	DataBuffer encode(GraphQlResponse response) {
 		return ((Encoder<Map<String, Object>>) this.encoder)
 				.encodeValue(response.toMap(), DefaultDataBufferFactory.sharedInstance, RESPONSE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
 	}
 
 	@SuppressWarnings("unchecked")
-	public Mono<SerializableGraphQlRequest> decode(Publisher<DataBuffer> inputStream, MediaType contentType) {
+	Mono<SerializableGraphQlRequest> decode(Publisher<DataBuffer> inputStream, MediaType contentType) {
 		return (Mono<SerializableGraphQlRequest>) this.decoder.decodeToMono(inputStream, REQUEST_TYPE, contentType, null);
 	}
 

@@ -145,7 +145,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 
 	@Nullable
 	private static GraphQLObjectType getAsObjectType(@Nullable GraphQLFieldDefinition field) {
-		return (getType(field) instanceof GraphQLObjectType type ? type : null);
+		return (getType(field) instanceof GraphQLObjectType type) ? type : null;
 	}
 
 	@Nullable
@@ -164,7 +164,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			return null;
 		}
 		GraphQLOutputType type = field.getType();
-		return (type instanceof GraphQLNonNull nonNullType ? nonNullType.getWrappedType() : type);
+		return (type instanceof GraphQLNonNull nonNullType) ? nonNullType.getWrappedType() : type;
 	}
 
 
@@ -185,7 +185,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 	 */
 	private record ConnectionDataFetcher(DataFetcher<?> delegate, ConnectionAdapter adapter) implements DataFetcher<Object> {
 
-		private final static Connection<?> EMPTY_CONNECTION =
+		private static final Connection<?> EMPTY_CONNECTION =
 				new DefaultConnection<>(Collections.emptyList(), new DefaultPageInfo(null, null, false, false));
 
 

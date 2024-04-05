@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
@@ -54,13 +55,13 @@ import org.springframework.util.ClassUtils;
  * Convenient base for classes that find annotated controller method with argument
  * values resolved from a {@link graphql.schema.DataFetchingEnvironment}.
  *
+ * @param <M> the type of mapping info prepared from a controller method
  * @author Rossen Stoyanchev
  * @since 1.3
- * @param <M> the type of mapping info prepared from a controller method
  */
 public abstract class AnnotatedControllerDetectionSupport<M> implements ApplicationContextAware, InitializingBean {
 
-	protected final static boolean springSecurityPresent = ClassUtils.isPresent(
+	protected static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerDetectionSupport.class.getClassLoader());
 
@@ -102,6 +103,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	 * that assists in binding GraphQL arguments onto
 	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
 	 * annotated method parameters.
+	 * @param registrar the formatter registrar
 	 */
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
 		registrar.registerFormatters(this.conversionService);
@@ -116,6 +118,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
 	 * should falls back to direct field access in case the target object does
 	 * not use accessor methods.
+	 * @param fallBackOnDirectFieldAccess whether binding should fall back on direct field access
 	 * @since 1.2.0
 	 */
 	public void setFallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
@@ -133,11 +136,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	 * exceptions from non-controller {@link DataFetcher}s since exceptions from
 	 * {@code @SchemaMapping} controller methods are handled automatically at
 	 * the point of invocation.
-	 *
 	 * @return a resolver instance that can be plugged into
 	 * {@link org.springframework.graphql.execution.GraphQlSource.Builder#exceptionResolvers(List)
 	 * GraphQlSource.Builder}
-	 *
 	 * @since 1.2.0
 	 */
 	public HandlerDataFetcherExceptionResolver getExceptionResolver() {
@@ -214,15 +215,15 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 			}
 			catch (Throwable ex) {
 				// An unresolvable bean type, probably from a lazy bean - let's ignore it.
-				if (logger.isTraceEnabled()) {
-					logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
+				if (this.logger.isTraceEnabled()) {
+					this.logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 				}
 			}
 			if (beanType == null || !AnnotatedElementUtils.hasAnnotation(beanType, Controller.class)) {
 				continue;
 			}
 			Class<?> beanClass = context.getType(beanName);
-			findHandlerMethods(beanName, beanClass).forEach(info -> registerHandlerMethod(info, results));
+			findHandlerMethods(beanName, beanClass).forEach((info) -> registerHandlerMethod(info, results));
 		}
 		return results;
 	}
@@ -240,8 +241,8 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 		Collection<M> mappingInfos = map.values();
 
-		if (logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
-			logger.trace(formatMappings(userClass, mappingInfos));
+		if (this.logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
+			this.logger.trace(formatMappings(userClass, mappingInfos));
 		}
 
 		return mappingInfos;
@@ -252,10 +253,10 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	private String formatMappings(Class<?> handlerType, Collection<M> infos) {
 		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
-				.map(p -> p.substring(0, 1))
+				.map((p) -> p.substring(0, 1))
 				.collect(Collectors.joining(".", "", "." + handlerType.getSimpleName()));
 		return infos.stream()
-				.map(info -> {
+				.map((info) -> {
 					Method method = getHandlerMethod(info).getMethod();
 					String methodParameters = Arrays.stream(method.getGenericParameterTypes())
 							.map(Type::getTypeName)
@@ -268,7 +269,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	private void registerHandlerMethod(M info, Set<M> results) {
 		Assert.state(this.exceptionResolver != null, "afterPropertiesSet not called");
 		HandlerMethod handlerMethod = getHandlerMethod(info);
-		M existing = results.stream().filter(o -> o.equals(info)).findFirst().orElse(null);
+		M existing = results.stream().filter((o) -> o.equals(info)).findFirst().orElse(null);
 		if (existing != null && !getHandlerMethod(existing).equals(handlerMethod)) {
 			throw new IllegalStateException(
 					"Ambiguous mapping. Cannot map '" + handlerMethod.getBean() + "' method \n" +
@@ -281,9 +282,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	protected HandlerMethod createHandlerMethod(Method originalMethod, Object handler, Class<?> handlerType) {
 		Method method = AopUtils.selectInvocableMethod(originalMethod, handlerType);
-		return (handler instanceof String beanName ?
+		return (handler instanceof String beanName) ?
 				new HandlerMethod(beanName, obtainApplicationContext().getAutowireCapableBeanFactory(), method) :
-				new HandlerMethod(handler, method));
+				new HandlerMethod(handler, method);
 	}
 
 }

@@ -52,11 +52,12 @@ public final class TestWebSocketClient implements WebSocketClient {
 	/**
 	 * Return the connection at the specified index from a list of connections
 	 * based on order of execution.
+	 * @param index the index of the connection to return
 	 */
 	public TestWebSocketConnection getConnection(int index) {
 		Assert.isTrue(index < this.connections.size(),
 				"No connection at index=" + index + ", total=" + this.connections.size());
-		return connections.get(index);
+		return this.connections.get(index);
 	}
 
 	/**

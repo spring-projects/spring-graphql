@@ -34,9 +34,9 @@ import reactor.test.StepVerifier;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
-import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
+import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -46,8 +46,8 @@ import org.springframework.web.reactive.socket.client.WebSocketClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link WebSocketGraphQlTransport} using {@link TestWebSocketClient}
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
  */
 public class WebSocketGraphQlTransportTests {
 
-	private final static Duration TIMEOUT = Duration.ofSeconds(5);
+	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
 	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate(ClientCodecConfigurer.create());
 
@@ -65,7 +65,7 @@ public class WebSocketGraphQlTransportTests {
 	private final MockGraphQlWebSocketServer mockServer = new MockGraphQlWebSocketServer();
 
 	private final TestWebSocketClient webSocketClient = new TestWebSocketClient(this.mockServer);
-	
+
 	private final WebSocketGraphQlTransport transport = createTransport(this.webSocketClient);
 
 	private final GraphQlResponse response1 = new ResponseMapGraphQlResponse(
@@ -283,8 +283,8 @@ public class WebSocketGraphQlTransportTests {
 		IOException ex = new IOException("Connect failure");
 
 		WebSocketClient client = mock(WebSocketClient.class);
-		when(client.execute(any(URI.class), any(HttpHeaders.class), any(WebSocketHandler.class)))
-				.thenReturn(Mono.error(ex));
+		given(client.execute(any(URI.class), any(HttpHeaders.class), any(WebSocketHandler.class)))
+				.willReturn(Mono.error(ex));
 
 		StepVerifier.create(createTransport(client).start())
 				.expectErrorMessage(ex.getMessage())
@@ -324,7 +324,7 @@ public class WebSocketGraphQlTransportTests {
 	private static WebSocketGraphQlTransport createTransport(WebSocketClient client) {
 		return new WebSocketGraphQlTransport(
 				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
-				new WebSocketGraphQlClientInterceptor() {});
+				new WebSocketGraphQlClientInterceptor() { });
 	}
 
 	private void assertActualClientMessages(GraphQlWebSocketMessage... expectedMessages) {

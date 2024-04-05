@@ -27,7 +27,6 @@ import org.springframework.util.Assert;
  * the first one that supports a given Object container type, and delegates to it.
  *
  * @author Rossen Stoyanchev
- * @since 1.2.0
  */
 final class CompositeConnectionAdapter implements ConnectionAdapter {
 
@@ -45,18 +44,22 @@ final class CompositeConnectionAdapter implements ConnectionAdapter {
 		return (getAdapter(containerType) != null);
 	}
 
+	@Override
 	public <T> Collection<T> getContent(Object container) {
 		return getRequiredAdapter(container).getContent(container);
 	}
 
+	@Override
 	public boolean hasPrevious(Object container) {
 		return getRequiredAdapter(container).hasPrevious(container);
 	}
 
+	@Override
 	public boolean hasNext(Object container) {
 		return getRequiredAdapter(container).hasNext(container);
 	}
 
+	@Override
 	public String cursorAt(Object container, int index) {
 		return getRequiredAdapter(container).cursorAt(container, index);
 	}

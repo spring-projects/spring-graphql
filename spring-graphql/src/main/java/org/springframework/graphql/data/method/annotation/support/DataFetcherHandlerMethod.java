@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
@@ -49,6 +51,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * @param handlerMethod the handler method
 	 * @param resolvers the argument resolvers
 	 * @param validationHelper to apply bean validation with
+	 * @param executor an {@link Executor} to use for {@link Callable} return values
 	 * @param subscription whether the field being fetched is of subscription type
 	 */
 	public DataFetcherHandlerMethod(
@@ -58,7 +61,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 
 		super(handlerMethod, resolvers, executor);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
-		this.validationHelper = (validationHelper != null ? validationHelper : (controller, args) -> {});
+		this.validationHelper = (validationHelper != null) ? validationHelper : (controller, args) -> { };
 		this.subscription = subscription;
 	}
 
@@ -72,9 +75,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * The {@code providedArgs} parameter however may supply argument values to
 	 * be used directly, i.e. without argument resolution. Provided argument
 	 * values are checked before argument resolvers.
-	 *
 	 * @param environment the environment to resolve arguments from
-	 *
 	 * @return the raw value returned by the invoked method, possibly a
 	 * {@code Mono} in case a method argument requires asynchronous resolution;
 	 * {@code Mono<Throwable>} is returned if invocation fails.
@@ -87,6 +88,8 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	/**
 	 * Variant of {@link #invoke(DataFetchingEnvironment)} that also accepts
 	 * "given" arguments, which are matched by type.
+	 * @param environment the data fetching environment
+	 * @param providedArgs additional arguments to be matched by their type
 	 * @since 1.2.0
 	 */
 	@Nullable
@@ -99,17 +102,17 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 			return Mono.error(ex);
 		}
 
-		if (Arrays.stream(args).noneMatch(arg -> arg instanceof Mono)) {
+		if (Arrays.stream(args).noneMatch((arg) -> arg instanceof Mono)) {
 			return validateAndInvoke(args, environment);
 		}
 
 		return this.subscription ?
-				toArgsMono(args).flatMapMany(argValues -> {
+				toArgsMono(args).flatMapMany((argValues) -> {
 					Object result = validateAndInvoke(argValues, environment);
 					Assert.state(result instanceof Publisher, "Expected a Publisher from a Subscription response");
 					return Flux.from((Publisher<?>) result);
 				}) :
-				toArgsMono(args).flatMap(argValues -> {
+				toArgsMono(args).flatMap((argValues) -> {
 					Object result = validateAndInvoke(argValues, environment);
 					if (result instanceof Mono<?> mono) {
 						return mono;

@@ -77,6 +77,7 @@ public interface WebSocketGraphQlTester extends WebGraphQlTester {
 
 	/**
 	 * Builder for a GraphQL over WebSocket tester.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends WebGraphQlTester.Builder<B> {
 

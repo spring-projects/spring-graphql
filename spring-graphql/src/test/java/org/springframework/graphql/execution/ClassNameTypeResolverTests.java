@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.execution;
 
 import java.util.ArrayList;
@@ -36,25 +37,25 @@ public class ClassNameTypeResolverTests {
 
 	private static final String schema = """
 			type Query {
-			    animals: [Animal!]!,
-			    sightings: [Sighting!]!
+				animals: [Animal!]!,
+				sightings: [Sighting!]!
 			}
 			interface Animal {
-			    name: String!
+				name: String!
 			}
 			type Bird implements Animal {
-			    name: String!
-			    flightless: Boolean!
+				name: String!
+				flightless: Boolean!
 			}
 			type Mammal implements Animal {
-			    name: String!
-			    herbivore: Boolean!
+				name: String!
+				herbivore: Boolean!
 			}
 			type Plant {
-			    family: String!
+				family: String!
 			}
 			type Vegetable {
-			    family: String!
+				family: String!
 			}
 			union Sighting = Bird | Mammal | Plant | Vegetable
 			""";
@@ -80,16 +81,16 @@ public class ClassNameTypeResolverTests {
 
 		String document = """
 				query Animals {
-				  animals {
-					__typename
-					name
-					... on Bird {
-					  flightless
+					animals {
+						__typename
+						name
+						... on Bird {
+							flightless
+						}
+						... on Mammal {
+							herbivore
+						}
 					}
-					... on Mammal {
-					  herbivore
-					}
-				  }
 				}
 				""";
 
@@ -114,18 +115,18 @@ public class ClassNameTypeResolverTests {
 
 		String document = """
 				query Sightings {
-				  sightings {
-				    __typename
-				    ... on Bird {
-				      name
-				    }
-				    ... on Mammal {
-				      name
-				    }
-				    ... on Plant {
-				      family
-				    }
-				  }
+					sightings {
+						__typename
+						... on Bird {
+							name
+						}
+						... on Mammal {
+							name
+						}
+						... on Plant {
+							family
+						}
+					}
 				}
 				""";
 
@@ -149,10 +150,10 @@ public class ClassNameTypeResolverTests {
 
 		String document = """
 				query Animals {
-				  animals {
-					__typename
-					name
-				  }
+					animals {
+						__typename
+						name
+					}
 				}
 				""";
 
@@ -163,7 +164,6 @@ public class ClassNameTypeResolverTests {
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).contains("Could not determine the exact type of 'Animal'");
 	}
-
 
 
 	interface Animal {

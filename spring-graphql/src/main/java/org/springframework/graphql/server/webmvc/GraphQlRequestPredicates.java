@@ -42,126 +42,129 @@ import org.springframework.web.util.pattern.PathPatternParser;
  * @author Brian Clozel
  * @since 1.3.0
  */
-public class GraphQlRequestPredicates {
+public final class GraphQlRequestPredicates {
 
-    private static final Log logger = LogFactory.getLog(GraphQlRequestPredicates.class);
+	private static final Log logger = LogFactory.getLog(GraphQlRequestPredicates.class);
 
-    /**
-     * Create a {@link RequestPredicate predicate} that matches GraphQL HTTP requests for the configured path.
-     *
-     * @param path the path on which the GraphQL HTTP endpoint is mapped
-     * @see GraphQlHttpHandler
-     */
-    public static RequestPredicate graphQlHttp(String path) {
-        return new GraphQlHttpRequestPredicate(path, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL_RESPONSE);
-    }
+	private GraphQlRequestPredicates() {
 
-    /**
-     * Create a {@link RequestPredicate predicate} that matches GraphQL SSE over HTTP requests for the configured path.
-     *
-     * @param path the path on which the GraphQL SSE endpoint is mapped
-     * @see GraphQlSseHandler
-     */
-    public static RequestPredicate graphQlSse(String path) {
-        return new GraphQlHttpRequestPredicate(path, MediaType.TEXT_EVENT_STREAM);
-    }
+	}
 
-    private static class GraphQlHttpRequestPredicate implements RequestPredicate {
+	/**
+	 * Create a {@link RequestPredicate predicate} that matches GraphQL HTTP requests for the configured path.
+	 * @param path the path on which the GraphQL HTTP endpoint is mapped
+	 * @see GraphQlHttpHandler
+	 */
+	public static RequestPredicate graphQlHttp(String path) {
+		return new GraphQlHttpRequestPredicate(path, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL_RESPONSE);
+	}
 
-        private final PathPattern pattern;
+	/**
+	 * Create a {@link RequestPredicate predicate} that matches GraphQL SSE over HTTP requests for the configured path.
+	 * @param path the path on which the GraphQL SSE endpoint is mapped
+	 * @see GraphQlSseHandler
+	 */
+	public static RequestPredicate graphQlSse(String path) {
+		return new GraphQlHttpRequestPredicate(path, MediaType.TEXT_EVENT_STREAM);
+	}
 
-        private final List<MediaType> acceptedMediaTypes;
+	private static class GraphQlHttpRequestPredicate implements RequestPredicate {
+
+		private final PathPattern pattern;
+
+		private final List<MediaType> acceptedMediaTypes;
 
 
-        GraphQlHttpRequestPredicate(String path, MediaType... accepted) {
-            Assert.notNull(path, "'path' must not be null");
-            Assert.notEmpty(accepted, "'accepted' must not be empty");
-            PathPatternParser parser = PathPatternParser.defaultInstance;
-            path = parser.initFullPathPattern(path);
-            this.pattern = parser.parse(path);
-            this.acceptedMediaTypes = Arrays.asList(accepted);
-        }
+		GraphQlHttpRequestPredicate(String path, MediaType... accepted) {
+			Assert.notNull(path, "'path' must not be null");
+			Assert.notEmpty(accepted, "'accepted' must not be empty");
+			PathPatternParser parser = PathPatternParser.defaultInstance;
+			path = parser.initFullPathPattern(path);
+			this.pattern = parser.parse(path);
+			this.acceptedMediaTypes = Arrays.asList(accepted);
+		}
 
-        @Override
-        public boolean test(ServerRequest request) {
-            return methodMatch(request, HttpMethod.POST)
-                    && contentTypeMatch(request, MediaType.APPLICATION_JSON)
-                    && acceptMatch(request, this.acceptedMediaTypes)
-                    && pathMatch(request, this.pattern);
-        }
-    }
+		@Override
+		public boolean test(ServerRequest request) {
+			return methodMatch(request, HttpMethod.POST)
+					&& contentTypeMatch(request, MediaType.APPLICATION_JSON)
+					&& acceptMatch(request, this.acceptedMediaTypes)
+					&& pathMatch(request, this.pattern);
+		}
 
-    private static boolean methodMatch(ServerRequest request, HttpMethod expected) {
-        HttpMethod actual = resolveMethod(request);
-        boolean methodMatch = expected.equals(actual);
-        traceMatch("Method", expected, actual, methodMatch);
-        return methodMatch;
-    }
+		private static boolean methodMatch(ServerRequest request, HttpMethod expected) {
+			HttpMethod actual = resolveMethod(request);
+			boolean methodMatch = expected.equals(actual);
+			traceMatch("Method", expected, actual, methodMatch);
+			return methodMatch;
+		}
 
-    private static HttpMethod resolveMethod(ServerRequest request) {
-        if (CorsUtils.isPreFlightRequest(request.servletRequest())) {
-            String accessControlRequestMethod =
-                    request.headers().firstHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
-            if (accessControlRequestMethod != null) {
-                return HttpMethod.valueOf(accessControlRequestMethod);
-            }
-        }
-        return request.method();
-    }
+		private static HttpMethod resolveMethod(ServerRequest request) {
+			if (CorsUtils.isPreFlightRequest(request.servletRequest())) {
+				String accessControlRequestMethod =
+						request.headers().firstHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
+				if (accessControlRequestMethod != null) {
+					return HttpMethod.valueOf(accessControlRequestMethod);
+				}
+			}
+			return request.method();
+		}
 
-    private static boolean contentTypeMatch(ServerRequest request, MediaType expected) {
-        if (CorsUtils.isPreFlightRequest(request.servletRequest())) {
-            return true;
-        }
-        ServerRequest.Headers headers = request.headers();
-        MediaType actual = headers.contentType().orElse(MediaType.APPLICATION_OCTET_STREAM);
-        boolean contentTypeMatch = expected.includes(actual);
-        traceMatch("Content-Type", expected, actual, contentTypeMatch);
-        return contentTypeMatch;
-    }
+		private static boolean contentTypeMatch(ServerRequest request, MediaType expected) {
+			if (CorsUtils.isPreFlightRequest(request.servletRequest())) {
+				return true;
+			}
+			ServerRequest.Headers headers = request.headers();
+			MediaType actual = headers.contentType().orElse(MediaType.APPLICATION_OCTET_STREAM);
+			boolean contentTypeMatch = expected.includes(actual);
+			traceMatch("Content-Type", expected, actual, contentTypeMatch);
+			return contentTypeMatch;
+		}
 
-    private static boolean acceptMatch(ServerRequest request, List<MediaType> expected) {
-        if (CorsUtils.isPreFlightRequest(request.servletRequest())) {
-            return true;
-        }
-        ServerRequest.Headers headers = request.headers();
-        List<MediaType> acceptedMediaTypes = acceptedMediaTypes(headers);
-        boolean match = false;
-        outer:
-        for (MediaType acceptedMediaType : acceptedMediaTypes) {
-            for (MediaType mediaType : expected) {
-                if (acceptedMediaType.isCompatibleWith(mediaType)) {
-                    match = true;
-                    break outer;
-                }
-            }
-        }
-        traceMatch("Accept", expected, acceptedMediaTypes, match);
-        return match;
-    }
+		private static boolean acceptMatch(ServerRequest request, List<MediaType> expected) {
+			if (CorsUtils.isPreFlightRequest(request.servletRequest())) {
+				return true;
+			}
+			ServerRequest.Headers headers = request.headers();
+			List<MediaType> acceptedMediaTypes = acceptedMediaTypes(headers);
+			boolean match = false;
+			outer:
+			for (MediaType acceptedMediaType : acceptedMediaTypes) {
+				for (MediaType mediaType : expected) {
+					if (acceptedMediaType.isCompatibleWith(mediaType)) {
+						match = true;
+						break outer;
+					}
+				}
+			}
+			traceMatch("Accept", expected, acceptedMediaTypes, match);
+			return match;
+		}
 
-    private static List<MediaType> acceptedMediaTypes(ServerRequest.Headers headers) {
-        List<MediaType> acceptedMediaTypes = headers.accept();
-        if (acceptedMediaTypes.isEmpty()) {
-            acceptedMediaTypes = Collections.singletonList(MediaType.ALL);
-        } else {
-            MimeTypeUtils.sortBySpecificity(acceptedMediaTypes);
-        }
-        return acceptedMediaTypes;
-    }
+		private static List<MediaType> acceptedMediaTypes(ServerRequest.Headers headers) {
+			List<MediaType> acceptedMediaTypes = headers.accept();
+			if (acceptedMediaTypes.isEmpty()) {
+				acceptedMediaTypes = Collections.singletonList(MediaType.ALL);
+			}
+			else {
+				MimeTypeUtils.sortBySpecificity(acceptedMediaTypes);
+			}
+			return acceptedMediaTypes;
+		}
 
-    private static boolean pathMatch(ServerRequest request, PathPattern pattern) {
-        PathContainer pathContainer = request.requestPath().pathWithinApplication();
-        boolean pathMatch = pattern.matches(pathContainer);
-        traceMatch("Pattern", pattern.getPatternString(), request.path(), pathMatch);
-        return pathMatch;
-    }
+		private static boolean pathMatch(ServerRequest request, PathPattern pattern) {
+			PathContainer pathContainer = request.requestPath().pathWithinApplication();
+			boolean pathMatch = pattern.matches(pathContainer);
+			traceMatch("Pattern", pattern.getPatternString(), request.path(), pathMatch);
+			return pathMatch;
+		}
 
-    private static void traceMatch(String prefix, Object desired, @Nullable Object actual, boolean match) {
-        if (logger.isTraceEnabled()) {
-            logger.trace(String.format("%s \"%s\" %s against value \"%s\"",
-                    prefix, desired, match ? "matches" : "does not match", actual));
-        }
-    }
+		private static void traceMatch(String prefix, Object desired, @Nullable Object actual, boolean match) {
+			if (logger.isTraceEnabled()) {
+				logger.trace(String.format("%s \"%s\" %s against value \"%s\"",
+						prefix, desired, match ? "matches" : "does not match", actual));
+			}
+		}
+	}
 
 }

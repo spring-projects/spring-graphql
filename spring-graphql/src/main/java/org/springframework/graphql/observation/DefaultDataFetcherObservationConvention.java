@@ -66,7 +66,8 @@ public class DefaultDataFetcherObservationConvention implements DataFetcherObser
 	protected KeyValue outcome(DataFetcherObservationContext context) {
 		if (context.getError() != null) {
 			return OUTCOME_ERROR;
-		} return OUTCOME_SUCCESS;
+		}
+		return OUTCOME_SUCCESS;
 	}
 
 	protected KeyValue fieldName(DataFetcherObservationContext context) {
@@ -76,7 +77,8 @@ public class DefaultDataFetcherObservationConvention implements DataFetcherObser
 	protected KeyValue errorType(DataFetcherObservationContext context) {
 		if (context.getError() != null) {
 			return KeyValue.of(DataFetcherLowCardinalityKeyNames.ERROR_TYPE, context.getError().getClass().getSimpleName());
-		} return ERROR_TYPE_NONE;
+		}
+		return ERROR_TYPE_NONE;
 	}
 
 	@Override

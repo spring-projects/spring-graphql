@@ -39,6 +39,7 @@ public class CachingDocumentSource implements DocumentSource {
 
 	/**
 	 * Constructor with the {@code DocumentSource} to actually load documents.
+	 * @param delegate the delegate document source
 	 */
 	public CachingDocumentSource(DocumentSource delegate) {
 		this.delegate = delegate;
@@ -61,14 +62,14 @@ public class CachingDocumentSource implements DocumentSource {
 	 * Whether {@link #setCacheEnabled(boolean) caching} is enabled.
 	 */
 	public boolean isCacheEnabled() {
-		return cacheEnabled;
+		return this.cacheEnabled;
 	}
 
 
 	@Override
 	public Mono<String> getDocument(String name) {
-		return (isCacheEnabled() ?
-				this.documentCache.computeIfAbsent(name, k -> this.delegate.getDocument(name).cache()) :
+		return ((isCacheEnabled()) ?
+				this.documentCache.computeIfAbsent(name, (k) -> this.delegate.getDocument(name).cache()) :
 				this.delegate.getDocument(name));
 	}
 

@@ -55,7 +55,7 @@ public class RepresentationException extends RuntimeException {
 		super(msg);
 		this.representation = representation;
 		this.handlerMethod = hm;
-		this.errorType = (representation.get("__typename") == null ? ErrorType.BAD_REQUEST : ErrorType.INTERNAL_ERROR);
+		this.errorType = (representation.get("__typename") == null) ? ErrorType.BAD_REQUEST : ErrorType.INTERNAL_ERROR;
 	}
 
 

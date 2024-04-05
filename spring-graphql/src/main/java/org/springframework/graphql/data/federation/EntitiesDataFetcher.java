@@ -44,7 +44,6 @@ import org.springframework.lang.Nullable;
  * {@link EntityHandlerMethod}s.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
  * @see com.apollographql.federation.graphqljava.SchemaTransformer#fetchEntities(DataFetcher)
  */
 final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<List<Object>>>> {
@@ -54,7 +53,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 	private final HandlerDataFetcherExceptionResolver exceptionResolver;
 
 
-	public EntitiesDataFetcher(
+	EntitiesDataFetcher(
 			Map<String, EntityHandlerMethod> handlerMethods, HandlerDataFetcherExceptionResolver resolver) {
 
 		this.handlerMethods = new LinkedHashMap<>(handlerMethods);
@@ -90,15 +89,15 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 		return handlerMethod.getEntity(env, map, index)
 				.switchIfEmpty(Mono.error(new RepresentationNotResolvedException(map, handlerMethod)))
-				.onErrorResume(ex -> resolveException(ex, env, handlerMethod, index));
+				.onErrorResume((ex) -> resolveException(ex, env, handlerMethod, index));
 	}
 
 	private Mono<Object> resolveException(
 			Throwable ex, DataFetchingEnvironment env, @Nullable EntityHandlerMethod handlerMethod, int index) {
 
-		Throwable theEx = (ex instanceof CompletionException ? ex.getCause() : ex);
+		Throwable theEx = (ex instanceof CompletionException) ? ex.getCause() : ex;
 		DataFetchingEnvironment theEnv = new EntityDataFetchingEnvironment(env, index);
-		Object handler = (handlerMethod != null ? handlerMethod.getBean() : null);
+		Object handler = (handlerMethod != null) ? handlerMethod.getBean() : null;
 
 		return this.exceptionResolver.resolveException(theEx, theEnv, handler)
 				.map(ErrorContainer::new)
@@ -108,8 +107,8 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 	private ErrorContainer createDefaultError(Throwable ex, DataFetchingEnvironment env) {
 
-		ErrorType errorType = (ex instanceof RepresentationException representationEx ?
-				representationEx.getErrorType() : ErrorType.INTERNAL_ERROR);
+		ErrorType errorType = (ex instanceof RepresentationException representationEx) ?
+				representationEx.getErrorType() : ErrorType.INTERNAL_ERROR;
 
 		return new ErrorContainer(GraphqlErrorBuilder.newError(env)
 				.errorType(errorType)
@@ -134,7 +133,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 		private final ExecutionStepInfo executionStepInfo;
 
-		public EntityDataFetchingEnvironment(DataFetchingEnvironment env, int index) {
+		EntityDataFetchingEnvironment(DataFetchingEnvironment env, int index) {
 			super(env);
 			this.executionStepInfo = ExecutionStepInfo.newExecutionStepInfo(env.getExecutionStepInfo())
 					.path(env.getExecutionStepInfo().getPath().segment(index))

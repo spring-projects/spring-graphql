@@ -144,7 +144,7 @@ public final class TestWebSocketConnection {
 	private Mono<Void> invokeHandler(WebSocketHandler handler, TestWebSocketSession session, boolean isClient) {
 		return handler.handle(session)
 				.then(Mono.defer(() -> session.close(CloseStatus.NORMAL)))
-				.onErrorResume(ex -> {
+				.onErrorResume((ex) -> {
 					logger.error("Unhandled " + (isClient ? "client" : "server") + " error: " + ex.getMessage());
 					return session.close(CloseStatus.PROTOCOL_ERROR).then(Mono.error(ex));
 				});
@@ -153,6 +153,7 @@ public final class TestWebSocketConnection {
 
 	/**
 	 * Close the connection from the client side.
+	 * @param status the status to use when closing the session
 	 */
 	public Mono<Void> closeClientSession(CloseStatus status) {
 		return this.clientSession.close(status);
@@ -160,6 +161,7 @@ public final class TestWebSocketConnection {
 
 	/**
 	 * Close the connection from the server side.
+	 * @param status the status to use when closing the session
 	 */
 	public Mono<Void> closeServerSession(CloseStatus status) {
 		return this.serverSession.close(status);
@@ -218,7 +220,7 @@ public final class TestWebSocketConnection {
 		}
 
 
-		public List<WebSocketMessage> getSentMessages() {
+		List<WebSocketMessage> getSentMessages() {
 			return new ArrayList<>(this.sentMessages);
 		}
 
@@ -226,7 +228,7 @@ public final class TestWebSocketConnection {
 		public Mono<Void> send(Publisher<WebSocketMessage> messages) {
 			return Flux.from(messages)
 					.doOnNext(this::saveMessage)
-					.doOnNext(message -> {
+					.doOnNext((message) -> {
 						Sinks.EmitResult result = this.sendSink.tryEmitNext(message);
 						Assert.state(result.isSuccess(), this + " failed to send: " + message + ", with " + result);
 					})
@@ -253,6 +255,7 @@ public final class TestWebSocketConnection {
 			return this.closeStatusSink.asMono();
 		}
 
+		@Override
 		public Mono<Void> close(CloseStatus status) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Closing " + this + " with " + status);
@@ -267,7 +270,7 @@ public final class TestWebSocketConnection {
 			}
 			else {
 				this.closeStatusSink.tryEmitEmpty();
-			};
+			}
 		}
 
 		@Override

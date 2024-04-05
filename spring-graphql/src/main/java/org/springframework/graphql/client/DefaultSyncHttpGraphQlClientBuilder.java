@@ -34,7 +34,6 @@ import org.springframework.web.util.UriComponentsBuilder;
  * around a {@link RestClient.Builder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
  */
 final class DefaultSyncHttpGraphQlClientBuilder
 		extends AbstractGraphQlClientSyncBuilder<DefaultSyncHttpGraphQlClientBuilder>
@@ -105,7 +104,7 @@ final class DefaultSyncHttpGraphQlClientBuilder
 	@Override
 	public HttpSyncGraphQlClient build() {
 
-		this.restClientBuilder.messageConverters(converters -> {
+		this.restClientBuilder.messageConverters((converters) -> {
 			HttpMessageConverter<Object> converter = HttpMessageConverterDelegate.findJsonConverter(converters);
 			setJsonConverter(converter);
 		});
@@ -141,6 +140,7 @@ final class DefaultSyncHttpGraphQlClientBuilder
 			this.builderInitializer = builderInitializer;
 		}
 
+		@Override
 		public DefaultSyncHttpGraphQlClientBuilder mutate() {
 			DefaultSyncHttpGraphQlClientBuilder builder = new DefaultSyncHttpGraphQlClientBuilder(this.restClient);
 			this.builderInitializer.accept(builder);

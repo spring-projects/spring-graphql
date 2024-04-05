@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.security.Principal;
@@ -33,7 +34,6 @@ import reactor.util.context.Context;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ResponseHelper;
-import org.springframework.graphql.TestExecutionRequest;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;

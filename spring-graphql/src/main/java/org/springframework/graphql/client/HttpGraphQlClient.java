@@ -36,6 +36,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 
 	/**
 	 * Create an {@link HttpGraphQlClient} that uses the given {@link WebClient}.
+	 * @param webClient the {@code WebClient} to use for sending HTTP requests
 	 */
 	static HttpGraphQlClient create(WebClient webClient) {
 		return builder(webClient.mutate()).build();
@@ -51,6 +52,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 	/**
 	 * Variant of {@link #builder()} with a pre-configured {@code WebClient}
 	 * to mutate and customize further through the returned builder.
+	 * @param webClient the {@code WebClient} to use for sending HTTP requests
 	 */
 	static Builder<?> builder(WebClient webClient) {
 		return builder(webClient.mutate());
@@ -59,6 +61,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 	/**
 	 * Variant of {@link #builder()} with a pre-configured {@code WebClient}
 	 * to mutate and customize further through the returned builder.
+	 * @param webClientBuilder the {@code WebClient.Builder} to use for building the HTTP client
 	 */
 	static Builder<?> builder(WebClient.Builder webClientBuilder) {
 		return new DefaultHttpGraphQlClientBuilder(webClientBuilder);
@@ -67,6 +70,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 
 	/**
 	 * Builder for the GraphQL over HTTP client.
+	 * @param <B> the builder type
 	 */
 	interface Builder<B extends Builder<B>> extends WebGraphQlClient.Builder<B> {
 
@@ -74,6 +78,7 @@ public interface HttpGraphQlClient extends WebGraphQlClient {
 		 * Customize the {@code WebClient} to use.
 		 * <p>Note that some properties of {@code WebClient.Builder} like the
 		 * base URL, headers, and codecs can be customized through this builder.
+		 * @param webClient the function for customizing the {@code WebClient.Builder} that's used to build the HTTP client
 		 * @see #url(String)
 		 * @see #header(String, String...)
 		 * @see #codecConfigurer(Consumer)

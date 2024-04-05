@@ -44,7 +44,7 @@ import org.springframework.web.servlet.function.ServerResponse;
  * @author Brian Clozel
  * @since 1.0.0
  */
-public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
+public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 
 	@SuppressWarnings("removal")
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES =
@@ -89,13 +89,13 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
 		}
 
 		CompletableFuture<ServerResponse> future = this.graphQlHandler.handleRequest(graphQlRequest)
-				.map(response -> {
+				.map((response) -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
 					MediaType contentType = selectResponseMediaType(serverRequest);
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(contentType);
 
 					if (this.messageConverter != null) {
@@ -133,15 +133,15 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler{
 
 	private ServerResponse.HeadersBuilder.WriteFunction writeFunction(MediaType contentType, GraphQlResponse response) {
 		return (servletRequest, servletResponse) -> {
-            if (messageConverter != null) {
-                ServletServerHttpResponse httpResponse = new ServletServerHttpResponse(servletResponse);
-                messageConverter.write(response.toMap(), contentType, httpResponse);
+			if (messageConverter != null) {
+				ServletServerHttpResponse httpResponse = new ServletServerHttpResponse(servletResponse);
+				messageConverter.write(response.toMap(), contentType, httpResponse);
 				return null;
-            }
+			}
 			else {
 				throw new HttpMediaTypeNotSupportedException(contentType, SUPPORTED_MEDIA_TYPES, HttpMethod.POST);
 			}
-        };
+		};
 	}
 
 }

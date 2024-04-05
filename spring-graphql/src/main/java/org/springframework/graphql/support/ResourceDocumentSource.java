@@ -63,6 +63,8 @@ public class ResourceDocumentSource implements DocumentSource {
 
 	/**
 	 * Constructor with given locations and extensions.
+	 * @param locations the resource locations
+	 * @param extensions the file extensions for document sources
 	 */
 	public ResourceDocumentSource(List<Resource> locations, List<String> extensions) {
 		this.locations = Collections.unmodifiableList(new ArrayList<>(locations));
@@ -90,7 +92,7 @@ public class ResourceDocumentSource implements DocumentSource {
 	@Override
 	public Mono<String> getDocument(String name) {
 		return Flux.fromIterable(this.locations)
-				.flatMapIterable(location -> getCandidateResources(name, location))
+				.flatMapIterable((location) -> getCandidateResources(name, location))
 				.filter(Resource::exists)
 				.next()
 				.map(this::resourceToString)
@@ -104,7 +106,7 @@ public class ResourceDocumentSource implements DocumentSource {
 
 	private List<Resource> getCandidateResources(String name, Resource location) {
 		return this.extensions.stream()
-				.map(ext -> {
+				.map((ext) -> {
 					try {
 						return location.createRelative(name + ext);
 					}

@@ -63,6 +63,7 @@ public interface GraphQlTransport {
 	/**
 	 * Factory method to create {@link GraphQlResponse} from a GraphQL response
 	 * map for use in transport implementations.
+	 * @param responseMap the GraphQL response map
 	 */
 	static GraphQlResponse createResponse(Map<String, Object> responseMap) {
 		return new ResponseMapGraphQlResponse(responseMap);

@@ -34,7 +34,6 @@ import org.springframework.web.reactive.socket.client.WebSocketClient;
  * {@link WebSocketGraphQlClient.Builder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultWebSocketGraphQlTesterBuilder
 		extends AbstractGraphQlTesterBuilder<DefaultWebSocketGraphQlTesterBuilder>
@@ -108,8 +107,8 @@ final class DefaultWebSocketGraphQlTesterBuilder
 	}
 
 	private void registerJsonPathMappingProvider() {
-		this.graphQlClientBuilder.codecConfigurer(codecConfigurer -> {
-			configureJsonPathConfig(jsonPathConfig -> {
+		this.graphQlClientBuilder.codecConfigurer((codecConfigurer) -> {
+			configureJsonPathConfig((jsonPathConfig) -> {
 				EncoderDecoderMappingProvider provider = new EncoderDecoderMappingProvider(codecConfigurer);
 				return jsonPathConfig.mappingProvider(provider);
 			});
@@ -120,7 +119,7 @@ final class DefaultWebSocketGraphQlTesterBuilder
 	/**
 	 * Default {@link WebSocketGraphQlTester} implementation.
 	 */
-	private static class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTester implements WebSocketGraphQlTester {
+	private static final class DefaultWebSocketGraphQlTester extends AbstractDelegatingGraphQlTester implements WebSocketGraphQlTester {
 
 		private final WebSocketGraphQlClient client;
 

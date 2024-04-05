@@ -26,7 +26,6 @@ import org.springframework.graphql.GraphQlResponse;
  * Default implementation of {@link ClientGraphQlResponse}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultClientGraphQlResponse extends ResponseMapGraphQlResponse implements ClientGraphQlResponse {
 

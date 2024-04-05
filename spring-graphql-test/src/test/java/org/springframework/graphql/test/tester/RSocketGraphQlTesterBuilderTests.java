@@ -117,7 +117,7 @@ public class RSocketGraphQlTesterBuilderTests {
 		assertThat(testDecoder.getLastValue()).isEqualTo(character);
 	}
 
-	
+
 	private static class BuilderSetup  {
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();

@@ -66,6 +66,8 @@ public class DataFetcherHandlerMethodSupport extends InvocableHandlerMethodSuppo
 	/**
 	 * Get the method argument values for the current request, checking the provided
 	 * argument values and falling back to the configured argument resolvers.
+	 * @param environment the data fetching environment to resolve arguments from
+	 * @param providedArgs the arguments provided directly
 	 */
 	protected Object[] getMethodArgumentValues(
 			DataFetchingEnvironment environment, Object... providedArgs) throws Exception {

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.annotation.Annotation;
@@ -105,13 +106,13 @@ public class AnnotatedControllerConfigurer
 
 	private static final ClassLoader classLoader = AnnotatedControllerConfigurer.class.getClassLoader();
 
-	private final static boolean springDataPresent = ClassUtils.isPresent(
+	private static final boolean springDataPresent = ClassUtils.isPresent(
 			"org.springframework.data.projection.SpelAwareProxyProjectionFactory", classLoader);
 
-	private final static boolean springSecurityPresent = ClassUtils.isPresent(
+	private static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext", classLoader);
 
-	private final static boolean beanValidationPresent = ClassUtils.isPresent(
+	private static final boolean beanValidationPresent = ClassUtils.isPresent(
 			"jakarta.validation.executable.ExecutableValidator", classLoader);
 
 
@@ -125,7 +126,6 @@ public class AnnotatedControllerConfigurer
 	 * Add a {@link HandlerMethodArgumentResolver} for custom controller method
 	 * arguments. Such custom resolvers are ordered after built-in resolvers
 	 * except for {@link SourceMethodArgumentResolver}, which is always last.
-	 *
 	 * @param resolver the resolver to add.
 	 * @since 1.2.0
 	 */
@@ -228,7 +228,7 @@ public class AnnotatedControllerConfigurer
 
 	@Override
 	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
-		detectHandlerMethods().forEach(info -> {
+		detectHandlerMethods().forEach((info) -> {
 			DataFetcher<?> dataFetcher;
 			if (!info.isBatchMapping()) {
 				dataFetcher = new SchemaMappingDataFetcher(
@@ -238,7 +238,7 @@ public class AnnotatedControllerConfigurer
 				dataFetcher = registerBatchLoader(info);
 			}
 			FieldCoordinates coordinates = info.getCoordinates();
-			runtimeWiringBuilder.type(coordinates.getTypeName(), typeBuilder ->
+			runtimeWiringBuilder.type(coordinates.getTypeName(), (typeBuilder) ->
 					typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
 		});
 	}
@@ -322,7 +322,7 @@ public class AnnotatedControllerConfigurer
 		BatchLoaderRegistry registry = obtainApplicationContext().getBean(BatchLoaderRegistry.class);
 		BatchLoaderRegistry.RegistrationSpec<Object, Object> registration = registry.forName(dataLoaderKey);
 		if (info.getMaxBatchSize() > 0) {
-			registration.withOptions(options -> options.setMaxBatchSize(info.getMaxBatchSize()));
+			registration.withOptions((options) -> options.setMaxBatchSize(info.getMaxBatchSize()));
 		}
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
@@ -362,6 +362,7 @@ public class AnnotatedControllerConfigurer
 	 * Alternative to {@link #configure(RuntimeWiring.Builder)} that registers
 	 * data fetchers in a {@link GraphQLCodeRegistry.Builder}. This could be
 	 * used with programmatic creation of {@link graphql.schema.GraphQLSchema}.
+	 * @param codeRegistryBuilder the code registry
 	 */
 	@SuppressWarnings("rawtypes")
 	public void configure(GraphQLCodeRegistry.Builder codeRegistryBuilder) {
@@ -408,7 +409,7 @@ public class AnnotatedControllerConfigurer
 			this.argumentResolvers = argumentResolvers;
 
 			this.methodValidationHelper =
-					(helper != null ? helper.getValidationHelperFor(info.getHandlerMethod()) : null);
+					(helper != null) ? helper.getValidationHelperFor(info.getHandlerMethod()) : null;
 
 			this.exceptionResolver = exceptionResolver;
 
@@ -429,12 +430,12 @@ public class AnnotatedControllerConfigurer
 		@Override
 		public Map<String, ResolvableType> getArguments() {
 
-			Predicate<MethodParameter> argumentPredicate = p ->
+			Predicate<MethodParameter> argumentPredicate = (p) ->
 					(p.getParameterAnnotation(Argument.class) != null || p.getParameterType() == ArgumentValue.class);
 
 			return Arrays.stream(this.mappingInfo.getHandlerMethod().getMethodParameters())
 					.filter(argumentPredicate)
-					.peek(p -> p.initParameterNameDiscovery(parameterNameDiscoverer))
+					.peek((p) -> p.initParameterNameDiscovery(parameterNameDiscoverer))
 					.collect(Collectors.toMap(
 							ArgumentMethodArgumentResolver::getArgumentName,
 							ResolvableType::forMethodParameter));
@@ -443,7 +444,7 @@ public class AnnotatedControllerConfigurer
 		/**
 		 * Return the {@link HandlerMethod} used to fetch data.
 		 */
-		public HandlerMethod getHandlerMethod() {
+		HandlerMethod getHandlerMethod() {
 			return this.mappingInfo.getHandlerMethod();
 		}
 
@@ -469,13 +470,13 @@ public class AnnotatedControllerConfigurer
 				DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod, Object result) {
 
 			if (this.subscription && result instanceof Publisher<?> publisher) {
-				result = Flux.from(publisher).onErrorResume(ex -> handleSubscriptionError(ex, env, handlerMethod));
+				result = Flux.from(publisher).onErrorResume((ex) -> handleSubscriptionError(ex, env, handlerMethod));
 			}
 			else if (result instanceof Mono) {
-				result = ((Mono<T>) result).onErrorResume(ex -> (Mono<T>) handleException(ex, env, handlerMethod));
+				result = ((Mono<T>) result).onErrorResume((ex) -> (Mono<T>) handleException(ex, env, handlerMethod));
 			}
 			else if (result instanceof Flux<?>) {
-				result = ((Flux<T>) result).onErrorResume(ex -> (Mono<T>) handleException(ex, env, handlerMethod));
+				result = ((Flux<T>) result).onErrorResume((ex) -> (Mono<T>) handleException(ex, env, handlerMethod));
 			}
 			return result;
 		}
@@ -484,7 +485,7 @@ public class AnnotatedControllerConfigurer
 				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
 
 			return this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
-					.map(errors -> DataFetcherResult.newResult().errors(errors).build())
+					.map((errors) -> DataFetcherResult.newResult().errors(errors).build())
 					.switchIfEmpty(Mono.error(ex));
 		}
 
@@ -493,7 +494,7 @@ public class AnnotatedControllerConfigurer
 				Throwable ex, DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod) {
 
 			return (Publisher<T>) this.exceptionResolver.resolveException(ex, env, handlerMethod.getBean())
-					.flatMap(errors -> Mono.error(new SubscriptionPublisherException(errors, ex)))
+					.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, ex)))
 					.switchIfEmpty(Mono.error(ex));
 		}
 

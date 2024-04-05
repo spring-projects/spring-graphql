@@ -40,7 +40,6 @@ import org.springframework.util.MimeTypeUtils;
  * support for decoding.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultClientResponseField implements ClientResponseField {
 
@@ -88,13 +87,13 @@ final class DefaultClientResponseField implements ClientResponseField {
 	@Override
 	public <D> List<D> toEntityList(Class<D> elementType) {
 		List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, elementType));
-		return (list != null ? list : Collections.emptyList());
+		return (list != null) ? list : Collections.emptyList();
 	}
 
 	@Override
 	public <D> List<D> toEntityList(ParameterizedTypeReference<D> elementType) {
 		List<D> list = toEntity(ResolvableType.forClassWithGenerics(List.class, ResolvableType.forType(elementType)));
-		return (list != null ? list : Collections.emptyList());
+		return (list != null) ? list : Collections.emptyList();
 	}
 
 		@SuppressWarnings("unchecked")

@@ -139,7 +139,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThat(actual.getName()).isEqualTo("Luke Skywalker");
 
 		response.path("")
-				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() {})
+				.entity(new ParameterizedTypeReference<Map<String, MovieCharacter>>() { })
 				.isEqualTo(Collections.singletonMap("me", luke));
 
 		assertThat(getActualRequestDocument()).contains(document);
@@ -186,7 +186,7 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 						"Request: document='{me {name, friends}}'");
 
 		response.path("me.friends")
-				.entityList(new ParameterizedTypeReference<MovieCharacter>() {})
+				.entityList(new ParameterizedTypeReference<MovieCharacter>() { })
 				.containsExactly(han, leia);
 
 		assertThat(getActualRequestDocument()).contains(document);

@@ -41,7 +41,6 @@ import org.springframework.util.MimeTypeUtils;
  * a {@link RSocketRequester.Builder}.
  *
  * @author Rossen Stoyanchev
- * @since 1.0.0
  */
 final class DefaultRSocketGraphQlClientBuilder
 		extends AbstractGraphQlClientBuilder<DefaultRSocketGraphQlClientBuilder>
@@ -134,9 +133,9 @@ final class DefaultRSocketGraphQlClientBuilder
 	public RSocketGraphQlClient build() {
 
 		// Pass the codecs to the parent for response decoding
-		this.requesterBuilder.rsocketStrategies(builder -> {
-			builder.decoders(decoders -> setJsonDecoder(CodecDelegate.findJsonDecoder(decoders)));
-			builder.encoders(encoders -> setJsonEncoder(CodecDelegate.findJsonEncoder(encoders)));
+		this.requesterBuilder.rsocketStrategies((builder) -> {
+			builder.decoders((decoders) -> setJsonDecoder(CodecDelegate.findJsonDecoder(decoders)));
+			builder.encoders((encoders) -> setJsonEncoder(CodecDelegate.findJsonEncoder(encoders)));
 		});
 
 		RSocketRequester requester;

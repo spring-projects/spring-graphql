@@ -71,7 +71,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
 		return readRequest(serverRequest)
-				.flatMap(body -> {
+				.flatMap((body) -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
 							serverRequest.cookies(), serverRequest.attributes(), body,
@@ -82,12 +82,12 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 					}
 					return this.graphQlHandler.handleRequest(graphQlRequest);
 				})
-				.flatMap(response -> {
+				.flatMap((response) -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Execution complete");
 					}
 					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					builder.headers(headers -> headers.putAll(response.getResponseHeaders()));
+					builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
 					builder.contentType(selectResponseMediaType(serverRequest));
 					if (this.codecDelegate != null) {
 						return builder.bodyValue(this.codecDelegate.encode(response));

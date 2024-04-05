@@ -66,6 +66,7 @@ public interface GraphQlTester {
 	 * Variant of {@link #document(String)} that uses the given key to resolve
 	 * the GraphQL document from a file with the help of the configured
 	 * {@link Builder#documentSource(DocumentSource) DocumentSource}.
+	 * @param documentName the name of the document to send
 	 * @return spec for response assertions
 	 * @throws IllegalArgumentException if the documentName cannot be resolved
 	 * @throws AssertionError if the response status is not 200 (OK)
@@ -94,6 +95,7 @@ public interface GraphQlTester {
 
 	/**
 	 * A builder to create a {@link GraphQlTester} instance.
+	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> {
 
@@ -111,6 +113,7 @@ public interface GraphQlTester {
 		 * <p>By default, this is set to {@link ResourceDocumentSource} with
 		 * classpath location {@code "graphql-test/"} and
 		 * {@link ResourceDocumentSource#FILE_EXTENSIONS} as extensions.
+		 * @param contentLoader the document content loader
 		 */
 		B documentSource(DocumentSource contentLoader);
 
@@ -130,6 +133,7 @@ public interface GraphQlTester {
 
 	/**
 	 * Declare options to gather input for a GraphQL request and execute it.
+	 * @param <T> the type of request
 	 */
 	interface Request<T extends Request<T>> {
 
@@ -311,7 +315,7 @@ public interface GraphQlTester {
 	}
 
 	/**
-	 * Contains a decoded entity and provides options to assert it
+	 * Contains a decoded entity and provides options to assert it.
 	 *
 	 * @param <D> the entity type
 	 * @param <S> the {@code Entity} spec type
@@ -320,6 +324,7 @@ public interface GraphQlTester {
 
 		/**
 		 * Verify the decoded entity is equal to the given value.
+		 * @param <T> the {@code Entity} spec type
 		 * @param expected the expected value
 		 * @return the {@code Entity} spec for further assertions
 		 */
@@ -327,6 +332,7 @@ public interface GraphQlTester {
 
 		/**
 		 * Verify the decoded entity is not equal to the given value.
+		 * @param <T> the {@code Entity} spec type
 		 * @param other the value to check against
 		 * @return the {@code Entity} spec for further assertions
 		 */
@@ -334,6 +340,7 @@ public interface GraphQlTester {
 
 		/**
 		 * Verify the decoded entity is the same instance as the given value.
+		 * @param <T> the {@code Entity} spec type
 		 * @param expected the expected value
 		 * @return the {@code Entity} spec for further assertions
 		 */
@@ -341,6 +348,7 @@ public interface GraphQlTester {
 
 		/**
 		 * Verify the decoded entity is not the same instance as the given value.
+		 * @param <T> the {@code Entity} spec type
 		 * @param other the value to check against
 		 * @return the {@code Entity} spec for further assertions
 		 */
@@ -348,6 +356,7 @@ public interface GraphQlTester {
 
 		/**
 		 * Verify the decoded entity matches the given predicate.
+		 * @param <T> the {@code Entity} spec type
 		 * @param predicate the predicate to apply
 		 * @return the {@code Entity} spec for further assertions
 		 */
@@ -355,6 +364,7 @@ public interface GraphQlTester {
 
 		/**
 		 * Verify the entity with the given {@link Consumer}.
+		 * @param <T> the {@code Entity} spec type
 		 * @param consumer the consumer to apply
 		 * @return the {@code Entity} spec for further assertions
 		 */

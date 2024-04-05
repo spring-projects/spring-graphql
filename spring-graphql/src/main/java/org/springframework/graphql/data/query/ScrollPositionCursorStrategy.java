@@ -51,6 +51,7 @@ public final class ScrollPositionCursorStrategy implements CursorStrategy<Scroll
 	/**
 	 * Constructor with a given strategy to convert a
 	 * {@link KeysetScrollPosition#getKeys() keyset} to and from a cursor.
+	 * @param keysetCursorStrategy the keyset cursor strategy
 	 */
 	public ScrollPositionCursorStrategy(CursorStrategy<Map<String, Object>> keysetCursorStrategy) {
 		Assert.notNull(keysetCursorStrategy, "'keysetCursorStrategy' is required");
@@ -80,7 +81,7 @@ public final class ScrollPositionCursorStrategy implements CursorStrategy<Scroll
 			try {
 				if (cursor.startsWith(OFFSET_PREFIX)) {
 					long index = Long.parseLong(cursor.substring(2));
-					return ScrollPosition.offset(index > 0 ? index : 0);
+					return ScrollPosition.offset((index > 0) ? index : 0);
 				}
 				else if (cursor.startsWith(KEYSET_PREFIX)) {
 					Map<String, Object> keys = this.keysetCursorStrategy.fromCursor(cursor.substring(2));

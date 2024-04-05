@@ -33,7 +33,7 @@ class ResponseHeaderInterceptor implements WebGraphQlInterceptor {
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) { // <2>
-		return chain.next(request).doOnNext(response -> {
+		return chain.next(request).doOnNext((response) -> {
 			String value = response.getExecutionInput().getGraphQLContext().get("cookieName");
 			ResponseCookie cookie = ResponseCookie.from("cookieName", value).build();
 			response.getResponseHeaders().add(HttpHeaders.SET_COOKIE, cookie.toString());

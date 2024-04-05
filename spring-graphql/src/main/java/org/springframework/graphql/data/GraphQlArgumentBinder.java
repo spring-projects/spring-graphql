@@ -139,7 +139,7 @@ public class GraphQlArgumentBinder {
 			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType)
 			throws BindException {
 
-		Object rawValue = (name != null ? environment.getArgument(name) : environment.getArguments());
+		Object rawValue = (name != null) ? environment.getArgument(name) : environment.getArguments();
 		boolean isOmitted = (name != null && !environment.getArguments().containsKey(name));
 
 		return bind(name, rawValue, isOmitted, targetType);
@@ -148,6 +148,11 @@ public class GraphQlArgumentBinder {
 	/**
 	 * Variant of {@link #bind(DataFetchingEnvironment, String, ResolvableType)}
 	 * with a pre-extracted raw value to bind from.
+	 * @param name the name of an argument, or {@code null} to use the full map
+	 * @param rawValue the raw argument value (Collection, Map, or scalar)
+	 * @param isOmitted {@code true} if the argument was omitted from the input
+	 * and {@code false} if it was provided, but possibly {@code null}
+	 * @param targetType the type of Object to create
 	 * @since 1.3
 	 */
 	@Nullable
@@ -259,9 +264,9 @@ public class GraphQlArgumentBinder {
 
 		Constructor<?> constructor = BeanUtils.getResolvableConstructor(targetClass);
 
-		Object value = (constructor.getParameterCount() > 0 ?
+		Object value = (constructor.getParameterCount() > 0) ?
 				bindMapToObjectViaConstructor(rawMap, constructor, targetType, bindingResult) :
-				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult));
+				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult);
 
 		bindingResult.popNestedPath();
 
@@ -373,7 +378,7 @@ public class GraphQlArgumentBinder {
 		Object value = null;
 		try {
 			TypeConverter converter =
-					(this.typeConverter != null ? this.typeConverter : new SimpleTypeConverter());
+					(this.typeConverter != null) ? this.typeConverter : new SimpleTypeConverter();
 
 			value = converter.convertIfNecessary(
 					rawValue, (Class<?>) clazz, new TypeDescriptor(type, null, null));
@@ -398,9 +403,9 @@ public class GraphQlArgumentBinder {
 		}
 
 		private static String initObjectName(ResolvableType targetType) {
-			return (targetType.getSource() instanceof MethodParameter methodParameter ?
+			return (targetType.getSource() instanceof MethodParameter methodParameter) ?
 					Conventions.getVariableNameForParameter(methodParameter) :
-					ClassUtils.getShortNameAsProperty(targetType.resolve(Object.class)));
+					ClassUtils.getShortNameAsProperty(targetType.resolve(Object.class));
 		}
 
 		@Override
@@ -413,7 +418,7 @@ public class GraphQlArgumentBinder {
 			return null;
 		}
 
-		public void rejectArgumentValue(
+		void rejectArgumentValue(
 				String field, @Nullable Object rawValue, String code, String defaultMessage) {
 
 			addError(new FieldError(

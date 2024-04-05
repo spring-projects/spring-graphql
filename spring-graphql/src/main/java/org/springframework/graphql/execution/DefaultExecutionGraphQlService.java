@@ -90,13 +90,13 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 			ExecutionInput executionInput = request.toExecutionInput();
 
-			snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
+			this.snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
 
 			ExecutionInput updatedExecutionInput =
 					(this.hasDataLoaderRegistrations ? registerDataLoaders(executionInput) : executionInput);
 
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
-					.map(result -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
+					.map((result) -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
 		});
 	}
 
@@ -106,7 +106,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 		if (existingRegistry == EmptyDataLoaderRegistryInstance.EMPTY_DATALOADER_REGISTRY) {
 			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
 			applyDataLoaderRegistrars(newRegistry, graphQLContext);
-			executionInput = executionInput.transform(builder -> builder.dataLoaderRegistry(newRegistry));
+			executionInput = executionInput.transform((builder) -> builder.dataLoaderRegistry(newRegistry));
 		}
 		else {
 			applyDataLoaderRegistrars(existingRegistry, graphQLContext);
@@ -115,7 +115,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	}
 
 	private void applyDataLoaderRegistrars(DataLoaderRegistry registry, GraphQLContext graphQLContext) {
-		this.dataLoaderRegistrars.forEach(registrar -> registrar.registerDataLoaders(registry, graphQLContext));
+		this.dataLoaderRegistrars.forEach((registrar) -> registrar.registerDataLoaders(registry, graphQLContext));
 	}
 
 }

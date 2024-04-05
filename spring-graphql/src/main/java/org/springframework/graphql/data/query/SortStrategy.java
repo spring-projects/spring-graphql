@@ -32,6 +32,7 @@ public interface SortStrategy {
 	/**
 	 * Return a {@link Sort} instance by extracting the sort information from
 	 * GraphQL arguments, or {@link Sort#unsorted()} otherwise.
+	 * @param environment the data fetching environment
 	 */
 	Sort extract(DataFetchingEnvironment environment);
 

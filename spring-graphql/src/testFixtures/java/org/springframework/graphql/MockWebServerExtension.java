@@ -34,28 +34,28 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  */
 public class MockWebServerExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
-    private MockWebServer mockWebServer;
+	private MockWebServer mockWebServer;
 
-    @Override
-    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return parameterContext.getParameter().getType()
-                .equals(MockWebServer.class);
-    }
+	@Override
+	public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+		return parameterContext.getParameter().getType()
+				.equals(MockWebServer.class);
+	}
 
-    @Override
-    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return this.mockWebServer;
-    }
+	@Override
+	public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+		return this.mockWebServer;
+	}
 
-    @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
-        this.mockWebServer = new MockWebServer();
-        this.mockWebServer.start();
-    }
+	@Override
+	public void beforeEach(ExtensionContext extensionContext) throws Exception {
+		this.mockWebServer = new MockWebServer();
+		this.mockWebServer.start();
+	}
 
-    @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
-        this.mockWebServer.shutdown();
-    }
+	@Override
+	public void afterEach(ExtensionContext extensionContext) throws Exception {
+		this.mockWebServer.shutdown();
+	}
 
 }
