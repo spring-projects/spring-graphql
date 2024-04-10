@@ -41,7 +41,7 @@ public class ScrollSubrangeTests {
 		int count = 10;
 		ScrollSubrange subrange = ScrollSubrange.create(ScrollPosition.offset(30), count, true);
 
-		assertThat(getOffset(subrange)).isEqualTo(31);
+		assertThat(getOffset(subrange)).isEqualTo(30);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -51,7 +51,7 @@ public class ScrollSubrangeTests {
 		int count = 10;
 		ScrollSubrange subrange = ScrollSubrange.create(ScrollPosition.offset(30), count, false);
 
-		assertThat(getOffset(subrange)).isEqualTo(20);
+		assertThat(getOffset(subrange)).isEqualTo(19);
 		assertThat(subrange.count().orElse(0)).isEqualTo(count);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -103,7 +103,7 @@ public class ScrollSubrangeTests {
 	void offsetBackwardWithInsufficientCount() {
 		ScrollSubrange subrange = ScrollSubrange.create(ScrollPosition.offset(5), 10, false);
 
-		assertThat(getOffset(subrange)).isEqualTo(0);
+		assertThat(subrange.position().get().isInitial()).isTrue();
 		assertThat(subrange.count().getAsInt()).isEqualTo(5);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -112,7 +112,7 @@ public class ScrollSubrangeTests {
 	void offsetBackwardFromInitialOffset() {
 		ScrollSubrange subrange = ScrollSubrange.create(ScrollPosition.offset(0), 10, false);
 
-		assertThat(getOffset(subrange)).isEqualTo(0);
+		assertThat(subrange.position().get().isInitial()).isTrue();
 		assertThat(subrange.count().getAsInt()).isEqualTo(0);
 		assertThat(subrange.forward()).isTrue();
 	}
@@ -121,7 +121,7 @@ public class ScrollSubrangeTests {
 	void offsetBackwardWithNullCount() {
 		ScrollSubrange subrange = ScrollSubrange.create(ScrollPosition.offset(30), null, false);
 
-		assertThat(getOffset(subrange)).isEqualTo(29);
+		assertThat(getOffset(subrange)).isEqualTo(28);
 		assertThat(subrange.count()).isNotPresent();
 		assertThat(subrange.forward()).isTrue();
 	}

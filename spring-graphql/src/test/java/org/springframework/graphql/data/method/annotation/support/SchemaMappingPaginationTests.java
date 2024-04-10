@@ -112,8 +112,8 @@ public class SchemaMappingPaginationTests {
 		@QueryMapping
 		public Window<Book> books(ScrollSubrange subrange) {
 			int offset = (int) ((OffsetScrollPosition) subrange.position().orElse(ScrollPosition.offset())).getOffset();
-			int count = subrange.count().orElse(5);
-			List<Book> books = BookSource.books().subList(offset, offset + count);
+			offset++; // data stores treat offset as exclusive
+			List<Book> books = BookSource.books().subList(offset, offset + subrange.count().orElse(5));
 			return Window.from(books, OffsetScrollPosition.positionFunction(offset));
 		}
 

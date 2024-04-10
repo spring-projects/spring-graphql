@@ -22,11 +22,11 @@ import java.util.Map;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.org.checkerframework.checker.nullness.qual.Nullable;
 
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.graphql.data.pagination.CursorStrategy;
+import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,7 +46,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Map.of("first", count, "after", cursorStrategy.toCursor(pos)));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertSubrange(true, count, pos.advanceBy(1), range);
+		assertSubrange(true, count, pos, range);
 	}
 
 	@Test
@@ -56,7 +56,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Map.of("last", count, "before", cursorStrategy.toCursor(pos)));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertSubrange(true, count, ScrollPosition.offset(5), range);
+		assertSubrange(true, count, ScrollPosition.offset(4), range);
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Map.of("after", cursorStrategy.toCursor(pos)));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertSubrange(true, null, pos.advanceBy(1), range);
+		assertSubrange(true, null, pos, range);
 	}
 
 	@Test
@@ -92,7 +92,7 @@ public class RepositoryUtilsTests {
 		DataFetchingEnvironment env = environment(Map.of("before", cursorStrategy.toCursor(pos)));
 		ScrollSubrange range = RepositoryUtils.getScrollSubrange(env, cursorStrategy);
 
-		assertSubrange(true, null, pos.advanceBy(-1), range);
+		assertSubrange(true, null, pos.advanceBy(-2), range);
 	}
 
 	@Test

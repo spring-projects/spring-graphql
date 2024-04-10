@@ -35,9 +35,6 @@ import org.springframework.graphql.data.pagination.CursorStrategy;
 public final class WindowConnectionAdapter
 		extends ConnectionAdapterSupport<ScrollPosition> implements ConnectionAdapter {
 
-	private static final long ZERO_OFFSET_ADJUSTMENT =
-			OffsetScrollPosition.positionFunction(0).apply(0).getOffset();
-
 
 	public WindowConnectionAdapter(CursorStrategy<ScrollPosition> strategy) {
 		super(strategy);
@@ -59,9 +56,12 @@ public final class WindowConnectionAdapter
 	public boolean hasPrevious(Object container) {
 		Window<?> window = window(container);
 		if (!window.isEmpty()) {
-			ScrollPosition position = positionAt(window, 0);
+			ScrollPosition position = window.positionAt(0);
 			if (position instanceof KeysetScrollPosition keysetPosition) {
 				return (keysetPosition.scrollsBackward() && window.hasNext());
+			}
+			else if (position instanceof OffsetScrollPosition offsetPosition) {
+				return (offsetPosition.getOffset() != 0);
 			}
 			else {
 				return !position.isInitial();
@@ -74,7 +74,7 @@ public final class WindowConnectionAdapter
 	public boolean hasNext(Object container) {
 		Window<?> window = window(container);
 		if (!window.isEmpty()) {
-			ScrollPosition pos = positionAt(window, 0);
+			ScrollPosition pos = window.positionAt(0);
 			if (pos instanceof KeysetScrollPosition keysetPos) {
 				return (keysetPos.scrollsForward() && window.hasNext());
 			}
@@ -87,20 +87,8 @@ public final class WindowConnectionAdapter
 
 	@Override
 	public String cursorAt(Object container, int index) {
-		ScrollPosition position = positionAt(window(container), index);
+		ScrollPosition position = window(container).positionAt(index);
 		return getCursorStrategy().toCursor(position);
-	}
-
-	private ScrollPosition positionAt(Window<?> window, int index) {
-		ScrollPosition position = window.positionAt(index);
-
-		// Workaround for OffsetScrollPosition#positionFunction adding 1 to the actual offset:
-		// See https://github.com/spring-projects/spring-data-commons/issues/3070
-		if (ZERO_OFFSET_ADJUSTMENT > 0 && position instanceof OffsetScrollPosition offsetPos) {
-			position = offsetPos.advanceBy(-ZERO_OFFSET_ADJUSTMENT);
-		}
-
-		return position;
 	}
 
 	@SuppressWarnings("unchecked")

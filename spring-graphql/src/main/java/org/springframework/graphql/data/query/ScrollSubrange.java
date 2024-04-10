@@ -24,13 +24,7 @@ import org.springframework.graphql.data.pagination.Subrange;
 import org.springframework.lang.Nullable;
 
 /**
- * Container for parameters that limit result elements to a subrange including a
- * relative {@link ScrollPosition}, number of elements, and direction.
- *
- * <p> For backward pagination, the offset of an {@link OffsetScrollPosition}
- * is adjusted to point to the first item in the range by subtracting the count
- * from it. Hence, for {@code OffsetScrollPosition} {@link #forward()} is
- * always {@code true}.
+ * {@link Subrange} implementation for a {@link ScrollPosition} cursor.
  *
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
@@ -40,45 +34,16 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 
 
 	@SuppressWarnings("unused")
-	private ScrollSubrange(
-			@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward,
-			@Nullable Object unused /* temporarily to differentiate from deprecated constructor */) {
-
+	private ScrollSubrange(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
 		super(pos, count, forward);
-	}
-
-	/**
-	 * Public constructor.
-	 * @param pos the reference position, or {@code null} if not specified
-	 * @param count how many to return, or {@code null} if not specified
-	 * @param forward whether scroll forward (true) or backward (false)
-	 * @deprecated in favor of {@link #create}, to be removed in 1.3.
-	 */
-	@Deprecated(since = "1.2.4", forRemoval = true)
-	public ScrollSubrange(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
-		super(initPosition(pos, count, forward), count, (pos instanceof OffsetScrollPosition || forward));
-	}
-
-	@Nullable
-	private static ScrollPosition initPosition(@Nullable ScrollPosition pos, @Nullable Integer count, boolean forward) {
-		if (!forward) {
-			if (pos instanceof OffsetScrollPosition offsetPosition && count != null) {
-				return offsetPosition.advanceBy(-count);
-			}
-			else if (pos instanceof KeysetScrollPosition keysetPosition) {
-				pos = keysetPosition.backward();
-			}
-		}
-		return pos;
 	}
 
 
 	/**
 	 * Create a {@link ScrollSubrange} from the given inputs.
-	 * <p>Pagination with offset-based scrolling is always forward and inclusive
-	 * of the referenced item. Therefore, an {@link OffsetScrollPosition} is
-	 * adjusted as follows. For forward pagination, advanced by 1. For backward
-	 * pagination, advanced back by the count, and switched to forward.
+	 * <p>Offset scrolling is always forward and exclusive of the referenced item.
+	 * Therefore, for backward pagination, the offset is advanced back by the
+	 * count + 1, and the direction is switched to forward.
 	 * @param position the reference position, or {@code null} if not specified
 	 * @param count how many to return, or {@code null} if not specified
 	 * @param forward whether scroll forward (true) or backward (false)
@@ -98,23 +63,24 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 			return initFromKeysetPosition(keysetScrollPosition, count, forward);
 		}
 		else {
-			return new ScrollSubrange(position, count, forward, null);
+			return new ScrollSubrange(position, count, forward);
 		}
 	}
 
 	private static ScrollSubrange initFromOffsetPosition(
 			OffsetScrollPosition position, @Nullable Integer count, boolean forward) {
 
-		// Offset is inclusive, adapt to exclusive:
-		//  - for forward, add 1 to return items after position
-		//  - for backward, subtract count to get items before position
+		// Offset is exclusive:
+		//  - for forward, nothing to do
+		//  - for backward, subtract (count + 1) to get items before position
 
-		if (forward) {
-			position = position.advanceBy(1);
-		}
-		else {
+		if (!forward) {
 			// Advance back by 1 at least to item before position
-			int advanceCount = (count != null) ? count : 1;
+			int advanceCount = ((count != null) ? count : 1);
+
+			// Add 1 more to exclude item at reference position
+			advanceCount++;
+
 			if (position.getOffset() >= advanceCount) {
 				position = position.advanceBy(-advanceCount);
 			}
@@ -124,7 +90,7 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 			}
 		}
 
-		return new ScrollSubrange(position, count, true, null);
+		return new ScrollSubrange(position, count, true);
 	}
 
 	private static ScrollSubrange initFromKeysetPosition(
@@ -133,7 +99,7 @@ public final class ScrollSubrange extends Subrange<ScrollPosition> {
 		if (!forward) {
 			position = position.backward();
 		}
-		return new ScrollSubrange(position, count, forward, null);
+		return new ScrollSubrange(position, count, forward);
 	}
 
 }
