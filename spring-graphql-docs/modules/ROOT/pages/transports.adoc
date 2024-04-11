@@ -110,11 +110,13 @@ https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 
 `GraphQlWebSocketHandler` can be exposed as a WebSocket endpoint by declaring a
 `SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. By default,
-the xref:boot-starter.adoc[Boot Starter] does not expose a GraphQL over WebSocket endpoint, but it's easy to
-enable it by adding a property for the endpoint path. Please, see the
+the xref:boot-starter.adoc[Boot Starter] does not expose a GraphQL over WebSocket endpoint,
+but you can add a property for the endpoint path to enable it. Please, review
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints]
-section for details, or check the `GraphQlWebMvcAutoConfiguration` or the
-`GraphQlWebFluxAutoConfiguration` for the actual Boot starter config.
+in the Boot reference documentation, and the list of supported `spring.graphql.websocket`
+https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.web[properties].
+You can also look at `GraphQlWebMvcAutoConfiguration` or`GraphQlWebFluxAutoConfiguration`
+for the actual Boot autoconfig details.
 
 The 1.0.x branch of this repository contains a WebFlux
 {github-10x-branch}/samples/webflux-websocket[WebSocket sample] application.
