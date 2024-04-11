@@ -248,6 +248,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 							ExceptionWebSocketHandlerDecorator.tryCloseWithError(session, ex, logger);
 						}
 					});
+			case PONG -> {
+			}
 			case COMPLETE -> {
 				if (id != null) {
 					Subscription subscription = state.getSubscriptions().remove(id);
