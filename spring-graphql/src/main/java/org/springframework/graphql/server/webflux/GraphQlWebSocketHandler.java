@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -72,9 +73,12 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final WebSocketGraphQlInterceptor webSocketInterceptor;
 
-	private final WebSocketCodecDelegate webSocketCodecDelegate;
+	private final WebSocketCodecDelegate codecDelegate;
 
 	private final Duration initTimeoutDuration;
+
+	@Nullable
+	private final Duration keepAliveDuration;
 
 
 	/**
@@ -87,12 +91,30 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	public GraphQlWebSocketHandler(
 			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer, Duration connectionInitTimeout) {
 
+		this(graphQlHandler, codecConfigurer, connectionInitTimeout, null);
+	}
+
+	/**
+	 * Create a new instance.
+	 * @param graphQlHandler common handler for GraphQL over WebSocket requests
+	 * @param codecConfigurer codec configurer for JSON encoding and decoding
+	 * @param connectionInitTimeout how long to wait after the establishment of
+	 * the WebSocket for the {@code "connection_ini"} message from the client.
+	 * @param keepAliveDuration how frequently to send ping messages; if not
+	 * set then ping messages are not sent.
+	 * @since 1.3
+	 */
+	public GraphQlWebSocketHandler(
+			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer,
+			Duration connectionInitTimeout, @Nullable Duration keepAliveDuration) {
+
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 
 		this.graphQlHandler = graphQlHandler;
 		this.webSocketInterceptor = this.graphQlHandler.getWebSocketInterceptor();
-		this.webSocketCodecDelegate = new WebSocketCodecDelegate(codecConfigurer);
+		this.codecDelegate = new WebSocketCodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
+		this.keepAliveDuration = keepAliveDuration;
 	}
 
 
@@ -137,7 +159,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				.subscribe();
 
 		return session.send(session.receive().flatMap((webSocketMessage) -> {
-			GraphQlWebSocketMessage message = this.webSocketCodecDelegate.decode(webSocketMessage);
+			GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
 			String id = message.getId();
 			Map<String, Object> payload = message.getPayload();
 			switch (message.resolvedType()) {
@@ -159,7 +181,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 							.doOnTerminate(() -> subscriptions.remove(id));
 				}
 				case PING -> {
-					return Flux.just(this.webSocketCodecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
+					return Flux.just(this.codecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
 				}
 				case COMPLETE -> {
 					if (id != null) {
@@ -176,11 +198,16 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					if (!connectionInitPayloadRef.compareAndSet(null, payload)) {
 						return GraphQlStatus.close(session, GraphQlStatus.TOO_MANY_INIT_REQUESTS_STATUS);
 					}
-					return this.webSocketInterceptor.handleConnectionInitialization(sessionInfo, payload)
+					Flux<WebSocketMessage> flux = this.webSocketInterceptor.handleConnectionInitialization(sessionInfo, payload)
 							.defaultIfEmpty(Collections.emptyMap())
-							.map((ackPayload) -> this.webSocketCodecDelegate.encodeConnectionAck(session, ackPayload))
-							.flux()
-							.onErrorResume((ex) -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
+							.map((ackPayload) -> this.codecDelegate.encodeConnectionAck(session, ackPayload))
+							.flux();
+					if (this.keepAliveDuration != null) {
+						flux = flux.mergeWith(Flux.interval(this.keepAliveDuration, this.keepAliveDuration)
+								.filter((aLong) -> !this.codecDelegate.checkMessagesEncodedAndClear())
+								.map((aLong) -> this.codecDelegate.encode(session, GraphQlWebSocketMessage.ping(null))));
+					}
+					return flux.onErrorResume((ex) -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
 				}
 				default -> {
 					return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
@@ -218,14 +245,14 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 
 		return responseFlux
-				.map((responseMap) -> this.webSocketCodecDelegate.encodeNext(session, id, responseMap))
-				.concatWith(Mono.fromCallable(() -> this.webSocketCodecDelegate.encodeComplete(session, id)))
+				.map((responseMap) -> this.codecDelegate.encodeNext(session, id, responseMap))
+				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeComplete(session, id)))
 				.onErrorResume((ex) -> {
 					if (ex instanceof SubscriptionExistsException) {
 						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
 						return GraphQlStatus.close(session, status);
 					}
-					return Mono.fromCallable(() -> this.webSocketCodecDelegate.encodeError(session, id, ex));
+					return Mono.fromCallable(() -> this.codecDelegate.encodeError(session, id, ex));
 				});
 	}
 

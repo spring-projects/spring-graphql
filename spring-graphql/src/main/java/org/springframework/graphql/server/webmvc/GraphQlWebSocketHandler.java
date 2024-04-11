@@ -104,7 +104,11 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final HttpMessageConverter<?> converter;
 
+	@Nullable
+	private final Duration keepAliveDuration;
+
 	private final Map<String, SessionState> sessionInfoMap = new ConcurrentHashMap<>();
+
 
 	/**
 	 * Create a new instance.
@@ -116,6 +120,23 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	public GraphQlWebSocketHandler(
 			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter, Duration connectionInitTimeout) {
 
+		this(graphQlHandler, converter, connectionInitTimeout, null);
+	}
+
+	/**
+	 * Create a new instance.
+	 * @param graphQlHandler common handler for GraphQL over WebSocket requests
+	 * @param converter for JSON encoding and decoding
+	 * @param connectionInitTimeout how long to wait after the establishment of
+	 * the WebSocket for the {@code "connection_ini"} message from the client.
+	 * @param keepAliveDuration how frequently to send ping messages; if not
+	 * set then ping messages are not sent.
+	 * @since 1.3
+	 */
+	public GraphQlWebSocketHandler(
+			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter,
+			Duration connectionInitTimeout, @Nullable Duration keepAliveDuration) {
+
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 		Assert.notNull(converter, "HttpMessageConverter for JSON is required");
 
@@ -124,7 +145,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		this.webSocketGraphQlInterceptor = this.graphQlHandler.getWebSocketInterceptor();
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.converter = converter;
+		this.keepAliveDuration = keepAliveDuration;
 	}
+
 
 	@Override
 	public List<String> getSubProtocols() {
@@ -257,6 +280,21 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 							return Mono.empty();
 						})
 						.block(Duration.ofSeconds(10));
+
+				if (this.keepAliveDuration != null) {
+					Flux.interval(this.keepAliveDuration, this.keepAliveDuration)
+							.filter((aLong) -> true)
+							.publishOn(state.getScheduler()) // Serial blocking send via single thread
+							.doOnNext((aLong) -> {
+								try {
+									session.sendMessage(encode(GraphQlWebSocketMessage.ping(null)));
+								}
+								catch (IOException ex) {
+									ExceptionWebSocketHandlerDecorator.tryCloseWithError(session, ex, logger);
+								}
+							})
+							.subscribe(state.getKeepAliveSubscriber());
+				}
 			}
 			default -> GraphQlStatus.closeSession(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 		}
@@ -444,9 +482,12 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		private final Scheduler scheduler;
 
-		SessionState(String graphQlSessionId, WebSocketSessionInfo sessionInfo) {
+		private final KeepAliveSubscriber keepAliveSubscriber;
+
+		SessionState(String graphQlSessionId, WebMvcSessionInfo sessionInfo) {
 			this.sessionInfo = sessionInfo;
 			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + graphQlSessionId);
+			this.keepAliveSubscriber = new KeepAliveSubscriber(sessionInfo.getSession());
 		}
 
 		WebSocketSessionInfo getSessionInfo() {
@@ -462,12 +503,16 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			return this.connectionInitPayloadRef.compareAndSet(null, payload);
 		}
 
+		KeepAliveSubscriber getKeepAliveSubscriber() {
+			return this.keepAliveSubscriber;
+		}
 
 		Map<String, Subscription> getSubscriptions() {
 			return this.subscriptions;
 		}
 
 		void dispose() {
+			this.keepAliveSubscriber.cancel();
 			for (Map.Entry<String, Subscription> entry : this.subscriptions.entrySet()) {
 				try {
 					entry.getValue().cancel();
@@ -525,6 +570,10 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		public InetSocketAddress getRemoteAddress() {
 			return this.session.getRemoteAddress();
 		}
+
+		WebSocketSession getSession() {
+			return this.session;
+		}
 	}
 
 
@@ -567,8 +616,28 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		public void hookOnComplete() {
 			this.sessionState.getSubscriptions().remove(this.subscriptionId);
 		}
-
 	}
+
+
+	private static class KeepAliveSubscriber extends BaseSubscriber<Long> {
+
+		private final WebSocketSession session;
+
+		KeepAliveSubscriber(WebSocketSession session) {
+			this.session = session;
+		}
+
+		@Override
+		protected void hookOnSubscribe(Subscription subscription) {
+			subscription.request(Integer.MAX_VALUE);
+		}
+
+		@Override
+		public void hookOnError(Throwable ex) {
+			ExceptionWebSocketHandlerDecorator.tryCloseWithError(this.session, ex, logger);
+		}
+	}
+
 
 	@SuppressWarnings("serial")
 	private static final class SubscriptionExistsException extends RuntimeException {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -62,6 +63,9 @@ import org.springframework.web.socket.WebSocketMessage;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.CONNECTION_ACK;
+import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.PING;
+import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.PONG;
 
 /**
  * Unit tests for {@link GraphQlWebSocketHandler}.
@@ -122,6 +126,23 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.COMPLETE))
 				.then(this.session::close)// Complete output Flux
 				.expectComplete()
+				.verify(TIMEOUT);
+	}
+
+	@Test
+	void keepAlive() throws Exception {
+		GraphQlWebSocketHandler webSocketHandler =
+				new GraphQlWebSocketHandler(initHandler(), converter, Duration.ofSeconds(60), Duration.ofMillis(10));
+
+		handle(webSocketHandler, new TextMessage("{\"type\":\"connection_init\"}"));
+
+		StepVerifier.create(this.session.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.then(this.session::close)// Complete output Flux
+				.thenCancel()
 				.verify(TIMEOUT);
 	}
 
@@ -464,7 +485,7 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	private void assertMessageType(WebSocketMessage<?> webSocketMessage, GraphQlWebSocketMessageType messageType) {
 		GraphQlWebSocketMessage message = decode(webSocketMessage);
 		assertThat(message.resolvedType()).isEqualTo(messageType);
-		if (messageType != GraphQlWebSocketMessageType.CONNECTION_ACK && messageType != GraphQlWebSocketMessageType.PONG) {
+		if (!Set.of(CONNECTION_ACK, PING, PONG).contains(messageType)) {
 			assertThat(message.getId()).isEqualTo(SUBSCRIPTION_ID);
 		}
 	}
