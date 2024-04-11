@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.graphql.client;
 
 import java.net.URI;
+import java.time.Duration;
 
 import reactor.core.publisher.Mono;
 
@@ -65,16 +66,6 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	}
 
 	/**
-	 * Create a {@link WebSocketGraphQlClient}.
-	 * @param url the GraphQL endpoint URL
-	 * @param webSocketClient the underlying transport client to use
-	 * @param keepalive the delay in seconds between sending ping messages, or 0 to disable
-	 */
-	static WebSocketGraphQlClient create(URI url, WebSocketClient webSocketClient, long keepalive) {
-		return builder(url, webSocketClient).keepalive(keepalive).build();
-	}
-
-	/**
 	 * Return a builder for a {@link WebSocketGraphQlClient}.
 	 * @param url the GraphQL endpoint URL
 	 * @param webSocketClient the underlying transport client to use
@@ -87,29 +78,9 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	 * Return a builder for a {@link WebSocketGraphQlClient}.
 	 * @param url the GraphQL endpoint URL
 	 * @param webSocketClient the underlying transport client to use
-	 * @param keepalive the delay in seconds between sending ping messages, or 0 to disable
-	 */
-	static Builder<?> builder(String url, WebSocketClient webSocketClient, long keepalive) {
-		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient, keepalive);
-	}
-
-	/**
-	 * Return a builder for a {@link WebSocketGraphQlClient}.
-	 * @param url the GraphQL endpoint URL
-	 * @param webSocketClient the underlying transport client to use
 	 */
 	static Builder<?> builder(URI url, WebSocketClient webSocketClient) {
 		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient);
-	}
-
-	/**
-	 * Return a builder for a {@link WebSocketGraphQlClient}.
-	 * @param url the GraphQL endpoint URL
-	 * @param webSocketClient the underlying transport client to use
-	 * @param keepalive the delay in seconds between sending ping messages, or 0 to disable
-	 */
-	static Builder<?> builder(URI url, WebSocketClient webSocketClient, long keepalive) {
-		return new DefaultWebSocketGraphQlClientBuilder(url, webSocketClient, keepalive);
 	}
 
 
@@ -120,12 +91,18 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 	interface Builder<B extends Builder<B>> extends WebGraphQlClient.Builder<B> {
 
 		/**
+		 * Configure how frequently to send ping messages.
+		 * <p>By default, this is not set, and ping messages are not sent.
+		 * @param keepAlive the value to use
+		 * @since 1.3
+		 */
+		Builder<B> keepAlive(Duration keepAlive);
+
+		/**
 		 * Build the {@code WebSocketGraphQlClient}.
 		 */
 		@Override
 		WebSocketGraphQlClient build();
-
-		Builder<B> keepalive(long keepalive);
 
 	}
 

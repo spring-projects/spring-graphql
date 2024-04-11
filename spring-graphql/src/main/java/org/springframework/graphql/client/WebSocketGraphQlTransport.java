@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,12 +68,13 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	private final Mono<GraphQlSession> graphQlSessionMono;
 
-	private final long keepalive;
+	@Nullable
+	private final Duration keepAlive;
 
 
 	WebSocketGraphQlTransport(
 			URI url, @Nullable HttpHeaders headers, WebSocketClient client, CodecConfigurer codecConfigurer,
-			WebSocketGraphQlClientInterceptor interceptor, long keepalive) {
+			WebSocketGraphQlClientInterceptor interceptor, @Nullable Duration keepAlive) {
 
 		Assert.notNull(url, "URI is required");
 		Assert.notNull(client, "WebSocketClient is required");
@@ -83,9 +84,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		this.url = url;
 		this.headers.putAll((headers != null) ? headers : HttpHeaders.EMPTY);
 		this.webSocketClient = client;
-		this.keepalive = keepalive;
+		this.keepAlive = keepAlive;
 
-		this.graphQlSessionHandler = new GraphQlSessionHandler(codecConfigurer, interceptor, keepalive);
+		this.graphQlSessionHandler = new GraphQlSessionHandler(codecConfigurer, interceptor, keepAlive);
 
 		this.graphQlSessionMono = initGraphQlSession(this.url, this.headers, client, this.graphQlSessionHandler)
 				.cacheInvalidateWhen(GraphQlSession::notifyWhenClosed);
@@ -166,8 +167,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		return this.graphQlSessionMono.flatMapMany((session) -> session.executeSubscription(request));
 	}
 
-	public long getKeepAlive() {
-		return keepalive;
+	@Nullable
+	Duration getKeepAlive() {
+		return this.keepAlive;
 	}
 
 
@@ -191,15 +193,18 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final AtomicBoolean stopped = new AtomicBoolean();
 
-		private final long keepalive;
+		@Nullable
+		private final Duration keepAlive;
 
 
-		GraphQlSessionHandler(CodecConfigurer codecConfigurer, WebSocketGraphQlClientInterceptor interceptor,
-							  long keepalive) {
+		GraphQlSessionHandler(
+				CodecConfigurer codecConfigurer, WebSocketGraphQlClientInterceptor interceptor,
+				@Nullable Duration keepAlive) {
+
 			this.codecDelegate = new CodecDelegate(codecConfigurer);
 			this.interceptor = interceptor;
 			this.graphQlSessionSink = Sinks.unsafe().one();
-			this.keepalive = keepalive;
+			this.keepAlive = keepAlive;
 		}
 
 
@@ -257,7 +262,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 					session.send(connectionInitMono.concatWith(graphQlSession.getRequestFlux())
 							.map((message) -> this.codecDelegate.encode(session, message)));
 
-			Flux<Void> receiveCompletion = session.receive()
+			Mono<Void> receiveCompletion = session.receive()
 					.flatMap((webSocketMessage) -> {
 						if (sessionNotInitialized()) {
 							try {
@@ -303,19 +308,21 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 							}
 						}
 						return Mono.empty();
-					});
+					})
+					.mergeWith((this.keepAlive != null) ?
+							Flux.interval(this.keepAlive, this.keepAlive)
+									.filter((aLong) -> graphQlSession.checkSentOrReceivedMessagesAndClear())
+									.doOnNext((aLong) -> graphQlSession.sendPing())
+									.then() :
+							Flux.empty())
+					.then();
 
-			if (keepalive > 0) {
-				Duration keepAliveDuration = Duration.ofSeconds(keepalive);
-				receiveCompletion = receiveCompletion
-						.mergeWith(Flux.interval(keepAliveDuration, keepAliveDuration)
-							.flatMap(i -> {
-								graphQlSession.sendPing(null);
-								return Mono.empty();
-							})
-						);
+			if (this.keepAlive != null) {
+				Flux.interval(this.keepAlive, this.keepAlive)
+						.filter((aLong) -> graphQlSession.checkSentOrReceivedMessagesAndClear())
+						.doOnNext((aLong) -> graphQlSession.sendPing())
+						.subscribe();
 			}
-
 
 			return Mono.zip(sendCompletion, receiveCompletion.then()).then();
 		}
@@ -413,6 +420,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final Map<String, RequestState> requestStateMap = new ConcurrentHashMap<>();
 
+		private boolean hasReceivedMessages;
+
 
 		GraphQlSession(WebSocketSession webSocketSession) {
 			this.connection = DisposableConnection.from(webSocketSession);
@@ -483,11 +492,16 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 			this.requestSink.sendRequest(message);
 		}
 
-		public void sendPing(@Nullable Map<String, Object> payload) {
-			GraphQlWebSocketMessage message = GraphQlWebSocketMessage.ping(payload);
+		void sendPing() {
+			GraphQlWebSocketMessage message = GraphQlWebSocketMessage.ping(null);
 			this.requestSink.sendRequest(message);
 		}
 
+		boolean checkSentOrReceivedMessagesAndClear() {
+			boolean received = this.hasReceivedMessages;
+			this.hasReceivedMessages = false;
+			return (this.requestSink.checkSentMessagesAndClear() || received);
+		}
 
 		// Inbound messages
 
@@ -503,6 +517,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 				}
 				return;
 			}
+
+			this.hasReceivedMessages = true;
 
 			if (requestState instanceof SingleResponseRequestState) {
 				this.requestStateMap.remove(id);
@@ -631,6 +647,8 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		@Nullable
 		private FluxSink<GraphQlWebSocketMessage> requestSink;
 
+		private boolean hasSentMessages;
+
 		private final Flux<GraphQlWebSocketMessage> requestFlux = Flux.create((sink) -> {
 			Assert.state(this.requestSink == null, "Expected single subscriber only for outbound messages");
 			this.requestSink = sink;
@@ -642,7 +660,14 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		void sendRequest(GraphQlWebSocketMessage message) {
 			Assert.state(this.requestSink != null, "Unexpected request before Flux is subscribed to");
+			this.hasSentMessages = true;
 			this.requestSink.next(message);
+		}
+
+		boolean checkSentMessagesAndClear() {
+			boolean result = this.hasSentMessages;
+			this.hasSentMessages = false;
+			return result;
 		}
 
 	}

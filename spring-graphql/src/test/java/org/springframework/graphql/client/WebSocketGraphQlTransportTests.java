@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,6 @@ public class WebSocketGraphQlTransportTests {
 	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
 	private static final CodecDelegate CODEC_DELEGATE = new CodecDelegate(ClientCodecConfigurer.create());
-	public static final int KEEPALIVE = 1;
 
 
 	private final MockGraphQlWebSocketServer mockServer = new MockGraphQlWebSocketServer();
@@ -187,18 +186,27 @@ public class WebSocketGraphQlTransportTests {
 	}
 
 	@Test
-	void pingSending() throws InterruptedException {
+	void pingSending() {
 
-		GraphQlRequest request = this.mockServer.expectOperation("{Sub1}").andStream(Flux.just(this.response1, response2));
+		GraphQlRequest request = this.mockServer.expectOperation("{Sub1}").andStream(Flux.empty());
 
-		StepVerifier.create(this.transport.executeSubscription(request))
-				.expectNext(this.response1, response2).expectComplete()
+		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
+				URI.create("/"), HttpHeaders.EMPTY, this.webSocketClient, ClientCodecConfigurer.create(),
+				new WebSocketGraphQlClientInterceptor() { }, Duration.ofMillis(10));
+
+		StepVerifier.create(transport.executeSubscription(request))
+				.thenAwait(Duration.ofMillis(50))
+				.thenCancel()
 				.verify(TIMEOUT);
-		Thread.sleep(KEEPALIVE*1000 + 50); // wait for ping
 
-		assertActualClientMessages(
+		List<GraphQlWebSocketMessage> messages =
+				this.webSocketClient.getConnection(0).getClientMessages().stream()
+						.map(CODEC_DELEGATE::decode).toList().subList(0, 4);
+
+		assertThat(messages).containsExactly(
 				GraphQlWebSocketMessage.connectionInit(null),
 				GraphQlWebSocketMessage.subscribe("1", request),
+				GraphQlWebSocketMessage.ping(null),
 				GraphQlWebSocketMessage.ping(null));
 	}
 
@@ -227,7 +235,7 @@ public class WebSocketGraphQlTransportTests {
 
 
 		WebSocketGraphQlTransport transport = new WebSocketGraphQlTransport(
-				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor, KEEPALIVE);
+				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(), interceptor, null);
 
 		transport.start().block(TIMEOUT);
 
@@ -341,7 +349,7 @@ public class WebSocketGraphQlTransportTests {
 	private static WebSocketGraphQlTransport createTransport(WebSocketClient client) {
 		return new WebSocketGraphQlTransport(
 				URI.create("/"), HttpHeaders.EMPTY, client, ClientCodecConfigurer.create(),
-				new WebSocketGraphQlClientInterceptor() { }, KEEPALIVE);
+				new WebSocketGraphQlClientInterceptor() { }, null);
 	}
 
 	private void assertActualClientMessages(GraphQlWebSocketMessage... expectedMessages) {
