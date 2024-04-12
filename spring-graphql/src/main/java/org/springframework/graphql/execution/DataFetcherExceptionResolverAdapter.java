@@ -22,7 +22,6 @@ import java.util.function.BiFunction;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
-import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.context.ThreadLocalAccessor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,8 +51,6 @@ import org.springframework.lang.Nullable;
 public abstract class DataFetcherExceptionResolverAdapter implements DataFetcherExceptionResolver {
 
 	protected final Log logger = LogFactory.getLog(getClass());
-
-	protected final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private boolean threadLocalContextAware;
 
@@ -101,7 +98,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 			return resolveToMultipleErrors(exception, env);
 		}
 		try {
-			return this.snapshotFactory.captureFrom(env.getGraphQlContext())
+			return ContextSnapshotFactoryHelper.captureFrom(env.getGraphQlContext())
 					.wrap(() -> resolveToMultipleErrors(exception, env))
 					.call();
 		}

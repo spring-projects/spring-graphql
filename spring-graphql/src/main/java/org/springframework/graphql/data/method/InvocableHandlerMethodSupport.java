@@ -26,12 +26,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
-import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
 import org.springframework.data.util.KotlinReflectionUtils;
+import org.springframework.graphql.execution.ContextSnapshotFactoryHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -45,8 +45,6 @@ import org.springframework.util.Assert;
 public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 	private static final Object NO_VALUE = new Object();
-
-	private static final ContextSnapshotFactory SNAPSHOT_FACTORY = ContextSnapshotFactory.builder().build();
 
 
 	private final boolean hasCallableReturnValue;
@@ -131,7 +129,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			return CompletableFuture.supplyAsync(
 					() -> {
 						try {
-							return SNAPSHOT_FACTORY.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
+							return ContextSnapshotFactoryHelper.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
 						}
 						catch (Exception ex) {
 							throw new IllegalStateException(

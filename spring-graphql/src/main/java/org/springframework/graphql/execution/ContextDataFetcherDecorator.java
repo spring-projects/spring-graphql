@@ -59,7 +59,6 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final SubscriptionExceptionResolver subscriptionExceptionResolver;
 
-	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private ContextDataFetcherDecorator(
 			DataFetcher<?> delegate, boolean subscription,
@@ -72,17 +71,18 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		this.subscriptionExceptionResolver = subscriptionExceptionResolver;
 	}
 
-	@Override
-	public Object get(DataFetchingEnvironment environment) throws Exception {
 
-		ContextSnapshot snapshot;
-		if (environment.getLocalContext() instanceof GraphQLContext localContext) {
-			snapshot = this.snapshotFactory.captureFrom(environment.getGraphQlContext(), localContext);
-		}
-		else {
-			snapshot = this.snapshotFactory.captureFrom(environment.getGraphQlContext());
-		}
-		Object value = snapshot.wrap(() -> this.delegate.get(environment)).call();
+	@Override
+	public Object get(DataFetchingEnvironment env) throws Exception {
+
+		GraphQLContext graphQlContext = env.getGraphQlContext();
+		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactoryHelper.getInstance(graphQlContext);
+
+		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext) ?
+				snapshotFactory.captureFrom(graphQlContext, localContext) :
+				snapshotFactory.captureFrom(graphQlContext);
+
+		Object value = snapshot.wrap(() -> this.delegate.get(env)).call();
 
 		if (this.subscription) {
 			Assert.state(value instanceof Publisher, "Expected Publisher for a subscription");

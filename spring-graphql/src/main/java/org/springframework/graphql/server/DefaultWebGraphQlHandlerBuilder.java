@@ -25,6 +25,7 @@ import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.graphql.execution.ContextSnapshotFactoryHelper;
 import org.springframework.graphql.server.WebGraphQlInterceptor.Chain;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -40,6 +41,9 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	private final ExecutionGraphQlService service;
 
 	private final List<WebGraphQlInterceptor> interceptors = new ArrayList<>();
+
+	@Nullable
+	private ContextSnapshotFactory snapshotFactory;
 
 	@Nullable
 	private WebSocketGraphQlInterceptor webSocketInterceptor;
@@ -69,9 +73,15 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	}
 
 	@Override
+	public WebGraphQlHandler.Builder contextSnapshotFactory(ContextSnapshotFactory snapshotFactory) {
+		this.snapshotFactory = snapshotFactory;
+		return this;
+	}
+
+	@Override
 	public WebGraphQlHandler build() {
 
-		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
+		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactoryHelper.selectInstance(this.snapshotFactory);
 
 		Chain endOfChain = (request) -> this.service.execute(request).map(WebGraphQlResponse::new);
 
@@ -89,9 +99,17 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			}
 
 			@Override
+			public ContextSnapshotFactory contextSnapshotFactory() {
+				return snapshotFactory;
+			}
+
+			@Override
 			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
 				ContextSnapshot snapshot = snapshotFactory.captureAll();
-				return executionChain.next(request).contextWrite(snapshot::updateContext);
+				return executionChain.next(request).contextWrite((context) -> {
+					context = ContextSnapshotFactoryHelper.saveInstance(snapshotFactory, context);
+					return snapshot.updateContext(context);
+				});
 			}
 		};
 	}

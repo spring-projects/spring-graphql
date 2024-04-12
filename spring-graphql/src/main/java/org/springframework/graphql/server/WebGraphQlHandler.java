@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.graphql.server;
 
 import java.util.List;
 
+import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
@@ -38,6 +39,13 @@ public interface WebGraphQlHandler {
 	 * interceptors.
 	 */
 	WebSocketGraphQlInterceptor getWebSocketInterceptor();
+
+	/**
+	 * Return the {@link WebGraphQlHandler.Builder#contextSnapshotFactory configured}
+	 * {@code ContextSnapshotFactory} instance to use.
+	 * @since 1.3
+	 */
+	ContextSnapshotFactory contextSnapshotFactory();
 
 	/**
 	 * Execute the given request and return the response.
@@ -85,6 +93,16 @@ public interface WebGraphQlHandler {
 		 * @return this builder
 		 */
 		Builder interceptors(List<WebGraphQlInterceptor> interceptors);
+
+		/**
+		 * Configure the {@link ContextSnapshotFactory} instance to use for
+		 * context propagation of {@code ThreadLocal}, and Reactor context
+		 * values from the transport layer to the GraphQL execution layer.
+		 * If not set, then a default instance is used.
+		 * @param snapshotFactory the factory to use
+		 * @since 1.3
+		 */
+		Builder contextSnapshotFactory(ContextSnapshotFactory snapshotFactory);
 
 		/**
 		 * Build the {@link WebGraphQlHandler} instance.

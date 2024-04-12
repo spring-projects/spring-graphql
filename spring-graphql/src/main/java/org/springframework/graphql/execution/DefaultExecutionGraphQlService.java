@@ -46,7 +46,6 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	private static final BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> RESET_EXECUTION_ID_CONFIGURER =
 			(executionInput, builder) -> builder.executionId(null).build();
 
-	private final ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
 
 	private final GraphQlSource graphQlSource;
 
@@ -90,7 +89,10 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 			ExecutionInput executionInput = request.toExecutionInput();
 
-			this.snapshotFactory.captureFrom(contextView).updateContext(executionInput.getGraphQLContext());
+			ContextSnapshotFactory factory = ContextSnapshotFactoryHelper.getInstance(contextView);
+			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
+			ContextSnapshotFactoryHelper.saveInstance(factory, graphQLContext);
+			factory.captureFrom(contextView).updateContext(graphQLContext);
 
 			ExecutionInput updatedExecutionInput =
 					(this.hasDataLoaderRegistrations ? registerDataLoaders(executionInput) : executionInput);

@@ -23,9 +23,12 @@ import java.util.Collections;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetcher;
 import io.micrometer.context.ContextRegistry;
+import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestThreadLocalAccessor;
@@ -138,6 +141,65 @@ public class WebGraphQlHandlerTests {
 		}
 		finally {
 			threadLocal.remove();
+		}
+	}
+
+	@Test
+	void contextSnapshotFactoryInstance() {
+
+		DataFetcherExceptionResolver exceptionResolver =
+				(ex, env) -> Mono.deferContextual((view) -> Mono.just(Collections.singletonList(
+						GraphqlErrorBuilder.newError(env)
+								.message("Resolved error: " + ex.getMessage() + ", name=" + view.get("name"))
+								.errorType(ErrorType.BAD_REQUEST)
+								.build())));
+
+		ExecutionGraphQlService service = this.graphQlSetup
+				.queryFetcher("greeting", this.errorDataFetcher)
+				.exceptionResolver(exceptionResolver)
+				.toGraphQlService();
+
+		InvocationCountingContextSnapshotFactory factory = new InvocationCountingContextSnapshotFactory();
+		WebGraphQlHandler handler = WebGraphQlHandler.builder(service).contextSnapshotFactory(factory).build();
+
+		Mono<WebGraphQlResponse> responseMono =
+				handler.handleRequest(webInput).contextWrite((context) -> context.put("name", "007"));
+
+		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+		assertThat(response.errorCount()).isEqualTo(1);
+		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
+
+		assertThat(factory.captureAllCount).isEqualTo(1);
+		assertThat(factory.captureFromCount)
+				.as("One or more of the following did not use the configured instance: " +
+						"DefaultExecutionService, ContextDataFetcher, or ExceptionResolversExceptionHandler.")
+				.isEqualTo(3);
+	}
+
+
+	private static class InvocationCountingContextSnapshotFactory implements ContextSnapshotFactory {
+
+		private final ContextSnapshotFactory delegate = ContextSnapshotFactory.builder().build();
+
+		private int captureAllCount;
+
+		private int captureFromCount;
+
+		@Override
+		public ContextSnapshot captureAll(Object... contexts) {
+			this.captureAllCount++;
+			return this.delegate.captureAll(contexts);
+		}
+
+		@Override
+		public ContextSnapshot captureFrom(Object... contexts) {
+			this.captureFromCount++;
+			return this.delegate.captureFrom(contexts);
+		}
+
+		@Override
+		public <C> ContextSnapshot.Scope setThreadLocalsFrom(Object context, String... keys) {
+			return this.delegate.setThreadLocalsFrom(context, keys);
 		}
 	}
 
