@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import graphql.Scalars;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
@@ -78,13 +79,14 @@ public class DefaultSchemaResourceGraphQlSourceBuilderTests {
 	@Test
 	void typeVisitorToTransformSchema() {
 
-		String schemaContent = "" +
-				"type Query {" +
-				"  person: Person" +
-				"} " +
-				"type Person {" +
-				"  firstName: String" +
-				"}";
+		String schemaContent = """
+				type Query {
+					person: Person
+				}
+				type Person {
+					firstName: String
+				}
+				""";
 
 		GraphQLTypeVisitor visitor = new GraphQLTypeVisitorStub() {
 
@@ -111,6 +113,34 @@ public class DefaultSchemaResourceGraphQlSourceBuilderTests {
 				.schema();
 
 		assertThat(schema.getObjectType("Person").getFieldDefinition("lastName")).isNotNull();
+	}
+
+	@Test // gh-708
+	void rootOperationTypesWithCustomNames() {
+		String schemaContent = """
+					schema {
+						query: MyQuery
+						mutation: MyMutation
+					}
+					type MyQuery {
+						hello: String!
+					}
+					type MyMutation {
+						saveGreeting(greeting: String!): String!
+					}
+				""";
+
+		GraphQLSchema schema = GraphQlSetup.schemaContent(schemaContent)
+				.runtimeWiring(wiringBuilder -> {
+					wiringBuilder.type("Query", builder -> builder.dataFetcher("hello", env -> ""));
+					wiringBuilder.type("Mutation", builder -> builder.dataFetcher("saveGreeting", env -> ""));
+				})
+				.toGraphQlSource()
+				.schema();
+
+		GraphQLCodeRegistry registry = schema.getCodeRegistry();
+		assertThat(registry.hasDataFetcher(FieldCoordinates.coordinates("MyQuery", "hello"))).isTrue();
+		assertThat(registry.hasDataFetcher(FieldCoordinates.coordinates("MyMutation", "saveGreeting"))).isTrue();
 	}
 
 	@Test

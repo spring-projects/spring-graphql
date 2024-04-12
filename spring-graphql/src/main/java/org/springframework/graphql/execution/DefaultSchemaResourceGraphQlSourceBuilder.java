@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 import graphql.GraphQL;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.UnionTypeDefinition;
+import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.CombinedWiringFactory;
@@ -45,6 +47,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 
 /**
@@ -149,6 +153,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		}
 
 		RuntimeWiring runtimeWiring = initRuntimeWiring();
+		updateForCustomRootOperationTypeNames(registry, runtimeWiring);
 
 		TypeResolver typeResolver = initTypeResolver();
 		registry.types().values().forEach((def) -> {
@@ -208,6 +213,23 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		}
 
 		return builder.build();
+	}
+
+	@SuppressWarnings("rawtypes")
+	private static void updateForCustomRootOperationTypeNames(
+			TypeDefinitionRegistry registry, RuntimeWiring runtimeWiring) {
+
+		if (registry.schemaDefinition().isEmpty()) {
+			return;
+		}
+
+		registry.schemaDefinition().get().getOperationTypeDefinitions().forEach((definition) -> {
+			String name = StringUtils.capitalize(definition.getName());
+			Map<String, DataFetcher> dataFetcherMap = runtimeWiring.getDataFetchers().remove(name);
+			if (!CollectionUtils.isEmpty(dataFetcherMap)) {
+				runtimeWiring.getDataFetchers().put(definition.getTypeName().getName(), dataFetcherMap);
+			}
+		});
 	}
 
 	private TypeResolver initTypeResolver() {
