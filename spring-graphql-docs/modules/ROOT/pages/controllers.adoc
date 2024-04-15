@@ -217,6 +217,88 @@ Schema mapping handler methods can return:
   For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
 
+
+[[controllers.schema-mapping.interfaces]]
+=== Interface Schema Mappings
+
+When a controller method is mapped to a schema interface field, by default the mapping is
+replaced with multiple mappings, one for each schema object type that implements the interface.
+This allows use of one controller method for all subtypes.
+
+For example, given:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+	type Query {
+		activities: [Activity!]!
+	}
+
+	interface Activity {
+		id: ID!
+		coordinator: User!
+	}
+
+	type FooActivity implements Activity {
+		id: ID!
+		coordinator: User!
+	}
+
+	type BarActivity implements Activity {
+		id: ID!
+		coordinator: User!
+	}
+
+	type User {
+		name: String!
+	}
+----
+
+You can write a controller like this:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public List<Activity> activities() {
+			// ...
+		}
+
+		@SchemaMapping
+		public User coordinator(Activity activity) {
+			// Called for any Activity subtype
+		}
+
+	}
+----
+
+If necessary, you can take over the mapping for individual subtypes:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public List<Activity> activities() {
+			// ...
+		}
+
+		@SchemaMapping
+		public User coordinator(Activity activity) {
+			// Called for any Activity subtype except FooActivity
+		}
+
+		@SchemaMapping
+		public User coordinator(FooActivity activity) {
+			// ...
+		}
+
+	}
+----
+
+
 [[controllers.schema-mapping.argument]]
 === `@Argument`
 
@@ -675,6 +757,88 @@ Batch mapping methods can return:
 
 
 
+[[controllers.batch-mapping.interfaces]]
+=== Interface Batch Mappings
+
+As is the case with xref:controllers.adoc#controllers.schema-mapping.interfaces[Interface Schema Mappings],
+when a batch mapping method is mapped to a schema interface field, the mapping is replaced with
+multiple mappings, one for each schema object type that implements the interface.
+
+That means, given the following:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+----
+	type Query {
+		activities: [Activity!]!
+	}
+
+	interface Activity {
+		id: ID!
+		coordinator: User!
+	}
+
+	type FooActivity implements Activity {
+		id: ID!
+		coordinator: User!
+	}
+
+	type BarActivity implements Activity {
+		id: ID!
+		coordinator: User!
+	}
+
+	type User {
+		name: String!
+	}
+----
+
+You can write a controller like this:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public List<Activity> activities() {
+			// ...
+		}
+
+		@BatchMapping
+		Map<Activity, User> coordinator(List<Activity> activities) {
+			// Called for all Activity subtypes
+		}
+	}
+----
+
+If necessary, you can take over the mapping for individual subtypes:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	public class BookController {
+
+		@QueryMapping
+		public List<Activity> activities() {
+			// ...
+		}
+
+		@BatchMapping
+		Map<Activity, User> coordinator(List<Activity> activities) {
+			// Called for all Activity subtypes
+		}
+
+		@BatchMapping(field = "coordinator")
+		Map<Activity, User> fooCoordinator(List<FooActivity> activities) {
+			// ...
+		}
+	}
+----
+
+
+
+
+
 [[controllers.exception-handler]]
 == `@GraphQlExceptionHandler`
 
@@ -696,7 +860,6 @@ controller, exception handler methods apply to exceptions from the same controll
 		public GraphQLError handle(BindException ex) {
 			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
 		}
-
 	}
 ----
 
