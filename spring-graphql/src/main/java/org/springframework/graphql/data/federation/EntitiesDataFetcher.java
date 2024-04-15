@@ -20,9 +20,11 @@ package org.springframework.graphql.data.federation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 
 import com.apollographql.federation.graphqljava._Entity;
@@ -38,6 +40,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.data.method.annotation.support.HandlerDataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * DataFetcher that handles the "_entities" query by invoking
@@ -65,6 +68,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 	public Mono<DataFetcherResult<List<Object>>> get(DataFetchingEnvironment environment) {
 		List<Map<String, Object>> representations = environment.getArgument(_Entity.argumentName);
 
+		Set<String> batched = new HashSet<>();
 		List<Mono<Object>> monoList = new ArrayList<>();
 		for (int index = 0; index < representations.size(); index++) {
 			Map<String, Object> map = representations.get(index);
@@ -79,15 +83,27 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 				monoList.add(resolveException(ex, environment, null, index));
 				continue;
 			}
-			monoList.add(invokeResolver(environment, handlerMethod, map, index));
+
+			if (!handlerMethod.isBatchHandlerMethod()) {
+				monoList.add(invokeEntityMethod(environment, handlerMethod, map, index));
+			}
+			else if (batched.contains(typename)) {
+				// zip needs a value, this will be replaced by batch results
+				monoList.add(Mono.just(Collections.emptyMap()));
+			}
+			else {
+				EntityBatchDelegate batchDelegate = new EntityBatchDelegate(environment, handlerMethod, typename);
+				monoList.add(batchDelegate.invokeEntityBatchMethod());
+				batched.add(typename);
+			}
 		}
 		return Mono.zip(monoList, Arrays::asList).map(EntitiesDataFetcher::toDataFetcherResult);
 	}
 
-	private Mono<Object> invokeResolver(
+	private Mono<Object> invokeEntityMethod(
 			DataFetchingEnvironment env, EntityHandlerMethod handlerMethod, Map<String, Object> map, int index) {
 
-		return handlerMethod.getEntity(env, map, index)
+		return handlerMethod.getEntity(env, map)
 				.switchIfEmpty(Mono.error(new RepresentationNotResolvedException(map, handlerMethod)))
 				.onErrorResume((ex) -> resolveException(ex, env, handlerMethod, index));
 	}
@@ -96,7 +112,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 			Throwable ex, DataFetchingEnvironment env, @Nullable EntityHandlerMethod handlerMethod, int index) {
 
 		Throwable theEx = (ex instanceof CompletionException) ? ex.getCause() : ex;
-		DataFetchingEnvironment theEnv = new EntityDataFetchingEnvironment(env, index);
+		DataFetchingEnvironment theEnv = new IndexedDataFetchingEnvironment(env, index);
 		Object handler = (handlerMethod != null) ? handlerMethod.getBean() : null;
 
 		return this.exceptionResolver.resolveException(theEx, theEnv, handler)
@@ -120,6 +136,9 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 		List<GraphQLError> errors = new ArrayList<>();
 		for (int i = 0; i < entities.size(); i++) {
 			Object entity = entities.get(i);
+			if (entity instanceof EntityBatchDelegate delegate) {
+				delegate.processResults(entities, errors);
+			}
 			if (entity instanceof ErrorContainer errorContainer) {
 				errors.addAll(errorContainer.errors());
 				entities.set(i, null);
@@ -129,11 +148,80 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 	}
 
 
-	private static class EntityDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
+	private class EntityBatchDelegate {
+
+		private final DataFetchingEnvironment environment;
+
+		private final EntityHandlerMethod handlerMethod;
+
+		private final List<Map<String, Object>> representations = new ArrayList<>();
+
+		private final List<Integer> indexes = new ArrayList<>();
+
+		@Nullable
+		private List<?> resultList;
+
+		EntityBatchDelegate(DataFetchingEnvironment env, EntityHandlerMethod handlerMethod, String typeName) {
+			this.environment = env;
+			this.handlerMethod = handlerMethod;
+			List<Map<String, Object>> maps = env.getArgument(_Entity.argumentName);
+			for (int i = 0; i < maps.size(); i++) {
+				Map<String, Object> map = maps.get(i);
+				if (typeName.equals(map.get("__typename"))) {
+					this.representations.add(map);
+					this.indexes.add(i);
+				}
+			}
+		}
+
+		Mono<Object> invokeEntityBatchMethod() {
+			return this.handlerMethod.getEntities(this.environment, this.representations)
+					.mapNotNull((result) -> (((List<?>) result).isEmpty()) ? null : result)
+					.switchIfEmpty(Mono.defer(this::handleEmptyResult))
+					.onErrorResume(this::handleErrorResult)
+					.map((result) -> {
+						this.resultList = (List<?>) result;
+						return this;
+					});
+		}
+
+		Mono<Object> handleEmptyResult() {
+			List<Mono<Object>> exceptions = new ArrayList<>(this.indexes.size());
+			for (int i = 0; i < this.indexes.size(); i++) {
+				Map<String, Object> map = this.representations.get(i);
+				Exception ex = new RepresentationNotResolvedException(map, this.handlerMethod);
+				exceptions.add(resolveException(ex, this.environment, this.handlerMethod, this.indexes.get(i)));
+			}
+			return Mono.zip(exceptions, Arrays::asList);
+		}
+
+		Mono<List<Object>> handleErrorResult(Throwable ex) {
+			List<Mono<Object>> list = new ArrayList<>();
+			for (Integer index : this.indexes) {
+				list.add(resolveException(ex, this.environment, this.handlerMethod, index));
+			}
+			return Mono.zip(list, Arrays::asList);
+		}
+
+		void processResults(List<Object> entities, List<GraphQLError> errors) {
+			Assert.state(this.resultList != null, "Expected resultList");
+			for (int i = 0; i < this.resultList.size(); i++) {
+				Object entity = this.resultList.get(i);
+				if (entity instanceof ErrorContainer errorContainer) {
+					errors.addAll(errorContainer.errors());
+					entity = null;
+				}
+				entities.set(this.indexes.get(i), entity);
+			}
+		}
+	}
+
+
+	private static class IndexedDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
 
 		private final ExecutionStepInfo executionStepInfo;
 
-		EntityDataFetchingEnvironment(DataFetchingEnvironment env, int index) {
+		IndexedDataFetchingEnvironment(DataFetchingEnvironment env, int index) {
 			super(env);
 			this.executionStepInfo = ExecutionStepInfo.newExecutionStepInfo(env.getExecutionStepInfo())
 					.path(env.getExecutionStepInfo().getPath().segment(index))

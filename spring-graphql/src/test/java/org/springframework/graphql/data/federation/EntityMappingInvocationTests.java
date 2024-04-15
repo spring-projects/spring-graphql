@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.data.federation;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -82,18 +83,10 @@ public class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "3"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ExecutionGraphQlRequest request = TestExecutionRequest.forDocumentAndVars(document, variables);
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(request);
+		ResponseHelper helper = executeWith(BookController.class, variables);
 
-		ResponseHelper helper = ResponseHelper.forResponse(responseMono);
-
-		Author author = helper.toEntity("_entities[0].author", Author.class);
-		assertThat(author.getFirstName()).isEqualTo("Joseph");
-		assertThat(author.getLastName()).isEqualTo("Heller");
-
-		author = helper.toEntity("_entities[1].author", Author.class);
-		assertThat(author.getFirstName()).isEqualTo("George");
-		assertThat(author.getLastName()).isEqualTo("Orwell");
+		assertAuthor(0, "Joseph", "Heller", helper);
+		assertAuthor(1, "George", "Orwell", helper);
 	}
 
 	@Test
@@ -108,21 +101,77 @@ public class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "3"),
 						Map.of("__typename", "Book", "id", "5")));
 
+		ResponseHelper helper = executeWith(BookController.class, variables);
+
+		assertError(helper, 0, "BAD_REQUEST", "Missing \"__typename\" argument");
+		assertError(helper, 1, "INTERNAL_ERROR", "No entity fetcher");
+		assertError(helper, 2, "BAD_REQUEST", "handled");
+		assertError(helper, 3, "INTERNAL_ERROR", "not handled");
+		assertError(helper, 4, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+
+		assertAuthor(5, "Joseph", "Heller", helper);
+		assertAuthor(6, "George", "Orwell", helper);
+	}
+
+	@Test
+	void batching() {
+		Map<String, Object> variables =
+				Map.of("representations", List.of(
+						Map.of("__typename", "Book", "id", "1"),
+						Map.of("__typename", "Book", "id", "4"),
+						Map.of("__typename", "Book", "id", "5"),
+						Map.of("__typename", "Book", "id", "42"),
+						Map.of("__typename", "Book", "id", "53")));
+
+		ResponseHelper helper = executeWith(BookBatchController.class, variables);
+
+		assertAuthor(0, "George", "Orwell", helper);
+		assertAuthor(1, "Virginia", "Woolf", helper);
+		assertAuthor(2, "George", "Orwell", helper);
+		assertAuthor(3, "Douglas", "Adams", helper);
+		assertAuthor(4, "Vince", "Gilligan", helper);
+	}
+
+	@Test
+	void batchingWithError() {
+		Map<String, Object> variables =
+				Map.of("representations", List.of(
+						Map.of("__typename", "Book", "id", "-97"),
+						Map.of("__typename", "Book", "id", "4"),
+						Map.of("__typename", "Book", "id", "5")));
+
+		ResponseHelper helper = executeWith(BookBatchController.class, variables);
+
+		assertError(helper, 0, "BAD_REQUEST", "handled");
+		assertError(helper, 1, "BAD_REQUEST", "handled");
+		assertError(helper, 2, "BAD_REQUEST", "handled");
+	}
+
+	@Test
+	void batchingWithoutResult() {
+		Map<String, Object> variables =
+				Map.of("representations", List.of(
+						Map.of("__typename", "Book", "id", "-99"),
+						Map.of("__typename", "Book", "id", "4"),
+						Map.of("__typename", "Book", "id", "5")));
+
+		ResponseHelper helper = executeWith(BookBatchController.class, variables);
+
+		assertError(helper, 0, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+		assertError(helper, 1, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+		assertError(helper, 2, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+	}
+
+	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {
 		ExecutionGraphQlRequest request = TestExecutionRequest.forDocumentAndVars(document, variables);
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService().execute(request);
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService(controllerClass).execute(request);
+		return ResponseHelper.forResponse(responseMono);
+	}
 
-		ResponseHelper helper = ResponseHelper.forResponse(responseMono);
-
-		int i = 0;
-
-		assertError(helper, i++, "BAD_REQUEST", "Missing \"__typename\" argument");
-		assertError(helper, i++, "INTERNAL_ERROR", "No entity fetcher");
-		assertError(helper, i++, "BAD_REQUEST", "handled");
-		assertError(helper, i++, "INTERNAL_ERROR", "not handled");
-		assertError(helper, i++, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
-
-		assertThat(helper.toEntity("_entities[" + i++ + "].author", Author.class).getLastName()).isEqualTo("Heller");
-		assertThat(helper.toEntity("_entities[" + i++ + "].author", Author.class).getLastName()).isEqualTo("Orwell");
+	private static void assertAuthor(int index, String firstName, String lastName, ResponseHelper helper) {
+		Author author = helper.toEntity("_entities[" + index + "].author", Author.class);
+		assertThat(author.getFirstName()).isEqualTo(firstName);
+		assertThat(author.getLastName()).isEqualTo(lastName);
 	}
 
 	private static void assertError(ResponseHelper helper, int i, String errorType, String msg) {
@@ -133,11 +182,11 @@ public class EntityMappingInvocationTests {
 		assertThat(helper.<Object>rawValue(path)).isNull();
 	}
 
-	private TestExecutionGraphQlService graphQlService() {
+	private static TestExecutionGraphQlService graphQlService(Class<?> controllerClass) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.register(AuthorController.class);
+		context.register(controllerClass);
 		context.registerBean(BatchLoaderRegistry.class, () -> registry);
 		context.refresh();
 
@@ -159,7 +208,7 @@ public class EntityMappingInvocationTests {
 
 	@SuppressWarnings("unused")
 	@Controller
-	private static class AuthorController {
+	private static class BookController {
 
 		@Nullable
 		@EntityMapping
@@ -175,6 +224,45 @@ public class EntityMappingInvocationTests {
 				case -99 -> null;
 				default -> new Book((long) id, null, (Long) null);
 			};
+		}
+
+		@BatchMapping
+		public Flux<Author> author(List<Book> books) {
+			return Flux.fromIterable(books).map(book -> BookSource.getBook(book.getId()).getAuthor());
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
+			return GraphqlErrorBuilder.newError(env)
+					.errorType(ErrorType.BAD_REQUEST)
+					.message(ex.getMessage())
+					.build();
+		}
+	}
+
+	@SuppressWarnings("unused")
+	@Controller
+	private static class BookBatchController {
+
+		@EntityMapping
+		public List<Book> book(@Argument List<Integer> idList, List<Map<String, Object>> representations) {
+
+			if (idList.get(0) == -97) {
+				throw new IllegalArgumentException("handled");
+			}
+
+			if (idList.get(0) == -99) {
+				return Collections.emptyList();
+			}
+
+			assertThat(representations).hasSize(5).containsExactly(
+					Map.of("__typename", "Book", "id", "1"),
+					Map.of("__typename", "Book", "id", "4"),
+					Map.of("__typename", "Book", "id", "5"),
+					Map.of("__typename", "Book", "id", "42"),
+					Map.of("__typename", "Book", "id", "53"));
+
+			return idList.stream().map(id -> new Book((long) id, null, (Long) null)).toList();
 		}
 
 		@BatchMapping

@@ -142,13 +142,12 @@ public class GraphQlArgumentBinder {
 		Object rawValue = (name != null) ? environment.getArgument(name) : environment.getArguments();
 		boolean isOmitted = (name != null && !environment.getArguments().containsKey(name));
 
-		return bind(name, rawValue, isOmitted, targetType);
+		return bind(rawValue, isOmitted, targetType);
 	}
 
 	/**
 	 * Variant of {@link #bind(DataFetchingEnvironment, String, ResolvableType)}
 	 * with a pre-extracted raw value to bind from.
-	 * @param name the name of an argument, or {@code null} to use the full map
 	 * @param rawValue the raw argument value (Collection, Map, or scalar)
 	 * @param isOmitted {@code true} if the argument was omitted from the input
 	 * and {@code false} if it was provided, but possibly {@code null}
@@ -156,19 +155,13 @@ public class GraphQlArgumentBinder {
 	 * @since 1.3.0
 	 */
 	@Nullable
-	public Object bind(
-			@Nullable String name, @Nullable Object rawValue, boolean isOmitted, ResolvableType targetType)
-			throws BindException {
-
+	public Object bind(@Nullable Object rawValue, boolean isOmitted, ResolvableType targetType) throws BindException {
 		ArgumentsBindingResult bindingResult = new ArgumentsBindingResult(targetType);
-
-		Object value = bindRawValue(
-				"$", rawValue, isOmitted, targetType, targetType.resolve(Object.class), bindingResult);
-
+		Class<?> targetClass = targetType.resolve(Object.class);
+		Object value = bindRawValue("$", rawValue, isOmitted, targetType, targetClass, bindingResult);
 		if (bindingResult.hasErrors()) {
 			throw new BindException(bindingResult);
 		}
-
 		return value;
 	}
 

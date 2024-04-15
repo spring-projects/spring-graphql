@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.data.federation;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -23,7 +24,6 @@ import java.util.concurrent.Executor;
 import graphql.schema.DataFetchingEnvironment;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.support.DataFetcherHandlerMethodSupport;
 import org.springframework.lang.Nullable;
@@ -35,27 +35,53 @@ import org.springframework.lang.Nullable;
  */
 final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 
+	private final boolean batchHandlerMethod;
+
+
 	EntityHandlerMethod(
-			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
+			FederationSchemaFactory.EntityMappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
 			@Nullable Executor executor) {
 
-		super(handlerMethod, resolvers, executor);
+		super(info.handlerMethod(), resolvers, executor);
+		this.batchHandlerMethod = info.isBatchHandlerMethod();
 	}
 
 
-	Mono<Object> getEntity(
-			DataFetchingEnvironment environment, Map<String, Object> representation, int index) {
+	boolean isBatchHandlerMethod() {
+		return this.batchHandlerMethod;
+	}
 
+
+	Mono<Object> getEntity(DataFetchingEnvironment env, Map<String, Object> representation) {
 		Object[] args;
 		try {
-			environment = EntityArgumentMethodArgumentResolver.wrap(environment, representation);
-			args = getMethodArgumentValues(environment, representation);
+			env = EntityArgumentMethodArgumentResolver.wrap(env, representation);
+			args = getMethodArgumentValues(env);
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);
 		}
 
-		Object result = doInvoke(environment.getGraphQlContext(), args);
+		return doInvoke(env, args);
+	}
+
+	@SuppressWarnings("unchecked")
+	Mono<Object> getEntities(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
+		Object[] args;
+		try {
+			env = EntityArgumentMethodArgumentResolver.wrap(env, representations);
+			args = getMethodArgumentValues(env);
+		}
+		catch (Throwable ex) {
+			return Mono.error(ex);
+		}
+
+		return doInvoke(env, args);
+	}
+
+	private Mono<Object> doInvoke(DataFetchingEnvironment env, Object[] args) {
+
+		Object result = doInvoke(env.getGraphQlContext(), args);
 
 		if (result instanceof Mono<?> mono) {
 			return mono.cast(Object.class);

@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.data.federation;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -25,6 +27,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.support.ArgumentMethodArgumentResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.BindException;
 
 /**
@@ -48,24 +51,52 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 			DataFetchingEnvironment environment, String name, ResolvableType targetType) throws BindException {
 
 		if (environment instanceof EntityDataFetchingEnvironment entityEnv) {
-			Map<String, Object> entityMap = entityEnv.getRepresentation();
-			Object rawValue = entityMap.get(name);
-			boolean isOmitted = !entityMap.containsKey(name);
-			return getArgumentBinder().bind(name, rawValue, isOmitted, targetType);
+			return doBind(name, targetType, entityEnv.getRepresentation());
 		}
-
-		throw new IllegalStateException("Expected decorated DataFetchingEnvironment");
+		else if (environment instanceof EntityBatchDataFetchingEnvironment batchEnv) {
+			name = dePluralize(name);
+			targetType = targetType.getNested(2);
+			List<Object> values = new ArrayList<>();
+			for (Map<String, Object> representation : batchEnv.getRepresentations()) {
+				values.add(doBind(name, targetType, representation));
+			}
+			return values;
+		}
+		else {
+			throw new IllegalStateException("Expected decorated DataFetchingEnvironment");
+		}
 	}
 
+	@Nullable
+	private Object doBind(String name, ResolvableType targetType, Map<String, Object> entityMap) throws BindException {
+		Object rawValue = entityMap.get(name);
+		boolean isOmitted = !entityMap.containsKey(name);
+		return getArgumentBinder().bind(rawValue, isOmitted, targetType);
+	}
+
+	private static String dePluralize(String name) {
+		return (name.endsWith("List")) ? name.substring(0, name.length() - 4) : name;
+	}
+
+
 	/**
-	 * Wrap the environment in order to also expose the entity representation map.
+	 * Utility method for use from {@link EntityHandlerMethod} to make the entity
+	 * representation map available.
 	 */
 	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, Map<String, Object> representation) {
 		return new EntityDataFetchingEnvironment(env, representation);
 	}
 
+	/**
+	 * Utility method for use from {@link EntityHandlerMethod} to make the list
+	 * of entity representation maps available.
+	 */
+	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
+		return new EntityBatchDataFetchingEnvironment(env, representations);
+	}
 
-	private static class EntityDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
+
+	static class EntityDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
 
 		private final Map<String, Object> representation;
 
@@ -76,6 +107,21 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 
 		Map<String, Object> getRepresentation() {
 			return this.representation;
+		}
+	}
+
+
+	static class EntityBatchDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
+
+		private final List<Map<String, Object>> representations;
+
+		EntityBatchDataFetchingEnvironment(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
+			super(env);
+			this.representations = representations;
+		}
+
+		List<Map<String, Object>> getRepresentations() {
+			return this.representations;
 		}
 	}
 

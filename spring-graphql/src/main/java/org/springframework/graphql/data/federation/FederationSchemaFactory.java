@@ -18,7 +18,9 @@ package org.springframework.graphql.data.federation;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
 import com.apollographql.federation.graphqljava.Federation;
@@ -28,10 +30,12 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import reactor.core.publisher.Mono;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.core.KotlinDetector;
+import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
@@ -89,7 +93,7 @@ public final class FederationSchemaFactory
 
 		detectHandlerMethods().forEach((info) ->
 				this.handlerMethods.put(info.typeName(),
-						new EntityHandlerMethod(info.handlerMethod(), getArgumentResolvers(), getExecutor())));
+						new EntityHandlerMethod(info, getArgumentResolvers(), getExecutor())));
 
 		if (this.typeResolver == null) {
 			this.typeResolver = new ClassNameTypeResolver();
@@ -108,6 +112,7 @@ public final class FederationSchemaFactory
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());
 		resolvers.addResolver(new LocalContextValueMethodArgumentResolver());
 		resolvers.addResolver(new EntityArgumentMethodArgumentResolver(argumentBinder));
+		resolvers.addResolver(new EntityArgumentsMethodArgumentResolver(argumentBinder));
 
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
@@ -172,6 +177,15 @@ public final class FederationSchemaFactory
 
 
 	public record EntityMappingInfo(String typeName, HandlerMethod handlerMethod) {
+
+		public boolean isBatchHandlerMethod() {
+			MethodParameter type = handlerMethod().getReturnType();
+			Class<?> paramType = type.getParameterType();
+			if (Mono.class.isAssignableFrom(paramType) || CompletionStage.class.isAssignableFrom(paramType)) {
+				type = type.nested();
+			}
+			return List.class.isAssignableFrom(type.getParameterType());
+		}
 	}
 
 }
