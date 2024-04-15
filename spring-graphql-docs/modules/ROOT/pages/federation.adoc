@@ -1,16 +1,19 @@
 [[federation]]
 = Federation
 
-Spring for GraphQL provides a small integration layer for the
-https://github.com/apollographql/federation-jvm[federation-jvm] library that in turn builds
-on GraphQL Java, and helps to initialize the `graphql.schema.GraphQLSchema` for a GraphQL
-Java application that is a sub-graph within a federated graph. For more details, see
-https://www.apollographql.com/docs/federation/[Apollo Federation] and the
-https://www.apollographql.com/docs/federation/subgraph-spec[Subgraph spec].
+Spring for GraphQL provides an integration for the
+https://github.com/apollographql/federation-jvm[federation-jvm] library, which uses
+GraphQL Java to initialize the schema of a sub-graph within a federated graph.
+See https://www.apollographql.com/docs/federation/[Apollo Federation] and the
+https://www.apollographql.com/docs/federation/subgraph-spec[Subgraph spec] for further details.
 
-To use the support you can declare a `FederationSchemaFactory` bean in your config, and plug
-it into `GraphQlSource.Builder`. In a Spring Boot application you can do this through a
-`GraphQlSourceBuilderCustomizer` as follows:
+
+
+[[federation.config]]
+== Config
+
+To use the integration, declare a `FederationSchemaFactory` bean in your config, and plug
+it into `GraphQlSource.Builder`. For example, in a Spring Boot application:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -30,7 +33,7 @@ it into `GraphQlSource.Builder`. In a Spring Boot application you can do this th
 	}
 ----
 
-Now your sub-graph schema can extend federated types:
+Now the schema for the sub-graph service can extend federated types:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
@@ -46,10 +49,15 @@ type Author {
 }
 ----
 
-To assist with resolving federated types as part of an
-https://www.apollographql.com/docs/federation/subgraph-spec/#understanding-query_entities[_entities]
-query, you can use `@EntityMapping` methods side by side with `@SchemaMapping` methods
-for the data that the subgraph application owns. For example:
+
+[[federation.entity-mapping]]
+== `@EntityMapping`
+
+To resolve federated types in response to the
+https://www.apollographql.com/docs/federation/subgraph-spec/#understanding-query_entities[_entities query],
+you can use `@EntityMapping` methods along with `@SchemaMapping` methods for types under the entity.
+
+For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -69,8 +77,14 @@ for the data that the subgraph application owns. For example:
 	}
 ----
 
-The `@Argument` method parameters is resolved from the "representation"input map for the entity.
-You can also inject the full `Map<String, Object>`. The below shows all supported arguments:
+The `@Argument` method parameters is resolved from the "representation" input map for the entity.
+You can also inject the full "representation" input `Map`.
+
+
+[[federation.entity-mapping.signature]]
+=== Method Signature
+
+Entity mapping methods support the following arguments:
 
 [cols="1,2"]
 |===
@@ -109,6 +123,10 @@ You can also inject the full `Map<String, Object>`. The below shows all supporte
 |===
 
 `@EntityMapping` methods can return `Mono`, `CompletableFuture`, `Callable`, or the actual entity.
+
+
+[[federation.entity-mapping.exception-handling]]
+=== Exception Handling
 
 You can use `@GraphQlExceptionHandler` methods to map exceptions from `@EntityMapping`
 methods to ``GraphQLError``'s. The errors will be included in the response of the
