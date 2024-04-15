@@ -67,8 +67,7 @@ locations, e.g. across multiple modules.
 
 By default, `GraphQlSource.Builder` uses the GraphQL Java `SchemaGenerator` to create the
 `graphql.schema.GraphQLSchema`. This works for typical use, but if you need to use a
-different generator, e.g. for xref:federation.adoc[federation], you can register a
-`schemaFactory` callback:
+different generator, you can register a `schemaFactory` callback:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -81,24 +80,24 @@ builder.schemaResources(..)
 		})
 ----
 
-The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
+See the xref:request-execution.adoc#execution.graphqlsource[GraphQlSource] section for how to configure this with Spring Boot.
 
-For an example with Apollo Federation, see
-https://github.com/apollographql/federation-jvm-spring-example[federation-jvm-spring-example].
+If interested in federation, please see the xref:federation.adoc[Federation] section.
 
 
 [[execution.graphqlsource.runtimewiring-configurer]]
 === `RuntimeWiringConfigurer`
 
-You can use `RuntimeWiringConfigurer` to register:
+A `RuntimeWiringConfigurer` is useful to register the following:
 
 - Custom scalar types.
-- xref:request-execution.adoc#execution.graphqlsource.directives[Directives] handling code.
-- Default xref:request-execution.adoc#execution.graphqlsource.default-type-resolver[`TypeResolver`] for interface and union types.
-- `DataFetcher` for a field although applications will typically use xref:controllers.adoc[Annotated Controllers], and
-those are detected and registered as ``DataFetcher``s by `AnnotatedControllerConfigurer`,
-which is a `RuntimeWiringConfigurer`. The xref:boot-starter.adoc[Boot Starter] automatically registers
-`AnnotatedControllerConfigurer`.
+- Code that handles xref:request-execution.adoc#execution.graphqlsource.directives[Directives].
+- Direct `DataFetcher` registrations.
+- and more...
+
+TIP: Spring applications typically do not need to perform direct `DataFetcher` registrations.
+Instead, controller method are registered as ``DataFetcher``s via
+`AnnotatedControllerConfigurer`, which is a `RuntimeWiringConfigurer`.
 
 NOTE: GraphQL Java, server applications use Jackson only for serialization to and from maps of data.
 Client input is parsed into a map. Server output is assembled into a map based on the field selection set.
@@ -116,15 +115,11 @@ public class GraphQlConfig {
 
 	@Bean
 	public RuntimeWiringConfigurer runtimeWiringConfigurer(BookRepository repository) {
-
 		GraphQLScalarType scalarType = ... ;
 		SchemaDirectiveWiring directiveWiring = ... ;
-		DataFetcher dataFetcher = QuerydslDataFetcher.builder(repository).single();
-
 		return wiringBuilder -> wiringBuilder
 				.scalar(scalarType)
-				.directiveWiring(directiveWiring)
-				.type("Query", builder -> builder.dataFetcher("book", dataFetcher));
+				.directiveWiring(directiveWiring);
 	}
 }
 ----
@@ -160,7 +155,7 @@ classNameTypeResolver.setClassNameExtractor((klass) -> {
 builder.defaultTypeResolver(classNameTypeResolver);
 ----
 
-The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
+See the xref:request-execution.adoc#execution.graphqlsource[GraphQlSource] section for how to configure this with Spring Boot.
 
 
 [[execution.graphqlsource.directives]]
@@ -342,7 +337,7 @@ builder.schemaResources(..)
 		.configureGraphQl(graphQLBuilder -> graphQLBuilder.preparsedDocumentProvider(provider))
 ----
 
-The xref:request-execution.adoc#execution.graphqlsource[GraphQlSource section] explains how to configure that with Spring Boot.
+See the xref:request-execution.adoc#execution.graphqlsource[GraphQlSource] section for how to configure this with Spring Boot.
 
 
 
