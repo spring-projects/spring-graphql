@@ -77,8 +77,38 @@ For example:
 	}
 ----
 
-The `@Argument` method parameters is resolved from the "representation" input map for the entity.
-You can also inject the full "representation" input `Map`.
+The `@Argument` method parameters is resolved from the "representation" input map for
+the entity. You can also inject the full "representation" input `Map`. See
+xref:federation.adoc#federation.entity-mapping.signature[Method Signature] for all
+supported method argument and return value types.
+
+You can batch load federated entities by returning a `List` of instances from the controller
+method and accepting a `List` of argument values. In addition, you can use `@BatchMapping`
+methods for subfields.
+
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@Controller
+	private static class BookController {
+
+		@EntityMapping
+		public List<Book> book(@Argument List<Integer> idList) {
+			// ...
+		}
+
+		@BatchMapping
+		public Map<Book, Author> author(List<Book> books) {
+			// ...
+		}
+	}
+----
+
+Note `idList` naming convention for the argument, which helps Spring for GraphQL to
+de-pluralize the method parameter name and derive the correct argument name to use.
+Alternatively, set the argument name through the annotation.
+
 
 
 [[federation.entity-mapping.signature]]
@@ -95,6 +125,10 @@ Entity mapping methods support the following arguments:
 
 | `Map<String, Object>`
 | The full "representation" input map for the entity.
+
+| `List<Map<String, Object>>`
+| The list of "representation" input maps when using a single controller method to load
+  all entities of a given type.
 
 | `@ContextValue`
 | For access to an attribute from the main `GraphQLContext` in `DataFetchingEnvironment`.
@@ -132,4 +166,3 @@ You can use `@GraphQlExceptionHandler` methods to map exceptions from `@EntityMa
 methods to ``GraphQLError``'s. The errors will be included in the response of the
 "_entities" query. Exception handler methods can be in the same controller or in an
 `@ControllerAdvice` class.
-
