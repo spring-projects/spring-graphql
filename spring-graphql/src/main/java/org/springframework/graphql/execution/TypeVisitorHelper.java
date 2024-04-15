@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,13 @@
 
 package org.springframework.graphql.execution;
 
-import java.util.List;
-
 import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLSchema;
 
 /**
- * Helper for {@link graphql.schema.GraphQLTypeVisitor}s registered via
- * {@link GraphQlSource.Builder#typeVisitors(List)} that is exposed as a
- * variable in {@link graphql.util.TraverserContext}.
+ * Helps {@link graphql.schema.GraphQLTypeVisitor}s to recognize whether a type
+ * is the subscription type. Exposed as a variable in
+ * {@link graphql.util.TraverserContext}.
  *
  * @author Rossen Stoyanchev
  * @since 1.2.1
@@ -43,7 +41,8 @@ public interface TypeVisitorHelper {
 	 * @param schema the GraphQL schema to use
 	 */
 	static TypeVisitorHelper create(GraphQLSchema schema) {
-		return new DefaultTypeVisitorHelper(schema);
+		String name = (schema.getSubscriptionType() != null) ? schema.getSubscriptionType().getName() : null;
+		return (candidate) -> candidate.getName().equals(name);
 	}
 
 }

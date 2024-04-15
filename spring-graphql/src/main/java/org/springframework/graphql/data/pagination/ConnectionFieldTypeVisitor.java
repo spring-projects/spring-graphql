@@ -110,7 +110,9 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		return TraversalControl.CONTINUE;
 	}
 
-	private static boolean isUnderSubscriptionOperation(TypeVisitorHelper visitorHelper, TraverserContext<GraphQLSchemaElement> context) {
+	private static boolean isUnderSubscriptionOperation(
+			TypeVisitorHelper visitorHelper, TraverserContext<GraphQLSchemaElement> context) {
+
 		return context.getBreadcrumbs().stream()
 				.filter(GraphQLFieldsContainer.class::isInstance)
 				.map(GraphQLFieldsContainer.class::cast)
