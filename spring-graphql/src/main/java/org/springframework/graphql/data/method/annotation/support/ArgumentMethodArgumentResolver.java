@@ -63,7 +63,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 
 	/**
 	 * Return the configured {@link GraphQlArgumentBinder}.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	public GraphQlArgumentBinder getArgumentBinder() {
 		return this.argumentBinder;
@@ -87,7 +87,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	 * @param environment for access to the arguments
 	 * @param name the name of an argument, or {@code null} to use the full map
 	 * @param targetType the type of Object to create
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	@Nullable
 	protected Object doBind(

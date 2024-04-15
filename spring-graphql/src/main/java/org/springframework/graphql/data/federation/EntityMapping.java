@@ -28,7 +28,7 @@ import org.springframework.core.annotation.AliasFor;
  * Annotation for mapping a handler method to a federated schema type.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

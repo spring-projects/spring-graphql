@@ -153,7 +153,7 @@ public class GraphQlArgumentBinder {
 	 * @param isOmitted {@code true} if the argument was omitted from the input
 	 * and {@code false} if it was provided, but possibly {@code null}
 	 * @param targetType the type of Object to create
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	@Nullable
 	public Object bind(

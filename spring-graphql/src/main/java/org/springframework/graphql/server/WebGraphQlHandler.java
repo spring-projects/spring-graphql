@@ -43,7 +43,7 @@ public interface WebGraphQlHandler {
 	/**
 	 * Return the {@link WebGraphQlHandler.Builder#contextSnapshotFactory configured}
 	 * {@code ContextSnapshotFactory} instance to use.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	ContextSnapshotFactory contextSnapshotFactory();
 
@@ -100,7 +100,7 @@ public interface WebGraphQlHandler {
 		 * values from the transport layer to the GraphQL execution layer.
 		 * If not set, then a default instance is used.
 		 * @param snapshotFactory the factory to use
-		 * @since 1.3
+		 * @since 1.3.0
 		 */
 		Builder contextSnapshotFactory(ContextSnapshotFactory snapshotFactory);
 

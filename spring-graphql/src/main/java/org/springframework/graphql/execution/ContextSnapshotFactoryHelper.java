@@ -29,7 +29,7 @@ import org.springframework.lang.Nullable;
  * obtaining it to and from Reactor and GraphQL contexts.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public abstract class ContextSnapshotFactoryHelper {
 

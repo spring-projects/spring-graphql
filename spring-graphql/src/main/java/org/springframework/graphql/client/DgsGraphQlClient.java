@@ -47,7 +47,7 @@ import org.springframework.util.Assert;
  * </pre>
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public final class DgsGraphQlClient {
 

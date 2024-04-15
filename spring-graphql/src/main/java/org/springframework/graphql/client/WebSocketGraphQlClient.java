@@ -94,7 +94,7 @@ public interface WebSocketGraphQlClient extends WebGraphQlClient {
 		 * Configure how frequently to send ping messages.
 		 * <p>By default, this is not set, and ping messages are not sent.
 		 * @param keepAlive the value to use
-		 * @since 1.3
+		 * @since 1.3.0
 		 */
 		Builder<B> keepAlive(Duration keepAlive);
 

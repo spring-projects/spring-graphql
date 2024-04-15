@@ -51,7 +51,7 @@ import org.springframework.util.ClassUtils;
  *
  * @param <B> the type of builder
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  * @see AbstractDelegatingGraphQlClient
  */
 public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQlClientSyncBuilder<B>>

@@ -59,7 +59,7 @@ import org.springframework.util.StringUtils;
  * and plugged in via {@link SchemaResourceBuilder#schemaFactory(BiFunction)}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  * @see Federation#transform(TypeDefinitionRegistry, RuntimeWiring)
  *
  */

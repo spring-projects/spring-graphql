@@ -29,7 +29,7 @@ import org.springframework.lang.Nullable;
  * {@link graphql.schema.DataFetcher}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public final class DataFetcherMappingInfo {
 

@@ -26,7 +26,7 @@ import org.springframework.graphql.data.method.HandlerMethod;
  * returned {@code null} or completed empty.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 @SuppressWarnings("serial")
 public class RepresentationNotResolvedException extends RepresentationException {

@@ -69,7 +69,7 @@ public class ClassNameTypeResolver implements TypeResolver {
 
 	/**
 	 * Return the map with configured {@link #addMapping(Class, String) explicit mappings}.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	public Map<Class<?>, String> getMappings() {
 		return this.mappings;

@@ -24,7 +24,7 @@ import org.springframework.graphql.GraphQlResponse;
  * Contract for blocking execution of GraphQL requests over some transport.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  * @see GraphQlClient.SyncBuilder
  */
 public interface SyncGraphQlTransport {

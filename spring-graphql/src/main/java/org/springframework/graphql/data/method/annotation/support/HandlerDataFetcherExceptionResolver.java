@@ -30,7 +30,7 @@ import org.springframework.lang.Nullable;
  * apply at the point of DataFetcher invocation to allow local exception handling.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public interface HandlerDataFetcherExceptionResolver extends DataFetcherExceptionResolver {
 

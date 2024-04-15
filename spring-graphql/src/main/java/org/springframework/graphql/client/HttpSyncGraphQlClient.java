@@ -30,7 +30,7 @@ import org.springframework.web.client.RestClient;
  * execution chain.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  * @see SyncGraphQlTransport
  */
 public interface HttpSyncGraphQlClient extends GraphQlClient {

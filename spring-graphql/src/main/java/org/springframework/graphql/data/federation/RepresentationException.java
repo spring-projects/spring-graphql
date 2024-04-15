@@ -34,7 +34,7 @@ import org.springframework.lang.Nullable;
  * resolver returned {@code null} or completed empty.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 @SuppressWarnings("serial")
 public class RepresentationException extends RuntimeException {

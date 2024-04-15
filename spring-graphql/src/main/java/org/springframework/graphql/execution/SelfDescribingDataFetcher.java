@@ -53,7 +53,7 @@ public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 	/**
 	 * Return a map with arguments that this {@link DataFetcher} looks up
 	 * along with the Java types they are mapped to.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	default Map<String, ResolvableType> getArguments() {
 		return Collections.emptyMap();

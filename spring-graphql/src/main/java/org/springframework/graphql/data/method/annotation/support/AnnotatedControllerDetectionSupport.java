@@ -57,7 +57,7 @@ import org.springframework.util.ClassUtils;
  *
  * @param <M> the type of mapping info prepared from a controller method
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public abstract class AnnotatedControllerDetectionSupport<M> implements ApplicationContextAware, InitializingBean {
 

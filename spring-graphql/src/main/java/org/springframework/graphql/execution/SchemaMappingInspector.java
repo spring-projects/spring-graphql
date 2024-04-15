@@ -302,7 +302,7 @@ public final class SchemaMappingInspector {
 	/**
 	 * Return an initializer to configure the {@link SchemaMappingInspector}
 	 * and perform the inspection.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	public static Initializer initializer() {
 		return new DefaultInitializer();
@@ -311,7 +311,7 @@ public final class SchemaMappingInspector {
 
 	/**
 	 * Helps to configure {@link SchemaMappingInspector}.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	public interface Initializer {
 

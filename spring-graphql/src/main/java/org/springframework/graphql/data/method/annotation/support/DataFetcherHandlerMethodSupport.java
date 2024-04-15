@@ -35,7 +35,7 @@ import org.springframework.util.ObjectUtils;
  * resolve argument values from a {@link DataFetchingEnvironment}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public class DataFetcherHandlerMethodSupport extends InvocableHandlerMethodSupport {
 

@@ -65,7 +65,7 @@ public interface SchemaReport {
 	/**
 	 * Return a map with {@link DataFetcher}s and the names of arguments they
 	 * depend on that don't exist.
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	MultiValueMap<DataFetcher<?>, String> unmappedArguments();
 

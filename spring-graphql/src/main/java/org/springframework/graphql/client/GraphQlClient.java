@@ -256,7 +256,7 @@ public interface GraphQlClient {
 		 * @return a spec with decoding options
 		 * @throws FieldAccessException if the field has any field errors,
 		 * including errors at, above or below the field path.
-		 * @since 1.3
+		 * @since 1.3.0
 		 */
 		RetrieveSyncSpec retrieveSync(String path);
 
@@ -291,7 +291,7 @@ public interface GraphQlClient {
 		 * @return a {@code ClientGraphQlResponse} for further decoding of the response.
 		 * @throws GraphQlTransportException in case of errors due to transport or
 		 * other issues related to encoding and decoding the request and response.
-		 * @since 1.3
+		 * @since 1.3.0
 		 */
 		ClientGraphQlResponse executeSync();
 

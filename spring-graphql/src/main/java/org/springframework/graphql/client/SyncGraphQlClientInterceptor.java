@@ -21,7 +21,7 @@ package org.springframework.graphql.client;
  * chain with a {@link SyncGraphQlTransport}.
  *
  * @author Rossen Stoyanchev
- * @since 1.3
+ * @since 1.3.0
  */
 public interface SyncGraphQlClientInterceptor {
 
