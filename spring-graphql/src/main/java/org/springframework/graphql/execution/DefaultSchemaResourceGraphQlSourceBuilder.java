@@ -152,7 +152,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 			logger.debug("Loaded GraphQL schema resources: (" + resources + ")");
 		}
 
-		RuntimeWiring runtimeWiring = initRuntimeWiring();
+		RuntimeWiring runtimeWiring = initRuntimeWiring(registry);
 		updateForCustomRootOperationTypeNames(registry, runtimeWiring);
 
 		TypeResolver typeResolver = initTypeResolver();
@@ -198,9 +198,12 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		}
 	}
 
-	private RuntimeWiring initRuntimeWiring() {
+	private RuntimeWiring initRuntimeWiring(TypeDefinitionRegistry typeRegistry) {
 		RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-		this.runtimeWiringConfigurers.forEach((configurer) -> configurer.configure(builder));
+		this.runtimeWiringConfigurers.forEach((configurer) -> {
+			configurer.setTypeDefinitionRegistry(typeRegistry);
+			configurer.configure(builder);
+		});
 
 		List<WiringFactory> factories = new ArrayList<>();
 		WiringFactory factory = builder.build().getWiringFactory();

@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +35,16 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import graphql.execution.DataFetcherResult;
+import graphql.language.ObjectTypeDefinition;
+import graphql.language.Type;
+import graphql.language.TypeDefinition;
+import graphql.language.TypeName;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
+import graphql.schema.idl.TypeDefinitionRegistry;
 import org.dataloader.DataLoader;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -72,6 +78,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
 
@@ -118,6 +126,8 @@ public class AnnotatedControllerConfigurer
 
 	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
 
+	private final InterfaceMappingHelper interfaceMappingHelper = new InterfaceMappingHelper();
+
 	@Nullable
 	private ValidationHelper validationHelper;
 
@@ -131,6 +141,11 @@ public class AnnotatedControllerConfigurer
 	 */
 	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
 		this.customArgumentResolvers.add(resolver);
+	}
+
+	@Override
+	public void setTypeDefinitionRegistry(TypeDefinitionRegistry registry) {
+		this.interfaceMappingHelper.setTypeDefinitionRegistry(registry);
 	}
 
 	/**
@@ -228,19 +243,16 @@ public class AnnotatedControllerConfigurer
 
 	@Override
 	public void configure(RuntimeWiring.Builder runtimeWiringBuilder) {
-		detectHandlerMethods().forEach((info) -> {
-			DataFetcher<?> dataFetcher;
-			if (!info.isBatchMapping()) {
-				dataFetcher = new SchemaMappingDataFetcher(
-						info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(), getExecutor());
-			}
-			else {
-				dataFetcher = registerBatchLoader(info);
-			}
-			FieldCoordinates coordinates = info.getCoordinates();
-			runtimeWiringBuilder.type(coordinates.getTypeName(), (typeBuilder) ->
-					typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
-		});
+
+		Set<DataFetcherMappingInfo> allInfos = detectHandlerMethods();
+		Set<DataFetcherMappingInfo> subTypeInfos = this.interfaceMappingHelper.removeInterfaceMappings(allInfos);
+
+		allInfos.forEach((info) -> registerDataFetcher(info, runtimeWiringBuilder));
+
+		RuntimeWiring wiring = runtimeWiringBuilder.build();
+		subTypeInfos = this.interfaceMappingHelper.filterExistingMappings(subTypeInfos, wiring.getDataFetchers());
+
+		subTypeInfos.forEach((info) -> registerDataFetcher(info, runtimeWiringBuilder));
 	}
 
 	@Override
@@ -311,6 +323,20 @@ public class AnnotatedControllerConfigurer
 	@Override
 	protected HandlerMethod getHandlerMethod(DataFetcherMappingInfo mappingInfo) {
 		return mappingInfo.getHandlerMethod();
+	}
+
+	private void registerDataFetcher(DataFetcherMappingInfo info, RuntimeWiring.Builder runtimeWiringBuilder) {
+		DataFetcher<?> dataFetcher;
+		if (!info.isBatchMapping()) {
+			dataFetcher = new SchemaMappingDataFetcher(
+					info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(), getExecutor());
+		}
+		else {
+			dataFetcher = registerBatchLoader(info);
+		}
+		FieldCoordinates coordinates = info.getCoordinates();
+		runtimeWiringBuilder.type(coordinates.getTypeName(), (typeBuilder) ->
+				typeBuilder.dataFetcher(coordinates.getFieldName(), dataFetcher));
 	}
 
 	private DataFetcher<Object> registerBatchLoader(DataFetcherMappingInfo info) {
@@ -506,6 +532,9 @@ public class AnnotatedControllerConfigurer
 	}
 
 
+	/**
+	 * {@link DataFetcher} that uses a DataLoader.
+	 */
 	static class BatchMappingDataFetcher implements DataFetcher<Object>, SelfDescribingDataFetcher<Object> {
 
 		private final DataFetcherMappingInfo mappingInfo;
@@ -535,6 +564,53 @@ public class AnnotatedControllerConfigurer
 			DataLoader<?, ?> dataLoader = env.getDataLoaderRegistry().getDataLoader(this.dataLoaderKey);
 			Assert.state(dataLoader != null, "No DataLoader for key '" + this.dataLoaderKey + "'");
 			return dataLoader.load(env.getSource());
+		}
+	}
+
+
+	/**
+	 * Helper to expand schema interface mappings into object type mappings.
+	 */
+	private static final class InterfaceMappingHelper {
+
+		private final MultiValueMap<String, String> interfaceMappings = new LinkedMultiValueMap<>();
+
+		void setTypeDefinitionRegistry(TypeDefinitionRegistry registry) {
+			for (TypeDefinition<?> definition : registry.types().values()) {
+				if (definition instanceof ObjectTypeDefinition objectDefinition) {
+					for (Type<?> type : objectDefinition.getImplements()) {
+						this.interfaceMappings.add(((TypeName) type).getName(), objectDefinition.getName());
+					}
+				}
+			}
+		}
+
+		Set<DataFetcherMappingInfo> removeInterfaceMappings(Set<DataFetcherMappingInfo> infos) {
+			Set<DataFetcherMappingInfo> subTypeMappings = new LinkedHashSet<>();
+			Iterator<DataFetcherMappingInfo> it = infos.iterator();
+			while (it.hasNext()) {
+				DataFetcherMappingInfo info = it.next();
+				List<String> names = this.interfaceMappings.get(info.getTypeName());
+				if (names != null) {
+					for (String name : names) {
+						subTypeMappings.add(new DataFetcherMappingInfo(name, info));
+					}
+					it.remove();
+				}
+			}
+			return subTypeMappings;
+		}
+
+		@SuppressWarnings("rawtypes")
+		Set<DataFetcherMappingInfo> filterExistingMappings(
+				Set<DataFetcherMappingInfo> infos, Map<String, Map<String, DataFetcher>> dataFetchers) {
+
+			return infos.stream()
+					.filter((info) -> {
+						Map<String, DataFetcher> registrations = dataFetchers.get(info.getTypeName());
+						return (registrations == null || !registrations.containsKey(info.getFieldName()));
+					})
+					.collect(Collectors.toSet());
 		}
 	}
 

@@ -52,12 +52,34 @@ public final class DataFetcherMappingInfo {
 		this.handlerMethod = handlerMethod;
 	}
 
+	public DataFetcherMappingInfo(String typeName, DataFetcherMappingInfo info) {
+		this.coordinates = FieldCoordinates.coordinates(typeName, info.getCoordinates().getFieldName());
+		this.batchMapping = info.batchMapping;
+		this.maxBatchSize = info.maxBatchSize;
+		this.handlerMethod = info.handlerMethod;
+	}
+
 
 	/**
 	 * The field to bind the controller method to.
 	 */
 	public FieldCoordinates getCoordinates() {
 		return this.coordinates;
+	}
+
+	/**
+	 * Shortcut for the typeName from the coordinates.
+	 */
+	public String getTypeName() {
+		return this.coordinates.getTypeName();
+	}
+
+
+	/**
+	 * Shortcut for the fieldName from the coordinates.
+	 */
+	public String getFieldName() {
+		return this.coordinates.getFieldName();
 	}
 
 	/**

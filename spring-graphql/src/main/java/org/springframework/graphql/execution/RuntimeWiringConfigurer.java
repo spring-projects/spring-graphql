@@ -19,6 +19,7 @@ package org.springframework.graphql.execution;
 import java.util.List;
 
 import graphql.schema.idl.RuntimeWiring;
+import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.WiringFactory;
 
 /**
@@ -29,6 +30,15 @@ import graphql.schema.idl.WiringFactory;
  * @since 1.0.0
  */
 public interface RuntimeWiringConfigurer {
+
+	/**
+	 * Provides the configurer access to the {@link TypeDefinitionRegistry}.
+	 * @param registry the registry
+	 * @since 1.3.0
+	 */
+	default void setTypeDefinitionRegistry(TypeDefinitionRegistry registry) {
+		// no-op
+	}
 
 	/**
 	 * Apply changes to the {@link RuntimeWiring.Builder} such as registering
