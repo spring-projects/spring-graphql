@@ -85,7 +85,7 @@ public class TestWebSocketSession implements WebSocketSession {
 
 	@Override
 	public InetSocketAddress getRemoteAddress() {
-		throw new UnsupportedOperationException();
+		return null;
 	}
 
 	@Override

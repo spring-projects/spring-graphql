@@ -78,7 +78,7 @@ final class WebGraphQlHandlerGraphQlTransport extends AbstractDirectGraphQlTrans
 	protected Mono<ExecutionGraphQlResponse> executeInternal(ExecutionGraphQlRequest executionRequest) {
 
 		WebGraphQlRequest request = new WebGraphQlRequest(
-				this.url, this.headers, null,  Collections.emptyMap(), executionRequest,
+				this.url, this.headers, null,  null, Collections.emptyMap(), executionRequest,
 				idGenerator.generateId().toString(), null);
 
 		return this.graphQlHandler.handleRequest(request).cast(ExecutionGraphQlResponse.class);

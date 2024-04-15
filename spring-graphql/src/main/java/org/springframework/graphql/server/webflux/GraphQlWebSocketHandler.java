@@ -172,7 +172,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 					}
 					WebSocketGraphQlRequest request = new WebSocketGraphQlRequest(
 							handshakeInfo.getUri(), handshakeInfo.getHeaders(), handshakeInfo.getCookies(),
-							handshakeInfo.getAttributes(), payload, id, null, sessionInfo);
+							handshakeInfo.getRemoteAddress(), handshakeInfo.getAttributes(),
+							payload, id, null, sessionInfo);
 					if (logger.isDebugEnabled()) {
 						logger.debug("Executing: " + request);
 					}

@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.server;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Locale;
@@ -58,8 +59,51 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	private final MultiValueMap<String, HttpCookie> cookies;
 
+	@Nullable
+	private final InetSocketAddress remoteAddress;
+
 	private final Map<String, Object> attributes;
 
+	/**
+	 * Create an instance.
+	 * @param uri the URL for the HTTP request or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param cookies the HTTP request cookies
+	 * @param remoteAddress the HTTP client remote address
+	 * @param attributes request attributes
+	 * @param body the deserialized content of the GraphQL request
+	 * @param id an identifier for the GraphQL request
+	 * @param locale the locale from the HTTP request, if any
+	 * @since 1.3.0
+	 */
+	public WebGraphQlRequest(URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+							@Nullable InetSocketAddress remoteAddress, Map<String, Object> attributes,
+							GraphQlRequest body, String id, @Nullable Locale locale) {
+		this(uri, headers, cookies, remoteAddress, attributes, body.getDocument(),
+				body.getOperationName(), body.getVariables(), body.getExtensions(), id, locale);
+	}
+
+	/**
+	 * Variant of {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
+	 * with a Map for the request body.
+	 * @param uri the URL for the HTTP request or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param cookies the HTTP request cookies
+	 * @param remoteAddress the HTTP client remote address
+	 * @param attributes request attributes
+	 * @param body the deserialized content of the GraphQL request
+	 * @param id an identifier for the GraphQL request
+	 * @param locale the locale from the HTTP request, if any
+	 * @since 1.3.0
+	 */
+	public WebGraphQlRequest(
+			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+			@Nullable InetSocketAddress remoteAddress, Map<String, Object> attributes,
+			Map<String, Object> body, String id, @Nullable Locale locale) {
+
+		this(uri, headers, cookies, remoteAddress, attributes, getQuery(body), getOperation(body),
+				getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
+	}
 
 	/**
 	 * Create an instance.
@@ -71,12 +115,14 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	 * @param id an identifier for the GraphQL request
 	 * @param locale the locale from the HTTP request, if any
 	 * @since 1.2.5
+	 * @deprecated since 1.3.0 in favor {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, InetSocketAddress, Map, Map, String, Locale)}
 	 */
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public WebGraphQlRequest(
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
 			Map<String, Object> attributes, GraphQlRequest body, String id, @Nullable Locale locale) {
 
-		this(uri, headers, cookies, attributes, body.getDocument(),
+		this(uri, headers, cookies, null, attributes, body.getDocument(),
 				body.getOperationName(), body.getVariables(), body.getExtensions(), id, locale);
 	}
 
@@ -91,12 +137,14 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	 * @param id an identifier for the GraphQL request
 	 * @param locale the locale from the HTTP request, if any
 	 * @since 1.1.3
+	 * @deprecated since 1.3.0 in favor {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, InetSocketAddress, Map, Map, String, Locale)}
 	 */
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public WebGraphQlRequest(
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
 			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale) {
 
-		this(uri, headers, cookies, attributes, getQuery(body), getOperation(body),
+		this(uri, headers, cookies, null, attributes, getQuery(body), getOperation(body),
 				getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
 	}
 
@@ -127,24 +175,10 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 		return (Map<String, Object>) value;
 	}
 
-	/**
-	 * Create an instance.
-	 * @param uri the URL for the HTTP request or WebSocket handshake
-	 * @param headers the HTTP request headers
-	 * @param body the deserialized content of the GraphQL request
-	 * @param id an identifier for the GraphQL request
-	 * @param locale the locale from the HTTP request, if any
-	 * @deprecated as of 1.1.3 in favor of
-	 * {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
-	 */
-	@Deprecated(since = "1.1.3", forRemoval = true)
-	public WebGraphQlRequest(URI uri, HttpHeaders headers, Map<String, Object> body, String id, @Nullable Locale locale) {
-		this(uri, headers, null, Collections.emptyMap(), body, id, locale);
-	}
-
 	private WebGraphQlRequest(
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
-			Map<String, Object> attributes, String document, @Nullable String operationName,
+			@Nullable InetSocketAddress remoteAddress, Map<String, Object> attributes,
+			String document, @Nullable String operationName,
 			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions,
 			String id, @Nullable Locale locale) {
 
@@ -156,6 +190,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 		this.uri = UriComponentsBuilder.fromUri(uri).build(true);
 		this.headers = headers;
 		this.cookies = (cookies != null) ? CollectionUtils.unmodifiableMultiValueMap(cookies) : EMPTY_COOKIES;
+		this.remoteAddress = remoteAddress;
 		this.attributes = Collections.unmodifiableMap(attributes);
 	}
 
@@ -180,6 +215,15 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	 */
 	public MultiValueMap<String, HttpCookie> getCookies() {
 		return this.cookies;
+	}
+
+	/**
+	 * Return the remote address of the client, if available.
+	 * @since 1.3.0
+	 */
+	@Nullable
+	public InetSocketAddress getRemoteAddress() {
+		return this.remoteAddress;
 	}
 
 	/**

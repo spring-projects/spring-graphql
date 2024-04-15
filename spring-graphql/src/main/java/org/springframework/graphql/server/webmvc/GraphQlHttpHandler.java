@@ -81,6 +81,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 
 		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 				serverRequest.uri(), serverRequest.headers().asHttpHeaders(), initCookies(serverRequest),
+				serverRequest.remoteAddress().orElse(null),
 				serverRequest.attributes(), readBody(serverRequest), this.idGenerator.generateId().toString(),
 				LocaleContextHolder.getLocale());
 

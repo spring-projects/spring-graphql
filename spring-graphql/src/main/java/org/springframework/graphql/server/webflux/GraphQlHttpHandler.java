@@ -74,7 +74,8 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 				.flatMap((body) -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
-							serverRequest.cookies(), serverRequest.attributes(), body,
+							serverRequest.cookies(), serverRequest.remoteAddress().orElse(null),
+							serverRequest.attributes(), body,
 							serverRequest.exchange().getRequest().getId(),
 							serverRequest.exchange().getLocaleContext().getLocale());
 					if (logger.isDebugEnabled()) {
