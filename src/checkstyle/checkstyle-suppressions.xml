@@ -11,5 +11,5 @@
 	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]" checks="JavadocPackage|SpringJavadoc|InnerTypeLast|SpringMethodVisibility|RequireThis|SpringLambda|SpringTernary|FinalClass|RedundantModifier|SpringAvoidStaticImport" />
 
 	<!-- docs -->
-	<suppress files="(.*graphql-docs.*)" checks="JavadocPackage|OneTopLevelClass" />
+	<suppress files="(.*graphql-docs.*)" checks="JavadocPackage|OneTopLevelClass|InnerTypeLast" />
 </suppressions>
