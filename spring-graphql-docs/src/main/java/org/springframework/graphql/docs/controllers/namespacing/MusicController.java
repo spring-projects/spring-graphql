@@ -24,7 +24,7 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
 
 @Controller
-@SchemaMapping(typeName="MusicQueries") // <1>
+@SchemaMapping(typeName = "MusicQueries") // <1>
 public class MusicController {
 
 	@QueryMapping // <2>
