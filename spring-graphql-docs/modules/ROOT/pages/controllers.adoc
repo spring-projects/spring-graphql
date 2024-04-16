@@ -754,3 +754,67 @@ Supported return types are listed below:
 | For asynchronous resolution where `<T>` is one of the supported, synchronous, return types.
 
 |===
+
+
+
+[[controllers.namespacing]]
+== Namespacing
+
+At the schema level, query and mutation operations are defined directly under the `Query` and `Mutation` types.
+Rich GraphQL APIs can define dozens of operation sunder those types, making it harder to explore the API and separate concerns.
+You can choose to https://www.apollographql.com/docs/technotes/TN0012-namespacing-by-separation-of-concern/[define Namespaces in your GraphQL schema].
+While there are some caveats with this approach, you can implement this pattern with Spring for GraphQL annotated controllers.
+
+With namespacing, your GraphQL schema can, for example, nest query operations under top-level types, instead of listing them directly under `Query`.
+Here, we will define `MusicQueries` and `UserQueries` types and make them available under `Query`:
+
+[source,json,subs="verbatim,quotes"]
+----
+include::ROOT:{include-resources}/controllers/namespaces.graphqls[]
+----
+
+A GraphQL client would use the `album` query like this:
+
+[source,graphql,subs="verbatim,quotes"]
+----
+{
+  music {
+    album(id: 42) {
+      id
+      title
+    }
+  }
+}
+----
+
+And get the following response:
+
+[source,json,subs="verbatim,quotes"]
+----
+{
+  "data": {
+    "music": {
+      "album": {
+        "id": "42",
+        "title": "Spring for GraphQL"
+      }
+    }
+  }
+}
+----
+
+
+This can be implemented in a `@Controller` with the following pattern:
+
+include-code::MusicController[]
+<1> Annotate the controller with `@SchemaMapping` and a `typeName` attribute, to avoid repeating it on methods
+<2> Define a `@QueryMapping` for the "music" namespace
+<3> The "music" query returns an "empty" record, but could also return an empty map
+<4> Queries are now declared as fields under the "MusicQueries" type
+
+Instead of declaring wrapping types ("MusicQueries", "UserQueries") explicitly in controllers,
+you can choose to configure them with the runtime wiring using a `GraphQlSourceBuilderCustomizer` with Spring Boot:
+
+include-code::NamespaceConfiguration[]
+<1> List all the wrapper types for the "Query" type
+<2> Manually declare data fetchers for each of them, returning an empty Map
