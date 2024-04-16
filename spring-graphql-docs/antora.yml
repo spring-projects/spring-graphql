@@ -17,6 +17,7 @@ asciidoc:
     chomp: 'all'
     docs-site: https://docs.spring.io
     include-java: 'example$docs-src/main/java/org/springframework/graphql/docs'
+    include-resources: 'example$docs-src/main/resources'
     github-tag: main
     github-repo: spring-projects/spring-graphql
     github-raw: https://raw.githubusercontent.com/{github-repo}/{github-tag}

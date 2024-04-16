@@ -1,0 +1,28 @@
+type Query {
+    music: MusicQueries
+    users: UserQueries
+}
+
+type MusicQueries {
+    album(id: ID!): Album
+    searchForArtist(name: String!): [Artist]
+}
+
+type Album {
+    id: ID!
+    title: String!
+}
+
+type Artist {
+    id: ID!
+    name: String!
+}
+
+type UserQueries {
+    user(login: String): User
+}
+
+type User {
+    id: ID!
+    login: String!
+}

@@ -25,6 +25,7 @@ dependencies {
 	api 'org.springframework:spring-messaging'
 	api 'org.springframework.data:spring-data-commons'
 	api 'com.querydsl:querydsl-core'
+	api "org.springframework.boot:spring-boot-starter-graphql:${springBootVersion}"
 }
 
 jar {
