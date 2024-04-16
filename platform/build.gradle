@@ -19,9 +19,9 @@ dependencies {
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.0"))
 	api(platform("org.junit:junit-bom:5.10.2"))
-	api(platform("org.mockito:mockito-bom:5.8.0"))
-	api(platform("org.testcontainers:testcontainers-bom:1.19.5"))
-	api(platform("org.apache.logging.log4j:log4j-bom:2.22.1"))
+	api(platform("org.mockito:mockito-bom:5.11.0"))
+	api(platform("org.testcontainers:testcontainers-bom:1.19.7"))
+	api(platform("org.apache.logging.log4j:log4j-bom:2.23.1"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
@@ -33,23 +33,23 @@ dependencies {
 		api("jakarta.persistence:jakarta.persistence-api:3.1.0")
 
 		api("com.apollographql.federation:federation-graphql-java-support:4.4.0")
-		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:6.1.4")
+		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:6.1.5")
 
 		api("com.google.code.findbugs:jsr305:3.0.2")
 
-		api("org.assertj:assertj-core:3.24.2")
-		api("com.jayway.jsonpath:json-path:2.8.0")
+		api("org.assertj:assertj-core:3.25.3")
+		api("com.jayway.jsonpath:json-path:2.9.0")
 		api("org.skyscreamer:jsonassert:1.5.1")
-		api("org.awaitility:awaitility:4.2.0")
+		api("org.awaitility:awaitility:4.2.1")
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
 
-		api("com.h2database:h2:2.1.214")
-		api("org.hibernate:hibernate-core:6.4.4.Final")
+		api("com.h2database:h2:2.2.224")
+		api("org.hibernate:hibernate-core:6.5.0.CR1")
 		api("org.hibernate.validator:hibernate-validator:8.0.1.Final")
-		api("org.mongodb:bson:4.11.1")
-		api("org.mongodb:mongodb-driver-core:4.11.1")
-		api("org.mongodb:mongodb-driver-reactivestreams:4.11.1")
-		api("org.mongodb:mongodb-driver-sync:4.11.1")
+		api("org.mongodb:bson:5.0.1")
+		api("org.mongodb:mongodb-driver-core:5.0.1")
+		api("org.mongodb:mongodb-driver-reactivestreams:5.0.1")
+		api("org.mongodb:mongodb-driver-sync:5.0.1")
 	}
 
 }
