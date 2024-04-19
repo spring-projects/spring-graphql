@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.data.federation.EntityMapping;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -448,6 +449,113 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 			public GraphQLError handleBindException(BindException exc) {
 				return null;
 			}
+		}
+	}
+
+	@Nested
+	class EntityMappingTests {
+
+		@Test
+		void registerBindingReflectionOnReturnType() {
+			processBeanClasses(ReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(ReturnTypeController.class, "bookById");
+			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class);
+		}
+
+		@Test
+		void registerBindingReflectionOnOnNamedValue() {
+			processBeanClasses(NamedValueController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(NamedValueController.class);
+			assertThatInvocationHintRegisteredForMethods(NamedValueController.class, "book");
+			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, Identifier.class);
+		}
+
+		@Test
+		void registerBindingReflectionOnOnNamedValues() {
+			processBeanClasses(NamedValuesController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(NamedValuesController.class);
+			assertThatInvocationHintRegisteredForMethods(NamedValuesController.class, "books");
+			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, Identifier.class);
+		}
+
+		@Test
+		void registerBindingReflectionOnAsyncReturnType() {
+			processBeanClasses(AsyncReturnTypeController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(AsyncReturnTypeController.class);
+			assertThatInvocationHintRegisteredForMethods(AsyncReturnTypeController.class, "author");
+			assertThatHintsForJavaBeanBindingRegisteredForTypes(Author.class);
+		}
+
+		@Test
+		void doNotRegisterBindingForContextArguments() {
+			processBeanClasses(ContextArgumentsController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(ContextArgumentsController.class);
+			assertThatInvocationHintRegisteredForMethods(ContextArgumentsController.class, "dataFetchingEnvironment");
+			assertThatHintsAreNotRegisteredForTypes(GraphQLContext.class, DataFetchingFieldSelectionSet.class, Locale.class);
+		}
+
+		@Test
+		void doNotRegisterBindingForAnnotatedContextArguments() {
+			processBeanClasses(AnnotatedContextArgumentController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(AnnotatedContextArgumentController.class);
+			assertThatInvocationHintRegisteredForMethods(AnnotatedContextArgumentController.class, "contextValue");
+			assertThatHintsAreNotRegisteredForTypes(Book.class);
+		}
+
+
+		@Controller
+		static class ReturnTypeController {
+			@EntityMapping
+			public Book bookById(@Argument Long id) {
+				return null;
+			}
+
+		}
+
+		@Controller
+		static class NamedValueController {
+			@EntityMapping
+			public Book book(@Argument Identifier id) {
+				return null;
+			}
+
+		}
+
+		@Controller
+		static class NamedValuesController {
+			@EntityMapping
+			public List<Book> books(@Argument List<Identifier> idList) {
+				return null;
+			}
+
+		}
+
+		@Controller
+		static class AsyncReturnTypeController {
+			@EntityMapping
+			public CompletableFuture<Author> author(Long bookId) {
+				return null;
+			}
+
+		}
+
+		@Controller
+		static class ContextArgumentsController {
+			@EntityMapping
+			public void dataFetchingEnvironment(GraphQLContext context, DataFetchingFieldSelectionSet selectionSet, Locale locale) {
+			}
+		}
+
+		@Controller
+		class AnnotatedContextArgumentController {
+			@EntityMapping
+			public void contextValue(@ContextValue Book book, @LocalContextValue Book localBook) {
+			}
+		}
+
+		record Identifier(String id) {
+
 		}
 	}
 

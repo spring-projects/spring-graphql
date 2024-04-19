@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.projection.TargetAware;
 import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.data.federation.EntityMapping;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
@@ -58,8 +59,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
  * {@link BeanFactoryInitializationAotProcessor} implementation for registering
  * runtime hints discoverable through GraphQL controllers, such as:
  * <ul>
- * <li>invocation reflection on {@code @SchemaMapping} and {@code @BatchMapping}
- * annotated controllers methods
+ * <li>invocation reflection on {@code @SchemaMapping}, {@code @BatchMapping}
+ * and {@code @EntityMapping} annotated controllers methods
  * <li>invocation reflection on {@code @GraphQlExceptionHandler} methods
  * in {@code @Controller} and {@code @ControllerAdvice} beans
  * <li>binding reflection on controller method arguments, needed for binding or
@@ -167,7 +168,8 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		private boolean isGraphQlHandlerMethod(AnnotatedElement element) {
 			MergedAnnotations annotations = MergedAnnotations.from(element, MergedAnnotations.SearchStrategy.TYPE_HIERARCHY);
-			return annotations.isPresent(SchemaMapping.class) || annotations.isPresent(BatchMapping.class);
+			return annotations.isPresent(SchemaMapping.class) || annotations.isPresent(BatchMapping.class)
+					|| annotations.isPresent(EntityMapping.class);
 		}
 
 		private boolean isExceptionHandlerMethod(AnnotatedElement element) {
