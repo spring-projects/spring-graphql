@@ -35,6 +35,7 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
@@ -146,6 +147,28 @@ public class GraphQlHttpHandler {
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);
 		}
+		catch (HttpMediaTypeNotSupportedException ex) {
+			return applyApplicationGraphQlFallback(request, ex);
+		}
+	}
+
+	private static SerializableGraphQlRequest applyApplicationGraphQlFallback(
+			ServerRequest request, HttpMediaTypeNotSupportedException ex) throws HttpMediaTypeNotSupportedException {
+
+		// Spec requires application/json but some clients still use application/graphql
+		if ("application/graphql".equals(request.headers().firstHeader(HttpHeaders.CONTENT_TYPE))) {
+			try {
+				request = ServerRequest.from(request)
+						.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
+						.body(request.body(byte[].class))
+						.build();
+				return request.body(SerializableGraphQlRequest.class);
+			}
+			catch (Throwable ex2) {
+				// ignore
+			}
+		}
+		throw ex;
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {

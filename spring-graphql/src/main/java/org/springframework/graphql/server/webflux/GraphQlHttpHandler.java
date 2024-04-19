@@ -25,13 +25,16 @@ import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 
 /**
  * WebFlux.fn Handler for GraphQL over HTTP requests.
@@ -73,6 +76,9 @@ public class GraphQlHttpHandler {
 	 */
 	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
 		return serverRequest.bodyToMono(SerializableGraphQlRequest.class)
+				.onErrorResume(
+						UnsupportedMediaTypeStatusException.class,
+						(ex) -> applyApplicationGraphQlFallback(ex, serverRequest))
 				.flatMap((body) -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
@@ -93,6 +99,20 @@ public class GraphQlHttpHandler {
 					builder.contentType(selectResponseMediaType(serverRequest));
 					return builder.bodyValue(response.toMap());
 				});
+	}
+
+	private static Mono<SerializableGraphQlRequest> applyApplicationGraphQlFallback(
+			UnsupportedMediaTypeStatusException ex, ServerRequest request) {
+
+		// Spec requires application/json but some clients still use application/graphql
+		return "application/graphql".equals(request.headers().firstHeader(HttpHeaders.CONTENT_TYPE)) ?
+				ServerRequest.from(request)
+						.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
+						.body(request.bodyToFlux(DataBuffer.class))
+						.build()
+						.bodyToMono(SerializableGraphQlRequest.class)
+						.log() :
+				Mono.error(ex);
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {

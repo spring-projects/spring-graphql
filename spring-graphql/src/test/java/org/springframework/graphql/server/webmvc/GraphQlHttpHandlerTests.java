@@ -36,6 +36,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -55,7 +56,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 public class GraphQlHttpHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
-			Collections.singletonList(new MappingJackson2HttpMessageConverter());
+			List.of(new MappingJackson2HttpMessageConverter(), new ByteArrayHttpMessageConverter());
 
 	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 			.queryFetcher("greeting", (env) -> "Hello").toHttpHandler();
@@ -66,6 +67,16 @@ public class GraphQlHttpHandlerTests {
 		MockHttpServletRequest request = createServletRequest("{ greeting }", "*/*");
 		MockHttpServletResponse response = handleRequest(request, this.greetingHandler);
 		assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
+		assertThat(response.getContentAsString()).isEqualTo("{\"data\":{\"greeting\":\"Hello\"}}");
+	}
+
+	@Test
+	void shouldSupportApplicationGraphQl() throws Exception {
+		MockHttpServletRequest request = createServletRequest("{ greeting }", "*/*");
+		request.setContentType("application/graphql");
+
+		MockHttpServletResponse response = handleRequest(request, this.greetingHandler);
+		assertThat(response.getContentAsString()).isEqualTo("{\"data\":{\"greeting\":\"Hello\"}}");
 	}
 
 	@Test
