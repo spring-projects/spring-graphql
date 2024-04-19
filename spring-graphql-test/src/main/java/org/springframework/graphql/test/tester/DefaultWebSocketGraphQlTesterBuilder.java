@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,14 @@ package org.springframework.graphql.test.tester;
 
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.client.GraphQlClientInterceptor;
 import org.springframework.graphql.client.WebSocketGraphQlClient;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
@@ -40,6 +44,8 @@ final class DefaultWebSocketGraphQlTesterBuilder
 		implements WebSocketGraphQlTester.Builder<DefaultWebSocketGraphQlTesterBuilder> {
 
 	private final WebSocketGraphQlClient.Builder<?> graphQlClientBuilder;
+
+	private final List<GraphQlClientInterceptor> interceptors = new ArrayList<>();
 
 
 	/**
@@ -99,9 +105,21 @@ final class DefaultWebSocketGraphQlTesterBuilder
 	}
 
 	@Override
+	public DefaultWebSocketGraphQlTesterBuilder interceptor(GraphQlClientInterceptor... interceptors) {
+		this.interceptors.addAll(Arrays.asList(interceptors));
+		return this;
+	}
+
+	@Override
+	public DefaultWebSocketGraphQlTesterBuilder interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer) {
+		interceptorsConsumer.accept(this.interceptors);
+		return this;
+	}
+
+	@Override
 	public WebSocketGraphQlTester build() {
 		registerJsonPathMappingProvider();
-		WebSocketGraphQlClient client = this.graphQlClientBuilder.build();
+		WebSocketGraphQlClient client = this.graphQlClientBuilder.interceptors((list) -> list.addAll(this.interceptors)).build();
 		GraphQlTester graphQlTester = super.buildGraphQlTester(asTransport(client));
 		return new DefaultWebSocketGraphQlTester(graphQlTester, client, getBuilderInitializer());
 	}

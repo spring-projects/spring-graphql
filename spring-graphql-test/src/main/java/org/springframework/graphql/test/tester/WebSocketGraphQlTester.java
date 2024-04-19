@@ -17,9 +17,13 @@
 package org.springframework.graphql.test.tester;
 
 import java.net.URI;
+import java.util.List;
+import java.util.function.Consumer;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.client.GraphQlClientInterceptor;
+import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.client.WebSocketGraphQlClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 
@@ -80,6 +84,22 @@ public interface WebSocketGraphQlTester extends WebGraphQlTester {
 	 * @param <B> the type of builder
 	 */
 	interface Builder<B extends Builder<B>> extends WebGraphQlTester.Builder<B> {
+
+		/**
+		 * Configure interceptors to be invoked before delegating to the
+		 * {@link GraphQlTransport} to perform the request.
+		 * @param interceptors the interceptors to add
+		 * @return this builder
+		 */
+		B interceptor(GraphQlClientInterceptor... interceptors);
+
+		/**
+		 * Customize the list of interceptors. The provided list is "live", so
+		 * the consumer can inspect and insert interceptors accordingly.
+		 * @param interceptorsConsumer consumer to customize the interceptors with
+		 * @return this builder
+		 */
+		B interceptors(Consumer<List<GraphQlClientInterceptor>> interceptorsConsumer);
 
 		/**
 		 * Build the {@code WebSocketGraphQlTester}.
