@@ -23,22 +23,24 @@ import java.util.Locale;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import reactor.test.StepVerifier;
 
-import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
+import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.http.codec.HttpMessageWriter;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpResponse;
-import org.springframework.mock.web.reactive.function.server.MockServerRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.ViewResolver;
-import org.springframework.web.server.ServerWebExchange;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,95 +50,100 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class GraphQlHttpHandlerTests {
 
-	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
-			.queryFetcher("greeting", (env) -> "Hello").toHttpHandlerWebFlux();
+	private static final List<HttpMessageReader<?>> MESSAGE_READERS =
+			List.of(new DecoderHttpMessageReader<>(new Jackson2JsonDecoder()));
+
+	private final GraphQlHttpHandler greetingHandler =
+			GraphQlSetup.schemaContent("type Query { greeting: String }")
+					.queryFetcher("greeting", (env) -> "Hello")
+					.toHttpHandlerWebFlux();
 
 
 	@Test
-	void shouldProduceApplicationJsonByDefault() {
-		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.ALL).build();
-
+	void shouldProduceApplicationJsonByDefault() throws Exception {
 		String document = "{greeting}";
-		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, this.greetingHandler, initRequest(document));
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.ALL)
+				.body(initRequestBody(document));
 
-		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+		MockServerHttpResponse response = handleRequest(httpRequest, this.greetingHandler);
+
+		assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+		StepVerifier.create(response.getBodyAsString())
+				.expectNext("{\"data\":{\"greeting\":\"Hello\"}}")
+				.verifyComplete();
 	}
 
 	@Test
-	void shouldProduceApplicationGraphQl() {
+	void shouldProduceApplicationGraphQl() throws Exception {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.body(initRequestBody("{greeting}"));
 
-		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, this.greetingHandler, initRequest("{greeting}"));
+		MockServerHttpResponse httpResponse = handleRequest(httpRequest, this.greetingHandler);
 
 		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_RESPONSE);
 	}
 
 	@Test
-	void shouldProduceApplicationJson() {
+	void shouldProduceApplicationJson() throws Exception {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).build();
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON)
+				.body(initRequestBody("{greeting}"));
 
-		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, this.greetingHandler, initRequest("{greeting}"));
+		MockServerHttpResponse httpResponse = handleRequest(httpRequest, this.greetingHandler);
 
 		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
 	}
 
 	@Test
-	void locale() {
+	void locale() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "Hello in " + env.getLocale())
 				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
-				.acceptLanguageAsLocales(Locale.FRENCH).build();
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.acceptLanguageAsLocales(Locale.FRENCH)
+				.body(initRequestBody("{greeting}"));
 
-		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, handler, initRequest("{greeting}"));
+		MockServerHttpResponse httpResponse = handleRequest(httpRequest, handler);
 
 		assertThat(httpResponse.getBodyAsString().block())
 				.isEqualTo("{\"data\":{\"greeting\":\"Hello in fr\"}}");
 	}
 
 	@Test
-	void shouldSetExecutionId() {
+	void shouldSetExecutionId() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent("type Query { showId: String }")
 				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
 				.toHttpHandlerWebFlux();
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
-				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_GRAPHQL_RESPONSE).build();
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.body(initRequestBody("{showId}"));
 
-		MockServerHttpResponse httpResponse = handleRequest(
-				httpRequest, handler, initRequest("{showId}"));
+		MockServerHttpResponse httpResponse = handleRequest(httpRequest, handler);
 
 		DocumentContext document = JsonPath.parse(httpResponse.getBodyAsString().block());
 		String id = document.read("data.showId", String.class);
 		assertThat(id).isEqualTo(httpRequest.getId());
 	}
 
-	private static SerializableGraphQlRequest initRequest(String document) {
+	private static String initRequestBody(String document) throws Exception {
 		SerializableGraphQlRequest request = new SerializableGraphQlRequest();
 		request.setQuery(document);
-		return request;
+		return new ObjectMapper().writeValueAsString(request);
 	}
 
-	private MockServerHttpResponse handleRequest(
-			MockServerHttpRequest httpRequest, GraphQlHttpHandler handler, GraphQlRequest body) {
-
+	private MockServerHttpResponse handleRequest(MockServerHttpRequest httpRequest, GraphQlHttpHandler handler) {
 		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
-
-		MockServerRequest serverRequest = MockServerRequest.builder()
-				.exchange(exchange)
-				.uri(((ServerWebExchange) exchange).getRequest().getURI())
-				.method(((ServerWebExchange) exchange).getRequest().getMethod())
-				.headers(((ServerWebExchange) exchange).getRequest().getHeaders())
-				.body(Mono.just(body));
+		ServerRequest serverRequest = ServerRequest.create(exchange, MESSAGE_READERS);
 
 		handler.handleRequest(serverRequest)
 				.flatMap(response -> response.writeTo(exchange, new DefaultContext()))
