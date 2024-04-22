@@ -78,6 +78,18 @@ class GraphQlRequestPredicatesTests {
 		}
 
 		@Test
+		void shouldMapApplicationGraphQlRequestContent() {
+			ServerWebExchange exchange = createMatchingHttpExchange()
+					.mutate().request(builder -> builder.headers(headers -> {
+						MediaType contentType = MediaType.parseMediaType("application/graphql");
+						headers.setContentType(contentType);
+					}))
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isTrue();
+		}
+
+		@Test
 		void shouldRejectRequestWithDifferentContentType() {
 			ServerWebExchange exchange = createMatchingHttpExchange()
 					.mutate().request(req -> req.headers(headers -> headers.setContentType(MediaType.TEXT_HTML)))

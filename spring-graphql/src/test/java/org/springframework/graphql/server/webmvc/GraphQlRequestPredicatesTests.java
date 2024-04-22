@@ -75,6 +75,14 @@ class GraphQlRequestPredicatesTests {
 		}
 
 		@Test
+		void shouldMapApplicationGraphQlRequestContent() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setContentType("application/graphql");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isTrue();
+		}
+
+		@Test
 		void shouldRejectRequestWithDifferentContentType() {
 			MockHttpServletRequest request = createMatchingHttpRequest();
 			request.setContentType("text/xml");
