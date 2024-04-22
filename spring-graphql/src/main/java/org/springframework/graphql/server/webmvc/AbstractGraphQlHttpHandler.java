@@ -27,6 +27,7 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -81,15 +82,40 @@ abstract class AbstractGraphQlHttpHandler {
 					return (GraphQlRequest) this.messageConverter.read(SerializableGraphQlRequest.class,
 							new ServletServerHttpRequest(request.servletRequest()));
 				}
-				throw new HttpMediaTypeNotSupportedException(contentType, this.messageConverter.getSupportedMediaTypes(), request.method());
+				throw new HttpMediaTypeNotSupportedException(
+						contentType, this.messageConverter.getSupportedMediaTypes(), request.method());
 			}
 			else {
-				return request.body(SerializableGraphQlRequest.class);
+				try {
+					return request.body(SerializableGraphQlRequest.class);
+				}
+				catch (HttpMediaTypeNotSupportedException ex) {
+					return applyApplicationGraphQlFallback(request, ex);
+				}
 			}
 		}
 		catch (IOException ex) {
 			throw new ServerWebInputException("I/O error while reading request body", null, ex);
 		}
+	}
+
+	private static SerializableGraphQlRequest applyApplicationGraphQlFallback(
+			ServerRequest request, HttpMediaTypeNotSupportedException ex) throws HttpMediaTypeNotSupportedException {
+
+		// Spec requires application/json but some clients still use application/graphql
+		if ("application/graphql".equals(request.headers().firstHeader(HttpHeaders.CONTENT_TYPE))) {
+			try {
+				request = ServerRequest.from(request)
+						.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
+						.body(request.body(byte[].class))
+						.build();
+				return request.body(SerializableGraphQlRequest.class);
+			}
+			catch (Throwable ex2) {
+				// ignore
+			}
+		}
+		throw ex;
 	}
 
 }
