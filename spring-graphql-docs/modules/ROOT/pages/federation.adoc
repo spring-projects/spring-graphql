@@ -3,17 +3,17 @@
 
 Spring for GraphQL provides an integration for the
 https://github.com/apollographql/federation-jvm[federation-jvm] library, which uses
-GraphQL Java to initialize the schema of a sub-graph within a federated graph.
+GraphQL Java to initialize the schema of a sub-graph within a graph of federated services.
 See https://www.apollographql.com/docs/federation/[Apollo Federation] and the
-https://www.apollographql.com/docs/federation/subgraph-spec[Subgraph spec] for further details.
+https://www.apollographql.com/docs/federation/subgraph-spec[Subgraph specification] for details.
 
 
 
 [[federation.config]]
 == Config
 
-To use the integration, declare a `FederationSchemaFactory` bean in your config, and plug
-it into `GraphQlSource.Builder`. For example, in a Spring Boot application:
+To enable the integration, declare a `FederationSchemaFactory` bean in your config, and plug
+it into `GraphQlSource.Builder`. For example, with Spring Boot:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -21,15 +21,14 @@ it into `GraphQlSource.Builder`. For example, in a Spring Boot application:
 	public class FederationConfig {
 
 		@Bean
-		public FederationSchemaFactory schemaFactory() {
-			return new FederationSchemaFactory();
-		}
-
-		@Bean
 		public GraphQlSourceBuilderCustomizer customizer(FederationSchemaFactory factory) {
 			return builder -> builder.schemaFactory(factory::createGraphQLSchema);
 		}
 
+		@Bean
+		public FederationSchemaFactory schemaFactory() {
+			return new FederationSchemaFactory();
+		}
 	}
 ----
 
@@ -53,9 +52,9 @@ type Author {
 [[federation.entity-mapping]]
 == `@EntityMapping`
 
-To resolve federated types in response to the
-https://www.apollographql.com/docs/federation/subgraph-spec/#understanding-query_entities[_entities query],
-you can use `@EntityMapping` methods along with `@SchemaMapping` methods for types under the entity.
+An `@EntityMapping` method can load federated type instances in response to an
+https://www.apollographql.com/docs/federation/subgraph-spec/#understanding-query_entities[_entities query]
+from the federation gateway. For example:
 
 For example:
 
@@ -65,26 +64,27 @@ For example:
 	private static class BookController {
 
 		@EntityMapping
-		public Book book(@Argument int id) {
+		public Book book(@Argument int id) { // <1>
 			// ...
 		}
 
 		@SchemaMapping
-		public Author author(Book book) {
+		public Author author(Book book) { // <2>
 			// ...
 		}
 
 	}
 ----
 
-The `@Argument` method parameters is resolved from the "representation" input map for
-the entity. You can also inject the full "representation" input `Map`. See
-xref:federation.adoc#federation.entity-mapping.signature[Method Signature] for all
-supported method argument and return value types.
+<1> The `@Argument` method parameter is resolved from the "representation" input map for
+the entity. The full "representation" input `Map` can also be resolved. See
+xref:federation.adoc#federation.entity-mapping.signature[Method Signature] for supported
+method argument and return value types.
+<2> `@SchemaMapping` methods can be used for the rest of the graph.
 
-You can batch load federated entities by returning a `List` of instances from the controller
-method and accepting a `List` of argument values. In addition, you can use `@BatchMapping`
-methods for subfields.
+An `@EntityMapping` method can batch load federated entities of a given type. To do that,
+declare the `@Argument` method parameter as a list, and return the corresponding entity
+instances as a list in the same order.
 
 For example:
 
@@ -94,20 +94,21 @@ For example:
 	private static class BookController {
 
 		@EntityMapping
-		public List<Book> book(@Argument List<Integer> idList) {
-			// ...
+		public List<Book> book(@Argument List<Integer> idList) { // <1>
+			// ... return books in the same order
 		}
 
 		@BatchMapping
-		public Map<Book, Author> author(List<Book> books) {
+		public Map<Book, Author> author(List<Book> books) { // <2>
 			// ...
 		}
 	}
 ----
 
-Note `idList` naming convention for the argument, which helps Spring for GraphQL to
-de-pluralize the method parameter name and derive the correct argument name to use.
-Alternatively, set the argument name through the annotation.
+<1> The `idList` naming convention helps to de-pluralize the parameter name in order to
+look up the correct value in the "representation" input map. You can also set the
+argument name through the annotation.
+<2> `@BatchMapping` methods can be used for the rest of the graph.
 
 
 
