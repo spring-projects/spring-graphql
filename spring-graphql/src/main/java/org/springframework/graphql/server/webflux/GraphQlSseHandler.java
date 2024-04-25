@@ -18,6 +18,7 @@ package org.springframework.graphql.server.webflux;
 
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import graphql.ErrorType;
@@ -29,6 +30,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
@@ -46,13 +48,15 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * {@link org.springframework.web.reactive.function.server.RouterFunctions}.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  * @since 1.3.0
  */
 public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 	private static final Log logger = LogFactory.getLog(GraphQlSseHandler.class);
 
-	private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
+	private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(
+			ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
 
 
 	public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
@@ -66,7 +70,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 	 */
 	@SuppressWarnings("unchecked")
 	public Mono<ServerResponse> handleRequest(ServerRequest serverRequest) {
-		Flux<ServerSentEvent<Map<String, Object>>> data = readRequest(serverRequest)
+		return readRequest(serverRequest)
 				.flatMap((body) -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
 							serverRequest.uri(), serverRequest.headers().asHttpHeaders(),
@@ -79,35 +83,39 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 					}
 					return this.graphQlHandler.handleRequest(graphQlRequest);
 				})
-				.flatMapMany((response) -> {
+				.flatMap((response) -> {
 					if (logger.isDebugEnabled()) {
-						logger.debug("Execution result ready"
-								+ (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
-								+ ".");
+						List<ResponseError> errors = response.getErrors();
+						logger.debug("Execution result " +
+								(!CollectionUtils.isEmpty(errors) ? "has errors: " + errors : "is ready") + ".");
 					}
+					Flux<Map<String, Object>> resultFlux;
 					if (response.getData() instanceof Publisher) {
-						// Subscription
-						return Flux.from((Publisher<ExecutionResult>) response.getData()).map(ExecutionResult::toSpecification);
+						resultFlux = Flux.from((Publisher<ExecutionResult>) response.getData())
+								.map(ExecutionResult::toSpecification)
+								.onErrorResume(SubscriptionPublisherException.class, (ex) -> Mono.just(ex.toMap()));
 					}
-					if (logger.isDebugEnabled()) {
-						logger.debug("Only subscriptions are supported, DataFetcher must return a Publisher type");
+					else {
+						if (logger.isDebugEnabled()) {
+							logger.debug("A subscription DataFetcher must return a Publisher: " + response.getData());
+						}
+						resultFlux = Flux.just(ExecutionResult.newExecutionResult()
+								.addError(GraphQLError.newError()
+										.errorType(ErrorType.OperationNotSupported)
+										.message("SSE handler supports only subscriptions")
+										.build())
+								.build()
+								.toSpecification());
 					}
-					// Single response (query or mutation) are not supported
-					String errorMessage = "SSE transport only supports Subscription operations";
-					GraphQLError unsupportedOperationError = GraphQLError.newError().errorType(ErrorType.OperationNotSupported)
-							.message(errorMessage).build();
-					return Flux.error(new SubscriptionPublisherException(Collections.singletonList(unsupportedOperationError),
-							new IllegalArgumentException(errorMessage)));
-				})
-				.onErrorResume(SubscriptionPublisherException.class, (exc) -> {
-					ExecutionResult errorResult = ExecutionResult.newExecutionResult().errors(exc.getErrors()).build();
-					return Flux.just(errorResult.toSpecification());
-				})
-				.map((event) -> ServerSentEvent.builder(event).event("next").build());
 
-		Flux<ServerSentEvent<Map<String, Object>>> body = data.concatWith(COMPLETE_EVENT);
-		return ServerResponse.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(BodyInserters.fromServerSentEvents(body))
-				.onErrorResume(Throwable.class, (exc) -> ServerResponse.badRequest().build());
+					Flux<ServerSentEvent<Map<String, Object>>> sseFlux =
+							resultFlux.map((event) -> ServerSentEvent.builder(event).event("next").build());
+
+					return ServerResponse.ok()
+							.contentType(MediaType.TEXT_EVENT_STREAM)
+							.body(BodyInserters.fromServerSentEvents(sseFlux.concatWith(COMPLETE_EVENT)))
+							.onErrorResume(Throwable.class, (ex) -> ServerResponse.badRequest().build());
+				});
 	}
 
 }

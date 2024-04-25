@@ -20,7 +20,6 @@ package org.springframework.graphql.server.webmvc;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 
 import graphql.schema.DataFetcher;
@@ -50,98 +49,93 @@ import static org.awaitility.Awaitility.await;
 class GraphQlSseHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
-			Collections.singletonList(new MappingJackson2HttpMessageConverter());
+			List.of(new MappingJackson2HttpMessageConverter());
 
-	private static final DataFetcher<?> BOOK_SEARCH = environment -> {
-		String author = environment.getArgument("author");
-		return Flux.fromIterable(BookSource.books())
-				.filter((book) -> book.getAuthor().getFullName().contains(author));
+	private static final DataFetcher<?> SEARCH_DATA_FETCHER = env -> {
+		String author = env.getArgument("author");
+		return Flux.fromIterable(BookSource.books()).filter((book) -> book.getAuthor().getFullName().contains(author));
 	};
+
 
 	@Test
 	void shouldRejectQueryOperations() throws Exception {
-		GraphQlSseHandler sseHandler = createSseHandler(BOOK_SEARCH);
+		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockHttpServletRequest request = createServletRequest("{ \"query\": \"{ bookById(id: 42) {name} }\"}");
-		MockHttpServletResponse response = handleRequest(request, sseHandler);
+		MockHttpServletResponse response = handleRequest(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
-		assertThat(response.getContentAsString()).isEqualTo(
-				"""
-						event:next
-						data:{"errors":[{"message":"SSE transport only supports Subscription operations","locations":[],"extensions":{"classification":"OperationNotSupported"}}]}
+		assertThat(response.getContentAsString()).isEqualTo("""
+				event:next
+				data:{"errors":[{"message":"SSE handler supports only subscriptions","locations":[],"extensions":{"classification":"OperationNotSupported"}}]}
 
-						event:complete
-						data:
+				event:complete
+				data:
 
-						""");
+				""");
 	}
 
 	@Test
 	void shouldWriteMultipleEventsForSubscription() throws Exception {
-		GraphQlSseHandler sseHandler = createSseHandler(BOOK_SEARCH);
+		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockHttpServletRequest request = createServletRequest("""
-				{
-					"query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }"
-				}
+				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
 				""");
-		MockHttpServletResponse response = handleRequest(request, sseHandler);
+		MockHttpServletResponse response = handleRequest(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
-		assertThat(response.getContentAsString()).isEqualTo(
-				"""
-						event:next
-						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+		assertThat(response.getContentAsString()).isEqualTo("""
+				event:next
+				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
-						event:next
-						data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
+				event:next
+				data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
 
-						event:complete
-						data:
+				event:complete
+				data:
 
-						""");
+				""");
 	}
 
 	@Test
 	void shouldWriteEventsAndTerminalError() throws Exception {
+
 		DataFetcher<?> errorDataFetcher = env -> Flux.just(BookSource.getBook(1L))
 				.concatWith(Flux.error(new IllegalStateException("test error")));
-		GraphQlSseHandler sseHandler = createSseHandler(errorDataFetcher);
+
+		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
 		MockHttpServletRequest request = createServletRequest("""
-				{
-					"query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }"
-				}
+				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
 				""");
-		MockHttpServletResponse response = handleRequest(request, sseHandler);
+		MockHttpServletResponse response = handleRequest(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
-		assertThat(response.getContentAsString()).isEqualTo(
-				"""
-						event:next
-						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+		assertThat(response.getContentAsString()).isEqualTo("""
+				event:next
+				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
-						event:next
-						data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
+				event:next
+				data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
 
-						event:complete
-						data:
+				event:complete
+				data:
 
-						""");
+				""");
 	}
 
-	private GraphQlSseHandler createSseHandler(DataFetcher<?> subscriptionDataFetcher) {
+	private GraphQlSseHandler createSseHandler(DataFetcher<?> dataFetcher) {
 		return new GraphQlSseHandler(GraphQlSetup.schemaResource(BookSource.schema)
 				.queryFetcher("bookById", (env) -> BookSource.getBookWithoutAuthor(1L))
-				.subscriptionFetcher("bookSearch", subscriptionDataFetcher)
+				.subscriptionFetcher("bookSearch", dataFetcher)
 				.toWebGraphQlHandler());
 	}
 
 	private MockHttpServletRequest createServletRequest(String query) {
-		MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/");
-		servletRequest.setContentType(MediaType.APPLICATION_JSON_VALUE);
-		servletRequest.setContent(query.getBytes(StandardCharsets.UTF_8));
-		servletRequest.addHeader("Accept", MediaType.TEXT_EVENT_STREAM_VALUE);
-		servletRequest.setAsyncSupported(true);
-		return servletRequest;
+		MockHttpServletRequest request = new MockHttpServletRequest("POST", "/");
+		request.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		request.setContent(query.getBytes(StandardCharsets.UTF_8));
+		request.addHeader("Accept", MediaType.TEXT_EVENT_STREAM_VALUE);
+		request.setAsyncSupported(true);
+		return request;
 	}
 
 	private MockHttpServletResponse handleRequest(

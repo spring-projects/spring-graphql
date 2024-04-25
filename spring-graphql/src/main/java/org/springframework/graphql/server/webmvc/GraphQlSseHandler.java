@@ -17,8 +17,9 @@
 package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import graphql.ErrorType;
 import graphql.ExecutionResult;
@@ -29,10 +30,10 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.IdGenerator;
@@ -47,6 +48,7 @@ import org.springframework.web.servlet.function.ServerResponse;
  * {@link org.springframework.web.servlet.function.RouterFunctions}.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
  * @since 1.3.0
  */
 public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
@@ -60,87 +62,89 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 	/**
 	 * Handle GraphQL requests over HTTP using the Server-Sent Events protocol.
-	 * @param serverRequest the incoming HTTP request
+	 * @param request the incoming HTTP request
 	 * @return the HTTP response
 	 * @throws ServletException may be raised when reading the request body, e.g.
 	 * {@link HttpMediaTypeNotSupportedException}.
 	 */
-	public ServerResponse handleRequest(ServerRequest serverRequest) throws ServletException {
+	@SuppressWarnings("unchecked")
+	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
 
 		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-				serverRequest.uri(), serverRequest.headers().asHttpHeaders(), initCookies(serverRequest),
-				serverRequest.remoteAddress().orElse(null), serverRequest.attributes(),
-				readBody(serverRequest), this.idGenerator.generateId().toString(),
+				request.uri(), request.headers().asHttpHeaders(), initCookies(request),
+				request.remoteAddress().orElse(null), request.attributes(),
+				readBody(request), this.idGenerator.generateId().toString(),
 				LocaleContextHolder.getLocale());
 
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing: " + graphQlRequest);
 		}
-		return ServerResponse.sse((sseBuilder) -> this.graphQlHandler.handleRequest(graphQlRequest)
-				.flatMapMany(this::handleResponse)
-				.subscribe(new SendMessageSubscriber(graphQlRequest.getId(), sseBuilder)));
+
+		Flux<Map<String, Object>> resultFlux = this.graphQlHandler.handleRequest(graphQlRequest)
+				.flatMapMany((response) -> {
+					if (logger.isDebugEnabled()) {
+						List<ResponseError> errors = response.getErrors();
+						logger.debug("Execution result " +
+								(!CollectionUtils.isEmpty(errors) ? "has errors: " + errors : "is ready") + ".");
+					}
+					if (response.getData() instanceof Publisher) {
+						return Flux.from((Publisher<ExecutionResult>) response.getData())
+								.map(ExecutionResult::toSpecification);
+					}
+					else {
+						if (logger.isDebugEnabled()) {
+							logger.debug("A subscription DataFetcher must return a Publisher: " + response.getData());
+						}
+						return Flux.just(ExecutionResult.newExecutionResult()
+								.addError(GraphQLError.newError()
+										.errorType(ErrorType.OperationNotSupported)
+										.message("SSE handler supports only subscriptions")
+										.build())
+								.build()
+								.toSpecification());
+					}
+				});
+
+		return ServerResponse.sse(SseSubscriber.connect(resultFlux));
 	}
 
 
-	@SuppressWarnings("unchecked")
-	private Publisher<Map<String, Object>> handleResponse(WebGraphQlResponse response) {
-		if (logger.isDebugEnabled()) {
-			logger.debug("Execution result ready"
-					+ (!CollectionUtils.isEmpty(response.getErrors()) ? " with errors: " + response.getErrors() : "")
-					+ ".");
-		}
-		if (response.getData() instanceof Publisher) {
-			// Subscription
-			return Flux.from((Publisher<ExecutionResult>) response.getData()).map(ExecutionResult::toSpecification);
-		}
-		if (logger.isDebugEnabled()) {
-			logger.debug("Only subscriptions are supported, DataFetcher must return a Publisher type");
-		}
-		// Single response (query or mutation) are not supported
-		String errorMessage = "SSE transport only supports Subscription operations";
-		GraphQLError unsupportedOperationError = GraphQLError.newError().errorType(ErrorType.OperationNotSupported)
-				.message(errorMessage).build();
-		return Flux.error(new SubscriptionPublisherException(Collections.singletonList(unsupportedOperationError),
-				new IllegalArgumentException(errorMessage)));
-	}
+	/**
+	 * {@link org.reactivestreams.Subscriber} that writes to {@link ServerResponse.SseBuilder}.
+	 */
+	private static final class SseSubscriber extends BaseSubscriber<Map<String, Object>> {
 
+		private final ServerResponse.SseBuilder sseBuilder;
 
-	private static class SendMessageSubscriber extends BaseSubscriber<Map<String, Object>> {
-
-		final String id;
-
-		final ServerResponse.SseBuilder sseBuilder;
-
-		SendMessageSubscriber(String id, ServerResponse.SseBuilder sseBuilder) {
-			this.id = id;
+		private SseSubscriber(ServerResponse.SseBuilder sseBuilder) {
 			this.sseBuilder = sseBuilder;
 		}
 
 		@Override
 		protected void hookOnNext(Map<String, Object> value) {
-			writeNext(value);
+			writeResult(value);
 		}
 
-		@Override
-		protected void hookOnError(Throwable throwable) {
-			if (throwable instanceof SubscriptionPublisherException subscriptionException) {
-				ExecutionResult errorResult = ExecutionResult.newExecutionResult().errors(subscriptionException.getErrors()).build();
-				writeNext(errorResult.toSpecification());
-			}
-			else {
-				this.sseBuilder.error(throwable);
-			}
-			this.hookOnComplete();
-		}
-
-		private void writeNext(Map<String, Object> value) {
+		private void writeResult(Map<String, Object> value) {
 			try {
 				this.sseBuilder.event("next");
 				this.sseBuilder.data(value);
 			}
 			catch (IOException exception) {
-				this.onError(exception);
+				onError(exception);
 			}
+		}
+
+		@Override
+		protected void hookOnError(Throwable ex) {
+			if (ex instanceof SubscriptionPublisherException spe) {
+				ExecutionResult result = ExecutionResult.newExecutionResult().errors(spe.getErrors()).build();
+				writeResult(result.toSpecification());
+			}
+			else {
+				this.sseBuilder.error(ex);
+			}
+			hookOnComplete();
 		}
 
 		@Override
@@ -154,6 +158,12 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 			this.sseBuilder.complete();
 		}
 
+		static Consumer<ServerResponse.SseBuilder> connect(Flux<Map<String, Object>> resultFlux) {
+			return (sseBuilder) -> {
+				SseSubscriber subscriber = new SseSubscriber(sseBuilder);
+				resultFlux.subscribe(subscriber);
+			};
+		}
 	}
 
 }

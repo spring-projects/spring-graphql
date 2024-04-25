@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,13 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
+import java.util.Map;
 
+import graphql.ExecutionResult;
 import graphql.GraphQLError;
 
 import org.springframework.core.NestedRuntimeException;
+import org.springframework.lang.Nullable;
 
 /**
  * An exception raised after a GraphQL subscription
@@ -47,7 +50,7 @@ public final class SubscriptionPublisherException extends NestedRuntimeException
 	 * @param errors the list of resolved GraphQL errors
 	 * @param cause the original exception
 	 */
-	public SubscriptionPublisherException(List<GraphQLError> errors, Throwable cause) {
+	public SubscriptionPublisherException(List<GraphQLError> errors, @Nullable Throwable cause) {
 		super("GraphQL subscription ended with error(s): " + errors, cause);
 		this.errors = errors;
 	}
@@ -60,6 +63,14 @@ public final class SubscriptionPublisherException extends NestedRuntimeException
 	 */
 	public List<GraphQLError> getErrors() {
 		return this.errors;
+	}
+
+	/**
+	 * Return an {@link ExecutionResult} specification map with the GraphQL errors.
+	 * @since 1.3.0
+	 */
+	public Map<String, Object> toMap() {
+		return ExecutionResult.newExecutionResult().errors(this.errors).build().toSpecification();
 	}
 
 }
