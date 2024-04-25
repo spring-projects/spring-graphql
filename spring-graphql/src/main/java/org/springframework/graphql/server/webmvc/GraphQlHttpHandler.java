@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import jakarta.servlet.ServletException;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.server.WebGraphQlHandler;
@@ -70,8 +69,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 
 
 	@Override
-	protected ServerResponse prepareResponse(ServerRequest request, Mono<WebGraphQlResponse> responseMono)
-			throws ServletException {
+	protected ServerResponse prepareResponse(ServerRequest request, Mono<WebGraphQlResponse> responseMono) {
 
 		CompletableFuture<ServerResponse> future = responseMono.map((response) -> {
 			MediaType contentType = selectResponseMediaType(request);
@@ -87,15 +85,15 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 			}
 		}).toFuture();
 
-		if (future.isDone()) {
+		// This won't be needed with a Spring Framework 6.2 baseline:
+		// https://github.com/spring-projects/spring-framework/issues/32223
+
+		if (future.isDone() && !future.isCancelled() && !future.isCompletedExceptionally()) {
 			try {
 				return future.get();
 			}
-			catch (ExecutionException ex) {
-				throw new ServletException(ex.getCause());
-			}
-			catch (InterruptedException ex) {
-				throw new ServletException(ex);
+			catch (InterruptedException | ExecutionException ignored) {
+				// fall through to use DefaultAsyncServerResponse
 			}
 		}
 
