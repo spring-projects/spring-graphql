@@ -17,14 +17,20 @@
 package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
+import java.util.List;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import reactor.core.publisher.Mono;
 
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlRequest;
+import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
@@ -34,37 +40,85 @@ import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.IdGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.servlet.function.ServerResponse;
 
 /**
- * Abstract class for GraphQL Handler implementations using the HTTP transport.
+ * Abstract base class for GraphQL over HTTP handlers.
  *
  * @author Brian Clozel
+ * @author Rossen Stoyanchev
+ * @since 1.3.0
  */
-abstract class AbstractGraphQlHttpHandler {
+public abstract class AbstractGraphQlHttpHandler {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	protected final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
+	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
-	protected final WebGraphQlHandler graphQlHandler;
+	private final WebGraphQlHandler graphQlHandler;
 
 	@Nullable
-	protected final HttpMessageConverter<Object> messageConverter;
+	private final HttpMessageConverter<Object> messageConverter;
+
 
 	@SuppressWarnings("unchecked")
-	AbstractGraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpMessageConverter<?> messageConverter) {
+	protected AbstractGraphQlHttpHandler(
+			WebGraphQlHandler graphQlHandler, @Nullable HttpMessageConverter<?> messageConverter) {
+
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 		this.graphQlHandler = graphQlHandler;
 		this.messageConverter = (HttpMessageConverter<Object>) messageConverter;
 	}
 
-	protected static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
+
+	/**
+	 * Return the custom message converter, if configured, to read and write with.
+	 */
+	@Nullable
+	public HttpMessageConverter<Object> getMessageConverter() {
+		return this.messageConverter;
+	}
+
+
+	/**
+	 * Handle GraphQL over HTTP requests.
+	 * @param request the current request
+	 * @return the resulting response
+	 * @throws ServletException may be raised when reading the request body, e.g.
+	 * {@link HttpMediaTypeNotSupportedException}.
+	 */
+	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
+
+		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
+				request.uri(), request.headers().asHttpHeaders(), initCookies(request),
+				request.remoteAddress().orElse(null),
+				request.attributes(), readBody(request), this.idGenerator.generateId().toString(),
+				LocaleContextHolder.getLocale());
+
+		if (this.logger.isDebugEnabled()) {
+			this.logger.debug("Executing: " + graphQlRequest);
+		}
+
+		Mono<WebGraphQlResponse> responseMono = this.graphQlHandler.handleRequest(graphQlRequest)
+				.doOnNext((response) -> {
+					if (this.logger.isDebugEnabled()) {
+						List<ResponseError> errors = response.getErrors();
+						this.logger.debug("Execution result " +
+								(!CollectionUtils.isEmpty(errors) ? "has errors: " + errors : "is ready") + ".");
+					}
+				});
+
+		return prepareResponse(request, responseMono);
+	}
+
+	private static MultiValueMap<String, HttpCookie> initCookies(ServerRequest serverRequest) {
 		MultiValueMap<String, Cookie> source = serverRequest.cookies();
 		MultiValueMap<String, HttpCookie> target = new LinkedMultiValueMap<>(source.size());
 		source.values().forEach((cookieList) -> cookieList.forEach((cookie) -> {
@@ -74,7 +128,7 @@ abstract class AbstractGraphQlHttpHandler {
 		return target;
 	}
 
-	protected GraphQlRequest readBody(ServerRequest request) throws ServletException {
+	private GraphQlRequest readBody(ServerRequest request) throws ServletException {
 		try {
 			if (this.messageConverter != null) {
 				MediaType contentType = request.headers().contentType().orElse(MediaType.APPLICATION_JSON);
@@ -117,5 +171,14 @@ abstract class AbstractGraphQlHttpHandler {
 		}
 		throw ex;
 	}
+
+	/**
+	 * Prepare the {@link ServerResponse} for the given GraphQL response.
+	 * @param request the current request
+	 * @param responseMono the GraphQL response
+	 * @return the server response
+	 */
+	protected abstract ServerResponse prepareResponse(
+			ServerRequest request, Mono<WebGraphQlResponse> responseMono) throws ServletException;
 
 }

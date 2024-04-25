@@ -17,27 +17,22 @@
 package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
-import jakarta.servlet.ServletException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.util.AlternativeJdkIdGenerator;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.IdGenerator;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -60,50 +55,30 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 		super(graphQlHandler, null);
 	}
 
-	/**
-	 * Handle GraphQL requests over HTTP using the Server-Sent Events protocol.
-	 * @param request the incoming HTTP request
-	 * @return the HTTP response
-	 * @throws ServletException may be raised when reading the request body, e.g.
-	 * {@link HttpMediaTypeNotSupportedException}.
-	 */
-	@SuppressWarnings("unchecked")
-	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
 
-		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-				request.uri(), request.headers().asHttpHeaders(), initCookies(request),
-				request.remoteAddress().orElse(null), request.attributes(),
-				readBody(request), this.idGenerator.generateId().toString(),
-				LocaleContextHolder.getLocale());
+	@Override
+	protected ServerResponse prepareResponse(
+			ServerRequest request, Mono<WebGraphQlResponse> responseMono) {
 
-		if (logger.isDebugEnabled()) {
-			logger.debug("Executing: " + graphQlRequest);
-		}
+		Flux<Map<String, Object>> resultFlux = responseMono.flatMapMany((response) -> {
 
-		Flux<Map<String, Object>> resultFlux = this.graphQlHandler.handleRequest(graphQlRequest)
-				.flatMapMany((response) -> {
-					if (logger.isDebugEnabled()) {
-						List<ResponseError> errors = response.getErrors();
-						logger.debug("Execution result " +
-								(!CollectionUtils.isEmpty(errors) ? "has errors: " + errors : "is ready") + ".");
-					}
-					if (response.getData() instanceof Publisher) {
-						return Flux.from((Publisher<ExecutionResult>) response.getData())
-								.map(ExecutionResult::toSpecification);
-					}
-					else {
-						if (logger.isDebugEnabled()) {
-							logger.debug("A subscription DataFetcher must return a Publisher: " + response.getData());
-						}
-						return Flux.just(ExecutionResult.newExecutionResult()
-								.addError(GraphQLError.newError()
-										.errorType(ErrorType.OperationNotSupported)
-										.message("SSE handler supports only subscriptions")
-										.build())
-								.build()
-								.toSpecification());
-					}
-				});
+			if (response.getData() instanceof Publisher) {
+				Publisher<ExecutionResult> publisher = response.getData();
+				return Flux.from(publisher).map(ExecutionResult::toSpecification);
+			}
+
+			if (this.logger.isDebugEnabled()) {
+				this.logger.debug("A subscription DataFetcher must return a Publisher: " + response.getData());
+			}
+
+			return Flux.just(ExecutionResult.newExecutionResult()
+					.addError(GraphQLError.newError()
+							.errorType(ErrorType.OperationNotSupported)
+							.message("SSE handler supports only subscriptions")
+							.build())
+					.build()
+					.toSpecification());
+		});
 
 		return ServerResponse.sse(SseSubscriber.connect(resultFlux));
 	}

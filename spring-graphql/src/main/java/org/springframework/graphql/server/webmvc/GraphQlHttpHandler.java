@@ -22,15 +22,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import jakarta.servlet.ServletException;
+import reactor.core.publisher.Mono;
 
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlRequest;
+import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.lang.Nullable;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -69,43 +68,24 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 		super(graphQlHandler, converter);
 	}
 
-	/**
-	 * Handle GraphQL requests over HTTP.
-	 * @param request the incoming HTTP request
-	 * @return the HTTP response
-	 * @throws ServletException may be raised when reading the request body, e.g.
-	 * {@link HttpMediaTypeNotSupportedException}.
-	 */
-	public ServerResponse handleRequest(ServerRequest request) throws ServletException {
 
-		WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-				request.uri(), request.headers().asHttpHeaders(), initCookies(request),
-				request.remoteAddress().orElse(null),
-				request.attributes(), readBody(request), this.idGenerator.generateId().toString(),
-				LocaleContextHolder.getLocale());
+	@Override
+	protected ServerResponse prepareResponse(ServerRequest request, Mono<WebGraphQlResponse> responseMono)
+			throws ServletException {
 
-		if (logger.isDebugEnabled()) {
-			logger.debug("Executing: " + graphQlRequest);
-		}
+		CompletableFuture<ServerResponse> future = responseMono.map((response) -> {
+			MediaType contentType = selectResponseMediaType(request);
+			ServerResponse.BodyBuilder builder = ServerResponse.ok();
+			builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
+			builder.contentType(contentType);
 
-		CompletableFuture<ServerResponse> future = this.graphQlHandler.handleRequest(graphQlRequest)
-				.map((response) -> {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Execution complete");
-					}
-					MediaType contentType = selectResponseMediaType(request);
-					ServerResponse.BodyBuilder builder = ServerResponse.ok();
-					builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
-					builder.contentType(contentType);
-
-					if (this.messageConverter != null) {
-						return builder.build(writeFunction(this.messageConverter, contentType, response.toMap()));
-					}
-					else {
-						return builder.body(response.toMap());
-					}
-				})
-				.toFuture();
+			if (getMessageConverter() != null) {
+				return builder.build(writeFunction(getMessageConverter(), contentType, response.toMap()));
+			}
+			else {
+				return builder.body(response.toMap());
+			}
+		}).toFuture();
 
 		if (future.isDone()) {
 			try {

@@ -18,12 +18,9 @@ package org.springframework.graphql.server.webflux;
 
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.server.WebGraphQlHandler;
-import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
@@ -38,8 +35,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  * @since 1.0.0
  */
 public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
-
-	private static final Log logger = LogFactory.getLog(GraphQlHttpHandler.class);
 
 	@SuppressWarnings("removal")
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = List.of(
@@ -60,43 +55,15 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	 * @param codecConfigurer codec configurer for JSON encoding and decoding
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer) {
-		super(graphQlHandler, new HttpCodecDelegate(codecConfigurer));
+		super(graphQlHandler, codecConfigurer);
 	}
 
 
-	/**
-	 * Handle GraphQL requests over HTTP.
-	 * @param request the incoming HTTP request
-	 * @return the HTTP response
-	 */
-	public Mono<ServerResponse> handleRequest(ServerRequest request) {
-		return readRequest(request)
-				.flatMap((body) -> {
-					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-							request.uri(), request.headers().asHttpHeaders(),
-							request.cookies(), request.remoteAddress().orElse(null),
-							request.attributes(), body,
-							request.exchange().getRequest().getId(),
-							request.exchange().getLocaleContext().getLocale());
-					if (logger.isDebugEnabled()) {
-						logger.debug("Executing: " + graphQlRequest);
-					}
-					return this.graphQlHandler.handleRequest(graphQlRequest);
-				})
-				.flatMap((response) -> {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Execution result ready");
-					}
-					return prepareResponse(request, response);
-				});
-	}
-
-	protected Mono<ServerResponse> prepareResponse(ServerRequest serverRequest, WebGraphQlResponse response) {
+	protected Mono<ServerResponse> prepareResponse(ServerRequest request, WebGraphQlResponse response) {
 		ServerResponse.BodyBuilder builder = ServerResponse.ok();
 		builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
-		builder.contentType(selectResponseMediaType(serverRequest));
-		return builder.bodyValue((this.codecDelegate != null) ?
-				this.codecDelegate.encode(response) : response.toMap());
+		builder.contentType(selectResponseMediaType(request));
+		return builder.bodyValue(encodeResponseIfNecessary(response));
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
