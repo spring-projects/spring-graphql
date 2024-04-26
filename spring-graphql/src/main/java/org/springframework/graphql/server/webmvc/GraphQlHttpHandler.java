@@ -27,7 +27,6 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -56,12 +55,12 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	}
 
 	/**
-	 * Create a new instance with a custom message converter.
-	 * <p>If no converter is provided, this will use
+	 * Create a new instance with a custom message converter for GraphQL payloads.
+	 * <p>If no converter is provided, the handler will use
 	 * {@link org.springframework.web.servlet.config.annotation.WebMvcConfigurer#configureMessageConverters(List)
-	 * the one configured in the web framework}.
+	 * the one configured for web use}.
 	 * @param graphQlHandler common handler for GraphQL over HTTP requests
-	 * @param converter custom {@link HttpMessageConverter} to read and write GraphQL payloads
+	 * @param converter the converter to use to read and write GraphQL payloads
 	 */
 	public GraphQlHttpHandler(WebGraphQlHandler graphQlHandler, @Nullable HttpMessageConverter<?> converter) {
 		super(graphQlHandler, converter);
@@ -77,15 +76,12 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 			builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
 			builder.contentType(contentType);
 
-			if (getMessageConverter() != null) {
-				return builder.build(writeFunction(getMessageConverter(), contentType, response.toMap()));
-			}
-			else {
-				return builder.body(response.toMap());
-			}
+			Map<String, Object> resultMap = response.toMap();
+			ServerResponse.HeadersBuilder.WriteFunction writer = getWriteFunction(resultMap, contentType);
+			return (writer != null) ? builder.build(writer) : builder.body(resultMap);
 		}).toFuture();
 
-		// This won't be needed with a Spring Framework 6.2 baseline:
+		// This won't be needed on a Spring Framework 6.2 baseline:
 		// https://github.com/spring-projects/spring-framework/issues/32223
 
 		if (future.isDone() && !future.isCancelled() && !future.isCompletedExceptionally()) {
@@ -100,23 +96,13 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 		return ServerResponse.async(future);
 	}
 
-	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
-		for (MediaType accepted : serverRequest.headers().accept()) {
-			if (SUPPORTED_MEDIA_TYPES.contains(accepted)) {
-				return accepted;
+	private static MediaType selectResponseMediaType(ServerRequest request) {
+		for (MediaType mediaType : request.headers().accept()) {
+			if (SUPPORTED_MEDIA_TYPES.contains(mediaType)) {
+				return mediaType;
 			}
 		}
 		return MediaType.APPLICATION_JSON;
-	}
-
-	private static ServerResponse.HeadersBuilder.WriteFunction writeFunction(
-			HttpMessageConverter<Object> converter, MediaType contentType, Map<String, Object> resultMap) {
-
-		return (servletRequest, servletResponse) -> {
-			ServletServerHttpResponse httpResponse = new ServletServerHttpResponse(servletResponse);
-			converter.write(resultMap, contentType, httpResponse);
-			return null;
-		};
 	}
 
 }

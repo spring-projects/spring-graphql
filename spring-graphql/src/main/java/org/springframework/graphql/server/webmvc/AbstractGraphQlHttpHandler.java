@@ -18,9 +18,12 @@ package org.springframework.graphql.server.webmvc;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.core.publisher.Mono;
@@ -36,7 +39,9 @@ import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
@@ -46,6 +51,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -79,11 +85,19 @@ public abstract class AbstractGraphQlHttpHandler {
 
 
 	/**
-	 * Return the custom message converter, if configured, to read and write with.
+	 * Exposes a {@link ServerResponse.HeadersBuilder.WriteFunction} that writes
+	 * with the {@code HttpMessageConverter} provided to the constructor.
+	 * @param resultMap the result map to write
+	 * @param contentType to set the response content type to
+	 * @return the write function, or {@code null} if a
+	 * {@code HttpMessageConverter} was not provided to the constructor
 	 */
 	@Nullable
-	public HttpMessageConverter<Object> getMessageConverter() {
-		return this.messageConverter;
+	protected ServerResponse.HeadersBuilder.WriteFunction getWriteFunction(
+			Map<String, Object> resultMap, MediaType contentType) {
+
+		return (this.messageConverter != null) ?
+				new MessageConverterWriteFunction(resultMap, contentType, this.messageConverter) : null;
 	}
 
 
@@ -133,8 +147,8 @@ public abstract class AbstractGraphQlHttpHandler {
 			if (this.messageConverter != null) {
 				MediaType contentType = request.headers().contentType().orElse(MediaType.APPLICATION_JSON);
 				if (this.messageConverter.canRead(SerializableGraphQlRequest.class, contentType)) {
-					return (GraphQlRequest) this.messageConverter.read(SerializableGraphQlRequest.class,
-							new ServletServerHttpRequest(request.servletRequest()));
+					ServerHttpRequest httpRequest = new ServletServerHttpRequest(request.servletRequest());
+					return (GraphQlRequest) this.messageConverter.read(SerializableGraphQlRequest.class, httpRequest);
 				}
 				throw new HttpMediaTypeNotSupportedException(
 						contentType, this.messageConverter.getSupportedMediaTypes(), request.method());
@@ -180,5 +194,21 @@ public abstract class AbstractGraphQlHttpHandler {
 	 */
 	protected abstract ServerResponse prepareResponse(
 			ServerRequest request, Mono<WebGraphQlResponse> responseMono) throws ServletException;
+
+
+	/**
+	 * WriteFunction that writes with a given, fixed {@link HttpMessageConverter}.
+	 */
+	private record MessageConverterWriteFunction(
+			Map<String, Object> resultMap, MediaType contentType, HttpMessageConverter<Object> converter)
+			implements ServerResponse.HeadersBuilder.WriteFunction {
+
+		@Override
+		public ModelAndView write(HttpServletRequest request, HttpServletResponse response) throws Exception {
+			ServletServerHttpResponse httpResponse = new ServletServerHttpResponse(response);
+			this.converter.write(this.resultMap, this.contentType, httpResponse);
+			return null;
+		}
+	}
 
 }

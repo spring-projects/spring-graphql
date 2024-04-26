@@ -76,14 +76,15 @@ public abstract class AbstractGraphQlHttpHandler {
 		return readRequest(request)
 				.flatMap((body) -> {
 					WebGraphQlRequest graphQlRequest = new WebGraphQlRequest(
-							request.uri(), request.headers().asHttpHeaders(),
-							request.cookies(), request.remoteAddress().orElse(null),
-							request.attributes(), body,
+							request.uri(), request.headers().asHttpHeaders(), request.cookies(),
+							request.remoteAddress().orElse(null), request.attributes(), body,
 							request.exchange().getRequest().getId(),
 							request.exchange().getLocaleContext().getLocale());
+
 					if (this.logger.isDebugEnabled()) {
 						this.logger.debug("Executing: " + graphQlRequest);
 					}
+
 					return this.graphQlHandler.handleRequest(graphQlRequest);
 				})
 				.flatMap((response) -> {
@@ -92,6 +93,7 @@ public abstract class AbstractGraphQlHttpHandler {
 						this.logger.debug("Execution result " +
 								(!CollectionUtils.isEmpty(errors) ? "has errors: " + errors : "is ready") + ".");
 					}
+
 					return prepareResponse(request, response);
 				});
 	}
