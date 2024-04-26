@@ -18,6 +18,7 @@ package org.springframework.graphql.server.webflux;
 
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -131,13 +132,24 @@ public abstract class AbstractGraphQlHttpHandler {
 	protected abstract Mono<ServerResponse> prepareResponse(ServerRequest request, WebGraphQlResponse response);
 
 	/**
-	 * Encode the GraphQL response if custom codecs were provided, or otherwise
-	 * return the result map.
+	 * Encode the GraphQL response if custom codecs were provided, or return the result map.
 	 * @param response the GraphQL response
 	 * @return the encoded response or the result map
 	 */
 	protected Object encodeResponseIfNecessary(WebGraphQlResponse response) {
-		return (this.codecDelegate != null) ? this.codecDelegate.encode(response) : response.toMap();
+		Map<String, Object> resultMap = response.toMap();
+		return (this.codecDelegate != null) ? encode(resultMap) : resultMap;
+	}
+
+	/**
+	 * Encode the result map.
+	 * <p>This method assumes that a {@link CodecConfigurer} has been provided.
+	 * @param resultMap the result to encode
+	 * @return the encoded result map
+	 */
+	protected DataBuffer encode(Map<String, Object> resultMap) {
+		Assert.state(this.codecDelegate != null, "CodecConfigurer was not provided");
+		return this.codecDelegate.encode(resultMap);
 	}
 
 }

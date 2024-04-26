@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
@@ -77,9 +76,9 @@ final class HttpCodecDelegate {
 
 
 	@SuppressWarnings("unchecked")
-	DataBuffer encode(GraphQlResponse response) {
-		return ((Encoder<Map<String, Object>>) this.encoder)
-				.encodeValue(response.toMap(), DefaultDataBufferFactory.sharedInstance, RESPONSE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
+	DataBuffer encode(Map<String, Object> resultMap) {
+		return ((Encoder<Map<String, Object>>) this.encoder).encodeValue(
+				resultMap, DefaultDataBufferFactory.sharedInstance, RESPONSE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
 	}
 
 	@SuppressWarnings("unchecked")
