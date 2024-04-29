@@ -60,10 +60,12 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 */
 	protected InvocableHandlerMethodSupport(HandlerMethod handlerMethod, @Nullable Executor executor) {
 		super(handlerMethod.createWithResolvedBean());
+
 		this.hasCallableReturnValue = getReturnType().getParameterType().equals(Callable.class);
 		this.executor = executor;
-		Assert.isTrue(!this.hasCallableReturnValue || this.executor != null,
-				"Controller method declared with Callable return value, but no Executor configured: " +
+
+		Assert.isTrue(!this.hasCallableReturnValue || executor != null,
+				"Controller method has Callable return value, but Executor not provided: " +
 						handlerMethod.getBridgedMethod().toGenericString());
 	}
 
@@ -86,8 +88,14 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			if (KotlinDetector.isSuspendingFunction(method)) {
 				return invokeSuspendingFunction(getBean(), method, argValues);
 			}
+
 			Object result = method.invoke(getBean(), argValues);
-			return handleReturnValue(graphQLContext, result);
+
+			if (this.hasCallableReturnValue && result != null) {
+				result = adaptCallable(graphQLContext, (Callable<?>) result);
+			}
+
+			return result;
 		}
 		catch (IllegalArgumentException ex) {
 			assertTargetBean(method, getBean(), argValues);
@@ -114,7 +122,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	private static Object invokeSuspendingFunction(Object bean, Method method, Object[] argValues) {
 		Object result = CoroutinesUtils.invokeSuspendingFunction(method, bean, argValues);
 
-		// Support DataLoader use
+		// Support use of DataLoader from suspending function
 		Class<?> returnType = KotlinReflectionUtils.getReturnType(method);
 		if (CompletableFuture.class.isAssignableFrom(returnType)) {
 			return ((Mono<CompletableFuture<?>>) result).flatMap(Mono::fromFuture);
@@ -123,22 +131,16 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		return result;
 	}
 
-	@Nullable
-	private Object handleReturnValue(GraphQLContext graphQLContext, @Nullable Object result) {
-		if (this.hasCallableReturnValue && result != null) {
-			return CompletableFuture.supplyAsync(
-					() -> {
-						try {
-							return ContextSnapshotFactoryHelper.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
-						}
-						catch (Exception ex) {
-							throw new IllegalStateException(
-									"Failure in Callable returned from " + getBridgedMethod().toGenericString(), ex);
-						}
-					},
-					this.executor);
-		}
-		return result;
+	private CompletableFuture<?> adaptCallable(GraphQLContext graphQLContext, Callable<?> result) {
+		return CompletableFuture.supplyAsync(() -> {
+			try {
+				return ContextSnapshotFactoryHelper.captureFrom(graphQLContext).wrap(result).call();
+			}
+			catch (Exception ex) {
+				String msg = "Failure in Callable returned from " + getBridgedMethod().toGenericString();
+				throw new IllegalStateException(msg, ex);
+			}
+		}, this.executor);
 	}
 
 	/**
