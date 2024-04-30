@@ -28,6 +28,7 @@ dependencies {
 
 	compileOnly 'com.google.code.findbugs:jsr305'
 	compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
+	compileOnly "org.jetbrains.kotlin:kotlin-reflect"
 	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 
 	compileOnly 'com.fasterxml.jackson.core:jackson-databind'
@@ -43,6 +44,8 @@ dependencies {
 	testImplementation 'org.mockito:mockito-core'
 	testImplementation 'org.awaitility:awaitility'
 	testImplementation 'io.projectreactor:reactor-test'
+	testImplementation "org.jetbrains.kotlin:kotlin-reflect"
+	testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-reactor'
 	testImplementation 'org.springframework:spring-core-test'
 	testImplementation 'org.springframework:spring-messaging'
 	testImplementation 'org.springframework:spring-test'
