@@ -213,6 +213,7 @@ Schema mapping handler methods can return:
 - A resolved value of any type.
 - `Mono` and `Flux` for asynchronous value(s). Supported for controller methods and for
   any `DataFetcher` as described in xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`].
+- Kotlin coroutine and `Flow` are adapted to `Mono` and `Flux`.
 - `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
   For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
@@ -752,6 +753,9 @@ Batch mapping methods can return:
 | `Callable<Map<K,V>>`, `Callable<Collection<V>>`
 | Imperative variants to be invoked asynchronously. For this to work,
   `AnnotatedControllerConfigurer` must be configured with an `Executor`.
+
+| Kotlin Coroutine with `Map<K,V>`, Kotlin `Flow<K,V>`
+| Adapted to `Mono<Map<K,V>` and `Flux<V>`.
 
 |===
 
