@@ -98,13 +98,15 @@ public final class SchemaMappingInspector {
 
 	private SchemaMappingInspector(
 			GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers,
-			List<ClassResolver> classResolvers, Function<GraphQLObjectType, String> classNameFunction) {
+			InterfaceUnionLookup interfaceUnionLookup) {
 
 		Assert.notNull(schema, "GraphQLSchema is required");
 		Assert.notNull(dataFetchers, "DataFetcher map is required");
+		Assert.notNull(interfaceUnionLookup, "InterfaceUnionLookup is required");
+
 		this.schema = schema;
 		this.dataFetchers = dataFetchers;
-		this.interfaceUnionLookup = new InterfaceUnionLookup(schema, dataFetchers, classResolvers, classNameFunction);
+		this.interfaceUnionLookup = interfaceUnionLookup;
 	}
 
 
@@ -374,15 +376,11 @@ public final class SchemaMappingInspector {
 	/**
 	 * Default implementation of {@link Initializer}.
 	 */
-	private static class DefaultInitializer implements Initializer {
+	private static final class DefaultInitializer implements Initializer {
 
 		private Function<GraphQLObjectType, String> classNameFunction = GraphQLObjectType::getName;
 
 		private final List<ClassResolver> classResolvers = new ArrayList<>();
-
-		DefaultInitializer() {
-			this.classResolvers.add((objectType, interfaceOrUnionType) -> Collections.emptyList());
-		}
 
 		@Override
 		public Initializer classNameFunction(Function<GraphQLObjectType, String> function) {
@@ -398,8 +396,17 @@ public final class SchemaMappingInspector {
 
 		@Override
 		public SchemaReport inspect(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> fetchers) {
-			return new SchemaMappingInspector(
-					schema, fetchers, this.classResolvers, this.classNameFunction).getOrCreateReport();
+
+			ReflectionClassResolver reflectionResolver =
+					ReflectionClassResolver.create(schema, fetchers, this.classNameFunction);
+
+			List<ClassResolver> resolvers = new ArrayList<>(this.classResolvers);
+			resolvers.add(reflectionResolver);
+
+			InterfaceUnionLookup lookup = InterfaceUnionLookup.create(schema, resolvers);
+
+			SchemaMappingInspector inspector = new SchemaMappingInspector(schema, fetchers, lookup);
+			return inspector.getOrCreateReport();
 		}
 	}
 
@@ -427,18 +434,19 @@ public final class SchemaMappingInspector {
 	 * the GraphQL object type, and then prepends a prefixes such as a package
 	 * name and/or an outer class name.
 	 */
-	private static class ReflectionClassResolver implements ClassResolver {
+	private static final class ReflectionClassResolver implements ClassResolver {
+
+		private static final Predicate<String> PACKAGE_PREDICATE = (name) -> !name.startsWith("java.");
 
 		private final Function<GraphQLObjectType, String> classNameFunction;
 
-		private final MultiValueMap<String, String> classPrefixes = new LinkedMultiValueMap<>();
+		private final MultiValueMap<String, String> classPrefixes;
 
-		ReflectionClassResolver(Function<GraphQLObjectType, String> classNameFunction) {
-			this.classNameFunction = classNameFunction;
-		}
+		private ReflectionClassResolver(
+				Function<GraphQLObjectType, String> nameFunction, MultiValueMap<String, String> prefixes) {
 
-		void addClassPrefix(String interfaceOrUnionTypeName, String classPrefix) {
-			this.classPrefixes.add(interfaceOrUnionTypeName, classPrefix);
+			this.classNameFunction = nameFunction;
+			this.classPrefixes = prefixes;
 		}
 
 		@Override
@@ -455,49 +463,16 @@ public final class SchemaMappingInspector {
 			}
 			return Collections.emptyList();
 		}
-	}
 
-
-	/**
-	 * Provides methods to look up GraphQL Object and Java type pairs associated
-	 * with GraphQL interface and union types.
-	 */
-	private static class InterfaceUnionLookup {
-
-		private static final Predicate<String> PACKAGE_PREDICATE = (name) -> !name.startsWith("java.");
-
-		private static final LinkedMultiValueMap<GraphQLType, ResolvableType> EMPTY_MULTI_VALUE_MAP = new LinkedMultiValueMap<>(0);
-
-		/** Interface or union type name to implementing or member GraphQL-Java types pairs. */
-		private final Map<String, MultiValueMap<GraphQLType, ResolvableType>> mappings = new LinkedHashMap<>();
-
-		InterfaceUnionLookup(
+		/**
+		 * Create a resolver that is aware of packages associated with controller
+		 * methods mapped to unions and interfaces.
+		 */
+		public static ReflectionClassResolver create(
 				GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers,
-				List<ClassResolver> classResolvers, Function<GraphQLObjectType, String> classNameFunction) {
+				Function<GraphQLObjectType, String> classNameFunction) {
 
-			addReflectionClassResolver(schema, dataFetchers, classNameFunction, classResolvers);
-
-			for (GraphQLNamedType type : schema.getAllTypesAsList()) {
-				if (type instanceof GraphQLUnionType union) {
-					for (GraphQLNamedOutputType member : union.getTypes()) {
-						addTypeMapping(union, (GraphQLObjectType) member, classResolvers);
-					}
-				}
-				else if (type instanceof GraphQLObjectType objectType) {
-					for (GraphQLNamedOutputType interfaceType : objectType.getInterfaces()) {
-						addTypeMapping(interfaceType, objectType, classResolvers);
-					}
-				}
-			}
-		}
-
-		private static void addReflectionClassResolver(
-				GraphQLSchema schema, Map<String, Map<String, DataFetcher>> dataFetchers,
-				Function<GraphQLObjectType, String> classNameFunction, List<ClassResolver> classResolvers) {
-
-			ReflectionClassResolver resolver = new ReflectionClassResolver(classNameFunction);
-			classResolvers.add(resolver);
-
+			MultiValueMap<String, String> classPrefixes = new LinkedMultiValueMap<>();
 			for (Map.Entry<String, Map<String, DataFetcher>> typeEntry : dataFetchers.entrySet()) {
 				String typeName = typeEntry.getKey();
 				GraphQLType parentType = schema.getType(typeName);
@@ -517,23 +492,87 @@ public final class SchemaMappingInspector {
 						Class<?> clazz = pair.resolvableType().resolve(Object.class);
 						if (PACKAGE_PREDICATE.test(clazz.getPackageName())) {
 							int index = clazz.getName().indexOf(clazz.getSimpleName());
-							resolver.addClassPrefix(outputTypeName, clazz.getName().substring(0, index));
+							classPrefixes.add(outputTypeName, clazz.getName().substring(0, index));
 						}
 						else if (fieldEntry.getValue() instanceof SelfDescribingDataFetcher<?> sddf) {
 							if (sddf.getReturnType().getSource() instanceof MethodParameter param) {
 								clazz = param.getDeclaringClass();
 								int index = clazz.getName().indexOf(clazz.getSimpleName());
-								resolver.addClassPrefix(outputTypeName, clazz.getName().substring(0, index));
+								classPrefixes.add(outputTypeName, clazz.getName().substring(0, index));
 							}
 						}
 					}
 				}
 			}
+			return new ReflectionClassResolver(classNameFunction, classPrefixes);
+		}
+	}
+
+
+	/**
+	 * Lookup for GraphQL Object and Java type pairs that are associated with
+	 * GraphQL union and interface types.
+	 */
+	private static final class InterfaceUnionLookup {
+
+		private static final LinkedMultiValueMap<GraphQLType, ResolvableType> EMPTY_MAP = new LinkedMultiValueMap<>(0);
+
+		/** Interface or union type name to implementing or member GraphQL-Java types pairs. */
+		private final Map<String, MultiValueMap<GraphQLType, ResolvableType>> mappings;
+
+		private InterfaceUnionLookup(Map<String, MultiValueMap<GraphQLType, ResolvableType>> mappings) {
+			this.mappings = mappings;
 		}
 
-		private void addTypeMapping(
+		/**
+		 * Resolve the implementation GraphQL and Java type pairs for the interface.
+		 * @param interfaceType the interface type to resolve type pairs for
+		 * @return {@code MultiValueMap} with one or more pairs, possibly one
+		 * pair with {@link ResolvableType#NONE}.
+		 */
+		MultiValueMap<GraphQLType, ResolvableType> resolveInterface(GraphQLInterfaceType interfaceType) {
+			return this.mappings.getOrDefault(interfaceType.getName(), EMPTY_MAP);
+		}
+
+		/**
+		 * Resolve the member GraphQL and Java type pairs for the union.
+		 * @param unionType the union type to resolve type pairs for
+		 * @return {@code MultiValueMap} with one or more pairs, possibly one
+		 * pair with {@link ResolvableType#NONE}.
+		 */
+		MultiValueMap<GraphQLType, ResolvableType> resolveUnion(GraphQLUnionType unionType) {
+			return this.mappings.getOrDefault(unionType.getName(), EMPTY_MAP);
+		}
+
+		/**
+		 * Resolve the class for every union member and interface implementation type,
+		 * and create a lookup instance.
+		 */
+		public static InterfaceUnionLookup create(
+				GraphQLSchema schema, List<ClassResolver> classResolvers) {
+
+			Map<String, MultiValueMap<GraphQLType, ResolvableType>> mappings = new LinkedHashMap<>();
+
+			for (GraphQLNamedType type : schema.getAllTypesAsList()) {
+				if (type instanceof GraphQLUnionType union) {
+					for (GraphQLNamedOutputType member : union.getTypes()) {
+						addTypeMapping(union, (GraphQLObjectType) member, classResolvers, mappings);
+					}
+				}
+				else if (type instanceof GraphQLObjectType objectType) {
+					for (GraphQLNamedOutputType interfaceType : objectType.getInterfaces()) {
+						addTypeMapping(interfaceType, objectType, classResolvers, mappings);
+					}
+				}
+			}
+
+			return new InterfaceUnionLookup(mappings);
+		}
+
+		private static void addTypeMapping(
 				GraphQLNamedOutputType interfaceOrUnionType, GraphQLObjectType objectType,
-				List<ClassResolver> classResolvers) {
+				List<ClassResolver> classResolvers,
+				Map<String, MultiValueMap<GraphQLType, ResolvableType>> mappings) {
 
 			List<ResolvableType> resolvableTypes = new ArrayList<>();
 
@@ -554,30 +593,9 @@ public final class SchemaMappingInspector {
 
 			for (ResolvableType resolvableType : resolvableTypes) {
 				String name = interfaceOrUnionType.getName();
-				this.mappings.computeIfAbsent(name, (n) -> new LinkedMultiValueMap<>()).add(objectType, resolvableType);
+				mappings.computeIfAbsent(name, (n) -> new LinkedMultiValueMap<>()).add(objectType, resolvableType);
 			}
 		}
-
-		/**
-		 * Resolve the implementation GraphQL and Java type pairs for the interface.
-		 * @param interfaceType the interface type to resolve type pairs for
-		 * @return {@code MultiValueMap} with one or more pairs, possibly one
-		 * pair with {@link ResolvableType#NONE}.
-		 */
-		MultiValueMap<GraphQLType, ResolvableType> resolveInterface(GraphQLInterfaceType interfaceType) {
-			return this.mappings.getOrDefault(interfaceType.getName(), EMPTY_MULTI_VALUE_MAP);
-		}
-
-		/**
-		 * Resolve the member GraphQL and Java type pairs for the union.
-		 * @param unionType the union type to resolve type pairs for
-		 * @return {@code MultiValueMap} with one or more pairs, possibly one
-		 * pair with {@link ResolvableType#NONE}.
-		 */
-		MultiValueMap<GraphQLType, ResolvableType> resolveUnion(GraphQLUnionType unionType) {
-			return this.mappings.getOrDefault(unionType.getName(), EMPTY_MULTI_VALUE_MAP);
-		}
-
 	}
 
 
