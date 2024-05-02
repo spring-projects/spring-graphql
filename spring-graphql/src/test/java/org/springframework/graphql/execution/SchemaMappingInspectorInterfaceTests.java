@@ -106,7 +106,7 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 			typeResolver.addMapping(CarImpl.class, "Car");
 
 			SchemaReport report = inspectSchema(schema,
-					initializer -> initializer.classResolver(ClassResolver.fromClassNameTypeResolver(typeResolver)),
+					initializer -> initializer.classResolver(ClassResolver.create(typeResolver.getMappings())),
 					VehicleController.class);
 
 			assertThatReport(report)

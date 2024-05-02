@@ -120,7 +120,7 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 			typeResolver.addMapping(PhotoImpl.class, "Photo");
 
 			SchemaReport report = inspectSchema(schema,
-					initializer -> initializer.classResolver(ClassResolver.fromClassNameTypeResolver(typeResolver)),
+					initializer -> initializer.classResolver(ClassResolver.create(typeResolver.getMappings())),
 					SearchController.class);
 
 			assertThatReport(report)

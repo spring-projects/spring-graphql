@@ -166,15 +166,8 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		// visitors may transform the schema, for example to add Connection types.
 
 		if (this.schemaReportConsumer != null) {
-			this.schemaReportRunner = (schema) -> {
-				SchemaMappingInspector.Initializer initializer = SchemaMappingInspector.initializer();
-				if (this.typeResolver instanceof ClassNameTypeResolver cntr) {
-					initializer.classResolver(SchemaMappingInspector.ClassResolver.fromClassNameTypeResolver(cntr));
-				}
-				this.inspectorInitializerConsumer.accept(initializer);
-				SchemaReport report = initializer.inspect(schema, runtimeWiring.getDataFetchers());
-				this.schemaReportConsumer.accept(report);
-			};
+			this.schemaReportRunner = (schema) ->
+					this.schemaReportConsumer.accept(createSchemaReport(schema, runtimeWiring));
 		}
 
 		return (this.schemaFactory != null) ?
@@ -237,6 +230,24 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 
 	private TypeResolver initTypeResolver() {
 		return (this.typeResolver != null) ? this.typeResolver : new ClassNameTypeResolver();
+	}
+
+	private SchemaReport createSchemaReport(GraphQLSchema schema, RuntimeWiring runtimeWiring) {
+		SchemaMappingInspector.Initializer initializer = SchemaMappingInspector.initializer();
+
+		// Add explicit mappings from ClassNameTypeResolver's
+		runtimeWiring.getTypeResolvers().values().stream().distinct().forEach((resolver) -> {
+			if (resolver instanceof ClassNameTypeResolver cntr) {
+				Map<Class<?>, String> mappings = cntr.getMappings();
+				if (!mappings.isEmpty()) {
+					initializer.classResolver(SchemaMappingInspector.ClassResolver.create(mappings));
+				}
+			}
+		});
+
+		this.inspectorInitializerConsumer.accept(initializer);
+
+		return initializer.inspect(schema, runtimeWiring.getDataFetchers());
 	}
 
 	@Override

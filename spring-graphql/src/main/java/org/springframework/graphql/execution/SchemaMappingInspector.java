@@ -362,16 +362,12 @@ public final class SchemaMappingInspector {
 
 
 		/**
-		 * Create a resolver by re-using the explicit, reverse mappings of
-		 * {@link ClassNameTypeResolver}.
-		 * @param resolver the type resolver using class names
+		 * Create a resolver from the given mappings.
+		 * @param mappings from Class to GraphQL type name
 		 */
-		static ClassResolver fromClassNameTypeResolver(ClassNameTypeResolver resolver) {
-			MappingClassResolver mappingResolver = new MappingClassResolver();
-			resolver.getMappings().forEach((key, value) -> mappingResolver.addMapping(value, key));
-			return mappingResolver;
+		static ClassResolver create(Map<Class<?>, String> mappings) {
+			return new MappingClassResolver(mappings);
 		}
-
 	}
 
 
@@ -415,8 +411,8 @@ public final class SchemaMappingInspector {
 
 		private final MultiValueMap<String, Class<?>> map = new LinkedMultiValueMap<>();
 
-		void addMapping(String typeName, Class<?> clazz) {
-			this.map.add(typeName, clazz);
+		MappingClassResolver(Map<Class<?>, String> mappings) {
+			mappings.forEach((key, value) -> this.map.add(value, key));
 		}
 
 		@Override
