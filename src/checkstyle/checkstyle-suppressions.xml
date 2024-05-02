@@ -6,6 +6,9 @@
 	<!-- generated sources -->
 	<suppress files="[\\/]build[\\/]generated[\\/]sources[\\/]" checks=".*" />
 
+	<!-- main -->
+	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]" checks="SpringMethodVisibility" />
+
 	<!-- tests -->
 	<suppress files="[\\/]src[\\/]testFixtures[\\/]java[\\/]" checks="JavadocPackage|SpringJavadoc" />
 	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]" checks="JavadocPackage|SpringJavadoc|InnerTypeLast|SpringMethodVisibility|RequireThis|SpringLambda|SpringTernary|FinalClass|RedundantModifier|SpringAvoidStaticImport" />
