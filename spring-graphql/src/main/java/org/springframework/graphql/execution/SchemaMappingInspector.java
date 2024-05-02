@@ -49,6 +49,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
+import org.springframework.core.MethodParameter;
 import org.springframework.core.ReactiveAdapter;
 import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.ResolvableType;
@@ -521,6 +522,13 @@ public final class SchemaMappingInspector {
 						if (PACKAGE_PREDICATE.test(clazz.getPackageName())) {
 							int index = clazz.getName().indexOf(clazz.getSimpleName());
 							resolver.addClassPrefix(outputTypeName, clazz.getName().substring(0, index));
+						}
+						else if (fieldEntry.getValue() instanceof SelfDescribingDataFetcher<?> sddf) {
+							if (sddf.getReturnType().getSource() instanceof MethodParameter param) {
+								clazz = param.getDeclaringClass();
+								int index = clazz.getName().indexOf(clazz.getSimpleName());
+								resolver.addClassPrefix(outputTypeName, clazz.getName().substring(0, index));
+							}
 						}
 					}
 				}

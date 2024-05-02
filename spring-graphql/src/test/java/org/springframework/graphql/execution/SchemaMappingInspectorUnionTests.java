@@ -51,8 +51,18 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 	class InterfaceFieldsNotOnJavaInterface {
 
 		@Test
-		void reportUnmappedFields() {
+		void reportUnmappedFieldsByCheckingReturnTypePackage() {
 			SchemaReport report = inspectSchema(schema, SearchController.class);
+			assertThatReport(report)
+					.hasSkippedTypeCount(0)
+					.hasUnmappedFieldCount(3)
+					.containsUnmappedFields("Photo", "height", "width")
+					.containsUnmappedFields("Video", "title");
+		}
+
+		@Test
+		void reportUnmappedFieldsByCheckingControllerTypePackage() {
+			SchemaReport report = inspectSchema(schema, ObjectSearchController.class);
 			assertThatReport(report)
 					.hasSkippedTypeCount(0)
 					.hasUnmappedFieldCount(3)
@@ -70,6 +80,16 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 
 			@QueryMapping
 			List<ResultItem> search() {
+				throw new UnsupportedOperationException();
+			}
+		}
+
+
+		@Controller
+		static class ObjectSearchController {
+
+			@QueryMapping
+			List<Object> search() {
 				throw new UnsupportedOperationException();
 			}
 		}
