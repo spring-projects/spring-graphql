@@ -220,16 +220,14 @@ public final class SchemaMappingInspector {
 				// Can we inspect GraphQL type?
 				if (!(graphQlType instanceof GraphQLFieldsContainer fieldContainer)) {
 					if (isNotScalarOrEnumType(graphQlType)) {
-						FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
-						addSkippedType(graphQlType, coordinates, "Unsupported schema type");
+						this.reportBuilder.skippedType(graphQlType, parent, field, "Unsupported schema type");
 					}
 					continue;
 				}
 
 				// Can we inspect the Class?
 				if (currentResolvableType.resolve(Object.class) == Object.class) {
-					FieldCoordinates coordinates = FieldCoordinates.coordinates(parent.getName(), field.getName());
-					addSkippedType(graphQlType, coordinates, "No class information");
+					this.reportBuilder.skippedType(graphQlType, parent, field, "No class information");
 					continue;
 				}
 
@@ -252,18 +250,6 @@ public final class SchemaMappingInspector {
 
 	private static boolean isNotScalarOrEnumType(GraphQLType type) {
 		return !(type instanceof GraphQLScalarType || type instanceof GraphQLEnumType);
-	}
-
-	private void addSkippedType(GraphQLType type, FieldCoordinates coordinates, String reason) {
-		String typeName = typeNameToString(type);
-		this.reportBuilder.skippedType(type, coordinates);
-		if (logger.isDebugEnabled()) {
-			logger.debug("Skipped '" + typeName + "': " + reason);
-		}
-	}
-
-	private static String typeNameToString(GraphQLType type) {
-		return (type instanceof GraphQLNamedType namedType) ? namedType.getName() : type.toString();
 	}
 
 	private void checkDataFetcherRegistrations() {
@@ -469,6 +455,7 @@ public final class SchemaMappingInspector {
 				Function<GraphQLObjectType, String> classNameFunction) {
 
 			MultiValueMap<String, String> classPrefixes = new LinkedMultiValueMap<>();
+
 			for (Map.Entry<String, Map<String, DataFetcher>> typeEntry : dataFetchers.entrySet()) {
 				String typeName = typeEntry.getKey();
 				GraphQLType parentType = schema.getType(typeName);
@@ -481,26 +468,32 @@ public final class SchemaMappingInspector {
 					if (field == null) {
 						continue;  // Unmapped registration
 					}
-					TypePair pair = TypePair.resolveTypePair(parentType, field, fieldEntry.getValue(), schema);
+					DataFetcher dataFetcher = fieldEntry.getValue();
+					TypePair pair = TypePair.resolveTypePair(parentType, field, dataFetcher, schema);
 					GraphQLType outputType = pair.outputType();
 					if (outputType instanceof GraphQLUnionType || outputType instanceof GraphQLInterfaceType) {
 						String outputTypeName = ((GraphQLNamedOutputType) outputType).getName();
 						Class<?> clazz = pair.resolvableType().resolve(Object.class);
 						if (PACKAGE_PREDICATE.test(clazz.getPackageName())) {
-							int index = clazz.getName().indexOf(clazz.getSimpleName());
-							classPrefixes.add(outputTypeName, clazz.getName().substring(0, index));
+							addClassPrefix(outputTypeName, clazz, classPrefixes);
 						}
-						else if (fieldEntry.getValue() instanceof SelfDescribingDataFetcher<?> sddf) {
-							if (sddf.getReturnType().getSource() instanceof MethodParameter param) {
-								clazz = param.getDeclaringClass();
-								int index = clazz.getName().indexOf(clazz.getSimpleName());
-								classPrefixes.add(outputTypeName, clazz.getName().substring(0, index));
+						else if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
+							if (selfDescribing.getReturnType().getSource() instanceof MethodParameter param) {
+								addClassPrefix(outputTypeName, param.getDeclaringClass(), classPrefixes);
 							}
 						}
 					}
 				}
 			}
+
 			return new ReflectionClassResolver(classNameFunction, classPrefixes);
+		}
+
+		private static void addClassPrefix(
+				String unionOrInterfaceType, Class<?> aClass, MultiValueMap<String, String> classPrefixes) {
+
+			int index = aClass.getName().indexOf(aClass.getSimpleName());
+			classPrefixes.add(unionOrInterfaceType, aClass.getName().substring(0, index));
 		}
 	}
 
@@ -744,8 +737,12 @@ public final class SchemaMappingInspector {
 			this.unmappedArguments.put(dataFetcher, arguments);
 		}
 
-		void skippedType(GraphQLType type, FieldCoordinates coordinates) {
-			this.skippedTypes.add(new DefaultSkippedType(type, coordinates));
+		void skippedType(GraphQLType type, GraphQLFieldsContainer parent, GraphQLFieldDefinition field, String reason) {
+			DefaultSkippedType skippedType = DefaultSkippedType.create(type, parent, field);
+			if (logger.isDebugEnabled()) {
+				logger.debug("Skipping '" + skippedType + "': " + reason);
+			}
+			this.skippedTypes.add(skippedType);
 		}
 
 		SchemaReport build() {
@@ -759,7 +756,7 @@ public final class SchemaMappingInspector {
 	/**
 	 * Default implementation of {@link SchemaReport}.
 	 */
-	private class DefaultSchemaReport implements SchemaReport {
+	private final class DefaultSchemaReport implements SchemaReport {
 
 		private final List<FieldCoordinates> unmappedFields;
 
@@ -841,9 +838,14 @@ public final class SchemaMappingInspector {
 
 		@Override
 		public String toString() {
-			return typeNameToString(this.type);
+			return (type instanceof GraphQLNamedType namedType) ? namedType.getName() : type.toString();
 		}
 
+		public static DefaultSkippedType create(
+				GraphQLType type, GraphQLFieldsContainer parent, GraphQLFieldDefinition field) {
+
+			return new DefaultSkippedType(type, FieldCoordinates.coordinates(parent, field));
+		}
 	}
 
 }
