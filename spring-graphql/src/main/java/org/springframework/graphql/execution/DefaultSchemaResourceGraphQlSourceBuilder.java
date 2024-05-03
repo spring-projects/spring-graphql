@@ -238,10 +238,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		// Add explicit mappings from ClassNameTypeResolver's
 		runtimeWiring.getTypeResolvers().values().stream().distinct().forEach((resolver) -> {
 			if (resolver instanceof ClassNameTypeResolver cntr) {
-				Map<Class<?>, String> mappings = cntr.getMappings();
-				if (!mappings.isEmpty()) {
-					initializer.classResolver(SchemaMappingInspector.ClassResolver.create(mappings));
-				}
+				cntr.getMappings().forEach((aClass, name) -> initializer.classMapping(name, aClass));
 			}
 		});
 

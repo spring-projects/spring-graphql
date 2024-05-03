@@ -17,14 +17,12 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.execution.SchemaMappingInspector.ClassResolver;
 import org.springframework.stereotype.Controller;
 
 /**
@@ -129,10 +127,8 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		@Test
 		void classNameTypeResolver() {
 
-			Map<Class<?>, String> mappings = Map.of(PhotoImpl.class, "Photo");
-
 			SchemaReport report = inspectSchema(schema,
-					initializer -> initializer.classResolver(ClassResolver.create(mappings)),
+					initializer -> initializer.classMapping("Photo", PhotoImpl.class),
 					SearchController.class);
 
 			assertThatReport(report)

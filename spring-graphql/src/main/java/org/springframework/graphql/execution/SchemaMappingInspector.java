@@ -302,20 +302,43 @@ public final class SchemaMappingInspector {
 	public interface Initializer {
 
 		/**
-		 * Provide a function to derive the simple class name that corresponds to a
-		 * GraphQL union member type, or a GraphQL interface implementation type.
-		 * This is then used to find a Java class in the same package as that of
-		 * the return type of the controller method for the interface or union.
-		 * <p>The default, {@link GraphQLObjectType#getName()} is used
+		 * Provide an explicit mapping between a GraphQL type name and the Java
+		 * class(es) that represent it at runtime to help inspect union member
+		 * and interface implementation types when those associations cannot be
+		 * discovered otherwise.
+		 * <p>Out of the box, there a several ways through which schema inspection
+		 * can locate such types automatically:
+		 * <ul>
+		 * <li>Java class representations are located in the same package as the
+		 * type returned from the controller method for a union or interface field,
+		 * and their {@link Class#getSimpleName() simple class names} match GraphQL
+		 * type names, possibly with the help of a {@link #classNameFunction}.
+		 * <li>Java class representations are located in the same package as the
+		 * declaring class of the controller method for a union or interface field.
+		 * <li>Controller methods return the Java class representations of schema
+		 * fields for concrete union member or interface implementation types.
+		 * </ul>
+		 * @param graphQlTypeName the name of a GraphQL Object type
+		 * @param aClass one or more Java class representations
+		 * @return the same initializer instance
+		 */
+		Initializer classMapping(String graphQlTypeName, Class<?>... aClass);
+
+		/**
+		 * Help to derive the {@link Class#getSimpleName() simple class name} for
+		 * the Java representation of a GraphQL union member or interface implementing
+		 * type. For more details, see {@link #classMapping(String, Class[])}.
+		 * <p>By default, {@link GraphQLObjectType#getName()} is used.
 		 * @param function the function to use
 		 * @return the same initializer instance
 		 */
 		Initializer classNameFunction(Function<GraphQLObjectType, String> function);
 
 		/**
-		 * Add a custom {@link ClassResolver} to use to find the Java class for a
-		 * GraphQL union member type, or a GraphQL interface implementation type.
-		 * @param resolver the resolver to add
+		 * Alternative to {@link #classMapping(String, Class[])} with a custom
+		 * {@link ClassResolver} to find the Java class(es) for a GraphQL union
+		 * member or interface implementation type.
+		 * @param resolver the resolver to use to find associated Java classes
 		 * @return the same initializer instance
 		 */
 		Initializer classResolver(ClassResolver resolver);
@@ -345,14 +368,6 @@ public final class SchemaMappingInspector {
 		 */
 		List<Class<?>> resolveClass(GraphQLObjectType objectType, GraphQLNamedOutputType interfaceOrUnionType);
 
-
-		/**
-		 * Create a resolver from the given mappings.
-		 * @param mappings from Class to GraphQL type name
-		 */
-		static ClassResolver create(Map<Class<?>, String> mappings) {
-			return new MappingClassResolver(mappings);
-		}
 	}
 
 
@@ -364,6 +379,8 @@ public final class SchemaMappingInspector {
 		private Function<GraphQLObjectType, String> classNameFunction = GraphQLObjectType::getName;
 
 		private final List<ClassResolver> classResolvers = new ArrayList<>();
+
+		private final MultiValueMap<String, Class<?>> classMappings = new LinkedMultiValueMap<>();
 
 		@Override
 		public Initializer classNameFunction(Function<GraphQLObjectType, String> function) {
@@ -378,13 +395,19 @@ public final class SchemaMappingInspector {
 		}
 
 		@Override
+		public Initializer classMapping(String graphQlTypeName, Class<?>... classes) {
+			for (Class<?> aClass : classes) {
+				this.classMappings.add(graphQlTypeName, aClass);
+			}
+			return this;
+		}
+
+		@Override
 		public SchemaReport inspect(GraphQLSchema schema, Map<String, Map<String, DataFetcher>> fetchers) {
 
-			ReflectionClassResolver reflectionResolver =
-					ReflectionClassResolver.create(schema, fetchers, this.classNameFunction);
-
 			List<ClassResolver> resolvers = new ArrayList<>(this.classResolvers);
-			resolvers.add(reflectionResolver);
+			resolvers.add(new MappingClassResolver(this.classMappings));
+			resolvers.add(ReflectionClassResolver.create(schema, fetchers, this.classNameFunction));
 
 			InterfaceUnionLookup lookup = InterfaceUnionLookup.create(schema, resolvers);
 
@@ -399,15 +422,15 @@ public final class SchemaMappingInspector {
 	 */
 	private static final class MappingClassResolver implements ClassResolver {
 
-		private final MultiValueMap<String, Class<?>> map = new LinkedMultiValueMap<>();
+		private final MultiValueMap<String, Class<?>> mappings = new LinkedMultiValueMap<>();
 
-		MappingClassResolver(Map<Class<?>, String> mappings) {
-			mappings.forEach((key, value) -> this.map.add(value, key));
+		MappingClassResolver(MultiValueMap<String, Class<?>> mappings) {
+			this.mappings.putAll(mappings);
 		}
 
 		@Override
 		public List<Class<?>> resolveClass(GraphQLObjectType objectType, GraphQLNamedOutputType interfaceOrUnionType) {
-			return this.map.getOrDefault(objectType.getName(), Collections.emptyList());
+			return this.mappings.getOrDefault(objectType.getName(), Collections.emptyList());
 		}
 	}
 
@@ -478,7 +501,7 @@ public final class SchemaMappingInspector {
 						if (PACKAGE_PREDICATE.test(clazz.getPackageName())) {
 							addClassPrefix(outputTypeName, clazz, classPrefixes);
 						}
-						else if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
+						if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
 							if (selfDescribing.getReturnType().getSource() instanceof MethodParameter param) {
 								addClassPrefix(outputTypeName, param.getDeclaringClass(), classPrefixes);
 							}

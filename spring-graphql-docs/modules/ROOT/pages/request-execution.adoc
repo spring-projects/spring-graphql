@@ -280,21 +280,26 @@ For unions, the inspection iterates over member types and tries to find the corr
 classes. For interfaces, the inspection iterates over implementation types and looks
 for the corresponding classes.
 
-By default, corresponding `Class` can be found if the class name matches that of the
-GraphQL union member of interface implementation type, _and_ the `Class` is located in
-the same package (and/or outer class) as the return type of the controller method for the
-union or interface. In addition, if `ClassNameTypeResolver` is configured as a
+By default, corresponding Java classes can be detected out-of-the-box in the following cases:
+
+- The ``Class``'s simple name matches the GraphQL union member of interface implementation
+type name, _and_ the `Class` is located in the same package as the return type of the
+controller method, or controller class, mapped to the union or interface field.
+- The `Class` is inspected in other parts of the schema where the mapped field is of a
+concrete union member or interface implementation type.
+- You have registered a
 xref:request-execution.adoc#execution.graphqlsource.default-type-resolver[TypeResolver]
-with explicit class mapping registrations, those are also checked.
+that has explicit `Class` to GraphQL type mappings .
 
-If a union member or an interface implementation type is listed as skipped, you have
-the following additional options:
+In none the above help, and GraphQL types are reported as skipped in the schema inspection
+report, you can make the following customizations:
 
-- Register a function to resolve the `Class` name for a given GraphQL type to account
-for class naming conventions.
-- Register a `ClassResolver` with any custom resolution logic.
+- Explicitly map a GraphQL type name to a Java class or classes.
+- Configure a function that customizes how a GraphQL type name is adapted to a simple
+`Class` name. This can help with a specific Java class naming conventions.
+- Provide a `ClassNameTypeResolver` to map a GraphQL type a Java classes.
 
-Use the following for such customizations:
+For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -302,10 +307,8 @@ GraphQlSource.Builder builder = ...
 
 builder.schemaResources(..)
 	.inspectSchemaMappings(
-		initializer -> initializer.classNameFunction(type -> type.getName() + "Impl")
-		report -> {
-			logger.debug(report);
-		})
+		initializer -> initializer.classMapping("Author", Author.class)
+		logger::debug);
 ----
 
 
