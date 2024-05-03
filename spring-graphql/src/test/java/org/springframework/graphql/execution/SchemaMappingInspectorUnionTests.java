@@ -17,6 +17,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 
 
 	@Nested
-	class InterfaceFieldsNotOnJavaInterface {
+	class UnmappedFields {
 
 		@Test
 		void reportUnmappedFieldsByCheckingReturnTypePackage() {
@@ -97,10 +98,10 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 
 
 	@Nested
-	class GraphQlAndJavaTypeNameMismatch {
+	class ClassNameAndClassResolver {
 
 		@Test
-		void useClassNameFunction() {
+		void classNameFunction() {
 
 			SchemaReport report = inspectSchema(schema,
 					initializer -> initializer.classNameFunction(type -> type.getName() + "Impl"),
@@ -114,13 +115,12 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		}
 
 		@Test
-		void useClassNameTypeResolver() {
+		void classNameTypeResolver() {
 
-			ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
-			typeResolver.addMapping(PhotoImpl.class, "Photo");
+			Map<Class<?>, String> mappings = Map.of(PhotoImpl.class, "Photo");
 
 			SchemaReport report = inspectSchema(schema,
-					initializer -> initializer.classResolver(ClassResolver.create(typeResolver.getMappings())),
+					initializer -> initializer.classResolver(ClassResolver.create(mappings)),
 					SearchController.class);
 
 			assertThatReport(report)

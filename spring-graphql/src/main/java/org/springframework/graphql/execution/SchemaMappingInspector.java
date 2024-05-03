@@ -145,6 +145,10 @@ public final class SchemaMappingInspector {
 	private void checkFieldsContainer(
 			GraphQLFieldsContainer fieldContainer, @Nullable ResolvableType resolvableType) {
 
+		if (!this.inspectedTypes.add(fieldContainer.getName())) {
+			return;
+		}
+
 		String typeName = fieldContainer.getName();
 		Map<String, DataFetcher> dataFetcherMap = this.dataFetchers.getOrDefault(typeName, Collections.emptyMap());
 
@@ -196,10 +200,6 @@ public final class SchemaMappingInspector {
 
 		TypePair typePair = TypePair.resolveTypePair(parent, field, resolvableType, this.schema);
 
-		if (addAndCheckIfAlreadyInspected(typePair.outputType())) {
-			return;
-		}
-
 		MultiValueMap<GraphQLType, ResolvableType> typePairs = new LinkedMultiValueMap<>();
 		if (typePair.outputType() instanceof GraphQLUnionType unionType) {
 			typePairs.putAll(this.interfaceUnionLookup.resolveUnion(unionType));
@@ -248,10 +248,6 @@ public final class SchemaMappingInspector {
 			throw new IllegalStateException(
 					"Failed to get property on " + resolvableType + " for field '" + fieldName + "'", ex);
 		}
-	}
-
-	private boolean addAndCheckIfAlreadyInspected(GraphQLType type) {
-		return (type instanceof GraphQLNamedOutputType outputType && !this.inspectedTypes.add(outputType.getName()));
 	}
 
 	private static boolean isNotScalarOrEnumType(GraphQLType type) {

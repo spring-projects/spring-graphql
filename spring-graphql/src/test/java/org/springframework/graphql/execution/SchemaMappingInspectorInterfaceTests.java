@@ -17,6 +17,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 
 
 	@Nested
-	class InterfaceFieldsNotOnJavaInterface {
+	class UnmappedFields {
 
 		@Test
 		void reportUnmappedFields() {
@@ -83,10 +84,10 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 
 
 	@Nested
-	class GraphQlAndJavaTypeNameMismatch {
+	class ClassNameAndClassResolver {
 
 		@Test
-		void useClassNameFunction() {
+		void classNameFunction() {
 
 			SchemaReport report = inspectSchema(schema,
 					initializer -> initializer.classNameFunction(type -> type.getName() + "Impl"),
@@ -100,13 +101,12 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 		}
 
 		@Test
-		void useClassNameTypeResolver() {
+		void classNameTypeResolver() {
 
-			ClassNameTypeResolver typeResolver = new ClassNameTypeResolver();
-			typeResolver.addMapping(CarImpl.class, "Car");
+			Map<Class<?>, String> mappings = Map.of(CarImpl.class, "Car");
 
 			SchemaReport report = inspectSchema(schema,
-					initializer -> initializer.classResolver(ClassResolver.create(typeResolver.getMappings())),
+					initializer -> initializer.classResolver(ClassResolver.create(mappings)),
 					VehicleController.class);
 
 			assertThatReport(report)
@@ -125,6 +125,47 @@ public class SchemaMappingInspectorInterfaceTests extends SchemaMappingInspector
 
 			@QueryMapping
 			List<Vehicle> vehicles() {
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+
+
+	@Nested // gh-961
+	class UnmappedFieldsReportedOnlyOnce {
+
+		@Test
+		void reportUnmappedFields() {
+
+			String schema = SchemaMappingInspectorInterfaceTests.schema + """
+				extend type Query {
+					cars: [Car]
+				}
+				""";
+
+			SchemaReport report = inspectSchema(schema, VehicleController.class);
+			assertThatReport(report)
+					.hasSkippedTypeCount(0)
+					.hasUnmappedFieldCount(2)
+					.containsUnmappedFields("Car", "price", "engineType");
+		}
+
+		interface Vehicle {
+			String name();
+		}
+		record Car(String name) implements Vehicle { }
+		record Bike(String name, int price) implements Vehicle { }
+
+		@Controller
+		static class VehicleController {
+
+			@QueryMapping
+			List<Vehicle> vehicles() {
+				throw new UnsupportedOperationException();
+			}
+
+			@QueryMapping
+			List<Car> cars() {
 				throw new UnsupportedOperationException();
 			}
 		}
