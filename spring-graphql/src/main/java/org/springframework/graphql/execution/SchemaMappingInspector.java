@@ -220,14 +220,15 @@ public final class SchemaMappingInspector {
 				// Can we inspect GraphQL type?
 				if (!(graphQlType instanceof GraphQLFieldsContainer fieldContainer)) {
 					if (isNotScalarOrEnumType(graphQlType)) {
-						this.reportBuilder.skippedType(graphQlType, parent, field, "Unsupported schema type");
+						this.reportBuilder.skippedType(graphQlType, parent, field, "Unsupported schema type", false);
 					}
 					continue;
 				}
 
 				// Can we inspect the Class?
 				if (currentResolvableType.resolve(Object.class) == Object.class) {
-					this.reportBuilder.skippedType(graphQlType, parent, field, "No class information");
+					boolean isDerived = !graphQlType.equals(typePair.outputType());
+					this.reportBuilder.skippedType(graphQlType, parent, field, "No class information", isDerived);
 					continue;
 				}
 
@@ -723,7 +724,9 @@ public final class SchemaMappingInspector {
 
 		private final MultiValueMap<DataFetcher<?>, String> unmappedArguments = new LinkedMultiValueMap<>();
 
-		private final List<SchemaReport.SkippedType> skippedTypes = new ArrayList<>();
+		private final List<DefaultSkippedType> skippedTypes = new ArrayList<>();
+
+		private final List<DefaultSkippedType> candidateSkippedTypes = new ArrayList<>();
 
 		void unmappedField(FieldCoordinates coordinates) {
 			this.unmappedFields.add(coordinates);
@@ -737,19 +740,44 @@ public final class SchemaMappingInspector {
 			this.unmappedArguments.put(dataFetcher, arguments);
 		}
 
-		void skippedType(GraphQLType type, GraphQLFieldsContainer parent, GraphQLFieldDefinition field, String reason) {
-			DefaultSkippedType skippedType = DefaultSkippedType.create(type, parent, field);
+		void skippedType(
+				GraphQLType type, GraphQLFieldsContainer parent, GraphQLFieldDefinition field,
+				String reason, boolean isDerivedType) {
+
+			DefaultSkippedType skippedType = DefaultSkippedType.create(type, parent, field, reason);
+
+			if (!isDerivedType) {
+				skippedType(skippedType);
+				return;
+			}
+
+			// Keep skipped union member or interface implementing types aside to the end.
+			// Use of concrete types elsewhere may provide more information.
+
+			this.candidateSkippedTypes.add(skippedType);
+		}
+
+		private void skippedType(DefaultSkippedType skippedType) {
 			if (logger.isDebugEnabled()) {
-				logger.debug("Skipping '" + skippedType + "': " + reason);
+				logger.debug("Skipping '" + skippedType + "': " + skippedType.reason());
 			}
 			this.skippedTypes.add(skippedType);
 		}
 
 		SchemaReport build() {
+
+			this.candidateSkippedTypes.forEach((skippedType) -> {
+				if (skippedType.type() instanceof GraphQLFieldsContainer fieldsContainer) {
+					if (SchemaMappingInspector.this.inspectedTypes.contains(fieldsContainer.getName())) {
+						return;
+					}
+				}
+				skippedType(skippedType);
+			});
+
 			return new DefaultSchemaReport(
 					this.unmappedFields, this.unmappedRegistrations, this.unmappedArguments, this.skippedTypes);
 		}
-
 	}
 
 
@@ -768,7 +796,7 @@ public final class SchemaMappingInspector {
 
 		DefaultSchemaReport(
 				List<FieldCoordinates> unmappedFields, Map<FieldCoordinates, DataFetcher<?>> unmappedRegistrations,
-				MultiValueMap<DataFetcher<?>, String> unmappedArguments, List<SkippedType> skippedTypes) {
+				MultiValueMap<DataFetcher<?>, String> unmappedArguments, List<DefaultSkippedType> skippedTypes) {
 
 			this.unmappedFields = Collections.unmodifiableList(unmappedFields);
 			this.unmappedRegistrations = Collections.unmodifiableMap(unmappedRegistrations);
@@ -834,17 +862,18 @@ public final class SchemaMappingInspector {
 	 * Default implementation of a {@link SchemaReport.SkippedType}.
 	 */
 	private record DefaultSkippedType(
-			GraphQLType type, FieldCoordinates fieldCoordinates) implements SchemaReport.SkippedType {
+			GraphQLType type, FieldCoordinates fieldCoordinates, String reason)
+			implements SchemaReport.SkippedType {
 
 		@Override
 		public String toString() {
-			return (type instanceof GraphQLNamedType namedType) ? namedType.getName() : type.toString();
+			return (this.type instanceof GraphQLNamedType named) ? named.getName() : this.type.toString();
 		}
 
 		public static DefaultSkippedType create(
-				GraphQLType type, GraphQLFieldsContainer parent, GraphQLFieldDefinition field) {
+				GraphQLType type, GraphQLFieldsContainer parent, GraphQLFieldDefinition field, String reason) {
 
-			return new DefaultSkippedType(type, FieldCoordinates.coordinates(parent, field));
+			return new DefaultSkippedType(type, FieldCoordinates.coordinates(parent, field), reason);
 		}
 	}
 

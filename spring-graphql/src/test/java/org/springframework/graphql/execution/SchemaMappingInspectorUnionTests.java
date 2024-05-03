@@ -22,6 +22,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.execution.SchemaMappingInspector.ClassResolver;
 import org.springframework.stereotype.Controller;
@@ -35,15 +36,19 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 
 	private static final String schema = """
 				type Query {
-					search: [SearchResult!]!
+					search: [SearchResult]
+					article(id: ID): Article
 				}
-				union SearchResult = Photo | Video
+				union SearchResult = Article | Photo | Video
 				type Photo {
 					height: Int
 					width: Int
 				}
 				type Video {
 					title: String
+				}
+				type Article {
+					content: String
 				}
 				""";
 
@@ -55,8 +60,10 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		void reportUnmappedFieldsByCheckingReturnTypePackage() {
 			SchemaReport report = inspectSchema(schema, SearchController.class);
 			assertThatReport(report)
-					.hasSkippedTypeCount(0)
-					.hasUnmappedFieldCount(3)
+					.hasSkippedTypeCount(1)
+					.containsSkippedTypes("Article")
+					.hasUnmappedFieldCount(4)
+					.containsUnmappedFields("Query", "article")
 					.containsUnmappedFields("Photo", "height", "width")
 					.containsUnmappedFields("Video", "title");
 		}
@@ -65,16 +72,19 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		void reportUnmappedFieldsByCheckingControllerTypePackage() {
 			SchemaReport report = inspectSchema(schema, ObjectSearchController.class);
 			assertThatReport(report)
-					.hasSkippedTypeCount(0)
-					.hasUnmappedFieldCount(3)
+					.hasSkippedTypeCount(1)
+					.containsSkippedTypes("Article")
+					.hasUnmappedFieldCount(4)
+					.containsUnmappedFields("Query", "article")
 					.containsUnmappedFields("Photo", "height", "width")
 					.containsUnmappedFields("Video", "title");
 		}
 
 
-		sealed interface ResultItem permits Photo, Video { }
 		record Photo() implements ResultItem { }
 		record Video() implements ResultItem { }
+
+		sealed interface ResultItem permits Photo, Video { }
 
 		@Controller
 		static class SearchController {
@@ -108,8 +118,10 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 					SearchController.class);
 
 			assertThatReport(report)
-					.hasSkippedTypeCount(0)
-					.hasUnmappedFieldCount(3)
+					.hasSkippedTypeCount(1)
+					.containsSkippedTypes("Article")
+					.hasUnmappedFieldCount(4)
+					.containsUnmappedFields("Query", "article")
 					.containsUnmappedFields("Photo", "height", "width")
 					.containsUnmappedFields("Video", "title");
 		}
@@ -124,8 +136,11 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 					SearchController.class);
 
 			assertThatReport(report)
-					.hasUnmappedFieldCount(2).containsUnmappedFields("Photo", "height", "width")
-					.hasSkippedTypeCount(1).containsSkippedTypes("Video");
+					.hasSkippedTypeCount(2)
+					.containsSkippedTypes("Article", "Video")
+					.hasUnmappedFieldCount(3)
+					.containsUnmappedFields("Query", "article")
+					.containsUnmappedFields("Photo", "height", "width");
 		}
 
 		sealed interface ResultItem permits PhotoImpl, VideoImpl { }
@@ -149,7 +164,7 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 		@Test
 		void reportSkippedImplementations() {
 			SchemaReport report = inspectSchema(schema, SearchController.class);
-			assertThatReport(report).hasSkippedTypeCount(2).containsSkippedTypes("Photo", "Video");
+			assertThatReport(report).hasSkippedTypeCount(3).containsSkippedTypes("Article", "Photo", "Video");
 		}
 
 		interface ResultItem { }
@@ -163,5 +178,39 @@ public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTest
 			}
 		}
 	}
+
+
+	@Nested
+	class CandidateSkippedTypes {
+
+		// A union member type is only a candidate to be skipped until the inspection is done.
+		// Use of the concrete type elsewhere may provide more information.
+
+		@Test
+		void candidateNotSkippedIfConcreteUseElsewhere() {
+			SchemaReport report = inspectSchema(schema, SearchController.class);
+			assertThatReport(report).hasSkippedTypeCount(2).containsSkippedTypes("Photo", "Video");
+		}
+
+		@Controller
+		static class SearchController {
+
+			@QueryMapping
+			List<Object> search() {
+				throw new UnsupportedOperationException();
+			}
+
+			@QueryMapping
+			Article article(@Argument Long id) {
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+
+
+	/**
+	 * Declared outside {@link CandidateSkippedTypes}, so the union lookup won't find it.
+	 */
+	private record Article(String content) { }
 
 }
