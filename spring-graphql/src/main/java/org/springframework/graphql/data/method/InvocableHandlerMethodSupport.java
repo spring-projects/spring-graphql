@@ -47,25 +47,43 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	private static final Object NO_VALUE = new Object();
 
 
-	private final boolean hasCallableReturnValue;
-
 	@Nullable
 	private final Executor executor;
+
+	private final boolean hasCallableReturnValue;
+
+	private final boolean invokeAsync;
+
 
 
 	/**
 	 * Create an instance.
 	 * @param handlerMethod the controller method
 	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 * @deprecated in favor of alternative constructor
 	 */
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	protected InvocableHandlerMethodSupport(HandlerMethod handlerMethod, @Nullable Executor executor) {
+		this(handlerMethod, executor, false);
+	}
+
+	/**
+	 * Create an instance.
+	 * @param handlerMethod the controller method
+	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 * @param invokeAsync whether to invoke the method through the Executor
+	 * @since 1.3.0
+	 */
+	protected InvocableHandlerMethodSupport(
+			HandlerMethod handlerMethod, @Nullable Executor executor, boolean invokeAsync) {
 		super(handlerMethod.createWithResolvedBean());
 
-		this.hasCallableReturnValue = getReturnType().getParameterType().equals(Callable.class);
 		this.executor = executor;
+		this.hasCallableReturnValue = getReturnType().getParameterType().equals(Callable.class);
+		this.invokeAsync = (invokeAsync && !this.hasCallableReturnValue);
 
-		Assert.isTrue(!this.hasCallableReturnValue || executor != null,
-				"Controller method has Callable return value, but Executor not provided: " +
+		Assert.isTrue((!this.hasCallableReturnValue && !invokeAsync) || executor != null,
+				"Controller method has Callable return value or invokeAsync=true, but Executor not provided: " +
 						handlerMethod.getBridgedMethod().toGenericString());
 	}
 
@@ -81,7 +99,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	@Nullable
 	protected Object doInvoke(GraphQLContext graphQLContext, Object... argValues) {
 		if (logger.isTraceEnabled()) {
-			logger.trace("Arguments: " + Arrays.toString(argValues));
+			logger.trace("Invoking " + getBridgedMethod().getName() + "(" + Arrays.toString(argValues) + ")");
 		}
 		Method method = getBridgedMethod();
 		try {
@@ -89,10 +107,16 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 				return invokeSuspendingFunction(getBean(), method, argValues);
 			}
 
-			Object result = method.invoke(getBean(), argValues);
-
-			if (this.hasCallableReturnValue && result != null) {
-				result = adaptCallable(graphQLContext, (Callable<?>) result);
+			Object result;
+			if (this.invokeAsync) {
+				Callable<Object> callable = () -> method.invoke(getBean(), argValues);
+				result = adaptCallable(graphQLContext, callable);
+			}
+			else {
+				result = method.invoke(getBean(), argValues);
+				if (this.hasCallableReturnValue && result != null) {
+					result = adaptCallable(graphQLContext, (Callable<?>) result);
+				}
 			}
 
 			return result;

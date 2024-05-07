@@ -216,7 +216,7 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 
 		DataFetcherHandlerMethod exceptionHandler = new DataFetcherHandlerMethod(
 				new HandlerMethod(controllerOrAdvice, methodHolder.getMethod()), this.argumentResolvers,
-				null, null, false);
+				null, null, false, false);
 
 		List<Throwable> exceptions = new ArrayList<>();
 		try {

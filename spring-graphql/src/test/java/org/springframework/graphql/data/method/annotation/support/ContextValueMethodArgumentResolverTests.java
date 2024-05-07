@@ -125,7 +125,7 @@ public class ContextValueMethodArgumentResolverTests {
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				new HandlerMethod(new TestController(), TestController.class.getMethod("handleMono", Mono.class)),
-				resolvers, null, null, false);
+				resolvers, null, null, false, false);
 
 		GraphQLContext graphQLContext = new GraphQLContext.Builder().build();
 
@@ -147,7 +147,7 @@ public class ContextValueMethodArgumentResolverTests {
 
 		BatchLoaderHandlerMethod handlerMethod = new BatchLoaderHandlerMethod(
 				new HandlerMethod(controller,
-						TestController.class.getMethod("getAuthors", List.class, Long.class)), null);
+						TestController.class.getMethod("getAuthors", List.class, Long.class)), null, false);
 
 		GraphQLContext context = new GraphQLContext.Builder().build();
 		context.put("id", 123L);

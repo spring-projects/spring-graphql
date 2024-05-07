@@ -48,9 +48,9 @@ public class DataFetcherHandlerMethodSupport extends InvocableHandlerMethodSuppo
 
 	protected DataFetcherHandlerMethodSupport(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable Executor executor) {
+			@Nullable Executor executor, boolean invokeAsync) {
 
-		super(handlerMethod, executor);
+		super(handlerMethod, executor, invokeAsync);
 		this.resolvers = resolvers;
 	}
 

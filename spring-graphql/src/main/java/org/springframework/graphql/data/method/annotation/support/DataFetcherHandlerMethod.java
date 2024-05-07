@@ -53,13 +53,33 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * @param validationHelper to apply bean validation with
 	 * @param executor an {@link Executor} to use for {@link Callable} return values
 	 * @param subscription whether the field being fetched is of subscription type
+	 * @deprecated in favor of alternative constructor
 	 */
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public DataFetcherHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
 			@Nullable BiConsumer<Object, Object[]> validationHelper, @Nullable Executor executor,
 			boolean subscription) {
 
-		super(handlerMethod, resolvers, executor);
+		this(handlerMethod, resolvers, validationHelper, executor, subscription, false);
+	}
+
+	/**
+	 * Constructor with a parent handler method.
+	 * @param handlerMethod the handler method
+	 * @param resolvers the argument resolvers
+	 * @param validationHelper to apply bean validation with
+	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 * @param subscription whether the field being fetched is of subscription type
+	 * @param invokeAsync whether to invoke the method through the Executor
+	 * @since 1.3.0
+	 */
+	public DataFetcherHandlerMethod(
+			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
+			@Nullable BiConsumer<Object, Object[]> validationHelper,
+			@Nullable Executor executor, boolean invokeAsync, boolean subscription) {
+
+		super(handlerMethod, resolvers, executor, invokeAsync);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
 		this.validationHelper = (validationHelper != null) ? validationHelper : (controller, args) -> { };
 		this.subscription = subscription;

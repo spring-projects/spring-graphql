@@ -92,8 +92,8 @@ public final class FederationSchemaFactory
 		super.afterPropertiesSet();
 
 		detectHandlerMethods().forEach((info) ->
-				this.handlerMethods.put(info.typeName(),
-						new EntityHandlerMethod(info, getArgumentResolvers(), getExecutor())));
+				this.handlerMethods.put(info.typeName(), new EntityHandlerMethod(
+						info, getArgumentResolvers(), getExecutor(), shouldInvokeAsync(info.handlerMethod()))));
 
 		if (this.typeResolver == null) {
 			this.typeResolver = new ClassNameTypeResolver();

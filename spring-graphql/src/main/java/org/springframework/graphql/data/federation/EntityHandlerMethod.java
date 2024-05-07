@@ -40,9 +40,9 @@ final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 
 	EntityHandlerMethod(
 			FederationSchemaFactory.EntityMappingInfo info, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable Executor executor) {
+			@Nullable Executor executor, boolean invokeAsync) {
 
-		super(info.handlerMethod(), resolvers, executor);
+		super(info.handlerMethod(), resolvers, executor, invokeAsync);
 		this.batchHandlerMethod = info.isBatchHandlerMethod();
 	}
 

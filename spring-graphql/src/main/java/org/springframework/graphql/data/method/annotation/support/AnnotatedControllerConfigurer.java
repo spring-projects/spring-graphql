@@ -343,7 +343,8 @@ public class AnnotatedControllerConfigurer
 		DataFetcher<?> dataFetcher;
 		if (!info.isBatchMapping()) {
 			dataFetcher = new SchemaMappingDataFetcher(
-					info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(), getExecutor());
+					info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(),
+					getExecutor(), shouldInvokeAsync(info.getHandlerMethod()));
 		}
 		else {
 			dataFetcher = registerBatchLoader(info);
@@ -366,7 +367,8 @@ public class AnnotatedControllerConfigurer
 		}
 
 		HandlerMethod handlerMethod = info.getHandlerMethod();
-		BatchLoaderHandlerMethod invocable = new BatchLoaderHandlerMethod(handlerMethod, getExecutor());
+		BatchLoaderHandlerMethod invocable =
+				new BatchLoaderHandlerMethod(handlerMethod, getExecutor(), shouldInvokeAsync(handlerMethod));
 
 		MethodParameter returnType = handlerMethod.getReturnType();
 		Class<?> clazz = returnType.getParameterType();
@@ -441,12 +443,14 @@ public class AnnotatedControllerConfigurer
 		@Nullable
 		private final Executor executor;
 
+		private final boolean invokeAsync;
+
 		private final boolean subscription;
 
 		SchemaMappingDataFetcher(
 				DataFetcherMappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
 				@Nullable ValidationHelper helper, HandlerDataFetcherExceptionResolver exceptionResolver,
-				@Nullable Executor executor) {
+				@Nullable Executor executor, boolean invokeAsync) {
 
 			this.mappingInfo = info;
 			this.argumentResolvers = argumentResolvers;
@@ -457,6 +461,7 @@ public class AnnotatedControllerConfigurer
 			this.exceptionResolver = exceptionResolver;
 
 			this.executor = executor;
+			this.invokeAsync = invokeAsync;
 			this.subscription = this.mappingInfo.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 		}
 
@@ -497,7 +502,7 @@ public class AnnotatedControllerConfigurer
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 					getHandlerMethod(), this.argumentResolvers, this.methodValidationHelper,
-					this.executor, this.subscription);
+					this.executor, this.invokeAsync, this.subscription);
 
 			try {
 				Object result = handlerMethod.invoke(environment);

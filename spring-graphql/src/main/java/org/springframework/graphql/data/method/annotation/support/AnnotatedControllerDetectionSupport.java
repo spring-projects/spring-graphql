@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import graphql.schema.DataFetcher;
@@ -37,7 +38,9 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodIntrospector;
+import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.format.FormatterRegistrar;
@@ -47,9 +50,11 @@ import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.lang.Nullable;
+import org.springframework.scheduling.SchedulingTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
 
 /**
  * Convenient base for classes that find annotated controller method with argument
@@ -64,6 +69,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	protected static final boolean springSecurityPresent = ClassUtils.isPresent(
 			"org.springframework.security.core.context.SecurityContext",
 			AnnotatedControllerDetectionSupport.class.getClassLoader());
+
+	private static final boolean virtualThreadsPresent =
+			(ReflectionUtils.findMethod(Thread.class, "ofVirtual") != null);
 
 	/**
 	 * Bean name prefix for target beans behind scoped proxies. Used to exclude those
@@ -90,6 +98,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	@Nullable
 	private Executor executor;
+
+	private Predicate<HandlerMethod> blockingMethodPredicate =
+			(virtualThreadsPresent) ? new BlockingHandlerMethodPredicate() : ((method) -> false);
 
 	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
@@ -148,18 +159,42 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	/**
 	 * Configure an {@link Executor} to use for asynchronous handling of
-	 * {@link Callable} return values from controller methods.
+	 * {@link Callable} return values from controller methods, as well as for
+	 * {@link #setBlockingMethodPredicate(Predicate) blocking controller methods}
+	 * on Java 21+.
 	 * <p>By default, this is not set in which case controller methods with a
-	 * {@code Callable} return value cannot be registered.
+	 * {@code Callable} return value are not supported, and blocking methods
+	 * will be invoked synchronously.
 	 * @param executor the executor to use
 	 */
 	public void setExecutor(Executor executor) {
 		this.executor = executor;
 	}
 
+	/**
+	 * Return the {@link #setExecutor(Executor) configured Executor}.
+	 */
 	@Nullable
 	public Executor getExecutor() {
 		return this.executor;
+	}
+
+	/**
+	 * Configure a predicate to decide which controller methods are blocking.
+	 * On Java 21+, such methods are invoked asynchronously through the
+	 * {@link #setExecutor(Executor) configured Executor}, unless the executor
+	 * is a thread pool executor as determined via
+	 * {@link SchedulingTaskExecutor#prefersShortLivedTasks() prefersShortLivedTasks}.
+	 * <p>By default, on Java 21+ the predicate returns false for controller
+	 * method return types known to {@link ReactiveAdapterRegistry} as well as
+	 * {@link KotlinDetector#isSuspendingFunction Kotlin suspending functions}.
+	 * On Java 20 and lower, the predicate returns false. You can configure the
+	 * predicate for more control, or alternatively, return {@link Callable}.
+	 * @param predicate the predicate to use
+	 * @since 1.3
+	 */
+	public void setBlockingMethodPredicate(@Nullable Predicate<HandlerMethod> predicate) {
+		this.blockingMethodPredicate = ((predicate != null) ? predicate : (handlerMethod) -> false);
 	}
 
 	/**
@@ -285,6 +320,22 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 		return (handler instanceof String beanName) ?
 				new HandlerMethod(beanName, obtainApplicationContext().getAutowireCapableBeanFactory(), method) :
 				new HandlerMethod(handler, method);
+	}
+
+	protected boolean shouldInvokeAsync(HandlerMethod handlerMethod) {
+		return (this.blockingMethodPredicate.test(handlerMethod) && this.executor != null &&
+				!(this.executor instanceof SchedulingTaskExecutor ste && ste.prefersShortLivedTasks()));
+	}
+
+
+	private static final class BlockingHandlerMethodPredicate implements Predicate<HandlerMethod> {
+
+		@Override
+		public boolean test(HandlerMethod hm) {
+			Class<?> returnType = hm.getReturnType().getParameterType();
+			return (ReactiveAdapterRegistry.getSharedInstance().getAdapter(returnType) == null &&
+					!KotlinDetector.isSuspendingFunction(hm.getMethod()));
+		}
 	}
 
 }

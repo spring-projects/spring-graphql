@@ -60,7 +60,7 @@ public class DataFetcherHandlerMethodTests {
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(new GraphQlArgumentBinder()));
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-				handlerMethodFor(new TestController(), "hello"), resolvers, null, null, false);
+				handlerMethodFor(new TestController(), "hello"), resolvers, null, null, false, false);
 
 		Object result = handlerMethod.invoke(
 				DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
@@ -71,14 +71,22 @@ public class DataFetcherHandlerMethodTests {
 	}
 
 	@Test
-	void callableReturnValue() throws Exception {
+	void asyncInvocation() throws Exception {
+		testAsyncInvocation("handleSync", true);
+	}
 
+	@Test
+	void asyncInvocationWithCallableReturnValue() throws Exception {
+		testAsyncInvocation("handleAndReturnCallable", false);
+	}
+
+	private static void testAsyncInvocation(String methodName, boolean invokeAsync) throws Exception {
 		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
 		resolvers.addResolver(Mockito.mock(HandlerMethodArgumentResolver.class));
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
-				handlerMethodFor(new TestController(), "handleAndReturnCallable"), resolvers, null,
-				new SimpleAsyncTaskExecutor(), false);
+				handlerMethodFor(new TestController(), methodName), resolvers, null,
+				new SimpleAsyncTaskExecutor(), invokeAsync, false);
 
 		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl
 				.newDataFetchingEnvironment()
@@ -100,7 +108,7 @@ public class DataFetcherHandlerMethodTests {
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				handlerMethodFor(new TestController(), "handleAndReturnFuture"), resolvers,
-				null, null, false);
+				null, null, false, false);
 
 		SecurityContextHolder.setContext(new SecurityContextImpl(new TestingAuthenticationToken("usr", "pwd")));
 		try {
@@ -134,6 +142,11 @@ public class DataFetcherHandlerMethodTests {
 		@Override
 		public String hello(String name) {
 			return "Hello, " + name;
+		}
+
+		@Nullable
+		public String handleSync() {
+			return "A";
 		}
 
 		@Nullable

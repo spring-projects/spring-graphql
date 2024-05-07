@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
@@ -59,8 +60,26 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
+	/**
+	 * Create an instance.
+	 * @param handlerMethod the controller method
+	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 * @deprecated in favor of alternative constructor
+	 */
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, @Nullable Executor executor) {
-		super(handlerMethod, executor);
+		this(handlerMethod, executor, false);
+	}
+
+	/**
+	 * Create an instance.
+	 * @param handlerMethod the controller method
+	 * @param executor an {@link Executor} to use for {@link Callable} return values
+	 * @param invokeAsync whether to invoke the method through the Executor
+	 * @since 1.3.0
+	 */
+	public BatchLoaderHandlerMethod(HandlerMethod handlerMethod, @Nullable Executor executor, boolean invokeAsync) {
+		super(handlerMethod, executor, invokeAsync);
 	}
 
 
