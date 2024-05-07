@@ -125,7 +125,7 @@ method arguments and return values..
 
 
 [[controllers.schema-mapping.signature]]
-=== Method Signature
+=== Method Arguments
 
 Schema mapping handler methods can have any of the following method arguments:
 
@@ -208,6 +208,10 @@ See xref:controllers.adoc#controllers.schema-mapping.data-loader[`DataLoader`].
 
 |===
 
+
+[[controllers.schema-mapping.return.values]]
+=== Return Values
+
 Schema mapping handler methods can return:
 
 - A resolved value of any type.
@@ -217,6 +221,16 @@ Schema mapping handler methods can return:
 - `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
   For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
 
+On Java 21+, when `AnnotatedControllerConfigurer` is configured with an `Executor`, controller
+methods with a blocking method signature are invoked asynchronously. By default, a controller
+method is considered blocking if it does not return an async type such as `Flux`, `Mono`,
+`CompletableFuture`, and is also not a Kotlin suspending function. You can configure a
+blocking controller method `Predicate` on `AnnotatedControllerConfigurer` to help
+determine which methods are considered blocking.
+
+TIP: The Spring Boot starter for Spring for GraphQL automatically configures
+`AnnotatedControllerConfigurer` with an `Executor` for virtual threads when the property
+`spring.threads.virtual.enabled` is set.
 
 
 [[controllers.schema-mapping.interfaces]]
@@ -705,7 +719,7 @@ annotation attributes. The type name can also be inherited from a class level
 
 
 [[controllers.batch-mapping.signature]]
-=== Method Signature
+=== Method Arguments
 
 Batch mapping methods support the following arguments:
 
@@ -731,8 +745,11 @@ Batch mapping methods support the following arguments:
 | The environment that is available in GraphQL Java to a
 `org.dataloader.BatchLoaderWithContext`.
 
-
 |===
+
+
+[[controllers.batch-mapping.return.values]]
+=== Return Values
 
 Batch mapping methods can return:
 
@@ -758,6 +775,17 @@ Batch mapping methods can return:
 | Adapted to `Mono<Map<K,V>` and `Flux<V>`.
 
 |===
+
+On Java 21+, when `AnnotatedControllerConfigurer` is configured with an `Executor`, controller
+methods with a blocking method signature are invoked asynchronously. By default, a controller
+method is considered blocking if it does not return an async type such as `Flux`, `Mono`,
+`CompletableFuture`, and is also not a Kotlin suspending function. You can configure a
+blocking controller method `Predicate` on `AnnotatedControllerConfigurer` to help
+determine which methods are considered blocking.
+
+TIP: The Spring Boot starter for Spring for GraphQL automatically configures
+`AnnotatedControllerConfigurer` with an `Executor` for virtual threads when the property
+`spring.threads.virtual.enabled` is set.
 
 
 
