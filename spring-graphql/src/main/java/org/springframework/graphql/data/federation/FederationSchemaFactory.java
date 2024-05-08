@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava.SchemaTransformer;
@@ -97,6 +98,13 @@ public final class FederationSchemaFactory
 
 		if (this.typeResolver == null) {
 			this.typeResolver = new ClassNameTypeResolver();
+		}
+
+		if (logger.isTraceEnabled()) {
+			String formatted = this.handlerMethods.entrySet().stream()
+					.map((entry) -> entry.getKey() + " -> " + entry.getValue().getShortLogMessage())
+					.collect(Collectors.joining("\n", "\n", "\n"));
+			logger.trace("@EntityMapping registrations:" + formatted);
 		}
 	}
 

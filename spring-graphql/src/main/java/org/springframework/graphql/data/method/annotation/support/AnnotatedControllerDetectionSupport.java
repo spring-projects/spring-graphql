@@ -17,8 +17,6 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -28,7 +26,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import graphql.schema.DataFetcher;
 import org.apache.commons.logging.Log;
@@ -258,12 +255,11 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 				continue;
 			}
 			Class<?> beanClass = context.getType(beanName);
-			findHandlerMethods(beanName, beanClass).forEach((info) -> registerHandlerMethod(info, results));
+			findHandlerMethods(beanName, beanClass).forEach((info) -> addHandlerMethod(info, results));
 		}
+
 		return results;
 	}
-
-	protected abstract HandlerMethod getHandlerMethod(M mappingInfo);
 
 	private Collection<M> findHandlerMethods(Object handler, @Nullable Class<?> handlerClass) {
 		if (handlerClass == null) {
@@ -274,34 +270,20 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 		Map<Method, M> map = MethodIntrospector.selectMethods(
 				userClass, (Method method) -> getMappingInfo(method, handler, userClass));
 
-		Collection<M> mappingInfos = map.values();
-
-		if (this.logger.isTraceEnabled() && !mappingInfos.isEmpty()) {
-			this.logger.trace(formatMappings(userClass, mappingInfos));
-		}
-
-		return mappingInfos;
+		return map.values();
 	}
 
 	@Nullable
 	protected abstract M getMappingInfo(Method method, Object handler, Class<?> handlerType);
 
-	private String formatMappings(Class<?> handlerType, Collection<M> infos) {
-		String formattedType = Arrays.stream(ClassUtils.getPackageName(handlerType).split("\\."))
-				.map((p) -> p.substring(0, 1))
-				.collect(Collectors.joining(".", "", "." + handlerType.getSimpleName()));
-		return infos.stream()
-				.map((info) -> {
-					Method method = getHandlerMethod(info).getMethod();
-					String methodParameters = Arrays.stream(method.getGenericParameterTypes())
-							.map(Type::getTypeName)
-							.collect(Collectors.joining(",", "(", ")"));
-					return info + methodParameters;
-				})
-				.collect(Collectors.joining("\n\t", "\n\t" + formattedType + ":" + "\n\t", ""));
+	protected HandlerMethod createHandlerMethod(Method originalMethod, Object handler, Class<?> handlerType) {
+		Method method = AopUtils.selectInvocableMethod(originalMethod, handlerType);
+		return (handler instanceof String beanName) ?
+				new HandlerMethod(beanName, obtainApplicationContext().getAutowireCapableBeanFactory(), method) :
+				new HandlerMethod(handler, method);
 	}
 
-	private void registerHandlerMethod(M info, Set<M> results) {
+	private void addHandlerMethod(M info, Set<M> results) {
 		Assert.state(this.exceptionResolver != null, "afterPropertiesSet not called");
 		HandlerMethod handlerMethod = getHandlerMethod(info);
 		M existing = results.stream().filter((o) -> o.equals(info)).findFirst().orElse(null);
@@ -315,12 +297,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 		this.exceptionResolver.registerController(handlerMethod.getBeanType());
 	}
 
-	protected HandlerMethod createHandlerMethod(Method originalMethod, Object handler, Class<?> handlerType) {
-		Method method = AopUtils.selectInvocableMethod(originalMethod, handlerType);
-		return (handler instanceof String beanName) ?
-				new HandlerMethod(beanName, obtainApplicationContext().getAutowireCapableBeanFactory(), method) :
-				new HandlerMethod(handler, method);
-	}
+	protected abstract HandlerMethod getHandlerMethod(M mappingInfo);
 
 	protected boolean shouldInvokeAsync(HandlerMethod handlerMethod) {
 		return (this.blockingMethodPredicate.test(handlerMethod) && this.executor != null &&

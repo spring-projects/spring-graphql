@@ -257,9 +257,13 @@ public class AnnotatedControllerConfigurer
 		allInfos.forEach((info) -> registerDataFetcher(info, runtimeWiringBuilder));
 
 		RuntimeWiring wiring = runtimeWiringBuilder.build();
-		subTypeInfos = this.interfaceMappingHelper.filterExistingMappings(subTypeInfos, wiring.getDataFetchers());
+		subTypeInfos = this.interfaceMappingHelper.removeExplicitMappings(subTypeInfos, wiring.getDataFetchers());
 
 		subTypeInfos.forEach((info) -> registerDataFetcher(info, runtimeWiringBuilder));
+
+		if (logger.isTraceEnabled()) {
+			logger.trace("Controller method registrations:" + formatRegistrations(runtimeWiringBuilder));
+		}
 	}
 
 	@Override
@@ -401,6 +405,16 @@ public class AnnotatedControllerConfigurer
 		throw new IllegalStateException(
 				"@BatchMapping method is expected to return " +
 						"Mono<Map<K, V>>, Map<K, V>, Flux<V>, or Collection<V>: " + handlerMethod);
+	}
+
+	@SuppressWarnings("rawtypes")
+	protected static String formatRegistrations(RuntimeWiring.Builder wiringBuilder) {
+		return wiringBuilder.build().getDataFetchers().entrySet().stream()
+				.map((typeEntry) -> typeEntry.getKey() + ":\n" +
+						typeEntry.getValue().entrySet().stream()
+								.map((fieldEntry) -> fieldEntry.getKey() + " -> " + fieldEntry.getValue())
+								.collect(Collectors.joining("\n\t", "\t", "")))
+				.collect(Collectors.joining("\n", "\n", "\n"));
 	}
 
 	/**
@@ -587,6 +601,11 @@ public class AnnotatedControllerConfigurer
 			Assert.state(dataLoader != null, "No DataLoader for key '" + this.dataLoaderKey + "'");
 			return dataLoader.load(env.getSource());
 		}
+
+		@Override
+		public String toString() {
+			return getDescription();
+		}
 	}
 
 
@@ -597,6 +616,9 @@ public class AnnotatedControllerConfigurer
 
 		private final MultiValueMap<String, String> interfaceMappings = new LinkedMultiValueMap<>();
 
+		/**
+		 * Extract information interface implementation types.
+		 */
 		void setTypeDefinitionRegistry(TypeDefinitionRegistry registry) {
 			for (TypeDefinition<?> definition : registry.types().values()) {
 				if (definition instanceof ObjectTypeDefinition objectDefinition) {
@@ -607,6 +629,10 @@ public class AnnotatedControllerConfigurer
 			}
 		}
 
+		/**
+		 * Remove mappings to interface fields, and return mappings for the same
+		 * fields in all implementing types.
+		 */
 		Set<DataFetcherMappingInfo> removeInterfaceMappings(Set<DataFetcherMappingInfo> infos) {
 			Set<DataFetcherMappingInfo> subTypeMappings = new LinkedHashSet<>();
 			Iterator<DataFetcherMappingInfo> it = infos.iterator();
@@ -623,8 +649,11 @@ public class AnnotatedControllerConfigurer
 			return subTypeMappings;
 		}
 
+		/**
+		 * Remove mappings that are covered by explicit {@link DataFetcher} registrations.
+		 */
 		@SuppressWarnings("rawtypes")
-		Set<DataFetcherMappingInfo> filterExistingMappings(
+		Set<DataFetcherMappingInfo> removeExplicitMappings(
 				Set<DataFetcherMappingInfo> infos, Map<String, Map<String, DataFetcher>> dataFetchers) {
 
 			return infos.stream()
