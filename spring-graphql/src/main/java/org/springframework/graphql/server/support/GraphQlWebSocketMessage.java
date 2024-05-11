@@ -220,4 +220,11 @@ public class GraphQlWebSocketMessage {
 		return new GraphQlWebSocketMessage(null, GraphQlWebSocketMessageType.PONG, payload);
 	}
 
+	/**
+	 * Create a {@code "ka"} server message.
+	 */
+	public static GraphQlWebSocketMessage ka() {
+		return new GraphQlWebSocketMessage(null, GraphQlWebSocketMessageType.KA, null);
+	}
+
 }

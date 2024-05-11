@@ -69,7 +69,12 @@ public enum GraphQlWebSocketMessageType {
 	/**
 	 * Indicates the GraphQL message did not have a message type.
 	 */
-	NOT_SPECIFIED("", false);
+	NOT_SPECIFIED("", false),
+
+	/**
+	 * Indicates keep-alive message type.
+	 */
+	KA("ka", false);
 
 
 	private static final GraphQlWebSocketMessageType[] VALUES;

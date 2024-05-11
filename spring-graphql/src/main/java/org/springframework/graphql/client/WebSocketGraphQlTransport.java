@@ -293,7 +293,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 								switch (message.resolvedType()) {
 									case NEXT -> graphQlSession.handleNext(message);
 									case PING -> graphQlSession.sendPong(null);
-									case PONG -> { }
+									case PONG, KA -> { }
 									case ERROR -> graphQlSession.handleError(message);
 									case COMPLETE -> graphQlSession.handleComplete(message);
 									default -> throw new IllegalStateException(
