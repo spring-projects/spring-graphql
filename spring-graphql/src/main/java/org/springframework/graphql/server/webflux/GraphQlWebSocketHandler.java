@@ -184,7 +184,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 				case PING -> {
 					return Flux.just(this.codecDelegate.encode(session, GraphQlWebSocketMessage.pong(null)));
 				}
-				case PONG, KA -> {
+				case PONG -> {
 					return Flux.empty();
 				}
 				case COMPLETE -> {
