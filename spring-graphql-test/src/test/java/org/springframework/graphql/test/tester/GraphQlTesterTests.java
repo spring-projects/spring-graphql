@@ -152,11 +152,11 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		String document = "{me {name, friends}}";
 		getGraphQlService().setDataAsJson(document,
 				"{" +
-						"  \"me\":{" +
-						"      \"name\":\"Luke Skywalker\","
-						+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
-						"  }" +
-						"}");
+				"  \"me\":{" +
+				"      \"name\":\"Luke Skywalker\","
+				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+				"  }" +
+				"}");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
