@@ -18,6 +18,7 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -152,6 +153,15 @@ public interface GraphQlTester {
 		 * @return this request spec
 		 */
 		T variable(String name, @Nullable Object value);
+
+		/**
+		 * Add variables.
+		 * @param values the variables to be set
+		 * the variable of the values, possibly {@code null} since GraphQL
+		 * supports providing null value vs not providing a value at all.
+		 * @return this request spec
+		 */
+		T variable(Map<String, Object> values);
 
 		/**
 		 * Add a value for a protocol extension.

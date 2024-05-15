@@ -16,9 +16,7 @@
 
 package org.springframework.graphql.test.tester;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import graphql.GraphqlErrorBuilder;
@@ -151,11 +149,11 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		String document = "{me {name, friends}}";
 		getGraphQlService().setDataAsJson(document,
 				"{" +
-				"  \"me\":{" +
-				"      \"name\":\"Luke Skywalker\","
-				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
-				"  }" +
-				"}");
+						"  \"me\":{" +
+						"      \"name\":\"Luke Skywalker\","
+						+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
+						"  }" +
+						"}");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
@@ -238,6 +236,39 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThat(request.getVariables()).containsEntry("episode", "JEDI");
 		assertThat(request.getVariables()).containsEntry("foo", "bar");
 		assertThat(request.getVariables()).containsEntry("keyOnly", null);
+	}
+
+	@Test
+	void operationNameAndVariablesAsMap() {
+
+		String document = "query HeroNameAndFriends($episode: Episode) {" +
+				"  hero(episode: $episode) {" +
+				"    name"
+				+ "  }" +
+				"}";
+
+		getGraphQlService().setDataAsJson(document, "{\"hero\": {\"name\":\"R2-D2\"}}");
+
+		Map<String, Object> variableMap = new LinkedHashMap<>();
+
+		variableMap.put("episode", Optional.of("JEDI"));
+		variableMap.put("foo", Optional.of("bar"));
+		variableMap.put("keyOnly", Optional.ofNullable(null));
+
+		GraphQlTester.Response response = graphQlTester().document(document)
+				.operationName("HeroNameAndFriends")
+				.variable(variableMap)
+				.execute();
+
+		response.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
+
+		ExecutionGraphQlRequest request = getGraphQlService().getGraphQlRequest();
+		assertThat(request.getDocument()).contains(document);
+		assertThat(request.getOperationName()).isEqualTo("HeroNameAndFriends");
+		assertThat(request.getVariables()).hasSize(3);
+		assertThat(request.getVariables()).containsEntry("episode", Optional.of("JEDI"));
+		assertThat(request.getVariables()).containsEntry("foo", Optional.of("bar"));
+		assertThat(request.getVariables()).containsEntry("keyOnly", Optional.ofNullable(null));
 	}
 
 	@Test

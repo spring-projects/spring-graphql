@@ -145,6 +145,12 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
+		public DefaultRequest variable(Map<String, Object> values) {
+			this.variables.putAll(values);
+			return this;
+		}
+
+		@Override
 		public DefaultRequest extension(String name, @Nullable Object value) {
 			this.extensions.put(name, value);
 			return this;
