@@ -19,6 +19,7 @@ dependencies {
 	compileOnly 'jakarta.validation:jakarta.validation-api'
 
 	compileOnly 'org.springframework.security:spring-security-core'
+	compileOnly 'org.springframework.security:spring-security-oauth2-resource-server'
 
 	compileOnly 'com.querydsl:querydsl-core'
 	compileOnly 'org.springframework.data:spring-data-commons'
