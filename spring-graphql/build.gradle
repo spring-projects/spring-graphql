@@ -69,6 +69,7 @@ dependencies {
 	testImplementation 'org.testcontainers:neo4j'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.springframework.security:spring-security-core'
+	testImplementation 'org.springframework.security:spring-security-oauth2-resource-server'
 	testImplementation 'com.querydsl:querydsl-core'
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'jakarta.servlet:jakarta.servlet-api'

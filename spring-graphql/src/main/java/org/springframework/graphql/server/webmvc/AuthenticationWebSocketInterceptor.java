@@ -25,7 +25,6 @@ import org.springframework.graphql.server.support.AuthenticationExtractor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextImpl;
 
 /**
  * Extension of {@link AbstractAuthenticationWebSocketInterceptor} for use with
@@ -35,22 +34,21 @@ import org.springframework.security.core.context.SecurityContextImpl;
  * @author Rossen Stoyanchev
  * @since 1.3.0
  */
-public class AuthenticationWebSocketInterceptor extends AbstractAuthenticationWebSocketInterceptor {
+public final class AuthenticationWebSocketInterceptor extends AbstractAuthenticationWebSocketInterceptor {
 
 	private final AuthenticationManager authenticationManager;
 
 
 	public AuthenticationWebSocketInterceptor(
-			AuthenticationManager authManager, AuthenticationExtractor authExtractor) {
+			AuthenticationExtractor authExtractor, AuthenticationManager authManager) {
 
 		super(authExtractor);
 		this.authenticationManager = authManager;
 	}
 
 	@Override
-	protected Mono<SecurityContext> getSecurityContext(Authentication authentication) {
-		Authentication authenticate = this.authenticationManager.authenticate(authentication);
-		return Mono.just(new SecurityContextImpl(authenticate));
+	protected Mono<Authentication> authenticate(Authentication authentication) {
+		return Mono.just(this.authenticationManager.authenticate(authentication));
 	}
 
 	@Override

@@ -39,6 +39,9 @@ import org.springframework.util.StringUtils;
  */
 public final class BearerTokenAuthenticationExtractor implements AuthenticationExtractor {
 
+	/** Default key to access Authorization value in {@code connection_init} payload. */
+	public static final String AUTHORIZATION_KEY = "Authorization";
+
 	private static final Pattern authorizationPattern =
 			Pattern.compile("^Bearer (?<token>[a-zA-Z0-9-._~+/]+=*)$", Pattern.CASE_INSENSITIVE);
 
@@ -47,10 +50,10 @@ public final class BearerTokenAuthenticationExtractor implements AuthenticationE
 
 
 	/**
-	 * Constructor that defaults the payload key to use to "Authorization".
+	 * Constructor that defaults to {@link #AUTHORIZATION_KEY} for the payload key.
 	 */
 	public BearerTokenAuthenticationExtractor() {
-		this("Authorization");
+		this(AUTHORIZATION_KEY);
 	}
 
 	/**
@@ -66,18 +69,23 @@ public final class BearerTokenAuthenticationExtractor implements AuthenticationE
 	@Override
 	public Mono<Authentication> getAuthentication(Map<String, Object> payload) {
 		String authorizationValue = (String) payload.get(this.authorizationKey);
-		if (!StringUtils.startsWithIgnoreCase(authorizationValue, "bearer")) {
+		if (authorizationValue == null) {
 			return Mono.empty();
 		}
 
-		Matcher matcher = authorizationPattern.matcher(authorizationValue);
-		if (matcher.matches()) {
-			String token = matcher.group("token");
-			return Mono.just(new BearerTokenAuthenticationToken(token));
+		if (!StringUtils.startsWithIgnoreCase(authorizationValue, "bearer")) {
+			BearerTokenError error = BearerTokenErrors.invalidRequest("Not a bearer token");
+			return Mono.error(new OAuth2AuthenticationException(error));
 		}
 
-		BearerTokenError error = BearerTokenErrors.invalidToken("Bearer token is malformed");
-		return Mono.error(new OAuth2AuthenticationException(error));
+		Matcher matcher = authorizationPattern.matcher(authorizationValue);
+		if (!matcher.matches()) {
+			BearerTokenError error = BearerTokenErrors.invalidToken("Bearer token is malformed");
+			return Mono.error(new OAuth2AuthenticationException(error));
+		}
+
+		String token = matcher.group("token");
+		return Mono.just(new BearerTokenAuthenticationToken(token));
 	}
 
 }

@@ -28,6 +28,7 @@ import org.springframework.graphql.server.WebSocketGraphQlRequest;
 import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextImpl;
 
 /**
  * Base class for interceptors that extract an {@link Authentication} from
@@ -41,8 +42,7 @@ import org.springframework.security.core.context.SecurityContext;
  */
 public abstract class AbstractAuthenticationWebSocketInterceptor implements WebSocketGraphQlInterceptor {
 
-	private static final String AUTHENTICATION_ATTRIBUTE =
-			AbstractAuthenticationWebSocketInterceptor.class.getName() + ".AUTHENTICATION";
+	private final String authenticationAttribute = getClass().getName() + ".AUTHENTICATION";
 
 
 	private final AuthenticationExtractor authenticationExtractor;
@@ -60,8 +60,11 @@ public abstract class AbstractAuthenticationWebSocketInterceptor implements WebS
 	@Override
 	public Mono<Object> handleConnectionInitialization(WebSocketSessionInfo info, Map<String, Object> payload) {
 		return this.authenticationExtractor.getAuthentication(payload)
-				.flatMap(this::getSecurityContext)
-				.doOnNext((securityContext) -> info.getAttributes().put(AUTHENTICATION_ATTRIBUTE, securityContext))
+				.flatMap(this::authenticate)
+				.doOnNext((authentication) -> {
+					SecurityContext securityContext = new SecurityContextImpl(authentication);
+					info.getAttributes().put(this.authenticationAttribute, securityContext);
+				})
 				.then(Mono.empty());
 	}
 
@@ -70,7 +73,7 @@ public abstract class AbstractAuthenticationWebSocketInterceptor implements WebS
 	 * {@link SecurityContext} or an error.
 	 * @param authentication the authentication value extracted from the payload
 	 */
-	protected abstract Mono<SecurityContext> getSecurityContext(Authentication authentication);
+	protected abstract Mono<Authentication> authenticate(Authentication authentication);
 
 	@Override
 	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
@@ -78,7 +81,7 @@ public abstract class AbstractAuthenticationWebSocketInterceptor implements WebS
 			return chain.next(request);
 		}
 		Map<String, Object> attributes = webSocketRequest.getSessionInfo().getAttributes();
-		SecurityContext securityContext = (SecurityContext) attributes.get(AUTHENTICATION_ATTRIBUTE);
+		SecurityContext securityContext = (SecurityContext) attributes.get(this.authenticationAttribute);
 		ContextView contextView = getContextToWrite(securityContext);
 		return chain.next(request).contextWrite(contextView);
 	}

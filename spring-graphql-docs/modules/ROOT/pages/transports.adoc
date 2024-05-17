@@ -148,15 +148,16 @@ called to process a request.
 [[server.interception.web]]
 === `WebGraphQlInterceptor`
 
-xref:transports.adoc#server.transports.http[HTTP] and xref:transports.adoc#server.transports.websocket[WebSocket] transports invoke a chain of
-0 or more `WebGraphQlInterceptor`, followed by an `ExecutionGraphQlService` that calls
-the GraphQL Java engine. `WebGraphQlInterceptor` allows an application to intercept
-incoming requests and do one of the following:
+xref:transports.adoc#server.transports.http[HTTP] and xref:transports.adoc#server.transports.websocket[WebSocket]
+transports invoke a chain of 0 or more `WebGraphQlInterceptor`, followed by an
+`ExecutionGraphQlService` that calls the GraphQL Java engine.
+Interceptors allow applications to intercept incoming requests in order to:
 
 - Check HTTP request details
 - Customize the `graphql.ExecutionInput`
 - Add HTTP response headers
 - Customize the `graphql.ExecutionResult`
+- and more
 
 For example, an interceptor can pass an HTTP request header to a `DataFetcher`:
 
@@ -182,6 +183,26 @@ include-code::RequestErrorInterceptor[]
 Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
 by the xref:boot-starter.adoc[Boot Starter], see
 {spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
+
+
+[[server.interception.websocket]]
+=== `WebSocketGraphQlInterceptor`
+
+`WebSocketGraphQlInterceptor` extends `WebGraphQlInterceptor` with additional callbacks
+to handle the start and end of a WebSocket connection, in addition to client-side
+cancellation of subscriptions. The same also intercepts every GraphQL request on the
+WebSocket connection.
+
+Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
+by the xref:boot-starter.adoc[Boot Starter], see
+{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
+There can be at most one `WebSocketGraphQlInterceptor` in a chain of interceptors.
+
+There are two built-in WebSocket interceptors called `AuthenticationWebSocketInterceptor`,
+one for the WebMVC and one for the WebFlux transports. These help to extract authentication
+details from the payload of a `"connection_init"` GraphQL over WebSocket message, authenticate,
+and then propagate the `SecurityContext` to subsequent requests on the WebSocket connection.
+
 
 
 [[server.interception.rsocket]]

@@ -25,7 +25,6 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextImpl;
 
 /**
  * Extension of {@link AbstractAuthenticationWebSocketInterceptor} for use with
@@ -35,7 +34,7 @@ import org.springframework.security.core.context.SecurityContextImpl;
  * @author Rossen Stoyanchev
  * @since 1.3.0
  */
-public class AuthenticationWebSocketInterceptor extends AbstractAuthenticationWebSocketInterceptor {
+public final class AuthenticationWebSocketInterceptor extends AbstractAuthenticationWebSocketInterceptor {
 
 	private final ReactiveAuthenticationManager authenticationManager;
 
@@ -48,8 +47,8 @@ public class AuthenticationWebSocketInterceptor extends AbstractAuthenticationWe
 	}
 
 	@Override
-	protected Mono<SecurityContext> getSecurityContext(Authentication authentication) {
-		return this.authenticationManager.authenticate(authentication).map(SecurityContextImpl::new);
+	protected Mono<Authentication> authenticate(Authentication authentication) {
+		return this.authenticationManager.authenticate(authentication);
 	}
 
 	@Override
