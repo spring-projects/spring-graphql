@@ -32,7 +32,7 @@ dependencies {
 		api("jakarta.validation:jakarta.validation-api:3.0.2")
 		api("jakarta.persistence:jakarta.persistence-api:3.1.0")
 
-		api("com.apollographql.federation:federation-graphql-java-support:4.4.0")
+		api("com.apollographql.federation:federation-graphql-java-support:5.0.0")
 		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:6.1.5")
 
 		api("com.google.code.findbugs:jsr305:3.0.2")
