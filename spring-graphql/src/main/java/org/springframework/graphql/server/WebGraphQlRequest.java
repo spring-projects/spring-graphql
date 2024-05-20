@@ -76,16 +76,17 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	 * @param locale the locale from the HTTP request, if any
 	 * @since 1.3.0
 	 */
-	public WebGraphQlRequest(URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
-							@Nullable InetSocketAddress remoteAddress, Map<String, Object> attributes,
-							GraphQlRequest body, String id, @Nullable Locale locale) {
+	public WebGraphQlRequest(
+			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+			@Nullable InetSocketAddress remoteAddress, Map<String, Object> attributes,
+			GraphQlRequest body, String id, @Nullable Locale locale) {
+
 		this(uri, headers, cookies, remoteAddress, attributes, body.getDocument(),
 				body.getOperationName(), body.getVariables(), body.getExtensions(), id, locale);
 	}
 
 	/**
-	 * Variant of {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
-	 * with a Map for the request body.
+	 * Constructor variant with a Map for the request body.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param cookies the HTTP request cookies
@@ -127,8 +128,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	}
 
 	/**
-	 * Variant of {@link #WebGraphQlRequest(URI, HttpHeaders, MultiValueMap, Map, GraphQlRequest, String, Locale)}
-	 * with a Map for the request body.
+	 * Create an instance.
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param cookies the HTTP request cookies

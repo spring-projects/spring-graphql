@@ -240,7 +240,7 @@ class QueryByExampleDataFetcherMongoDbTests {
 
 	private WebGraphQlRequest request(String query) {
 		return new WebGraphQlRequest(
-				URI.create("/"), new HttpHeaders(), null, Collections.emptyMap(),
+				URI.create("/"), new HttpHeaders(), null, null, Collections.emptyMap(),
 				new DefaultGraphQlRequest(query), "1", null);
 	}
 

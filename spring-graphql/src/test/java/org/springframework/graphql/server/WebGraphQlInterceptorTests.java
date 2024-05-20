@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebGraphQlInterceptorTests {
 
 	private static final WebGraphQlRequest webRequest = new WebGraphQlRequest(
-			URI.create("http://abc.org"), new HttpHeaders(), null, Collections.emptyMap(),
+			URI.create("http://abc.org"), new HttpHeaders(), null, null, Collections.emptyMap(),
 			new DefaultGraphQlRequest("{ notUsed }"), "1", null);
 
 	@Test

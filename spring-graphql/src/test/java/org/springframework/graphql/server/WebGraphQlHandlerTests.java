@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class WebGraphQlHandlerTests {
 
 	private static final WebGraphQlRequest webInput = new WebGraphQlRequest(
-			URI.create("https://abc.org"), new HttpHeaders(), null, Collections.emptyMap(),
+			URI.create("https://abc.org"), new HttpHeaders(), null, null, Collections.emptyMap(),
 			new DefaultGraphQlRequest("{ greeting }"), "1", null);
 
 

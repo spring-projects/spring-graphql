@@ -46,28 +46,6 @@ public class WebSocketGraphQlRequest extends WebGraphQlRequest {
 	 * @param uri the URL for the HTTP request or WebSocket handshake
 	 * @param headers the HTTP request headers
 	 * @param cookies the HTTP request cookies
-	 * @param attributes session attributes
-	 * @param body the deserialized content of the GraphQL request
-	 * @param id the id from the GraphQL over WebSocket {@code "subscribe"} message
-	 * @param locale the locale from the HTTP request, if any
-	 * @param sessionInfo the WebSocket session id
-	 * @since 1.1.3
-	 * @deprecated in favor of {@link #WebSocketGraphQlRequest(URI, HttpHeaders, MultiValueMap, InetSocketAddress, Map, Map, String, Locale, WebSocketSessionInfo)}
-	 */
-	@Deprecated(since = "1.3.0", forRemoval = true)
-	public WebSocketGraphQlRequest(
-			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
-			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale,
-			WebSocketSessionInfo sessionInfo) {
-
-		this(uri, headers, cookies, null, attributes, body, id, locale, sessionInfo);
-	}
-
-	/**
-	 * Create an instance.
-	 * @param uri the URL for the HTTP request or WebSocket handshake
-	 * @param headers the HTTP request headers
-	 * @param cookies the HTTP request cookies
 	 * @param remoteAddress the client remote address
 	 * @param attributes session attributes
 	 * @param body the deserialized content of the GraphQL request
@@ -84,6 +62,28 @@ public class WebSocketGraphQlRequest extends WebGraphQlRequest {
 		super(uri, headers, cookies, remoteAddress, attributes, body, id, locale);
 		Assert.notNull(sessionInfo, "WebSocketSessionInfo is required");
 		this.sessionInfo = sessionInfo;
+	}
+
+	/**
+	 * Create an instance.
+	 * @param uri the URL for the HTTP request or WebSocket handshake
+	 * @param headers the HTTP request headers
+	 * @param cookies the HTTP request cookies
+	 * @param attributes session attributes
+	 * @param body the deserialized content of the GraphQL request
+	 * @param id the id from the GraphQL over WebSocket {@code "subscribe"} message
+	 * @param locale the locale from the HTTP request, if any
+	 * @param sessionInfo the WebSocket session id
+	 * @since 1.1.3
+	 * @deprecated in favor of {@link #WebSocketGraphQlRequest(URI, HttpHeaders, MultiValueMap, InetSocketAddress, Map, Map, String, Locale, WebSocketSessionInfo)}
+	 */
+	@Deprecated(since = "1.3.0", forRemoval = true)
+	public WebSocketGraphQlRequest(
+			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
+			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale,
+			WebSocketSessionInfo sessionInfo) {
+
+		this(uri, headers, cookies, null, attributes, body, id, locale, sessionInfo);
 	}
 
 
