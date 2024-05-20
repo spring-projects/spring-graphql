@@ -22,6 +22,7 @@ import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
@@ -139,12 +140,13 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 			GraphQLCodeRegistry.Builder codeRegistry = context.getVarFromParents(GraphQLCodeRegistry.Builder.class);
 
 			GraphQLFieldsContainer parent = (GraphQLFieldsContainer) context.getParentNode();
-			DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(parent, fieldDefinition);
+			FieldCoordinates fieldCoordinates = FieldCoordinates.coordinates(parent, fieldDefinition);
+			DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(fieldCoordinates, fieldDefinition);
 
 			if (applyDecorator(dataFetcher)) {
 				boolean handlesSubscription = visitorHelper.isSubscriptionType(parent);
 				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, this.exceptionResolver);
-				codeRegistry.dataFetcher(parent, fieldDefinition, dataFetcher);
+				codeRegistry.dataFetcher(fieldCoordinates, dataFetcher);
 			}
 
 			return TraversalControl.CONTINUE;
