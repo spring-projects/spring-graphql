@@ -28,7 +28,6 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
