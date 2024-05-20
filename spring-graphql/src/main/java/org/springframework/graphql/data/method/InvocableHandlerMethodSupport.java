@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,23 +87,13 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 				return invokeSuspendingFunction(getBean(), method, argValues);
 			}
 			Object result = method.invoke(getBean(), argValues);
-			return handleReturnValue(graphQLContext, result);
+			return handleReturnValue(graphQLContext, result, method, argValues);
 		}
 		catch (IllegalArgumentException ex) {
-			assertTargetBean(method, getBean(), argValues);
-			String text = (ex.getMessage() != null) ? ex.getMessage() : "Illegal argument";
-			return Mono.error(new IllegalStateException(formatInvokeError(text, argValues), ex));
+			return Mono.error(processIllegalArgumentException(argValues, ex, method));
 		}
 		catch (InvocationTargetException ex) {
-			// Unwrap for DataFetcherExceptionResolvers ...
-			Throwable targetException = ex.getTargetException();
-			if (targetException instanceof Error || targetException instanceof Exception) {
-				return Mono.error(targetException);
-			}
-			else {
-				return Mono.error(new IllegalStateException(
-						formatInvokeError("Invocation failure", argValues), targetException));
-			}
+			return Mono.error(processInvocationTargetException(argValues, ex));
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);
@@ -124,22 +114,49 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	}
 
 	@Nullable
-	@SuppressWarnings("deprecation")
-	private Object handleReturnValue(GraphQLContext graphQLContext, @Nullable Object result) {
+	@SuppressWarnings({"deprecation", "DataFlowIssue"})
+	private Object handleReturnValue(
+			GraphQLContext graphQLContext, @Nullable Object result, Method method, Object[] argValues) {
+
 		if (this.hasCallableReturnValue && result != null) {
-			return CompletableFuture.supplyAsync(
-					() -> {
-						try {
-							return ContextSnapshot.captureFrom(graphQLContext).wrap((Callable<?>) result).call();
-						}
-						catch (Exception ex) {
-							throw new IllegalStateException(
-									"Failure in Callable returned from " + getBridgedMethod().toGenericString(), ex);
-						}
-					},
-					this.executor);
+			CompletableFuture<Object> future = new CompletableFuture<>();
+			this.executor.execute(() -> {
+				try {
+					ContextSnapshot snapshot = ContextSnapshot.captureFrom(graphQLContext);
+					Object value = snapshot.wrap((Callable<?>) result).call();
+					future.complete(value);
+				}
+				catch (IllegalArgumentException ex) {
+					future.completeExceptionally(processIllegalArgumentException(argValues, ex, method));
+				}
+				catch (InvocationTargetException ex) {
+					future.completeExceptionally(processInvocationTargetException(argValues, ex));
+				}
+				catch (Exception ex) {
+					future.completeExceptionally(ex);
+				}
+			});
+			return future;
 		}
 		return result;
+	}
+
+	private IllegalStateException processIllegalArgumentException(
+			Object[] argValues, IllegalArgumentException ex, Method method) {
+
+		assertTargetBean(method, getBean(), argValues);
+		String text = (ex.getMessage() != null) ? ex.getMessage() : "Illegal argument";
+		return new IllegalStateException(formatInvokeError(text, argValues), ex);
+	}
+
+	private Throwable processInvocationTargetException(Object[] argValues, InvocationTargetException ex) {
+		// Unwrap for DataFetcherExceptionResolvers ...
+		Throwable targetException = ex.getTargetException();
+		if (targetException instanceof Error || targetException instanceof Exception) {
+			return targetException;
+		}
+		String message = formatInvokeError("Invocation failure", argValues);
+		return new IllegalStateException(message, targetException);
 	}
 
 	/**
