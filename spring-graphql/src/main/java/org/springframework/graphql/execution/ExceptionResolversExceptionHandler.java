@@ -40,13 +40,18 @@ import org.springframework.util.Assert;
  * {@link DataFetcherExceptionHandler} that invokes {@link DataFetcherExceptionResolver}'s
  * in a sequence until one returns a list of {@link GraphQLError}'s.
  *
+ * <p>Use {@link DataFetcherExceptionResolver#createExceptionHandler(List)} to
+ * create an instance.
+ *
  * @author Rossen Stoyanchev
  */
 class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler {
 
 	private static final Log logger = LogFactory.getLog(ExceptionResolversExceptionHandler.class);
 
+
 	private final List<DataFetcherExceptionResolver> resolvers;
+
 
 	/**
 	 * Create an instance.
@@ -59,9 +64,11 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 
 	@Override
-	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(DataFetcherExceptionHandlerParameters params) {
-		Throwable exception = unwrapException(params);
-		DataFetchingEnvironment env = params.getDataFetchingEnvironment();
+	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(
+			DataFetcherExceptionHandlerParameters handlerParameters) {
+
+		Throwable exception = unwrapException(handlerParameters);
+		DataFetchingEnvironment env = handlerParameters.getDataFetchingEnvironment();
 		ContextSnapshot snapshot = ContextSnapshotFactoryHelper.captureFrom(env.getGraphQlContext());
 		try {
 			return Flux.fromIterable(this.resolvers)
@@ -79,15 +86,6 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 		}
 	}
 
-	private DataFetcherExceptionHandlerResult handleResolverError(
-			Throwable resolverException, Throwable originalException, DataFetchingEnvironment environment) {
-
-		if (logger.isWarnEnabled()) {
-			logger.warn("Failure while resolving " + originalException.getMessage(), resolverException);
-		}
-		return createInternalError(originalException, environment);
-	}
-
 	private Throwable unwrapException(DataFetcherExceptionHandlerParameters params) {
 		Throwable ex = params.getException();
 		return ((ex instanceof CompletionException) ? ex.getCause() : ex);
@@ -95,18 +93,27 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	private void logResolvedException(Throwable ex, DataFetcherExceptionHandlerResult result) {
 		if (logger.isDebugEnabled()) {
-			logger.debug("Resolved " + ex.getClass().getSimpleName() +
-					" to GraphQL error(s): " + result.getErrors(), ex);
+			String name = ex.getClass().getSimpleName();
+			logger.debug("Resolved " + name + " to GraphQL error(s): " + result.getErrors(), ex);
 		}
 	}
 
-	private DataFetcherExceptionHandlerResult createInternalError(Throwable ex, DataFetchingEnvironment environment) {
-		ExecutionId executionId = environment.getExecutionId();
+	private DataFetcherExceptionHandlerResult handleResolverError(
+			Throwable resolverException, Throwable originalException, DataFetchingEnvironment env) {
+
+		if (logger.isWarnEnabled()) {
+			logger.warn("Failure while resolving " + originalException.getMessage(), resolverException);
+		}
+		return createInternalError(originalException, env);
+	}
+
+	private DataFetcherExceptionHandlerResult createInternalError(Throwable ex, DataFetchingEnvironment env) {
+		ExecutionId executionId = env.getExecutionId();
 		if (logger.isErrorEnabled()) {
 			logger.error("Unresolved " + ex.getClass().getSimpleName() + " for executionId " + executionId, ex);
 		}
 		return DataFetcherExceptionHandlerResult
-				.newResult(GraphqlErrorBuilder.newError(environment)
+				.newResult(GraphqlErrorBuilder.newError(env)
 						.errorType(ErrorType.INTERNAL_ERROR)
 						.message(ErrorType.INTERNAL_ERROR + " for " + executionId)
 						.build())

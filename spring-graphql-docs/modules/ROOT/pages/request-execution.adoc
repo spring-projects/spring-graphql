@@ -192,6 +192,39 @@ https://github.com/graphql-java/graphql-java-extended-validation[Extended Valida
 library.
 
 
+[[execution.graphqlsource.execution-strategy]]
+=== `ExecutionStrategy`
+
+An `ExecutionStrategy` in GraphQL Java drives the fetching of requested fields.
+To create an `ExecutionStrategy`, you need to provide a `DataFetcherExceptionHandler`.
+By default, Spring for GraphQL creates the exception handler to use as described in
+xref:request-execution.adoc#execution.exceptions[Exceptions] and sets it on the
+`GraphQL.Builder`. GraphQL Java then uses that to create `AsyncExecutionStrategy`
+instances with the configured exception handler.
+
+If you need to create a custom `ExecutionStrategy`, you can detect
+``DataFetcherExceptionResolver``s and create an exception handler in the same way, and use
+it to create the custom `ExecutionStrategy`. For example, in a Spring Boot application:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Bean
+GraphQlSourceBuilderCustomizer sourceBuilderCustomizer(
+		ObjectProvider<DataFetcherExceptionResolver> resolvers) {
+
+	DataFetcherExceptionHandler exceptionHandler =
+			DataFetcherExceptionResolver.createExceptionHandler(resolvers.stream().toList());
+
+	AsyncExecutionStrategy strategy = new CustomAsyncExecutionStrategy(exceptionHandler);
+
+	return sourceBuilder -> sourceBuilder.configureGraphQl(builder ->
+			builder.queryExecutionStrategy(strategy).mutationExecutionStrategy(strategy));
+}
+----
+
+
+
+
 [[execution.graphqlsource.schema-transformation]]
 === Schema Transformation
 
