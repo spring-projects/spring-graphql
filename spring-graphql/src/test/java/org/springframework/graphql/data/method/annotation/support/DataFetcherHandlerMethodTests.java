@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
@@ -26,17 +27,15 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
-import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -72,17 +71,24 @@ public class DataFetcherHandlerMethodTests {
 
 	@Test
 	void asyncInvocation() throws Exception {
-		testAsyncInvocation("handleSync", true);
+		testAsyncInvocation("handleSync", false, true, "A");
 	}
 
 	@Test
 	void asyncInvocationWithCallableReturnValue() throws Exception {
-		testAsyncInvocation("handleAndReturnCallable", false);
+		testAsyncInvocation("handleAndReturnCallable", false, false, "A");
 	}
 
-	private static void testAsyncInvocation(String methodName, boolean invokeAsync) throws Exception {
+	@Test
+	void asyncInvocationWithCallableReturnValueError() throws Exception {
+		testAsyncInvocation("handleAndReturnCallable", true, false, "simulated exception");
+	}
+
+	private static void testAsyncInvocation(
+			String methodName, boolean raiseError, boolean invokeAsync, String expected) throws Exception {
+
 		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
-		resolvers.addResolver(Mockito.mock(HandlerMethodArgumentResolver.class));
+		resolvers.addResolver(new ArgumentMethodArgumentResolver(new GraphQlArgumentBinder()));
 
 		DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 				handlerMethodFor(new TestController(), methodName), resolvers, null,
@@ -90,6 +96,7 @@ public class DataFetcherHandlerMethodTests {
 
 		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl
 				.newDataFetchingEnvironment()
+				.arguments(Map.of("raiseError", raiseError))  // gh-973
 				.graphQLContext(GraphQLContext.newContext().build())
 				.build();
 
@@ -97,7 +104,10 @@ public class DataFetcherHandlerMethodTests {
 
 		assertThat(result).isInstanceOf(CompletableFuture.class);
 		CompletableFuture<String> future = (CompletableFuture<String>) result;
-		assertThat(future.get()).isEqualTo("A");
+		if (raiseError) {
+			future = future.handle((s, ex) -> ex.getMessage());
+		}
+		assertThat(future.get()).isEqualTo(expected);
 	}
 
 	@Test
@@ -144,14 +154,17 @@ public class DataFetcherHandlerMethodTests {
 			return "Hello, " + name;
 		}
 
-		@Nullable
 		public String handleSync() {
 			return "A";
 		}
 
-		@Nullable
-		public Callable<String> handleAndReturnCallable() {
-			return () -> "A";
+		public Callable<String> handleAndReturnCallable(@Argument boolean raiseError) {
+			return () -> {
+				if (raiseError) {
+					throw new IllegalStateException("simulated exception");
+				}
+				return "A";
+			};
 		}
 
 		public CompletableFuture<String> handleAndReturnFuture(@AuthenticationPrincipal User user) {

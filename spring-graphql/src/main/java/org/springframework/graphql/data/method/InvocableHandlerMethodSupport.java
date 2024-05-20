@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
+import io.micrometer.context.ContextSnapshot;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
@@ -110,32 +111,22 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			Object result;
 			if (this.invokeAsync) {
 				Callable<Object> callable = () -> method.invoke(getBean(), argValues);
-				result = adaptCallable(graphQLContext, callable);
+				result = adaptCallable(graphQLContext, callable, method, argValues);
 			}
 			else {
 				result = method.invoke(getBean(), argValues);
 				if (this.hasCallableReturnValue && result != null) {
-					result = adaptCallable(graphQLContext, (Callable<?>) result);
+					result = adaptCallable(graphQLContext, (Callable<?>) result, method, argValues);
 				}
 			}
 
 			return result;
 		}
 		catch (IllegalArgumentException ex) {
-			assertTargetBean(method, getBean(), argValues);
-			String text = (ex.getMessage() != null) ? ex.getMessage() : "Illegal argument";
-			return Mono.error(new IllegalStateException(formatInvokeError(text, argValues), ex));
+			return Mono.error(processIllegalArgumentException(argValues, ex, method));
 		}
 		catch (InvocationTargetException ex) {
-			// Unwrap for DataFetcherExceptionResolvers ...
-			Throwable targetException = ex.getTargetException();
-			if (targetException instanceof Error || targetException instanceof Exception) {
-				return Mono.error(targetException);
-			}
-			else {
-				return Mono.error(new IllegalStateException(
-						formatInvokeError("Invocation failure", argValues), targetException));
-			}
+			return Mono.error(processInvocationTargetException(argValues, ex));
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);
@@ -155,16 +146,46 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		return result;
 	}
 
-	private CompletableFuture<?> adaptCallable(GraphQLContext graphQLContext, Callable<?> result) {
-		return CompletableFuture.supplyAsync(() -> {
+	@SuppressWarnings("DataFlowIssue")
+	private CompletableFuture<?> adaptCallable(
+			GraphQLContext graphQLContext, Callable<?> result, Method method, Object[] argValues) {
+
+		CompletableFuture<Object> future = new CompletableFuture<>();
+		this.executor.execute(() -> {
 			try {
-				return ContextSnapshotFactoryHelper.captureFrom(graphQLContext).wrap(result).call();
+				ContextSnapshot snapshot = ContextSnapshotFactoryHelper.captureFrom(graphQLContext);
+				Object value = snapshot.wrap((Callable<?>) result).call();
+				future.complete(value);
+			}
+			catch (IllegalArgumentException ex) {
+				future.completeExceptionally(processIllegalArgumentException(argValues, ex, method));
+			}
+			catch (InvocationTargetException ex) {
+				future.completeExceptionally(processInvocationTargetException(argValues, ex));
 			}
 			catch (Exception ex) {
-				String msg = "Failure in Callable returned from " + getBridgedMethod().toGenericString();
-				throw new IllegalStateException(msg, ex);
+				future.completeExceptionally(ex);
 			}
-		}, this.executor);
+		});
+		return future;
+	}
+
+	private IllegalStateException processIllegalArgumentException(
+			Object[] argValues, IllegalArgumentException ex, Method method) {
+
+		assertTargetBean(method, getBean(), argValues);
+		String text = (ex.getMessage() != null) ? ex.getMessage() : "Illegal argument";
+		return new IllegalStateException(formatInvokeError(text, argValues), ex);
+	}
+
+	private Throwable processInvocationTargetException(Object[] argValues, InvocationTargetException ex) {
+		// Unwrap for DataFetcherExceptionResolvers ...
+		Throwable targetException = ex.getTargetException();
+		if (targetException instanceof Error || targetException instanceof Exception) {
+			return targetException;
+		}
+		String message = formatInvokeError("Invocation failure", argValues);
+		return new IllegalStateException(message, targetException);
 	}
 
 	/**
