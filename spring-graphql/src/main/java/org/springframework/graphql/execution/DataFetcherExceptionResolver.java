@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +26,12 @@ import reactor.core.publisher.Mono;
 
 /**
  * Contract to resolve exceptions from {@link graphql.schema.DataFetcher}s.
- * Implementations are typically declared as beans in Spring configuration and
- * are invoked sequentially until one emits a List of {@link GraphQLError}s.
+ * Resolves are typically declared as Spring beans and invoked in turn until one
+ * resolves the exception by emitting a (possibly empty) {@code GraphQLError} list.
+ * Use the static factory method {@link #createExceptionHandler} to create a
+ * {@link DataFetcherExceptionHandler} from a list of resolvers.
  *
- * <p>Most resolver implementations can extend
+ * <p>Resolver implementations can extend
  * {@link DataFetcherExceptionResolverAdapter} and override one of its
  * {@link DataFetcherExceptionResolverAdapter#resolveToSingleError resolveToSingleError} or
  * {@link DataFetcherExceptionResolverAdapter#resolveToMultipleErrors resolveToMultipleErrors}
@@ -85,13 +87,13 @@ public interface DataFetcherExceptionResolver {
 	}
 
 	/**
-	 * Factory method to create a {@link DataFetcherExceptionResolver} from a
-	 * list of resolvers. Spring for GraphQL uses this method to set
-	 * {@link graphql.GraphQL.Builder#defaultDataFetcherExceptionHandler(DataFetcherExceptionHandler)}
-	 * from resolvers found in Spring configuration, and that default handler
-	 * is used in turn to create each {@code ExecutionStrategy}. Applications
-	 * may also find this factory method useful when creating a custom
-	 * {@code ExecutionStrategy}.
+	 * Factory method to create a {@link DataFetcherExceptionHandler} from a
+	 * list of {@link DataFetcherExceptionResolver}'s. This is used internally
+	 * in {@link AbstractGraphQlSourceBuilder} to set the exception handler on
+	 * {@link graphql.GraphQL.Builder}, which in turn is used to create
+	 * {@link graphql.execution.ExecutionStrategy}'s. Applications may also use
+	 * this method to create an exception handler when they to need to initialize
+	 * a custom {@code ExecutionStrategy}.
 	 * <p>Resolvers are invoked in turn until one resolves the exception by
 	 * emitting a (possibly empty) {@code GraphQLError} list. If the exception
 	 * remains unresolved, the handler creates a {@code GraphQLError} with
