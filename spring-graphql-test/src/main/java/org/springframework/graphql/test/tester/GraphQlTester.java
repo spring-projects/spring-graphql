@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,19 +149,19 @@ public interface GraphQlTester {
 		 * Add a variable.
 		 * @param name the variable name
 		 * @param value the variable value, possibly {@code null} since GraphQL
-		 * supports providing null value vs not providing a value at all.
+		 * supports providing null for a value vs not providing a value at all.
 		 * @return this request spec
 		 */
 		T variable(String name, @Nullable Object value);
 
 		/**
-		 * Add variables.
-		 * @param values the variables to be set
-		 * the variable of the values, possibly {@code null} since GraphQL
-		 * supports providing null value vs not providing a value at all.
+		 * Add variables from a {@link Map}.
+		 * @param values the variables to add, possibly with {@code null} values
+		 * since GraphQL supports null for a value vs not providing it at all.
 		 * @return this request spec
+		 * @since 1.3.0
 		 */
-		T variable(Map<String, Object> values);
+		T variables(Map<String, Object> values);
 
 		/**
 		 * Add a value for a protocol extension.

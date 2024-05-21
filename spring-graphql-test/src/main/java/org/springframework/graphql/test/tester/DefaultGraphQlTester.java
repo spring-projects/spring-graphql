@@ -145,8 +145,8 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public DefaultRequest variable(Map<String, Object> values) {
-			this.variables.putAll(values);
+		public DefaultRequest variables(Map<String, Object> variables) {
+			this.variables.putAll(variables);
 			return this;
 		}
 
@@ -159,7 +159,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@SuppressWarnings("ConstantConditions")
 		@Override
 		public Response execute() {
-			return DefaultGraphQlTester.this.transport.execute(request()).map((response) -> mapResponse(response, request())).block(DefaultGraphQlTester.this.responseTimeout);
+			return DefaultGraphQlTester.this.transport.execute(request())
+					.map((response) -> mapResponse(response, request()))
+					.block(DefaultGraphQlTester.this.responseTimeout);
 		}
 
 		@Override
@@ -169,7 +171,8 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		@Override
 		public Subscription executeSubscription() {
-			return () -> DefaultGraphQlTester.this.transport.executeSubscription(request()).map((result) -> mapResponse(result, request()));
+			return () -> DefaultGraphQlTester.this.transport.executeSubscription(request())
+					.map((result) -> mapResponse(result, request()));
 		}
 
 		private GraphQlRequest request() {
@@ -177,7 +180,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {
-			return new DefaultResponse(response, DefaultGraphQlTester.this.errorFilter, assertDecorator(request), DefaultGraphQlTester.this.jsonPathConfig);
+			return new DefaultResponse(
+					response, DefaultGraphQlTester.this.errorFilter,
+					assertDecorator(request), DefaultGraphQlTester.this.jsonPathConfig);
 		}
 
 		private Consumer<Runnable> assertDecorator(GraphQlRequest request) {

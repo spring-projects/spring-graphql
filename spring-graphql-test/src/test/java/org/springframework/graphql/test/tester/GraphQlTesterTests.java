@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.graphql.GraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -197,13 +198,13 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 	void nestedPath() {
 
 		String document = "{me {name, friends}}";
-		getGraphQlService().setDataAsJson(document,
-				"{" +
-						"  \"me\":{" +
-						"      \"name\":\"Luke Skywalker\","
-						+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
-						"  }" +
-						"}");
+		getGraphQlService().setDataAsJson(document, """
+				{
+					"me":{
+							"name":"Luke Skywalker",
+						"friends":[{"name":"Han Solo"}, {"name":"Leia Organa"}]
+					}
+				}""");
 
 		graphQlTester().document(document).execute()
 				.path("me", me -> me
@@ -215,11 +216,12 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 	@Test
 	void operationNameAndVariables() {
 
-		String document = "query HeroNameAndFriends($episode: Episode) {" +
-				"  hero(episode: $episode) {" +
-				"    name"
-				+ "  }" +
-				"}";
+		String document = """
+				query HeroNameAndFriends($episode: Episode) {
+					hero(episode: $episode) {
+						name
+					}
+				}""";
 
 		getGraphQlService().setDataAsJson(document, "{\"hero\": {\"name\":\"R2-D2\"}}");
 
@@ -242,36 +244,24 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 	}
 
 	@Test
-	void operationNameAndVariablesAsMap() {
+	void variablesAsMap() {
 
-		String document = "query HeroNameAndFriends($episode: Episode) {" +
-				"  hero(episode: $episode) {" +
-				"    name"
-				+ "  }" +
-				"}";
+		String document = """
+				query HeroNameAndFriends($episode: Episode) {
+					hero(episode: $episode) {
+						name
+					}
+				}""";
 
 		getGraphQlService().setDataAsJson(document, "{\"hero\": {\"name\":\"R2-D2\"}}");
 
-		Map<String, Object> variableMap = new LinkedHashMap<>();
+		Map<String, Object> vars = Map.of(
+				"episode", Optional.of("JEDI"), "foo", Optional.of("bar"), "keyOnly", Optional.empty());
 
-		variableMap.put("episode", Optional.of("JEDI"));
-		variableMap.put("foo", Optional.of("bar"));
-		variableMap.put("keyOnly", Optional.ofNullable(null));
+		graphQlTester().document(document).variables(vars).execute();
 
-		GraphQlTester.Response response = graphQlTester().document(document)
-				.operationName("HeroNameAndFriends")
-				.variable(variableMap)
-				.execute();
-
-		response.path("hero").entity(MovieCharacter.class).isEqualTo(MovieCharacter.create("R2-D2"));
-
-		ExecutionGraphQlRequest request = getGraphQlService().getGraphQlRequest();
-		assertThat(request.getDocument()).contains(document);
-		assertThat(request.getOperationName()).isEqualTo("HeroNameAndFriends");
-		assertThat(request.getVariables()).hasSize(3);
-		assertThat(request.getVariables()).containsEntry("episode", Optional.of("JEDI"));
-		assertThat(request.getVariables()).containsEntry("foo", Optional.of("bar"));
-		assertThat(request.getVariables()).containsEntry("keyOnly", Optional.ofNullable(null));
+		GraphQlRequest request = getGraphQlService().getGraphQlRequest();
+		assertThat(request.getVariables()).containsExactlyEntriesOf(vars);
 	}
 
 	@Test
