@@ -1,4 +1,4 @@
 [[samples]]
 = Samples
 
-Please, see the [spring-graphql-examples](https://github.com/spring-projects/spring-graphql-examples) repository.
+Please, see the {examples-repo}[spring-graphql-examples] repository.

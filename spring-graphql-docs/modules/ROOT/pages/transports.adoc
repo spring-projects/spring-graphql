@@ -203,6 +203,8 @@ one for the WebMVC and one for the WebFlux transports. These help to extract aut
 details from the payload of a `"connection_init"` GraphQL over WebSocket message, authenticate,
 and then propagate the `SecurityContext` to subsequent requests on the WebSocket connection.
 
+TIP: There is a websocket-authentication sample in {examples-repo}[spring-graphql-examples].
+
 
 
 [[server.interception.rsocket]]
