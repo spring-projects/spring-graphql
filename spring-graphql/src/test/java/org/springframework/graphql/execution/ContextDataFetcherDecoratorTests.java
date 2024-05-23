@@ -27,9 +27,12 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import graphql.TrivialDataFetcher;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetcherFactories;
+import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaDirectiveWiring;
 import graphql.schema.idl.SchemaDirectiveWiringEnvironment;
 import io.micrometer.context.ContextRegistry;
@@ -236,6 +239,20 @@ public class ContextDataFetcherDecoratorTests {
 
 		tester.accept(directiveWiring, env -> CompletableFuture.completedFuture("hello"));
 		tester.accept(directiveWiring, env -> Mono.just("hello"));
+	}
+
+	@Test //gh-980
+	void trivialDataFetcherIsNotDecorated() {
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+									  .queryFetcher("greeting", (TrivialDataFetcher) env -> "hello")
+									  .toGraphQl();
+
+		GraphQLSchema schema = graphQl.getGraphQLSchema();
+		FieldCoordinates coordinates = FieldCoordinates.coordinates("Query", "greeting");
+		DataFetcher<?> dataFetcher = schema.getCodeRegistry()
+										   .getDataFetcher(coordinates, schema.getFieldDefinition(coordinates));
+
+		assertThat(dataFetcher).isInstanceOf(TrivialDataFetcher.class);
 	}
 
 }
