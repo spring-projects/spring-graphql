@@ -20,6 +20,7 @@ import java.util.List;
 
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
+import graphql.TrivialDataFetcher;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -150,6 +151,9 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		}
 
 		private boolean applyDecorator(DataFetcher<?> dataFetcher) {
+			if (dataFetcher instanceof TrivialDataFetcher) {
+				return false;
+			}
 			Class<?> type = dataFetcher.getClass();
 			String packageName = type.getPackage().getName();
 			if (packageName.startsWith("graphql.")) {
