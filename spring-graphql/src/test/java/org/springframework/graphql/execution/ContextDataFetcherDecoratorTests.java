@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,15 +55,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SuppressWarnings("ReactiveStreamsUnusedPublisher")
 public class ContextDataFetcherDecoratorTests {
 
-	private static final String SCHEMA_CONTENT = "" +
-			"directive @UpperCase on FIELD_DEFINITION " +
-			"type Query { " +
-			"  greeting: String @UpperCase, " +
-			"  greetings: [String] " +
-			"} " +
-			"type Subscription { " +
-			"  greetings: String " +
-			"}";
+	private static final String SCHEMA_CONTENT = """
+			directive @UpperCase on FIELD_DEFINITION \
+			type Query { \
+				greeting: String @UpperCase, \
+				greetings: [String] \
+			} \
+			type Subscription { \
+				greetings: String \
+			}""";
 
 
 	@Test
@@ -241,16 +241,16 @@ public class ContextDataFetcherDecoratorTests {
 		tester.accept(directiveWiring, env -> Mono.just("hello"));
 	}
 
-	@Test //gh-980
+	@Test // gh-980
 	void trivialDataFetcherIsNotDecorated() {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
-									  .queryFetcher("greeting", (TrivialDataFetcher) env -> "hello")
-									  .toGraphQl();
+				.queryFetcher("greeting", (TrivialDataFetcher<?>) env -> "hello")
+				.toGraphQl();
 
 		GraphQLSchema schema = graphQl.getGraphQLSchema();
 		FieldCoordinates coordinates = FieldCoordinates.coordinates("Query", "greeting");
-		DataFetcher<?> dataFetcher = schema.getCodeRegistry()
-										   .getDataFetcher(coordinates, schema.getFieldDefinition(coordinates));
+		GraphQLFieldDefinition fieldDefinition = schema.getFieldDefinition(coordinates);
+		DataFetcher<?> dataFetcher = schema.getCodeRegistry().getDataFetcher(coordinates, fieldDefinition);
 
 		assertThat(dataFetcher).isInstanceOf(TrivialDataFetcher.class);
 	}
