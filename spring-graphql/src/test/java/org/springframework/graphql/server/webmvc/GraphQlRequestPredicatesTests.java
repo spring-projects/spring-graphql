@@ -25,7 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.servlet.function.RequestPredicate;
+import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -99,6 +101,25 @@ class GraphQlRequestPredicatesTests {
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
 		}
 
+		@Test
+		void shouldSetMatchingPatternAttribute() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			httpPredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.hasValue(PathPatternParser.defaultInstance.parse("/graphql"));
+		}
+
+		@Test
+		void shouldNotSetAttributeWhenNoMatch() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setRequestURI("/invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			httpPredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.isEmpty();
+		}
+
 		private MockHttpServletRequest createMatchingHttpRequest() {
 			MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
 			request.setContentType("application/json");
@@ -161,6 +182,25 @@ class GraphQlRequestPredicatesTests {
 			request.addHeader("Accept", "text/xml");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
 			assertThat(ssePredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldSetMatchingPatternAttribute() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			ssePredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.hasValue(PathPatternParser.defaultInstance.parse("/graphql"));
+		}
+
+		@Test
+		void shouldNotSetAttributeWhenNoMatch() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.setRequestURI("/invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			ssePredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.isEmpty();
 		}
 
 		private MockHttpServletRequest createMatchingSseRequest() {

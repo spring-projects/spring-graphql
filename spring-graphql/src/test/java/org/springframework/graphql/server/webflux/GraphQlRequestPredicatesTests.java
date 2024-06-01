@@ -28,8 +28,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.reactive.function.server.RequestPredicate;
+import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -107,6 +109,25 @@ class GraphQlRequestPredicatesTests {
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
 		}
 
+		@Test
+		void shouldSetMatchingPatternAttribute() {
+			ServerWebExchange exchange = createMatchingHttpExchange();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			httpPredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.hasValue(PathPatternParser.defaultInstance.parse("/graphql"));
+		}
+
+		@Test
+		void shouldNotSetAttributeWhenNoMatch() {
+			ServerWebExchange exchange = createMatchingHttpExchange()
+					.mutate().request(req -> req.path("/invalid")).build();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			httpPredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.isEmpty();
+		}
+
 		private MockServerWebExchange createMatchingHttpExchange() {
 			MockServerHttpRequest request = MockServerHttpRequest.post("/graphql")
 					.contentType(MediaType.APPLICATION_JSON)
@@ -170,6 +191,25 @@ class GraphQlRequestPredicatesTests {
 					.build();
 			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
 			assertThat(ssePredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldSetMatchingPatternAttribute() {
+			ServerWebExchange exchange = createMatchingSseExchange();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			ssePredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.hasValue(PathPatternParser.defaultInstance.parse("/graphql"));
+		}
+
+		@Test
+		void shouldNotSetAttributeWhenNoMatch() {
+			ServerWebExchange exchange = createMatchingSseExchange()
+					.mutate().request(req -> req.path("/invalid")).build();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			ssePredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.isEmpty();
 		}
 
 		private MockServerWebExchange createMatchingSseExchange() {

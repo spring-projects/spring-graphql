@@ -31,6 +31,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.servlet.function.RequestPredicate;
+import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
@@ -165,6 +166,9 @@ public final class GraphQlRequestPredicates {
 			PathContainer pathContainer = request.requestPath().pathWithinApplication();
 			boolean pathMatch = pattern.matches(pathContainer);
 			traceMatch("Pattern", pattern.getPatternString(), request.path(), pathMatch);
+			if (pathMatch) {
+				request.attributes().put(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE, pattern);
+			}
 			return pathMatch;
 		}
 
