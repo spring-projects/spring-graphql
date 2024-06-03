@@ -1,0 +1,3 @@
+fragment friendsField on User {
+	friends
+}

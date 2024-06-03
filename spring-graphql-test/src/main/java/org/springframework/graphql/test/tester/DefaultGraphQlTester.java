@@ -123,6 +123,8 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Nullable
 		private String operationName;
 
+		List<String> fragments = new ArrayList<>();
+
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
 		private final Map<String, Object> extensions = new LinkedHashMap<>();
@@ -136,6 +138,21 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		public DefaultRequest operationName(@Nullable String name) {
 			this.operationName = name;
 			return this;
+		}
+
+		@Override
+		public DefaultRequest fragment(String fragment) {
+			Assert.hasText(fragment, "Fragment should not be empty");
+			this.fragments.add(fragment);
+			return this;
+		}
+
+		@Override
+		public DefaultRequest fragmentName(String fragmentName) {
+			String fragment = DefaultGraphQlTester.this.documentSource.getDocument(fragmentName)
+					.block(DefaultGraphQlTester.this.responseTimeout);
+			Assert.hasText(fragment, "DocumentSource completed empty for fragment " + fragmentName);
+			return this.fragment(fragment);
 		}
 
 		@Override
@@ -176,7 +193,9 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		private GraphQlRequest request() {
-			return new DefaultGraphQlRequest(this.document, this.operationName, this.variables, this.extensions);
+			StringBuilder document = new StringBuilder(this.document);
+			this.fragments.forEach(document::append);
+			return new DefaultGraphQlRequest(document.toString(), this.operationName, this.variables, this.extensions);
 		}
 
 		private DefaultResponse mapResponse(GraphQlResponse response, GraphQlRequest request) {

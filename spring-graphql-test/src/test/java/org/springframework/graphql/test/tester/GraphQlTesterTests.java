@@ -32,14 +32,34 @@ import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.GraphQlRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for {@link GraphQlTester} with a mock {@link ExecutionGraphQlService}.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
 public class GraphQlTesterTests extends GraphQlTesterTestSupport {
+
+	@Test
+	void missingDocumentByName() {
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		assertThatIllegalStateException().isThrownBy(() -> graphQlTester().documentName("unknown").execute())
+				.withMessageContaining("Failed to find document, name='unknown', under location(s)=[class path resource [graphql-test/]]");
+	}
+
+	@Test
+	void resolveDocumentByName() {
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().documentName("me").execute();
+		response.path("me.name").hasValue();
+	}
 
 	@Test
 	void hasValue() {
@@ -241,6 +261,58 @@ public class GraphQlTesterTests extends GraphQlTesterTestSupport {
 		assertThat(request.getVariables()).containsEntry("episode", "JEDI");
 		assertThat(request.getVariables()).containsEntry("foo", "bar");
 		assertThat(request.getVariables()).containsEntry("keyOnly", null);
+	}
+
+	@Test
+	void documentWithFragment() {
+		String document = """
+		query meQuery {
+			me {name, ...friendsField}
+		}
+		""";
+		String fragment =
+		"""
+		fragment friendsField on User {
+			friends
+		}
+		""";
+		getGraphQlService().setDataAsJson(document + fragment, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).fragment(fragment).execute();
+		response.path("me.name").hasValue();
+
+		assertThat(getActualRequestDocument()).contains(document);
+	}
+
+	@Test
+	void missingFragmentByName() {
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		assertThatIllegalStateException().isThrownBy(() -> graphQlTester().document(document).fragmentName("unknown").execute())
+				.withMessageContaining("Failed to find document, name='unknown', under location(s)=[class path resource [graphql-test/]]");
+	}
+
+	@Test
+	void documentWithFragmentName() {
+		String document =
+			"""
+			query meQuery {
+				me {name, ...friendsField}
+			}
+			""";
+		String fragment =
+			"""
+			fragment friendsField on User {
+				friends
+			}
+			""";
+		getGraphQlService().setDataAsJson(document + fragment, "{\"me\": {\"name\":\"Luke Skywalker\", \"friends\":[]}}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).fragmentName("friends").execute();
+		response.path("me.name").hasValue();
+
+		assertThat(getActualRequestDocument()).contains(document);
 	}
 
 	@Test

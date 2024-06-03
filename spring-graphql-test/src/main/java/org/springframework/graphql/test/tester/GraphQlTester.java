@@ -49,14 +49,14 @@ import org.springframework.lang.Nullable;
  * </ul>
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 1.0.0
  */
 public interface GraphQlTester {
 
 	/**
 	 * Start defining a GraphQL request with the given document, which is the
-	 * textual representation of an operation (or operations) to perform,
-	 * including selection sets and fragments.
+	 * textual representation of an operation (or operations) to perform.
 	 * @param document the document for the request
 	 * @return spec for response assertions
 	 * @throws AssertionError if the response status is not 200 (OK)
@@ -144,6 +144,28 @@ public interface GraphQlTester {
 		 * @return this request spec
 		 */
 		T operationName(@Nullable String name);
+
+		/**
+		 * Append the given fragment section to the {@link #document(String) request document}.
+		 * A fragment describes a selection of fields to be included in the query when needed
+		 * and is defined with the {@code fragment} keyword.
+		 * @param fragment the fragment definition
+		 * @return this request spec
+		 * @since 1.3
+		 * @see <a href="http://spec.graphql.org/October2021/#sec-Language.Fragments">Fragments specification</a>
+		 */
+		T fragment(String fragment);
+
+		/**
+		 * Variant of {@link #fragment(String)} that uses the given key to resolve
+		 * the GraphQL fragment document from a file with the help of the configured
+		 * {@link Builder#documentSource(DocumentSource) DocumentSource}.
+		 * @param fragmentName the name of the fragment to append
+		 * @return this request spec
+		 * @throws IllegalArgumentException if the fragmentName cannot be resolved
+		 * @since 1.3
+		 */
+		T fragmentName(String fragmentName);
 
 		/**
 		 * Add a variable.

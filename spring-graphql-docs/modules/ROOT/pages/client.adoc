@@ -476,6 +476,55 @@ You can then:
 <1> Load the document from "projectReleases.graphql"
 <2> Provide variable values.
 
+
+This approach also works for loading fragments for your queries.
+Fragments are reusable field selection sets that avoid repetition in a request document.
+For example, we can use a `...releases` fragment in multiple queries:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+.src/main/resources/graphql-documents/projectReleases.graphql
+----
+	query frameworkReleases {
+		project(slug: "spring-framework") {
+			name
+			...releases
+		}
+	}
+	query graphqlReleases {
+        project(slug: "spring-graphql") {
+            name
+            ...releases
+        }
+    }
+----
+
+This fragment can be defined in a separate file for reuse:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+.src/main/resources/graphql-documents/releases.graphql
+----
+	fragment releases on Project {
+    	releases {
+            version
+        }
+    }
+----
+
+
+You can then send this fragment along the query document:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	Project project = graphQlClient.documentName("projectReleases") <1>
+			.fragmentName("releases") <2>
+			.retrieveSync()
+			.toEntity(Project.class);
+----
+<1> Load the document from "projectReleases.graphql"
+<2> Load the fragment from "releases.graphql" and append it to the document
+
+
+
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
 
 You can use the `GraphQlClient` xref:client.adoc#client.graphqlclient.builder[Builder] to customize the
