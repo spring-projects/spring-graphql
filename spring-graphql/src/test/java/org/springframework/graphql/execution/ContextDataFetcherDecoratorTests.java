@@ -37,6 +37,7 @@ import graphql.schema.idl.SchemaDirectiveWiring;
 import graphql.schema.idl.SchemaDirectiveWiringEnvironment;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -181,7 +182,8 @@ public class ContextDataFetcherDecoratorTests {
 					.toGraphQl();
 
 			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-			ContextSnapshot.captureAll().updateContext(input.getGraphQLContext());
+			ContextSnapshot snapshot = ContextSnapshotFactory.builder().build().captureAll();
+			snapshot.updateContext(input.getGraphQLContext());
 
 			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
 					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
@@ -202,7 +204,7 @@ public class ContextDataFetcherDecoratorTests {
 			@SuppressWarnings("unchecked")
 			@Override
 			public GraphQLFieldDefinition onField(SchemaDirectiveWiringEnvironment<GraphQLFieldDefinition> env) {
-				if (env.getDirective("UpperCase") != null) {
+				if (env.getAppliedDirective("UpperCase") != null) {
 					return env.setFieldDataFetcher(DataFetcherFactories.wrapDataFetcher(
 							env.getFieldDataFetcher(),
 							((dataFetchingEnv, value) -> {

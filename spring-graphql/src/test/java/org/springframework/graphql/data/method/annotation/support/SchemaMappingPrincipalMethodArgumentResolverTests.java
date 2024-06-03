@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import graphql.GraphqlErrorBuilder;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,8 +71,10 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 	private final Function<Context, Context> reactiveContextWriterWithoutAuthentication = context ->
 			ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextHolder.createEmptyContext()));
 
-	private final Function<Context, Context> threadLocalContextWriter = context ->
-			ContextSnapshot.captureAll().updateContext(context);
+	private final Function<Context, Context> threadLocalContextWriter = context -> {
+		ContextSnapshot snapshot = ContextSnapshotFactory.builder().build().captureAll();
+		return snapshot.updateContext(context);
+	};
 
 	private final GreetingController greetingController = new GreetingController();
 

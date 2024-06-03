@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -109,7 +110,8 @@ public class CompositeSubscriptionExceptionResolverTests {
 					.toGraphQl();
 
 			ExecutionInput input = ExecutionInput.newExecutionInput(query).build();
-			ContextSnapshot.captureAll().updateContext(input.getGraphQLContext());
+			ContextSnapshot snapshot = ContextSnapshotFactory.builder().build().captureAll();
+			snapshot.updateContext(input.getGraphQLContext());
 
 			Flux<ResponseHelper> flux = Mono.defer(() -> Mono.fromFuture(graphQL.executeAsync(input)))
 					.map(ResponseHelper::forSubscription)

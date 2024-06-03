@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import graphql.ExecutionResult;
 import graphql.GraphqlErrorBuilder;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -100,7 +101,8 @@ public class ExceptionResolversExceptionHandlerTests {
 									.build());
 
 			resolver.setThreadLocalContextAware(true);
-			ContextSnapshot.captureAll().updateContext(this.input.getGraphQLContext());
+			ContextSnapshot snapshot = ContextSnapshotFactory.builder().build().captureAll();
+			snapshot.updateContext(this.input.getGraphQLContext());
 
 			Mono<ExecutionResult> result = Mono.delay(Duration.ofMillis(10)).flatMap((aLong) ->
 					Mono.fromFuture(this.graphQlSetup.exceptionResolver(resolver).toGraphQl().executeAsync(this.input)));
