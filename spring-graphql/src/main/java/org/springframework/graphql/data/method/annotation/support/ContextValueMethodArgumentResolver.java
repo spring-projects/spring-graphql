@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,13 +83,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 		}
 
 		if (isMono) {
-			if (value == null) {
-				value = Mono.empty();
-			}
-			else if (!(value instanceof Mono)) {
-				value = Mono.just(value);
-			}
-			return Mono.just(value);
+			return Mono.just((value instanceof Mono<?> mono) ? mono : Mono.justOrEmpty(value));
 		}
 
 		if (isOptional) {
