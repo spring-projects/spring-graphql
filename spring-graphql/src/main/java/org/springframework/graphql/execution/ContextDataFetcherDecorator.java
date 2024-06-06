@@ -73,6 +73,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	}
 
 
+	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 	@Override
 	public Object get(DataFetchingEnvironment env) throws Exception {
 
@@ -86,24 +87,22 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		Object value = snapshot.wrap(() -> this.delegate.get(env)).call();
 
 		if (this.subscription) {
-			Assert.state(value instanceof Publisher, "Expected Publisher for a subscription");
-			Flux<?> flux = Flux.from((Publisher<?>) value).onErrorResume((exception) -> {
-				// Already handled, e.g. controller methods?
-				if (exception instanceof SubscriptionPublisherException) {
-					return Mono.error(exception);
-				}
-				return this.subscriptionExceptionResolver.resolveException(exception)
-						.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, exception)));
-			});
-			return flux.contextWrite(snapshot::updateContext);
+			return ReactiveAdapterRegistryHelper.toSubscriptionFlux(value)
+					.onErrorResume((exception) -> {
+						// Already handled, e.g. controller methods?
+						if (exception instanceof SubscriptionPublisherException) {
+							return Mono.error(exception);
+						}
+						return this.subscriptionExceptionResolver.resolveException(exception)
+								.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, exception)));
+					})
+					.contextWrite(snapshot::updateContext);
 		}
 
-		if (value instanceof Flux) {
-			value = ((Flux<?>) value).collectList();
-		}
+		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);
 
-		if (value instanceof Mono<?> valueMono) {
-			value = valueMono.contextWrite(snapshot::updateContext).toFuture();
+		if (value instanceof Mono<?> mono) {
+			value = mono.contextWrite(snapshot::updateContext).toFuture();
 		}
 
 		return value;

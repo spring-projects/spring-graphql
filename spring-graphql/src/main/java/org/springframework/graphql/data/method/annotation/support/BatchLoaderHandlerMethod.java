@@ -21,9 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
 
 import graphql.GraphQLContext;
 import org.dataloader.BatchLoaderEnvironment;
@@ -37,6 +35,7 @@ import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.graphql.data.method.annotation.ContextValue;
+import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -97,11 +96,11 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		Object[] args = getMethodArgumentValues(keys, environment);
 		if (doesNotHaveAsyncArgs(args)) {
 			Object result = doInvoke(environment.getContext(), args);
-			return toMonoMap(result);
+			return ReactiveAdapterRegistryHelper.toMono(result);
 		}
 		return toArgsMono(args).flatMap((argValues) -> {
 			Object result = doInvoke(environment.getContext(), argValues);
-			return toMonoMap(result);
+			return ReactiveAdapterRegistryHelper.toMono(result);
 		});
 	}
 
@@ -117,11 +116,11 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		Object[] args = getMethodArgumentValues(keys, environment);
 		if (doesNotHaveAsyncArgs(args)) {
 			Object result = doInvoke(environment.getContext(), args);
-			return toFlux(result);
+			return ReactiveAdapterRegistryHelper.toFluxFromCollection(result);
 		}
 		return toArgsMono(args).flatMapMany((resolvedArgs) -> {
 			Object result = doInvoke(environment.getContext(), resolvedArgs);
-			return toFlux(result);
+			return ReactiveAdapterRegistryHelper.toFluxFromCollection(result);
 		});
 	}
 
@@ -183,35 +182,6 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 
 	private boolean doesNotHaveAsyncArgs(Object[] args) {
 		return Arrays.stream(args).noneMatch((arg) -> arg instanceof Mono);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <K, V> Mono<Map<K, V>> toMonoMap(@Nullable Object result) {
-		if (result instanceof Map) {
-			return Mono.just((Map<K, V>) result);
-		}
-		else if (result instanceof Mono) {
-			return (Mono<Map<K, V>>) result;
-		}
-		else if (result instanceof CompletableFuture) {
-			return Mono.fromFuture((CompletableFuture<? extends Map<K, V>>) result);
-		}
-		return Mono.error(new IllegalStateException("Unexpected return value: " + result));
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <V> Flux<V> toFlux(@Nullable Object result) {
-		if (result instanceof Collection) {
-			return Flux.fromIterable((Collection<V>) result);
-		}
-		else if (result instanceof Flux) {
-			return (Flux<V>) result;
-		}
-		else if (result instanceof CompletableFuture) {
-			return Mono.fromFuture((CompletableFuture<? extends Collection<V>>) result)
-					.flatMapIterable(Function.identity());
-		}
-		return Flux.error(new IllegalStateException("Unexpected return value: " + result));
 	}
 
 }

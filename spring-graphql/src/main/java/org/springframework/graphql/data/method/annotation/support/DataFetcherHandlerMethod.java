@@ -18,18 +18,16 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Arrays;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 import graphql.schema.DataFetchingEnvironment;
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
+import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -112,6 +110,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * @param providedArgs additional arguments to be matched by their type
 	 * @since 1.2.0
 	 */
+	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 	@Nullable
 	public Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {
 		Object[] args;
@@ -129,23 +128,11 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 		return this.subscription ?
 				toArgsMono(args).flatMapMany((argValues) -> {
 					Object result = validateAndInvoke(argValues, environment);
-					Assert.state(result instanceof Publisher, "Expected a Publisher from a Subscription response");
-					return Flux.from((Publisher<?>) result);
+					return ReactiveAdapterRegistryHelper.toSubscriptionFlux(result);
 				}) :
 				toArgsMono(args).flatMap((argValues) -> {
 					Object result = validateAndInvoke(argValues, environment);
-					if (result instanceof Mono<?> mono) {
-						return mono;
-					}
-					else if (result instanceof Flux<?> flux) {
-						return Flux.from(flux).collectList();
-					}
-					else if (result instanceof CompletableFuture<?> future) {
-						return Mono.fromFuture(future);
-					}
-					else {
-						return Mono.justOrEmpty(result);
-					}
+					return ReactiveAdapterRegistryHelper.toMono(result);
 				});
 	}
 

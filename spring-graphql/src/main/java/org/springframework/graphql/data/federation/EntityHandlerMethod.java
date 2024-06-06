@@ -18,7 +18,6 @@ package org.springframework.graphql.data.federation;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -26,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.support.DataFetcherHandlerMethodSupport;
+import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
 import org.springframework.lang.Nullable;
 
 /**
@@ -80,18 +80,8 @@ final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 	}
 
 	private Mono<Object> doInvoke(DataFetchingEnvironment env, Object[] args) {
-
 		Object result = doInvoke(env.getGraphQlContext(), args);
-
-		if (result instanceof Mono<?> mono) {
-			return mono.cast(Object.class);
-		}
-		else if (result instanceof CompletableFuture<?> future) {
-			return Mono.fromFuture(future);
-		}
-		else {
-			return Mono.justOrEmpty(result);
-		}
+		return ReactiveAdapterRegistryHelper.toMono(result);
 	}
 
 }

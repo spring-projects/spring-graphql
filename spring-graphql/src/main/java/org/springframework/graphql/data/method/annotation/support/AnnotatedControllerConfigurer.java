@@ -78,6 +78,7 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.SortStrategy;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
+import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
@@ -528,18 +529,24 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@SuppressWarnings({"unchecked", "ReactiveStreamsUnusedPublisher"})
+		@Nullable
 		private <T> Object applyExceptionHandling(
 				DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod, Object result) {
 
-			if (this.subscription && result instanceof Publisher<?> publisher) {
-				result = Flux.from(publisher).onErrorResume((ex) -> handleSubscriptionError(ex, env, handlerMethod));
+			if (this.subscription) {
+				return ReactiveAdapterRegistryHelper.toSubscriptionFlux(result)
+						.onErrorResume((ex) -> handleSubscriptionError(ex, env, handlerMethod));
 			}
-			else if (result instanceof Mono) {
+
+			result = ReactiveAdapterRegistryHelper.toMonoOrFluxIfReactive(result);
+
+			if (result instanceof Mono) {
 				result = ((Mono<T>) result).onErrorResume((ex) -> (Mono<T>) handleException(ex, env, handlerMethod));
 			}
 			else if (result instanceof Flux<?>) {
 				result = ((Flux<T>) result).onErrorResume((ex) -> (Mono<T>) handleException(ex, env, handlerMethod));
 			}
+
 			return result;
 		}
 
