@@ -65,36 +65,42 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 
 	@Override
-	public Mono<DataFetcherResult<List<Object>>> get(DataFetchingEnvironment environment) {
-		List<Map<String, Object>> representations = environment.getArgument(_Entity.argumentName);
+	public Mono<DataFetcherResult<List<Object>>> get(DataFetchingEnvironment env) {
+		List<Map<String, Object>> representations = env.getArgument(_Entity.argumentName);
+		if (representations == null) {
+			return Mono.error(new RepresentationException(
+					Collections.emptyMap(), "Missing \"representations\" argument"));
+		}
 
-		Set<String> batched = new HashSet<>();
-		List<Mono<Object>> monoList = new ArrayList<>();
+		Set<String> batchedTypes = new HashSet<>();
+		List<Mono<?>> monoList = new ArrayList<>();
 		for (int index = 0; index < representations.size(); index++) {
 			Map<String, Object> map = representations.get(index);
-			if (!(map.get("__typename") instanceof String typename)) {
+			if (!(map.get("__typename") instanceof String type)) {
 				Exception ex = new RepresentationException(map, "Missing \"__typename\" argument");
-				monoList.add(resolveException(ex, environment, null, index));
+				monoList.add(resolveException(ex, env, null, index));
 				continue;
 			}
-			EntityHandlerMethod handlerMethod = this.handlerMethods.get(typename);
+			EntityHandlerMethod handlerMethod = this.handlerMethods.get(type);
 			if (handlerMethod == null) {
 				Exception ex = new RepresentationException(map, "No entity fetcher");
-				monoList.add(resolveException(ex, environment, null, index));
+				monoList.add(resolveException(ex, env, null, index));
 				continue;
 			}
 
 			if (!handlerMethod.isBatchHandlerMethod()) {
-				monoList.add(invokeEntityMethod(environment, handlerMethod, map, index));
-			}
-			else if (batched.contains(typename)) {
-				// zip needs a value, this will be replaced by batch results
-				monoList.add(Mono.just(Collections.emptyMap()));
+				monoList.add(invokeEntityMethod(env, handlerMethod, map, index));
 			}
 			else {
-				EntityBatchDelegate batchDelegate = new EntityBatchDelegate(environment, handlerMethod, typename);
-				monoList.add(batchDelegate.invokeEntityBatchMethod());
-				batched.add(typename);
+				if (!batchedTypes.contains(type)) {
+					EntityBatchDelegate delegate = new EntityBatchDelegate(env, representations, handlerMethod, type);
+					monoList.add(delegate.invokeEntityBatchMethod());
+					batchedTypes.add(type);
+				}
+				else {
+					// Covered by batch invocation, but zip needs a value (to be replaced by batch results)
+					monoList.add(Mono.just(Collections.emptyMap()));
+				}
 			}
 		}
 		return Mono.zip(monoList, Arrays::asList).map(EntitiesDataFetcher::toDataFetcherResult);
@@ -108,7 +114,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 				.onErrorResume((ex) -> resolveException(ex, env, handlerMethod, index));
 	}
 
-	private Mono<Object> resolveException(
+	private Mono<ErrorContainer> resolveException(
 			Throwable ex, DataFetchingEnvironment env, @Nullable EntityHandlerMethod handlerMethod, int index) {
 
 		Throwable theEx = (ex instanceof CompletionException) ? ex.getCause() : ex;
@@ -117,8 +123,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 		return this.exceptionResolver.resolveException(theEx, theEnv, handler)
 				.map(ErrorContainer::new)
-				.switchIfEmpty(Mono.fromCallable(() -> createDefaultError(theEx, theEnv)))
-				.cast(Object.class);
+				.switchIfEmpty(Mono.fromCallable(() -> createDefaultError(theEx, theEnv)));
 	}
 
 	private ErrorContainer createDefaultError(Throwable ex, DataFetchingEnvironment env) {
@@ -154,28 +159,30 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 		private final EntityHandlerMethod handlerMethod;
 
-		private final List<Map<String, Object>> representations = new ArrayList<>();
+		private final List<Map<String, Object>> filteredRepresentations = new ArrayList<>();
 
 		private final List<Integer> indexes = new ArrayList<>();
 
 		@Nullable
 		private List<?> resultList;
 
-		EntityBatchDelegate(DataFetchingEnvironment env, EntityHandlerMethod handlerMethod, String typeName) {
+		EntityBatchDelegate(
+				DataFetchingEnvironment env, List<Map<String, Object>> allRepresentations,
+				EntityHandlerMethod handlerMethod, String type) {
+
 			this.environment = env;
 			this.handlerMethod = handlerMethod;
-			List<Map<String, Object>> maps = env.getArgument(_Entity.argumentName);
-			for (int i = 0; i < maps.size(); i++) {
-				Map<String, Object> map = maps.get(i);
-				if (typeName.equals(map.get("__typename"))) {
-					this.representations.add(map);
+			for (int i = 0; i < allRepresentations.size(); i++) {
+				Map<String, Object> map = allRepresentations.get(i);
+				if (type.equals(map.get("__typename"))) {
+					this.filteredRepresentations.add(map);
 					this.indexes.add(i);
 				}
 			}
 		}
 
 		Mono<Object> invokeEntityBatchMethod() {
-			return this.handlerMethod.getEntities(this.environment, this.representations)
+			return this.handlerMethod.getEntities(this.environment, this.filteredRepresentations)
 					.mapNotNull((result) -> (((List<?>) result).isEmpty()) ? null : result)
 					.switchIfEmpty(Mono.defer(this::handleEmptyResult))
 					.onErrorResume(this::handleErrorResult)
@@ -186,9 +193,9 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 		}
 
 		Mono<Object> handleEmptyResult() {
-			List<Mono<Object>> exceptions = new ArrayList<>(this.indexes.size());
+			List<Mono<?>> exceptions = new ArrayList<>(this.indexes.size());
 			for (int i = 0; i < this.indexes.size(); i++) {
-				Map<String, Object> map = this.representations.get(i);
+				Map<String, Object> map = this.filteredRepresentations.get(i);
 				Exception ex = new RepresentationNotResolvedException(map, this.handlerMethod);
 				exceptions.add(resolveException(ex, this.environment, this.handlerMethod, this.indexes.get(i)));
 			}
@@ -196,7 +203,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 		}
 
 		Mono<List<Object>> handleErrorResult(Throwable ex) {
-			List<Mono<Object>> list = new ArrayList<>();
+			List<Mono<?>> list = new ArrayList<>();
 			for (Integer index : this.indexes) {
 				list.add(resolveException(ex, this.environment, this.handlerMethod, index));
 			}

@@ -53,33 +53,23 @@ final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 
 
 	Mono<Object> getEntity(DataFetchingEnvironment env, Map<String, Object> representation) {
-		Object[] args;
-		try {
-			env = EntityArgumentMethodArgumentResolver.wrap(env, representation);
-			args = getMethodArgumentValues(env);
-		}
-		catch (Throwable ex) {
-			return Mono.error(ex);
-		}
-
-		return doInvoke(env, args);
+		env = EntityArgumentMethodArgumentResolver.wrap(env, representation);
+		return doInvoke(env);
 	}
 
-	@SuppressWarnings("unchecked")
 	Mono<Object> getEntities(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
+		env = EntityArgumentMethodArgumentResolver.wrap(env, representations);
+		return doInvoke(env);
+	}
+
+	private Mono<Object> doInvoke(DataFetchingEnvironment env) {
 		Object[] args;
 		try {
-			env = EntityArgumentMethodArgumentResolver.wrap(env, representations);
 			args = getMethodArgumentValues(env);
 		}
 		catch (Throwable ex) {
 			return Mono.error(ex);
 		}
-
-		return doInvoke(env, args);
-	}
-
-	private Mono<Object> doInvoke(DataFetchingEnvironment env, Object[] args) {
 		Object result = doInvoke(env.getGraphQlContext(), args);
 		return ReactiveAdapterRegistryHelper.toMono(result);
 	}
