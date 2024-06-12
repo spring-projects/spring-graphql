@@ -24,6 +24,8 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -113,8 +115,9 @@ public class EntityMappingInvocationTests {
 		assertAuthor(6, "George", "Orwell", helper);
 	}
 
-	@Test
-	void batching() {
+	@ValueSource(classes = {BookListController.class, BookFluxController.class})
+	@ParameterizedTest
+	void batching(Class<?> controllerClass) {
 		Map<String, Object> variables =
 				Map.of("representations", List.of(
 						Map.of("__typename", "Book", "id", "1"),
@@ -123,7 +126,7 @@ public class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "42"),
 						Map.of("__typename", "Book", "id", "53")));
 
-		ResponseHelper helper = executeWith(BookBatchController.class, variables);
+		ResponseHelper helper = executeWith(controllerClass, variables);
 
 		assertAuthor(0, "George", "Orwell", helper);
 		assertAuthor(1, "Virginia", "Woolf", helper);
@@ -132,30 +135,32 @@ public class EntityMappingInvocationTests {
 		assertAuthor(4, "Vince", "Gilligan", helper);
 	}
 
-	@Test
-	void batchingWithError() {
+	@ValueSource(classes = {BookListController.class, BookFluxController.class})
+	@ParameterizedTest
+	void batchingWithError(Class<?> controllerClass) {
 		Map<String, Object> variables =
 				Map.of("representations", List.of(
 						Map.of("__typename", "Book", "id", "-97"),
 						Map.of("__typename", "Book", "id", "4"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ResponseHelper helper = executeWith(BookBatchController.class, variables);
+		ResponseHelper helper = executeWith(controllerClass, variables);
 
 		assertError(helper, 0, "BAD_REQUEST", "handled");
 		assertError(helper, 1, "BAD_REQUEST", "handled");
 		assertError(helper, 2, "BAD_REQUEST", "handled");
 	}
 
-	@Test
-	void batchingWithoutResult() {
+	@ValueSource(classes = {BookListController.class, BookFluxController.class})
+	@ParameterizedTest
+	void batchingWithoutResult(Class<?> controllerClass) {
 		Map<String, Object> variables =
 				Map.of("representations", List.of(
 						Map.of("__typename", "Book", "id", "-99"),
 						Map.of("__typename", "Book", "id", "4"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ResponseHelper helper = executeWith(BookBatchController.class, variables);
+		ResponseHelper helper = executeWith(controllerClass, variables);
 
 		assertError(helper, 0, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
 		assertError(helper, 1, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
@@ -242,10 +247,53 @@ public class EntityMappingInvocationTests {
 
 	@SuppressWarnings("unused")
 	@Controller
-	private static class BookBatchController {
+	private static class BookListController {
+
+		private final BookBatchService batchService = new BookBatchService();
 
 		@EntityMapping
 		public List<Book> book(@Argument List<Integer> idList, List<Map<String, Object>> representations) {
+			return this.batchService.book(idList, representations);
+		}
+
+		@BatchMapping
+		public List<Author> author(List<Book> books) {
+			return this.batchService.author(books);
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
+			return this.batchService.handle(ex, env);
+		}
+	}
+
+
+	@SuppressWarnings("unused")
+	@Controller
+	private static class BookFluxController {
+
+		private final BookBatchService batchService = new BookBatchService();
+
+		@EntityMapping
+		public Flux<Book> book(@Argument List<Integer> idList, List<Map<String, Object>> representations) {
+			return Flux.fromIterable(this.batchService.book(idList, representations));
+		}
+
+		@BatchMapping
+		public Flux<Author> author(List<Book> books) {
+			return Flux.fromIterable(this.batchService.author(books));
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
+			return this.batchService.handle(ex, env);
+		}
+	}
+
+
+	private static class BookBatchService {
+
+		public List<Book> book(List<Integer> idList, List<Map<String, Object>> representations) {
 
 			if (idList.get(0) == -97) {
 				throw new IllegalArgumentException("handled");
@@ -265,12 +313,10 @@ public class EntityMappingInvocationTests {
 			return idList.stream().map(id -> new Book((long) id, null, (Long) null)).toList();
 		}
 
-		@BatchMapping
-		public Flux<Author> author(List<Book> books) {
-			return Flux.fromIterable(books).map(book -> BookSource.getBook(book.getId()).getAuthor());
+		public List<Author> author(List<Book> books) {
+			return books.stream().map(book -> BookSource.getBook(book.getId()).getAuthor()).toList();
 		}
 
-		@GraphQlExceptionHandler
 		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
 			return GraphqlErrorBuilder.newError(env)
 					.errorType(ErrorType.BAD_REQUEST)

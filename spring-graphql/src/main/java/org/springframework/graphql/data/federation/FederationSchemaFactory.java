@@ -31,6 +31,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.context.ApplicationContext;
@@ -189,6 +190,9 @@ public final class FederationSchemaFactory
 		public boolean isBatchHandlerMethod() {
 			MethodParameter type = handlerMethod().getReturnType();
 			Class<?> paramType = type.getParameterType();
+			if (Flux.class.isAssignableFrom(paramType)) {
+				return true;
+			}
 			if (Mono.class.isAssignableFrom(paramType) || CompletionStage.class.isAssignableFrom(paramType)) {
 				type = type.nested();
 			}
