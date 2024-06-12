@@ -20,7 +20,6 @@ import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -31,13 +30,13 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ReactiveAdapter;
+import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
@@ -188,15 +187,16 @@ public final class FederationSchemaFactory
 	public record EntityMappingInfo(String typeName, HandlerMethod handlerMethod) {
 
 		public boolean isBatchHandlerMethod() {
-			MethodParameter type = handlerMethod().getReturnType();
-			Class<?> paramType = type.getParameterType();
-			if (Flux.class.isAssignableFrom(paramType)) {
-				return true;
+			MethodParameter returnType = handlerMethod().getReturnType();
+			Class<?> clazz = returnType.getParameterType();
+			ReactiveAdapter adapter = ReactiveAdapterRegistry.getSharedInstance().getAdapter(clazz);
+			if (adapter != null) {
+				if (adapter.isMultiValue()) {
+					return true;
+				}
+				returnType = returnType.nested();
 			}
-			if (Mono.class.isAssignableFrom(paramType) || CompletionStage.class.isAssignableFrom(paramType)) {
-				type = type.nested();
-			}
-			return List.class.isAssignableFrom(type.getParameterType());
+			return List.class.isAssignableFrom(returnType.getNestedParameterType());
 		}
 	}
 

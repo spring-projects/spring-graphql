@@ -45,13 +45,6 @@ import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import kotlin.jvm.JvmClassMappingKt;
-import kotlin.reflect.KFunction;
-import kotlin.reflect.KType;
-import kotlin.reflect.full.KClassifiers;
-import kotlin.reflect.full.KTypes;
-import kotlin.reflect.jvm.ReflectJvmMapping;
-import kotlinx.coroutines.flow.Flow;
 import org.dataloader.DataLoader;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -64,6 +57,8 @@ import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterNameDiscoverer;
+import org.springframework.core.ReactiveAdapter;
+import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.domain.ScrollPosition;
@@ -384,15 +379,15 @@ public class AnnotatedControllerConfigurer
 			clazz = returnType.getNestedParameterType();
 		}
 
-		if (clazz.equals(Flux.class) || Collection.class.isAssignableFrom(clazz) ||
-				(KotlinDetector.isSuspendingFunction(method) && KotlinDelegate.isFlowReturnType(method))) {
+		ReactiveAdapter adapter = ReactiveAdapterRegistry.getSharedInstance().getAdapter(clazz);
 
+		if (Collection.class.isAssignableFrom(clazz) || (adapter != null && adapter.isMultiValue())) {
 			registration.registerBatchLoader(invocable::invokeForIterable);
 			ResolvableType valueType = ResolvableType.forMethodParameter(returnType.nested());
 			return new BatchMappingDataFetcher(info, valueType, dataLoaderKey);
 		}
 
-		if (clazz.equals(Mono.class)) {
+		if (adapter != null) {
 			returnType = returnType.nested();
 			clazz = returnType.getNestedParameterType();
 		}
@@ -670,22 +665,6 @@ public class AnnotatedControllerConfigurer
 					})
 					.collect(Collectors.toSet());
 		}
-	}
-
-
-	/**
-	 * Inner class to avoid a hard dependency on Kotlin at runtime.
-	 */
-	private static final class KotlinDelegate {
-
-		private static final KType flowType =
-				KClassifiers.getStarProjectedType(JvmClassMappingKt.getKotlinClass(Flow.class));
-
-		static boolean isFlowReturnType(Method method) {
-			KFunction<?> function = ReflectJvmMapping.getKotlinFunction(method);
-			return (function != null && KTypes.isSubtypeOf(function.getReturnType(), flowType));
-		}
-
 	}
 
 }
