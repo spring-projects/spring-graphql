@@ -1,4 +1,6 @@
 build
+node_modules/
+.full-build
 !/**/src/**/build
 /**/src/**/generated
 .gradle

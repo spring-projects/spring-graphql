@@ -1,15 +1,10 @@
 antora:
   extensions:
-    - '@springio/antora-extensions/partial-build-extension'
-    # - require: '@springio/antora-extensions/latest-version-extension'
-    - require: '@springio/antora-extensions/inject-collector-cache-config-extension'
-    - '@antora/collector-extension'
-    - '@antora/atlas-extension'
-    - require: '@springio/antora-extensions/root-component-extension'
+    - require: '@springio/antora-extensions'
       root_component_name: 'graphql'
 site:
   title: Spring GraphQL
-  url: https://rwinch.github.io/spring-graphql
+  url: https://docs.spring.io/spring-graphql/reference
   robots: allow
 git:
   ensure_git_suffix: false
@@ -25,9 +20,11 @@ asciidoc:
     page-pagination: ''
     hide-uri-scheme: '@'
     tabs-sync-option: '@'
+    include-java: 'example$docs-src/main/java/org/springframework/graphql/docs'
   extensions:
     - '@asciidoctor/tabs'
     - '@springio/asciidoctor-extensions'
+    - '@springio/asciidoctor-extensions/include-code-extension'
 urls:
   latest_version_segment_strategy: redirect:to
   latest_version_segment: ''
@@ -35,7 +32,6 @@ urls:
 ui:
   bundle:
     url: https://github.com/spring-io/antora-ui-spring/releases/download/v0.4.16/ui-bundle.zip
-    snapshot: true
 runtime:
   log:
     failure_level: warn
