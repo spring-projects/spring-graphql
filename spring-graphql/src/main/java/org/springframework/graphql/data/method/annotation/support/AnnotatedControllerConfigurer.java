@@ -190,6 +190,10 @@ public class AnnotatedControllerConfigurer
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());
 		resolvers.addResolver(new LocalContextValueMethodArgumentResolver());
+		if (springSecurityPresent) {
+			ApplicationContext context = obtainApplicationContext();
+			resolvers.addResolver(new AuthenticationPrincipalArgumentResolver(new BeanFactoryResolver(context)));
+		}
 
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
@@ -197,9 +201,7 @@ public class AnnotatedControllerConfigurer
 		addSubrangeMethodArgumentResolver(resolvers);
 		addSortMethodArgumentResolver(resolvers);
 		if (springSecurityPresent) {
-			ApplicationContext context = obtainApplicationContext();
 			resolvers.addResolver(new PrincipalMethodArgumentResolver());
-			resolvers.addResolver(new AuthenticationPrincipalArgumentResolver(new BeanFactoryResolver(context)));
 		}
 		if (KotlinDetector.isKotlinPresent()) {
 			resolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());

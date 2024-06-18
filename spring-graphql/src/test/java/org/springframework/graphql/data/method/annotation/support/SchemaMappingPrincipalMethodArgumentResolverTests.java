@@ -45,7 +45,9 @@ import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
@@ -82,7 +84,7 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 	@Test
 	void supportsParameter() {
-		Method method = ClassUtils.getMethod(SchemaMappingPrincipalMethodArgumentResolverTests.class, "handle", (Class<?>[]) null);
+		Method method = ClassUtils.getMethod(getClass(), "handle", (Class<?>[]) null);
 		assertThat(this.resolver.supportsParameter(new MethodParameter(method, 0))).isTrue();
 		assertThat(this.resolver.supportsParameter(new MethodParameter(method, 1))).isTrue();
 		assertThat(this.resolver.supportsParameter(new MethodParameter(method, 2))).isFalse();
@@ -124,10 +126,10 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		@Test
 		void nonNullPrincipalRequiresSecurityContext() {
 			DataFetcherExceptionResolver exceptionResolver =
-				DataFetcherExceptionResolver.forSingleError((ex, env) -> GraphqlErrorBuilder.newError(env)
-									.message("Resolved error: " + ex.getMessage())
-									.errorType(ErrorType.UNAUTHORIZED)
-									.build());
+					DataFetcherExceptionResolver.forSingleError((ex, env) -> GraphqlErrorBuilder.newError(env)
+							.message("Resolved error: " + ex.getMessage())
+							.errorType(ErrorType.UNAUTHORIZED)
+							.build());
 
 			Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
 					"type Query { greetingMono: String }", "{ greetingMono }",
@@ -220,20 +222,47 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 	}
 
+
+	@Nested
+	class AuthenticationPrincipalTests {
+
+		@Test // gh-982
+		void query() {
+			Authentication authentication = new UsernamePasswordAuthenticationToken(new GraphQlPrincipal(), null);
+			SecurityContextHolder.setContext(new SecurityContextImpl(authentication));
+			try {
+				String field = "greetingAuthenticationPrincipal";
+				Mono<ExecutionGraphQlResponse> responseMono = executeAsync(
+						"type Query { " + field + " : String }", "{ " + field + " }", threadLocalContextWriter);
+
+				String greeting = ResponseHelper.forResponse(responseMono).toEntity(field, String.class);
+				assertThat(greeting).isEqualTo("Hello");
+				assertThat(greetingController.principal()).isSameAs(authentication.getPrincipal());
+			}
+			finally {
+				SecurityContextHolder.clearContext();
+			}
+		}
+
+	}
+
+
 	private Mono<ExecutionGraphQlResponse> executeAsync(
 			String schema, String document, Function<Context, Context> contextWriter) {
+
 		return executeAsync(schema, document, contextWriter, null);
 	}
 
 	private Mono<ExecutionGraphQlResponse> executeAsync(
-			String schema, String document, Function<Context, Context> contextWriter, @Nullable DataFetcherExceptionResolver exceptionResolver) {
+			String schema, String document, Function<Context, Context> contextWriter,
+			@Nullable DataFetcherExceptionResolver exceptionResolver) {
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.registerBean(GreetingController.class, () -> greetingController);
 		context.refresh();
 
-		GraphQlSetup graphQlSetup = GraphQlSetup.schemaContent(schema)
-				.runtimeWiringForAnnotatedControllers(context);
+		GraphQlSetup graphQlSetup =
+				GraphQlSetup.schemaContent(schema).runtimeWiringForAnnotatedControllers(context);
 
 		if (exceptionResolver != null) {
 			graphQlSetup.exceptionResolver(exceptionResolver);
@@ -289,6 +318,22 @@ public class SchemaMappingPrincipalMethodArgumentResolverTests {
 		Flux<String> greetingSubscription(Principal principal) {
 			this.principal = principal;
 			return Flux.just("Hello", "Hi");
+		}
+
+		@QueryMapping
+		String greetingAuthenticationPrincipal(@AuthenticationPrincipal GraphQlPrincipal principal) {
+			this.principal = principal;
+			return "Hello";
+		}
+
+	}
+
+
+	private static final class GraphQlPrincipal implements Principal {
+
+		@Override
+		public String getName() {
+			return "";
 		}
 
 	}
