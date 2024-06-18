@@ -14,8 +14,8 @@ anchors:
     ARTIFACTORY_USERNAME: ((artifactory-username))
     ARTIFACTORY_PASSWORD: ((artifactory-password))
   sonatype-task-params: &sonatype-task-params
-    SONATYPE_USERNAME: ((sonatype-username))
-    SONATYPE_PASSWORD: ((sonatype-password))
+    SONATYPE_USERNAME: ((s01-user-token))
+    SONATYPE_PASSWORD: ((s01-user-token-password))
     SONATYPE_URL: ((sonatype-url))
     SONATYPE_STAGING_PROFILE: ((sonatype-staging-profile))
     
