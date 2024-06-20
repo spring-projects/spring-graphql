@@ -36,12 +36,6 @@ javadoc {
 	enabled = false
 }
 
-ext.javadocLinks = [
-		"https://docs.oracle.com/javase/8/docs/api/",
-		"https://javadoc.io/doc/com.graphql-java/graphql-java/${graphQlJavaVersion}/",
-		"https://docs.spring.io/spring-boot/docs/${springBootVersion}/api/",
-		"https://docs.spring.io/spring-framework/docs/5.3.x/javadoc-api/"
-] as String[]
 
 /**
  * Produce Javadoc for all Spring for GraphQL modules in "build/docs/javadoc"

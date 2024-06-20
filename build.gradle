@@ -11,6 +11,13 @@ subprojects {
 	apply plugin: 'org.springframework.graphql.build.conventions'
 	group = 'org.springframework.graphql'
 
+	ext.javadocLinks = [
+			"https://docs.oracle.com/en/java/javase/17/docs/api/",
+			"https://javadoc.io/doc/com.graphql-java/graphql-java/${graphQlJavaVersion}/",
+			"https://docs.spring.io/spring-framework/docs/${springFrameworkVersion}/javadoc-api/",
+			"https://docs.spring.io/spring-boot/${springBootVersion}/api/java/",
+	] as String[]
+
 	repositories {
 		mavenCentral()
 		maven {
@@ -50,12 +57,6 @@ configure(moduleProjects) {
 	dependencies {
 		dependencyManagement(enforcedPlatform(dependencies.project(path: ":platform")))
 	}
-
-	ext.javadocLinks = [
-			"https://docs.oracle.com/en/java/javase/17/docs/api/",
-			"https://docs.spring.io/spring-framework/docs/6.1.x/javadoc-api/",
-			"https://javadoc.io/doc/com.graphql-java/graphql-java/22.0/"
-	] as String[]
 
 	components.java.withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
 	components.java.withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
