@@ -29,5 +29,5 @@ asciidoc:
     javadoc: https://docs.spring.io/spring-graphql/docs/{spring-graphql-version}/api
     # version attributes from main build.gradle
     spring-framework-ref-docs: https://docs.spring.io/spring-framework/reference
-    spring-boot-ref-docs: https://docs.spring.io/spring-boot/docs/{spring-boot-version}/reference/html
+    spring-boot-ref-docs: https://docs.spring.io/spring-boot/{spring-boot-version}
     examples-repo: https://github.com/spring-projects/spring-graphql-examples

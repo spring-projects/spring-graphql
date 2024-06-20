@@ -19,11 +19,11 @@ includes a builder API to build that instance. The default builder is available 
 
 The xref:boot-starter.adoc[Boot Starter] creates an instance of this builder and further initializes it
 to xref:request-execution.adoc#execution.graphqlsource.schema-resources[load schema files] from a configurable location,
-to {spring-boot-ref-docs}/application-properties.html#appendix.application-properties.web[expose properties]
+to {spring-boot-ref-docs}/appendix/application-properties/index.html#appendix.application-properties.web[expose properties]
 to apply to `GraphQlSource.Builder`, to detect
 xref:request-execution.adoc#execution.graphqlsource.runtimewiring-configurer[`RuntimeWiringConfigurer`] beans,
 https://www.graphql-java.com/documentation/instrumentation[Instrumentation] beans for
-{spring-boot-ref-docs}/actuator.html#actuator.metrics.supported.spring-graphql[GraphQL metrics],
+xref:observability.adoc#observability[GraphQL metrics],
 and `DataFetcherExceptionResolver` and `SubscriptionExceptionResolver`  beans for
 xref:request-execution.adoc#execution.exceptions[exception resolution]. For further customizations, you can also
 declare a `GraphQlSourceBuilderCustomizer` bean, for example:
@@ -52,7 +52,7 @@ parsed and merged together. That means schema files can be loaded from just abou
 location.
 
 By default, the Boot starter
-{spring-boot-ref-docs}/web.html#web.graphql.schema[looks for schema files] with extensions
+{spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.schema[looks for schema files] with extensions
 ".graphqls" or ".gqls" under the location `classpath:graphql/**`, which is typically
 `src/main/resources/graphql`. You can also use a file system location, or any location
 supported by the Spring `Resource` hierarchy, including a custom implementation that

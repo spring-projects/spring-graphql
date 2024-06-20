@@ -3,14 +3,14 @@
 
 Spring Framework 6.0 introduced the support infrastructure for compiling Spring applications to https://www.graalvm.org/22.3/reference-manual/native-image/[GraalVM Native images].
 If you are not familiar with GraalVM in general, how this differs from applications deployed on the JVM and what it means for Spring application,
-please refer to the dedicated {spring-boot-ref-docs}/native-image.html#native-image[Spring Boot 3.0 GraalVM Native Image support documentation].
+please refer to the dedicated {spring-boot-ref-docs}/reference/native-image/introducing-graalvm-native-images.html[Spring Boot 3.x GraalVM Native Image support documentation].
 Spring Boot also documents the https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-with-GraalVM[know limitations with the GraalVM support in Spring].
 
 
 [[graalvm.graphql-java]]
 == GraphQL Java metadata
 
-Since the {spring-boot-ref-docs}/native-image.html#native-image.introducing-graalvm-native-images.key-differences-with-jvm-deployments[static analysis of your application is done at build time],
+Since the {spring-boot-ref-docs}/reference/native-image/introducing-graalvm-native-images.html#native-image.introducing-graalvm-native-images.key-differences-with-jvm-deployments[static analysis of your application is done at build time],
 GraalVM might need extra hints if your application is looking up static resources, performing reflection or creating JDK proxies at runtime.
 
 GraphQL Java is performing three tasks at runtime that Native Images are sensible to:

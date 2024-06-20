@@ -39,7 +39,7 @@ implementation of `RuntimeWiringConfigurer` which can be added to `GraphQlSource
 The xref:boot-starter.adoc[Boot Starter] automatically declares `AnnotatedControllerConfigurer` as a bean
 and adds all `RuntimeWiringConfigurer` beans to `GraphQlSource.Builder` and that enables
 support for annotated ``DataFetcher``s, see the
-{spring-boot-ref-docs}/web.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
+{spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.runtimewiring[GraphQL RuntimeWiring] section
 in the Boot starter documentation.
 
 

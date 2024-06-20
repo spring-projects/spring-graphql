@@ -25,7 +25,7 @@ is also supported, as described in the specification.
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
 xref:boot-starter.adoc[Boot Starter] does this, see the
-{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints] section for
+{spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.transports.http-websocket[Web Endpoints] section for
 details, or check `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
 it contains, for the actual config.
 
@@ -112,9 +112,9 @@ https://github.com/enisdenjo/graphql-ws#recipes[recipes] for client use.
 `SimpleUrlHandlerMapping` bean and using it to map the handler to a URL path. By default,
 the xref:boot-starter.adoc[Boot Starter] does not expose a GraphQL over WebSocket endpoint,
 but you can add a property for the endpoint path to enable it. Please, review
-{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints]
+{spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.transports.http-websocket[Web Endpoints]
 in the Boot reference documentation, and the list of supported `spring.graphql.websocket`
-https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.web[properties].
+{spring-boot-ref-docs}/appendix/application-properties/index.html#appendix.application-properties.web[properties].
 You can also look at `GraphQlWebMvcAutoConfiguration` or`GraphQlWebFluxAutoConfiguration`
 for the actual Boot autoconfig details.
 
@@ -182,7 +182,7 @@ include-code::RequestErrorInterceptor[]
 
 Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
 by the xref:boot-starter.adoc[Boot Starter], see
-{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
+{spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.transports.http-websocket[Web Endpoints].
 
 
 [[server.interception.websocket]]
@@ -195,7 +195,7 @@ WebSocket connection.
 
 Use `WebGraphQlHandler` to configure the `WebGraphQlInterceptor` chain. This is supported
 by the xref:boot-starter.adoc[Boot Starter], see
-{spring-boot-ref-docs}/web.html#web.graphql.transports.http-websocket[Web Endpoints].
+{spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.transports.http-websocket[Web Endpoints].
 There can be at most one `WebSocketGraphQlInterceptor` in a chain of interceptors.
 
 There are two built-in WebSocket interceptors called `AuthenticationWebSocketInterceptor`,
