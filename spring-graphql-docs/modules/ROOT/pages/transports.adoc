@@ -115,7 +115,7 @@ but you can add a property for the endpoint path to enable it. Please, review
 {spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.transports.http-websocket[Web Endpoints]
 in the Boot reference documentation, and the list of supported `spring.graphql.websocket`
 {spring-boot-ref-docs}/appendix/application-properties/index.html#appendix.application-properties.web[properties].
-You can also look at `GraphQlWebMvcAutoConfiguration` or`GraphQlWebFluxAutoConfiguration`
+You can also look at `GraphQlWebMvcAutoConfiguration` or `GraphQlWebFluxAutoConfiguration`
 for the actual Boot autoconfig details.
 
 The 1.0.x branch of this repository contains a WebFlux
