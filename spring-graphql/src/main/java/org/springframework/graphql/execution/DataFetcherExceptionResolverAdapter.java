@@ -96,16 +96,15 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	@Nullable
 	@SuppressWarnings("deprecation")
 	private List<GraphQLError> resolveInternal(Throwable exception, DataFetchingEnvironment env) {
-		if (!this.threadLocalContextAware) {
-			return resolveToMultipleErrors(exception, env);
-		}
 		try {
-			return ContextSnapshot.captureFrom(env.getGraphQlContext())
-					.wrap(() -> resolveToMultipleErrors(exception, env))
-					.call();
+			return (this.threadLocalContextAware) ?
+					ContextSnapshot.captureFrom(env.getGraphQlContext())
+							.wrap(() -> resolveToMultipleErrors(exception, env))
+							.call() :
+					resolveToMultipleErrors(exception, env);
 		}
 		catch (Exception ex2) {
-			this.logger.warn("Failed to resolve " + exception, ex2);
+			this.logger.warn("Failure while resolving " + exception.getMessage(), ex2);
 			return null;
 		}
 	}
