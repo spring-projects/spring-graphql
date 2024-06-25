@@ -176,7 +176,7 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 			Throwable ex, DataFetchingEnvironment environment, @Nullable Object controller) {
 
 		Object controllerOrAdvice = null;
-		MethodHolder methodHolder = null;
+		MethodReturnValueAdapter methodReturnValueAdapter = null;
 		Class<?> controllerType = null;
 
 		if (controller != null) {
@@ -184,19 +184,19 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 			MethodResolver methodResolver = this.controllerCache.get(controllerType);
 			if (methodResolver != null) {
 				controllerOrAdvice = controller;
-				methodHolder = methodResolver.resolveMethod(ex);
+				methodReturnValueAdapter = methodResolver.resolveMethod(ex);
 			}
 			else if (logger.isWarnEnabled()) {
 				logger.warn("No registration for controller type: " + controllerType.getName());
 			}
 		}
 
-		if (methodHolder == null) {
+		if (methodReturnValueAdapter == null) {
 			for (Map.Entry<ControllerAdviceBean, MethodResolver> entry : this.controllerAdviceCache.entrySet()) {
 				ControllerAdviceBean advice = entry.getKey();
 				if (controller == null || advice.isApplicableToBeanType(controllerType)) {
-					methodHolder = entry.getValue().resolveMethod(ex);
-					if (methodHolder != null) {
+					methodReturnValueAdapter = entry.getValue().resolveMethod(ex);
+					if (methodReturnValueAdapter != null) {
 						controllerOrAdvice = advice.resolveBean();
 						break;
 					}
@@ -204,18 +204,19 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 			}
 		}
 
-		if (methodHolder == null) {
+		if (methodReturnValueAdapter == null) {
 			return Mono.empty();
 		}
 
-		return invokeExceptionHandler(ex, environment, controllerOrAdvice, methodHolder);
+		return invokeExceptionHandler(ex, environment, controllerOrAdvice, methodReturnValueAdapter);
 	}
 
 	private Mono<List<GraphQLError>> invokeExceptionHandler(
-			Throwable exception, DataFetchingEnvironment env, Object controllerOrAdvice, MethodHolder methodHolder) {
+			Throwable exception, DataFetchingEnvironment env, Object controllerOrAdvice,
+			MethodReturnValueAdapter methodReturnValueAdapter) {
 
 		DataFetcherHandlerMethod exceptionHandler = new DataFetcherHandlerMethod(
-				new HandlerMethod(controllerOrAdvice, methodHolder.getMethod()), this.argumentResolvers,
+				new HandlerMethod(controllerOrAdvice, methodReturnValueAdapter.getMethod()), this.argumentResolvers,
 				null, null, false, false);
 
 		List<Throwable> exceptions = new ArrayList<>();
@@ -237,7 +238,7 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 
 			Object result = exceptionHandler.invoke(env, arguments);
 
-			return methodHolder.adapt(result, exception);
+			return methodReturnValueAdapter.adapt(result, exception);
 		}
 		catch (Throwable invocationEx) {
 			// Any other than the original exception (or a cause) is unintended here,
@@ -257,17 +258,17 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 	private static final class MethodResolver {
 
 		@SuppressWarnings("DataFlowIssue")
-		private static final MethodHolder NO_MATCH =
-				new MethodHolder(ReflectionUtils.findMethod(MethodResolver.class, "noMatch"));
+		private static final MethodReturnValueAdapter NO_MATCH =
+				new MethodReturnValueAdapter(ReflectionUtils.findMethod(MethodResolver.class, "noMatch"));
 
 
-		private final Map<Class<? extends Throwable>, MethodHolder> exceptionMappings = new HashMap<>(16);
+		private final Map<Class<? extends Throwable>, MethodReturnValueAdapter> exceptionMappings = new HashMap<>(16);
 
-		private final Map<Class<? extends Throwable>, MethodHolder> resolvedExceptionCache = new ConcurrentReferenceHashMap<>(16);
+		private final Map<Class<? extends Throwable>, MethodReturnValueAdapter> resolvedExceptionCache = new ConcurrentReferenceHashMap<>(16);
 
 		MethodResolver(Map<Class<? extends Throwable>, Method> methodMap) {
 			methodMap.forEach((exceptionType, method) ->
-					this.exceptionMappings.put(exceptionType, new MethodHolder(method)));
+					this.exceptionMappings.put(exceptionType, new MethodReturnValueAdapter(method)));
 		}
 
 		/**
@@ -277,8 +278,8 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 		 * @return the exception handler to use, or {@code null} if no match
 		 */
 		@Nullable
-		MethodHolder resolveMethod(Throwable exception) {
-			MethodHolder method = resolveMethodByExceptionType(exception.getClass());
+		MethodReturnValueAdapter resolveMethod(Throwable exception) {
+			MethodReturnValueAdapter method = resolveMethodByExceptionType(exception.getClass());
 			if (method == null) {
 				Throwable cause = exception.getCause();
 				if (cause != null) {
@@ -289,8 +290,8 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 		}
 
 		@Nullable
-		private MethodHolder resolveMethodByExceptionType(Class<? extends Throwable> exceptionType) {
-			MethodHolder method = this.resolvedExceptionCache.get(exceptionType);
+		private MethodReturnValueAdapter resolveMethodByExceptionType(Class<? extends Throwable> exceptionType) {
+			MethodReturnValueAdapter method = this.resolvedExceptionCache.get(exceptionType);
 			if (method == null) {
 				method = getMappedMethod(exceptionType);
 				this.resolvedExceptionCache.put(exceptionType, method);
@@ -298,7 +299,7 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 			return (method != NO_MATCH) ? method : null;
 		}
 
-		private MethodHolder getMappedMethod(Class<? extends Throwable> exceptionType) {
+		private MethodReturnValueAdapter getMappedMethod(Class<? extends Throwable> exceptionType) {
 			List<Class<? extends Throwable>> matches = new ArrayList<>();
 			for (Class<? extends Throwable> mappedException : this.exceptionMappings.keySet()) {
 				if (mappedException.isAssignableFrom(exceptionType)) {
@@ -324,9 +325,9 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 
 
 	/**
-	 * Container for an exception handler method, and an adapter for its return values.
+	 * Helps to adapt the return value of an exception handler method.
 	 */
-	private static class MethodHolder {
+	private static class MethodReturnValueAdapter {
 
 		private final Method method;
 
@@ -334,7 +335,7 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 
 		private final ReturnValueAdapter adapter;
 
-		MethodHolder(Method method) {
+		MethodReturnValueAdapter(Method method) {
 			Assert.notNull(method, "Method is required");
 			this.method = method;
 			this.returnType = new MethodParameter(method, -1);
