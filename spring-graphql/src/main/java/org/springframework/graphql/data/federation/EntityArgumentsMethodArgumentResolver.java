@@ -48,13 +48,15 @@ final class EntityArgumentsMethodArgumentResolver implements HandlerMethodArgume
 
 	@Override
 	public boolean supportsParameter(MethodParameter param) {
-		if (param.getParameterType().equals(List.class)) {
-			param = param.nested(0);
+		Class<?> type = param.getParameterType();
+		if (List.class.isAssignableFrom(param.getParameterType())) {
+			type = param.nested().getNestedParameterType();
+			if (Object.class.equals(type)) {
+				// Maybe a Kotlin List
+				type = ResolvableType.forMethodParameter(param).getNested(2).resolve(Object.class);
+			}
 		}
-		if (param.getNestedParameterType().equals(Map.class)) {
-			return param.nested(0).getNestedParameterType().equals(String.class);
-		}
-		return false;
+		return Map.class.isAssignableFrom(type);
 	}
 
 	@Override
