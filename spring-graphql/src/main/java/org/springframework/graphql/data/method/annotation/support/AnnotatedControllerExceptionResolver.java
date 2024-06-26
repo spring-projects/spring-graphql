@@ -237,7 +237,17 @@ final class AnnotatedControllerExceptionResolver {
 
 			Object result = exceptionHandler.invoke(env, arguments);
 
-			return methodReturnValueAdapter.adapt(result, exception);
+			Mono<List<GraphQLError>> errorsMono = methodReturnValueAdapter.adapt(result, exception);
+			if (logger.isDebugEnabled()) {
+				errorsMono = errorsMono.doOnNext((errors) -> {
+					if (logger.isDebugEnabled()) {
+						String name = exception.getClass().getSimpleName();
+						logger.debug("Resolved " + name + " to GraphQL error(s): " + errors, exception);
+					}
+				});
+			}
+
+			return errorsMono;
 		}
 		catch (Throwable invocationEx) {
 			// Any other than the original exception (or a cause) is unintended here,
