@@ -96,6 +96,9 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	}
 
 
+	/**
+	 * Wrap the DataFetchingEnvironment to also make the representation map available.
+	 */
 	static class EntityDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
 
 		private final Map<String, Object> representation;
@@ -111,6 +114,10 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	}
 
 
+	/**
+	 * Wrap the DataFetchingEnvironment to also make representation maps available
+	 * for batched invocations.
+	 */
 	static class EntityBatchDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
 
 		private final List<Map<String, Object>> representations;

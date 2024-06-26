@@ -30,8 +30,8 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.util.Assert;
 
 /**
- * Resolver for the representation map of an entity, or for all representations
- * for the target schema type (batched handler methods).
+ * Resolver that exposes the raw representation input {@link Map},
+ * or {@link List} of maps for batched invocations.
  *
  * @author Rossen Stoyanchev
  */
