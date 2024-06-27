@@ -17,6 +17,8 @@
 package org.springframework.graphql.execution;
 
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,6 +60,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 
 /**
  * Inspect schema mappings on startup to ensure the following:
@@ -80,6 +83,15 @@ import org.springframework.util.MultiValueMap;
 public final class SchemaMappingInspector {
 
 	private static final Log logger = LogFactory.getLog(SchemaMappingInspector.class);
+
+	/**
+	 * GraphQL Java detects "record-like" methods that match field names.
+	 * This predicate aims to match the method {@code isRecordLike(Method)} in
+	 * {@link graphql.schema.fetching.LambdaFetchingSupport}.
+	 */
+	private static final Predicate<Method> recordLikePredicate = (method) ->
+			(!method.getDeclaringClass().equals(Object.class) && !method.getReturnType().equals(Void.class) &&
+					method.getParameterCount() == 0 && Modifier.isPublic(method.getModifiers()));
 
 
 	private final GraphQLSchema schema;
@@ -173,6 +185,12 @@ public final class SchemaMappingInspector {
 					checkField(fieldContainer, field, ResolvableType.forMethodReturnType(descriptor.getReadMethod()));
 					continue;
 				}
+				// Kotlin function?
+				Method method = getRecordLikeMethod(resolvableType, fieldName);
+				if (method != null) {
+					checkField(fieldContainer, field, ResolvableType.forMethodReturnType(method));
+					continue;
+				}
 			}
 
 			this.reportBuilder.unmappedField(FieldCoordinates.coordinates(typeName, fieldName));
@@ -247,6 +265,19 @@ public final class SchemaMappingInspector {
 			throw new IllegalStateException(
 					"Failed to get property on " + resolvableType + " for field '" + fieldName + "'", ex);
 		}
+	}
+
+	@Nullable
+	private static Method getRecordLikeMethod(ResolvableType resolvableType, String fieldName) {
+		Class<?> clazz = resolvableType.resolve();
+		if (clazz != null) {
+			for (Method method : clazz.getDeclaredMethods()) {
+				if (recordLikePredicate.test(method) && fieldName.equals(StringUtils.uncapitalize(method.getName()))) {
+					return method;
+				}
+			}
+		}
+		return null;
 	}
 
 	private static boolean isNotScalarOrEnumType(GraphQLType type) {
