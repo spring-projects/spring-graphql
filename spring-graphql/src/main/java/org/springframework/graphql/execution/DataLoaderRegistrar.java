@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,17 @@ import org.dataloader.DataLoaderRegistry;
  * @see ExecutionInput#getDataLoaderRegistry()
  */
 public interface DataLoaderRegistrar {
+
+
+	/**
+	 * Whether the registrar has any {@code DataLoader} registrations to make.
+	 * @since 1.2.8
+	 */
+	default boolean hasRegistrations() {
+		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();
+		registerDataLoaders(registry, GraphQLContext.newContext().build());
+		return !registry.getDataLoaders().isEmpty();
+	}
 
 	/**
 	 * Callback that provides access to the {@link DataLoaderRegistry} from the

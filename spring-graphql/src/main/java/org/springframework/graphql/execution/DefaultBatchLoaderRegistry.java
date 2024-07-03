@@ -91,6 +91,11 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	}
 
 	@Override
+	public boolean hasRegistrations() {
+		return (!this.loaders.isEmpty() || !this.mappedLoaders.isEmpty());
+	}
+
+	@Override
 	public void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context) {
 		BatchLoaderContextProvider contextProvider = () -> context;
 		for (ReactorBatchLoader<?, ?> loader : this.loaders) {
