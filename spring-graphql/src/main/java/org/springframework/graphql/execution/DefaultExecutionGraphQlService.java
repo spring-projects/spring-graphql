@@ -33,6 +33,7 @@ import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
+import org.springframework.lang.Nullable;
 
 /**
  * {@link ExecutionGraphQlService} that uses a {@link GraphQlSource} to obtain a
@@ -51,7 +52,8 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
-	private boolean hasDataLoaderRegistrations;
+	@Nullable
+	private Boolean hasDataLoaderRegistrations;
 
 	private final boolean isDefaultExecutionIdProvider;
 
@@ -70,13 +72,6 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 	 */
 	public void addDataLoaderRegistrar(DataLoaderRegistrar registrar) {
 		this.dataLoaderRegistrars.add(registrar);
-		this.hasDataLoaderRegistrations = (this.hasDataLoaderRegistrations || hasRegistrations(registrar));
-	}
-
-	private static boolean hasRegistrations(DataLoaderRegistrar registrar) {
-		DataLoaderRegistry registry = DataLoaderRegistry.newRegistry().build();
-		registrar.registerDataLoaders(registry, GraphQLContext.newContext().build());
-		return !registry.getDataLoaders().isEmpty();
 	}
 
 
@@ -93,26 +88,39 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 			ContextSnapshot.captureFrom(contextView).updateContext(graphQLContext);
 
-			ExecutionInput updatedExecutionInput =
-					(this.hasDataLoaderRegistrations ? registerDataLoaders(executionInput) : executionInput);
+			ExecutionInput executionInputToUse = registerDataLoaders(executionInput);
 
-			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(updatedExecutionInput))
-					.map((result) -> new DefaultExecutionGraphQlResponse(updatedExecutionInput, result));
+			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInputToUse))
+					.map((result) -> new DefaultExecutionGraphQlResponse(executionInputToUse, result));
 		});
 	}
 
 	private ExecutionInput registerDataLoaders(ExecutionInput executionInput) {
-		GraphQLContext graphQLContext = executionInput.getGraphQLContext();
-		DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
-		if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
-			DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
-			applyDataLoaderRegistrars(newRegistry, graphQLContext);
-			executionInput = executionInput.transform((builder) -> builder.dataLoaderRegistry(newRegistry));
+		if (this.hasDataLoaderRegistrations == null) {
+			this.hasDataLoaderRegistrations = initHasDataLoaderRegistrations();
 		}
-		else {
-			applyDataLoaderRegistrars(existingRegistry, graphQLContext);
+		if (this.hasDataLoaderRegistrations) {
+			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
+			DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
+			if (existingRegistry == DataLoaderDispatcherInstrumentationState.EMPTY_DATALOADER_REGISTRY) {
+				DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
+				applyDataLoaderRegistrars(newRegistry, graphQLContext);
+				executionInput = executionInput.transform((builder) -> builder.dataLoaderRegistry(newRegistry));
+			}
+			else {
+				applyDataLoaderRegistrars(existingRegistry, graphQLContext);
+			}
 		}
 		return executionInput;
+	}
+
+	private boolean initHasDataLoaderRegistrations() {
+		for (DataLoaderRegistrar registrar : this.dataLoaderRegistrars) {
+			if (registrar.hasRegistrations()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void applyDataLoaderRegistrars(DataLoaderRegistry registry, GraphQLContext graphQLContext) {

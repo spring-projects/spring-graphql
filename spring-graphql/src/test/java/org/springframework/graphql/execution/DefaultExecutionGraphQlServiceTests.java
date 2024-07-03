@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,26 +41,27 @@ public class DefaultExecutionGraphQlServiceTests {
 
 	@Test
 	void customDataLoaderRegistry() {
-		DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
-		batchLoaderRegistry.forTypePair(Book.class, Author.class)
-				.registerBatchLoader((books, batchLoaderEnvironment) -> Flux.empty());
-
 		GraphQlSource graphQlSource = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "hi")
 				.toGraphQlSource();
 
+		BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 		DefaultExecutionGraphQlService graphQlService = new DefaultExecutionGraphQlService(graphQlSource);
 		graphQlService.addDataLoaderRegistrar(batchLoaderRegistry);
 
-		DataLoaderRegistry myRegistry = new DataLoaderRegistry();
+		// gh-1020: register loader after adding the registry to DefaultExecutionGraphQlService
+		batchLoaderRegistry.forTypePair(Book.class, Author.class)
+				.registerBatchLoader((books, batchLoaderEnvironment) -> Flux.empty());
+
+		DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry();
 
 		ExecutionGraphQlRequest request = TestExecutionRequest.forDocument("{ greeting }");
-		request.configureExecutionInput((input, builder) -> builder.dataLoaderRegistry(myRegistry).build());
+		request.configureExecutionInput((input, builder) -> builder.dataLoaderRegistry(dataLoaderRegistry).build());
 
 		ExecutionGraphQlResponse response = graphQlService.execute(request).block();
 		Map<?, ?> data = response.getExecutionResult().getData();
 		assertThat(data).isEqualTo(Map.of("greeting", "hi"));
-		assertThat(myRegistry.getDataLoaders()).hasSize(1);
+		assertThat(dataLoaderRegistry.getDataLoaders()).hasSize(1);
 	}
 
 }
