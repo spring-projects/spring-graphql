@@ -1,43 +1,26 @@
-name: Build and deploy snapshot
+name: Build and Deploy Snapshot
 on:
   push:
     branches:
       - main
+permissions:
+  actions: write
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
-  build:
-    if: ${{ github.repository == 'spring-projects/spring-graphql' }}
-    name: Build and deploy snapshot
+  build-and-deploy-snapshot:
+    name: Build and Deploy Snapshot
     runs-on: ubuntu-latest
+    if: ${{ github.repository == 'spring-projects/spring-graphql' }}
     steps:
-      - name: Set up Java
-        uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
+      - name: Check Out Code
+        uses: actions/checkout@v4
+      - name: Build and Publish
+        id: build-and-publish
+        uses: ./.github/actions/build-and-publish
         with:
-          distribution: 'liberica'
-          java-version: 17
-      - name: Check out code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
-        with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' || !endsWith(github.ref, '.x') }}
-      - name: Configure Gradle properties
-        shell: bash
-        run: |
-          mkdir -p $HOME/.gradle
-          echo 'systemProp.user.name=spring-builds+github' >> $HOME/.gradle/gradle.properties
-          echo 'systemProp.org.gradle.internal.launcher.welcomeMessageEnabled=false' >> $HOME/.gradle/gradle.properties
-          echo 'org.gradle.daemon=false' >> $HOME/.gradle/gradle.properties
-      - name: Build and publish
-        id: build
-        env:
-          CI: 'true'
-          GRADLE_ENTERPRISE_URL: 'https://ge.spring.io'
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_SECRET_ACCESS_KEY }}
-          GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USER }}
-          GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
-        run: ./gradlew -PdeploymentRepository=$(pwd)/deployment-repository build publishAllPublicationsToDeploymentRepository
+          develocity-access-key: ${{ secrets.GRADLE_ENTERPRISE_SECRET_ACCESS_KEY }}
+          publish: true
       - name: Deploy
         uses: spring-io/artifactory-deploy-action@26bbe925a75f4f863e1e529e85be2d0093cac116 # v0.0.1
         with:
@@ -51,11 +34,13 @@ jobs:
           signing-passphrase: ${{ secrets.GPG_PASSPHRASE }}
           artifact-properties: |
             /**/spring-graphql-docs-*.zip::zip.name=spring-graphql,zip.type=docs,zip.deployed=false
-      - name: Send notification
+      - name: Send Notification
         uses: ./.github/actions/send-notification
         if: always()
         with:
           webhook-url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
           status: ${{ job.status }}
-          build-scan-url: ${{ steps.build.outputs.build-scan-url }}
+          build-scan-url: ${{ steps.build-and-publish.outputs.build-scan-url }}
           run-name: ${{ format('{0} | Linux | Java 17', github.ref_name) }}
+    outputs:
+      version: ${{ steps.build-and-publish.outputs.version }}
