@@ -30,6 +30,8 @@ jobs:
           signing-passphrase: ${{ secrets.GPG_PASSPHRASE }}
           uri: 'https://repo.spring.io'
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifact-properties: |
+            /**/spring-graphql-docs-*.zip::zip.name=spring-graphql,zip.type=docs,zip.deployed=false
     outputs:
       version: ${{ steps.build-and-publish.outputs.version }}
   sync-to-maven-central:
