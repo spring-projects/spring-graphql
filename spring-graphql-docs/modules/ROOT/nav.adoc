@@ -12,4 +12,5 @@
 * xref:graphiql.adoc[]
 * xref:testing.adoc[]
 * xref:boot-starter.adoc[]
+* xref:standalone-setup.adoc[]
 * xref:samples.adoc[]

@@ -1,0 +1,15 @@
+[[standalone-setup]]
+= Standalone Setup
+
+If your application is not using Spring Boot, you are responsible for setting up the relevant Spring for GraphQL components.
+Assuming that your application is already configured for Spring MVC controllers, the minimum setup will require several beans.
+
+include-code::GraphQlConfiguration[]
+<1> The `AnnotatedControllerConfigurer` bean is responsible for detecting GraphQL `@Controller` handlers.
+<2> The `ExecutionGraphQlService` processes GraphQL requests in a transport-agnostic fashion.
+<3> The `GraphQlSource` builder is the main configuration point. Explore its API for more options.
+<4> The `RouterFunction` exposes the GraphQL routes as {spring-framework-ref-docs}/web/webmvc-functional.html[functional endpoints].
+<5> You can then expose various transports (WebSocket, SSE, HTTP) over different routes.
+
+Spring for GraphQL offers many other options and integrations with Spring projects.
+For more on this, you can xref:boot-starter.adoc[explore the Spring Boot auto-configurations].
