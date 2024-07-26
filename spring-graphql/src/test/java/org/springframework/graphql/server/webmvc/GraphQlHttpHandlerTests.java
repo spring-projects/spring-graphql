@@ -80,6 +80,15 @@ public class GraphQlHttpHandlerTests {
 	}
 
 	@Test
+	void shouldSupportApplicationGraphQlWithCharset() throws Exception {
+		MockHttpServletRequest request = createServletRequest("{ greeting }", "*/*");
+		request.setContentType("application/graphql;charset=UTF-8");
+
+		MockHttpServletResponse response = handleRequest(request, this.greetingHandler);
+		assertThat(response.getContentAsString()).isEqualTo("{\"data\":{\"greeting\":\"Hello\"}}");
+	}
+
+	@Test
 	void shouldProduceApplicationGraphQl() throws Exception {
 		MockHttpServletRequest request = createServletRequest("{ greeting }", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
 		MockHttpServletResponse response = handleRequest(request, this.greetingHandler);

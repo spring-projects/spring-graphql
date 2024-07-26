@@ -42,6 +42,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.IdGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -154,22 +155,27 @@ public class GraphQlHttpHandler {
 
 	private static SerializableGraphQlRequest applyApplicationGraphQlFallback(
 			ServerRequest request, HttpMediaTypeNotSupportedException ex) throws HttpMediaTypeNotSupportedException {
-
-		// Spec requires application/json but some clients still use application/graphql
-		if ("application/graphql".equals(request.headers().firstHeader(HttpHeaders.CONTENT_TYPE))) {
-			try {
-				request = ServerRequest.from(request)
-						.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
-						.body(request.body(byte[].class))
-						.build();
-				return request.body(SerializableGraphQlRequest.class);
-			}
-			catch (Throwable ex2) {
-				// ignore
+		String contentTypeHeader = request.headers().firstHeader(HttpHeaders.CONTENT_TYPE);
+		if (StringUtils.hasText(contentTypeHeader)) {
+			MediaType contentType = MediaType.parseMediaType(contentTypeHeader);
+			MediaType applicationGraphQl = MediaType.parseMediaType("application/graphql");
+			// Spec requires application/json but some clients still use application/graphql
+			if (applicationGraphQl.includes(contentType)) {
+				try {
+					request = ServerRequest.from(request)
+							.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
+							.body(request.body(byte[].class))
+							.build();
+					return request.body(SerializableGraphQlRequest.class);
+				}
+				catch (Throwable ex2) {
+					// ignore
+				}
 			}
 		}
 		throw ex;
 	}
+
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
 		for (MediaType accepted : serverRequest.headers().accept()) {
