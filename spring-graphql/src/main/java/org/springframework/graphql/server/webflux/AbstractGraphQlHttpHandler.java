@@ -36,6 +36,7 @@ import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.UnsupportedMediaTypeStatusException;
@@ -114,15 +115,20 @@ public abstract class AbstractGraphQlHttpHandler {
 	private static Mono<SerializableGraphQlRequest> applyApplicationGraphQlFallback(
 			UnsupportedMediaTypeStatusException ex, ServerRequest request) {
 
-		// Spec requires application/json but some clients still use application/graphql
-		return "application/graphql".equals(request.headers().firstHeader(HttpHeaders.CONTENT_TYPE)) ?
-				ServerRequest.from(request)
-						.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
-						.body(request.bodyToFlux(DataBuffer.class))
-						.build()
-						.bodyToMono(SerializableGraphQlRequest.class)
-						.log() :
-				Mono.error(ex);
+		String contentTypeHeader = request.headers().firstHeader(HttpHeaders.CONTENT_TYPE);
+		if (StringUtils.hasText(contentTypeHeader)) {
+			MediaType contentType = MediaType.parseMediaType(contentTypeHeader);
+			MediaType applicationGraphQl = MediaType.parseMediaType("application/graphql");
+
+			// Spec requires application/json but some clients still use application/graphql
+			return applicationGraphQl.includes(contentType) ? ServerRequest.from(request)
+					.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
+					.body(request.bodyToFlux(DataBuffer.class))
+					.build()
+					.bodyToMono(SerializableGraphQlRequest.class)
+					.log() : Mono.error(ex);
+		}
+		return Mono.error(ex);
 	}
 
 	/**
