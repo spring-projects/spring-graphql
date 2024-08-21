@@ -28,19 +28,7 @@ and `DataFetcherExceptionResolver` and `SubscriptionExceptionResolver`  beans fo
 xref:request-execution.adoc#execution.exceptions[exception resolution]. For further customizations, you can also
 declare a `GraphQlSourceBuilderCustomizer` bean, for example:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-@Configuration(proxyBeanMethods = false)
-class GraphQlConfig {
-
-	@Bean
-	public GraphQlSourceBuilderCustomizer sourceBuilderCustomizer() {
-		return (builder) ->
-				builder.configureGraphQl(graphQlBuilder ->
-						graphQlBuilder.executionIdProvider(new CustomExecutionIdProvider()));
-	}
-}
-----
+include-code::GraphQlConfig[]
 
 
 
@@ -409,7 +397,7 @@ request is simple enough and did not require asynchronous data fetching.
 
 
 
-[[execution.reactive-datafetcher]]
+[[execution.reactivedatafetcher]]
 == Reactive `DataFetcher`
 
 The default `GraphQlSource` builder enables support for a `DataFetcher` to return `Mono`
@@ -422,6 +410,15 @@ A reactive `DataFetcher` can rely on access to Reactor context propagated from t
 transport layer, such as from a WebFlux request handling, see
 xref:request-execution.adoc#execution.context.webflux[WebFlux Context].
 
+In the case of subscription requests, GraphQL Java will produce items as soon as they
+are available and all their requested fields were fetched. Because this involves several
+layers of asynchronous data fetching, items might be sent over the wire out of their
+original order. If you wish GraphQL Java to buffer items and retain the original order,
+you can do so by setting the `SubscriptionExecutionStrategy.KEEP_SUBSCRIPTION_EVENTS_ORDERED`
+configuration flag in the `GraphQLContext`. This can be done, for example, with a custom
+`Instrumentation`:
+
+include-code::GraphQlConfig[]
 
 
 [[execution.context]]
