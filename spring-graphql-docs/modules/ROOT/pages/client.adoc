@@ -40,35 +40,14 @@ above `GraphQlClient` extensions.
 to execute GraphQL requests over HTTP through a blocking transport contract and chain of
 interceptors.
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-RestClient restClient = ... ;
-HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.create(restClient);
-----
+include-code::SyncClientUsage[tag=create,indent=0]
 
 Once `HttpSyncGraphQlClient` is created, you can begin to
 xref:client.adoc#client.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpSyncGraphQlClient` to create a new instance with customized settings:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-    RestClient restClient = ... ;
-
-	HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.builder(restClient)
-			.headers(headers -> headers.setBasicAuth("joe", "..."))
-			.build();
-
-	// Perform requests with graphQlClient...
-
-	HttpSyncGraphQlClient anotherGraphQlClient = graphQlClient.mutate()
-			.headers(headers -> headers.setBasicAuth("peter", "..."))
-			.build();
-
-	// Perform requests with anotherGraphQlClient...
-
-----
-
+include-code::SyncClientUsage[tag=mutate,indent=0]
 
 
 [[client.httpgraphqlclient]]
@@ -79,35 +58,14 @@ existing `HttpSyncGraphQlClient` to create a new instance with customized settin
 GraphQL requests over HTTP through a non-blocking transport contract and chain of
 interceptors.
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-WebClient webClient = ... ;
-HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
-----
+include-code::ClientUsage[tag=create,indent=0]
 
 Once `HttpGraphQlClient` is created, you can begin to
 xref:client.adoc#client.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpGraphQlClient` to create a new instance with customized settings:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-    WebClient webClient = ... ;
-
-	HttpGraphQlClient graphQlClient = HttpGraphQlClient.builder(webClient)
-			.headers(headers -> headers.setBasicAuth("joe", "..."))
-			.build();
-
-	// Perform requests with graphQlClient...
-
-	HttpGraphQlClient anotherGraphQlClient = graphQlClient.mutate()
-			.headers(headers -> headers.setBasicAuth("peter", "..."))
-			.build();
-
-	// Perform requests with anotherGraphQlClient...
-
-----
-
+include-code::ClientUsage[tag=mutate,indent=0]
 
 
 [[client.websocketgraphqlclient]]
@@ -118,13 +76,7 @@ It is built using the
 {spring-framework-ref-docs}/web/webflux-websocket.html#webflux-websocket-client[WebSocketClient]
 from Spring WebFlux and you can create it as follows:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	String url = "wss://localhost:8080/graphql";
-	WebSocketClient client = new ReactorNettyWebSocketClient();
-
-	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client).build();
-----
+include-code::WebSocketClientUsage[tag=create,indent=0]
 
 In contrast to `HttpGraphQlClient`, the `WebSocketGraphQlClient` is connection oriented,
 which means it needs to establish a connection before making any requests. As you begin
@@ -146,37 +98,12 @@ xref:client.adoc#client.requests[execute requests] using the same API, independe
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `WebSocketGraphQlClient` to create a new instance with customized settings:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	URI url = ... ;
-	WebSocketClient client = ... ;
-
-	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
-			.headers(headers -> headers.setBasicAuth("joe", "..."))
-			.build();
-
-	// Use graphQlClient...
-
-	WebSocketGraphQlClient anotherGraphQlClient = graphQlClient.mutate()
-			.headers(headers -> headers.setBasicAuth("peter", "..."))
-			.build();
-
-	// Use anotherGraphQlClient...
-
-----
+include-code::WebSocketClientUsage[tag=mutate,indent=0]
 
 `WebSocketGraphQlClient` supports sending periodic ping messages to keep the connection
 active when no other messages are sent or received. You can enable that as follows:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	URI url = ... ;
-	WebSocketClient client = ... ;
-
-	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
-			.keepAlive(Duration.ofSeconds(30))
-			.build();
-----
+include-code::WebSocketClientUsage[tag=keepAlive,indent=0]
 
 
 [[client.websocketgraphqlclient.interceptor]]
@@ -220,15 +147,7 @@ can be at most one interceptor of type `WebSocketGraphQlClientInterceptor`.
 {spring-framework-ref-docs}/rsocket.html#rsocket-requester[RSocketRequester]
 to execute GraphQL requests over RSocket requests.
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	URI uri = URI.create("wss://localhost:8080/rsocket");
-	WebsocketClientTransport transport = WebsocketClientTransport.create(url);
-
-	RSocketGraphQlClient client = RSocketGraphQlClient.builder()
-			.clientTransport(transport)
-			.build();
-----
+include-code::RSocketClientUsage[tag=create,indent=0]
 
 In contrast to `HttpGraphQlClient`, the `RSocketGraphQlClient` is connection oriented,
 which means it needs to establish a session before making any requests. As you begin
@@ -266,7 +185,6 @@ builders of all extensions. Currently, it has lets you configure:
 
 
 
-
 [[client.requests]]
 == Requests
 
@@ -287,36 +205,14 @@ Sync::
 +
 [source,java,indent=0,subs="verbatim,quotes",role="primary"]
 ----
-	String document = "{" +
-			"  project(slug:\"spring-framework\") {" +
-			"	name" +
-			"	releases {" +
-			"	  version" +
-			"	}"+
-			"  }" +
-			"}";
-
-	Project project = graphQlClient.document(document) <1>
-			.retrieveSync("project") <2>
-			.toEntity(Project.class); <3>
+include::{include-java}/client/requests/retrieve/Retrieve.java[tag=retrieveSync,indent=0]
 ----
 
 Non-Blocking::
 +
 [source,java,indent=0,subs="verbatim,quotes",role="secondary"]
 ----
-	String document = "{" +
-			"  project(slug:\"spring-framework\") {" +
-			"	name" +
-			"	releases {" +
-			"	  version" +
-			"	}"+
-			"  }" +
-			"}";
-
-	Mono<Project> projectMono = graphQlClient.document(document) <1>
-			.retrieve("project") <2>
-			.toEntity(Project.class); <3>
+include::{include-java}/client/requests/retrieve/Retrieve.java[tag=retrieve,indent=0]
 ----
 ======
 
@@ -342,32 +238,14 @@ Sync::
 +
 [source,java,indent=0,subs="verbatim,quotes",role="primary"]
 ----
-	try {
-		Project project = graphQlClient.document(document)
-				.retrieveSync("project")
-				.toEntity(Project.class);
-	}
-	catch (FieldAccessException ex) {
-		ClientGraphQlResponse response = ex.getResponse();
-		// ...
-		ClientResponseField field = ex.getField();
-		// ...
-	}
+include::{include-java}/client/requests/retrieve/Retrieve.java[tag=fieldErrorSync,indent=0]
 ----
 
 Non-Blocking::
 +
 [source,java,indent=0,subs="verbatim,quotes",role="secondary"]
 ----
-	Mono<Project> projectMono = graphQlClient.document(document)
-			.retrieve("project")
-			.toEntity(Project.class)
-			.onErrorResume(FieldAccessException.class, ex -> {
-				ClientGraphQlResponse response = ex.getResponse();
-				// ...
-				ClientResponseField field = ex.getField();
-				// ...
-			});
+include::{include-java}/client/requests/retrieve/Retrieve.java[tag=fieldError,indent=0]
 ----
 ======
 
@@ -387,54 +265,20 @@ Sync::
 +
 [source,java,indent=0,subs="verbatim,quotes",role="primary"]
 ----
-	ClientGraphQlResponse response = graphQlClient.document(document).executeSync();
-
-	if (!response.isValid()) {
-		// Request failure... <1>
-	}
-
-	ClientResponseField field = response.field("project");
-	if (!field.hasValue()) {
-		if (field.getError() != null) {
-			// Field failure... <2>
-		}
-		else {
-			// Optional field set to null... <3>
-		}
-	}
-
-	Project project = field.toEntity(Project.class); <4>
+include::{include-java}/client/requests/execute/Execute.java[tag=executeSync,indent=0]
 ----
 
 Non-Blocking::
 +
 [source,java,indent=0,subs="verbatim,quotes",role="secondary"]
 ----
-	Mono<Project> projectMono = graphQlClient.document(document)
-			.execute()
-			.map(response -> {
-				if (!response.isValid()) {
-					// Request failure... <1>
-				}
-
-				ClientResponseField field = response.field("project");
-				if (!field.hasValue()) {
-					if (field.getError() != null) {
-						// Field failure... <2>
-					}
-					else {
-						// Optional field set to null... <3>
-					}
-				}
-
-				return field.toEntity(Project.class); <4>
-			});
+include::{include-java}/client/requests/execute/Execute.java[tag=execute,indent=0]
 ----
 ======
 
 <1> The response does not have data, only errors
-<2> Field that is `null` and has an associated error
-<3> Field that was set to `null` by its `DataFetcher`
+<2> Field that was set to `null` by its `DataFetcher`
+<3> Field that is `null` and has an associated error
 <4> Decode the data at the given path
 
 
@@ -468,61 +312,10 @@ You can then:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	Project project = graphQlClient.documentName("projectReleases") <1>
-			.variable("slug", "spring-framework") <2>
-			.retrieveSync()
-			.toEntity(Project.class);
+include::{include-java}/client/requests/documentsource/DocumentSource.java[tag=documentSource,indent=0]
 ----
 <1> Load the document from "projectReleases.graphql"
 <2> Provide variable values.
-
-
-This approach also works for loading fragments for your queries.
-Fragments are reusable field selection sets that avoid repetition in a request document.
-For example, we can use a `...releases` fragment in multiple queries:
-
-[source,graphql,indent=0,subs="verbatim,quotes"]
-.src/main/resources/graphql-documents/projectReleases.graphql
-----
-	query frameworkReleases {
-		project(slug: "spring-framework") {
-			name
-			...releases
-		}
-	}
-	query graphqlReleases {
-        project(slug: "spring-graphql") {
-            name
-            ...releases
-        }
-    }
-----
-
-This fragment can be defined in a separate file for reuse:
-
-[source,graphql,indent=0,subs="verbatim,quotes"]
-.src/main/resources/graphql-documents/releases.graphql
-----
-	fragment releases on Project {
-    	releases {
-            version
-        }
-    }
-----
-
-
-You can then send this fragment along the query document:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	Project project = graphQlClient.documentName("projectReleases") <1>
-			.fragmentName("releases") <2>
-			.retrieveSync()
-			.toEntity(Project.class);
-----
-<1> Load the document from "projectReleases.graphql"
-<2> Load the fragment from "releases.graphql" and append it to the document
-
 
 
 The "JS GraphQL" plugin for IntelliJ supports GraphQL query files with code completion.
@@ -552,18 +345,13 @@ To start a subscription stream, use `retrieveSubscription` which is similar to
 xref:client.adoc#client.requests.retrieve[retrieve] for a single response but returning a stream of
 responses, each decoded to some data:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	Flux<String> greetingFlux = client.document("subscription { greetings }")
-			.retrieveSubscription("greeting")
-			.toEntity(String.class);
-----
+include-code::RetrieveSubscription[tag=subscriptionRetrieve,indent=0]
 
 The `Flux` may terminate with `SubscriptionErrorException` if the subscription  ends from
 the server side with an "error" message. The exception provides access to GraphQL errors
 decoded from the "error" message.
 
-The `Flux` may termiate with `GraphQlTransportException` such as
+The `Flux` may terminate with `GraphQlTransportException` such as
 `WebSocketDisconnectedException` if the underlying connection is closed or lost. In that
 case you can use the `retry` operator to restart the subscription.
 
@@ -582,29 +370,7 @@ xref:client.adoc#client.subscriptions.retrieve[Retrieve] is only a shortcut to d
 response map. For more control, use the `executeSubscription` method and handle each
 response directly:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	Flux<String> greetingFlux = client.document("subscription { greetings }")
-			.executeSubscription()
-			.map(response -> {
-				if (!response.isValid()) {
-					// Request failure...
-				}
-
-				ClientResponseField field = response.field("project");
-				if (!field.hasValue()) {
-					if (field.getError() != null) {
-						// Field failure...
-					}
-					else {
-						// Optional field set to null... <3>
-					}
-				}
-
-				return field.toEntity(String.class)
-			});
-----
-
+include-code::ExecuteSubscription[tag=subscriptionExecute,indent=0]
 
 
 
@@ -614,52 +380,16 @@ response directly:
 For blocking transports created with the `GraphQlClient.SyncBuilder`, you create a
 `SyncGraphQlClientInterceptor` to intercept all requests through the client:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-static class MyInterceptor implements SyncGraphQlClientInterceptor {
-
-	@Override
-	public ClientGraphQlResponse intercept(ClientGraphQlRequest request, Chain chain) {
-		// ...
-		return chain.next(request);
-	}
-}
-----
+include-code::SyncInterceptor[]
 
 For non-blocking transports created with `GraphQlClient.Builder`, you create a
 `GraphQlClientInterceptor` to intercept all requests through the client:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-static class MyInterceptor implements GraphQlClientInterceptor {
-
-	@Override
-	public Mono<ClientGraphQlResponse> intercept(ClientGraphQlRequest request, Chain chain) {
-		// ...
-		return chain.next(request);
-	}
-
-	@Override
-	public Flux<ClientGraphQlResponse> interceptSubscription(ClientGraphQlRequest request, SubscriptionChain chain) {
-		// ...
-		return chain.next(request);
-	}
-
-}
-----
+include-code::MyInterceptor[]
 
 Once the interceptor is created, register it through the client builder. For example:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	URI url = ... ;
-	WebSocketClient client = ... ;
-
-	WebSocketGraphQlClient graphQlClient = WebSocketGraphQlClient.builder(url, client)
-			.interceptor(new MyInterceptor())
-			.build();
-----
-
+include-code::UseInterceptor[tag=register,indent=0]
 
 
 
@@ -697,7 +427,7 @@ You can perform a request as follows:
 
 	List<Book> books = dgsClient.request(new BooksGraphQLQuery()) // <2>
 			.projection(new BooksProjectionRoot<>().id().name()) // <3>
-			.retrieveSync()
+			.retrieveSync("books")
 			.toEntityList(Book.class);
 ----
 

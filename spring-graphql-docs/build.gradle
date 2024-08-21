@@ -19,14 +19,18 @@ dependencies {
 	dependencyManagement(enforcedPlatform(dependencies.project(path: ":platform")))
 	api project(':spring-graphql')
 	api project(':spring-graphql-test')
-	api 'org.springframework:spring-webflux'
-	api 'org.springframework:spring-webmvc'
-	api 'org.springframework:spring-websocket'
-	api 'org.springframework:spring-messaging'
-	api 'org.springframework.data:spring-data-commons'
-	api 'com.querydsl:querydsl-core'
-	api "org.springframework.boot:spring-boot-starter-graphql:${springBootVersion}"
-	api "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+	implementation 'org.springframework:spring-webflux'
+	implementation 'org.springframework:spring-webmvc'
+	implementation 'org.springframework:spring-websocket'
+	implementation 'org.springframework:spring-messaging'
+	implementation 'org.springframework.data:spring-data-commons'
+	implementation 'com.querydsl:querydsl-core'
+	implementation "org.springframework.boot:spring-boot-starter-graphql:${springBootVersion}"
+	implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+	implementation 'io.rsocket:rsocket-core'
+	implementation 'io.rsocket:rsocket-transport-netty'
+	implementation 'io.projectreactor:reactor-test'
+	implementation 'org.assertj:assertj-core'
 }
 
 jar {

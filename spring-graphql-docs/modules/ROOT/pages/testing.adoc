@@ -74,66 +74,22 @@ GraphQL requests over HTTP, with or without a live server, depending on how
 To test in Spring WebFlux, without a live server, point to your Spring configuration
 that declares the GraphQL HTTP endpoint:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	ApplicationContext context = ... ;
-
-	WebTestClient client =
-			WebTestClient.bindToApplicationContext(context)
-					.configureClient()
-					.baseUrl("/graphql")
-					.build();
-
-	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
-----
+include-code::HttpSetup[tag=webTestClient,indent=0]
 
 To test in Spring MVC, without a live server, do the same using `MockMvcWebTestClient`:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	ApplicationContext context = ... ;
-
-	WebTestClient client =
-			MockMvcWebTestClient.bindToApplicationContext(context)
-					.configureClient()
-					.baseUrl("/graphql")
-					.build();
-
-	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
-----
+include-code::HttpSetup[tag=mockMvc,indent=0]
 
 Or to test against a live server running on a port:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	WebTestClient client =
-			WebTestClient.bindToServer()
-					.baseUrl("http://localhost:8080/graphql")
-					.build();
-
-	HttpGraphQlTester tester = HttpGraphQlTester.create(client);
-----
+include-code::HttpSetup[tag=liveServer,indent=0]
 
 Once `HttpGraphQlTester` is created, you can begin to
 xref:testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `HttpSocketGraphQlTester` to create a new instance with customized settings:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	HttpGraphQlTester tester = HttpGraphQlTester.builder(clientBuilder)
-			.headers(headers -> headers.setBasicAuth("joe", "..."))
-			.build();
-
-	// Use tester...
-
-	HttpGraphQlTester anotherTester = tester.mutate()
-			.headers(headers -> headers.setBasicAuth("peter", "..."))
-			.build();
-
-	// Use anotherTester...
-
-----
+include-code::HttpSetup[tag=executeRequests,indent=0]
 
 
 
@@ -145,13 +101,7 @@ It is built using the
 {spring-framework-ref-docs}/web/webflux-websocket.html#webflux-websocket-client[WebSocketClient]
 from Spring WebFlux and you can create it as follows:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	String url = "http://localhost:8080/graphql";
-	WebSocketClient client = new ReactorNettyWebSocketClient();
-
-	WebSocketGraphQlTester tester = WebSocketGraphQlTester.builder(url, client).build();
-----
+include-code::WsSetup[tag=setup,indent=0]
 
 `WebSocketGraphQlTester` is connection oriented and multiplexed. Each instance establishes
 its own single, shared connection for all requests. Typically, you'll want to use a single
@@ -162,24 +112,7 @@ xref:testing.adoc#testing.requests[execute requests] using the same API, indepen
 transport. If you need to change any transport specific details, use `mutate()` on an
 existing `WebSocketGraphQlTester` to create a new instance with customized settings:
 
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	URI url = ... ;
-	WebSocketClient client = ... ;
-
-	WebSocketGraphQlTester tester = WebSocketGraphQlTester.builder(url, client)
-			.headers(headers -> headers.setBasicAuth("joe", "..."))
-			.build();
-
-	// Use tester...
-
-	WebSocketGraphQlTester anotherTester = tester.mutate()
-			.headers(headers -> headers.setBasicAuth("peter", "..."))
-			.build();
-
-	// Use anotherTester...
-----
+include-code::WsSetup[tag=customSetup,indent=0]
 
 `WebSocketGraphQlTester` provides a `stop()` method that you can use to have the WebSocket
 connection closed, e.g. after a test runs.
@@ -192,15 +125,7 @@ connection closed, e.g. after a test runs.
 `RSocketGraphQlTester` uses `RSocketRequester` from spring-messaging to execute GraphQL
 requests over RSocket:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	URI uri = URI.create("wss://localhost:8080/rsocket");
-	WebsocketClientTransport transport = WebsocketClientTransport.create(url);
-
-	RSocketGraphQlTester client = RSocketGraphQlTester.builder()
-			.clientTransport(transport)
-			.build();
-----
+include-code::RSocketSetup[tag=rsocketSetup,indent=0]
 
 `RSocketGraphQlTester` is connection oriented and multiplexed. Each instance establishes
 its own single, shared session for all requests. Typically, you'll want to use a single
@@ -219,11 +144,7 @@ Many times it's enough to test GraphQL requests on the server side, without the 
 client to send requests over a transport protocol. To test directly against a
 `ExecutionGraphQlService`, use the `ExecutionGraphQlServiceTester` extension:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	ExecutionGraphQlService service = ... ;
-	ExecutionGraphQlServiceTester tester = ExecutionGraphQlServiceTester.create(service);
-----
+include-code::ServiceSetup[tag=serviceSetup,indent=0]
 
 Once `ExecutionGraphQlServiceTester` is created, you can begin to
 xref:testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying
@@ -231,13 +152,7 @@ transport.
 
 `ExecutionGraphQlServiceTester.Builder` provides an option to customize `ExecutionInput` details:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	ExecutionGraphQlService service = ... ;
-	ExecutionGraphQlServiceTester tester = ExecutionGraphQlServiceTester.builder(service)
-			.configureExecutionInput((executionInput, builder) -> builder.executionId(id).build())
-			.build();
-----
+include-code::ServiceSetup[tag=customServiceSetup,indent=0]
 
 
 
@@ -252,22 +167,11 @@ The `WebGraphQlTester` extension lets you processes request through the
 `WebGraphQlInterceptor` chain before handing off to `ExecutionGraphQlService` for
 request execution:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	WebGraphQlHandler handler = ... ;
-	WebGraphQlTester tester = WebGraphQlTester.create(handler);
-----
+include-code::WebSetup[tag=webSetup,indent=0]
 
 The builder for this extension allows you to define HTTP request details:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	WebGraphQlHandler handler = ... ;
-
-	WebGraphQlTester tester = WebGraphQlTester.builder(handler)
-			.headers(headers -> headers.setBasicAuth("joe", "..."))
-			.build();
-----
+include-code::WebSetup[tag=customWebSetup,indent=0]
 
 Once `WebGraphQlTester` is created, you can begin to
 xref:testing.adoc#testing.requests[execute requests] using the same API, independent of the underlying transport.
@@ -297,22 +201,7 @@ Once you have a `GraphQlTester`, you can begin to test requests. The below execu
 query for a project and uses https://github.com/json-path/JsonPath[JsonPath] to extract
 project release versions from the response:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	String document = "{" +
-			"  project(slug:\"spring-framework\") {" +
-			"	releases {" +
-			"	  version" +
-			"	}"+
-			"  }" +
-			"}";
-
-	graphQlTester.document(document)
-			.execute()
-			.path("project.releases[*].version")
-			.entityList(String.class)
-			.hasSizeGreaterThan(1);
-----
+include-code::TesterRequests[tag=inlineDocument,indent=0]
 
 The JsonPath is relative to the "data" section of the response.
 
@@ -335,17 +224,51 @@ For example, given a file called `projectReleases.graphql` in
 
 You can then use:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	graphQlTester.documentName("projectReleases") <1>
-			.variable("slug", "spring-framework") <2>
-			.execute()
-			.path("project.releases[*].version")
-			.entityList(String.class)
-			.hasSizeGreaterThan(1);
-----
+include-code::TesterRequests[tag=documentName,indent=0]
 <1> Refer to the document in the file named "project".
 <2> Set the `slug` variable.
+
+
+This approach also works for loading fragments for your queries.
+Fragments are reusable field selection sets that avoid repetition in a request document.
+For example, we can use a `...releases` fragment in multiple queries:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+.src/main/resources/graphql-documents/projectReleases.graphql
+----
+	query frameworkReleases {
+		project(slug: "spring-framework") {
+			name
+			...releases
+		}
+	}
+	query graphqlReleases {
+        project(slug: "spring-graphql") {
+            name
+            ...releases
+        }
+    }
+----
+
+This fragment can be defined in a separate file for reuse:
+
+[source,graphql,indent=0,subs="verbatim,quotes"]
+.src/main/resources/graphql-documents/releases.graphql
+----
+	fragment releases on Project {
+    	releases {
+            version
+        }
+    }
+----
+
+
+You can then send this fragment along the query document:
+
+include-code::TesterRequests[tag=fragment,indent=0]
+<1> Load the document from "projectReleases.graphql"
+<2> Load the fragment from "releases.graphql" and append it to the document
+
 
 [TIP]
 ====
@@ -364,24 +287,14 @@ See xref:testing.adoc#testing.errors[Errors] for more details on error handling.
 
 
 
-[[testing.requests.nestedPaths]]
+[[testing.requests.nestedpaths]]
 === Nested Paths
 
 By default, paths are relative to the "data" section of the GraphQL response. You can also
 nest down to a path, and inspect multiple paths relative to it as follows:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	graphQlTester.document(document)
-			.execute()
-			.path("project", project -> project // <1>
-				.path("name").entity(String.class).isEqualTo("spring-framework")
-				.path("releases[*].version").entityList(String.class).hasSizeGreaterThan(1));
-----
-
+include-code::NestedPaths[tag=nestedPaths,indent=0]
 <1> Use a callback to inspect paths relative to "project".
-
-
 
 
 
@@ -391,18 +304,7 @@ nest down to a path, and inspect multiple paths relative to it as follows:
 To test subscriptions, call `executeSubscription` instead of `execute` to obtain a stream
 of responses and then use `StepVerifier` from Project Reactor to inspect the stream:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	Flux<String> greetingFlux = tester.document("subscription { greetings }")
-			.executeSubscription()
-			.toFlux("greetings", String.class);  // decode at JSONPath
-
-	StepVerifier.create(greetingFlux)
-			.expectNext("Hi")
-			.expectNext("Bonjour")
-			.expectNext("Hola")
-			.verifyComplete();
-----
+include-code::TestSubscriptions[tag=testSubscriptions,indent=0]
 
 Subscriptions are supported only with xref:testing.adoc#testing.websocketgraphqltester[WebSocketGraphQlTester]
 , or with the server side
@@ -417,51 +319,19 @@ When you use `verify()`, any errors under the "errors" key in the response will 
 an assertion failure. To suppress a specific error, use the error filter before
 `verify()`:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	graphQlTester.query(query)
-			.execute()
-			.errors()
-			.filter(error -> ...)
-			.verify()
-			.path("project.releases[*].version")
-			.entityList(String.class)
-			.hasSizeGreaterThan(1);
-----
+
+include-code::TestErrors[tag=verifyErrors,indent=0]
 
 You can register an error filter at the builder level, to apply to all tests:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	WebGraphQlTester graphQlTester = WebGraphQlTester.builder(client)
-			.errorFilter(error -> ...)
-			.build();
-----
+include-code::TestErrors[tag=setupErrorFilter,indent=0]
 
 If you want to verify that an error does exist, and in contrast to `filter`, throw an
 assertion error if it doesn't, then use `expect` instead:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	graphQlTester.query(query)
-			.execute()
-			.errors()
-			.expect(error -> ...)
-			.verify()
-			.path("project.releases[*].version")
-			.entityList(String.class)
-			.hasSizeGreaterThan(1);
-----
+include-code::TestErrors[tag=expectedErrors,indent=0]
 
 You can also inspect all errors through a `Consumer`, and doing so also marks them as
 filtered, so you can then also inspect the data in the response:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	graphQlTester.query(query)
-			.execute()
-			.errors()
-			.satisfy(errors -> {
-				// ...
-			});
-----
+include-code::TestErrors[tag=satisfyErrors,indent=0]
