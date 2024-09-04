@@ -684,8 +684,9 @@ public final class SchemaMappingInspector {
 
 			// Remove GraphQL type wrappers, and nest within Java generic types
 			GraphQLType outputType = unwrapIfNonNull(field.getType());
-			if (isPaginatedType(outputType)) {
-				outputType = getPaginatedType((GraphQLObjectType) outputType, schema);
+			GraphQLType paginatedType = getPaginatedType(outputType);
+			if (paginatedType != null) {
+				outputType = paginatedType;
 				resolvableType = nestForConnection(resolvableType);
 			}
 			else if (outputType instanceof GraphQLList listType) {
@@ -702,17 +703,26 @@ public final class SchemaMappingInspector {
 			return (type instanceof GraphQLNonNull graphQLNonNull) ? graphQLNonNull.getWrappedType() : type;
 		}
 
-		private static boolean isPaginatedType(GraphQLType type) {
-			return (type instanceof GraphQLObjectType objectType &&
-					objectType.getName().endsWith("Connection") &&
-					objectType.getField("edges") != null && objectType.getField("pageInfo") != null);
-		}
-
-		private static GraphQLType getPaginatedType(GraphQLObjectType type, GraphQLSchema schema) {
-			String name = type.getName().substring(0, type.getName().length() - 10);
-			GraphQLType nodeType = schema.getType(name);
-			Assert.state(nodeType != null, "No node type for '" + type.getName() + "'");
-			return nodeType;
+		@Nullable
+		private static GraphQLType getPaginatedType(GraphQLType type) {
+			if (!(type instanceof GraphQLObjectType cot && cot.getName().endsWith("Connection"))) {
+				return null;
+			}
+			GraphQLFieldDefinition edges = cot.getField("edges");
+			if (edges == null) {
+				return null;
+			}
+			if (!(unwrapIfNonNull(edges.getType()) instanceof GraphQLList lt)) {
+				return null;
+			}
+			if (!(lt.getWrappedType() instanceof GraphQLObjectType eot)) {
+				return null;
+			}
+			GraphQLFieldDefinition node = eot.getField("node");
+			if (node == null) {
+				return null;
+			}
+			return unwrapIfNonNull(node.getType());
 		}
 
 		private static ResolvableType nestForConnection(ResolvableType type) {

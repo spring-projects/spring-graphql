@@ -113,7 +113,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 		}
 
 		@Test
-		void reportWorksForQueryWithConnection() {
+		void reportWorksForConnectionType() {
 			String schema = """
 						type Query {
 							paginatedBooks: BookConnection
@@ -124,7 +124,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 						}
 						type BookEdge {
 							cursor: String!
-							# ...
+							node: Book!
 						}
 						type PageInfo {
 							startCursor: String
@@ -138,6 +138,34 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 					""";
 			SchemaReport report = inspectSchema(schema, BookController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Book", "missing");
+		}
+
+		@Test // gh-1053
+		void reportWorksForConnectionWithCustomNodeTypeName() {
+			String schema = """
+						type Query {
+							paginatedBooks: BookConnection
+						}
+						type BookConnection {
+							edges: [BookEdge]!
+							pageInfo: PageInfo!
+						}
+						type BookEdge {
+							cursor: String!
+							node: MyBook!
+						}
+						type PageInfo {
+							startCursor: String
+							# ...
+						}
+						type MyBook {
+							id: ID
+							name: String
+							missing: Boolean
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, BookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("MyBook", "missing");
 		}
 
 		@Test
