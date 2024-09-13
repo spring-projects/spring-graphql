@@ -93,7 +93,6 @@ public final class SchemaMappingInspector {
 			(!method.getDeclaringClass().equals(Object.class) && !method.getReturnType().equals(Void.class) &&
 					method.getParameterCount() == 0 && Modifier.isPublic(method.getModifiers()));
 
-
 	private final GraphQLSchema schema;
 
 	private final Map<String, Map<String, DataFetcher>> dataFetchers;
@@ -182,13 +181,15 @@ public final class SchemaMappingInspector {
 			if (resolvableType != null) {
 				PropertyDescriptor descriptor = getProperty(resolvableType, fieldName);
 				if (descriptor != null) {
-					checkField(fieldContainer, field, ResolvableType.forMethodReturnType(descriptor.getReadMethod()));
+					MethodParameter returnType = new MethodParameter(descriptor.getReadMethod(), -1);
+					checkField(fieldContainer, field, ResolvableType.forMethodParameter(returnType, resolvableType));
 					continue;
 				}
 				// Kotlin function?
 				Method method = getRecordLikeMethod(resolvableType, fieldName);
 				if (method != null) {
-					checkField(fieldContainer, field, ResolvableType.forMethodReturnType(method));
+					MethodParameter returnType = new MethodParameter(method, -1);
+					checkField(fieldContainer, field, ResolvableType.forMethodParameter(returnType, resolvableType));
 					continue;
 				}
 			}

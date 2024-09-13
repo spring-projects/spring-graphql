@@ -310,7 +310,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Nested
-	class TypesInspectionTests {
+	class SchemaTypeInspectionTests {
 
 		@Test
 		void reportIsEmptyWhenFieldHasMatchingObjectProperty() {
@@ -432,6 +432,25 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 					""";
 			SchemaReport report = inspectSchema(schema, BookWithAuthorController.class);
 			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Author", "missing");
+		}
+
+		@Test // gh-1037
+		void reportHasUnmappedFieldOnGenericType() {
+			String schema = """
+						type Query {
+							teamContainer: TeamContainer
+						}
+						type TeamContainer {
+							items: [Team]
+						}
+						type Team {
+							name: String
+							missing: String
+						}
+					""";
+
+			SchemaReport report = inspectSchema(schema, TeamController.class);
+			assertThatReport(report).hasUnmappedFieldCount(1).containsUnmappedFields("Team", "missing");
 		}
 
 		@Test
@@ -680,6 +699,10 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 			return null;
 		}
 
+		@QueryMapping
+		public ListContainer<Team> teamContainer() {
+			return new ListContainer<>(Collections.emptyList());
+		}
 	}
 
 
@@ -689,6 +712,11 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	record TeamMember(String name, Team team) {
+
+	}
+
+
+	record ListContainer<T>(List<T> items) {
 
 	}
 
