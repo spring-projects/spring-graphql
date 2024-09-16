@@ -560,24 +560,24 @@ to send to the client.
 == Pagination
 
 The GraphQL https://relay.dev/graphql/connections.htm[Cursor Connection specification]
-defines a way to navigate large result sets by returning a subset of items at a time where
-each item is paired with a cursor that clients can use to request more items before or
-after the referenced item.
+defines a way to navigate large result sets by returning a subset of items at a time in
+which each item is paired with a cursor that clients can use to request more items before
+or after the referenced item.
 
-The specification calls the pattern _"Connections"_. A schema type with a name that ends
-on Connection is a _Connection Type_ that represents a paginated result set. All `~Connection`
-types contain an "edges" field where `~Edge` type pairs the actual item with a cursor, as
-well as a "pageInfo" field with boolean flags to indicate if there are more items forward
-and backward.
+The specification calls this pattern _"Connections"_, and schema types whose name end
+with `~Connection` are a connection type that represents a paginated result set.
+All connection types contain a field called "edges" where an `~Edge` type contains
+the actual item, a cursor, and a field called "pageInfo" that indicates if more
+items exist forward and backward.
 
 
 [[execution.pagination.types]]
 === Connection Types
 
-`Connection` type definitions must be created for every type that needs pagination, adding
-boilerplate and noise to the schema. Spring for GraphQL provides
-`ConnectionTypeDefinitionConfigurer` to add these types on startup, if not already
-present in the parsed schema files. That means in the schema you only need this:
+Connection types require boilerplate definitions that Spring for GraphQL's
+`ConnectionTypeDefinitionConfigurer` can add transparently on startup, if not explicitly
+declared. That means you only need the below, and the connection and edge types will
+be added for you:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
@@ -591,11 +591,12 @@ present in the parsed schema files. That means in the schema you only need this:
 	}
 ----
 
-Note the spec-defined forward pagination arguments `first` and `after` that clients can use
-to request the first N items after the given cursor, while `last` and `before` are backward
-pagination arguments to request the last N items before the given cursor.
+The spec defined `first` and `after` arguments for forward pagination allow clients to
+request the "first" N items "after" a given cursor. Similarly, the `last` and `before`
+arguments for backward pagination arguments allow requesting the "last" N items "before"
+a given cursor.
 
-Next, configure `ConnectionTypeDefinitionConfigurer` as follows:
+To have connection types generated, configure `ConnectionTypeDefinitionConfigurer` as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -604,7 +605,8 @@ GraphQlSource.schemaResourceBuilder()
 		.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer)
 ----
 
-and the following type definitions will be transparently added to the schema:
+The above will add the following type definitions:
+
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
 	type BookConnection {
@@ -631,19 +633,18 @@ The xref:boot-starter.adoc[Boot Starter] registers `ConnectionTypeDefinitionConf
 [[execution.pagination.adapters]]
 === `ConnectionAdapter`
 
-Once xref:request-execution.adoc#execution.pagination.types[Connection Types] are available in the schema, you also need
-equivalent Java types. GraphQL Java provides those, including generic `Connection` and
-`Edge`, as well as a `PageInfo`.
+In addition to
+xref:request-execution.adoc#execution.pagination.types[Connection Types] in the schema,
+you will also need equivalent Java types. GraphQL Java provides those, including generic
+`Connection` and `Edge` types, and `PageInfo`.
 
-One option is to populate a `Connection` and return it from your controller method or
-`DataFetcher`. However, this requires boilerplate code to create the `Connection`,
-creating cursors, wrapping each item as an `Edge`, and creating the `PageInfo`.
-Moreover, you may already have an underlying pagination mechanism such as when using
-Spring Data repositories.
+You can return `Connection` from a controller method, but it requires boilerplate code
+to adapt your underlying data pagination mechanism to `Connection`, to create cursors,
+add `~Edge` wrappers, and create a `PageInfo`.
 
 Spring for GraphQL defines the `ConnectionAdapter` contract to adapt a container of items
-to `Connection`. Adapters are applied through a `DataFetcher` decorator that is in turn
-installed through a `ConnectionFieldTypeVisitor`. You can configure it as follows:
+to `Connection`. Adapters are invoked from a `DataFetcher` decorator that is in turn
+added by a `ConnectionFieldTypeVisitor`. You can configure it as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -659,12 +660,13 @@ GraphQlSource.schemaResourceBuilder()
 <1> Create type visitor with one or more ``ConnectionAdapter``s.
 <2> Resister the type visitor.
 
-There are xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s for Spring Data's
-`Window` and `Slice`. You can also create your own custom adapter. `ConnectionAdapter`
-implementations rely on a xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] to
+There are built-in xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s
+for Spring Data's `Window` and `Slice`. You can also create your own custom adapter.
+`ConnectionAdapter` implementations rely on a
+xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] to
 create cursors for returned items. The same strategy is also used to support the
-xref:controllers.adoc#controllers.schema-mapping.subrange[`Subrange`] controller method argument that contains
-pagination input.
+xref:controllers.adoc#controllers.schema-mapping.subrange[`Subrange`] controller method
+argument that contains pagination input.
 
 
 [[execution.pagination.cursor.strategy]]
