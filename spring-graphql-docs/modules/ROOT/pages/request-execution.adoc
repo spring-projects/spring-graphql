@@ -596,6 +596,10 @@ request the "first" N items "after" a given cursor. Similarly, the `last` and `b
 arguments for backward pagination arguments allow requesting the "last" N items "before"
 a given cursor.
 
+NOTE: The spec discourages including both `first` and `last` and also states the outcome
+for pagination becomes unclear. In Spring for GraphQL if `first` or `after` are present,
+then `last` and `before` are ignored.
+
 To have connection types generated, configure `ConnectionTypeDefinitionConfigurer` as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
