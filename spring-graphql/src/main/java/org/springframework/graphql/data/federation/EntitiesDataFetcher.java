@@ -70,6 +70,9 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 			return Mono.error(new RepresentationException(
 					Collections.emptyMap(), "Missing \"representations\" argument"));
 		}
+		if (representations.isEmpty()) {
+			return Mono.just(DataFetcherResult.<List<Object>>newResult().data(Collections.emptyList()).build());
+		}
 
 		Set<String> batchedTypes = new HashSet<>();
 		List<Mono<?>> monoList = new ArrayList<>();

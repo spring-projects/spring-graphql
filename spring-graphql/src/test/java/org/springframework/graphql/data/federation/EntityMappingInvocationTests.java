@@ -115,6 +115,14 @@ public class EntityMappingInvocationTests {
 		assertAuthor(6, "George", "Orwell", helper);
 	}
 
+	@Test // gh-1057
+	void fetchEntitiesWithEmptyList() {
+		Map<String, Object> vars = Map.of("representations", Collections.emptyList());
+		ResponseHelper helper = executeWith(BookController.class, vars);
+
+		assertThat(helper.toEntity("_entities.length()", Integer.class)).isEqualTo(0);
+	}
+
 	@ValueSource(classes = {BookListController.class, BookFluxController.class})
 	@ParameterizedTest
 	void batching(Class<?> controllerClass) {
