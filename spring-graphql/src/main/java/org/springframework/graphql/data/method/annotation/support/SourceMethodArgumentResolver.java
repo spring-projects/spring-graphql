@@ -55,7 +55,6 @@ public class SourceMethodArgumentResolver implements HandlerMethodArgumentResolv
 		// Same as BeanUtils.isSimpleValueType except for CharSequence and Number
 		return (Void.class != type && void.class != type &&
 				(ClassUtils.isPrimitiveOrWrapper(type) ||
-						Enum.class.isAssignableFrom(type) ||
 						Date.class.isAssignableFrom(type) ||
 						Temporal.class.isAssignableFrom(type) ||
 						URI.class == type ||
