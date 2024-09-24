@@ -106,6 +106,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 				this.sseBuilder.data(value);
 			}
 			catch (IOException exception) {
+				dispose();
 				onError(exception);
 			}
 		}
@@ -130,6 +131,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 			catch (IOException exc) {
 				throw new RuntimeException(exc);
 			}
+
 			this.sseBuilder.complete();
 		}
 
