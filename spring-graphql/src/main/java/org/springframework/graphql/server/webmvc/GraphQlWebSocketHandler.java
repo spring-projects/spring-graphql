@@ -609,6 +609,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				request(1);
 			}
 			catch (IOException ex) {
+				cancel();
 				ExceptionWebSocketHandlerDecorator.tryCloseWithError(this.session, ex, logger);
 			}
 		}

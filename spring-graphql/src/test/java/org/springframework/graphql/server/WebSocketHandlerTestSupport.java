@@ -16,10 +16,15 @@
 
 package org.springframework.graphql.server;
 
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import reactor.core.publisher.Flux;
 
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.webmvc.TestWebSocketSession;
+import org.springframework.web.socket.WebSocketMessage;
 
 public abstract class WebSocketHandlerTestSupport {
 
@@ -28,6 +33,8 @@ public abstract class WebSocketHandlerTestSupport {
 	protected static final String BOOK_QUERY;
 
 	protected static final String BOOK_QUERY_PAYLOAD;
+
+	protected static AtomicBoolean SUBSCRIPTION_CANCELLED = new AtomicBoolean();
 
 	static {
 		BOOK_QUERY_PAYLOAD = "{\"query\": \"" +
@@ -73,10 +80,19 @@ public abstract class WebSocketHandlerTestSupport {
 				.subscriptionFetcher("bookSearch", environment -> {
 					String author = environment.getArgument("author");
 					return Flux.fromIterable(BookSource.books())
-							.filter((book) -> book.getAuthor().getFullName().contains(author));
+							.filter((book) -> book.getAuthor().getFullName().contains(author))
+							.doOnCancel(() -> SUBSCRIPTION_CANCELLED.set(true));
 				})
 				.interceptor(interceptors)
 				.toWebGraphQlHandler();
+	}
+
+	public class BrokenPipeSession extends TestWebSocketSession {
+
+		@Override
+		public void sendMessage(WebSocketMessage<?> message) throws IOException {
+			throw new IOException("broken pipe");
+		}
 	}
 
 }

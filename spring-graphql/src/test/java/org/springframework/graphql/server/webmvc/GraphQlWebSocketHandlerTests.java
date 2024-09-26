@@ -77,10 +77,9 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
-
-	private final TestWebSocketSession session = new TestWebSocketSession();
-
 	private final GraphQlWebSocketHandler handler = initWebSocketHandler();
+
+	private TestWebSocketSession session = new TestWebSocketSession();
 
 
 	@Test
@@ -128,6 +127,25 @@ public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 				.then(this.session::close)// Complete output Flux
 				.expectComplete()
 				.verify(TIMEOUT);
+	}
+
+	@Test
+	void brokenPipeShouldCancelPublisher() throws Exception {
+		this.session = new BrokenPipeSession();
+		handle(this.handler, new TextMessage("{\"type\":\"connection_init\"}"), new TextMessage(BOOK_SUBSCRIPTION));
+
+		BiConsumer<WebSocketMessage<?>, String> bookPayloadAssertion = (message, bookId) -> {
+			GraphQlWebSocketMessage actual = decode(message);
+			assertThat(actual.getId()).isEqualTo(SUBSCRIPTION_ID);
+			assertThat(actual.resolvedType()).isEqualTo(GraphQlWebSocketMessageType.NEXT);
+			assertThat(actual.<Map<String, Object>>getPayload())
+					.extractingByKey("data", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+					.extractingByKey("bookSearch", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+					.containsEntry("id", bookId);
+		};
+
+		StepVerifier.create(session.getOutput()).verifyComplete();
+		assertThat(SUBSCRIPTION_CANCELLED).isTrue();
 	}
 
 	@Test

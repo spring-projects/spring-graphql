@@ -106,7 +106,8 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 				this.sseBuilder.data(value);
 			}
 			catch (IOException exception) {
-				onError(exception);
+				cancel();
+				hookOnError(exception);
 			}
 		}
 

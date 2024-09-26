@@ -21,9 +21,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.schema.DataFetcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -40,6 +43,10 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link GraphQlSseHandler}.
@@ -51,9 +58,13 @@ class GraphQlSseHandlerTests {
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
 			List.of(new MappingJackson2HttpMessageConverter());
 
+	private static final AtomicBoolean DATA_FETCHER_CANCELLED = new AtomicBoolean();
+
 	private static final DataFetcher<?> SEARCH_DATA_FETCHER = env -> {
 		String author = env.getArgument("author");
-		return Flux.fromIterable(BookSource.books()).filter((book) -> book.getAuthor().getFullName().contains(author));
+		return Flux.fromIterable(BookSource.books())
+				.filter((book) -> book.getAuthor().getFullName().contains(author))
+				.doOnCancel(() -> DATA_FETCHER_CANCELLED.set(true));
 	};
 
 
@@ -120,6 +131,29 @@ class GraphQlSseHandlerTests {
 				data:
 
 				""");
+	}
+
+	@Test
+	void shouldCancelDataFetcherPublisherWhenWritingFails() throws Exception {
+		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
+		MockHttpServletRequest servletRequest = createServletRequest("""
+				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
+				""");
+		HttpServletResponse servletResponse = mock(HttpServletResponse.class);
+		ServletOutputStream outputStream = mock(ServletOutputStream.class);
+
+		willThrow(new IOException("broken pipe")).given(outputStream).write(any());
+		given(servletResponse.getOutputStream()).willReturn(outputStream);
+
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		ServerResponse response = handler.handleRequest(request);
+		if (response instanceof AsyncServerResponse asyncResponse) {
+			asyncResponse.block();
+		}
+
+		response.writeTo(servletRequest, servletResponse, new DefaultContext());
+		await().atMost(Duration.ofMillis(500)).until(DATA_FETCHER_CANCELLED::get);
+
 	}
 
 	private GraphQlSseHandler createSseHandler(DataFetcher<?> dataFetcher) {

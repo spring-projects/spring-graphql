@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.server.webmvc;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.Principal;
@@ -119,7 +120,7 @@ public class TestWebSocketSession implements WebSocketSession {
 	}
 
 	@Override
-	public void sendMessage(WebSocketMessage<?> message) {
+	public void sendMessage(WebSocketMessage<?> message) throws IOException {
 		emitMessagesSignal(this.messagesSink.tryEmitNext(message));
 	}
 
