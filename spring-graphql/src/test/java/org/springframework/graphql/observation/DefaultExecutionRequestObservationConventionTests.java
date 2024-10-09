@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,15 @@ package org.springframework.graphql.observation;
 import java.util.function.Consumer;
 
 import graphql.ExecutionInput;
+import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
+import graphql.GraphQLError;
 import graphql.execution.ExecutionId;
 import graphql.schema.idl.errors.QueryOperationMissingError;
 import io.micrometer.common.KeyValue;
 import org.junit.jupiter.api.Test;
+
+import org.springframework.graphql.execution.ErrorType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -86,7 +90,8 @@ class DefaultExecutionRequestObservationConventionTests {
 	void hasOutcomeKeyValueWhenInternalError() {
 		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
 		});
-		context.setError(new IllegalStateException("custom internal error"));
+		GraphQLError graphQLError = GraphQLError.newError().errorType(ErrorType.INTERNAL_ERROR).message(ErrorType.INTERNAL_ERROR + " for [executionId]").build();
+		context.setExecutionResult(ExecutionResult.newExecutionResult().addError(graphQLError).build());
 		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.outcome", "INTERNAL_ERROR"));
 	}
 

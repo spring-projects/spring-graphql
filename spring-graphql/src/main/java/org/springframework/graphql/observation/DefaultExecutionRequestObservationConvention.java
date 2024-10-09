@@ -19,6 +19,7 @@ package org.springframework.graphql.observation;
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
 
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.observation.GraphQlObservationDocumentation.ExecutionRequestHighCardinalityKeyNames;
 import org.springframework.graphql.observation.GraphQlObservationDocumentation.ExecutionRequestLowCardinalityKeyNames;
 
@@ -73,7 +74,10 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 		if (context.getError() != null || context.getExecutionResult() == null) {
 			return OUTCOME_INTERNAL_ERROR;
 		}
-		else if (context.getExecutionResult().getErrors().size() > 0) {
+		else if (!context.getExecutionResult().getErrors().isEmpty()) {
+			if (context.getExecutionResult().getErrors().stream().anyMatch((error) ->  ErrorType.INTERNAL_ERROR.equals(error.getErrorType()))) {
+				return OUTCOME_INTERNAL_ERROR;
+			}
 			return OUTCOME_REQUEST_ERROR;
 		}
 		return OUTCOME_SUCCESS;
