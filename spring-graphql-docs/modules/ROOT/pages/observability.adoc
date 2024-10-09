@@ -32,7 +32,11 @@ By default, the following KeyValues are created:
 |===
 
 The `graphql.operation` KeyValue will use the custom name of the provided query, or http://spec.graphql.org/draft/#sec-Language.Operations[the standard name for the operation] if none (`"query"`, `"mutation"` or `"subscription"`).
-The `graphql.outcome` KeyValue will be `"SUCCESS"` if a valid GraphQL response has been sent, `"REQUEST_ERROR"` if the request could not be parsed, or `"INTERNAL_ERROR"` if no valid GraphQL response could be produced.
+The `graphql.outcome` KeyValue will be:
+
+* `"SUCCESS"` if a valid GraphQL response has been sent and it contains no errors
+* `"REQUEST_ERROR"` if the request could not be parsed, or if the response contains errors (none of them being of type `org.springframework.graphql.execution.ErrorType.INTERNAL_ERROR`)
+* `"INTERNAL_ERROR"` if no valid GraphQL response could be produced, or if the response contains at least one error of type `org.springframework.graphql.execution.ErrorType.INTERNAL_ERROR`
 
 .High cardinality Keys
 [cols="a,a"]
