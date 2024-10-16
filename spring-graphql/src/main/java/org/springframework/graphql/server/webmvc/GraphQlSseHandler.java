@@ -33,6 +33,7 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.IdGenerator;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -93,6 +94,12 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		private SseSubscriber(ServerResponse.SseBuilder sseBuilder) {
 			this.sseBuilder = sseBuilder;
+			this.sseBuilder.onTimeout(this::onTimeout);
+		}
+
+		private void onTimeout() {
+			this.cancel();
+			this.sseBuilder.error(new AsyncRequestTimeoutException());
 		}
 
 		@Override
@@ -116,11 +123,11 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 			if (ex instanceof SubscriptionPublisherException spe) {
 				ExecutionResult result = ExecutionResult.newExecutionResult().errors(spe.getErrors()).build();
 				writeResult(result.toSpecification());
+				hookOnComplete();
 			}
 			else {
 				this.sseBuilder.error(ex);
 			}
-			hookOnComplete();
 		}
 
 		@Override

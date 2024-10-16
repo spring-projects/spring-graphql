@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.schema.DataFetcher;
+import jakarta.servlet.AsyncEvent;
+import jakarta.servlet.AsyncListener;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,6 +37,7 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.mock.web.MockAsyncContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.function.AsyncServerResponse;
@@ -72,7 +75,7 @@ class GraphQlSseHandlerTests {
 	void shouldRejectQueryOperations() throws Exception {
 		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockHttpServletRequest request = createServletRequest("{ \"query\": \"{ bookById(id: 42) {name} }\"}");
-		MockHttpServletResponse response = handleRequest(request, handler);
+		MockHttpServletResponse response = handleAndAwait(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
@@ -91,7 +94,7 @@ class GraphQlSseHandlerTests {
 		MockHttpServletRequest request = createServletRequest("""
 				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
 				""");
-		MockHttpServletResponse response = handleRequest(request, handler);
+		MockHttpServletResponse response = handleAndAwait(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
@@ -117,7 +120,7 @@ class GraphQlSseHandlerTests {
 		MockHttpServletRequest request = createServletRequest("""
 				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
 				""");
-		MockHttpServletResponse response = handleRequest(request, handler);
+		MockHttpServletResponse response = handleAndAwait(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
@@ -153,7 +156,26 @@ class GraphQlSseHandlerTests {
 
 		response.writeTo(servletRequest, servletResponse, new DefaultContext());
 		await().atMost(Duration.ofMillis(500)).until(DATA_FETCHER_CANCELLED::get);
+	}
 
+	@Test
+	void shouldCancelDataFetcherWhenAsyncTimeout() throws Exception {
+		DataFetcher<?> errorDataFetcher = env -> Flux.just(BookSource.getBook(1L))
+				.delayElements(Duration.ofMillis(500)).doOnCancel(() -> DATA_FETCHER_CANCELLED.set(true));
+
+		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
+		MockHttpServletRequest servletRequest = createServletRequest("""
+				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
+				""");
+
+		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
+		for (AsyncListener listener : ((MockAsyncContext) servletRequest.getAsyncContext()).getListeners()) {
+			listener.onTimeout(new AsyncEvent(servletRequest.getAsyncContext()));
+		}
+
+		assertThat(DATA_FETCHER_CANCELLED.get()).isTrue();
+		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
+		assertThat(servletResponse.getContentAsString()).isEmpty();
 	}
 
 	private GraphQlSseHandler createSseHandler(DataFetcher<?> dataFetcher) {
@@ -174,15 +196,19 @@ class GraphQlSseHandlerTests {
 
 	private MockHttpServletResponse handleRequest(
 			MockHttpServletRequest servletRequest, GraphQlSseHandler handler) throws ServletException, IOException {
-
 		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
 		ServerResponse response = handler.handleRequest(request);
 		if (response instanceof AsyncServerResponse asyncResponse) {
 			asyncResponse.block();
 		}
-
 		MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 		response.writeTo(servletRequest, servletResponse, new DefaultContext());
+		return servletResponse;
+	}
+
+	private MockHttpServletResponse handleAndAwait(
+			MockHttpServletRequest servletRequest, GraphQlSseHandler handler) throws ServletException, IOException {
+		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
 		await().atMost(Duration.ofMillis(500)).until(() -> servletResponse.getContentAsString().contains("complete"));
 		return servletResponse;
 	}
