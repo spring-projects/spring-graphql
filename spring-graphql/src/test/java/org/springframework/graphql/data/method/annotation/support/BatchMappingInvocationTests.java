@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import graphql.GraphQLContext;
+import org.dataloader.BatchLoaderEnvironment;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -126,12 +129,33 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 		}
 	}
 
+	@Test
+	void shouldBindKeyContextsToEnvironment() {
+		String document = "{ " +
+				"  courses { " +
+				"    id" +
+				"    name" +
+				"    students {" +
+				"      id" +
+				"      firstName" +
+				"      lastName" +
+				"    }" +
+				"  }" +
+				"}";
+
+		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(new BatchKeyContextsController()).execute(document);
+
+		List<Course> actualCourses = ResponseHelper.forResponse(responseMono).toList("courses", Course.class);
+		List<Course> courses = Course.allCourses();
+		assertThat(actualCourses).hasSize(courses.size());
+	}
+
 
 	@Controller
 	private static class BatchMonoMapController extends CourseController {
 
 		@BatchMapping
-		public Mono<Map<Course, Person>> instructor(List<Course> courses) {
+		public Mono<Map<Course, Person>> instructor(List<Course> courses, BatchLoaderEnvironment environment) {
 			return Flux.fromIterable(courses).collect(Collectors.toMap(Function.identity(), Course::instructor));
 		}
 
@@ -201,6 +225,24 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 			return () -> courses.stream().collect(Collectors.toMap(Function.identity(), Course::students));
 		}
 
+	}
+
+	@Controller
+	private static class BatchKeyContextsController extends CourseController {
+
+		@BatchMapping
+		public List<Person> instructor(List<Course> courses, BatchLoaderEnvironment environment) {
+			assertThat(environment.getKeyContexts().keySet()).containsAll(Course.allCourses());
+			assertThat(environment.getKeyContexts().values()).allSatisfy(value -> assertThat(value).isInstanceOf(GraphQLContext.class));
+			return courses.stream().map(Course::instructor).collect(Collectors.toList());
+		}
+
+		@BatchMapping
+		public List<List<Person>> students(List<Course> courses, BatchLoaderEnvironment environment) {
+			assertThat(environment.getKeyContexts().keySet()).containsAll(Course.allCourses());
+			assertThat(environment.getKeyContexts().values()).allSatisfy(value -> assertThat(value).isInstanceOf(GraphQLContext.class));
+			return courses.stream().map(Course::students).collect(Collectors.toList());
+		}
 	}
 
 
