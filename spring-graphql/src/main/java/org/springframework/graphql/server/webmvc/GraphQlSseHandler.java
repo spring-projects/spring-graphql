@@ -31,8 +31,6 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
-import org.springframework.util.AlternativeJdkIdGenerator;
-import org.springframework.util.IdGenerator;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -48,9 +46,6 @@ import org.springframework.web.servlet.function.ServerResponse;
  * @since 1.3.0
  */
 public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
-
-	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
-
 
 	public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
 		super(graphQlHandler, null);
@@ -94,12 +89,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		private SseSubscriber(ServerResponse.SseBuilder sseBuilder) {
 			this.sseBuilder = sseBuilder;
-			this.sseBuilder.onTimeout(this::onTimeout);
-		}
-
-		private void onTimeout() {
-			this.cancel();
-			this.sseBuilder.error(new AsyncRequestTimeoutException());
+			this.sseBuilder.onTimeout(() -> cancelWithError(new AsyncRequestTimeoutException()));
 		}
 
 		@Override
@@ -113,9 +103,13 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 				this.sseBuilder.data(value);
 			}
 			catch (IOException exception) {
-				cancel();
-				hookOnError(exception);
+				cancelWithError(exception);
 			}
+		}
+
+		private void cancelWithError(Throwable ex) {
+			this.cancel();
+			this.sseBuilder.error(ex);
 		}
 
 		@Override
