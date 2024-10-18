@@ -17,6 +17,7 @@
 package org.springframework.graphql.server.webflux;
 
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
@@ -32,6 +33,7 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -51,9 +53,28 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 	private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT = Mono.just(
 			ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
 
+	@Nullable
+	private final Duration timeout;
 
+
+	/**
+	 * Constructor with the handler to delegate to, and no timeout by default,
+	 * which results in never timing out.
+	 * @param graphQlHandler the handler to delegate to
+	 */
 	public GraphQlSseHandler(WebGraphQlHandler graphQlHandler) {
+		this(graphQlHandler, null);
+	}
+
+	/**
+	 * Variant constructor with a timeout to use for SSE subscriptions.
+	 * @param graphQlHandler the handler to delegate to
+	 * @param timeout the timeout value to use or {@code null} to never time out
+	 * @since 1.3.3
+	 */
+	public GraphQlSseHandler(WebGraphQlHandler graphQlHandler, @Nullable Duration timeout) {
 		super(graphQlHandler, null);
+		this.timeout = timeout;
 	}
 
 
@@ -83,10 +104,12 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 		Flux<ServerSentEvent<Map<String, Object>>> sseFlux =
 				resultFlux.map((event) -> ServerSentEvent.builder(event).event("next").build());
 
-		return ServerResponse.ok()
+		Mono<ServerResponse> responseMono = ServerResponse.ok()
 				.contentType(MediaType.TEXT_EVENT_STREAM)
 				.body(BodyInserters.fromServerSentEvents(sseFlux.concatWith(COMPLETE_EVENT)))
 				.onErrorResume(Throwable.class, (ex) -> ServerResponse.badRequest().build());
+
+		return ((this.timeout != null) ? responseMono.timeout(this.timeout) : responseMono);
 	}
 
 }
