@@ -56,6 +56,7 @@ import static org.mockito.Mockito.mock;
  *
  * @author Brian Clozel
  */
+@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 class GraphQlSseHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
@@ -92,7 +93,7 @@ class GraphQlSseHandlerTests {
 	void shouldWriteMultipleEventsForSubscription() throws Exception {
 		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockHttpServletRequest request = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
+				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
 				""");
 		MockHttpServletResponse response = handleAndAwait(request, handler);
 
@@ -118,7 +119,7 @@ class GraphQlSseHandlerTests {
 
 		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
 		MockHttpServletRequest request = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
+				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
 				""");
 		MockHttpServletResponse response = handleAndAwait(request, handler);
 
@@ -140,7 +141,7 @@ class GraphQlSseHandlerTests {
 	void shouldCancelDataFetcherPublisherWhenWritingFails() throws Exception {
 		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockHttpServletRequest servletRequest = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
+				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
 				""");
 		HttpServletResponse servletResponse = mock(HttpServletResponse.class);
 		ServletOutputStream outputStream = mock(ServletOutputStream.class);
@@ -165,7 +166,7 @@ class GraphQlSseHandlerTests {
 
 		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
 		MockHttpServletRequest servletRequest = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\\"Orwell\\\") { id name } }" }
+				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
 				""");
 
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);

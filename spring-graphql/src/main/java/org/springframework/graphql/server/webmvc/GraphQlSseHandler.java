@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
@@ -119,10 +120,10 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		@Override
 		protected void hookOnNext(Map<String, Object> value) {
-			writeResult(value);
+			sendNext(value);
 		}
 
-		private void writeResult(Map<String, Object> value) {
+		private void sendNext(Map<String, Object> value) {
 			try {
 				this.sseBuilder.event("next");
 				this.sseBuilder.data(value);
@@ -139,18 +140,21 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		@Override
 		protected void hookOnError(Throwable ex) {
-			if (ex instanceof SubscriptionPublisherException spe) {
-				ExecutionResult result = ExecutionResult.newExecutionResult().errors(spe.getErrors()).build();
-				writeResult(result.toSpecification());
-				hookOnComplete();
-			}
-			else {
-				this.sseBuilder.error(ex);
-			}
+			sendNext(exceptionToResultMap(ex));
+			sendComplete();
 		}
 
-		@Override
-		protected void hookOnComplete() {
+		private static Map<String, Object> exceptionToResultMap(Throwable ex) {
+			return ((ex instanceof SubscriptionPublisherException spe) ?
+					spe.toMap() :
+					GraphqlErrorBuilder.newError()
+							.message("Subscription error")
+							.errorType(org.springframework.graphql.execution.ErrorType.INTERNAL_ERROR)
+							.build()
+							.toSpecification());
+		}
+
+		private void sendComplete() {
 			try {
 				this.sseBuilder.event("complete").data("");
 			}
@@ -158,6 +162,11 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 				throw new RuntimeException(exc);
 			}
 			this.sseBuilder.complete();
+		}
+
+		@Override
+		protected void hookOnComplete() {
+			sendComplete();
 		}
 
 		static Consumer<ServerResponse.SseBuilder> connect(Flux<Map<String, Object>> resultFlux) {

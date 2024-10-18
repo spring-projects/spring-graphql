@@ -55,7 +55,8 @@ class GraphQlSseHandlerTests {
 
 	private static final DataFetcher<?> SEARCH_DATA_FETCHER = env -> {
 		String author = env.getArgument("author");
-		return Flux.fromIterable(BookSource.books()).filter((book) -> book.getAuthor().getFullName().contains(author));
+		return Flux.fromIterable(BookSource.books())
+				.filter((book) -> book.getAuthor().getFullName().contains(author));
 	};
 
 	private final MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/graphql")

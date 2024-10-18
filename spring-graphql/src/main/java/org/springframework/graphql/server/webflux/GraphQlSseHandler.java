@@ -24,6 +24,7 @@ import java.util.Map;
 import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import graphql.GraphqlErrorBuilder;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -86,7 +87,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 		if (response.getData() instanceof Publisher) {
 			resultFlux = Flux.from((Publisher<ExecutionResult>) response.getData())
 					.map(ExecutionResult::toSpecification)
-					.onErrorResume(SubscriptionPublisherException.class, (ex) -> Mono.just(ex.toMap()));
+					.onErrorResume(this::exceptionToResultMap);
 		}
 		else {
 			if (this.logger.isDebugEnabled()) {
@@ -102,14 +103,25 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 		}
 
 		Flux<ServerSentEvent<Map<String, Object>>> sseFlux =
-				resultFlux.map((event) -> ServerSentEvent.builder(event).event("next").build());
+				resultFlux.map((event) -> ServerSentEvent.builder(event).event("next").build())
+						.concatWith(COMPLETE_EVENT);
 
 		Mono<ServerResponse> responseMono = ServerResponse.ok()
 				.contentType(MediaType.TEXT_EVENT_STREAM)
-				.body(BodyInserters.fromServerSentEvents(sseFlux.concatWith(COMPLETE_EVENT)))
+				.body(BodyInserters.fromServerSentEvents(sseFlux))
 				.onErrorResume(Throwable.class, (ex) -> ServerResponse.badRequest().build());
 
 		return ((this.timeout != null) ? responseMono.timeout(this.timeout) : responseMono);
+	}
+
+	private Mono<Map<String, Object>> exceptionToResultMap(Throwable ex) {
+		return Mono.just((ex instanceof SubscriptionPublisherException spe) ?
+				spe.toMap() :
+				GraphqlErrorBuilder.newError()
+						.message("Subscription error")
+						.errorType(org.springframework.graphql.execution.ErrorType.INTERNAL_ERROR)
+						.build()
+						.toSpecification());
 	}
 
 }
