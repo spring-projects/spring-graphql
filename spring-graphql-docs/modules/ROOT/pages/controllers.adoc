@@ -743,7 +743,15 @@ Batch mapping methods support the following arguments:
 
 | `BatchLoaderEnvironment`
 | The environment that is available in GraphQL Java to a
-`org.dataloader.BatchLoaderWithContext`.
+  `org.dataloader.BatchLoaderWithContext`.
+
+  The `context` property of `BatchLoaderEnvironment` returns the same
+  `GraphQLContext` instance that is also available to `@SchemaMapping`
+  methods through the `DataFetchingEnvironment`.
+
+  The `keyContexts` property of `BatchLoaderEnvironment` returns the
+  localContext obtained from the `DataFetchingEnvironment` when the
+  `DataLoader` was called for each key.
 
 |===
 
