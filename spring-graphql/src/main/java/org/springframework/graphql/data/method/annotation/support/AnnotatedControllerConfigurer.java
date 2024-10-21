@@ -755,7 +755,9 @@ public class AnnotatedControllerConfigurer implements ApplicationContextAware, I
 		public Object get(DataFetchingEnvironment env) {
 			DataLoader<?, ?> dataLoader = env.getDataLoaderRegistry().getDataLoader(this.dataLoaderKey);
 			Assert.state(dataLoader != null, "No DataLoader for key '" + this.dataLoaderKey + "'");
-			return dataLoader.load(env.getSource(), (env.getLocalContext() != null) ? env.getLocalContext() : env.getGraphQlContext());
+			return ((env.getLocalContext() != null) ?
+					dataLoader.load(env.getSource(), env.getLocalContext()) :
+					dataLoader.load(env.getSource()));
 		}
 	}
 

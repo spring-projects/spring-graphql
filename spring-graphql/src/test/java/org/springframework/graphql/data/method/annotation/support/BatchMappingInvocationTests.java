@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.data.method.annotation.support;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import graphql.GraphQLContext;
+import graphql.execution.DataFetcherResult;
 import org.dataloader.BatchLoaderEnvironment;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,6 +38,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
+import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -143,7 +146,8 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 				"  }" +
 				"}";
 
-		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(new BatchKeyContextsController()).execute(document);
+		Mono<ExecutionGraphQlResponse> responseMono = createGraphQlService(
+				BatchKeyContextsController.class, new BatchKeyContextsController()).execute(document);
 
 		List<Course> actualCourses = ResponseHelper.forResponse(responseMono).toList("courses", Course.class);
 		List<Course> courses = Course.allCourses();
@@ -228,7 +232,14 @@ public class BatchMappingInvocationTests extends BatchMappingTestSupport {
 	}
 
 	@Controller
-	private static class BatchKeyContextsController extends CourseController {
+	private static class BatchKeyContextsController {
+
+		@QueryMapping
+		public DataFetcherResult<Collection<Course>> courses() {
+			return DataFetcherResult.<Collection<Course>>newResult().data(courseMap.values())
+					.localContext(GraphQLContext.newContext().build())
+					.build();
+		}
 
 		@BatchMapping
 		public List<Person> instructor(List<Course> courses, BatchLoaderEnvironment environment) {

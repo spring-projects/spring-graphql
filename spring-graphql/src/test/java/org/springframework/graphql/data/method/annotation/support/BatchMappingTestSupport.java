@@ -82,10 +82,14 @@ public class BatchMappingTestSupport {
 
 
 	protected TestExecutionGraphQlService createGraphQlService(CourseController controller) {
+		return createGraphQlService(CourseController.class, controller);
+	}
+
+	protected <T> TestExecutionGraphQlService createGraphQlService(Class<T> controllerClass, T controller) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.registerBean(CourseController.class, () -> controller);
+		context.registerBean(controllerClass, () -> controller);
 		context.registerBean(BatchLoaderRegistry.class, () -> registry);
 		context.refresh();
 
