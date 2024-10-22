@@ -15,4 +15,4 @@ jobs:
         env:
           JF_ENV_SPRING: ${{ secrets.JF_ARTIFACTORY_SPRING }}
       - name: Delete Build
-        run: jfrog rt delete --build spring-restdocs-${{ github.event.inputs.build-version }}
+        run: jfrog rt delete --build spring-graphql-${{ github.event.inputs.build-version }}
