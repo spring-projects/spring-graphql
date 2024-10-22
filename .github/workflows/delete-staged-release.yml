@@ -1,0 +1,18 @@
+name: Delete Staged Release
+on:
+  workflow_dispatch:
+    inputs:
+      build-version:
+        description: 'Version of the build to delete'
+        required: true
+jobs:
+  delete-staged-release:
+    name: Delete Staged Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@9fe0f98bd45b19e6e931d457f4e98f8f84461fb5 # v4.4.1
+        env:
+          JF_ENV_SPRING: ${{ secrets.JF_ARTIFACTORY_SPRING }}
+      - name: Delete Build
+        run: jfrog rt delete --build spring-restdocs-${{ github.event.inputs.build-version }}
