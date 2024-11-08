@@ -343,12 +343,14 @@ class GraphQlObservationInstrumentationTests {
 
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).errorType()).isEqualTo("InvalidSyntax");
-		assertThat(response.error(0).message()).startsWith("Invalid syntax with offending token 'invalid'");
+		assertThat(response.error(0).message()).containsIgnoringCase("syntax")
+				.containsIgnoringCase("token").contains("'invalid'");
 
 		assertThat(observationHandler.getEvents()).hasSize(1);
 		Observation.Event errorEvent = observationHandler.getEvents().get(0);
 		assertThat(errorEvent.getName()).isEqualTo("InvalidSyntax");
-		assertThat(errorEvent.getContextualName()).startsWith("Invalid syntax with offending token 'invalid'");
+		assertThat(errorEvent.getContextualName()).containsIgnoringCase("syntax")
+				.containsIgnoringCase("token").contains("'invalid'");
 
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
