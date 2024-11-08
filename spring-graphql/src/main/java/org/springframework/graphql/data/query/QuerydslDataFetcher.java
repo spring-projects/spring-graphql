@@ -142,7 +142,6 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting predicate
 	 */
-	@SuppressWarnings({"unchecked"})
 	protected Predicate buildPredicate(DataFetchingEnvironment environment) {
 		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
 		QuerydslBindings bindings = new QuerydslBindings();
@@ -150,13 +149,27 @@ public abstract class QuerydslDataFetcher<T> {
 		EntityPath<?> path = SimpleEntityPathResolver.INSTANCE.createPath(this.domainType.getType());
 		this.customizer.customize(bindings, path);
 
-		for (Map.Entry<String, Object> entry : getArgumentValues(environment).entrySet()) {
-			Object value = entry.getValue();
-			List<Object> values = (value instanceof List) ? (List<Object>) value : Collections.singletonList(value);
-			parameters.put(entry.getKey(), values);
-		}
+		parameters.putAll(flatten(null, getArgumentValues(environment)));
 
 		return BUILDER.getPredicate(this.domainType, parameters, bindings);
+	}
+
+	@SuppressWarnings("unchecked")
+	private MultiValueMap<String, Object> flatten(@Nullable String prefix, Map<String, Object> inputParameters) {
+		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
+
+		for (Map.Entry<String, Object> entry : inputParameters.entrySet()) {
+			Object value = entry.getValue();
+			if (value instanceof Map<?, ?> nested) {
+				parameters.addAll(flatten(entry.getKey(), (Map<String, Object>) nested));
+			}
+			else {
+				List<Object> values = (value instanceof List) ? (List<Object>) value : Collections.singletonList(value);
+				parameters.put(((prefix != null) ? prefix + "." : "") + entry.getKey(), values);
+			}
+		}
+
+		return parameters;
 	}
 
 	/**
