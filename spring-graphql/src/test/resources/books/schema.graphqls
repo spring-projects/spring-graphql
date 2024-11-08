@@ -2,6 +2,7 @@ type Query {
     bookById(id: ID): Book
     booksById(id: [ID]): [Book]
     books(id: ID, name: String, author: String): [Book!]!
+    booksByNestableCriteria(id: ID, name: String, author: AuthorCriteria): [Book!]!
     booksByCriteria(criteria:BookCriteria): [Book]
     booksByProjectedArguments(name: String, author: String): [Book]
     booksByProjectedCriteria(criteria:BookCriteria): [Book]
@@ -19,6 +20,12 @@ type Subscription {
 input BookCriteria {
     id: ID
     author: String
+}
+
+input AuthorCriteria {
+    id: ID
+    firstName: String
+    lastName: String
 }
 
 type Book {
