@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionGraphQlService;
+import org.springframework.graphql.data.method.annotation.GraphQlType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -103,7 +104,7 @@ public class ClassNameTypeResolverTests {
 		Mammal mammal = response.toEntity("animals[0]", Dog.class);
 		assertThat(mammal.isHerbivore()).isEqualTo(false);
 
-		Bird bird = response.toEntity("animals[1]", Penguin.class);
+		BirdDataObject bird = response.toEntity("animals[1]", Penguin.class);
 		assertThat(bird.isFlightless()).isEqualTo(true);
 	}
 
@@ -173,7 +174,8 @@ public class ClassNameTypeResolverTests {
 	}
 
 
-	interface Bird extends Animal {
+	@GraphQlType("Bird")
+	interface BirdDataObject extends Animal {
 
 		boolean isFlightless();
 
@@ -203,7 +205,7 @@ public class ClassNameTypeResolverTests {
 	}
 
 
-	static class BaseBird extends BaseAnimal implements Bird {
+	static class BaseBird extends BaseAnimal implements BirdDataObject {
 
 		private final boolean flightless;
 

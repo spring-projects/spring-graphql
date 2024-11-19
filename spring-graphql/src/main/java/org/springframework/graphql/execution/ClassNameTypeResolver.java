@@ -26,6 +26,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.TypeResolver;
 
+import org.springframework.graphql.data.method.annotation.GraphQlType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -34,12 +35,19 @@ import org.springframework.util.Assert;
  * class name of a value returned from a {@code DataFetcher}. If necessary, it
  * walks up the base class and interface hierarchy to find a match.
  *
+ * <p>If the value's type is annotated with {@link GraphQlType}, then the
+ * annotation's value is used rather than the class name.
+ *
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
 public class ClassNameTypeResolver implements TypeResolver {
 
-	private Function<Class<?>, String> classNameExtractor = Class::getSimpleName;
+	private Function<Class<?>, String> classNameExtractor = type -> {
+		final var annotation = type.getAnnotation(GraphQlType.class);
+		if (annotation != null) return annotation.value();
+		return type.getSimpleName();
+	};
 
 	private final Map<Class<?>, String> mappings = new LinkedHashMap<>();
 
