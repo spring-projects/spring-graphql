@@ -56,8 +56,6 @@ An `@EntityMapping` method can load federated type instances in response to an
 https://www.apollographql.com/docs/federation/subgraph-spec/#understanding-query_entities[_entities query]
 from the federation gateway. For example:
 
-For example:
-
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	@Controller
