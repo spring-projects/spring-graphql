@@ -143,33 +143,29 @@ public abstract class QuerydslDataFetcher<T> {
 	 * @return the resulting predicate
 	 */
 	protected Predicate buildPredicate(DataFetchingEnvironment environment) {
-		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
 		QuerydslBindings bindings = new QuerydslBindings();
-
 		EntityPath<?> path = SimpleEntityPathResolver.INSTANCE.createPath(this.domainType.getType());
 		this.customizer.customize(bindings, path);
 
-		parameters.putAll(flatten(null, getArgumentValues(environment)));
+		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
+		addParameters(null, getArgumentValues(environment), parameters);
 
 		return BUILDER.getPredicate(this.domainType, parameters, bindings);
 	}
 
 	@SuppressWarnings("unchecked")
-	private MultiValueMap<String, Object> flatten(@Nullable String prefix, Map<String, Object> inputParameters) {
-		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
+	private void addParameters(
+			@Nullable String prefix, Map<String, Object> arguments, MultiValueMap<String, Object> parameters) {
 
-		for (Map.Entry<String, Object> entry : inputParameters.entrySet()) {
+		for (Map.Entry<String, Object> entry : arguments.entrySet()) {
 			Object value = entry.getValue();
 			if (value instanceof Map<?, ?> nested) {
-				parameters.addAll(flatten(entry.getKey(), (Map<String, Object>) nested));
+				addParameters(entry.getKey(), (Map<String, Object>) nested, parameters);
+				continue;
 			}
-			else {
-				List<Object> values = (value instanceof List) ? (List<Object>) value : Collections.singletonList(value);
-				parameters.put(((prefix != null) ? prefix + "." : "") + entry.getKey(), values);
-			}
+			List<Object> values = (value instanceof List) ? (List<Object>) value : Collections.singletonList(value);
+			parameters.put(((prefix != null) ? prefix + "." : "") + entry.getKey(), values);
 		}
-
-		return parameters;
 	}
 
 	/**

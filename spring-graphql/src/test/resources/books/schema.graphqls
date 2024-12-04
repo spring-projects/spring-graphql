@@ -2,7 +2,7 @@ type Query {
     bookById(id: ID): Book
     booksById(id: [ID]): [Book]
     books(id: ID, name: String, author: String): [Book!]!
-    booksByNestableCriteria(id: ID, name: String, author: AuthorCriteria): [Book!]!
+    booksByNestedCriteria(id: ID, name: String, author: AuthorCriteria): [Book!]!
     booksByCriteria(criteria:BookCriteria): [Book]
     booksByProjectedArguments(name: String, author: String): [Book]
     booksByProjectedCriteria(criteria:BookCriteria): [Book]

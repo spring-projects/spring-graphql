@@ -346,13 +346,13 @@ class QuerydslDataFetcherTests {
 		assertThat(books.get(0).getName()).isEqualTo(book1.getName());
 	}
 
-	@Test
+	@Test // gh-1081
 	void shouldConsiderNestedArguments() {
 		Book book1 = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
 		Book book2 = new Book(53L, "Breaking Bad", new Author(0L, "", "Heisenberg"));
 		mockRepository.saveAll(Arrays.asList(book1, book2));
 
-		String queryName = "booksByNestableCriteria";
+		String queryName = "booksByNestedCriteria";
 
 		Mono<ExecutionGraphQlResponse> responseMono =
 				graphQlSetup(queryName, QuerydslDataFetcher.builder(mockRepository).many())
