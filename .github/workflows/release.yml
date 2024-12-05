@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     tags:
-      - v1.3.[0-9]+
+      - v1.4.[0-9]+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
