@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,9 +36,11 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  */
 public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 
-	@SuppressWarnings("removal")
+	private static final MediaType APPLICATION_GRAPHQL =
+			new MediaType("application", "graphql+json");
+
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = List.of(
-			MediaType.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL);
+			MediaType.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL);
 
 
 	/**
