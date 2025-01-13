@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.TypeRef;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
@@ -42,7 +43,6 @@ import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.lang.Nullable;
 import org.springframework.test.util.AssertionErrors;
-import org.springframework.test.util.JsonExpectationsHelper;
 import org.springframework.test.util.JsonPathExpectationsHelper;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -469,7 +469,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			this.delegate.doAssert(() -> {
 				String actual = this.delegate.jsonContent(this.jsonPath);
 				try {
-					new JsonExpectationsHelper().assertJsonEqual(expected, actual, strict);
+					JSONAssert.assertEquals(expected, actual, strict);
 				}
 				catch (AssertionError ex) {
 					throw new AssertionError(ex.getMessage() + "\n\n" + "Expected JSON content:\n'" + expected + "'\n\n"
