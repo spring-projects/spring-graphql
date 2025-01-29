@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,6 +109,19 @@ public class AnnotatedControllerExceptionResolverTests {
 
 		StepVerifier.create(resolver.resolveException(ex, this.environment, controller)).verifyComplete();
 		StepVerifier.create(resolver.resolveException(ex, this.environment, controller)).verifyComplete();
+	}
+
+	@Test // gh-1090
+	void failureFromResolver() {
+		ExceptionThrowingController controller = new ExceptionThrowingController();
+
+		Exception ex = new IllegalArgumentException("Bad input");
+		AnnotatedControllerExceptionResolver resolver = exceptionResolver();
+		resolver.registerController(controller.getClass());
+
+		StepVerifier.create(resolver.resolveException(ex, this.environment, controller))
+				.expectErrorSatisfies(actual -> assertThat(actual).isSameAs(ex))
+				.verify();
 	}
 
 	@Test
@@ -300,6 +313,16 @@ public class AnnotatedControllerExceptionResolverTests {
 		@GraphQlExceptionHandler
 		public String handle(IllegalArgumentException ex) {
 			return "Handled";
+		}
+
+	}
+
+
+	private static class ExceptionThrowingController {
+
+		@GraphQlExceptionHandler
+		GraphQLError handle(IllegalArgumentException ex) {
+			throw new IllegalStateException("failure in exception handler");
 		}
 
 	}
