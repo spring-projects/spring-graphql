@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -317,7 +317,7 @@ public class WebSocketGraphQlTransportTests {
 	}
 
 	@Test
-	void errorBeforeConnectionAck() {
+	void errorBeforeConnectionAckWithStart() {
 
 		// Errors before GraphQL session initialized should be routed, no hanging on start
 
@@ -325,9 +325,26 @@ public class WebSocketGraphQlTransportTests {
 		handler.connectionInitHandler(initPayload -> Mono.error(new IllegalStateException("boo")));
 
 		TestWebSocketClient client = new TestWebSocketClient(handler);
+		String expectedMessage = "disconnected with CloseStatus[code=1002, reason=null]";
 
 		StepVerifier.create(createTransport(client).start())
-				.expectErrorMessage("boo")
+				.expectErrorSatisfies(ex -> assertThat(ex).hasMessageEndingWith(expectedMessage))
+				.verify(TIMEOUT);
+	}
+
+	@Test // gh-1098
+	void errorBeforeConnectionAckWithRequest() {
+
+		// Errors before GraphQL session initialized should be routed, no hanging on start
+
+		MockGraphQlWebSocketServer handler = new MockGraphQlWebSocketServer();
+		handler.connectionInitHandler(initPayload -> Mono.error(new IllegalStateException("boo")));
+
+		TestWebSocketClient client = new TestWebSocketClient(session -> session.close(CloseStatus.POLICY_VIOLATION));
+		String expectedMessage = "disconnected with CloseStatus[code=1008, reason=null]";
+
+		StepVerifier.create(createTransport(client).execute(new DefaultGraphQlRequest("{Query1}")))
+				.expectErrorSatisfies(ex -> assertThat(ex).hasMessageEndingWith(expectedMessage))
 				.verify(TIMEOUT);
 	}
 
