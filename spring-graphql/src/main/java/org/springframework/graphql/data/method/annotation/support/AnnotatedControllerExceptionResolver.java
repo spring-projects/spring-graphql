@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -356,7 +356,16 @@ final class AnnotatedControllerExceptionResolver implements HandlerDataFetcherEx
 			return this.method;
 		}
 
+		@SuppressWarnings("unchecked")
 		Mono<List<GraphQLError>> adapt(@Nullable Object result, Throwable ex) {
+			if (result instanceof Mono<?> errorMono && this.adapter != ReturnValueAdapter.forMono) {
+				return (Mono<List<GraphQLError>>) errorMono.onErrorMap((ex2) -> {
+					if (logger.isWarnEnabled()) {
+						logger.warn("Failure in @GraphQlExceptionHandler " + this.method, ex2);
+					}
+					return ex; // fall back to original exception
+				});
+			}
 			return this.adapter.adapt(result, this.returnType, ex);
 		}
 

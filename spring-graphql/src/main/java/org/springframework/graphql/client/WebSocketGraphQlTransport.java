@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -339,7 +339,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						if (logger.isDebugEnabled()) {
 							logger.debug(closeStatusMessage);
 						}
-						graphQlSession.terminateRequests(closeStatusMessage, closeStatus);
+						terminateGraphQlSession(graphQlSession, closeStatus, closeStatusMessage, null);
 					})
 					.doOnError((cause) -> {
 						CloseStatus closeStatus = CloseStatus.NO_STATUS_CODE;
@@ -347,9 +347,19 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						if (logger.isErrorEnabled()) {
 							logger.error(closeStatusMessage);
 						}
-						graphQlSession.terminateRequests(closeStatusMessage, closeStatus);
+						terminateGraphQlSession(graphQlSession, closeStatus, closeStatusMessage, cause);
 					})
 					.subscribe();
+		}
+
+		private void terminateGraphQlSession(
+				GraphQlSession session, CloseStatus closeStatus, String closeStatusMessage, @Nullable Throwable cause) {
+
+			if (sessionNotInitialized()) {
+				this.graphQlSessionSink.tryEmitError(new IllegalStateException(closeStatusMessage, cause));
+				this.graphQlSessionSink = Sinks.unsafe().one();
+			}
+			session.terminateRequests(closeStatusMessage, closeStatus);
 		}
 
 		private String initCloseStatusMessage(CloseStatus status, @Nullable Throwable ex, GraphQlSession session) {
