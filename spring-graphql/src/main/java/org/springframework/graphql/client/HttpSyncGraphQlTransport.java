@@ -22,6 +22,7 @@ import java.util.Map;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
@@ -62,7 +63,7 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 
 		Map<String, Object> body = this.restClient.post()
 				.contentType(this.contentType)
-				.accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.body(request.toMap())
 				.retrieve()
 				.body(MAP_TYPE);

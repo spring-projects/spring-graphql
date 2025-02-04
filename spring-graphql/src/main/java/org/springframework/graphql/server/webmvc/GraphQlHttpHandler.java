@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.MediaType;
@@ -45,7 +46,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 			new MediaType("application", "graphql+json");
 
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = List.of(
-			MediaType.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL);
+			MediaTypes.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL);
 
 
 	/**

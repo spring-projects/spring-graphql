@@ -34,6 +34,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
@@ -91,9 +92,9 @@ public class GraphQlHttpHandlerTests {
 
 	@Test
 	void shouldProduceApplicationGraphQl() throws Exception {
-		MockHttpServletRequest request = createServletRequest("{ greeting }", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
+		MockHttpServletRequest request = createServletRequest("{ greeting }", MediaTypes.APPLICATION_GRAPHQL_RESPONSE.toString());
 		MockHttpServletResponse response = handleRequest(request, this.greetingHandler);
-		assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
+		assertThat(response.getContentType()).isEqualTo(MediaTypes.APPLICATION_GRAPHQL_RESPONSE.toString());
 	}
 
 	@Test
@@ -110,7 +111,7 @@ public class GraphQlHttpHandlerTests {
 				.toHttpHandler();
 
 		MockHttpServletRequest request = createServletRequest(
-				"{ greeting }", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
+				"{ greeting }", MediaTypes.APPLICATION_GRAPHQL_RESPONSE.toString());
 
 		LocaleContextHolder.setLocale(Locale.FRENCH);
 
@@ -130,7 +131,7 @@ public class GraphQlHttpHandlerTests {
 				.toHttpHandler();
 
 		MockHttpServletRequest request = createServletRequest(
-				"{ showId }", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
+				"{ showId }", MediaTypes.APPLICATION_GRAPHQL_RESPONSE.toString());
 
 		MockHttpServletResponse response = handleRequest(request, handler);
 
@@ -145,7 +146,7 @@ public class GraphQlHttpHandlerTests {
 				.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler();
 
 		GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler, new MappingJackson2HttpMessageConverter());
-		MockHttpServletRequest servletRequest = createServletRequest("{ greeting }", MediaType.APPLICATION_GRAPHQL_RESPONSE_VALUE);
+		MockHttpServletRequest servletRequest = createServletRequest("{ greeting }", MediaTypes.APPLICATION_GRAPHQL_RESPONSE.toString());
 
 		ServerRequest request = ServerRequest.create(servletRequest, Collections.emptyList());
 		ServerResponse response = handler.handleRequest(request);

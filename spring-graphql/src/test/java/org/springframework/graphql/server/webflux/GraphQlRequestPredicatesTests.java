@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.Collections;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.graphql.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -131,7 +132,7 @@ class GraphQlRequestPredicatesTests {
 		private MockServerWebExchange createMatchingHttpExchange() {
 			MockServerHttpRequest request = MockServerHttpRequest.post("/graphql")
 					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_GRAPHQL_RESPONSE)
+					.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 					.build();
 			return MockServerWebExchange.from(request);
 		}

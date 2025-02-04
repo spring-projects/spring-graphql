@@ -32,6 +32,7 @@ import org.springframework.core.codec.DataBufferEncoder;
 import org.springframework.core.io.buffer.DefaultDataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
@@ -119,12 +120,12 @@ public class GraphQlHttpHandlerTests {
 	void shouldProduceApplicationGraphQl() throws Exception {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
 				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.body(initRequestBody("{greeting}"));
 
 		MockServerHttpResponse httpResponse = handleRequest(httpRequest, this.greetingHandler);
 
-		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_GRAPHQL_RESPONSE);
+		assertThat(httpResponse.getHeaders().getContentType()).isEqualTo(MediaTypes.APPLICATION_GRAPHQL_RESPONSE);
 	}
 
 	@Test
@@ -147,7 +148,7 @@ public class GraphQlHttpHandlerTests {
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
 				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.acceptLanguageAsLocales(Locale.FRENCH)
 				.body(initRequestBody("{greeting}"));
 
@@ -165,7 +166,7 @@ public class GraphQlHttpHandlerTests {
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
 				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.body(initRequestBody("{showId}"));
 
 		MockServerHttpResponse httpResponse = handleRequest(httpRequest, handler);
@@ -191,7 +192,7 @@ public class GraphQlHttpHandlerTests {
 
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
 				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_GRAPHQL_RESPONSE)
+				.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.body(body);
 
 		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
