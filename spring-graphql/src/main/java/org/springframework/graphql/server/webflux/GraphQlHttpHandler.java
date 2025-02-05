@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -43,6 +44,8 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = List.of(
 			MediaTypes.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL);
 
+	private boolean isStandardMode = false;
+
 
 	/**
 	 * Create a new instance.
@@ -61,12 +64,48 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 		super(graphQlHandler, codecConfigurer);
 	}
 
+	/**
+	 * Return whether this HTTP handler should conform to the "GraphQL over HTTP specification"
+	 * when the {@link MediaTypes#APPLICATION_GRAPHQL_RESPONSE} is selected.
+	 * <p>When enabled, this mode will use 4xx/5xx HTTP response status if an error occurs before
+	 * the GraphQL request execution phase starts; for example, if JSON parsing, GraphQL document parsing,
+	 * or GraphQL document validation fails. When disabled, behavior will remain consistent with the
+	 * "application/json" response content type.
+	 * <p>By default, this is set to {@code false}.
+	 * @since 1.4.0
+	 * @see <a href="https://graphql.github.io/graphql-over-http/draft/#sec-application-graphql-response-json">GraphQL over HTTP specification</a>
+	 */
+	public boolean isStandardMode() {
+		return this.isStandardMode;
+	}
+
+	/**
+	 * Set whether this HTTP handler should conform to the "GraphQL over HTTP specification"
+	 * when the {@link MediaTypes#APPLICATION_GRAPHQL_RESPONSE} is selected.
+	 * @param standardMode whether the "standard mode" should be enabled
+	 * @since 1.4.0
+	 * @see #isStandardMode
+	 */
+	public void setStandardMode(boolean standardMode) {
+		this.isStandardMode = standardMode;
+	}
 
 	protected Mono<ServerResponse> prepareResponse(ServerRequest request, WebGraphQlResponse response) {
-		ServerResponse.BodyBuilder builder = ServerResponse.ok();
+		MediaType responseMediaType = selectResponseMediaType(request);
+		HttpStatus responseStatus = selectResponseStatus(response, responseMediaType);
+		ServerResponse.BodyBuilder builder = ServerResponse.status(responseStatus);
 		builder.headers((headers) -> headers.putAll(response.getResponseHeaders()));
-		builder.contentType(selectResponseMediaType(request));
+		builder.contentType(responseMediaType);
 		return builder.bodyValue(encodeResponseIfNecessary(response));
+	}
+
+	protected HttpStatus selectResponseStatus(WebGraphQlResponse response, MediaType responseMediaType) {
+		if (this.isStandardMode
+				&& !response.getExecutionResult().isDataPresent()
+				&& MediaTypes.APPLICATION_GRAPHQL_RESPONSE.equals(responseMediaType)) {
+			return HttpStatus.BAD_REQUEST;
+		}
+		return HttpStatus.OK;
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
