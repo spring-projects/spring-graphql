@@ -73,6 +73,8 @@ public final class GraphQlRequestPredicates {
 
 	private static class GraphQlHttpRequestPredicate implements RequestPredicate {
 
+		private static final MediaType APPLICATION_GRAPHQL = MediaType.parseMediaType("application/graphql");
+
 		private final PathPattern pattern;
 
 		private final List<MediaType> contentTypes;
@@ -86,7 +88,7 @@ public final class GraphQlRequestPredicates {
 			PathPatternParser parser = PathPatternParser.defaultInstance;
 			path = parser.initFullPathPattern(path);
 			this.pattern = parser.parse(path);
-			this.contentTypes = List.of(MediaType.APPLICATION_JSON, MediaType.parseMediaType("application/graphql"));
+			this.contentTypes = List.of(MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL);
 			this.acceptedMediaTypes = accepted;
 		}
 
