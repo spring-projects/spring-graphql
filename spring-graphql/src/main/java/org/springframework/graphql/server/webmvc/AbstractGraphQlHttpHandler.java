@@ -67,6 +67,8 @@ public abstract class AbstractGraphQlHttpHandler {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
+	private final static MediaType APPLICATION_GRAPHQL = MediaType.parseMediaType("application/graphql");
+
 	private final IdGenerator idGenerator = new AlternativeJdkIdGenerator();
 
 	private final WebGraphQlHandler graphQlHandler;
@@ -174,9 +176,8 @@ public abstract class AbstractGraphQlHttpHandler {
 		String contentTypeHeader = request.headers().firstHeader(HttpHeaders.CONTENT_TYPE);
 		if (StringUtils.hasText(contentTypeHeader)) {
 			MediaType contentType = MediaType.parseMediaType(contentTypeHeader);
-			MediaType applicationGraphQl = MediaType.parseMediaType("application/graphql");
 			// Spec requires application/json but some clients still use application/graphql
-			if (applicationGraphQl.includes(contentType)) {
+			if (APPLICATION_GRAPHQL.includes(contentType)) {
 				try {
 					request = ServerRequest.from(request)
 							.headers((headers) -> headers.setContentType(MediaType.APPLICATION_JSON))
