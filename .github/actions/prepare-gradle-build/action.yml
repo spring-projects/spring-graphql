@@ -27,12 +27,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Free Disk Space
-      if: ${{ runner.os == 'Linux' }}
-      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-      with:
-        tool-cache: true
-        docker-images: false
     - name: Set Up Java
       uses: actions/setup-java@v4
       with:
@@ -42,12 +36,12 @@ runs:
           ${{ inputs.java-toolchain == 'true' && '17' || '' }}
     - name: Set Up Gradle With Read/Write Cache
       if: ${{ inputs.cache-read-only == 'false' }}
-      uses: gradle/actions/setup-gradle@cc4fc85e6b35bafd578d5ffbc76a5518407e1af0 # v4.2.1
+      uses: gradle/actions/setup-gradle@94baf225fe0a508e581a564467443d0e2379123b # v4.3.0
       with:
         cache-read-only: false
         develocity-access-key: ${{ inputs.develocity-access-key }}
     - name: Set Up Gradle
-      uses: gradle/actions/setup-gradle@cc4fc85e6b35bafd578d5ffbc76a5518407e1af0 # v4.2.1
+      uses: gradle/actions/setup-gradle@94baf225fe0a508e581a564467443d0e2379123b # v4.3.0
       with:
         develocity-access-key: ${{ inputs.develocity-access-key }}
         develocity-token-expiry: 4
