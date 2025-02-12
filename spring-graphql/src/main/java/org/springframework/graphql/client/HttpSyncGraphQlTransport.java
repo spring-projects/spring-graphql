@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,11 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.MediaTypes;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.Assert;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 
@@ -65,10 +68,21 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 				.contentType(this.contentType)
 				.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.body(request.toMap())
-				.retrieve()
-				.body(MAP_TYPE);
-
+				.exchange((httpRequest, httpResponse) -> {
+					if (httpResponse.getStatusCode().equals(HttpStatus.OK)) {
+						return httpResponse.bodyTo(MAP_TYPE);
+					}
+					else if (httpResponse.getStatusCode().is4xxClientError() && isGraphQlResponse(httpResponse)) {
+						return httpResponse.bodyTo(MAP_TYPE);
+					}
+					throw new HttpClientErrorException(httpResponse.getStatusCode(), httpResponse.getStatusText());
+				});
 		return new ResponseMapGraphQlResponse((body != null) ? body : Collections.emptyMap());
+	}
+
+	private static boolean isGraphQlResponse(ClientHttpResponse clientResponse) {
+		return MediaTypes.APPLICATION_GRAPHQL_RESPONSE
+				.isCompatibleWith(clientResponse.getHeaders().getContentType());
 	}
 
 }

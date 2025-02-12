@@ -26,9 +26,11 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.MediaTypes;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.util.Assert;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 
 
@@ -83,9 +85,23 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 						attributes.putAll(clientRequest.getAttributes());
 					}
 				})
-				.retrieve()
-				.bodyToMono(MAP_TYPE)
+				.exchangeToMono((response) -> {
+					if (response.statusCode().equals(HttpStatus.OK)) {
+						return response.bodyToMono(MAP_TYPE);
+					}
+					else if (response.statusCode().is4xxClientError() && isGraphQlResponse(response)) {
+						return response.bodyToMono(MAP_TYPE);
+					}
+					else {
+						return response.createError();
+					}
+				})
 				.map(ResponseMapGraphQlResponse::new);
+	}
+
+	private static boolean isGraphQlResponse(ClientResponse clientResponse) {
+		return MediaTypes.APPLICATION_GRAPHQL_RESPONSE
+				.isCompatibleWith(clientResponse.headers().contentType().orElse(null));
 	}
 
 	@Override
