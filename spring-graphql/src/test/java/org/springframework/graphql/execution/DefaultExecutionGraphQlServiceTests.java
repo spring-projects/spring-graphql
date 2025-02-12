@@ -67,14 +67,12 @@ public class DefaultExecutionGraphQlServiceTests {
 
 	@Test
 	void shouldHandleGraphQlErrors() {
-		GraphQlSource graphQlSource = GraphQlSetup.schemaContent("type Query { greeting: String }")
+		ExecutionGraphQlResponse response = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "hi")
-				.toGraphQlSource();
-		DefaultExecutionGraphQlService graphQlService = new DefaultExecutionGraphQlService(graphQlSource);
+				.toGraphQlService()
+				.execute(new DefaultExecutionGraphQlRequest("{ greeting }", "unknown", null, null, "uniqueId", null))
+				.block();
 
-		ExecutionGraphQlRequest request = new DefaultExecutionGraphQlRequest("{ greeting }", "unknown",
-				null, null, "uniqueId", null);
-		ExecutionGraphQlResponse response = graphQlService.execute(request).block();
 		assertThat(response.getExecutionResult().getErrors()).singleElement()
 				.hasFieldOrPropertyWithValue("errorType", ErrorType.ValidationError);
 	}

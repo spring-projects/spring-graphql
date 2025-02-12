@@ -26,7 +26,6 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
 import graphql.GraphQLError;
-import graphql.GraphQLException;
 import graphql.execution.ExecutionIdProvider;
 import graphql.execution.instrumentation.dataloader.EmptyDataLoaderRegistryInstance;
 import io.micrometer.context.ContextSnapshotFactory;
@@ -105,12 +104,8 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			ExecutionInput executionInputToUse = registerDataLoaders(executionInput);
 
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInputToUse))
-					.onErrorResume(GraphQLException.class, (exception) -> {
-						if (exception instanceof GraphQLError graphQLError) {
-							return Mono.just(ExecutionResult.newExecutionResult().addError(graphQLError).build());
-						}
-						return Mono.error(exception);
-					})
+					.onErrorResume((ex) -> ex instanceof GraphQLError, (ex) ->
+							Mono.just(ExecutionResult.newExecutionResult().addError((GraphQLError) ex).build()))
 					.map((result) -> new DefaultExecutionGraphQlResponse(executionInputToUse, result));
 		});
 	}
