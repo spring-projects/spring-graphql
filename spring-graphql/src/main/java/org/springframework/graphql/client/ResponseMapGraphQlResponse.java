@@ -177,7 +177,12 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 				return graphql.ErrorType.valueOf(classification);
 			}
 			catch (IllegalArgumentException ex) {
-				return org.springframework.graphql.execution.ErrorType.valueOf(classification);
+				try {
+					return org.springframework.graphql.execution.ErrorType.valueOf(classification);
+				}
+				catch (IllegalArgumentException ex2) {
+					return ErrorClassification.errorClassification(classification);
+				}
 			}
 		}
 
