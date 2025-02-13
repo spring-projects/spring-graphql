@@ -15,12 +15,18 @@ equivalent functionality, but rely on blocking vs non-blocking I/O respectively 
 writing the HTTP response.
 
 Requests must use HTTP POST with `"application/json"` as content type and GraphQL request details
-included as JSON in the request body, as defined in the proposed
+included as JSON in the request body. Clients can request the `"application/graphql-response+json"` media type
+to get the behavior defined in the official
 https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md[GraphQL over HTTP] specification.
-Once the JSON body has been successfully decoded, the HTTP response status is always 200 (OK),
+If the client doesn't express any preference, this will be the content type of choice.
+Clients can also request the legacy `"application/json"` media type to get the traditional HTTP behavior.
+
+In practice, GraphQL HTTP clients should expect 4xx/5xx HTTP responses if the server is unavailable, security credentials
+are missing or if the request body is not valid JSON. `"application/graphql-response+json"` responses will also use
+4xx statuses if the GraphQL document sent by the client cannot be parsed or is considered invalid by the GraphQL engine.
+In this case, `"application/json"` responses will still use 200 (OK).
+Once the GraphQL request has been successfully validated, the HTTP response status is always 200 (OK),
 and any errors from GraphQL request execution appear in the "errors" section of the GraphQL response.
-The default and preferred choice of media type is `"application/graphql-response+json"`, but `"application/json"`
-is also supported, as described in the specification.
 
 `GraphQlHttpHandler` can be exposed as an HTTP endpoint by declaring a `RouterFunction`
 bean and using the `RouterFunctions` from Spring MVC or WebFlux to create the route. The
