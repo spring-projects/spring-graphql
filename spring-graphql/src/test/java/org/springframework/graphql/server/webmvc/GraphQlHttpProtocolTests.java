@@ -226,7 +226,6 @@ public class GraphQlHttpProtocolTests {
 		reader.register(MvcTestConfig.class);
 		context.setServletContext(new MockServletContext());
 		GraphQlHttpHandler httpHandler = graphQlSetup.toHttpHandler();
-		httpHandler.setStandardMode(true);
 		RouterFunction<ServerResponse> routerFunction = RouterFunctions
 				.route()
 				.POST("/graphql", RequestPredicates.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE),

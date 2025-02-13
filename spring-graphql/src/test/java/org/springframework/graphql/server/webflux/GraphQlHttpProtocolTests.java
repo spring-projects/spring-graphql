@@ -229,7 +229,6 @@ public class GraphQlHttpProtocolTests {
 		AnnotatedBeanDefinitionReader reader = new AnnotatedBeanDefinitionReader(context);
 		reader.register(WebFluxTestConfig.class);
 		GraphQlHttpHandler httpHandler = graphQlSetup.toHttpHandlerWebFlux();
-		httpHandler.setStandardMode(true);
 		RouterFunction<ServerResponse> routerFunction = RouterFunctions
 				.route()
 				.POST("/graphql", RequestPredicates.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE),

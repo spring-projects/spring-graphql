@@ -44,7 +44,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = List.of(
 			MediaTypes.APPLICATION_GRAPHQL_RESPONSE, MediaType.APPLICATION_JSON, APPLICATION_GRAPHQL);
 
-	private boolean isStandardMode = false;
+	private boolean httpOkOnValidationErrors = false;
 
 
 	/**
@@ -65,29 +65,31 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	}
 
 	/**
-	 * Return whether this HTTP handler should conform to the "GraphQL over HTTP specification"
-	 * when the {@link MediaTypes#APPLICATION_GRAPHQL_RESPONSE} is selected.
-	 * <p>When enabled, this mode will use 4xx/5xx HTTP response status if an error occurs before
+	 * Return whether this HTTP handler should use HTTP 200 OK responses if an error occurs before
 	 * the GraphQL request execution phase starts; for example, if JSON parsing, GraphQL document parsing,
-	 * or GraphQL document validation fails. When disabled, behavior will remain consistent with the
-	 * "application/json" response content type.
+	 * or GraphQL document validation fail.
+	 * <p>This option only applies to {@link MediaTypes#APPLICATION_GRAPHQL_RESPONSE} responses,
+	 * as legacy {@link MediaType#APPLICATION_JSON} responses always use HTTP 200 OK in such cases.
+	 * Enabling this option means the server will not conform to the "GraphQL over HTTP specification".
 	 * <p>By default, this is set to {@code false}.
 	 * @since 1.4.0
 	 * @see <a href="https://graphql.github.io/graphql-over-http/draft/#sec-application-graphql-response-json">GraphQL over HTTP specification</a>
 	 */
-	public boolean isStandardMode() {
-		return this.isStandardMode;
+	public boolean isHttpOkOnValidationErrors() {
+		return this.httpOkOnValidationErrors;
 	}
 
 	/**
-	 * Set whether this HTTP handler should conform to the "GraphQL over HTTP specification"
-	 * when the {@link MediaTypes#APPLICATION_GRAPHQL_RESPONSE} is selected.
-	 * @param standardMode whether the "standard mode" should be enabled
+	 * Set whether this HTTP handler should use HTTP 200 OK responses if an error occurs before
+	 * the GraphQL request execution phase starts.
+	 * @param httpOkOnValidationErrors whether "HTTP 200 OK" responses should always be used
 	 * @since 1.4.0
-	 * @see #isStandardMode
+	 * @deprecated since 1.4, will be made {@code false} permanently in a future release
+	 * @see #isHttpOkOnValidationErrors
 	 */
-	public void setStandardMode(boolean standardMode) {
-		this.isStandardMode = standardMode;
+	@Deprecated(since = "1.4.0", forRemoval = true)
+	public void setHttpOkOnValidationErrors(boolean httpOkOnValidationErrors) {
+		this.httpOkOnValidationErrors = httpOkOnValidationErrors;
 	}
 
 	protected Mono<ServerResponse> prepareResponse(ServerRequest request, WebGraphQlResponse response) {
@@ -100,7 +102,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	}
 
 	protected HttpStatus selectResponseStatus(WebGraphQlResponse response, MediaType responseMediaType) {
-		if (this.isStandardMode
+		if (!isHttpOkOnValidationErrors()
 				&& !response.getExecutionResult().isDataPresent()
 				&& MediaTypes.APPLICATION_GRAPHQL_RESPONSE.equals(responseMediaType)) {
 			return HttpStatus.BAD_REQUEST;
