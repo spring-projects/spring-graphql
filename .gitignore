@@ -1,7 +1,10 @@
-build
+/build
+buildSrc/build
+/spring-*/build
+/platform/build
 node_modules/
 .full-build
-!/**/src/**/build
+
 /**/src/**/generated
 .gradle
 .idea/
