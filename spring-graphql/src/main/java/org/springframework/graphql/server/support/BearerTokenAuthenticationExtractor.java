@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.resource.BearerTokenError;
@@ -68,7 +69,7 @@ public final class BearerTokenAuthenticationExtractor implements AuthenticationE
 
 	@Override
 	public Mono<Authentication> getAuthentication(Map<String, Object> payload) {
-		String authorizationValue = (String) payload.get(this.authorizationKey);
+		String authorizationValue = getAuthorizationValue(payload);
 		if (authorizationValue == null) {
 			return Mono.empty();
 		}
@@ -86,6 +87,20 @@ public final class BearerTokenAuthenticationExtractor implements AuthenticationE
 
 		String token = matcher.group("token");
 		return Mono.just(new BearerTokenAuthenticationToken(token));
+	}
+
+	@Nullable
+	private String getAuthorizationValue(Map<String, Object> payload) {
+		String value = (String) payload.get(this.authorizationKey);
+		if (value != null) {
+			return value;
+		}
+		for (String key : payload.keySet()) {
+			if (key.equalsIgnoreCase(this.authorizationKey)) {
+				return (String) payload.get(key);
+			}
+		}
+		return null;
 	}
 
 }
