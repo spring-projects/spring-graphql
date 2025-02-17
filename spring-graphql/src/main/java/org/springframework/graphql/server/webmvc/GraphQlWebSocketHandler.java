@@ -347,12 +347,19 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 						GraphQlStatus.closeSession(session, status);
 						return Flux.empty();
 					}
-					List<GraphQLError> errors = ((ex instanceof SubscriptionPublisherException) ?
-							((SubscriptionPublisherException) ex).getErrors() :
-							Collections.singletonList(GraphqlErrorBuilder.newError()
-									.message("Subscription error")
-									.errorType(ErrorType.INTERNAL_ERROR)
-									.build()));
+					List<GraphQLError> errors;
+					if (ex instanceof SubscriptionPublisherException subscriptionEx) {
+						errors = subscriptionEx.getErrors();
+					}
+					else {
+						if (logger.isErrorEnabled()) {
+							logger.error("Unresolved " + ex.getClass().getSimpleName() + " for request id " + id, ex);
+						}
+						errors = Collections.singletonList(GraphqlErrorBuilder.newError()
+								.message("Subscription error")
+								.errorType(ErrorType.INTERNAL_ERROR)
+								.build());
+					}
 					return Mono.just(encode(GraphQlWebSocketMessage.error(id, errors)));
 				});
 	}
