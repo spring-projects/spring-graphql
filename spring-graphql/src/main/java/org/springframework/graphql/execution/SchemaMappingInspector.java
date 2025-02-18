@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.graphql.execution;
 
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -185,6 +186,11 @@ public final class SchemaMappingInspector {
 					checkField(fieldContainer, field, ResolvableType.forMethodParameter(returnType, resolvableType));
 					continue;
 				}
+				Field javaField = getField(resolvableType, fieldName);
+				if (javaField != null) {
+					checkField(fieldContainer, field, ResolvableType.forField(javaField));
+					continue;
+				}
 				// Kotlin function?
 				Method method = getRecordLikeMethod(resolvableType, fieldName);
 				if (method != null) {
@@ -265,6 +271,17 @@ public final class SchemaMappingInspector {
 		catch (BeansException ex) {
 			throw new IllegalStateException(
 					"Failed to get property on " + resolvableType + " for field '" + fieldName + "'", ex);
+		}
+	}
+
+	@Nullable
+	private Field getField(ResolvableType resolvableType, String fieldName) {
+		try {
+			Class<?> clazz = resolvableType.resolve();
+			return (clazz != null) ? clazz.getField(fieldName) : null;
+		}
+		catch (NoSuchFieldException ex) {
+			return null;
 		}
 	}
 

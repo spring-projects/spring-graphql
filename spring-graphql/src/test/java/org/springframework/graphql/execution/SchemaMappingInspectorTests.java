@@ -328,6 +328,22 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 		}
 
 		@Test
+		void reportIsEmptyWhenFieldHasMatchingObjectField() {
+			String schema = """
+						type Query {
+							bookById(id: ID): Book
+						}
+						type Book {
+							id: ID
+							name: String
+							publicField: String
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, BookController.class);
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
+		}
+
+		@Test
 		void reportIsEmptyWhenFieldHasDataFetcherMapping() {
 			String schema = """
 						type Query {

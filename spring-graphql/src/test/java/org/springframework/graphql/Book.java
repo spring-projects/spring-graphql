@@ -26,6 +26,8 @@ public class Book {
 
 	Author author;
 
+	public String publicField;
+
 	public Book() {
 	}
 
