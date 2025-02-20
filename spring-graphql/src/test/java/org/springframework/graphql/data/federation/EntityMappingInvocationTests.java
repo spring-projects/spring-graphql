@@ -178,14 +178,8 @@ public class EntityMappingInvocationTests {
 
 	@Test
 	void unmappedEntity() {
-		Map<String, Object> variables =
-				Map.of("representations", List.of(
-						Map.of("__typename", "Book", "id", "-99"),
-						Map.of("__typename", "Book", "id", "4"),
-						Map.of("__typename", "Book", "id", "5")));
-
-		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, variables))
-				.withMessage("No EntityMapping method for federated type: 'Book'");
+		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, Map.of()))
+				.withMessage("Unmapped entity types: 'Book'");
 	}
 
 	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {

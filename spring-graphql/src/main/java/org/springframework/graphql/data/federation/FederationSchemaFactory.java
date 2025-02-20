@@ -17,6 +17,7 @@
 package org.springframework.graphql.data.federation;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,6 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @since 1.3.0
  * @see Federation#transform(TypeDefinitionRegistry, RuntimeWiring)
- *
  */
 public final class FederationSchemaFactory
 		extends AnnotatedControllerDetectionSupport<FederationSchemaFactory.EntityMappingInfo> {
@@ -80,7 +80,7 @@ public final class FederationSchemaFactory
 
 	/**
 	 * Configure a resolver that helps to map Java to entity schema type names.
-	 * <p>By default this is {@link ClassNameTypeResolver}.
+	 * <p>By default, this is {@link ClassNameTypeResolver}.
 	 * @param typeResolver the custom type resolver to use
 	 * @see SchemaTransformer#resolveEntityType(TypeResolver)
 	 */
@@ -186,12 +186,18 @@ public final class FederationSchemaFactory
 	}
 
 	private void checkEntityMappings(TypeDefinitionRegistry registry) {
+		List<String> unmappedEntities = new ArrayList<>();
 		for (TypeDefinition<?> type : registry.types().values()) {
 			type.getDirectives().forEach((directive) -> {
 				boolean isEntityType = directive.getName().equalsIgnoreCase("key");
-				Assert.state(!isEntityType || this.handlerMethods.containsKey(type.getName()),
-						"No EntityMapping method for federated type: '" + type.getName() + "'");
+				if (isEntityType && !this.handlerMethods.containsKey(type.getName())) {
+					unmappedEntities.add(type.getName());
+				}
 			});
+		}
+		if (!unmappedEntities.isEmpty()) {
+			throw new IllegalStateException("Unmapped entity types: " +
+					unmappedEntities.stream().collect(Collectors.joining("', '", "'", "'")));
 		}
 	}
 
