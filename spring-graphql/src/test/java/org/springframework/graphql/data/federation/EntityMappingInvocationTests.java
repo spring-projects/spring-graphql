@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 /**
  * Tests for requests handled through {@code @EntityMapping} methods.
@@ -175,6 +176,18 @@ public class EntityMappingInvocationTests {
 		assertError(helper, 2, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
 	}
 
+	@Test
+	void unmappedEntity() {
+		Map<String, Object> variables =
+				Map.of("representations", List.of(
+						Map.of("__typename", "Book", "id", "-99"),
+						Map.of("__typename", "Book", "id", "4"),
+						Map.of("__typename", "Book", "id", "5")));
+
+		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, variables))
+				.withMessage("No EntityMapping method for federated type: 'Book'");
+	}
+
 	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {
 		ExecutionGraphQlRequest request = TestExecutionRequest.forDocumentAndVars(document, variables);
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlService(controllerClass).execute(request);
@@ -296,6 +309,13 @@ public class EntityMappingInvocationTests {
 		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
 			return this.batchService.handle(ex, env);
 		}
+	}
+
+
+	@SuppressWarnings("unused")
+	@Controller
+	private static class EmptyController {
+
 	}
 
 

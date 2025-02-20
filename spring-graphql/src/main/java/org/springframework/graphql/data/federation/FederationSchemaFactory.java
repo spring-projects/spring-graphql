@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava.SchemaTransformer;
+import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
@@ -177,10 +178,21 @@ public final class FederationSchemaFactory
 	 * @param wiring the existing runtime wiring
 	 */
 	public SchemaTransformer createSchemaTransformer(TypeDefinitionRegistry registry, RuntimeWiring wiring) {
+		checkEntityMappings(registry);
 		Assert.state(this.typeResolver != null, "afterPropertiesSet not called");
 		return Federation.transform(registry, wiring)
 				.fetchEntities(new EntitiesDataFetcher(this.handlerMethods, getExceptionResolver()))
 				.resolveEntityType(this.typeResolver);
+	}
+
+	private void checkEntityMappings(TypeDefinitionRegistry registry) {
+		for (TypeDefinition<?> type : registry.types().values()) {
+			type.getDirectives().forEach((directive) -> {
+				boolean isEntityType = directive.getName().equalsIgnoreCase("key");
+				Assert.state(!isEntityType || this.handlerMethods.containsKey(type.getName()),
+						"No EntityMapping method for federated type: '" + type.getName() + "'");
+			});
+		}
 	}
 
 
