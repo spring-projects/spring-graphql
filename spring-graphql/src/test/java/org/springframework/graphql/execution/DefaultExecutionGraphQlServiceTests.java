@@ -16,12 +16,16 @@
 
 package org.springframework.graphql.execution;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.ErrorType;
 import org.dataloader.DataLoaderRegistry;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
@@ -75,6 +79,22 @@ public class DefaultExecutionGraphQlServiceTests {
 
 		assertThat(response.getExecutionResult().getErrors()).singleElement()
 				.hasFieldOrPropertyWithValue("errorType", ErrorType.ValidationError);
+	}
+
+	@Test
+	void cancellationSupport() {
+		AtomicBoolean cancelled = new AtomicBoolean();
+		Mono<String> greetingMono = Mono.just("hi")
+				.delayElement(Duration.ofSeconds(3))
+				.doOnCancel(() -> cancelled.set(true));
+
+		Mono<ExecutionGraphQlResponse> execution = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> greetingMono)
+				.toGraphQlService()
+				.execute(TestExecutionRequest.forDocument("{ greeting }"));
+
+		StepVerifier.create(execution).thenCancel().verify();
+		assertThat(cancelled).isTrue();
 	}
 
 }

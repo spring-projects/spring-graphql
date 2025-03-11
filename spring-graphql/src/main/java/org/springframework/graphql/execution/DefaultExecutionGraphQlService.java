@@ -31,6 +31,7 @@ import graphql.execution.instrumentation.dataloader.EmptyDataLoaderRegistryInsta
 import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.DataLoaderRegistry;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
@@ -101,12 +102,15 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			ContextSnapshotFactoryHelper.saveInstance(factory, graphQLContext);
 			factory.captureFrom(contextView).updateContext(graphQLContext);
 
+			Sinks.Empty<Void> requestCancelled = Sinks.empty();
+			graphQLContext.put(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono());
 			ExecutionInput executionInputToUse = registerDataLoaders(executionInput);
 
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInputToUse))
 					.onErrorResume((ex) -> ex instanceof GraphQLError, (ex) ->
 							Mono.just(ExecutionResult.newExecutionResult().addError((GraphQLError) ex).build()))
-					.map((result) -> new DefaultExecutionGraphQlResponse(executionInputToUse, result));
+					.map((result) -> new DefaultExecutionGraphQlResponse(executionInputToUse, result))
+					.doOnCancel(requestCancelled::tryEmitEmpty);
 		});
 	}
 
