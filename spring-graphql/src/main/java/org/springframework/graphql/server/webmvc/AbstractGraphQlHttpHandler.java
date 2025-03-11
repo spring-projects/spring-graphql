@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
@@ -52,6 +53,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.server.ServerWebInputException;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -148,7 +150,15 @@ public abstract class AbstractGraphQlHttpHandler {
 	private GraphQlRequest readBody(ServerRequest request) throws ServletException {
 		try {
 			if (this.messageConverter != null) {
-				MediaType contentType = request.headers().contentType().orElse(MediaType.APPLICATION_JSON);
+				ServerRequest.Headers headers = request.headers();
+				MediaType contentType;
+				try {
+					contentType = headers.contentType().orElse(MediaType.APPLICATION_OCTET_STREAM);
+				}
+				catch (InvalidMediaTypeException ex) {
+					throw new UnsupportedMediaTypeStatusException("Could not parse " +
+							"Content-Type [" + headers.firstHeader(HttpHeaders.CONTENT_TYPE) + "]: " + ex.getMessage());
+				}
 				if (this.messageConverter.canRead(SerializableGraphQlRequest.class, contentType)) {
 					ServerHttpRequest httpRequest = new ServletServerHttpRequest(request.servletRequest());
 					return (GraphQlRequest) this.messageConverter.read(SerializableGraphQlRequest.class, httpRequest);

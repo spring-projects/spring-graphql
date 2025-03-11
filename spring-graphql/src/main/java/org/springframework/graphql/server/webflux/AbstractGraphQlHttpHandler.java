@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.lang.Nullable;
@@ -102,7 +103,15 @@ public abstract class AbstractGraphQlHttpHandler {
 
 	private Mono<SerializableGraphQlRequest> readRequest(ServerRequest serverRequest) {
 		if (this.codecDelegate != null) {
-			MediaType contentType = serverRequest.headers().contentType().orElse(MediaType.APPLICATION_JSON);
+			ServerRequest.Headers headers = serverRequest.headers();
+			MediaType contentType;
+			try {
+				contentType = headers.contentType().orElse(MediaType.APPLICATION_OCTET_STREAM);
+			}
+			catch (InvalidMediaTypeException ex) {
+				throw new UnsupportedMediaTypeStatusException("Could not parse " +
+						"Content-Type [" + headers.firstHeader(HttpHeaders.CONTENT_TYPE) + "]: " + ex.getMessage());
+			}
 			return this.codecDelegate.decode(serverRequest.bodyToFlux(DataBuffer.class), contentType);
 		}
 		else {

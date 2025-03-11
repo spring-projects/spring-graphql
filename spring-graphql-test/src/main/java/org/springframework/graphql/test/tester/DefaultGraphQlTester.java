@@ -309,12 +309,15 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	 */
 	private static final class DefaultResponse implements Response, Errors {
 
+		private final GraphQlResponse response;
+
 		private final ResponseDelegate delegate;
 
 		private DefaultResponse(
 				GraphQlResponse response, @Nullable Predicate<ResponseError> errorFilter,
 				Consumer<Runnable> assertDecorator, Configuration jsonPathConfig) {
 
+			this.response = response;
 			this.delegate = new ResponseDelegate(response, errorFilter, assertDecorator, jsonPathConfig);
 		}
 
@@ -333,6 +336,11 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		@Override
 		public Errors errors() {
 			return this;
+		}
+
+		@Override
+		public GraphQlResponse returnResponse() {
+			return this.response;
 		}
 
 		@Override

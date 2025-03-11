@@ -18,18 +18,22 @@ package org.springframework.graphql.server.webmvc;
 
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.server.NotAcceptableStatusException;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.servlet.function.RequestPredicate;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.util.pattern.PathPatternParser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for {@link GraphQlRequestPredicates}.
@@ -85,11 +89,19 @@ class GraphQlRequestPredicatesTests {
 		}
 
 		@Test
-		void shouldRejectRequestWithDifferentContentType() {
+		void shouldRejectRequestWithIncompatibleContentType() {
 			MockHttpServletRequest request = createMatchingHttpRequest();
 			request.setContentType("text/xml");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test // gh-1145
+		void shouldRejectRequestWithInvalidContentType() {
+			MockHttpServletRequest servletRequest = createMatchingHttpRequest();
+			servletRequest.setContentType("bogus");
+			ServerRequest request = ServerRequest.create(servletRequest, List.of());
+			assertThatThrownBy(() -> httpPredicate.test(request)).isInstanceOf(UnsupportedMediaTypeStatusException.class);
 		}
 
 		@Test
@@ -99,6 +111,15 @@ class GraphQlRequestPredicatesTests {
 			request.addHeader("Accept", "text/xml");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldRejectRequestWithInvalidAccept() {
+			MockHttpServletRequest servletRequest = createMatchingHttpRequest();
+			servletRequest.removeHeader("Accept");
+			servletRequest.addHeader("Accept", "bogus");
+			ServerRequest request = ServerRequest.create(servletRequest, Collections.emptyList());
+			assertThatThrownBy(() -> httpPredicate.test(request)).isInstanceOf(NotAcceptableStatusException.class);
 		}
 
 		@Test
@@ -168,7 +189,7 @@ class GraphQlRequestPredicatesTests {
 		}
 
 		@Test
-		void shouldRejectRequestWithDifferentContentType() {
+		void shouldRejectRequestWithIncmopatibleContentType() {
 			MockHttpServletRequest request = createMatchingSseRequest();
 			request.setContentType("text/xml");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());

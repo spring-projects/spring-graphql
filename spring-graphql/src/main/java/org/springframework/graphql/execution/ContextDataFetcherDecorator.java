@@ -21,6 +21,7 @@ import java.util.List;
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import graphql.TrivialDataFetcher;
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -39,6 +40,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -74,7 +76,6 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	}
 
 
-	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 	@Override
 	public Object get(DataFetchingEnvironment env) throws Exception {
 
@@ -83,9 +84,32 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext) ?
 				snapshotFactory.captureFrom(graphQlContext, localContext) :
 				snapshotFactory.captureFrom(graphQlContext);
+
 		Mono<Void> cancelledRequest = graphQlContext.get(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY);
 
 		Object value = snapshot.wrap(() -> this.delegate.get(env)).call();
+
+		if (value instanceof DataFetcherResult<?> dataFetcherResult) {
+			Object adapted = updateValue(dataFetcherResult.getData(), snapshot, cancelledRequest);
+			value = DataFetcherResult.newResult()
+					.data(adapted)
+					.errors(dataFetcherResult.getErrors())
+					.localContext(dataFetcherResult.getLocalContext()).build();
+		}
+		else {
+			value = updateValue(value, snapshot, cancelledRequest);
+		}
+
+		return value;
+	}
+
+	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
+	private @Nullable Object updateValue(
+			@Nullable Object value, ContextSnapshot snapshot, @Nullable Mono<Void> cancelledRequest) {
+
+		if (value == null) {
+			return null;
+		}
 
 		if (this.subscription) {
 			Flux<?> subscriptionResult = ReactiveAdapterRegistryHelper.toSubscriptionFlux(value)

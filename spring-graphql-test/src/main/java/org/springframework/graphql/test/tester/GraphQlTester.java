@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
@@ -261,6 +262,13 @@ public interface GraphQlTester {
 		 * @return the error spec
 		 */
 		Errors errors();
+
+
+		/**
+		 * Return the underlying {@link GraphQlResponse} for direct access.
+		 * @since 1.3.5
+		 */
+		GraphQlResponse returnResponse();
 
 	}
 

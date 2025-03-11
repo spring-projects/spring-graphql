@@ -30,6 +30,7 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.TrivialDataFetcher;
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetcherFactories;
 import graphql.schema.FieldCoordinates;
@@ -120,6 +121,32 @@ public class ContextDataFetcherDecoratorTests {
 									String name = context.get("name");
 									return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
 								})))
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
+		input.getGraphQLContext().put("name", "007");
+
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
+
+		Flux<String> greetingsFlux = ResponseHelper.forSubscription(executionResult)
+				.map(response -> response.toEntity("greetings", String.class));
+
+		StepVerifier.create(greetingsFlux)
+				.expectNext("Hi 007", "Bonjour 007", "Hola 007")
+				.verifyComplete();
+	}
+
+	@Test
+	void fluxDataFetcherSubscriptionWithDataFetcherResult() throws Exception {
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.subscriptionFetcher("greetings", (env) -> {
+					Flux<String> flux = Mono.delay(Duration.ofMillis(50))
+							.flatMapMany((aLong) -> Flux.deferContextual((context) -> {
+								String name = context.get("name");
+								return Flux.just("Hi", "Bonjour", "Hola").map((s) -> s + " " + name);
+							}));
+					return DataFetcherResult.newResult().data(flux).build();
+				})
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();

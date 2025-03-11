@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.graphql.test.tester;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -34,6 +35,7 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.AbstractGraphQlClientBuilder;
+import org.springframework.graphql.client.ClientGraphQlRequest;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
@@ -167,6 +169,8 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 						.document(request.getDocument())
 						.operationName(request.getOperationName())
 						.variables(request.getVariables())
+						.extensions(request.getExtensions())
+						.attributes((map) -> copyAttributes(map, request))
 						.execute()
 						.cast(GraphQlResponse.class);
 			}
@@ -177,8 +181,16 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 						.document(request.getDocument())
 						.operationName(request.getOperationName())
 						.variables(request.getVariables())
+						.extensions(request.getExtensions())
+						.attributes((map) -> copyAttributes(map, request))
 						.executeSubscription()
 						.cast(GraphQlResponse.class);
+			}
+
+			private static void copyAttributes(Map<String, Object> map, GraphQlRequest request) {
+				if (request instanceof ClientGraphQlRequest clientGraphQlRequest) {
+					map.putAll(clientGraphQlRequest.getAttributes());
+				}
 			}
 		};
 	}
