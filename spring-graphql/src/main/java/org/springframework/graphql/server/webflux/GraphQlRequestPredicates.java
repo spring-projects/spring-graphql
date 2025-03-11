@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.PathContainer;
 import org.springframework.lang.Nullable;
@@ -33,6 +34,8 @@ import org.springframework.web.cors.reactive.CorsUtils;
 import org.springframework.web.reactive.function.server.RequestPredicate;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.server.NotAcceptableStatusException;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 
@@ -119,7 +122,14 @@ public final class GraphQlRequestPredicates {
 				return true;
 			}
 			ServerRequest.Headers headers = request.headers();
-			MediaType actual = headers.contentType().orElse(MediaType.APPLICATION_OCTET_STREAM);
+			MediaType actual;
+			try {
+				actual = headers.contentType().orElse(MediaType.APPLICATION_OCTET_STREAM);
+			}
+			catch (InvalidMediaTypeException ex) {
+				throw new UnsupportedMediaTypeStatusException("Could not parse " +
+						"Content-Type [" + headers.firstHeader(HttpHeaders.CONTENT_TYPE) + "]: " + ex.getMessage());
+			}
 			boolean contentTypeMatch = false;
 			for (MediaType contentType : contentTypes) {
 				contentTypeMatch = contentType.includes(actual);
@@ -136,7 +146,14 @@ public final class GraphQlRequestPredicates {
 				return true;
 			}
 			ServerRequest.Headers headers = request.headers();
-			List<MediaType> acceptedMediaTypes = acceptedMediaTypes(headers);
+			List<MediaType> acceptedMediaTypes;
+			try {
+				acceptedMediaTypes = acceptedMediaTypes(headers);
+			}
+			catch (InvalidMediaTypeException ex) {
+				throw new NotAcceptableStatusException("Could not parse " +
+						"Accept header [" + headers.firstHeader(HttpHeaders.ACCEPT) + "]: " + ex.getMessage());
+			}
 			boolean match = false;
 			outer:
 			for (MediaType acceptedMediaType : acceptedMediaTypes) {

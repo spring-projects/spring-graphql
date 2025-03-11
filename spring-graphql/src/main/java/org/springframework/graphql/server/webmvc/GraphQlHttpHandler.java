@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,12 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.lang.Nullable;
+import org.springframework.web.server.NotAcceptableStatusException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -97,7 +100,16 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest request) {
-		for (MediaType mediaType : request.headers().accept()) {
+		ServerRequest.Headers headers = request.headers();
+		List<MediaType> acceptedMediaTypes;
+		try {
+			acceptedMediaTypes = headers.accept();
+		}
+		catch (InvalidMediaTypeException ex) {
+			throw new NotAcceptableStatusException("Could not parse " +
+					"Accept header [" + headers.firstHeader(HttpHeaders.ACCEPT) + "]: " + ex.getMessage());
+		}
+		for (MediaType mediaType : acceptedMediaTypes) {
 			if (SUPPORTED_MEDIA_TYPES.contains(mediaType)) {
 				return mediaType;
 			}

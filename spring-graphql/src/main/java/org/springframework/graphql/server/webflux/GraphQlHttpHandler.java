@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,13 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.NotAcceptableStatusException;
 
 /**
  * WebFlux.fn Handler for GraphQL over HTTP requests.
@@ -67,7 +70,16 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	}
 
 	private static MediaType selectResponseMediaType(ServerRequest serverRequest) {
-		for (MediaType accepted : serverRequest.headers().accept()) {
+		ServerRequest.Headers headers = serverRequest.headers();
+		List<MediaType> acceptedMediaTypes;
+		try {
+			acceptedMediaTypes = headers.accept();
+		}
+		catch (InvalidMediaTypeException ex) {
+			throw new NotAcceptableStatusException("Could not parse " +
+					"Accept header [" + headers.firstHeader(HttpHeaders.ACCEPT) + "]: " + ex.getMessage());
+		}
+		for (MediaType accepted : acceptedMediaTypes) {
 			if (SUPPORTED_MEDIA_TYPES.contains(accepted)) {
 				return accepted;
 			}

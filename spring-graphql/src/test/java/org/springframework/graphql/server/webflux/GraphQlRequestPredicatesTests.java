@@ -18,6 +18,7 @@ package org.springframework.graphql.server.webflux;
 
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,10 +31,13 @@ import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.reactive.function.server.RequestPredicate;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.server.NotAcceptableStatusException;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.util.pattern.PathPatternParser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for {@link GraphQlRequestPredicates}.
@@ -92,21 +96,39 @@ class GraphQlRequestPredicatesTests {
 		}
 
 		@Test
-		void shouldRejectRequestWithDifferentContentType() {
+		void shouldRejectRequestWithIncompatibleContentType() {
 			ServerWebExchange exchange = createMatchingHttpExchange()
-					.mutate().request(req -> req.headers(headers -> headers.setContentType(MediaType.TEXT_HTML)))
+					.mutate().request(request -> request.headers(h -> h.setContentType(MediaType.TEXT_HTML)))
 					.build();
 			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
 		}
 
 		@Test
+		void shouldRejectRequestWithInvalidContentType() {
+			ServerWebExchange exchange = createMatchingHttpExchange()
+					.mutate().request(request -> request.headers(h -> h.set("Content-Type", "bogus")))
+					.build();
+			ServerRequest request = ServerRequest.create(exchange, Collections.emptyList());
+			assertThatThrownBy(() -> httpPredicate.test(request)).isInstanceOf(UnsupportedMediaTypeStatusException.class);
+		}
+
+		@Test
 		void shouldRejectRequestWithIncompatibleAccept() {
 			ServerWebExchange exchange = createMatchingHttpExchange()
-					.mutate().request(req -> req.headers(headers -> headers.setAccept(Collections.singletonList(MediaType.TEXT_HTML))))
+					.mutate().request(request -> request.headers(h -> h.setAccept(List.of(MediaType.TEXT_HTML))))
 					.build();
 			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldRejectRequestWithInvalidAccept() {
+			ServerWebExchange exchange = createMatchingHttpExchange()
+					.mutate().request(request -> request.headers(h -> h.set("Accept", "bogus")))
+					.build();
+			ServerRequest request = ServerRequest.create(exchange, Collections.emptyList());
+			assertThatThrownBy(() -> httpPredicate.test(request)).isInstanceOf(NotAcceptableStatusException.class);
 		}
 
 		@Test
