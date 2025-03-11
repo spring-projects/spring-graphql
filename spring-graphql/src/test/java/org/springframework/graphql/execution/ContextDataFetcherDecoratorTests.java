@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ package org.springframework.graphql.execution;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import graphql.ExecutionInput;
@@ -41,13 +43,16 @@ import io.micrometer.context.ContextSnapshotFactory;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
+import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestThreadLocalAccessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Tests for {@link ContextDataFetcherDecorator}.
@@ -255,6 +260,68 @@ public class ContextDataFetcherDecoratorTests {
 		DataFetcher<?> dataFetcher = schema.getCodeRegistry().getDataFetcher(coordinates, fieldDefinition);
 
 		assertThat(dataFetcher).isInstanceOf(TrivialDataFetcher.class);
+	}
+
+	@Test
+	void cancelMonoDataFetcherWhenRequestCancelled() throws Exception {
+		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.queryFetcher("greeting", (env) ->
+						Mono.just("Hello")
+								.delayElement(Duration.ofSeconds(1))
+								.doOnCancel(() -> dataFetcherCancelled.set(true))
+						)
+				.toGraphQl();
+
+		Sinks.Empty<Void> requestCancelled = Sinks.empty();
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
+				.graphQLContext(Map.of(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono())).build();
+
+		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
+		requestCancelled.tryEmitEmpty();
+		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
+	}
+
+	@Test
+	void cancelFluxDataFetcherWhenRequestCancelled() throws Exception {
+		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.queryFetcher("greeting", (env) ->
+						Flux.just("Hello")
+								.delayElements(Duration.ofSeconds(1))
+								.doOnCancel(() -> dataFetcherCancelled.set(true))
+				)
+				.toGraphQl();
+
+		Sinks.Empty<Void> requestCancelled = Sinks.empty();
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
+				.graphQLContext(Map.of(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono())).build();
+
+		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
+		requestCancelled.tryEmitEmpty();
+		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
+	}
+
+	@Test
+	void cancelFluxDataFetcherSubscriptionWhenRequestCancelled() throws Exception {
+		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.subscriptionFetcher("greetings", (env) ->
+						Flux.just("Hi", "Bonjour", "Hola")
+								.delayElements(Duration.ofSeconds(1))
+								.doOnCancel(() -> dataFetcherCancelled.set(true))
+						)
+				.toGraphQl();
+		Sinks.Empty<Void> requestCancelled = Sinks.empty();
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }")
+				.graphQLContext(Map.of(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono())).build();
+
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
+		ResponseHelper.forSubscription(executionResult).subscribe();
+
+		requestCancelled.tryEmitEmpty();
+		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
+		assertThat(dataFetcherCancelled).isTrue();
 	}
 
 }

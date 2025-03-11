@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.util.Assert;
 
 /**
@@ -79,15 +80,15 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		GraphQLContext graphQlContext = env.getGraphQlContext();
 		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactoryHelper.getInstance(graphQlContext);
-
 		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext) ?
 				snapshotFactory.captureFrom(graphQlContext, localContext) :
 				snapshotFactory.captureFrom(graphQlContext);
+		Mono<Void> cancelledRequest = graphQlContext.get(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY);
 
 		Object value = snapshot.wrap(() -> this.delegate.get(env)).call();
 
 		if (this.subscription) {
-			return ReactiveAdapterRegistryHelper.toSubscriptionFlux(value)
+			Flux<?> subscriptionResult = ReactiveAdapterRegistryHelper.toSubscriptionFlux(value)
 					.onErrorResume((exception) -> {
 						// Already handled, e.g. controller methods?
 						if (exception instanceof SubscriptionPublisherException) {
@@ -95,13 +96,19 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 						}
 						return this.subscriptionExceptionResolver.resolveException(exception)
 								.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, exception)));
-					})
-					.contextWrite(snapshot::updateContext);
+					});
+			if (cancelledRequest != null) {
+				subscriptionResult = subscriptionResult.takeUntilOther(cancelledRequest);
+			}
+			return subscriptionResult.contextWrite(snapshot::updateContext);
 		}
 
 		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);
 
 		if (value instanceof Mono<?> mono) {
+			if (cancelledRequest != null) {
+				mono = mono.takeUntilOther(cancelledRequest);
+			}
 			value = mono.contextWrite(snapshot::updateContext).toFuture();
 		}
 
