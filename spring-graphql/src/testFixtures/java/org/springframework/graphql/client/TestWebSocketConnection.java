@@ -236,8 +236,9 @@ public final class TestWebSocketConnection {
 		}
 
 		private void saveMessage(WebSocketMessage message) {
-			DataBuffer payload = message.getPayload().retainedSlice(0, message.getPayload().readableByteCount());
-			this.sentMessages.add(new WebSocketMessage(message.getType(), payload));
+			DataBuffer payload = message.getPayload();
+			DataBuffer saved = payload.factory().allocateBuffer(payload.readableByteCount());
+			this.sentMessages.add(new WebSocketMessage(message.getType(), saved.write(payload)));
 		}
 
 		@Override

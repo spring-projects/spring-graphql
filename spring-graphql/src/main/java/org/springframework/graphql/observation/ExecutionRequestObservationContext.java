@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,15 +49,6 @@ public class ExecutionRequestObservationContext extends Observation.Context {
 	}
 
 	/**
-	 * Return the {@link ExecutionInput input} for the request execution.
-	 * @deprecated since 1.1.4 in favor of {@link #getExecutionInput()}
-	 */
-	@Deprecated(since = "1.1.4", forRemoval = true)
-	public ExecutionInput getCarrier() {
-		return this.executionInput;
-	}
-
-	/**
 	 * Return the {@link ExecutionResult result} for the request execution.
 	 * @since 1.1.4
 	 */
@@ -73,16 +64,6 @@ public class ExecutionRequestObservationContext extends Observation.Context {
 	 */
 	public void setExecutionResult(ExecutionResult executionResult) {
 		this.executionResult = executionResult;
-	}
-
-	/**
-	 * Return the {@link ExecutionResult result} for the request execution.
-	 * @deprecated since 1.1.4 in favor of {@link #getExecutionResult()}
-	 */
-	@Nullable
-	@Deprecated(since = "1.1.4", forRemoval = true)
-	public ExecutionResult getResponse() {
-		return this.executionResult;
 	}
 
 }

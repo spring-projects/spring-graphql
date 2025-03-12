@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -84,7 +83,6 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.validation.DataBinder;
 
 
 /**
@@ -149,17 +147,6 @@ public class AnnotatedControllerConfigurer
 	@Override
 	public void setTypeDefinitionRegistry(TypeDefinitionRegistry registry) {
 		this.interfaceMappingHelper.setTypeDefinitionRegistry(registry);
-	}
-
-	/**
-	 * Configure an initializer that configures the {@link DataBinder} before the binding process.
-	 * @param consumer the data binder initializer
-	 * @since 1.0.1
-	 * @deprecated this property is deprecated, ignored, and should not be
-	 * necessary as a {@link DataBinder} is no longer used to bind arguments
-	 */
-	@Deprecated(since = "1.1.0", forRemoval = true)
-	public void setDataBinderInitializer(@Nullable Consumer<DataBinder> consumer) {
 	}
 
 

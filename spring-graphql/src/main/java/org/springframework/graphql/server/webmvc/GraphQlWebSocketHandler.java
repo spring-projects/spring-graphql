@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -164,18 +164,6 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		WebSocketHttpRequestHandler handler = new WebSocketHttpRequestHandler(this, handshakeHandler);
 		handler.setHandshakeInterceptors(Collections.singletonList(this.contextHandshakeInterceptor));
 		return handler;
-	}
-
-	/**
-	 * Return a {@link WebSocketHttpRequestHandler} that uses this instance as
-	 * its {@link WebGraphQlHandler} and adds a {@link HandshakeInterceptor} to
-	 * propagate context.
-	 * @param handshakeHandler the handler for WebSocket handshake
-	 * @deprecated as of 1.1.0 in favor of {@link #initWebSocketHttpRequestHandler(HandshakeHandler)}
-	 */
-	@Deprecated(since = "1.1.0", forRemoval = true)
-	public WebSocketHttpRequestHandler asWebSocketHttpRequestHandler(HandshakeHandler handshakeHandler) {
-		return initWebSocketHttpRequestHandler(handshakeHandler);
 	}
 
 

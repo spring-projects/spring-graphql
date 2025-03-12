@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.execution;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -38,8 +37,6 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
 import org.springframework.lang.Nullable;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.ReflectionUtils;
 
 /**
  * {@link ExecutionGraphQlService} that uses a {@link GraphQlSource} to obtain a
@@ -49,9 +46,6 @@ import org.springframework.util.ReflectionUtils;
  * @since 1.0.0
  */
 public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
-
-	private static final boolean belowGraphQlJava22 = ClassUtils.isPresent(
-			DataLoaderRegistry21Initializer.CLASS_NAME, ExecutionGraphQlService.class.getClassLoader());
 
 	private static final BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput> RESET_EXECUTION_ID_CONFIGURER =
 			(executionInput, builder) -> builder.executionId(null).build();
@@ -66,15 +60,11 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private final boolean isDefaultExecutionIdProvider;
 
-	private final Object emptyDataLoaderRegistryInstance;
-
 
 	public DefaultExecutionGraphQlService(GraphQlSource graphQlSource) {
 		this.graphQlSource = graphQlSource;
 		this.isDefaultExecutionIdProvider =
 				(graphQlSource.graphQl().getIdProvider() == ExecutionIdProvider.DEFAULT_EXECUTION_ID_PROVIDER);
-		this.emptyDataLoaderRegistryInstance = (belowGraphQlJava22) ?
-				DataLoaderRegistry21Initializer.getInstance() : DataLoaderRegistry22Initializer.getInstance();
 	}
 
 
@@ -121,7 +111,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 		if (this.hasDataLoaderRegistrations) {
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
 			DataLoaderRegistry existingRegistry = executionInput.getDataLoaderRegistry();
-			if (existingRegistry == this.emptyDataLoaderRegistryInstance) {
+			if (existingRegistry == EmptyDataLoaderRegistryInstance.EMPTY_DATALOADER_REGISTRY) {
 				DataLoaderRegistry newRegistry = DataLoaderRegistry.newRegistry().build();
 				applyDataLoaderRegistrars(newRegistry, graphQLContext);
 				executionInput = executionInput.transform((builder) -> builder.dataLoaderRegistry(newRegistry));
@@ -146,30 +136,5 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 		this.dataLoaderRegistrars.forEach((registrar) -> registrar.registerDataLoaders(registry, graphQLContext));
 	}
 
-
-	private static final class DataLoaderRegistry22Initializer {
-
-		public static Object getInstance() {
-			return EmptyDataLoaderRegistryInstance.EMPTY_DATALOADER_REGISTRY;
-		}
-	}
-
-
-	private static final class DataLoaderRegistry21Initializer {
-
-		public static final String CLASS_NAME =
-				"graphql.execution.instrumentation.dataloader.DataLoaderDispatcherInstrumentationState";
-
-		@SuppressWarnings("DataFlowIssue")
-		public static Object getInstance() {
-			try {
-				Field field = ReflectionUtils.findField(Class.forName(CLASS_NAME), "EMPTY_DATALOADER_REGISTRY");
-				return ReflectionUtils.getField(field, null);
-			}
-			catch (ClassNotFoundException ex) {
-				throw new RuntimeException(ex);
-			}
-		}
-	}
 
 }

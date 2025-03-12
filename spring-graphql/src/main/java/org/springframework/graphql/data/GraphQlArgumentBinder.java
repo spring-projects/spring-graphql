@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -46,7 +45,6 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.validation.AbstractBindingResult;
 import org.springframework.validation.BindException;
-import org.springframework.validation.DataBinder;
 import org.springframework.validation.FieldError;
 
 
@@ -108,19 +106,6 @@ public class GraphQlArgumentBinder {
 		return typeConverter;
 	}
 
-
-
-	/**
-	 * Add a {@link DataBinder} consumer that initializes the binder instance
-	 * before the binding process.
-	 * @param consumer the data binder initializer
-	 * @since 1.0.1
-	 * @deprecated this property is deprecated, ignored, and should not be
-	 * necessary as a {@link DataBinder} is no longer used to bind arguments
-	 */
-	@Deprecated(since = "1.1.0", forRemoval = true)
-	public void addDataBinderInitializer(Consumer<DataBinder> consumer) {
-	}
 
 
 	/**
