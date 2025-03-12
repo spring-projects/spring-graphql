@@ -395,6 +395,35 @@ immediately after the GraphQL Java engine returns, which would be the case if th
 request is simple enough and did not require asynchronous data fetching.
 
 
+[[execution.timeout]]
+== GraphQL Request Timeout
+
+GraphQL clients can send requests that will consume lots of resources on the server side.
+There are many ways to protect against this, and one of them is to configure a request timeout.
+This ensures that requests are closed on the server side if the response takes too long to materialize.
+
+Spring for GraphQL provides a `TimeoutWebGraphQlInterceptor` for the web transports.
+Applications can configure this interceptor with a timeout duration; if the request times out, the server errors with a specific HTTP status.
+In this case, the interceptor will send a "cancel" signal up the chain and reactive data fetchers will automatically cancel any ongoing work.
+
+This interceptor can be configured on the `WebGraphQlHandler`:
+
+include-code::WebGraphQlHandlerTimeout[tag=interceptor,indent=0]
+
+In a Spring Boot application, contributing the interceptor as a bean is enough:
+
+include-code::HttpTimeoutConfiguration[]
+
+For more transport-specific timeouts, there are dedicated properties on the handler implementations like
+`GraphQlWebSocketHandler` and `GraphQlSseHandler`.
+
+NOTE: While reactive data fetchers are cancelled automatically, this cannot be done for others
+as there is no consistent way to cancel processing. In this case, controller methods can get
+the cancellation signal from a `Mono` in the GraphQL context and manually cancel work.
+
+Here is an example of using the cancellation signal to abort processing inside a controller method:
+
+include-code::TimeoutController[tag=cancel,indent=0]
 
 
 [[execution.reactivedatafetcher]]
