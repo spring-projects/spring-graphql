@@ -19,16 +19,19 @@ package org.springframework.graphql.data.federation;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
+import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -177,6 +180,19 @@ public class EntityMappingInvocationTests {
 	}
 
 	@Test
+	void dataLoader() {
+		Map<String, Object> variables =
+				Map.of("representations", List.of(
+						Map.of("__typename", "Book", "id", "3"),
+						Map.of("__typename", "Book", "id", "5")));
+
+		ResponseHelper helper = executeWith(DataLoaderBookController.class, variables);
+
+		assertAuthor(0, "Joseph", "Heller", helper);
+		assertAuthor(1, "George", "Orwell", helper);
+	}
+
+	@Test
 	void unmappedEntity() {
 		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, Map.of()))
 				.withMessage("Unmapped entity types: 'Book'");
@@ -302,6 +318,30 @@ public class EntityMappingInvocationTests {
 		@GraphQlExceptionHandler
 		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
 			return this.batchService.handle(ex, env);
+		}
+	}
+
+
+	@SuppressWarnings("unused")
+	@Controller
+	private static class DataLoaderBookController {
+
+		@Autowired
+		public DataLoaderBookController(BatchLoaderRegistry batchLoaderRegistry) {
+			batchLoaderRegistry.forTypePair(Integer.class, Book.class)
+					.registerBatchLoader((ids, env) ->
+							Flux.fromIterable(ids).map(id -> new Book((long) id, null, (Long) null)));
+		}
+
+		@Nullable
+		@EntityMapping
+		public Future<Book> book(@Argument int id, DataLoader<Integer, Book> dataLoader) {
+			return dataLoader.load(id);
+		}
+
+		@BatchMapping
+		public Flux<Author> author(List<Book> books) {
+			return Flux.fromIterable(books).map(book -> BookSource.getBook(book.getId()).getAuthor());
 		}
 	}
 

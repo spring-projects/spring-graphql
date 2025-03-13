@@ -48,6 +48,7 @@ import org.springframework.graphql.data.method.annotation.support.Authentication
 import org.springframework.graphql.data.method.annotation.support.ContextValueMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.ContinuationHandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.DataFetchingEnvironmentMethodArgumentResolver;
+import org.springframework.graphql.data.method.annotation.support.DataLoaderMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.LocalContextValueMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.support.PrincipalMethodArgumentResolver;
 import org.springframework.graphql.execution.ClassNameTypeResolver;
@@ -125,6 +126,7 @@ public final class FederationSchemaFactory
 
 		// Type based
 		resolvers.addResolver(new DataFetchingEnvironmentMethodArgumentResolver());
+		resolvers.addResolver(new DataLoaderMethodArgumentResolver());
 		if (springSecurityPresent) {
 			ApplicationContext context = obtainApplicationContext();
 			resolvers.addResolver(new PrincipalMethodArgumentResolver());
