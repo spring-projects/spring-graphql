@@ -18,8 +18,6 @@ package org.springframework.graphql.server.webmvc;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import reactor.core.publisher.Mono;
 
@@ -106,7 +104,7 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	@Override
 	protected ServerResponse prepareResponse(ServerRequest request, Mono<WebGraphQlResponse> responseMono) {
 
-		CompletableFuture<ServerResponse> future = responseMono.map((response) -> {
+		Mono<ServerResponse> mono = responseMono.map((response) -> {
 			MediaType contentType = selectResponseMediaType(request);
 			HttpStatus responseStatus = selectResponseStatus(response, contentType);
 			ServerResponse.BodyBuilder builder = ServerResponse.status(responseStatus);
@@ -116,21 +114,9 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 			Map<String, Object> resultMap = response.toMap();
 			ServerResponse.HeadersBuilder.WriteFunction writer = getWriteFunction(resultMap, contentType);
 			return (writer != null) ? builder.build(writer) : builder.body(resultMap);
-		}).toFuture();
+		});
 
-		// This won't be needed on a Spring Framework 6.2 baseline:
-		// https://github.com/spring-projects/spring-framework/issues/32223
-
-		if (future.isDone() && !future.isCancelled() && !future.isCompletedExceptionally()) {
-			try {
-				return future.get();
-			}
-			catch (InterruptedException | ExecutionException ignored) {
-				// fall through to use DefaultAsyncServerResponse
-			}
-		}
-
-		return ServerResponse.async(future);
+		return ServerResponse.async(mono.toFuture());
 	}
 
 	protected HttpStatus selectResponseStatus(WebGraphQlResponse response, MediaType responseMediaType) {
