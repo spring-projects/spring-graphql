@@ -37,12 +37,6 @@ import org.springframework.lang.Nullable;
 public interface ExecutionGraphQlRequest extends GraphQlRequest {
 
 	/**
-	 * Key of the GraphQL context entry that holds a {@code Mono<Void>} that completes
-	 * when the inbound GraphQL request is cancelled at the transport level.
-	 */
-	String CANCEL_PUBLISHER_CONTEXT_KEY = ExecutionGraphQlRequest.class.getName() + ".cancelled";
-
-	/**
 	 * Return the transport assigned id for the request that in turn sets
 	 * {@link ExecutionInput.Builder#executionId(ExecutionId) executionId}.
 	 * <p>By default, the id is initialized as follows:

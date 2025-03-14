@@ -96,7 +96,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	private List<GraphQLError> resolveInternal(Throwable exception, DataFetchingEnvironment env) {
 		try {
 			return (this.threadLocalContextAware) ?
-					ContextSnapshotFactoryHelper.captureFrom(env.getGraphQlContext())
+					ContextPropagationHelper.captureFrom(env.getGraphQlContext())
 							.wrap(() -> resolveToMultipleErrors(exception, env))
 							.call() :
 					resolveToMultipleErrors(exception, env);

@@ -25,7 +25,7 @@ import io.micrometer.context.ContextSnapshotFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.graphql.execution.ContextSnapshotFactoryHelper;
+import org.springframework.graphql.execution.ContextPropagationHelper;
 import org.springframework.graphql.server.WebGraphQlInterceptor.Chain;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -81,7 +81,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 	@Override
 	public WebGraphQlHandler build() {
 
-		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactoryHelper.selectInstance(this.snapshotFactory);
+		ContextSnapshotFactory snapshotFactory = ContextPropagationHelper.selectInstance(this.snapshotFactory);
 
 		Chain endOfChain = (request) -> this.service.execute(request).map(WebGraphQlResponse::new);
 
@@ -107,7 +107,7 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 			public Mono<WebGraphQlResponse> handleRequest(WebGraphQlRequest request) {
 				ContextSnapshot snapshot = snapshotFactory.captureAll();
 				return executionChain.next(request).contextWrite((context) -> {
-					context = ContextSnapshotFactoryHelper.saveInstance(snapshotFactory, context);
+					context = ContextPropagationHelper.saveInstance(snapshotFactory, context);
 					return snapshot.updateContext(context);
 				});
 			}

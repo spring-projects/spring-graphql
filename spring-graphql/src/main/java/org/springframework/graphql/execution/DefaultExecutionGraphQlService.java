@@ -97,20 +97,19 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 			ExecutionInput executionInput = request.toExecutionInput();
 
-			ContextSnapshotFactory factory = ContextSnapshotFactoryHelper.getInstance(contextView);
+			ContextSnapshotFactory factory = ContextPropagationHelper.getInstance(contextView);
 			GraphQLContext graphQLContext = executionInput.getGraphQLContext();
-			ContextSnapshotFactoryHelper.saveInstance(factory, graphQLContext);
+			ContextPropagationHelper.saveInstance(factory, graphQLContext);
 			factory.captureFrom(contextView).updateContext(graphQLContext);
 
-			Sinks.Empty<Void> requestCancelled = Sinks.empty();
-			graphQLContext.put(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono());
 			ExecutionInput executionInputToUse = registerDataLoaders(executionInput);
+			Sinks.Empty<Void> cancelPublisher = ContextPropagationHelper.createCancelPublisher(graphQLContext);
 
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInputToUse))
 					.onErrorResume((ex) -> ex instanceof GraphQLError, (ex) ->
 							Mono.just(ExecutionResult.newExecutionResult().addError((GraphQLError) ex).build()))
 					.map((result) -> new DefaultExecutionGraphQlResponse(executionInputToUse, result))
-					.doOnCancel(requestCancelled::tryEmitEmpty);
+					.doOnCancel(cancelPublisher::tryEmitEmpty);
 		});
 	}
 

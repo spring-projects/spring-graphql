@@ -233,7 +233,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = ContextSnapshotFactoryHelper.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)
@@ -281,7 +281,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
-			ContextSnapshot snapshot = ContextSnapshotFactoryHelper.captureFrom(graphQLContext);
+			ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
 								this.loader.apply(keys, environment)

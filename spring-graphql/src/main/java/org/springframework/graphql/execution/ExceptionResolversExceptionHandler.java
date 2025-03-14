@@ -69,7 +69,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 		Throwable exception = unwrapException(handlerParameters);
 		DataFetchingEnvironment env = handlerParameters.getDataFetchingEnvironment();
-		ContextSnapshot snapshot = ContextSnapshotFactoryHelper.captureFrom(env.getGraphQlContext());
+		ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(env.getGraphQlContext());
 		try {
 			return Flux.fromIterable(this.resolvers)
 					.flatMap((resolver) -> resolver.resolveException(exception, env))
