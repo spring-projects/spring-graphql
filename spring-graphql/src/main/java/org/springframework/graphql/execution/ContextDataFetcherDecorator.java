@@ -39,7 +39,6 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -80,24 +79,22 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 	public Object get(DataFetchingEnvironment env) throws Exception {
 
 		GraphQLContext graphQlContext = env.getGraphQlContext();
-		ContextSnapshotFactory snapshotFactory = ContextSnapshotFactoryHelper.getInstance(graphQlContext);
+		ContextSnapshotFactory snapshotFactory = ContextPropagationHelper.getInstance(graphQlContext);
 		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext) ?
 				snapshotFactory.captureFrom(graphQlContext, localContext) :
 				snapshotFactory.captureFrom(graphQlContext);
 
-		Mono<Void> cancelledRequest = graphQlContext.get(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY);
-
 		Object value = snapshot.wrap(() -> this.delegate.get(env)).call();
 
 		if (value instanceof DataFetcherResult<?> dataFetcherResult) {
-			Object adapted = updateValue(dataFetcherResult.getData(), snapshot, cancelledRequest);
+			Object adapted = updateValue(dataFetcherResult.getData(), snapshot, graphQlContext);
 			value = DataFetcherResult.newResult()
 					.data(adapted)
 					.errors(dataFetcherResult.getErrors())
 					.localContext(dataFetcherResult.getLocalContext()).build();
 		}
 		else {
-			value = updateValue(value, snapshot, cancelledRequest);
+			value = updateValue(value, snapshot, graphQlContext);
 		}
 
 		return value;
@@ -105,7 +102,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 	private @Nullable Object updateValue(
-			@Nullable Object value, ContextSnapshot snapshot, @Nullable Mono<Void> cancelledRequest) {
+			@Nullable Object value, ContextSnapshot snapshot, GraphQLContext graphQlContext) {
 
 		if (value == null) {
 			return null;
@@ -121,19 +118,14 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 						return this.subscriptionExceptionResolver.resolveException(exception)
 								.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, exception)));
 					});
-			if (cancelledRequest != null) {
-				subscriptionResult = subscriptionResult.takeUntilOther(cancelledRequest);
-			}
-			return subscriptionResult.contextWrite(snapshot::updateContext);
+			return ContextPropagationHelper.bindCancelFrom(subscriptionResult, graphQlContext)
+					.contextWrite(snapshot::updateContext);
 		}
 
 		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);
 
 		if (value instanceof Mono<?> mono) {
-			if (cancelledRequest != null) {
-				mono = mono.takeUntilOther(cancelledRequest);
-			}
-			value = mono.contextWrite(snapshot::updateContext).toFuture();
+			value = ContextPropagationHelper.bindCancelFrom(mono, graphQlContext).contextWrite(snapshot::updateContext).toFuture();
 		}
 
 		return value;

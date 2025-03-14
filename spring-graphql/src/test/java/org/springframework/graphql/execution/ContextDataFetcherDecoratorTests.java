@@ -19,7 +19,6 @@ package org.springframework.graphql.execution;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -47,7 +46,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
-import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestThreadLocalAccessor;
@@ -300,9 +298,8 @@ public class ContextDataFetcherDecoratorTests {
 						)
 				.toGraphQl();
 
-		Sinks.Empty<Void> requestCancelled = Sinks.empty();
-		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
-				.graphQLContext(Map.of(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono())).build();
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
 
 		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
 		requestCancelled.tryEmitEmpty();
@@ -320,9 +317,8 @@ public class ContextDataFetcherDecoratorTests {
 				)
 				.toGraphQl();
 
-		Sinks.Empty<Void> requestCancelled = Sinks.empty();
-		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
-				.graphQLContext(Map.of(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono())).build();
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
 
 		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
 		requestCancelled.tryEmitEmpty();
@@ -339,14 +335,14 @@ public class ContextDataFetcherDecoratorTests {
 								.doOnCancel(() -> dataFetcherCancelled.set(true))
 						)
 				.toGraphQl();
-		Sinks.Empty<Void> requestCancelled = Sinks.empty();
-		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }")
-				.graphQLContext(Map.of(ExecutionGraphQlRequest.CANCEL_PUBLISHER_CONTEXT_KEY, requestCancelled.asMono())).build();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
+		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 		ResponseHelper.forSubscription(executionResult).subscribe();
-
 		requestCancelled.tryEmitEmpty();
+
 		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
 		assertThat(dataFetcherCancelled).isTrue();
 	}

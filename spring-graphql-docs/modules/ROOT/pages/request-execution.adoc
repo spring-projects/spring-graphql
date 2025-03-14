@@ -417,14 +417,6 @@ include-code::HttpTimeoutConfiguration[]
 For more transport-specific timeouts, there are dedicated properties on the handler implementations like
 `GraphQlWebSocketHandler` and `GraphQlSseHandler`.
 
-NOTE: While reactive data fetchers are cancelled automatically, this cannot be done for others
-as there is no consistent way to cancel processing. In this case, controller methods can get
-the cancellation signal from a `Mono` in the GraphQL context and manually cancel work.
-
-Here is an example of using the cancellation signal to abort processing inside a controller method:
-
-include-code::TimeoutController[tag=cancel,indent=0]
-
 
 [[execution.reactivedatafetcher]]
 == Reactive `DataFetcher`

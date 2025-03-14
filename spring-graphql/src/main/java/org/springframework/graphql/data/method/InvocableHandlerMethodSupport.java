@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
 import org.springframework.data.util.KotlinReflectionUtils;
-import org.springframework.graphql.execution.ContextSnapshotFactoryHelper;
+import org.springframework.graphql.execution.ContextPropagationHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -153,7 +153,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 		CompletableFuture<Object> future = new CompletableFuture<>();
 		this.executor.execute(() -> {
 			try {
-				ContextSnapshot snapshot = ContextSnapshotFactoryHelper.captureFrom(graphQLContext);
+				ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
 				Object value = snapshot.wrap((Callable<?>) result).call();
 				future.complete(value);
 			}
