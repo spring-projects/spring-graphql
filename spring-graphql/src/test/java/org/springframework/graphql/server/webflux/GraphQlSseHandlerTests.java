@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.graphql.server.webflux;
 
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageWriter;
@@ -67,7 +69,7 @@ class GraphQlSseHandlerTests {
 	@Test
 	void shouldRejectQueryOperations() {
 		SerializableGraphQlRequest request = initRequest("{ bookById(id: 42) {name} }");
-		GraphQlSseHandler handler = createHandler(SEARCH_DATA_FETCHER);
+		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockServerHttpResponse response = handleRequest(this.httpRequest, handler, request);
 
 		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
@@ -87,7 +89,7 @@ class GraphQlSseHandlerTests {
 		SerializableGraphQlRequest request = initRequest(
 				"subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
 
-		GraphQlSseHandler handler = createHandler(SEARCH_DATA_FETCHER);
+		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
 		MockServerHttpResponse response = handleRequest(this.httpRequest, handler, request);
 
 		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
@@ -113,7 +115,7 @@ class GraphQlSseHandlerTests {
 		DataFetcher<?> errorDataFetcher = env ->
 				Flux.just(BookSource.getBook(1L)).concatWith(Flux.error(new IllegalStateException("test error")));
 
-		GraphQlSseHandler handler = createHandler(errorDataFetcher);
+		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
 		MockServerHttpResponse response = handleRequest(this.httpRequest, handler, request);
 
 		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
@@ -130,12 +132,40 @@ class GraphQlSseHandlerTests {
 				""");
 	}
 
-	private GraphQlSseHandler createHandler(DataFetcher<?> subscriptionDataFetcher) {
-		return new GraphQlSseHandler(
-				GraphQlSetup.schemaResource(BookSource.schema)
-						.queryFetcher("bookById", (env) -> BookSource.getBookWithoutAuthor(1L))
-						.subscriptionFetcher("bookSearch", subscriptionDataFetcher)
-						.toWebGraphQlHandler());
+	@Test
+	void shouldSendKeepAlivePings() {
+		SerializableGraphQlRequest request = initRequest(
+				"subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
+
+		WebGraphQlHandler webGraphQlHandler = createWebGraphQlHandler(env -> Mono.delay(Duration.ofMillis(50)).then());
+		GraphQlSseHandler handler = new GraphQlSseHandler(webGraphQlHandler, null, Duration.ofMillis(10));
+
+		assertThat(handleRequest(this.httpRequest, handler, request).getBodyAsString().block())
+				.startsWith("""
+					:
+
+					:
+
+					""")
+				.endsWith("""
+					:
+
+					event:complete
+					data:{}
+
+					""");
+	}
+
+	private GraphQlSseHandler createSseHandler(DataFetcher<?> subscriptionDataFetcher) {
+		WebGraphQlHandler webGraphQlHandler = createWebGraphQlHandler(subscriptionDataFetcher);
+		return new GraphQlSseHandler(webGraphQlHandler);
+	}
+
+	private static WebGraphQlHandler createWebGraphQlHandler(DataFetcher<?> subscriptionDataFetcher) {
+		return GraphQlSetup.schemaResource(BookSource.schema)
+				.queryFetcher("bookById", (env) -> BookSource.getBookWithoutAuthor(1L))
+				.subscriptionFetcher("bookSearch", subscriptionDataFetcher)
+				.toWebGraphQlHandler();
 	}
 
 	private static SerializableGraphQlRequest initRequest(String document) {

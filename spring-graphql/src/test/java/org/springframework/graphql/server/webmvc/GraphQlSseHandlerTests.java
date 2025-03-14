@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,9 +31,11 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -71,6 +73,10 @@ class GraphQlSseHandlerTests {
 				.doOnCancel(() -> DATA_FETCHER_CANCELLED.set(true));
 	};
 
+	private static final String BOOK_SEARCH_REQUEST = """
+			{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
+			""";
+
 
 	@Test
 	void shouldRejectQueryOperations() throws Exception {
@@ -92,9 +98,7 @@ class GraphQlSseHandlerTests {
 	@Test
 	void shouldWriteMultipleEventsForSubscription() throws Exception {
 		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
-		MockHttpServletRequest request = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
-				""");
+		MockHttpServletRequest request = createServletRequest(BOOK_SEARCH_REQUEST);
 		MockHttpServletResponse response = handleAndAwait(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
@@ -112,15 +116,38 @@ class GraphQlSseHandlerTests {
 	}
 
 	@Test
+	void shouldSendKeepAlivePings() throws Exception {
+		WebGraphQlHandler webGraphQlHandler = createWebGraphQlHandler(env -> Mono.delay(Duration.ofMillis(50)).then());
+		GraphQlSseHandler handler = new GraphQlSseHandler(webGraphQlHandler, null, Duration.ofMillis(10));
+
+		MockHttpServletRequest request = createServletRequest(BOOK_SEARCH_REQUEST);
+		MockHttpServletResponse response = handleRequest(request, handler);
+		await().atMost(Duration.ofSeconds(1)).until(() -> response.getContentAsString().contains("complete"));
+
+		assertThat(response.getContentAsString())
+				.startsWith("""
+					:\s
+
+					:\s
+
+					""")
+				.endsWith("""
+					:\s
+
+					event:complete
+					data:
+
+					""");
+	}
+
+	@Test
 	void shouldWriteEventsAndTerminalError() throws Exception {
 
 		DataFetcher<?> errorDataFetcher = env -> Flux.just(BookSource.getBook(1L))
 				.concatWith(Flux.error(new IllegalStateException("test error")));
 
 		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
-		MockHttpServletRequest request = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
-				""");
+		MockHttpServletRequest request = createServletRequest(BOOK_SEARCH_REQUEST);
 		MockHttpServletResponse response = handleAndAwait(request, handler);
 
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
@@ -140,9 +167,7 @@ class GraphQlSseHandlerTests {
 	@Test
 	void shouldCancelDataFetcherPublisherWhenWritingFails() throws Exception {
 		GraphQlSseHandler handler = createSseHandler(SEARCH_DATA_FETCHER);
-		MockHttpServletRequest servletRequest = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
-				""");
+		MockHttpServletRequest servletRequest = createServletRequest(BOOK_SEARCH_REQUEST);
 		HttpServletResponse servletResponse = mock(HttpServletResponse.class);
 		ServletOutputStream outputStream = mock(ServletOutputStream.class);
 
@@ -165,9 +190,7 @@ class GraphQlSseHandlerTests {
 				.delayElements(Duration.ofMillis(500)).doOnCancel(() -> DATA_FETCHER_CANCELLED.set(true));
 
 		GraphQlSseHandler handler = createSseHandler(errorDataFetcher);
-		MockHttpServletRequest servletRequest = createServletRequest("""
-				{ "query": "subscription TestSubscription { bookSearch(author:\\"Orwell\\") { id name } }" }
-				""");
+		MockHttpServletRequest servletRequest = createServletRequest(BOOK_SEARCH_REQUEST);
 
 		MockHttpServletResponse servletResponse = handleRequest(servletRequest, handler);
 		for (AsyncListener listener : ((MockAsyncContext) servletRequest.getAsyncContext()).getListeners()) {
@@ -180,10 +203,14 @@ class GraphQlSseHandlerTests {
 	}
 
 	private GraphQlSseHandler createSseHandler(DataFetcher<?> dataFetcher) {
-		return new GraphQlSseHandler(GraphQlSetup.schemaResource(BookSource.schema)
+		return new GraphQlSseHandler(createWebGraphQlHandler(dataFetcher));
+	}
+
+	private static WebGraphQlHandler createWebGraphQlHandler(DataFetcher<?> dataFetcher) {
+		return GraphQlSetup.schemaResource(BookSource.schema)
 				.queryFetcher("bookById", (env) -> BookSource.getBookWithoutAuthor(1L))
 				.subscriptionFetcher("bookSearch", dataFetcher)
-				.toWebGraphQlHandler());
+				.toWebGraphQlHandler();
 	}
 
 	private MockHttpServletRequest createServletRequest(String query) {
