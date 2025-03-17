@@ -41,7 +41,6 @@ import org.springframework.mock.web.reactive.function.server.MockServerRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.ViewResolver;
-import org.springframework.web.server.ServerWebExchange;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -181,9 +180,9 @@ class GraphQlSseHandlerTests {
 
 		MockServerRequest serverRequest = MockServerRequest.builder()
 				.exchange(exchange)
-				.uri(((ServerWebExchange) exchange).getRequest().getURI())
-				.method(((ServerWebExchange) exchange).getRequest().getMethod())
-				.headers(((ServerWebExchange) exchange).getRequest().getHeaders())
+				.uri(exchange.getRequest().getURI())
+				.method(exchange.getRequest().getMethod())
+				.headers(exchange.getRequest().getHeaders())
 				.body(Mono.just(body));
 
 		handler.handleRequest(serverRequest)

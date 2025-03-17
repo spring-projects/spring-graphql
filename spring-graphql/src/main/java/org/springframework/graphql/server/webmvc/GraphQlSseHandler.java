@@ -26,6 +26,7 @@ import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import org.apache.commons.logging.Log;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
@@ -125,8 +126,8 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 		});
 
 		return ((this.timeout != null) ?
-				ServerResponse.sse(SseSubscriber.connect(resultFlux, this.keepAliveDuration), this.timeout) :
-				ServerResponse.sse(SseSubscriber.connect(resultFlux, this.keepAliveDuration)));
+				ServerResponse.sse(SseSubscriber.connect(resultFlux, this.logger, this.keepAliveDuration), this.timeout) :
+				ServerResponse.sse(SseSubscriber.connect(resultFlux, this.logger, this.keepAliveDuration)));
 	}
 
 
@@ -137,9 +138,12 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		private final ServerResponse.SseBuilder sseBuilder;
 
-		private SseSubscriber(ServerResponse.SseBuilder sseBuilder) {
+		private final Log logger;
+
+		private SseSubscriber(ServerResponse.SseBuilder sseBuilder, Log logger) {
 			this.sseBuilder = sseBuilder;
 			this.sseBuilder.onTimeout(() -> cancelWithError(new AsyncRequestTimeoutException()));
+			this.logger = logger;
 		}
 
 		@Override
@@ -180,18 +184,22 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		@Override
 		protected void hookOnError(Throwable ex) {
-			sendNext(exceptionToResultMap(ex));
+			Map<String, Object> errorMap;
+			if (ex instanceof SubscriptionPublisherException spe) {
+				errorMap = spe.toMap();
+			}
+			else {
+				if (this.logger.isErrorEnabled()) {
+					this.logger.error("Unresolved " + ex.getClass().getSimpleName(), ex);
+				}
+				errorMap = GraphqlErrorBuilder.newError()
+						.message("Subscription error")
+						.errorType(org.springframework.graphql.execution.ErrorType.INTERNAL_ERROR)
+						.build()
+						.toSpecification();
+			}
+			sendNext(errorMap);
 			sendComplete();
-		}
-
-		private static Map<String, Object> exceptionToResultMap(Throwable ex) {
-			return ((ex instanceof SubscriptionPublisherException spe) ?
-					spe.toMap() :
-					GraphqlErrorBuilder.newError()
-							.message("Subscription error")
-							.errorType(org.springframework.graphql.execution.ErrorType.INTERNAL_ERROR)
-							.build()
-							.toSpecification());
 		}
 
 		private void sendComplete() {
@@ -210,10 +218,10 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 		}
 
 		static Consumer<ServerResponse.SseBuilder> connect(
-				Flux<Map<String, Object>> resultFlux, @Nullable Duration keepAliveDuration) {
+				Flux<Map<String, Object>> resultFlux, Log logger, @Nullable Duration keepAliveDuration) {
 
 			return (sseBuilder) -> {
-				SseSubscriber subscriber = new SseSubscriber(sseBuilder);
+				SseSubscriber subscriber = new SseSubscriber(sseBuilder, logger);
 				if (keepAliveDuration != null) {
 					KeepAliveHandler handler = new KeepAliveHandler(keepAliveDuration);
 					handler.compose(resultFlux).subscribe(subscriber);

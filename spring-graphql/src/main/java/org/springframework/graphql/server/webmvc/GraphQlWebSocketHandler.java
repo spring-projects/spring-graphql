@@ -129,8 +129,8 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * @param converter for JSON encoding and decoding
 	 * @param connectionInitTimeout how long to wait after the establishment of
 	 * the WebSocket for the {@code "connection_ini"} message from the client.
-	 * @param keepAliveDuration how frequently to send ping messages; if not
-	 * set then ping messages are not sent.
+	 * @param keepAliveDuration how frequently to send ping messages when no
+	 * other messages are sent
 	 * @since 1.3
 	 */
 	public GraphQlWebSocketHandler(
