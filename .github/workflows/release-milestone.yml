@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Build and Publish
         id: build-and-publish
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-and-publish
         with:
           develocity-access-key: ${{ secrets.GRADLE_ENTERPRISE_SECRET_ACCESS_KEY }}
           publish: true
