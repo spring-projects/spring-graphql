@@ -8,20 +8,20 @@ javaPlatform {
 
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	api(platform("com.fasterxml.jackson:jackson-bom:2.18.1"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.18.3"))
 	api(platform("io.projectreactor:reactor-bom:2024.0.4"))
 	api(platform("io.micrometer:micrometer-bom:1.15.0-M3"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.5.0-M3"))
 	api(platform("org.springframework.data:spring-data-bom:2025.0.0-M2"))
 	api(platform("org.springframework.security:spring-security-bom:6.5.0-M3"))
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
-	api(platform("io.rsocket:rsocket-bom:1.1.4"))
+	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
-	api(platform("org.junit:junit-bom:5.11.3"))
-	api(platform("org.mockito:mockito-bom:5.14.2"))
-	api(platform("org.testcontainers:testcontainers-bom:1.20.4"))
-	api(platform("org.apache.logging.log4j:log4j-bom:2.24.1"))
+	api(platform("org.junit:junit-bom:5.11.4"))
+	api(platform("org.mockito:mockito-bom:5.16.0"))
+	api(platform("org.testcontainers:testcontainers-bom:1.20.6"))
+	api(platform("org.apache.logging.log4j:log4j-bom:2.24.3"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
@@ -37,19 +37,19 @@ dependencies {
 
 		api("com.google.code.findbugs:jsr305:3.0.2")
 
-		api("org.assertj:assertj-core:3.26.3")
+		api("org.assertj:assertj-core:3.27.3")
 		api("com.jayway.jsonpath:json-path:2.9.0")
 		api("org.skyscreamer:jsonassert:1.5.3")
-		api("org.awaitility:awaitility:4.2.2")
+		api("org.awaitility:awaitility:4.3.0")
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
 
 		api("com.h2database:h2:2.3.232")
-		api("org.hibernate:hibernate-core:6.6.2.Final")
-		api("org.hibernate.validator:hibernate-validator:8.0.1.Final")
-		api("org.mongodb:bson:5.2.1")
-		api("org.mongodb:mongodb-driver-core:5.2.1")
-		api("org.mongodb:mongodb-driver-reactivestreams:5.2.1")
-		api("org.mongodb:mongodb-driver-sync:5.2.1")
+		api("org.hibernate:hibernate-core:6.6.11.Final")
+		api("org.hibernate.validator:hibernate-validator:8.0.2.Final")
+		api("org.mongodb:bson:5.3.1")
+		api("org.mongodb:mongodb-driver-core:5.3.1")
+		api("org.mongodb:mongodb-driver-reactivestreams:5.3.1")
+		api("org.mongodb:mongodb-driver-sync:5.3.1")
 	}
 
 }
