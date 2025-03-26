@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import graphql.schema.SchemaTransformer;
 import graphql.schema.SchemaTraverser;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 
 /**
@@ -57,6 +58,8 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 
 	@Nullable
 	private Consumer<GraphQL.Builder> graphQlConfigurer;
+
+	private GraphQlSource.Factory graphQlSourceFactory = FixedGraphQlSource::new;
 
 
 	@Override
@@ -96,6 +99,13 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 		return self();
 	}
 
+	@Override
+	public B graphQlSourceFactory(GraphQlSource.Factory factory) {
+		Assert.notNull(factory, "GraphQlSource.Factory is required");
+		this.graphQlSourceFactory = factory;
+		return self();
+	}
+
 	@SuppressWarnings("unchecked")
 	private  <T extends B> T self() {
 		return (T) this;
@@ -118,7 +128,7 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 
 		applyGraphQlConfigurers(builder);
 
-		return new FixedGraphQlSource(builder.build(), schema);
+		return this.graphQlSourceFactory.create(builder.build(), schema);
 	}
 
 	/**

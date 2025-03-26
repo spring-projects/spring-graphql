@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -150,6 +150,18 @@ public interface GraphQlSource {
 		B configureGraphQl(Consumer<GraphQL.Builder> configurer);
 
 		/**
+		 * Configure a factory to use to create the {@link GraphQlSource} instance
+		 * to return from the {@link #build()} method.
+		 * <p>By default, the instance is a simple container of {@link GraphQL} and
+		 * {@link GraphQLSchema}. Applications can use this to create a different
+		 * implementation that applies additional per-request logic.
+		 * @param factory the factory to use
+		 * @return the current builder
+		 * @since 1.4.0
+		 */
+		B graphQlSourceFactory(Factory factory);
+
+		/**
 		 * Build the {@link GraphQlSource} instance.
 		 */
 		GraphQlSource build();
@@ -238,6 +250,21 @@ public interface GraphQlSource {
 		SchemaResourceBuilder schemaFactory(
 				BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory);
 
+	}
+
+
+	/**
+	 * Strategy to create the {@link GraphQlSource} instance in {@link Builder#build()}.
+	 */
+	interface Factory {
+
+		/**
+		 * Create a {@link GraphQlSource} with the given inputs.
+		 * @param graphQl the {@code GraphQLJava} initialized by the builder
+		 * @param schema the schema initialized by the builder
+		 * @return the created instance
+		 */
+		GraphQlSource create(GraphQL graphQl, GraphQLSchema schema);
 	}
 
 }
