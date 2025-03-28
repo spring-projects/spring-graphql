@@ -21,6 +21,7 @@ import java.util.List;
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import graphql.TrivialDataFetcher;
+import graphql.execution.AbortExecutionException;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -106,6 +107,11 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		if (value == null) {
 			return null;
+		}
+		if (ContextPropagationHelper.isCancelled(graphQlContext)) {
+			return DataFetcherResult.newResult()
+					.error(new AbortExecutionException("GraphQL request has been cancelled by the client."))
+					.build();
 		}
 
 		if (this.subscription) {

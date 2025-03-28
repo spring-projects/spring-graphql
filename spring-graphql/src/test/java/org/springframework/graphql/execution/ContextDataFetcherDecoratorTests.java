@@ -29,6 +29,7 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.TrivialDataFetcher;
+import graphql.execution.AbortExecutionException;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetcherFactories;
@@ -55,7 +56,9 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * Tests for {@link ContextDataFetcherDecorator}.
+ *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
 @SuppressWarnings("ReactiveStreamsUnusedPublisher")
 public class ContextDataFetcherDecoratorTests {
@@ -288,7 +291,7 @@ public class ContextDataFetcherDecoratorTests {
 	}
 
 	@Test
-	void cancelMonoDataFetcherWhenRequestCancelled() throws Exception {
+	void cancelMonoDataFetcherWhenRequestCancelled() {
 		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
 				.queryFetcher("greeting", (env) ->
@@ -307,7 +310,7 @@ public class ContextDataFetcherDecoratorTests {
 	}
 
 	@Test
-	void cancelFluxDataFetcherWhenRequestCancelled() throws Exception {
+	void cancelFluxDataFetcherWhenRequestCancelled() {
 		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
 				.queryFetcher("greeting", (env) ->
@@ -323,6 +326,22 @@ public class ContextDataFetcherDecoratorTests {
 		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
 		requestCancelled.tryEmitEmpty();
 		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
+	}
+
+	@Test
+	void returnAbortExecutionForBlockingDataFetcherWhenRequestCancelled() throws Exception {
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.queryFetcher("greeting", (env) -> "Hello")
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
+		requestCancelled.tryEmitEmpty();
+		ExecutionResult result = graphQl.executeAsync(input).get();
+
+		assertThat(result.getErrors()).hasSize(1);
+		assertThat(result.getErrors().get(0)).isInstanceOf(AbortExecutionException.class)
+				.extracting("message").asString().isEqualTo("GraphQL request has been cancelled by the client.");
 	}
 
 	@Test

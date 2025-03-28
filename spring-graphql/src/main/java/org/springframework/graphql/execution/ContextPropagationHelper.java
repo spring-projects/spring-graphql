@@ -132,6 +132,21 @@ public abstract class ContextPropagationHelper {
 	}
 
 	/**
+	 * Return {@code true} if the current request has been cancelled, {@code false} otherwise.
+	 * This checks whether a {@link #createCancelPublisher(GraphQLContext) cancellation publisher is present}
+	 * in the given context and the cancel signal has fired already.
+	 * @param context the current GraphQL context
+	 * @since 1.4.0
+	 */
+	public static boolean isCancelled(GraphQLContext context) {
+		Mono<Void> cancelSignal = context.get(CANCEL_PUBLISHER_KEY);
+		if (cancelSignal != null) {
+			return cancelSignal.toFuture().isDone();
+		}
+		return false;
+	}
+
+	/**
 	 * Bind the source {@link Mono} to the publisher from the given {@link GraphQLContext}.
 	 * The returned {@code Mono} will be cancelled when this publisher completes.
 	 * Subscribers must use the returned {@code Mono} instance.
