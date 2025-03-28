@@ -57,7 +57,7 @@ public class FieldAccessException extends GraphQlClientException {
 
 
 	/**
-	 * Return the [@code GraphQlResponse} for which the error ouccrred.
+	 * Return the [@code GraphQlResponse} for which the error occurred.
 	 */
 	public ClientGraphQlResponse getResponse() {
 		return this.response;

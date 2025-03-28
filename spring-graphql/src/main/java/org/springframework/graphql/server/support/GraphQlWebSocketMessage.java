@@ -87,7 +87,7 @@ public class GraphQlWebSocketMessage {
 	}
 
 	/**
-	 * Return the message type as an emum.
+	 * Return the message type as an enum.
 	 */
 	public GraphQlWebSocketMessageType resolvedType() {
 		Assert.state(this.type != null, "GraphQlWebSocketMessage does not have a type");
