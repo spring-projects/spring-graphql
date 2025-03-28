@@ -73,7 +73,7 @@ https://github.com/jaydenseric/graphql-multipart-request-spec[graphql-multipart-
 that allows file uploads with GraphQL over HTTP.
 
 Spring for GraphQL does not support the `graphql-multipart-request-spec` directly.
-While the spec does provide the benefit of a unified GraphQL API, the actual experince has
+While the spec does provide the benefit of a unified GraphQL API, the actual experience has
 led to a number of issues, and best practice recommendations have evolved, see
 https://www.apollographql.com/blog/backend/file-uploads/file-upload-best-practices/[Apollo Server File Upload Best Practices]
 for a more detailed discussion.
