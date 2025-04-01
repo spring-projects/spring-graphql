@@ -70,10 +70,13 @@ public class LocalContextBookController {
 		return List.of();
 	}
 
-	record BookAndAuthor(Book book, Author author) {}
+	record BookAndAuthor(Book book, Author author) {
+	}
 
-	record Book(long id, String title, long authorId) {}
+	record Book(long id, String title, long authorId) {
+	}
 
-	record Author(long id, String name) {}
+	record Author(long id, String name) {
+	}
 
 }
