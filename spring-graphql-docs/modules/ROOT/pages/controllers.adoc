@@ -273,7 +273,7 @@ You can write a controller like this:
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	@Controller
-	public class BookController {
+	public class ActivityController {
 
 		@QueryMapping
 		public List<Activity> activities() {
@@ -293,7 +293,7 @@ If necessary, you can take over the mapping for individual subtypes:
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	@Controller
-	public class BookController {
+	public class ActivityController {
 
 		@QueryMapping
 		public List<Activity> activities() {
@@ -658,6 +658,17 @@ https://github.com/spring-projects/spring-graphql/issues/344#issuecomment-108281
 for links to relevant issues and a suggested workaround.
 ====
 
+[[controllers.schema-mapping.localcontext]]
+=== Local Context
+
+The main `GraphQlContext` is global for the entire query and can be used to store and retrieve cross-cutting context data for observability, security and more.
+There are times when you would like to pass additional information to child fields data fetchers and avoid polluting the main context.
+For such use cases, you should consider a local `GraphQLContext` as it is contained to a subset of the data fetching operations.
+A well-known use case is https://www.graphql-java.com/blog/deep-dive-data-fetcher-results[data pre-fetching].
+
+Controller methods can contribute a local context by returning a `DataFetcherResult<T>` that holds the resolved data and the new context:
+
+include-code::LocalContextBookController[tag=localcontext,indent=0]
 
 
 [[controllers.batch-mapping]]
