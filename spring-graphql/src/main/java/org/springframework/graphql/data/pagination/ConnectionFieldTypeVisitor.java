@@ -153,7 +153,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 	@Nullable
 	private static GraphQLObjectType getEdgeType(@Nullable GraphQLFieldDefinition field) {
 		if (getType(field) instanceof GraphQLList listType) {
-			if (listType.getWrappedType() instanceof GraphQLObjectType type) {
+			if (getType(listType.getWrappedType()) instanceof GraphQLObjectType type) {
 				return type;
 			}
 		}
@@ -166,6 +166,14 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			return null;
 		}
 		GraphQLOutputType type = field.getType();
+		return (type instanceof GraphQLNonNull nonNullType) ? nonNullType.getWrappedType() : type;
+	}
+
+	@Nullable
+	private static GraphQLType getType(@Nullable GraphQLType type) {
+		if (type == null) {
+			return null;
+		}
 		return (type instanceof GraphQLNonNull nonNullType) ? nonNullType.getWrappedType() : type;
 	}
 
@@ -185,13 +193,13 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 	/**
 	 * {@code DataFetcher} decorator that adapts return values with an adapter.
 	 */
-	private record ConnectionDataFetcher(DataFetcher<?> delegate, ConnectionAdapter adapter) implements DataFetcher<Object> {
+	record ConnectionDataFetcher(DataFetcher<?> delegate, ConnectionAdapter adapter) implements DataFetcher<Object> {
 
 		private static final Connection<?> EMPTY_CONNECTION =
 				new DefaultConnection<>(Collections.emptyList(), new DefaultPageInfo(null, null, false, false));
 
 
-		private ConnectionDataFetcher {
+		ConnectionDataFetcher {
 			Assert.notNull(delegate, "DataFetcher delegate is required");
 			Assert.notNull(adapter, "ConnectionAdapter is required");
 		}
