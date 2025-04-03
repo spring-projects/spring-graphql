@@ -107,6 +107,7 @@ public final class ArgumentValue<T> {
 	/**
 	 * If a value is present, performs the given action with the value, otherwise does nothing.
 	 * @param action the action to be performed, if a value is present
+	 * @since 1.4.0
 	 */
 	public void ifPresent(Consumer<? super T> action) {
 		Assert.notNull(action, "Action is required");
