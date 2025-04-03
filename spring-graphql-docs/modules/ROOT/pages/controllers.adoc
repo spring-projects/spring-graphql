@@ -214,12 +214,33 @@ See xref:controllers.adoc#controllers.schema-mapping.data-loader[`DataLoader`].
 
 Schema mapping handler methods can return:
 
-- A resolved value of any type.
-- `Mono` and `Flux` for asynchronous value(s). Supported for controller methods and for
-  any `DataFetcher` as described in xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`].
-- Kotlin coroutine and `Flow` are adapted to `Mono` and `Flux`.
-- `java.util.concurrent.Callable` to have the value(s) produced asynchronously.
-  For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
+[cols="1,2"]
+|===
+| Return Value | Description
+
+| A resolved value `T`
+| Any application type directly resolved.
+
+| `Mono<T>` and `Flux<T>`
+| For asynchronous value(s).
+
+Supported for controller methods and for any `DataFetcher` as described in xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`].
+
+| Kotlin `suspend fun` and `Flow`
+| They are automatically adapted to `Mono` and `Flux`.
+
+| `java.util.concurrent.Callable<T>`
+| For producing value(s) asynchronously.
+For this to work, `AnnotatedControllerConfigurer` must be configured with an `Executor`.
+On Java 21+, returning `T` directly is enough. Read the paragraph after this table for more details.
+
+| `graphql.execution.DataFetcherResult<P>`
+| With `P` being any of the types listed above (`T`, `Mono<T>`, etc.).
+
+This is the "full" GraphQL Java return value, containing not only the "data".
+Useful for completing the result with "extensions" or a xref:controllers.adoc#controllers.schema-mapping.localcontext["Local Context"].
+
+|===
 
 On Java 21+, when `AnnotatedControllerConfigurer` is configured with an `Executor`, controller
 methods with a blocking method signature are invoked asynchronously. By default, a controller
@@ -664,11 +685,13 @@ for links to relevant issues and a suggested workaround.
 The main `GraphQlContext` is global for the entire query and can be used to store and retrieve cross-cutting context data for observability, security and more.
 There are times when you would like to pass additional information to child fields data fetchers and avoid polluting the main context.
 For such use cases, you should consider a local `GraphQLContext` as it is contained to a subset of the data fetching operations.
-A well-known use case is https://www.graphql-java.com/blog/deep-dive-data-fetcher-results[data pre-fetching].
 
 Controller methods can contribute a local context by returning a `DataFetcherResult<T>` that holds the resolved data and the new context:
 
 include-code::LocalContextBookController[tag=localcontext,indent=0]
+
+If you want to see a more detailed example and discussion of using this, have a look at
+https://www.graphql-java.com/blog/deep-dive-data-fetcher-results[the "Building efficient data fetchers by looking ahead" section on the graphql-java documentation].
 
 
 [[controllers.batch-mapping]]
