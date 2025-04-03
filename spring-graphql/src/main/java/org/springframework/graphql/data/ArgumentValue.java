@@ -49,6 +49,8 @@ import org.springframework.util.ObjectUtils;
  */
 public final class ArgumentValue<T> {
 
+	private static final ArgumentValue<?> EMPTY = new ArgumentValue<>(null, false);
+
 	private static final ArgumentValue<?> OMITTED = new ArgumentValue<>(null, true);
 
 
@@ -118,7 +120,7 @@ public final class ArgumentValue<T> {
 
 	@Override
 	public boolean equals(Object other) {
-		// This covers OMITTED constant
+		// This covers EMPTY and OMITTED constant
 		if (this == other) {
 			return true;
 		}
@@ -142,8 +144,9 @@ public final class ArgumentValue<T> {
 	 * @param <T> the type of value
 	 * @param value the value to hold in the instance
 	 */
+	@SuppressWarnings("unchecked")
 	public static <T> ArgumentValue<T> ofNullable(@Nullable T value) {
-		return new ArgumentValue<>(value, false);
+		return (value != null) ? new ArgumentValue<>(value, false) : (ArgumentValue<T>) EMPTY;
 	}
 
 	/**

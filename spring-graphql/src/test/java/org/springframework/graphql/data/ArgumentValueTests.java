@@ -74,7 +74,6 @@ class ArgumentValueTests {
 	}
 
 	@Test
-
 	void ifPresentShouldSkipWhenOmitted() {
 		AtomicBoolean called = new AtomicBoolean();
 		ArgumentValue.omitted().ifPresent(value -> called.set(true));
