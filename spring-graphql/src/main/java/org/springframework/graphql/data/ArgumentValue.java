@@ -18,6 +18,7 @@ package org.springframework.graphql.data;
 
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
@@ -70,6 +71,14 @@ public final class ArgumentValue<T> {
 	}
 
 	/**
+	 * Return {@code true} if the input value was present in the input but the value was {@code null},
+	 * and {@code false} otherwise.
+	 */
+	public boolean isEmpty() {
+		return !this.omitted;
+	}
+
+	/**
 	 * Return {@code true} if the input value was omitted altogether from the
 	 * input, and {@code false} if it was provided, but possibly set to the
 	 * {@literal "null"} literal.
@@ -91,6 +100,33 @@ public final class ArgumentValue<T> {
 	 */
 	public Optional<T> asOptional() {
 		return Optional.ofNullable(this.value);
+	}
+
+	/**
+	 * If a value is present, performs the given action with the value, otherwise does nothing.
+	 * @param action the action to be performed, if a value is present
+	 * @throws NullPointerException if value is present and the given action is {@code null}
+	 */
+	public void ifPresent(Consumer<? super T> action) {
+		if (this.value != null) {
+			action.accept(value);
+		}
+	}
+
+	/**
+	 * If the value is present, performs the given action with the value, otherwise if the value is empty
+	 * performs the given empty-based action. If the value is omitted, do nothing.
+	 * @param action the action to be performed, if the value is present
+	 * @param emptyAction the empty-based action to be performed, if the value is empty
+	 * @throws NullPointerException if a value is present and the given action is {@code null}, or no value is present
+	 * and the given empty-based action is {@code null}
+	 */
+	public void ifPresentOrEmpty(Consumer<? super T> action, Runnable emptyAction) {
+		if (value != null) {
+			action.accept(value);
+		} else if (!omitted) {
+			emptyAction.run();
+		}
 	}
 
 	@Override
