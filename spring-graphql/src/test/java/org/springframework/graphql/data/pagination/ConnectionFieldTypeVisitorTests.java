@@ -205,6 +205,44 @@ public class ConnectionFieldTypeVisitorTests {
 			assertThat(actual).isSameAs(dataFetcher);
 		}
 
+		@Test
+		void connectionTypeWithNonNullEdgesIsDecorated() throws Exception {
+			String schemaContent = """
+					type Query {
+						libraries(first: Int, after: String, last: Int, before: String): LibraryConnection!
+					}
+
+					type LibraryConnection {
+						edges: [LibraryEdge!]!
+						pageInfo: PageInfo!
+					}
+
+					type LibraryEdge {
+						node: Library!
+						cursor: String!
+					}
+
+					type Library {
+						name: String
+					}
+
+					type PageInfo {
+						hasPreviousPage: Boolean!
+						hasNextPage: Boolean!
+						startCursor: String
+						endCursor: String
+					}
+					""";
+
+			FieldCoordinates coordinates = FieldCoordinates.coordinates("Query", "libraries");
+			DataFetcher<?> dataFetcher = env -> null;
+
+			DataFetcher<?> actual =
+					applyConnectionFieldTypeVisitor(schemaContent, coordinates, dataFetcher);
+
+			assertThat(actual).isInstanceOf(ConnectionFieldTypeVisitor.ConnectionDataFetcher.class);
+		}
+
 		private static DataFetcher<?> applyConnectionFieldTypeVisitor(
 				Object schemaSource, FieldCoordinates coordinates, DataFetcher<?> fetcher) throws Exception {
 
@@ -290,8 +328,6 @@ public class ConnectionFieldTypeVisitorTests {
 			}
 		}
 	}
-
-
 
 	private static class ListConnectionAdapter implements ConnectionAdapter {
 

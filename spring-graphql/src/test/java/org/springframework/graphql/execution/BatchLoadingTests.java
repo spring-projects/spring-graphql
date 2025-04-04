@@ -88,4 +88,43 @@ public class BatchLoadingTests {
 		assertThat(author.getLastName()).isEqualTo("Orwell");
 	}
 
+	@Test
+	void batchLoaderWithNullValue() {
+		String document = "{ " +
+			"  booksByCriteria(criteria: {author:\"Orwell\"}) { " +
+			"    author {" +
+			"      firstName, " +
+			"      lastName " +
+			"    }" +
+			"  }" +
+			"}";
+
+		this.registry.forTypePair(Long.class, Author.class)
+			.registerBatchLoader((ids, env) -> Flux.fromIterable(ids.stream().<Author>map(id -> null).toList()));
+
+		TestExecutionGraphQlService service = GraphQlSetup.schemaResource(BookSource.schema)
+			.queryFetcher("booksByCriteria", env -> {
+				Map<String, Object> criteria = env.getArgument("criteria");
+				String authorName = (String) criteria.get("author");
+				return BookSource.findBooksByAuthor(authorName).stream()
+					.map(book -> new Book(book.getId(), book.getName(), book.getAuthorId()))
+					.collect(Collectors.toList());
+			})
+			.dataFetcher("Book", "author", env -> {
+				Book book = env.getSource();
+				DataLoader<Long, Author> dataLoader = env.getDataLoader(Author.class.getName());
+				return dataLoader.load(book.getAuthorId());
+			})
+			.dataLoaders(this.registry)
+			.toGraphQlService();
+
+		Mono<ExecutionGraphQlResponse> responseMono = service.execute(document);
+
+		List<Book> books = ResponseHelper.forResponse(responseMono).toList("booksByCriteria", Book.class);
+		assertThat(books).hasSize(2);
+
+		Author author = books.get(0).getAuthor();
+		assertThat(author).isNull();
+	}
+
 }
