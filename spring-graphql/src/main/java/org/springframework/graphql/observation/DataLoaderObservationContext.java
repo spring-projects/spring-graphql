@@ -58,6 +58,7 @@ public class DataLoaderObservationContext extends Observation.Context {
 
 	/**
 	 * Set the list of resolved values by the {@link org.dataloader.DataLoader}.
+	 * @param result the values resolved by the data loader
 	 */
 	public void setResult(List<?> result) {
 		this.result = result;
