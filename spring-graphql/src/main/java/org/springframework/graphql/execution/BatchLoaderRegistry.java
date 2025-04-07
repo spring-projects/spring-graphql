@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
- * @see <a href="https://www.graphql-java.com/documentation/v16/batching/">Using DataLoader</a>
+ * @see <a href="https://www.graphql-java.com/documentation/batching/">Using DataLoader</a>
  * @see org.dataloader.BatchLoader
  * @see org.dataloader.MappedBatchLoader
  * @see org.dataloader.DataLoader
@@ -101,15 +101,16 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 		 * Customize the {@link DataLoaderOptions} to use to create the
 		 * {@link org.dataloader.DataLoader} via {@link org.dataloader.DataLoaderFactory}.
 		 * <p><strong>Note:</strong> Do not set
-		 * {@link DataLoaderOptions#setBatchLoaderContextProvider(BatchLoaderContextProvider)}
+		 * {@link DataLoaderOptions.Builder#setBatchLoaderContextProvider(BatchLoaderContextProvider)}
 		 * as this will be set later to a provider that returns the context from
 		 * {@link ExecutionInput#getGraphQLContext()}, so that batch loading
 		 * functions and data fetchers can rely on access to the same context.
-		 * @param optionsConsumer callback to customize the options, invoked
-		 * immediately and given access to the options instance
+		 * @param optionsBuilderConsumer callback to customize the options, invoked
+		 * immediately and given access to the options builder instance
 		 * @return a spec to complete the registration
+		 * @since 1.4.0
 		 */
-		RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer);
+		RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions.Builder> optionsBuilderConsumer);
 
 		/**
 		 * Set the {@link DataLoaderOptions} to use to create the

@@ -187,6 +187,7 @@ public class GraphQlClientTests extends GraphQlClientTestSupport {
 	}
 
 	@Test
+	@SuppressWarnings("cast")
 	void executePartialResponse() {
 
 		String document = "fieldErrorResponse";

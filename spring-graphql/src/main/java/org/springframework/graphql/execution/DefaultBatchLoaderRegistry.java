@@ -132,7 +132,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		private DataLoaderOptions options;
 
 		@Nullable
-		private Consumer<DataLoaderOptions> optionsConsumer;
+		private Consumer<DataLoaderOptions.Builder> optionsBuilderConsumer;
 
 		DefaultRegistrationSpec(Class<V> valueType) {
 			this.valueType = valueType;
@@ -150,9 +150,9 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		}
 
 		@Override
-		public RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions> optionsConsumer) {
-			this.optionsConsumer = (this.optionsConsumer != null) ?
-					this.optionsConsumer.andThen(optionsConsumer) : optionsConsumer;
+		public RegistrationSpec<K, V> withOptions(Consumer<DataLoaderOptions.Builder> optionsBuilderConsumer) {
+			this.optionsBuilderConsumer = (this.optionsBuilderConsumer != null) ?
+					this.optionsBuilderConsumer.andThen(optionsBuilderConsumer) : optionsBuilderConsumer;
 			return this;
 		}
 
@@ -188,14 +188,13 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 					new DataLoaderOptions((this.options != null) ?
 							this.options : DefaultBatchLoaderRegistry.this.defaultOptionsSupplier.get());
 
-			if (this.optionsConsumer == null) {
+			if (this.optionsBuilderConsumer == null) {
 				return optionsSupplier;
 			}
 
 			return () -> {
 				DataLoaderOptions options = optionsSupplier.get();
-				this.optionsConsumer.accept(options);
-				return options;
+				return options.transform(this.optionsBuilderConsumer);
 			};
 		}
 	}
