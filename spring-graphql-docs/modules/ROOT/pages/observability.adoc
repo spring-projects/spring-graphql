@@ -81,3 +81,29 @@ By default, the following KeyValues are created:
 |Name | Description
 |`graphql.field.path` _(required)_|Path to the field being fetched (for example, "/bookById").
 |===
+
+[[observability.server.dataloader]]
+== DataLoader instrumentation
+
+GraphQL DataLoader observations are created with the name `"graphql.dataloader"`, observing calls to `@BatchMapping` controller methods and manually registered `DataLoader` instances.
+Applications need to configure the `org.springframework.graphql.observation.GraphQlObservationInstrumentation` instrumentation in their application.
+It is using the `org.springframework.graphql.observation.DefaultDataLoaderObservationConvention` by default, backed by the `DataLoaderObservationContext`.
+
+By default, the following KeyValues are created:
+
+.Low cardinality Keys
+[cols="a,a"]
+|===
+|Name | Description
+|`graphql.error.type` _(required)_|Class name of the data fetching error
+|`graphql.loader.type` _(required)_|Class name of the elements being fetched.
+|`graphql.outcome` _(required)_|Outcome of the GraphQL data fetching operation, "SUCCESS" or "ERROR".
+|===
+
+
+.High cardinality Keys
+|===
+|Name | Description
+|`graphql.loader.size` _(required)_|Size of the list of loaded elements.
+|===
+

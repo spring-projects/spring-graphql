@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@
 
 package org.springframework.graphql.observation;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQLContext;
 import graphql.execution.instrumentation.InstrumentationContext;
@@ -35,7 +37,14 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
+import org.dataloader.BatchLoaderEnvironment;
+import org.dataloader.DataLoader;
+import org.dataloader.DataLoaderRegistry;
+import org.dataloader.instrumentation.DataLoaderInstrumentation;
+import org.dataloader.instrumentation.DataLoaderInstrumentationContext;
 
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 /**
@@ -63,6 +72,9 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	private static final DataFetcherObservationConvention DEFAULT_DATA_FETCHER_CONVENTION =
 			new DefaultDataFetcherObservationConvention();
 
+	private static final DefaultDataLoaderObservationConvention DEFAULT_DATA_LOADER_CONVENTION =
+			new DefaultDataLoaderObservationConvention();
+
 	private final ObservationRegistry observationRegistry;
 
 	@Nullable
@@ -71,6 +83,9 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	@Nullable
 	private final DataFetcherObservationConvention dataFetcherObservationConvention;
 
+	@Nullable
+	private final DataLoaderObservationConvention dataLoaderObservationConvention;
+
 	/**
 	 * Create an {@code GraphQlObservationInstrumentation} that records observations
 	 * against the given {@link ObservationRegistry}. The default observation
@@ -78,7 +93,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	 * @param observationRegistry the registry to use for recording observations
 	 */
 	public GraphQlObservationInstrumentation(ObservationRegistry observationRegistry) {
-		this(observationRegistry, null, null);
+		this(observationRegistry, null, null, null);
 	}
 
 	/**
@@ -87,13 +102,44 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	 * @param observationRegistry the registry to use for recording observations
 	 * @param requestObservationConvention the convention to use for request observations
 	 * @param dateFetcherObservationConvention the convention to use for data fetcher observations
+	 * @deprecated since 1.4.0 in favor of {@link #GraphQlObservationInstrumentation(ObservationRegistry,
+	 * ExecutionRequestObservationConvention, DataFetcherObservationConvention, DataLoaderObservationConvention)}
 	 */
+	@Deprecated(since = "1.4.0", forRemoval = true)
 	public GraphQlObservationInstrumentation(ObservationRegistry observationRegistry,
 				@Nullable ExecutionRequestObservationConvention requestObservationConvention,
 				@Nullable DataFetcherObservationConvention dateFetcherObservationConvention) {
+		this(observationRegistry, requestObservationConvention, dateFetcherObservationConvention, null);
+	}
+
+	/**
+	 * Create an {@code GraphQlObservationInstrumentation} that records observations
+	 * against the given {@link ObservationRegistry} with a custom convention.
+	 * @param observationRegistry the registry to use for recording observations
+	 * @param requestObservationConvention the convention to use for request observations
+	 * @param dateFetcherObservationConvention the convention to use for data fetcher observations
+	 * @param dataLoaderObservationConvention the convention to use for data loader observations
+	 * @since 1.4.0
+	 */
+	public GraphQlObservationInstrumentation(ObservationRegistry observationRegistry,
+											@Nullable ExecutionRequestObservationConvention requestObservationConvention,
+											@Nullable DataFetcherObservationConvention dateFetcherObservationConvention,
+											@Nullable DataLoaderObservationConvention dataLoaderObservationConvention) {
 		this.observationRegistry = observationRegistry;
 		this.requestObservationConvention = requestObservationConvention;
 		this.dataFetcherObservationConvention = dateFetcherObservationConvention;
+		this.dataLoaderObservationConvention = dataLoaderObservationConvention;
+	}
+
+	@Override
+	public @NonNull ExecutionInput instrumentExecutionInput(ExecutionInput executionInput, InstrumentationExecutionParameters parameters, InstrumentationState state) {
+		return executionInput.transform((builder) -> {
+			DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry()
+					.registerAll(executionInput.getDataLoaderRegistry())
+					.instrumentation(new ObservationDataLoaderInstrumentation())
+					.build();
+			builder.dataLoaderRegistry(dataLoaderRegistry);
+		});
 	}
 
 	@Override
@@ -112,7 +158,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 			requestObservation.start();
 			return new SimpleInstrumentationContext<>() {
 				@Override
-				public void onCompleted(ExecutionResult result, Throwable exc) {
+				public void onCompleted(ExecutionResult result, @Nullable Throwable exc) {
 					observationContext.setExecutionResult(result);
 					result.getErrors().forEach((graphQLError) -> {
 						Observation.Event event = Observation.Event.of(graphQLError.getErrorType().toString(), graphQLError.getMessage());
@@ -139,6 +185,11 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 			InstrumentationFieldFetchParameters parameters, InstrumentationState state) {
 		if (!parameters.isTrivialDataFetcher()
 				&& state == RequestObservationInstrumentationState.INSTANCE) {
+			// skip batch loading operations, already instrumented at the dataloader level
+			if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
+					&& selfDescribingDataFetcher.isBatchLoading()) {
+				return dataFetcher;
+			}
 			return (environment) -> {
 				DataFetcherObservationContext observationContext = new DataFetcherObservationContext(environment);
 				Observation dataFetcherObservation = GraphQlObservationDocumentation.DATA_FETCHER.observation(this.dataFetcherObservationConvention,
@@ -217,6 +268,39 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 		static final RequestObservationInstrumentationState INSTANCE = new RequestObservationInstrumentationState();
 
+	}
+
+	class ObservationDataLoaderInstrumentation implements DataLoaderInstrumentation {
+
+		@Override
+		public DataLoaderInstrumentationContext<List<?>> beginBatchLoader(DataLoader<?, ?> dataLoader, List<?> keys, BatchLoaderEnvironment environment) {
+
+			Observation observation = GraphQlObservationDocumentation.DATA_LOADER
+					.observation(GraphQlObservationInstrumentation.this.dataLoaderObservationConvention,
+							DEFAULT_DATA_LOADER_CONVENTION,
+							() -> new DataLoaderObservationContext(keys, environment),
+							GraphQlObservationInstrumentation.this.observationRegistry);
+			if (environment.getContext() instanceof GraphQLContext graphQLContext) {
+				Observation parentObservation = graphQLContext.get(ObservationThreadLocalAccessor.KEY);
+				observation.parentObservation(parentObservation);
+			}
+			return new DataLoaderInstrumentationContext<List<?>>() {
+				@Override
+				public void onDispatched() {
+					observation.start();
+				}
+
+				@Override
+				public void onCompleted(List<?> result, @Nullable Throwable t) {
+					DataLoaderObservationContext context = (DataLoaderObservationContext) observation.getContext();
+					context.setResult(result);
+					if (t != null) {
+						observation.error(t);
+					}
+					observation.stop();
+				}
+			};
+		}
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.AsyncDataFetcher;
 import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
@@ -34,12 +35,15 @@ import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
+import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.BookSource;
@@ -48,8 +52,11 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionRequest;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
+import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -355,6 +362,83 @@ class GraphQlObservationInstrumentationTests {
 		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
 				.that().hasLowCardinalityKeyValue("graphql.outcome", "REQUEST_ERROR")
 				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
+	}
+
+	@Test
+	void shouldRecordBatchLoadingAsSingleObservation() {
+		String document = """
+				{
+					booksById(id: [1,2,3,4,5]) {
+						name
+						author {
+							firstName
+						}
+					}
+				}
+				""";
+		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
+		registry.forTypePair(Long.class, Author.class)
+				.registerBatchLoader((ids, env) -> Flux.fromIterable(ids).map(BookSource::getAuthor));
+
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlSetup
+				.queryFetcher("booksById", (environment) -> {
+					List<String> id = environment.getArgument("id");
+					return Flux.fromIterable(id).map(Long::parseLong).map(BookSource::getBookWithoutAuthor).collectList();
+				})
+				.dataFetcher("Book", "author", new AuthorBatchLoadingDataFetcher())
+				.dataLoaders(registry)
+				.toGraphQlService()
+				.execute(document);
+		ResponseHelper response = ResponseHelper.forResponse(responseMono);
+
+		List<Book> booksById = response.toList("booksById", Book.class);
+		assertThat(booksById).hasSize(5);
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry).hasObservationWithNameEqualTo("graphql.request")
+				.that().hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasHighCardinalityKeyValueWithKey("graphql.execution.id");
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry)
+				.hasNumberOfObservationsWithNameEqualTo("graphql.datafetcher", 1)
+				.hasObservationWithNameEqualTo("graphql.datafetcher")
+				.that()
+				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasLowCardinalityKeyValue("graphql.field.name", "booksById")
+				.hasHighCardinalityKeyValue("graphql.field.path", "/booksById");
+
+		TestObservationRegistryAssert.assertThat(this.observationRegistry)
+				.hasNumberOfObservationsWithNameEqualTo("graphql.dataloader", 1)
+				.hasObservationWithNameEqualTo("graphql.dataloader")
+				.that()
+				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
+				.hasLowCardinalityKeyValue("graphql.loader.type", "Author")
+				.hasHighCardinalityKeyValue("graphql.loader.size", "4")
+				.hasContextualNameEqualTo("graphql dataloader author");
+	}
+
+	static class AuthorBatchLoadingDataFetcher implements SelfDescribingDataFetcher<CompletableFuture<Author>> {
+
+		@Override
+		public boolean isBatchLoading() {
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "BatchLoading authors";
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return ResolvableType.forClass(Author.class);
+		}
+
+		@Override
+		public CompletableFuture<Author> get(DataFetchingEnvironment env) throws Exception {
+			Book book = env.getSource();
+			DataLoader<Long, Author> dataLoader = env.getDataLoader(Author.class.getName());
+			return dataLoader.load(book.getAuthorId());
+		}
 	}
 
 	static class EventListeningObservationHandler implements ObservationHandler<ExecutionRequestObservationContext> {
