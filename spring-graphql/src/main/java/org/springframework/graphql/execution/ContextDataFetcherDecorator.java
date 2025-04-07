@@ -17,6 +17,7 @@
 package org.springframework.graphql.execution;
 
 import java.util.List;
+import java.util.Map;
 
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
@@ -40,6 +41,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -51,11 +53,13 @@ import org.springframework.util.Assert;
  * <li>Re-establish Reactor Context passed via {@link ExecutionInput}.
  * <li>Re-establish ThreadLocal context passed via {@link ExecutionInput}.
  * <li>Resolve exceptions from a GraphQL subscription {@link Publisher}.
+ * <li>Propagate the cancellation signal to {@code DataFetcher} from the transport layer.
  * </ul>
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
-final class ContextDataFetcherDecorator implements DataFetcher<Object> {
+class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 	private final DataFetcher<?> delegate;
 
@@ -146,6 +150,17 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		return new ContextTypeVisitor(resolvers);
 	}
 
+	private static ContextDataFetcherDecorator decorate(
+			DataFetcher<?> delegate, boolean handlesSubscription,
+			SubscriptionExceptionResolver subscriptionExceptionResolver) {
+		if (delegate instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
+			return new SelfDescribingDecorator(selfDescribingDataFetcher, handlesSubscription, subscriptionExceptionResolver);
+		}
+		else {
+			return new ContextDataFetcherDecorator(delegate, handlesSubscription, subscriptionExceptionResolver);
+		}
+	}
+
 
 	/**
 	 * Type visitor to apply {@link ContextDataFetcherDecorator}.
@@ -171,7 +186,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 			if (applyDecorator(dataFetcher)) {
 				boolean handlesSubscription = visitorHelper.isSubscriptionType(parent);
-				dataFetcher = new ContextDataFetcherDecorator(dataFetcher, handlesSubscription, this.exceptionResolver);
+				dataFetcher = ContextDataFetcherDecorator.decorate(dataFetcher, handlesSubscription, this.exceptionResolver);
 				codeRegistry.dataFetcher(fieldCoordinates, dataFetcher);
 			}
 
@@ -189,6 +204,38 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 						packageName.startsWith("graphql.validation"));
 			}
 			return true;
+		}
+	}
+
+	private static final class SelfDescribingDecorator extends ContextDataFetcherDecorator implements SelfDescribingDataFetcher<Object> {
+
+		private final SelfDescribingDataFetcher<?> selfDescribingDataFetcher;
+
+		private SelfDescribingDecorator(
+				SelfDescribingDataFetcher<?> delegate, boolean subscription,
+				SubscriptionExceptionResolver subscriptionExceptionResolver) {
+			super(delegate, subscription, subscriptionExceptionResolver);
+			this.selfDescribingDataFetcher = delegate;
+		}
+
+		@Override
+		public boolean isBatchLoading() {
+			return this.selfDescribingDataFetcher.isBatchLoading();
+		}
+
+		@Override
+		public Map<String, ResolvableType> getArguments() {
+			return this.selfDescribingDataFetcher.getArguments();
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return this.selfDescribingDataFetcher.getReturnType();
+		}
+
+		@Override
+		public String getDescription() {
+			return this.selfDescribingDataFetcher.getDescription();
 		}
 	}
 

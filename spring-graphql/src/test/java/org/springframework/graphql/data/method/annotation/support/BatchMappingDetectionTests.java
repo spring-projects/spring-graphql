@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,6 +75,15 @@ public class BatchMappingDetectionTests {
 		assertThat(registry.getDataLoadersMap()).containsOnlyKeys(
 				"Book.authorFlux", "Book.authorList", "Book.authorMonoMap", "Book.authorMap",
 				"Book.authorCallableMap", "Book.authorEnvironment");
+	}
+
+	@Test
+	void dataFetchersMarkedAsBatchLoading() {
+		Map<String, Map<String, DataFetcher>> dataFetcherMap =
+				initRuntimeWiringBuilder(BookController.class).build().getDataFetchers();
+		assertThat(dataFetcherMap.get("Book").values()).allMatch(dataFetcher ->
+				dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
+						&& selfDescribingDataFetcher.isBatchLoading());
 	}
 
 	@Test

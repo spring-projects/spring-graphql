@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +57,15 @@ public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 	 */
 	default Map<String, ResolvableType> getArguments() {
 		return Collections.emptyMap();
+	}
+
+	/**
+	 * Return whether this {@code DataFetcher} is using batch loading.
+	 * @return {@code true} if the data fetcher is batch loading elements
+	 * @since 1.4.0
+	 */
+	default boolean isBatchLoading() {
+		return false;
 	}
 
 }

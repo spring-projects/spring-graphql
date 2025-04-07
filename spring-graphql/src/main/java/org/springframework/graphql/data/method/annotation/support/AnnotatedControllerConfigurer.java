@@ -446,6 +446,8 @@ public class AnnotatedControllerConfigurer
 
 		private final boolean subscription;
 
+		private final boolean usesDataLoader;
+
 		SchemaMappingDataFetcher(
 				DataFetcherMappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
 				@Nullable ValidationHelper helper, HandlerDataFetcherExceptionResolver exceptionResolver,
@@ -462,6 +464,17 @@ public class AnnotatedControllerConfigurer
 			this.executor = executor;
 			this.invokeAsync = invokeAsync;
 			this.subscription = this.mappingInfo.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
+			this.usesDataLoader = hasDataLoaderParameter();
+		}
+
+		private boolean hasDataLoaderParameter() {
+			Method handlerMethod = this.mappingInfo.getHandlerMethod().getMethod();
+			for (Class<?> parameterType : handlerMethod.getParameterTypes()) {
+				if (DataLoader.class.equals(parameterType)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		@Override
@@ -552,6 +565,11 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
+		public boolean isBatchLoading() {
+			return this.usesDataLoader;
+		}
+
+		@Override
 		public String toString() {
 			return getDescription();
 		}
@@ -593,6 +611,11 @@ public class AnnotatedControllerConfigurer
 			return ((env.getLocalContext() != null) ?
 					dataLoader.load(env.getSource(), env.getLocalContext()) :
 					dataLoader.load(env.getSource()));
+		}
+
+		@Override
+		public boolean isBatchLoading() {
+			return true;
 		}
 
 		@Override

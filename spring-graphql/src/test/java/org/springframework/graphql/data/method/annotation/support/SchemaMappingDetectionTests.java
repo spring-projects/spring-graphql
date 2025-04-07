@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.idl.RuntimeWiring;
+import org.dataloader.DataLoader;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -32,6 +34,7 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
+import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 
@@ -79,6 +82,22 @@ public class SchemaMappingDetectionTests {
 		assertMapping(map, "Mutation.saveBookCustomized", "saveBookWithNonMatchingMethodName");
 		assertMapping(map, "Subscription.bookSearchCustomized", "bookSearchWithNonMatchingMethodName");
 		assertMapping(map, "Book.authorCustomized", "authorWithNonMatchingMethodName");
+	}
+
+	@Test
+	void batchLoadingDataFetchers() {
+		Map<String, Map<String, DataFetcher>> map =
+				initRuntimeWiringBuilder(BookController.class).build().getDataFetchers();
+		Map<String, DataFetcher> queries = map.get("Book");
+		assertThat(queries.values()).allMatch(dataFetcher ->
+				dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
+						&& !selfDescribingDataFetcher.isBatchLoading());
+
+		map = initRuntimeWiringBuilder(BatchLoadingController.class).build().getDataFetchers();
+		queries = map.get("Book");
+		assertThat(queries.values()).allMatch(dataFetcher ->
+				dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
+						&& selfDescribingDataFetcher.isBatchLoading());
 	}
 
 	private RuntimeWiring.Builder initRuntimeWiringBuilder(Class<?> handlerType) {
@@ -150,6 +169,16 @@ public class SchemaMappingDetectionTests {
 
 		@SchemaMapping("authorCustomized")
 		public Author authorWithNonMatchingMethodName(Book book) {
+			return null;
+		}
+
+	}
+
+	@Controller
+	private static class BatchLoadingController {
+
+		@SchemaMapping
+		public CompletableFuture<Author> authorBatch(Book book, DataLoader<Long, Author> loader) {
 			return null;
 		}
 	}
