@@ -8,7 +8,8 @@ ext {
 }
 
 subprojects {
-	apply plugin: 'org.springframework.graphql.build.conventions'
+	apply plugin: 'org.springframework.graphql.conventions'
+	apply plugin: 'org.springframework.graphql.architecture'
 	group = 'org.springframework.graphql'
 
 	ext.javadocLinks = [
