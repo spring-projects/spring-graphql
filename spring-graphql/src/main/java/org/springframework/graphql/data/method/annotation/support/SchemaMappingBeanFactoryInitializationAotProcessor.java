@@ -44,7 +44,6 @@ import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.projection.TargetAware;
 import org.springframework.graphql.data.ArgumentValue;
-import org.springframework.graphql.data.federation.EntityMapping;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
@@ -169,7 +168,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		private boolean isGraphQlHandlerMethod(AnnotatedElement element) {
 			MergedAnnotations annotations = MergedAnnotations.from(element, MergedAnnotations.SearchStrategy.TYPE_HIERARCHY);
 			return annotations.isPresent(SchemaMapping.class) || annotations.isPresent(BatchMapping.class)
-					|| annotations.isPresent(EntityMapping.class);
+					|| annotations.isPresent("org.springframework.graphql.data.federation.EntityMapping");
 		}
 
 		private boolean isExceptionHandlerMethod(AnnotatedElement element) {
