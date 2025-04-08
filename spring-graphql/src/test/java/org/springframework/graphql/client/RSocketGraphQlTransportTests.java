@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class RSocketGraphQlTransportTests {
+class RSocketGraphQlTransportTests {
 
 	private static final Jackson2JsonEncoder jsonEncoder = new Jackson2JsonEncoder();
 

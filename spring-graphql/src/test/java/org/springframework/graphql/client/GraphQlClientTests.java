@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * @author Rossen Stoyanchev
  */
-public class GraphQlClientTests extends GraphQlClientTestSupport {
+class GraphQlClientTests extends GraphQlClientTestSupport {
 
 	@Test
 	void retrieveEntity() {

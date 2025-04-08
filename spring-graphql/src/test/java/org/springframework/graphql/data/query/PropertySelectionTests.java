@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class PropertySelectionTests {
+class PropertySelectionTests {
 
 	@Test
 	void propertySelectionWithConnection() {

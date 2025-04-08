@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * @author Rossen Stoyanchev
  */
-public class BearerTokenAuthenticationExtractorTests {
+class BearerTokenAuthenticationExtractorTests {
 
 	private static final BearerTokenAuthenticationExtractor extractor = new BearerTokenAuthenticationExtractor();
 

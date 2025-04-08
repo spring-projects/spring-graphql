@@ -57,6 +57,6 @@ public enum ErrorType implements ErrorClassification {
 	 * {@link graphql.schema.DataFetcher} encountered an unexpected condition that
 	 * prevented it from fetching the data value.
 	 */
-	INTERNAL_ERROR;
+	INTERNAL_ERROR
 
 }

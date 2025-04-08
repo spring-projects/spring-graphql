@@ -41,7 +41,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  *
  * @see <a href="https://graphql.github.io/graphql-over-http/draft/#sec-application-graphql-response-json">GraphQL over HTTP specification</a>
  */
-public class HttpGraphQlClientProtocolTests {
+class HttpGraphQlClientProtocolTests {
 
 	private MockWebServer server;
 

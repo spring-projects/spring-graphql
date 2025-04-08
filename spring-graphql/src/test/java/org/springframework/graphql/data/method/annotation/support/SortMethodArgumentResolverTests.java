@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport {
+class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 	private final SortMethodArgumentResolver resolver = new SortMethodArgumentResolver(new MySortStrategy());
 

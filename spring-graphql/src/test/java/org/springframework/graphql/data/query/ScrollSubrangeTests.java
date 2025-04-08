@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
  */
-public class ScrollSubrangeTests {
+class ScrollSubrangeTests {
 
 	@Test
 	void offsetForward() {

@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link ExceptionResolversExceptionHandler}.
  * @author Rossen Stoyanchev
  */
-public class ExceptionResolversExceptionHandlerTests {
+class ExceptionResolversExceptionHandlerTests {
 
 	private final GraphQlSetup graphQlSetup =
 			GraphQlSetup.schemaContent("type Query { greeting: String }")

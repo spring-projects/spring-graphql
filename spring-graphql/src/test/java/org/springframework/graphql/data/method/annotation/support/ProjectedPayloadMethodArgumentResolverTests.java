@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link ProjectedPayloadMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolverTestSupport {
+class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 	private ProjectedPayloadMethodArgumentResolver resolver;
 

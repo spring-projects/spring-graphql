@@ -30,7 +30,7 @@ import org.springframework.stereotype.Controller;
  *
  * @author Rossen Stoyanchev
  */
-public class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTestSupport {
+class SchemaMappingInspectorUnionTests extends SchemaMappingInspectorTestSupport {
 
 	private static final String schema = """
 				type Query {

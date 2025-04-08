@@ -57,7 +57,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link GraphQlHttpHandler}.
  * @author Rossen Stoyanchev
  */
-public class GraphQlHttpHandlerTests {
+class GraphQlHttpHandlerTests {
 
 	private static final List<HttpMessageReader<?>> MESSAGE_READERS =
 			List.of(new DecoderHttpMessageReader<>(new Jackson2JsonDecoder()));

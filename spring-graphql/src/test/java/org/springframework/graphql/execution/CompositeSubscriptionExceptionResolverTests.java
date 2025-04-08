@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for resolving exceptions via {@link SubscriptionExceptionResolver}.
  * @author Rossen Stoyanchev
  */
-public class CompositeSubscriptionExceptionResolverTests {
+class CompositeSubscriptionExceptionResolverTests {
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 

@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link ContextValueMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class LocalContextValueMethodArgumentResolverTests {
+class LocalContextValueMethodArgumentResolverTests {
 
 	private static final Method method = ClassUtils.getMethod(
 			LocalContextValueMethodArgumentResolverTests.class, "handle", (Class<?>[]) null);

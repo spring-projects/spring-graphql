@@ -69,7 +69,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
  *
  * @author Rossen Stoyanchev
  */
-public class HttpSyncGraphQlClientBuilderTests {
+class HttpSyncGraphQlClientBuilderTests {
 
 	private static final String DOCUMENT = "{ Query }";
 

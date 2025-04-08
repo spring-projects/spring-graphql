@@ -55,7 +55,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  */
-public class GraphQlHttpHandlerTests {
+class GraphQlHttpHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
 			List.of(new MappingJackson2HttpMessageConverter(), new ByteArrayHttpMessageConverter());

@@ -77,7 +77,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
  *
  * @author Rossen Stoyanchev
  */
-public class WebGraphQlClientBuilderTests {
+class WebGraphQlClientBuilderTests {
 
 	private static final String DOCUMENT = "{ Query }";
 

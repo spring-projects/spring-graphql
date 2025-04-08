@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for a {@link WebGraphQlInterceptor} chain.
  */
-public class WebGraphQlInterceptorTests {
+class WebGraphQlInterceptorTests {
 
 	private static final WebGraphQlRequest webRequest = new WebGraphQlRequest(
 			URI.create("http://abc.org"), new HttpHeaders(), null, null, Collections.emptyMap(),

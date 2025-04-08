@@ -45,7 +45,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
  *
  * @see <a href="https://graphql.github.io/graphql-over-http/draft/#sec-application-graphql-response-json">GraphQL over HTTP specification</a>
  */
-public class GraphQlHttpProtocolTests {
+class GraphQlHttpProtocolTests {
 
 	private GraphQlSetup greetingSetup = GraphQlSetup.schemaContent("type Query { greeting: String }")
 			.queryFetcher("greeting", (env) -> "Hello");

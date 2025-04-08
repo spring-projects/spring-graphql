@@ -54,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings({"rawtypes", "unused"})
-public class BatchMappingDetectionTests {
+class BatchMappingDetectionTests {
 
 	private final BatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry();
 

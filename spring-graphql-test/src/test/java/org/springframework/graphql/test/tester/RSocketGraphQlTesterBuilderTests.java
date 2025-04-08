@@ -48,10 +48,10 @@ import org.springframework.util.MimeType;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- *
+ * Tests for {@link RSocketGraphQlTester.Builder}.
  * @author Rossen Stoyanchev
  */
-public class RSocketGraphQlTesterBuilderTests {
+class RSocketGraphQlTesterBuilderTests {
 
 	private static final String DOCUMENT = "{ Query }";
 

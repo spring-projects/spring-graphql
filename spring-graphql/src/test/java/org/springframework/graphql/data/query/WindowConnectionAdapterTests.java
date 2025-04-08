@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
  */
-public class WindowConnectionAdapterTests {
+class WindowConnectionAdapterTests {
 
 	private final WindowConnectionAdapter adapter = new WindowConnectionAdapter(new ScrollPositionCursorStrategy());
 

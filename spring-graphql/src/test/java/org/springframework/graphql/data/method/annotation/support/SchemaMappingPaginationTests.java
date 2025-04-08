@@ -44,7 +44,7 @@ import org.springframework.stereotype.Controller;
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
  */
-public class SchemaMappingPaginationTests {
+class SchemaMappingPaginationTests {
 
 
 	@Test

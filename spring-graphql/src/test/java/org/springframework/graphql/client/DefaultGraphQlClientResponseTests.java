@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
  * Unit tests for {@link DefaultClientGraphQlResponse}.
  * @author Rossen Stoyanchev
  */
-public class DefaultGraphQlClientResponseTests {
+class DefaultGraphQlClientResponseTests {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 

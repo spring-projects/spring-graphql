@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link SubrangeMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class SubrangeMethodArgumentResolverTests extends ArgumentResolverTestSupport {
+class SubrangeMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 	private final SubrangeMethodArgumentResolver<MyPosition> resolver =
 			new SubrangeMethodArgumentResolver<>(new MyPositionCursorStrategy());

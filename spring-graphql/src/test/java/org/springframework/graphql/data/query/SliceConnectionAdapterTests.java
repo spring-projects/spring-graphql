@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class SliceConnectionAdapterTests {
+class SliceConnectionAdapterTests {
 
 	private final SliceConnectionAdapter adapter = new SliceConnectionAdapter(new ScrollPositionCursorStrategy());
 

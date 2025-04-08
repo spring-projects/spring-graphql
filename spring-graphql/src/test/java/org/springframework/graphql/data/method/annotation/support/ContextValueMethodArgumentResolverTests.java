@@ -51,7 +51,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  * Unit tests for {@link ContextValueMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class ContextValueMethodArgumentResolverTests {
+class ContextValueMethodArgumentResolverTests {
 
 	private static final Method method = ClassUtils.getMethod(
 			ContextValueMethodArgumentResolverTests.class, "handle", (Class<?>[]) null);

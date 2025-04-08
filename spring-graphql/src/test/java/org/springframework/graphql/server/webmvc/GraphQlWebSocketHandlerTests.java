@@ -71,7 +71,7 @@ import static org.springframework.graphql.server.support.GraphQlWebSocketMessage
 /**
  * Unit tests for {@link GraphQlWebSocketHandler}.
  */
-public class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
+class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 	private static final HttpMessageConverter<?> converter = new MappingJackson2HttpMessageConverter();
 

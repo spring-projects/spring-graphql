@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class BatchLoadingTests {
+class BatchLoadingTests {
 
 	private final BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 

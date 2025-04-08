@@ -51,7 +51,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings("unused")
-public class BatchMappingInvocationTests extends BatchMappingTestSupport {
+class BatchMappingInvocationTests extends BatchMappingTestSupport {
 
 	private static Stream<Arguments> controllers() {
 		return Stream.of(

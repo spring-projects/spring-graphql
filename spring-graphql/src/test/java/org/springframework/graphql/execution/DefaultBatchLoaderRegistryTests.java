@@ -41,7 +41,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
  * Unit tests for {@link DefaultBatchLoaderRegistry}.
  * @author Rossen Stoyanchev
  */
-public class DefaultBatchLoaderRegistryTests {
+class DefaultBatchLoaderRegistryTests {
 
 	private final BatchLoaderRegistry batchLoaderRegistry =
 			new DefaultBatchLoaderRegistry(() -> {

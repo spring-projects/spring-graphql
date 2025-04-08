@@ -33,7 +33,7 @@ import static org.mockito.Mockito.mock;
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
-public class AnnotatedControllerConfigurerTests {
+class AnnotatedControllerConfigurerTests {
 
 	@Test
 	void customArgumentResolvers() {

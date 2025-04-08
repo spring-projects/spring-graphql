@@ -42,7 +42,7 @@ import org.springframework.graphql.ResponseHelper;
  * @author Rossen Stoyanchev
  * @since 1.2.0
  */
-public class ConnectionTypeDefinitionConfigurerTests {
+class ConnectionTypeDefinitionConfigurerTests {
 
 	@Test
 	void connectionTypeGeneration() {

@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link GraphQlWebSocketHandler}.
  * @author Rossen Stoyanchev
  */
-public class GraphQlRSocketHandlerTests {
+class GraphQlRSocketHandlerTests {
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 

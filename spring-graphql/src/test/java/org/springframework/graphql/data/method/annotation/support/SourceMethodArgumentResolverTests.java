@@ -150,6 +150,6 @@ class SourceMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 	}
 
 	enum Format {
-		PAPERBACK, EBOOK;
+		PAPERBACK, EBOOK
 	}
 }

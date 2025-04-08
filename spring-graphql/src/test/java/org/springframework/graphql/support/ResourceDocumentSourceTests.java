@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link ResourceDocumentSource}.
  * @author Rossen Stoyanchev
  */
-public class ResourceDocumentSourceTests {
+class ResourceDocumentSourceTests {
 
 	private ResourceDocumentSource source;
 

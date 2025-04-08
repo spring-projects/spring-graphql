@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class DefaultExecutionGraphQlServiceTests {
+class DefaultExecutionGraphQlServiceTests {
 
 	@Test
 	void customDataLoaderRegistry() {

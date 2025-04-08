@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class JsonKeysetCursorStrategyTests {
+class JsonKeysetCursorStrategyTests {
 
 	private final JsonKeysetCursorStrategy cursorStrategy = new JsonKeysetCursorStrategy();
 

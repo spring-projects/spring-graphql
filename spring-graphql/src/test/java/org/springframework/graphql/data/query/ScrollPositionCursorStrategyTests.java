@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @author Oliver Drotbohm
  */
-public class ScrollPositionCursorStrategyTests {
+class ScrollPositionCursorStrategyTests {
 
 	private final ScrollPositionCursorStrategy cursorStrategy = new ScrollPositionCursorStrategy();
 

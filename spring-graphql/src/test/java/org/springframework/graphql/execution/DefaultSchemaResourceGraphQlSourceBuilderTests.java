@@ -47,7 +47,7 @@ import static org.mockito.Mockito.mock;
  *
  * @author Rossen Stoyanchev
  */
-public class DefaultSchemaResourceGraphQlSourceBuilderTests {
+class DefaultSchemaResourceGraphQlSourceBuilderTests {
 
 	@Test // gh-230
 	void duplicateResourcesAreIgnored() {

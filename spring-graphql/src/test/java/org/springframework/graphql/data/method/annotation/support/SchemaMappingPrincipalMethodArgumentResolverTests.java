@@ -61,7 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class SchemaMappingPrincipalMethodArgumentResolverTests {
+class SchemaMappingPrincipalMethodArgumentResolverTests {
 
 	private final PrincipalMethodArgumentResolver resolver = new PrincipalMethodArgumentResolver();
 

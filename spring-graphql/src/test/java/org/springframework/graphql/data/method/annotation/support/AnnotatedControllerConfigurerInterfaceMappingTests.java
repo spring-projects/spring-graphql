@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for registration of mappings with schema interfaces types.
  * @author Rossen Stoyanchev
  */
-public class AnnotatedControllerConfigurerInterfaceMappingTests {
+class AnnotatedControllerConfigurerInterfaceMappingTests {
 
 	private static final String SCHEMA = """
 			type Query {

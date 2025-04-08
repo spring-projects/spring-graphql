@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for {@link WebGraphQlHandler}, common to both HTTP and WebSocket.
  */
-public class WebGraphQlHandlerTests {
+class WebGraphQlHandlerTests {
 
 	private static final WebGraphQlRequest webInput = new WebGraphQlRequest(
 			URI.create("https://abc.org"), new HttpHeaders(), null, null, Collections.emptyMap(),

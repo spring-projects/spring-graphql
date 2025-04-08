@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link RepositoryUtils}.
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
-public class RepositoryUtilsTests {
+class RepositoryUtilsTests {
 
 	private final CursorStrategy<ScrollPosition> cursorStrategy = RepositoryUtils.defaultCursorStrategy();
 

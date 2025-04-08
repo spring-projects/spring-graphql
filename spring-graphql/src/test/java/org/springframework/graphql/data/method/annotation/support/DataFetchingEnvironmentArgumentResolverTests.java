@@ -36,7 +36,7 @@ import static org.mockito.Mockito.mock;
  * Unit tests for {@link DataFetchingEnvironmentMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class DataFetchingEnvironmentArgumentResolverTests {
+class DataFetchingEnvironmentArgumentResolverTests {
 
 	private static final Method handleMethod = ClassUtils.getMethod(
 			DataFetchingEnvironmentArgumentResolverTests.class, "handle", (Class<?>[]) null);

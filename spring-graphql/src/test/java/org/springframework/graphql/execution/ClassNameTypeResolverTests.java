@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class ClassNameTypeResolverTests {
+class ClassNameTypeResolverTests {
 
 	private static final String schema = """
 			type Query {

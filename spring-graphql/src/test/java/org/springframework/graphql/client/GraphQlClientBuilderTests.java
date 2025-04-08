@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
+class GraphQlClientBuilderTests extends GraphQlClientTestSupport {
 
 	private static final String DOCUMENT = "{ Query }";
 

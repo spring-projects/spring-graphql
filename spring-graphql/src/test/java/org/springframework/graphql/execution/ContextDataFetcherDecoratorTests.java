@@ -61,7 +61,7 @@ import static org.awaitility.Awaitility.await;
  * @author Brian Clozel
  */
 @SuppressWarnings("ReactiveStreamsUnusedPublisher")
-public class ContextDataFetcherDecoratorTests {
+class ContextDataFetcherDecoratorTests {
 
 	private static final String SCHEMA_CONTENT = """
 			directive @UpperCase on FIELD_DEFINITION \

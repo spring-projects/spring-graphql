@@ -52,7 +52,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  *
  * @author Rossen Stoyanchev
  */
-public class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappingTestSupport {
+class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappingTestSupport {
 
 	private final Authentication authentication = new TestingAuthenticationToken(new Object(), new Object());
 

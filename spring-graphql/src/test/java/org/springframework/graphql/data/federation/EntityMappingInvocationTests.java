@@ -62,7 +62,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  *
  * @author Rossen Stoyanchev
  */
-public class EntityMappingInvocationTests {
+class EntityMappingInvocationTests {
 
 	private static final Resource federationSchema = new ClassPathResource("books/federation-schema.graphqls");
 

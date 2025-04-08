@@ -50,7 +50,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  */
-public class AnnotatedControllerExceptionResolverTests {
+class AnnotatedControllerExceptionResolverTests {
 
 	private final DataFetchingEnvironment environment =
 			DataFetchingEnvironmentImpl.newDataFetchingEnvironment().build();

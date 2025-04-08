@@ -46,7 +46,7 @@ import static org.springframework.graphql.server.support.BearerTokenAuthenticati
  *
  * @author Rossen Stoyanchev
  */
-public class AuthenticationWebSocketInterceptorTests {
+class AuthenticationWebSocketInterceptorTests {
 
 	private static final String ATTRIBUTE_KEY = AuthenticationWebSocketInterceptor.class.getName() + ".AUTHENTICATION";
 

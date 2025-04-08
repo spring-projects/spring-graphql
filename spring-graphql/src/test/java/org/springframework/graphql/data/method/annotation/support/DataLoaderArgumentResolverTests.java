@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Unit tests for {@link DataLoaderMethodArgumentResolver}.
  * @author Rossen Stoyanchev
  */
-public class DataLoaderArgumentResolverTests {
+class DataLoaderArgumentResolverTests {
 
 	private static final Method method = ClassUtils.getMethod(
 			DataLoaderArgumentResolverTests.class, "handle", (Class<?>[]) null);

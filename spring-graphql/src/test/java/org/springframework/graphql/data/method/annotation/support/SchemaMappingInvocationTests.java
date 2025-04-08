@@ -66,7 +66,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  * @author Mark Paluch
  */
-public class SchemaMappingInvocationTests {
+class SchemaMappingInvocationTests {
 
 	@Test
 	void queryWithScalarArgument() {

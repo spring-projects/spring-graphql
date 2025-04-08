@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class SchemaMappingDetectionTests {
+class SchemaMappingDetectionTests {
 
 	@Test
 	void registerWithDefaultCoordinates() {

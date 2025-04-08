@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  */
-public class GraphQlTesterTests extends GraphQlTesterTestSupport {
+class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 	@Test
 	void missingDocumentByName() {

@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class Base64CursorEncoderTests {
+class Base64CursorEncoderTests {
 
 	private final Base64CursorEncoder encoder = new Base64CursorEncoder();
 
