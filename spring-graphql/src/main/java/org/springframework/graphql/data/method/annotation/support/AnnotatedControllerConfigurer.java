@@ -606,7 +606,7 @@ public class AnnotatedControllerConfigurer
 
 		@Override
 		public Object get(DataFetchingEnvironment env) {
-			DataLoader<?, ?> dataLoader = env.getDataLoaderRegistry().getDataLoader(this.dataLoaderKey);
+			DataLoader<?, ?> dataLoader = env.getDataLoader(this.dataLoaderKey);
 			Assert.state(dataLoader != null, "No DataLoader for key '" + this.dataLoaderKey + "'");
 			return ((env.getLocalContext() != null) ?
 					dataLoader.load(env.getSource(), env.getLocalContext()) :
