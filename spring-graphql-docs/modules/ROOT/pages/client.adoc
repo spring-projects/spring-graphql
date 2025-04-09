@@ -393,6 +393,30 @@ include-code::UseInterceptor[tag=register,indent=0]
 
 
 
+[[client.argument-value]
+== Argument Value
+
+If you want to use `ArgumentValue` from a client or test, you can register the
+`GraphQLModule` in Jackson which can serialize/deserialize the value depending on
+the state.
+
+For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    @Configuration
+    public class MyConfiguration {
+
+    	@Bean
+    	public GraphQLModule graphQLModule() {
+    		return new GraphQLModule();
+    	}
+
+    }
+----
+
+
+
 [[client.dgsgraphqlclient]]
 == DGS Codegen
 
