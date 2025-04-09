@@ -106,7 +106,7 @@ import org.springframework.util.MultiValueMap;
  */
 public abstract class QuerydslDataFetcher<T> {
 
-	private static final Log logger = LogFactory.getLog(QueryByExampleDataFetcher.class);
+	private static final Log logger = LogFactory.getLog(QuerydslDataFetcher.class);
 
 	private static final QuerydslPredicateBuilder BUILDER = new QuerydslPredicateBuilder(
 			DefaultConversionService.getSharedInstance(), SimpleEntityPathResolver.INSTANCE);
