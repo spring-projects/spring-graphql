@@ -143,11 +143,11 @@ See xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`].
 
 See xref:controllers.adoc#controllers.schema-mapping.argument[`@Argument`].
 
-| `ArgumentValue`
+| `FieldValue`
 | For access to a named field argument bound to a higher-level, typed Object along
 with a flag to indicate if the input argument was omitted vs set to `null`.
 
-See xref:controllers.adoc#controllers.schema-mapping.argument-value[`ArgumentValue`].
+See xref:controllers.adoc#controllers.schema-mapping.field-value[`FieldValue`].
 
 | `@Arguments`
 | For access to all field arguments bound to a higher-level, typed Object.
@@ -403,8 +403,8 @@ specified in the annotation, or to the parameter name. For access to the full ar
 map, please use xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
 
 
-[[controllers.schema-mapping.argument-value]]
-=== `ArgumentValue`
+[[controllers.schema-mapping.field-value]]
+=== `FieldValue`
 
 By default, input arguments in GraphQL are nullable and optional, which means an argument
 can be set to the `null` literal, or not provided at all. This distinction is useful for
@@ -414,7 +414,7 @@ there is no way to make such a distinction, because you would get `null` or an e
 `Optional` in both cases.
 
 If you want to know not whether a value was not provided at all, you can declare an
-`ArgumentValue` method parameter, which is a simple container for the resulting value,
+`FieldValue` method parameter, which is a simple container for the resulting value,
 along with a flag to indicate whether the input argument was omitted altogether. You
 can use this instead of `@Argument`, in which case the argument name is determined from
 the method parameter name, or together with `@Argument` to specify the argument name.
@@ -427,7 +427,7 @@ For example:
 	public class BookController {
 
 		@MutationMapping
-		public void addBook(ArgumentValue<BookInput> bookInput) {
+		public void addBook(FieldValue<BookInput> bookInput) {
 			if (!bookInput.isOmitted()) {
 				BookInput value = bookInput.value();
 				// ...
@@ -436,7 +436,7 @@ For example:
 	}
 ----
 
-`ArgumentValue` is also supported as a field within the object structure of an `@Argument`
+`FieldValue` is also supported as a field within the object structure of an `@Argument`
 method parameter, either initialized via a constructor argument or via a setter, including
 as a field of an object nested at any level below the top level object.
 

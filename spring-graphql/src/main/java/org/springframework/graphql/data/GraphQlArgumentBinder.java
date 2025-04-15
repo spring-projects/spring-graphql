@@ -40,6 +40,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.data.util.DirectFieldAccessFallbackBeanWrapper;
+import org.springframework.graphql.FieldValue;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
@@ -67,13 +68,15 @@ import org.springframework.validation.FieldError;
  *
  * <p>The binder supports {@link Optional} as a wrapper around any Object or
  * scalar value in the target Object structure. In addition, it also supports
- * {@link ArgumentValue} as a wrapper that indicates whether a given input
- * argument was omitted rather than set to the {@literal "null"} literal.
+ * {@link org.springframework.graphql.FieldValue} as a wrapper that indicates
+ * whether a given input argument was omitted rather than set to the
+ * {@literal "null"} literal.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
+@SuppressWarnings("removal")
 public class GraphQlArgumentBinder {
 
 	@Nullable
@@ -115,7 +118,7 @@ public class GraphQlArgumentBinder {
 	 * @param name the name of an argument, or {@code null} to use the full map
 	 * @param targetType the type of Object to create
 	 * @return the created Object, possibly wrapped in {@link Optional} or in
-	 * {@link ArgumentValue}, or {@code null} if there is no value
+	 * {@link org.springframework.graphql.FieldValue}, or {@code null} if there is no value
 	 * @throws BindException containing one or more accumulated errors from
 	 * matching and/or converting arguments to the target Object
 	 */
@@ -175,8 +178,9 @@ public class GraphQlArgumentBinder {
 
 		boolean isOptional = (targetClass == Optional.class);
 		boolean isArgumentValue = (targetClass == ArgumentValue.class);
+		boolean isFieldValue = (targetClass == FieldValue.class);
 
-		if (isOptional || isArgumentValue) {
+		if (isOptional || isArgumentValue || isFieldValue) {
 			targetType = targetType.getNested(2);
 			targetClass = targetType.resolve();
 		}
@@ -201,6 +205,9 @@ public class GraphQlArgumentBinder {
 		}
 		else if (isArgumentValue) {
 			value = (isOmitted ? ArgumentValue.omitted() : ArgumentValue.ofNullable(value));
+		}
+		else if (isFieldValue) {
+			value = (isOmitted ? FieldValue.omitted() : FieldValue.ofNullable(value));
 		}
 
 		return value;

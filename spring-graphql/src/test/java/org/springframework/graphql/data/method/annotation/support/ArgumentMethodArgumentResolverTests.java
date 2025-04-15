@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -51,6 +52,9 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 		assertThat(this.resolver.supportsParameter(param)).isTrue();
 
 		param = methodParam(BookController.class, "addBook", ArgumentValue.class);
+		assertThat(this.resolver.supportsParameter(param)).isTrue();
+
+		param = methodParam(BookController.class, "addBook", FieldValue.class);
 		assertThat(this.resolver.supportsParameter(param)).isTrue();
 
 		param = methodParam(BookController.class, "rawArgumentValue", Map.class);
@@ -81,7 +85,7 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 	}
 
 	@Test
-	void shouldResolveJavaBeanArgumentWithWrapper() throws Exception {
+	void shouldResolveJavaBeanArgumentWithArgumentWrapper() throws Exception {
 		Object result = this.resolver.resolveArgument(
 				methodParam(BookController.class, "addBook", ArgumentValue.class),
 				environment("{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }"));
@@ -90,6 +94,20 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 				.isNotNull()
 				.isInstanceOf(ArgumentValue.class)
 				.extracting(value -> ((ArgumentValue<?>) value).value())
+				.hasFieldOrPropertyWithValue("name", "test name")
+				.hasFieldOrPropertyWithValue("authorId", 42L);
+	}
+
+	@Test
+	void shouldResolveJavaBeanArgumentWithFieldWrapper() throws Exception {
+		Object result = this.resolver.resolveArgument(
+				methodParam(BookController.class, "addBook", FieldValue.class),
+				environment("{\"bookInput\": { \"name\": \"test name\", \"authorId\": 42} }"));
+
+		assertThat(result)
+				.isNotNull()
+				.isInstanceOf(FieldValue.class)
+				.extracting(value -> ((FieldValue<?>) value).value())
 				.hasFieldOrPropertyWithValue("name", "test name")
 				.hasFieldOrPropertyWithValue("authorId", 42L);
 	}
@@ -149,6 +167,11 @@ class ArgumentMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 		@MutationMapping
 		public Book addBook(ArgumentValue<BookInput> bookInput) {
+			return null;
+		}
+
+		@MutationMapping
+		public Book addBook(FieldValue<BookInput> bookInput) {
 			return null;
 		}
 

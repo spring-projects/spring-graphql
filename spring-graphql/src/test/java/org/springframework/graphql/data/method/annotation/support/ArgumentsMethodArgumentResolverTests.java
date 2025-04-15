@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Arguments;
@@ -109,15 +109,15 @@ class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 	@SuppressWarnings({"NotNullFieldNotInitialized", "unused"})
 	static class BookInput {
 
-		ArgumentValue<String> name;
+		FieldValue<String> name;
 
 		Long authorId;
 
-		public ArgumentValue<String> getName() {
+		public FieldValue<String> getName() {
 			return this.name;
 		}
 
-		public void setName(ArgumentValue<String> name) {
+		public void setName(FieldValue<String> name) {
 			this.name = name;
 		}
 

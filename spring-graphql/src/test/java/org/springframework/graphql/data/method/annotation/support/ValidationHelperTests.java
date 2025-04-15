@@ -36,7 +36,7 @@ import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.validation.annotation.Validated;
 
@@ -71,20 +71,20 @@ class ValidationHelperTests {
 		BiConsumer<Object, Object[]> validator2 = validateFunction(MyBean.class, "myValidatedParameterMethod");
 		assertViolation(() -> validator2.accept(bean, new Object[] {new ConstrainedInput(100)}), "integerValue");
 
-		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidArgumentValue");
-		assertViolation(() -> validator3.accept(bean, new Object[] {ArgumentValue.ofNullable("")}), "myValidArgumentValue.arg0");
+		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidFieldValue");
+		assertViolation(() -> validator3.accept(bean, new Object[] {FieldValue.ofNullable("")}), "myValidFieldValue.arg0");
 
 		// Validate that an explicit null value is validated.
-		assertViolation(() -> validator3.accept(bean, new Object[] {ArgumentValue.ofNullable(null)}), "myValidArgumentValue.arg0");
+		assertViolation(() -> validator3.accept(bean, new Object[] {FieldValue.ofNullable(null)}), "myValidFieldValue.arg0");
 	}
 
 	@Test
-	void shouldNotRaiseValidationErrorForOmittedArgumentValue() {
+	void shouldNotRaiseValidationErrorForOmittedFieldValue() {
 		MyBean bean = new MyBean();
 
 		// Validate that an omitted value is allowed.
-		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidArgumentValue");
-		validator3.accept(bean, new Object[] {ArgumentValue.omitted()});
+		BiConsumer<Object, Object[]> validator3 = validateFunction(MyBean.class, "myValidFieldValue");
+		validator3.accept(bean, new Object[] {FieldValue.omitted()});
 	}
 
 	@Test
@@ -173,7 +173,7 @@ class ValidationHelperTests {
 			return null;
 		}
 
-		public Object myValidArgumentValue(@Valid ArgumentValue<@NotBlank String> arg0) {
+		public Object myValidFieldValue(@Valid FieldValue<@NotBlank String> arg0) {
 			return null;
 		}
 	}

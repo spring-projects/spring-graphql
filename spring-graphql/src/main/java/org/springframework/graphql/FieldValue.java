@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2025 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,25 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql.data;
+package org.springframework.graphql;
 
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 /**
- * Simple container for the value from binding a GraphQL argument to a higher
- * level Object, along with a flag to indicate whether the input argument was
- * omitted altogether, as opposed to provided but set to the {@literal "null"}
- * literal.
+ * Simple container for GraphQL field values that indicates if the field
+ * value is present, provided but set to {@literal "null"} or omitted altogether.
+ *
+ * <p>In the case of GraphQL mutations, clients send an Input Object with several fields;
+ * the server must understand the difference between a field being absent
+ * (the existing value should be left as-is) and a field set to {@literal "null"}
+ * (the existing value must be set to {@literal "null"}). {@code FieldValue<T>}
+ * helps to make this distinction.
  *
  * <p>Supported in one of the following places:
  * <ul>
@@ -42,16 +48,16 @@ import org.springframework.util.ObjectUtils;
  *
  * @param <T> the type of value contained
  * @author Rossen Stoyanchev
- * @since 1.1.0
+ * @author Brian Clozel
+ * @since 1.4.0
+ * @see <a href="http://spec.graphql.org/October2021/#sec-Input-Objects">Input Object</a>
  * @see <a href="http://spec.graphql.org/October2021/#sec-Non-Null.Nullable-vs-Optional">Nullable vs Optional</a>
- * @deprecated since 1.4.0 in favor of {@link org.springframework.graphql.FieldValue}.
  */
-@Deprecated(since = "1.4.0", forRemoval = true)
-public final class ArgumentValue<T> {
+public final class FieldValue<T> {
 
-	private static final ArgumentValue<?> EMPTY = new ArgumentValue<>(null, false);
+	private static final FieldValue<?> EMPTY = new FieldValue<>(null, false);
 
-	private static final ArgumentValue<?> OMITTED = new ArgumentValue<>(null, true);
+	private static final FieldValue<?> OMITTED = new FieldValue<>(null, true);
 
 
 	@Nullable
@@ -60,7 +66,7 @@ public final class ArgumentValue<T> {
 	private final boolean omitted;
 
 
-	private ArgumentValue(@Nullable T value, boolean omitted) {
+	private FieldValue(@Nullable T value, boolean omitted) {
 		this.value = value;
 		this.omitted = omitted;
 	}
@@ -71,6 +77,14 @@ public final class ArgumentValue<T> {
 	 */
 	public boolean isPresent() {
 		return (this.value != null);
+	}
+
+	/**
+	 * Return {@code true} if the input value was present in the input but the value was {@code null},
+	 * and {@code false} otherwise.
+	 */
+	public boolean isEmpty() {
+		return !this.omitted && this.value == null;
 	}
 
 	/**
@@ -97,13 +111,24 @@ public final class ArgumentValue<T> {
 		return Optional.ofNullable(this.value);
 	}
 
+	/**
+	 * If a value is present, performs the given action with the value, otherwise does nothing.
+	 * @param action the action to be performed, if a value is present
+	 */
+	public void ifPresent(Consumer<? super T> action) {
+		Assert.notNull(action, "Action is required");
+		if (this.value != null) {
+			action.accept(this.value);
+		}
+	}
+
 	@Override
 	public boolean equals(Object other) {
 		// This covers EMPTY and OMITTED constant
 		if (this == other) {
 			return true;
 		}
-		if (!(other instanceof ArgumentValue<?> otherValue)) {
+		if (!(other instanceof FieldValue<?> otherValue)) {
 			return false;
 		}
 		return ObjectUtils.nullSafeEquals(this.value, otherValue.value);
@@ -116,6 +141,13 @@ public final class ArgumentValue<T> {
 		return result;
 	}
 
+	@Override
+	public String toString() {
+		if (this.isOmitted()) {
+			return "FieldValue{omitted}";
+		}
+		return "FieldValue{value=" + this.value + "'}'";
+	}
 
 	/**
 	 * Static factory method for an argument value that was provided, even if
@@ -124,8 +156,8 @@ public final class ArgumentValue<T> {
 	 * @param value the value to hold in the instance
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> ArgumentValue<T> ofNullable(@Nullable T value) {
-		return (value != null) ? new ArgumentValue<>(value, false) : (ArgumentValue<T>) EMPTY;
+	public static <T> FieldValue<T> ofNullable(@Nullable T value) {
+		return (value != null) ? new FieldValue<>(value, false) : (FieldValue<T>) EMPTY;
 	}
 
 	/**
@@ -133,8 +165,8 @@ public final class ArgumentValue<T> {
 	 * @param <T> the type of value
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> ArgumentValue<T> omitted() {
-		return (ArgumentValue<T>) OMITTED;
+	public static <T> FieldValue<T> omitted() {
+		return (FieldValue<T>) OMITTED;
 	}
 
 }

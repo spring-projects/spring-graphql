@@ -58,7 +58,7 @@ import org.springframework.data.projection.TargetAware;
 import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.federation.EntityMapping;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
@@ -120,12 +120,12 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 		}
 
 		@Test
-		void registerBindingReflectionOnArgumentValue() {
-			processBeanClasses(ArgumentValueController.class);
-			assertThatIntrospectionOnMethodsHintRegisteredForType(ArgumentValueController.class);
-			assertThatInvocationHintRegisteredForMethods(ArgumentValueController.class, "addBook");
+		void registerBindingReflectionOnFieldValue() {
+			processBeanClasses(FieldValueController.class);
+			assertThatIntrospectionOnMethodsHintRegisteredForType(FieldValueController.class);
+			assertThatInvocationHintRegisteredForMethods(FieldValueController.class, "addBook");
 			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class, BookInput.class);
-			assertThatHintsAreNotRegisteredForTypes(ArgumentValue.class);
+			assertThatHintsAreNotRegisteredForTypes(FieldValue.class);
 		}
 
 		@Test
@@ -173,9 +173,9 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 		}
 
 		@Controller
-		static class ArgumentValueController {
+		static class FieldValueController {
 			@MutationMapping
-			public Book addBook(ArgumentValue<BookInput> bookInput) {
+			public Book addBook(FieldValue<BookInput> bookInput) {
 				return null;
 			}
 

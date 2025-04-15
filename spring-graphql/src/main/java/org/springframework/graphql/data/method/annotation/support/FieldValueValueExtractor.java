@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,23 +20,22 @@ import jakarta.validation.valueextraction.ExtractedValue;
 import jakarta.validation.valueextraction.UnwrapByDefault;
 import jakarta.validation.valueextraction.ValueExtractor;
 
-import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.FieldValue;
 
 /**
- * {@link ValueExtractor} that enables {@code @Valid} with {@link ArgumentValue},
+ * {@link ValueExtractor} that enables {@code @Valid} with {@link FieldValue},
  * and helps to extract the value from it.
  *
  * @author Rossen Stoyanchev
- * @since 1.2.2
+ * @since 1.4.0
  */
 @UnwrapByDefault
-@SuppressWarnings("removal")
-public final class ArgumentValueValueExtractor implements ValueExtractor<ArgumentValue<@ExtractedValue ?>> {
+public final class FieldValueValueExtractor implements ValueExtractor<FieldValue<@ExtractedValue ?>> {
 
 	@Override
-	public void extractValues(ArgumentValue<?> argumentValue, ValueReceiver receiver) {
-		if (!argumentValue.isOmitted()) {
-			receiver.value(null, argumentValue.value());
+	public void extractValues(FieldValue<?> fieldValue, ValueReceiver receiver) {
+		if (!fieldValue.isOmitted()) {
+			receiver.value(null, fieldValue.value());
 		}
 	}
 

@@ -26,7 +26,7 @@ import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.web.ProjectedPayload;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.data.ArgumentValue;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
@@ -54,7 +54,7 @@ class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolverTestSu
 		testSupports("projection", BookProjection.class, true);
 		testSupports("optionalProjection", Optional.class, true);
 		testSupports("optionalString", Optional.class, false);
-		testSupports("argumentValueProjection", ArgumentValue.class, true);
+		testSupports("fieldValueProjection", FieldValue.class, true);
 	}
 
 	void testSupports(String methodName, Class<?> methodParamType, boolean supported) {
@@ -86,39 +86,39 @@ class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolverTestSu
 	}
 
 	@Test
-	void argumentValuePresent() throws Exception {
+	void fieldValuePresent() throws Exception {
 
 		Object result = this.resolver.resolveArgument(
-				methodParam(BookController.class, "argumentValueProjection", ArgumentValue.class),
+				methodParam(BookController.class, "fieldValueProjection", FieldValue.class),
 				environment("{ \"where\" : { \"author\" : \"Orwell\" }}"));
 
-		assertThat(result).isNotNull().isInstanceOf(ArgumentValue.class);
-		BookProjection book = ((ArgumentValue<BookProjection>) result).value();
+		assertThat(result).isNotNull().isInstanceOf(FieldValue.class);
+		BookProjection book = ((FieldValue<BookProjection>) result).value();
 		assertThat(book.getAuthor()).isEqualTo("Orwell");
 	}
 
 	@Test
-	void argumentValueSetToNull() throws Exception {
+	void fieldValueSetToNull() throws Exception {
 
 		Object result = this.resolver.resolveArgument(
-				methodParam(BookController.class, "argumentValueProjection", ArgumentValue.class),
+				methodParam(BookController.class, "fieldValueProjection", FieldValue.class),
 				environment("{ \"where\" : null}"));
 
-		assertThat(result).isNotNull().isInstanceOf(ArgumentValue.class);
-		ArgumentValue<BookProjection> value = ((ArgumentValue<BookProjection>) result);
+		assertThat(result).isNotNull().isInstanceOf(FieldValue.class);
+		FieldValue<BookProjection> value = ((FieldValue<BookProjection>) result);
 		assertThat(value.isPresent()).isFalse();
 		assertThat(value.isOmitted()).isFalse();
 	}
 
 	@Test
-	void argumentValueIsOmitted() throws Exception {
+	void fieldValueIsOmitted() throws Exception {
 
 		Object result = this.resolver.resolveArgument(
-				methodParam(BookController.class, "argumentValueProjection", ArgumentValue.class),
+				methodParam(BookController.class, "fieldValueProjection", FieldValue.class),
 				environment("{}"));
 
-		assertThat(result).isNotNull().isInstanceOf(ArgumentValue.class);
-		ArgumentValue<BookProjection> value = ((ArgumentValue<BookProjection>) result);
+		assertThat(result).isNotNull().isInstanceOf(FieldValue.class);
+		FieldValue<BookProjection> value = ((FieldValue<BookProjection>) result);
 		assertThat(value.isPresent()).isFalse();
 		assertThat(value.isOmitted()).isTrue();
 	}
@@ -153,7 +153,7 @@ class ProjectedPayloadMethodArgumentResolverTests extends ArgumentResolverTestSu
 		}
 
 		@QueryMapping
-		public List<Book> argumentValueProjection(@Argument(name = "where") ArgumentValue<BookProjection> projection) {
+		public List<Book> fieldValueProjection(@Argument(name = "where") FieldValue<BookProjection> projection) {
 			return null;
 		}
 

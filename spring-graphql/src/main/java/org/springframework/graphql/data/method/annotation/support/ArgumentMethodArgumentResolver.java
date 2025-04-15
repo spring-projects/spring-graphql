@@ -20,6 +20,7 @@ import graphql.schema.DataFetchingEnvironment;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -37,12 +38,13 @@ import org.springframework.validation.BindException;
  * parameter type.
  *
  * <p>This resolver also supports wrapping the target object with
- * {@link ArgumentValue} if the application wants to differentiate between an
- * input argument that was set to {@code null} vs not provided at all. When
- * this wrapper type is used, the annotation is optional, and the name of the
- * argument is derived from the method parameter name.
+ * {@link FieldValue} if the application
+ * wants to differentiate between an input argument that was set to
+ * {@code null} vs not provided at all.
+ * When this wrapper type is used, the annotation is optional,
+ * and the name of the argument is derived from the method parameter name.
  *
- * <p>An {@link ArgumentValue} can also be nested within the object structure
+ * <p>An {@link FieldValue} can also be nested within the object structure
  * of an {@link Argument @Argument}-annotated method parameter.
  *
  * @author Rossen Stoyanchev
@@ -50,6 +52,7 @@ import org.springframework.validation.BindException;
  * @since 1.0.0
  * @see org.springframework.graphql.data.method.annotation.support.ArgumentsMethodArgumentResolver
  */
+@SuppressWarnings("removal")
 public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
 	private final GraphQlArgumentBinder argumentBinder;
@@ -72,7 +75,8 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		return (parameter.getParameterAnnotation(Argument.class) != null ||
-				parameter.getParameterType() == ArgumentValue.class);
+				parameter.getParameterType() == ArgumentValue.class ||
+				parameter.getParameterType() == FieldValue.class);
 	}
 
 	@Override
@@ -103,9 +107,10 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 				return argument.name();
 			}
 		}
-		else if (parameter.getParameterType() != ArgumentValue.class) {
+		else if (parameter.getParameterType() != ArgumentValue.class &&
+				parameter.getParameterType() != FieldValue.class) {
 			throw new IllegalStateException(
-					"Expected either @Argument or a method parameter of type ArgumentValue");
+					"Expected either @Argument or a method parameter of type FieldValue");
 		}
 
 		String parameterName = parameter.getParameterName();

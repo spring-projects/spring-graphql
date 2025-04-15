@@ -43,6 +43,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.projection.TargetAware;
+import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
@@ -245,9 +246,11 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 		}
 
 		@Override
+		@SuppressWarnings("removal")
 		public void apply(RuntimeHints runtimeHints) {
 			Type parameterType = this.methodParameter.getGenericParameterType();
-			if (ArgumentValue.class.isAssignableFrom(this.methodParameter.getParameterType())) {
+			if (ArgumentValue.class.isAssignableFrom(this.methodParameter.getParameterType()) ||
+					FieldValue.class.isAssignableFrom(this.methodParameter.getParameterType())) {
 				parameterType = this.methodParameter.nested().getNestedGenericParameterType();
 			}
 			bindingRegistrar.registerReflectionHints(runtimeHints.reflection(), parameterType);
