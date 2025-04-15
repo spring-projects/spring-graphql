@@ -403,7 +403,7 @@ specified in the annotation, or to the parameter name. For access to the full ar
 map, please use xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
 
 
-[[controllers.schema-mapping.field-value]]
+[[controllers.schema-mapping.fieldvalue]]
 === `FieldValue`
 
 By default, input arguments in GraphQL are nullable and optional, which means an argument
@@ -426,12 +426,20 @@ For example:
 	@Controller
 	public class BookController {
 
-		@MutationMapping
-		public void addBook(FieldValue<BookInput> bookInput) {
-			if (!bookInput.isOmitted()) {
-				BookInput value = bookInput.value();
-				// ...
+		@QueryMapping
+		public List<Book> searchBook(@Argument String search, FieldValue<Genre> genre) {
+			if (!genre.isOmitted()) {
+				// genre has been set but might hold a "null" value
+				Genre genreValue = genre.value();
 			}
+		}
+
+		@MutationMapping
+		public void addBook(@Argument BookInput bookInput) {
+            FieldValue<String> genre = bookInput.genre();
+            genre.ifPresent(genre -> {
+                //...
+            });
 		}
 	}
 ----
@@ -439,6 +447,9 @@ For example:
 `FieldValue` is also supported as a field within the object structure of an `@Argument`
 method parameter, either initialized via a constructor argument or via a setter, including
 as a field of an object nested at any level below the top level object.
+
+This is also supported on the client side with a dedicated Jackson Module,
+see the xref:client.adoc#client.fieldvalue[`FieldValue` support for clients] section.
 
 
 [[controllers.schema-mapping.arguments]]

@@ -393,19 +393,36 @@ include-code::UseInterceptor[tag=register,indent=0]
 
 
 
-[[client.argument-value]
-== Argument Value
+[[client.fieldvalue]]
+== `FieldValue`
 
-If you want to use `ArgumentValue` from a client or test, you can register the
-`GraphQLModule` in Jackson which can serialize/deserialize the value depending on
-the state.
+By default, input types in GraphQL are nullable and optional, an input value (or any of its fields)
+can be set to the `null` literal, or not provided at all. This distinction is useful for
+partial updates with a mutation where the underlying data may also be, either set to
+`null` or not changed at all accordingly.
 
-For example:
+Similar to the xref:controllers.adoc#controllers.schema-mapping.fieldvalue[`FieldValue<T> support in controllers`],
+we can wrap an Input type with `FieldValue<T>` or use it at the level of class attributes on the client side.
+Given a `ProjectInput` class like:
+
+include-code::ProjectInput[indent=0]
+
+We can use our client to send a mutation request:
+
+include-code::FieldValueClient[tag=fieldvalue,indent=0]
+
+For this to work, the client must use Jackson for JSON (de)serialization and must be configured
+with the `org.springframework.graphql.client.json.GraphQlModule`.
+This can be registered manually on the underlying HTTP client like so:
+
+include-code::FieldValueClient[tag=createclient,indent=0]
+
+This `GraphQlModule` can be globally registered in Spring Boot applications by contributing it as a bean:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
     @Configuration
-    public class MyConfiguration {
+    public class GraphQlJsonConfiguration {
 
     	@Bean
     	public GraphQLModule graphQLModule() {

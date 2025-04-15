@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,28 @@
 package org.springframework.graphql.client;
 
 
+import java.util.Map;
+import java.util.stream.Stream;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import org.springframework.graphql.Book;
+import org.springframework.graphql.FieldValue;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.MockWebServerExtension;
+import org.springframework.graphql.client.json.GraphQlModule;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,6 +50,49 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @ExtendWith(MockWebServerExtension.class)
 class HttpGraphQlTransportIntegrationTests {
+
+	@ParameterizedTest
+	@MethodSource("fieldValues")
+	void shouldSerializeFieldValues(ProjectInput projectInput, String variable, MockWebServer server) throws Exception {
+		ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json().modules(new GraphQlModule()).build();
+		Jackson2JsonEncoder jsonEncoder = new Jackson2JsonEncoder(objectMapper, MediaType.APPLICATION_JSON);
+		WebClient webClient = WebClient.builder()
+				.baseUrl(server.url("/graphql").toString())
+				.codecs(codecs -> codecs.defaultCodecs().jackson2JsonEncoder(jsonEncoder))
+				.build();
+		HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
+
+		server.enqueue(new MockResponse().addHeader("Content-Type", MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+				.setBody("""
+						{
+							"data": {
+								"createProject": {
+									"id": "spring-graphql"
+								}
+							}
+						}
+						"""));
+		graphQlClient.document("""
+						mutation createProject($project: ProjectInput!) {
+							  createProject($project: $project) {
+								id
+							  }
+						}
+						""")
+				.variables(Map.of("project", projectInput))
+				.executeSync();
+
+		assertThat(server.takeRequest().getBody().readUtf8()).contains("\"variables\":{\"project\":" + variable + "}");
+	}
+
+	static Stream<Arguments> fieldValues() {
+		return Stream.of(
+				Arguments.arguments(new ProjectInput("spring-graphql", FieldValue.omitted()), "{\"id\":\"spring-graphql\"}"),
+				Arguments.arguments(new ProjectInput("spring-graphql", FieldValue.ofNullable(null)), "{\"id\":\"spring-graphql\",\"name\":null}"),
+				Arguments.arguments(new ProjectInput("spring-graphql", FieldValue.ofNullable("Spring for GraphQL")), "{\"id\":\"spring-graphql\",\"name\":\"Spring for GraphQL\"}")
+		);
+	}
+
 
 	@Test
 	void shouldStreamSubscriptionResultsOverSse(MockWebServer server) {
@@ -94,5 +149,9 @@ class HttpGraphQlTransportIntegrationTests {
 				.verifyComplete();
 	}
 
+
+	public record ProjectInput(String id, FieldValue<String> name) {
+
+	}
 
 }

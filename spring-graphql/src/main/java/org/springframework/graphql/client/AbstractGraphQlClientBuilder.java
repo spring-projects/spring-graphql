@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +23,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.client.GraphQlClientInterceptor.Chain;
 import org.springframework.graphql.client.GraphQlClientInterceptor.SubscriptionChain;
+import org.springframework.graphql.client.json.GraphQlModule;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -235,12 +241,15 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	protected static class DefaultJackson2Codecs {
 
+		private static final ObjectMapper JSON_MAPPER = Jackson2ObjectMapperBuilder.json()
+				.modulesToInstall(new GraphQlModule()).build();
+
 		static Encoder<?> encoder() {
-			return new Jackson2JsonEncoder();
+			return new Jackson2JsonEncoder(JSON_MAPPER, MediaType.APPLICATION_JSON);
 		}
 
 		static Decoder<?> decoder() {
-			return new Jackson2JsonDecoder();
+			return new Jackson2JsonDecoder(JSON_MAPPER, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE);
 		}
 
 	}
