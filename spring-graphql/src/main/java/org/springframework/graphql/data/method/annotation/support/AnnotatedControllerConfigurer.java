@@ -61,7 +61,6 @@ import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.domain.ScrollPosition;
-import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
@@ -489,12 +488,10 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
-		@SuppressWarnings("removal")
 		public Map<String, ResolvableType> getArguments() {
 
 			Predicate<MethodParameter> argumentPredicate = (p) ->
-					(p.getParameterAnnotation(Argument.class) != null || p.getParameterType() == ArgumentValue.class ||
-							p.getParameterType() == FieldValue.class);
+					(p.getParameterAnnotation(Argument.class) != null || p.getParameterType() == ArgumentValue.class);
 
 			return Arrays.stream(this.mappingInfo.getHandlerMethod().getMethodParameters())
 					.filter(argumentPredicate)

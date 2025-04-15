@@ -27,7 +27,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.web.ProjectedPayload;
-import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -98,16 +97,13 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		return (type.isInterface() && AnnotatedElementUtils.findMergedAnnotation(type, ProjectedPayload.class) != null);
 	}
 
-	@SuppressWarnings("removal")
 	private static Class<?> getTargetType(MethodParameter parameter) {
 		Class<?> type = parameter.getParameterType();
-		return (type.equals(Optional.class) || type.equals(ArgumentValue.class) ||
-				type.equals(FieldValue.class)) ?
+		return (type.equals(Optional.class) || type.equals(ArgumentValue.class)) ?
 				parameter.nested().getNestedParameterType() : parameter.getParameterType();
 	}
 
 	@Override
-	@SuppressWarnings("removal")
 	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 
 		String name = (parameter.hasParameterAnnotation(Argument.class) ?
@@ -116,9 +112,8 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		Class<?> targetType = parameter.getParameterType();
 		boolean isOptional = (targetType == Optional.class);
 		boolean isArgumentValue = (targetType == ArgumentValue.class);
-		boolean isFieldValue = (targetType == FieldValue.class);
 
-		if (isOptional || isArgumentValue || isFieldValue) {
+		if (isOptional || isArgumentValue) {
 			targetType = parameter.nested().getNestedParameterType();
 		}
 
@@ -132,10 +127,6 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 		else if (isArgumentValue) {
 			return (name != null && arguments.containsKey(name)) ?
 					ArgumentValue.ofNullable(value) : ArgumentValue.omitted();
-		}
-		else if (isFieldValue) {
-			return (name != null && arguments.containsKey(name)) ?
-					FieldValue.ofNullable(value) : FieldValue.omitted();
 		}
 		else {
 			return value;

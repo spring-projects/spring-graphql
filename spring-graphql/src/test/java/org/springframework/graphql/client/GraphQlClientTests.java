@@ -31,7 +31,6 @@ import graphql.validation.ValidationErrorType;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 
@@ -57,45 +56,6 @@ class GraphQlClientTests extends GraphQlClientTestSupport {
 				.block(TIMEOUT);
 
 		assertThat(movieCharacter).isEqualTo(MovieCharacter.create("Luke Skywalker"));
-	}
-
-	@Test
-	void retrieveEntityFieldValuePresent() {
-
-		String document = "mockRequest1";
-		getGraphQlService().setDataAsJson(document, "{\"current\": {\"id\":\"spring-graphql\", \"name\":\"Spring for GraphQL\"}}");
-
-		Project currentProject = graphQlClient().document(document)
-				.retrieve("current").toEntity(Project.class)
-				.block(TIMEOUT);
-
-		assertThat(currentProject).isEqualTo(new Project("spring-graphql", FieldValue.ofNullable("Spring for GraphQL")));
-	}
-
-	@Test
-	void retrieveEntityOmittedField() {
-
-		String document = "mockRequest1";
-		getGraphQlService().setDataAsJson(document, "{\"current\": {\"id\":\"spring-graphql\"}}");
-
-		Project currentProject = graphQlClient().document(document)
-				.retrieve("current").toEntity(Project.class)
-				.block(TIMEOUT);
-
-		assertThat(currentProject).isEqualTo(new Project("spring-graphql", FieldValue.omitted()));
-	}
-
-	@Test
-	void retrieveEntityNullField() {
-
-		String document = "mockRequest1";
-		getGraphQlService().setDataAsJson(document, "{\"current\": {\"id\":\"spring-graphql\", \"name\": null}}");
-
-		Project currentProject = graphQlClient().document(document)
-				.retrieve("current").toEntity(Project.class)
-				.block(TIMEOUT);
-
-		assertThat(currentProject).isEqualTo(new Project("spring-graphql", FieldValue.ofNullable(null)));
 	}
 
 	@Test

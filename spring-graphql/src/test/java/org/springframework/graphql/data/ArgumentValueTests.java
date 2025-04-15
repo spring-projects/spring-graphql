@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.graphql;
+package org.springframework.graphql.data;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -23,14 +23,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link FieldValue}.
+ * Tests for {@link ArgumentValue}.
  * @author Brian Clozel
  */
-class FieldValueTests {
+class ArgumentValueTests {
 
 	@Test
 	void existingValueShouldBePresent() {
-		FieldValue<String> message = FieldValue.ofNullable("hello");
+		ArgumentValue<String> message = ArgumentValue.ofNullable("hello");
 		assertThat(message.isOmitted()).isFalse();
 		assertThat(message.isPresent()).isTrue();
 		assertThat(message.isEmpty()).isFalse();
@@ -38,7 +38,7 @@ class FieldValueTests {
 
 	@Test
 	void nullValueShouldBePresent() {
-		FieldValue<String> message = FieldValue.ofNullable(null);
+		ArgumentValue<String> message = ArgumentValue.ofNullable(null);
 		assertThat(message.isOmitted()).isFalse();
 		assertThat(message.isPresent()).isFalse();
 		assertThat(message.isEmpty()).isTrue();
@@ -46,7 +46,7 @@ class FieldValueTests {
 
 	@Test
 	void noValueShouldBeOmitted() {
-		FieldValue<String> message = FieldValue.omitted();
+		ArgumentValue<String> message = ArgumentValue.omitted();
 		assertThat(message.isOmitted()).isTrue();
 		assertThat(message.isPresent()).isFalse();
 		assertThat(message.isEmpty()).isFalse();
@@ -54,29 +54,29 @@ class FieldValueTests {
 
 	@Test
 	void asOptionalShouldMapOmitted() {
-		assertThat(FieldValue.omitted().asOptional()).isEmpty();
-		assertThat(FieldValue.ofNullable(null).asOptional()).isEmpty();
-		assertThat(FieldValue.ofNullable("hello").asOptional()).isPresent();
+		assertThat(ArgumentValue.omitted().asOptional()).isEmpty();
+		assertThat(ArgumentValue.ofNullable(null).asOptional()).isEmpty();
+		assertThat(ArgumentValue.ofNullable("hello").asOptional()).isPresent();
 	}
 
 	@Test
 	void ifPresentShouldExecuteWhenValue() {
 		AtomicBoolean called = new AtomicBoolean();
-		FieldValue.ofNullable("hello").ifPresent(value -> called.set(true));
+		ArgumentValue.ofNullable("hello").ifPresent(value -> called.set(true));
 		assertThat(called.get()).isTrue();
 	}
 
 	@Test
 	void ifPresentShouldSkipWhenNull() {
 		AtomicBoolean called = new AtomicBoolean();
-		FieldValue.ofNullable(null).ifPresent(value -> called.set(true));
+		ArgumentValue.ofNullable(null).ifPresent(value -> called.set(true));
 		assertThat(called.get()).isFalse();
 	}
 
 	@Test
 	void ifPresentShouldSkipWhenOmitted() {
 		AtomicBoolean called = new AtomicBoolean();
-		FieldValue.omitted().ifPresent(value -> called.set(true));
+		ArgumentValue.omitted().ifPresent(value -> called.set(true));
 		assertThat(called.get()).isFalse();
 	}
 

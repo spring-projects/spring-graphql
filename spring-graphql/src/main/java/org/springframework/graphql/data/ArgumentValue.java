@@ -18,8 +18,10 @@ package org.springframework.graphql.data;
 
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -44,9 +46,7 @@ import org.springframework.util.ObjectUtils;
  * @author Rossen Stoyanchev
  * @since 1.1.0
  * @see <a href="http://spec.graphql.org/October2021/#sec-Non-Null.Nullable-vs-Optional">Nullable vs Optional</a>
- * @deprecated since 1.4.0 in favor of {@link org.springframework.graphql.FieldValue}.
  */
-@Deprecated(since = "1.4.0", forRemoval = true)
 public final class ArgumentValue<T> {
 
 	private static final ArgumentValue<?> EMPTY = new ArgumentValue<>(null, false);
@@ -74,6 +74,15 @@ public final class ArgumentValue<T> {
 	}
 
 	/**
+	 * Return {@code true} if the input value was present in the input but the value was {@code null},
+	 * and {@code false} otherwise.
+	 * @since 1.4.0
+	 */
+	public boolean isEmpty() {
+		return !this.omitted && this.value == null;
+	}
+
+	/**
 	 * Return {@code true} if the input value was omitted altogether from the
 	 * input, and {@code false} if it was provided, but possibly set to the
 	 * {@literal "null"} literal.
@@ -95,6 +104,18 @@ public final class ArgumentValue<T> {
 	 */
 	public Optional<T> asOptional() {
 		return Optional.ofNullable(this.value);
+	}
+
+	/**
+	 * If a value is present, performs the given action with the value, otherwise does nothing.
+	 * @param action the action to be performed, if a value is present
+	 * @since 1.4.0
+	 */
+	public void ifPresent(Consumer<? super T> action) {
+		Assert.notNull(action, "Action is required");
+		if (this.value != null) {
+			action.accept(this.value);
+		}
 	}
 
 	@Override

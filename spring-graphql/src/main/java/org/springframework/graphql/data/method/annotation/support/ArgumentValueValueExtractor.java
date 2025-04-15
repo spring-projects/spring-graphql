@@ -30,7 +30,6 @@ import org.springframework.graphql.data.ArgumentValue;
  * @since 1.2.2
  */
 @UnwrapByDefault
-@SuppressWarnings("removal")
 public final class ArgumentValueValueExtractor implements ValueExtractor<ArgumentValue<@ExtractedValue ?>> {
 
 	@Override

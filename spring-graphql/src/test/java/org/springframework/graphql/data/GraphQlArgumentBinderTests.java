@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 the original author or authors.
+ * Copyright 2020-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
-import org.springframework.graphql.FieldValue;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.lang.Nullable;
 import org.springframework.validation.BindException;
@@ -54,7 +53,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * @author Brian Clozel
  * @author Rossen Stoyanchev
  */
-@SuppressWarnings("removal")
 class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
@@ -244,30 +242,6 @@ class GraphQlArgumentBinderTests {
 
 		result = bind("{\"key\":{}}", targetType);
 		itemBean = (PrimaryConstructorOptionalArgumentItemBean) result;
-
-		assertThat(itemBean).isNotNull();
-		assertThat(itemBean.getItem().isOmitted()).isTrue();
-		assertThat(itemBean.getName().isPresent()).isFalse();
-	}
-
-	@Test
-	void primaryConstructorWithOptionalFieldBeanArgument() throws Exception {
-
-		ResolvableType targetType =
-				ResolvableType.forClass(PrimaryConstructorOptionalFieldItemBean.class);
-
-		Object result = bind(
-				"{\"item\":{\"name\":\"Item name\",\"age\":\"30\"},\"name\":\"Hello\"}", targetType);
-
-		assertThat(result).isInstanceOf(PrimaryConstructorOptionalFieldItemBean.class).isNotNull();
-		PrimaryConstructorOptionalFieldItemBean itemBean = (PrimaryConstructorOptionalFieldItemBean) result;
-
-		assertThat(itemBean.getItem().value().getName()).isEqualTo("Item name");
-		assertThat(itemBean.getItem().value().getAge()).isEqualTo(30);
-		assertThat(itemBean.getName().value()).isEqualTo("Hello");
-
-		result = bind("{\"key\":{}}", targetType);
-		itemBean = (PrimaryConstructorOptionalFieldItemBean) result;
 
 		assertThat(itemBean).isNotNull();
 		assertThat(itemBean.getItem().isOmitted()).isTrue();
@@ -592,26 +566,6 @@ class GraphQlArgumentBinderTests {
 		}
 
 		public ArgumentValue<Item> getItem() {
-			return item;
-		}
-	}
-
-	static class PrimaryConstructorOptionalFieldItemBean {
-
-		private final FieldValue<String> name;
-
-		private final FieldValue<Item> item;
-
-		public PrimaryConstructorOptionalFieldItemBean(FieldValue<String> name, FieldValue<Item> item) {
-			this.name = name;
-			this.item = item;
-		}
-
-		public FieldValue<String> getName() {
-			return this.name;
-		}
-
-		public FieldValue<Item> getItem() {
 			return item;
 		}
 	}

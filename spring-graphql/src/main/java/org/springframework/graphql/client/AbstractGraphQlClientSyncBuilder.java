@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -31,12 +30,10 @@ import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.SyncGraphQlClientInterceptor.Chain;
-import org.springframework.graphql.client.json.GraphQlModule;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -194,9 +191,7 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	private static final class DefaultJacksonConverter {
 
 		static HttpMessageConverter<Object> initialize() {
-			ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json()
-					.modulesToInstall(new GraphQlModule()).build();
-			return new MappingJackson2HttpMessageConverter(objectMapper);
+			return new MappingJackson2HttpMessageConverter();
 		}
 	}
 
