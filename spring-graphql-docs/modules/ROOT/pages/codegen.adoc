@@ -13,10 +13,8 @@ want to add logic to them. Code generation, however, is a good fit for client ty
 those define the request, and don't need to have other logic. As a client, you may also
 choose to generate the data types for the response.
 
-Client generated types can be used with Spring's
-xref:client.adoc#client.dgsgraphqlclient[DgsGraphQlClient]. Start by following the
-instructions for the DGS code generation plugin to generate client API types. Then, given
-a schema like this:
+Start by following the instructions for the DGS code generation plugin to generate client API types.
+Then you can xref:client.adoc#client.dgsgraphqlclient[use client generated types with Spring's DgsGraphQlClient].
 
 TIP: Spring Initializer at https://start.spring.io can create a Spring project with
 the DGS Codegen Gradle or Maven plugin.
