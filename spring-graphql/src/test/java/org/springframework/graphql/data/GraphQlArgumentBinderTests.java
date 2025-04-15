@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,6 +193,16 @@ class GraphQlArgumentBinderTests {
 
 		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorBean.class);
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
+	}
+
+	@Test
+	void mixedConstructorProperties() throws Exception {
+
+		Object result = bind("{\"name\":\"test\", \"age\":30}", ResolvableType.forClass(MixedConstructorPropertiesBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(MixedConstructorPropertiesBean.class);
+		assertThat(result).hasFieldOrPropertyWithValue("name", "test")
+				.hasFieldOrPropertyWithValue("age", 30);
 	}
 
 	@Test
@@ -454,6 +464,29 @@ class GraphQlArgumentBinderTests {
 
 		public String getName() {
 			return this.name;
+		}
+	}
+
+	static class MixedConstructorPropertiesBean {
+
+		private final String name;
+
+		private int age;
+
+		public MixedConstructorPropertiesBean(String name) {
+			this.name = name;
+		}
+
+		public String getName() {
+			return this.name;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public void setAge(int age) {
+			this.age = age;
 		}
 	}
 

@@ -292,7 +292,12 @@ public class GraphQlArgumentBinder {
 		}
 
 		try {
-			return BeanUtils.instantiateClass(constructor, constructorArguments);
+			Object target = BeanUtils.instantiateClass(constructor, constructorArguments);
+			// only attempt further properties binding if there were no errors
+			if (!bindingResult.hasErrors()) {
+				bindProperties(rawMap, ownerType, bindingResult, target);
+			}
+			return target;
 		}
 		catch (BeanInstantiationException ex) {
 			// Ignore, if we had binding errors to begin with
@@ -308,6 +313,11 @@ public class GraphQlArgumentBinder {
 			ArgumentsBindingResult bindingResult) {
 
 		Object target = BeanUtils.instantiateClass(constructor);
+		bindProperties(rawMap, ownerType, bindingResult, target);
+		return target;
+	}
+
+	private void bindProperties(Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult, Object target) {
 		BeanWrapper beanWrapper = (this.fallBackOnDirectFieldAccess ?
 				new DirectFieldAccessFallbackBeanWrapper(target) : PropertyAccessorFactory.forBeanPropertyAccess(target));
 
@@ -343,9 +353,8 @@ public class GraphQlArgumentBinder {
 				bindingResult.rejectArgumentValue(key, value, "invalidPropertyValue", "Failed to set property value");
 			}
 		}
-
-		return target;
 	}
+
 
 	@SuppressWarnings("unchecked")
 	@Nullable
