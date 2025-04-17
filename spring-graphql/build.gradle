@@ -57,6 +57,7 @@ dependencies {
 	testImplementation 'org.springframework.data:spring-data-keyvalue'
 	testImplementation 'org.springframework.data:spring-data-jpa'
 	testImplementation("io.micrometer:micrometer-observation-test") {
+		// see https://github.com/micrometer-metrics/micrometer/issues/6012
 		exclude(group: "org.junit.jupiter")
 	}
 	testImplementation 'io.micrometer:micrometer-tracing-test'
