@@ -195,14 +195,14 @@ class GraphQlArgumentBinderTests {
 		assertThat(result).hasFieldOrPropertyWithValue("name", "test");
 	}
 
-	@Test
+	@Test // gh-1163
 	void mixedConstructorProperties() throws Exception {
 
-		Object result = bind("{\"name\":\"test\", \"age\":30}", ResolvableType.forClass(MixedConstructorPropertiesBean.class));
+		Object result = bind("{\"name\":\"test\", \"age\":30}",
+				ResolvableType.forClass(MixedConstructorPropertiesBean.class));
 
 		assertThat(result).isNotNull().isInstanceOf(MixedConstructorPropertiesBean.class);
-		assertThat(result).hasFieldOrPropertyWithValue("name", "test")
-				.hasFieldOrPropertyWithValue("age", 30);
+		assertThat(result).hasFieldOrPropertyWithValue("name", "test").hasFieldOrPropertyWithValue("age", 30);
 	}
 
 	@Test

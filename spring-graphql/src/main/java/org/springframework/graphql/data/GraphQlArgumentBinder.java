@@ -243,8 +243,8 @@ public class GraphQlArgumentBinder {
 		Constructor<?> constructor = BeanUtils.getResolvableConstructor(targetClass);
 
 		Object value = (constructor.getParameterCount() > 0) ?
-				bindMapToObjectViaConstructor(rawMap, constructor, targetType, bindingResult) :
-				bindMapToObjectViaSetters(rawMap, constructor, targetType, bindingResult);
+				bindViaConstructorAndSetters(constructor, rawMap, targetType, bindingResult) :
+				bindViaSetters(constructor, rawMap, targetType, bindingResult);
 
 		bindingResult.popNestedPath();
 
@@ -273,9 +273,8 @@ public class GraphQlArgumentBinder {
 	}
 
 	@Nullable
-	private Object bindMapToObjectViaConstructor(
-			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType ownerType,
-			ArgumentsBindingResult bindingResult) {
+	private Object bindViaConstructorAndSetters(Constructor<?> constructor,
+			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
 
 		String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
@@ -291,13 +290,9 @@ public class GraphQlArgumentBinder {
 					name, rawMap.get(name), !rawMap.containsKey(name), targetType, paramTypes[i], bindingResult);
 		}
 
+		Object target;
 		try {
-			Object target = BeanUtils.instantiateClass(constructor, constructorArguments);
-			// only attempt further properties binding if there were no errors
-			if (!bindingResult.hasErrors()) {
-				bindProperties(rawMap, ownerType, bindingResult, target);
-			}
-			return target;
+			target = BeanUtils.instantiateClass(constructor, constructorArguments);
 		}
 		catch (BeanInstantiationException ex) {
 			// Ignore, if we had binding errors to begin with
@@ -306,18 +301,26 @@ public class GraphQlArgumentBinder {
 			}
 			throw ex;
 		}
-	}
 
-	private Object bindMapToObjectViaSetters(
-			Map<String, Object> rawMap, Constructor<?> constructor, ResolvableType ownerType,
-			ArgumentsBindingResult bindingResult) {
+		// If no errors, apply setters too
+		if (!bindingResult.hasErrors()) {
+			bindViaSetters(target, rawMap, ownerType, bindingResult);
+		}
 
-		Object target = BeanUtils.instantiateClass(constructor);
-		bindProperties(rawMap, ownerType, bindingResult, target);
 		return target;
 	}
 
-	private void bindProperties(Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult, Object target) {
+	private Object bindViaSetters(Constructor<?> constructor,
+			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
+
+		Object target = BeanUtils.instantiateClass(constructor);
+		bindViaSetters(target, rawMap, ownerType, bindingResult);
+		return target;
+	}
+
+	private void bindViaSetters(Object target,
+			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
+
 		BeanWrapper beanWrapper = (this.fallBackOnDirectFieldAccess ?
 				new DirectFieldAccessFallbackBeanWrapper(target) : PropertyAccessorFactory.forBeanPropertyAccess(target));
 
@@ -354,7 +357,6 @@ public class GraphQlArgumentBinder {
 			}
 		}
 	}
-
 
 	@SuppressWarnings("unchecked")
 	@Nullable
