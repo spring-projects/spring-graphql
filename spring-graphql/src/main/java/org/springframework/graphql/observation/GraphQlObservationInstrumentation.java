@@ -187,7 +187,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 				&& state == RequestObservationInstrumentationState.INSTANCE) {
 			// skip batch loading operations, already instrumented at the dataloader level
 			if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
-					&& selfDescribingDataFetcher.isBatchLoading()) {
+					&& selfDescribingDataFetcher.usesDataLoader()) {
 				return dataFetcher;
 			}
 			return (environment) -> {

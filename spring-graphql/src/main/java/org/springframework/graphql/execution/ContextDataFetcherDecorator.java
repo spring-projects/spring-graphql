@@ -150,17 +150,6 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		return new ContextTypeVisitor(resolvers);
 	}
 
-	private static ContextDataFetcherDecorator decorate(
-			DataFetcher<?> delegate, boolean handlesSubscription,
-			SubscriptionExceptionResolver subscriptionExceptionResolver) {
-		if (delegate instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher) {
-			return new SelfDescribingDecorator(selfDescribingDataFetcher, handlesSubscription, subscriptionExceptionResolver);
-		}
-		else {
-			return new ContextDataFetcherDecorator(delegate, handlesSubscription, subscriptionExceptionResolver);
-		}
-	}
-
 
 	/**
 	 * Type visitor to apply {@link ContextDataFetcherDecorator}.
@@ -185,8 +174,8 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 			DataFetcher<?> dataFetcher = codeRegistry.getDataFetcher(fieldCoordinates, fieldDefinition);
 
 			if (applyDecorator(dataFetcher)) {
-				boolean handlesSubscription = visitorHelper.isSubscriptionType(parent);
-				dataFetcher = ContextDataFetcherDecorator.decorate(dataFetcher, handlesSubscription, this.exceptionResolver);
+				boolean subscriptionType = visitorHelper.isSubscriptionType(parent);
+				dataFetcher = decorate(dataFetcher, subscriptionType, this.exceptionResolver);
 				codeRegistry.dataFetcher(fieldCoordinates, dataFetcher);
 			}
 
@@ -205,37 +194,48 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 			}
 			return true;
 		}
+
+		private static ContextDataFetcherDecorator decorate(
+				DataFetcher<?> dataFetcher, boolean subscriptionType, SubscriptionExceptionResolver exceptionResolver) {
+
+			return ((dataFetcher instanceof SelfDescribingDataFetcher<?> sddf) ?
+					new SelfDescribingContextDataFetcherDecorator(sddf, subscriptionType, exceptionResolver) :
+					new ContextDataFetcherDecorator(dataFetcher, subscriptionType, exceptionResolver));
+		}
 	}
 
-	private static final class SelfDescribingDecorator extends ContextDataFetcherDecorator implements SelfDescribingDataFetcher<Object> {
 
-		private final SelfDescribingDataFetcher<?> selfDescribingDataFetcher;
+	private static final class SelfDescribingContextDataFetcherDecorator extends ContextDataFetcherDecorator
+			implements SelfDescribingDataFetcher<Object> {
 
-		private SelfDescribingDecorator(
-				SelfDescribingDataFetcher<?> delegate, boolean subscription,
-				SubscriptionExceptionResolver subscriptionExceptionResolver) {
-			super(delegate, subscription, subscriptionExceptionResolver);
-			this.selfDescribingDataFetcher = delegate;
-		}
+		private final SelfDescribingDataFetcher<?> delegate;
 
-		@Override
-		public boolean isBatchLoading() {
-			return this.selfDescribingDataFetcher.isBatchLoading();
-		}
+		private SelfDescribingContextDataFetcherDecorator(
+				SelfDescribingDataFetcher<?> delegate, boolean subscriptionType,
+				SubscriptionExceptionResolver exceptionResolver) {
 
-		@Override
-		public Map<String, ResolvableType> getArguments() {
-			return this.selfDescribingDataFetcher.getArguments();
-		}
-
-		@Override
-		public ResolvableType getReturnType() {
-			return this.selfDescribingDataFetcher.getReturnType();
+			super(delegate, subscriptionType, exceptionResolver);
+			this.delegate = delegate;
 		}
 
 		@Override
 		public String getDescription() {
-			return this.selfDescribingDataFetcher.getDescription();
+			return this.delegate.getDescription();
+		}
+
+		@Override
+		public ResolvableType getReturnType() {
+			return this.delegate.getReturnType();
+		}
+
+		@Override
+		public Map<String, ResolvableType> getArguments() {
+			return this.delegate.getArguments();
+		}
+
+		@Override
+		public boolean usesDataLoader() {
+			return this.delegate.usesDataLoader();
 		}
 	}
 

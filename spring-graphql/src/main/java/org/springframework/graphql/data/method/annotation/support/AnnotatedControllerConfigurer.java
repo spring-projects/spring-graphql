@@ -464,13 +464,12 @@ public class AnnotatedControllerConfigurer
 			this.executor = executor;
 			this.invokeAsync = invokeAsync;
 			this.subscription = this.mappingInfo.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
-			this.usesDataLoader = hasDataLoaderParameter();
+			this.usesDataLoader = hasDataLoaderParameter(info.getHandlerMethod());
 		}
 
-		private boolean hasDataLoaderParameter() {
-			Method handlerMethod = this.mappingInfo.getHandlerMethod().getMethod();
-			for (Class<?> parameterType : handlerMethod.getParameterTypes()) {
-				if (DataLoader.class.equals(parameterType)) {
+		private static boolean hasDataLoaderParameter(HandlerMethod method) {
+			for (MethodParameter type : method.getMethodParameters()) {
+				if (DataLoader.class.equals(type.getParameterType())) {
 					return true;
 				}
 			}
@@ -484,7 +483,11 @@ public class AnnotatedControllerConfigurer
 
 		@Override
 		public ResolvableType getReturnType() {
-			return ResolvableType.forMethodReturnType(this.mappingInfo.getHandlerMethod().getMethod());
+			return ResolvableType.forMethodReturnType(getHandlerMethod().getMethod());
+		}
+
+		HandlerMethod getHandlerMethod() {
+			return this.mappingInfo.getHandlerMethod();
 		}
 
 		@Override
@@ -493,7 +496,7 @@ public class AnnotatedControllerConfigurer
 			Predicate<MethodParameter> argumentPredicate = (p) ->
 					(p.getParameterAnnotation(Argument.class) != null || p.getParameterType() == ArgumentValue.class);
 
-			return Arrays.stream(this.mappingInfo.getHandlerMethod().getMethodParameters())
+			return Arrays.stream(getHandlerMethod().getMethodParameters())
 					.filter(argumentPredicate)
 					.peek((p) -> p.initParameterNameDiscovery(parameterNameDiscoverer))
 					.collect(Collectors.toMap(
@@ -501,11 +504,9 @@ public class AnnotatedControllerConfigurer
 							ResolvableType::forMethodParameter));
 		}
 
-		/**
-		 * Return the {@link HandlerMethod} used to fetch data.
-		 */
-		HandlerMethod getHandlerMethod() {
-			return this.mappingInfo.getHandlerMethod();
+		@Override
+		public boolean usesDataLoader() {
+			return this.usesDataLoader;
 		}
 
 		@Override
@@ -565,11 +566,6 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
-		public boolean isBatchLoading() {
-			return this.usesDataLoader;
-		}
-
-		@Override
 		public String toString() {
 			return getDescription();
 		}
@@ -614,7 +610,7 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
-		public boolean isBatchLoading() {
+		public boolean usesDataLoader() {
 			return true;
 		}
 

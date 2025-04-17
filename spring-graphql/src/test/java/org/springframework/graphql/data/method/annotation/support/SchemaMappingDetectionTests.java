@@ -91,13 +91,13 @@ class SchemaMappingDetectionTests {
 		Map<String, DataFetcher> queries = map.get("Book");
 		assertThat(queries.values()).allMatch(dataFetcher ->
 				dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
-						&& !selfDescribingDataFetcher.isBatchLoading());
+						&& !selfDescribingDataFetcher.usesDataLoader());
 
 		map = initRuntimeWiringBuilder(BatchLoadingController.class).build().getDataFetchers();
 		queries = map.get("Book");
 		assertThat(queries.values()).allMatch(dataFetcher ->
 				dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
-						&& selfDescribingDataFetcher.isBatchLoading());
+						&& selfDescribingDataFetcher.usesDataLoader());
 	}
 
 	private RuntimeWiring.Builder initRuntimeWiringBuilder(Class<?> handlerType) {

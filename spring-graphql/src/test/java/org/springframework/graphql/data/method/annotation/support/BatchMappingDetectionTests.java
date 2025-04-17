@@ -83,7 +83,7 @@ class BatchMappingDetectionTests {
 				initRuntimeWiringBuilder(BookController.class).build().getDataFetchers();
 		assertThat(dataFetcherMap.get("Book").values()).allMatch(dataFetcher ->
 				dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
-						&& selfDescribingDataFetcher.isBatchLoading());
+						&& selfDescribingDataFetcher.usesDataLoader());
 	}
 
 	@Test

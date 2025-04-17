@@ -419,7 +419,7 @@ class GraphQlObservationInstrumentationTests {
 	static class AuthorBatchLoadingDataFetcher implements SelfDescribingDataFetcher<CompletableFuture<Author>> {
 
 		@Override
-		public boolean isBatchLoading() {
+		public boolean usesDataLoader() {
 			return true;
 		}
 

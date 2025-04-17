@@ -60,11 +60,13 @@ public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 	}
 
 	/**
-	 * Return whether this {@code DataFetcher} is using batch loading.
-	 * @return {@code true} if the data fetcher is batch loading elements
+	 * Whether this {@code DataFetcher} uses a {@link org.dataloader.DataLoader}
+	 * to return data. This represents a deferred operation that is typically
+	 * repeatable, and a candidate for aggregation from a metrics and tracing
+	 * perspective.
 	 * @since 1.4.0
 	 */
-	default boolean isBatchLoading() {
+	default boolean usesDataLoader() {
 		return false;
 	}
 
