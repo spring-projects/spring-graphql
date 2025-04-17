@@ -88,6 +88,7 @@ dependencies {
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	testFixturesApi 'org.springframework:spring-webflux'
 	testFixturesApi 'org.junit.jupiter:junit-jupiter-engine'
