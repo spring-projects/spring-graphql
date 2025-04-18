@@ -22,6 +22,7 @@ import java.net.URI;
 import java.util.Collections;
 
 import graphql.ExecutionResultImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -43,7 +44,6 @@ import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.lang.Nullable;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
@@ -222,8 +222,7 @@ class HttpSyncGraphQlClientBuilderTests {
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
-		@Nullable
-		private WebGraphQlRequest graphQlRequest;
+		private @Nullable WebGraphQlRequest graphQlRequest;
 
 		public ClientBuilderSetup() {
 			this.graphQlService.setDefaultResponse("{}");
@@ -297,11 +296,9 @@ class HttpSyncGraphQlClientBuilderTests {
 
 	private static class TestJackson2JsonConverter extends MappingJackson2HttpMessageConverter {
 
-		@Nullable
-		private Object lastValue;
+		private @Nullable Object lastValue;
 
-		@Nullable
-		Object getLastValue() {
+		@Nullable Object getLastValue() {
 			return this.lastValue;
 		}
 

@@ -25,6 +25,7 @@ import io.rsocket.core.RSocketServer;
 import io.rsocket.exceptions.RejectedException;
 import io.rsocket.transport.local.LocalClientTransport;
 import io.rsocket.transport.local.LocalServerTransport;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -35,7 +36,6 @@ import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 
@@ -54,8 +54,7 @@ class RSocketGraphQlTransportTests {
 	private static final Jackson2JsonDecoder jsonDecoder = new Jackson2JsonDecoder();
 
 
-	@Nullable
-	private Closeable server;
+	private @Nullable Closeable server;
 
 
 	@AfterEach

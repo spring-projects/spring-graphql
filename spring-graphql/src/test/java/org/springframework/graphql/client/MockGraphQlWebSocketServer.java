@@ -24,6 +24,7 @@ import java.util.function.Function;
 import graphql.GraphQLError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,7 +34,6 @@ import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
@@ -49,8 +49,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 	private static final Log logger = LogFactory.getLog(MockGraphQlWebSocketServer.class);
 
 
-	@Nullable
-	private Function<Map<String, Object>, Mono<Object>> connectionInitHandler;
+	private @Nullable Function<Map<String, Object>, Mono<Object>> connectionInitHandler;
 
 	private final Map<Map<String, Object>, Exchange> expectedExchanges = new LinkedHashMap<>();
 
@@ -159,8 +158,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 
 		private Flux<GraphQlResponse> responseFlux = Flux.empty();
 
-		@Nullable
-		private GraphQLError error;
+		private @Nullable GraphQLError error;
 
 
 		private Exchange(String operation) {
@@ -206,8 +204,7 @@ public final class MockGraphQlWebSocketServer implements WebSocketHandler {
 			return this.responseFlux;
 		}
 
-		@Nullable
-		public GraphQLError getError() {
+		public @Nullable GraphQLError getError() {
 			return this.error;
 		}
 

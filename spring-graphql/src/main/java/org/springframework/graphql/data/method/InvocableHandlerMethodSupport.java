@@ -27,13 +27,13 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
 import org.springframework.data.util.KotlinReflectionUtils;
 import org.springframework.graphql.execution.ContextPropagationHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -48,8 +48,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	private static final Object NO_VALUE = new Object();
 
 
-	@Nullable
-	private final Executor executor;
+	private final @Nullable Executor executor;
 
 	private final boolean hasCallableReturnValue;
 
@@ -97,8 +96,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 * if the invocation fails.
 	 */
 	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
-	@Nullable
-	protected Object doInvoke(GraphQLContext graphQLContext, Object... argValues) {
+	protected @Nullable Object doInvoke(GraphQLContext graphQLContext, Object... argValues) {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Invoking " + getBridgedMethod().getName() + "(" + Arrays.toString(argValues) + ")");
 		}
@@ -151,6 +149,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			GraphQLContext graphQLContext, Callable<?> result, Method method, Object[] argValues) {
 
 		CompletableFuture<Object> future = new CompletableFuture<>();
+		Assert.state(this.executor != null,"No Executor configured for Callable return values");
 		this.executor.execute(() -> {
 			try {
 				ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
@@ -193,7 +192,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 * useful when at least one of the values is a {@link Mono}
 	 * @param args the arguments to be resolved asynchronously
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "NullAway"})
 	protected Mono<Object[]> toArgsMono(Object[] args) {
 		List<Mono<Object>> monoList = new ArrayList<>();
 		for (Object arg : args) {

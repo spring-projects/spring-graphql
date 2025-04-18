@@ -20,6 +20,7 @@ package org.springframework.graphql.test.tester;
 import java.net.URI;
 import java.util.Collections;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
@@ -28,7 +29,6 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.lang.Nullable;
 
 
 /**

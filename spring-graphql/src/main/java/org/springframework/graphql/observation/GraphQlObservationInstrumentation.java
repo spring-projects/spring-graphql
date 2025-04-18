@@ -42,10 +42,10 @@ import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderRegistry;
 import org.dataloader.instrumentation.DataLoaderInstrumentation;
 import org.dataloader.instrumentation.DataLoaderInstrumentationContext;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 
 /**
  * {@link graphql.execution.instrumentation.Instrumentation} that creates
@@ -77,14 +77,11 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	private final ObservationRegistry observationRegistry;
 
-	@Nullable
-	private final ExecutionRequestObservationConvention requestObservationConvention;
+	private final @Nullable ExecutionRequestObservationConvention requestObservationConvention;
 
-	@Nullable
-	private final DataFetcherObservationConvention dataFetcherObservationConvention;
+	private final @Nullable DataFetcherObservationConvention dataFetcherObservationConvention;
 
-	@Nullable
-	private final DataLoaderObservationConvention dataLoaderObservationConvention;
+	private final @Nullable DataLoaderObservationConvention dataLoaderObservationConvention;
 
 	/**
 	 * Create an {@code GraphQlObservationInstrumentation} that records observations
@@ -148,7 +145,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	@Override
-	public InstrumentationContext<ExecutionResult> beginExecution(InstrumentationExecutionParameters parameters,
+	public @Nullable InstrumentationContext<ExecutionResult> beginExecution(InstrumentationExecutionParameters parameters,
 			InstrumentationState state) {
 		if (state == RequestObservationInstrumentationState.INSTANCE) {
 			ExecutionRequestObservationContext observationContext = new ExecutionRequestObservationContext(parameters.getExecutionInput());
@@ -235,8 +232,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 		return dataFetcher;
 	}
 
-	@Nullable
-	private static Observation getCurrentObservation(DataFetchingEnvironment environment) {
+	private static @Nullable Observation getCurrentObservation(DataFetchingEnvironment environment) {
 		Observation currentObservation = null;
 		if (environment.getLocalContext() instanceof GraphQLContext localContext) {
 			currentObservation = localContext.get(ObservationThreadLocalAccessor.KEY);

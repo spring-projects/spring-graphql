@@ -22,12 +22,13 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
@@ -59,8 +60,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 
 	private final MultiValueMap<String, HttpCookie> cookies;
 
-	@Nullable
-	private final InetSocketAddress remoteAddress;
+	private final @Nullable InetSocketAddress remoteAddress;
 
 	private final Map<String, Object> attributes;
 
@@ -156,8 +156,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 		return (String) value;
 	}
 
-	@Nullable
-	private static String getOperation(Map<String, Object> body) {
+	private static @Nullable String getOperation(Map<String, Object> body) {
 		Object value = body.get(OPERATION_NAME_KEY);
 		if (value != null && !(value instanceof String)) {
 			throw new ServerWebInputException("Invalid value for '" + OPERATION_NAME_KEY + "'");
@@ -166,8 +165,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	}
 
 	@SuppressWarnings("unchecked")
-	@Nullable
-	private static Map<String, Object> getMap(String key, Map<String, Object> body) {
+	private static @Nullable Map<String, Object> getMap(String key, Map<String, Object> body) {
 		Object value = body.get(key);
 		if (value != null && !(value instanceof Map)) {
 			throw new ServerWebInputException("Invalid value for '" + key + "'");
@@ -221,8 +219,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements
 	 * Return the remote address of the client, if available.
 	 * @since 1.3.0
 	 */
-	@Nullable
-	public InetSocketAddress getRemoteAddress() {
+	public @Nullable InetSocketAddress getRemoteAddress() {
 		return this.remoteAddress;
 	}
 

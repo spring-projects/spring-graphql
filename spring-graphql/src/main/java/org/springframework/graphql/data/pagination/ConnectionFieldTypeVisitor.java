@@ -46,10 +46,10 @@ import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.execution.TypeVisitorHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -144,13 +144,11 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		return true;
 	}
 
-	@Nullable
-	private static GraphQLObjectType getAsObjectType(@Nullable GraphQLFieldDefinition field) {
+	private static @Nullable GraphQLObjectType getAsObjectType(@Nullable GraphQLFieldDefinition field) {
 		return (getType(field) instanceof GraphQLObjectType type) ? type : null;
 	}
 
-	@Nullable
-	private static GraphQLObjectType getEdgeType(@Nullable GraphQLFieldDefinition field) {
+	private static @Nullable GraphQLObjectType getEdgeType(@Nullable GraphQLFieldDefinition field) {
 		if (getType(field) instanceof GraphQLList listType) {
 			if (unwrapNonNullType(listType.getWrappedType()) instanceof GraphQLObjectType type) {
 				return type;
@@ -159,16 +157,14 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		return null;
 	}
 
-	@Nullable
-	private static GraphQLType getType(@Nullable GraphQLFieldDefinition field) {
+	private static @Nullable GraphQLType getType(@Nullable GraphQLFieldDefinition field) {
 		if (field == null) {
 			return null;
 		}
 		return unwrapNonNullType(field.getType());
 	}
 
-	@Nullable
-	private static GraphQLType unwrapNonNullType(@Nullable GraphQLType type) {
+	private static @Nullable GraphQLType unwrapNonNullType(@Nullable GraphQLType type) {
 		if (type == null) {
 			return null;
 		}

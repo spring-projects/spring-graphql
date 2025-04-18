@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.graphql.support.DocumentSource;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -47,8 +47,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 	private final GraphQlClientInterceptor.SubscriptionChain subscriptionChain;
 
-	@Nullable
-	private final Duration blockingTimeout;
+	private final @Nullable Duration blockingTimeout;
 
 
 	DefaultGraphQlClient(
@@ -89,7 +88,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		return (request) -> Mono.fromCallable(() -> blockingChain.next(request)).subscribeOn(scheduler);
 	}
 
-	@SuppressWarnings("DataFlowIssue")
+	@SuppressWarnings({"DataFlowIssue", "NullAway"})
 	private static SyncGraphQlClientInterceptor.Chain adaptToBlockingChain(
 			GraphQlClientInterceptor.Chain executeChain, @Nullable Duration blockingTimeout) {
 
@@ -126,8 +125,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private final Mono<String> documentMono;
 
-		@Nullable
-		private String operationName;
+		private @Nullable String operationName;
 
 		private final Map<String, Object> variables = new LinkedHashMap<>();
 
@@ -198,7 +196,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			return new DefaultRetrieveSubscriptionSpec(executeSubscription(), path);
 		}
 
-		@SuppressWarnings("DataFlowIssue")
+		@SuppressWarnings({"DataFlowIssue", "NullAway"})
 		@Override
 		public ClientGraphQlResponse executeSync() {
 			Mono<ClientGraphQlRequest> mono = initRequest();
@@ -244,8 +242,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		 * @throws FieldAccessException in case of an invalid response or any
 		 * field error at, above or below the field path
 		 */
-		@Nullable
-		protected ClientResponseField getValidField(ClientGraphQlResponse response) {
+		protected @Nullable ClientResponseField getValidField(ClientGraphQlResponse response) {
 			ClientResponseField field = response.field(this.path);
 			if (!response.isValid() || !field.getErrors().isEmpty()) {
 				throw new FieldAccessException(
@@ -267,13 +264,13 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
-		public <D> D toEntity(Class<D> entityType) {
+		public @Nullable  <D> D toEntity(Class<D> entityType) {
 			ClientResponseField field = getValidField(this.response);
 			return (field != null) ? field.toEntity(entityType) : null;
 		}
 
 		@Override
-		public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
+		public @Nullable <D> D toEntity(ParameterizedTypeReference<D> entityType) {
 			ClientResponseField field = getValidField(this.response);
 			return (field != null) ? field.toEntity(entityType) : null;
 		}

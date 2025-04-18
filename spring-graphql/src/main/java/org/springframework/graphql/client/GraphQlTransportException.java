@@ -17,8 +17,9 @@
 package org.springframework.graphql.client;
 
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.lang.Nullable;
 
 /**
  * Exception raised by a {@link GraphQlTransport} or used to wrap an exception
@@ -36,7 +37,7 @@ public class GraphQlTransportException extends GraphQlClientException {
 	 * @param request the request that failed at the transport level
 	 */
 	public GraphQlTransportException(@Nullable Throwable cause, GraphQlRequest request) {
-		super("GraphQlTransport error: " + cause.getMessage(), cause, request);
+		super("GraphQlTransport error" + ((cause != null) ? ": " + cause.getMessage() : ""), cause, request);
 	}
 
 	/**

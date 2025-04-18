@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import com.querydsl.core.types.Predicate;
 import graphql.schema.DataFetcher;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -57,7 +58,6 @@ import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.http.HttpHeaders;
-import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;

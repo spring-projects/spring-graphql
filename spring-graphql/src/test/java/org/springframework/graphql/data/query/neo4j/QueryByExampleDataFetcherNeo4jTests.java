@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import graphql.schema.DataFetcher;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
@@ -57,7 +58,6 @@ import org.springframework.graphql.server.WebGraphQlRequest;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.http.HttpHeaders;
-import org.springframework.lang.Nullable;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;

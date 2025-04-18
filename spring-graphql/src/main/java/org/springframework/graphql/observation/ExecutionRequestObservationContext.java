@@ -19,8 +19,7 @@ package org.springframework.graphql.observation;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import io.micrometer.observation.Observation;
-
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Context that holds information for metadata collection during observations
@@ -33,8 +32,7 @@ public class ExecutionRequestObservationContext extends Observation.Context {
 
 	private final ExecutionInput executionInput;
 
-	@Nullable
-	private ExecutionResult executionResult;
+	private @Nullable ExecutionResult executionResult;
 
 	public ExecutionRequestObservationContext(ExecutionInput executionInput) {
 		this.executionInput = executionInput;
@@ -52,8 +50,7 @@ public class ExecutionRequestObservationContext extends Observation.Context {
 	 * Return the {@link ExecutionResult result} for the request execution.
 	 * @since 1.1.4
 	 */
-	@Nullable
-	public ExecutionResult getExecutionResult() {
+	public @Nullable ExecutionResult getExecutionResult() {
 		return this.executionResult;
 	}
 

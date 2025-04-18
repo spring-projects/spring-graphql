@@ -20,8 +20,9 @@ package org.springframework.graphql.client;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.graphql.support.DefaultGraphQlRequest;
-import org.springframework.lang.Nullable;
 
 /**
  * Default implementation of {@link ClientGraphQlRequest}.

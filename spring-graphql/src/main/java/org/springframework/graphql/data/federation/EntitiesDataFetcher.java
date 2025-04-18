@@ -35,11 +35,11 @@ import graphql.execution.ExecutionStepInfo;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DelegatingDataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.annotation.support.HandlerDataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.lang.Nullable;
 
 /**
  * DataFetcher that handles the "_entities" query by invoking

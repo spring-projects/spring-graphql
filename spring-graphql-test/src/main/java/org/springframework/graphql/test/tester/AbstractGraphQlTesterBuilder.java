@@ -27,6 +27,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,7 +41,6 @@ import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -66,8 +66,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	private static final Duration DEFAULT_RESPONSE_DURATION = Duration.ofSeconds(5);
 
 
-	@Nullable
-	private Predicate<ResponseError> errorFilter;
+	private @Nullable Predicate<ResponseError> errorFilter;
 
 	private DocumentSource documentSource;
 

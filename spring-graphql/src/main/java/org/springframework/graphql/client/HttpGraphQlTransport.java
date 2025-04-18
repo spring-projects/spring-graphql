@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.client;
 
+import java.util.Collections;
 import java.util.Map;
 
 import reactor.core.publisher.Flux;
@@ -118,7 +119,10 @@ final class HttpGraphQlTransport implements GraphQlTransport {
 				.retrieve()
 				.bodyToFlux(SSE_TYPE)
 				.takeWhile((event) -> "next".equals(event.event()))
-				.map((event) -> new ResponseMapGraphQlResponse(event.data()));
+				.map((event) -> {
+					Map<String, Object> data = (event.data() != null) ? event.data() : Collections.emptyMap();
+					return new ResponseMapGraphQlResponse(data);
+				});
 	}
 
 }

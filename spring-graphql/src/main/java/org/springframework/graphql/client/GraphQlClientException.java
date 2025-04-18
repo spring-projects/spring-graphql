@@ -17,9 +17,10 @@
 package org.springframework.graphql.client;
 
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.lang.Nullable;
 
 
 /**

@@ -27,6 +27,7 @@ import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
@@ -36,7 +37,6 @@ import reactor.core.publisher.Sinks;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
-import org.springframework.lang.Nullable;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -56,11 +56,9 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 	private static final Map<String, Object> HEARTBEAT_MAP = new LinkedHashMap<>(0);
 
 
-	@Nullable
-	private final Duration timeout;
+	private final @Nullable Duration timeout;
 
-	@Nullable
-	private final Duration keepAliveDuration;
+	private final @Nullable Duration keepAliveDuration;
 
 
 	/**

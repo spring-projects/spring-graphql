@@ -32,13 +32,13 @@ import graphql.GraphQLError;
 import graphql.execution.ResultPath;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
-import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,8 +100,7 @@ public class ResponseHelper {
 		return this.documentContext.read(jsonPath(path), new TypeRefAdapter<>(List.class, elementType));
 	}
 
-	@Nullable
-	public <T> T rawValue(String path) {
+	public @Nullable <T> T rawValue(String path) {
 		assertNoErrors();
 		return this.documentContext.read(jsonPath(path));
 	}

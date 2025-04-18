@@ -30,6 +30,7 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -37,7 +38,6 @@ import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -51,13 +51,11 @@ public class MockExecutionGraphQlService implements ExecutionGraphQlService {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 
-	@Nullable
-	private ExecutionGraphQlRequest graphQlRequest;
+	private @Nullable ExecutionGraphQlRequest graphQlRequest;
 
 	private final Map<String, ExecutionGraphQlResponse> responses = new HashMap<>();
 
-	@Nullable
-	private ExecutionGraphQlResponse defaultResponse;
+	private @Nullable ExecutionGraphQlResponse defaultResponse;
 
 
 	/**

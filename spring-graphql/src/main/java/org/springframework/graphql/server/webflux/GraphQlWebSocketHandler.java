@@ -32,6 +32,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
@@ -48,7 +49,6 @@ import org.springframework.graphql.server.WebSocketSessionInfo;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -81,8 +81,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 	private final Duration initTimeoutDuration;
 
-	@Nullable
-	private final Duration keepAliveDuration;
+	private final @Nullable Duration keepAliveDuration;
 
 
 	/**
@@ -141,7 +140,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 		// Session state
 		WebSocketSessionInfo sessionInfo = new WebFluxSessionInfo(session);
-		AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
+		AtomicReference<@Nullable  Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 		Mono.delay(this.initTimeoutDuration)
@@ -164,6 +163,9 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 
 		return session.send(session.receive().flatMap((webSocketMessage) -> {
 			GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
+			if (message == null) {
+				return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
+			}
 			String id = message.getId();
 			Map<String, Object> payload = message.getPayload();
 			switch (message.resolvedType()) {
@@ -329,7 +331,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		}
 
 		@Override
-		public InetSocketAddress getRemoteAddress() {
+		public @Nullable InetSocketAddress getRemoteAddress() {
 			return this.session.getHandshakeInfo().getRemoteAddress();
 		}
 	}

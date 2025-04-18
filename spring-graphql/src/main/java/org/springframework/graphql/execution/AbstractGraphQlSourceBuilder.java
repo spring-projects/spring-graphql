@@ -30,8 +30,8 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.SchemaTransformer;
 import graphql.schema.SchemaTraverser;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 
@@ -56,8 +56,7 @@ public abstract class AbstractGraphQlSourceBuilder<B extends GraphQlSource.Build
 
 	private final List<Instrumentation> instrumentations = new ArrayList<>();
 
-	@Nullable
-	private Consumer<GraphQL.Builder> graphQlConfigurer;
+	private @Nullable Consumer<GraphQL.Builder> graphQlConfigurer;
 
 	private GraphQlSource.Factory graphQlSourceFactory = FixedGraphQlSource::new;
 

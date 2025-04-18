@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import graphql.ExecutionResultImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -44,7 +45,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
@@ -262,8 +262,7 @@ class WebGraphQlClientBuilderTests {
 
 	private abstract static class AbstractBuilderSetup implements ClientBuilderSetup {
 
-		@Nullable
-		private WebGraphQlRequest graphQlRequest;
+		private @Nullable WebGraphQlRequest graphQlRequest;
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
@@ -337,11 +336,9 @@ class WebGraphQlClientBuilderTests {
 
 	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
 
-		@Nullable
-		private Object lastValue;
+		private @Nullable Object lastValue;
 
-		@Nullable
-		Object getLastValue() {
+		@Nullable Object getLastValue() {
 			return this.lastValue;
 		}
 

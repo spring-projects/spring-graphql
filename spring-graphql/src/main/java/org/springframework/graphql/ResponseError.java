@@ -21,8 +21,7 @@ import java.util.Map;
 
 import graphql.ErrorClassification;
 import graphql.language.SourceLocation;
-
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a GraphQL response error.
@@ -36,8 +35,7 @@ public interface ResponseError {
 	 * Return the message with a description of the error intended for the
 	 * developer as a guide to understand and correct the error.
 	 */
-	@Nullable
-	String getMessage();
+	@Nullable String getMessage();
 
 	/**
 	 * Return a classification for the error that is specific to GraphQL Java.

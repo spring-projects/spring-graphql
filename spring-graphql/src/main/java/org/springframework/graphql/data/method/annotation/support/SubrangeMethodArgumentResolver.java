@@ -18,12 +18,12 @@ package org.springframework.graphql.data.method.annotation.support;
 
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.pagination.Subrange;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**

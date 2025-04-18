@@ -25,6 +25,7 @@ import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.local.LocalClientTransport;
 import io.rsocket.transport.local.LocalServerTransport;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -35,7 +36,6 @@ import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
@@ -90,8 +90,7 @@ class RSocketGraphQlClientBuilderTests {
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
-		@Nullable
-		private Closeable server;
+		private @Nullable Closeable server;
 
 		public BuilderSetup() {
 			this.graphQlService.setDefaultResponse("{}");

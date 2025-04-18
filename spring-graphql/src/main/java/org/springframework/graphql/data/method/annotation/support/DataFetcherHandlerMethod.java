@@ -22,13 +22,13 @@ import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -98,8 +98,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * {@code Mono} in case a method argument requires asynchronous resolution;
 	 * {@code Mono<Throwable>} is returned if invocation fails.
 	 */
-	@Nullable
-	public Object invoke(DataFetchingEnvironment environment) {
+	public @Nullable Object invoke(DataFetchingEnvironment environment) {
 		return invoke(environment, new Object[0]);
 	}
 
@@ -111,8 +110,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * @since 1.2.0
 	 */
 	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
-	@Nullable
-	public Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {
+	public @Nullable Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {
 		Object[] args;
 		try {
 			args = getMethodArgumentValues(environment, providedArgs);
@@ -136,8 +134,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 				});
 	}
 
-	@Nullable
-	private Object validateAndInvoke(Object[] args, DataFetchingEnvironment environment) {
+	private @Nullable Object validateAndInvoke(Object[] args, DataFetchingEnvironment environment) {
 		this.validationHelper.accept(getBean(), args);
 		return doInvoke(environment.getGraphQlContext(), args);
 	}

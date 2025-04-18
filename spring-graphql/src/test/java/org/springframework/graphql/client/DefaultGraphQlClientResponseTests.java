@@ -26,6 +26,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.ResultPath;
 import graphql.language.SourceLocation;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.DeserializationFeature;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +34,6 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.graphql.ResponseError;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;

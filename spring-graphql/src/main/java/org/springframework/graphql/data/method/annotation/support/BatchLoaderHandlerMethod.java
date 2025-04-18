@@ -25,6 +25,7 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import org.dataloader.BatchLoaderEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,7 +37,6 @@ import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -91,8 +91,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	 * @param <V> the type of values in the map
 	 * @return a {@code Mono} with map of key-value pairs.
 	 */
-	@Nullable
-	public <K, V> Mono<Map<K, V>> invokeForMap(Collection<K> keys, BatchLoaderEnvironment environment) {
+	public @Nullable <K, V> Mono<Map<K, V>> invokeForMap(Collection<K> keys, BatchLoaderEnvironment environment) {
 		Object[] args = getMethodArgumentValues(keys, environment);
 		if (doesNotHaveAsyncArgs(args)) {
 			Object result = doInvoke(environment.getContext(), args);
@@ -132,8 +131,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		return args;
 	}
 
-	@Nullable
-	private  <K> Object resolveArgument(
+	private @Nullable <K> Object resolveArgument(
 			MethodParameter parameter, Collection<K> keys, BatchLoaderEnvironment environment) {
 
 		parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
@@ -169,8 +167,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		}
 	}
 
-	@Nullable
-	private Object resolveContextValueArgument(MethodParameter parameter, BatchLoaderEnvironment environment) {
+	private @Nullable Object resolveContextValueArgument(MethodParameter parameter, BatchLoaderEnvironment environment) {
 
 		ContextValue annotation = parameter.getParameterAnnotation(ContextValue.class);
 		Assert.state(annotation != null, "Expected @ContextValue annotation");

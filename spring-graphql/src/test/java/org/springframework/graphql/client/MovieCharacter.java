@@ -16,22 +16,21 @@
 
 package org.springframework.graphql.client;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.ObjectUtils;
 
 
 public class MovieCharacter {
 
-	@Nullable
-	private String name;
+	private @Nullable String name;
 
 
 	public void setName(String name) {
 		this.name = name;
 	}
 
-	@Nullable
-	public String getName() {
+	public @Nullable String getName() {
 		return this.name;
 	}
 

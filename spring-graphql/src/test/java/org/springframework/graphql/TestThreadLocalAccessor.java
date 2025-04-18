@@ -17,8 +17,7 @@
 package org.springframework.graphql;
 
 import io.micrometer.context.ThreadLocalAccessor;
-
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,8 +28,7 @@ public class TestThreadLocalAccessor<T> implements ThreadLocalAccessor<T> {
 
 	private final ThreadLocal<T> threadLocal;
 
-	@Nullable
-	private Long threadId;
+	private @Nullable Long threadId;
 
 
 	public TestThreadLocalAccessor(ThreadLocal<T> threadLocal) {

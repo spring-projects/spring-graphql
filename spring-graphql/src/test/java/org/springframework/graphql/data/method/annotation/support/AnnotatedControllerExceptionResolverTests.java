@@ -23,6 +23,7 @@ import java.util.List;
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -36,7 +37,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -247,9 +247,8 @@ class AnnotatedControllerExceptionResolverTests {
 		public void handleToVoid() {
 		}
 
-		@Nullable
 		@GraphQlExceptionHandler
-		GraphQLError handleAndLeaveNotHandled(ClassNotFoundException ex) {
+		@Nullable GraphQLError handleAndLeaveNotHandled(ClassNotFoundException ex) {
 			return null;
 		}
 

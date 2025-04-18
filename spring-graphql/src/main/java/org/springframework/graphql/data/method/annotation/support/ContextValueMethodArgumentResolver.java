@@ -21,12 +21,12 @@ import java.util.Optional;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.ContextValue;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -67,8 +67,7 @@ public class ContextValueMethodArgumentResolver implements HandlerMethodArgument
 				"and parameter name information not found in class file either.");
 	}
 
-	@Nullable
-	static Object resolveContextValue(
+	static @Nullable Object resolveContextValue(
 			String contextValueName, boolean required, MethodParameter parameter,
 			@Nullable GraphQLContext graphQlContext) {
 

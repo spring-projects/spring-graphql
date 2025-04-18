@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -35,7 +36,6 @@ import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
-import org.springframework.lang.Nullable;
 
 /**
  * Support class for {@code @BatchMapping}, and other batch loading tests, that

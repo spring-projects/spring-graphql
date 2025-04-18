@@ -17,6 +17,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
@@ -24,7 +25,6 @@ import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
@@ -76,7 +76,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		String name = getArgumentName(parameter);
 		ResolvableType targetType = ResolvableType.forMethodParameter(parameter);
 		return doBind(environment, name, targetType);
@@ -89,8 +89,7 @@ public class ArgumentMethodArgumentResolver implements HandlerMethodArgumentReso
 	 * @param targetType the type of Object to create
 	 * @since 1.3.0
 	 */
-	@Nullable
-	protected Object doBind(
+	protected @Nullable Object doBind(
 			DataFetchingEnvironment environment, String name, ResolvableType targetType) throws BindException {
 
 		return this.argumentBinder.bind(environment, name, targetType);

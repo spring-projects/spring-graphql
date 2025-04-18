@@ -25,10 +25,10 @@ import io.rsocket.loadbalance.LoadbalanceTarget;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.util.Assert;
@@ -48,14 +48,11 @@ final class DefaultRSocketGraphQlClientBuilder
 
 	private final RSocketRequester.Builder requesterBuilder;
 
-	@Nullable
-	private Publisher<List<LoadbalanceTarget>> targetPublisher;
+	private @Nullable Publisher<List<LoadbalanceTarget>> targetPublisher;
 
-	@Nullable
-	private LoadbalanceStrategy loadbalanceStrategy;
+	private @Nullable LoadbalanceStrategy loadbalanceStrategy;
 
-	@Nullable
-	private ClientTransport clientTransport;
+	private @Nullable ClientTransport clientTransport;
 
 	private String route;
 
@@ -169,14 +166,11 @@ final class DefaultRSocketGraphQlClientBuilder
 
 		private final RSocketRequester.Builder requesterBuilder;
 
-		@Nullable
-		private final ClientTransport clientTransport;
+		private final @Nullable ClientTransport clientTransport;
 
-		@Nullable
-		private final Publisher<List<LoadbalanceTarget>> targetPublisher;
+		private final @Nullable Publisher<List<LoadbalanceTarget>> targetPublisher;
 
-		@Nullable
-		private final LoadbalanceStrategy loadbalanceStrategy;
+		private final @Nullable LoadbalanceStrategy loadbalanceStrategy;
 
 		private final String route;
 

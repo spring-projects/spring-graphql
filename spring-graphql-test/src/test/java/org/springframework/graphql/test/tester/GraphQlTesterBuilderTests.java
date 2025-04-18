@@ -22,6 +22,7 @@ import java.util.Map;
 import graphql.ExecutionResultImpl;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.ExecutionId;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -33,7 +34,6 @@ import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -140,11 +140,9 @@ class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 
 	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
 
-		@Nullable
-		private Object lastValue;
+		private @Nullable Object lastValue;
 
-		@Nullable
-		Object getLastValue() {
+		@Nullable Object getLastValue() {
 			return this.lastValue;
 		}
 

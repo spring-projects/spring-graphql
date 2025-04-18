@@ -31,6 +31,7 @@ import graphql.schema.DataFetchingEnvironment;
 import io.micrometer.context.ContextSnapshot;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -88,7 +89,10 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	private Throwable unwrapException(DataFetcherExceptionHandlerParameters params) {
 		Throwable ex = params.getException();
-		return ((ex instanceof CompletionException) ? ex.getCause() : ex);
+		if (ex instanceof CompletionException completionException) {
+			return (completionException.getCause() != null) ? completionException.getCause() : completionException;
+		}
+		return ex;
 	}
 
 	private void logResolvedException(Throwable ex, DataFetcherExceptionHandlerResult result) {

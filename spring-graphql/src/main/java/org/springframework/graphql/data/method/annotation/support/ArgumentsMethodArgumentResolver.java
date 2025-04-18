@@ -17,6 +17,7 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
@@ -56,7 +57,7 @@ public class ArgumentsMethodArgumentResolver implements HandlerMethodArgumentRes
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
 		return this.argumentBinder.bind(environment, null, resolvableType);
 	}

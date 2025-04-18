@@ -26,13 +26,13 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.graphql.data.method.HandlerMethod;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -61,8 +61,7 @@ final class ValidationHelper {
 	 * possibly {@code null} if the method or the method parameters do not have
 	 * {@link Validated}, {@link Valid}, or {@link Constraint} annotations.
 	 */
-	@Nullable
-	BiConsumer<Object, Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
+	@Nullable BiConsumer<Object, Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
 
 		boolean requiresMethodValidation = false;
 		Class<?>[] methodValidationGroups = null;
@@ -105,8 +104,7 @@ final class ValidationHelper {
 		return result;
 	}
 
-	@Nullable
-	private <A extends Annotation> A findAnnotation(HandlerMethod method, Class<A> annotationType) {
+	private @Nullable <A extends Annotation> A findAnnotation(HandlerMethod method, Class<A> annotationType) {
 		A annotation = AnnotationUtils.findAnnotation(method.getMethod(), annotationType);
 		if (annotation == null) {
 			annotation = AnnotationUtils.findAnnotation(method.getBeanType(), annotationType);
@@ -119,8 +117,7 @@ final class ValidationHelper {
 	 * Factory method to create a {@link ValidationHelper} if there is a
 	 * {@link Validator} bean declared, or {@code null} otherwise.
 	 */
-	@Nullable
-	static ValidationHelper createIfValidatorPresent(ApplicationContext context) {
+	static @Nullable ValidationHelper createIfValidatorPresent(ApplicationContext context) {
 		Validator validator = context.getBeanProvider(Validator.class).getIfAvailable();
 		if (validator instanceof LocalValidatorFactoryBean) {
 			validator = ((LocalValidatorFactoryBean) validator).getValidator();

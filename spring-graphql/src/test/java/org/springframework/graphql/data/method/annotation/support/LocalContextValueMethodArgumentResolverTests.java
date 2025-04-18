@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
@@ -29,7 +30,6 @@ import org.springframework.core.annotation.SynthesizingMethodParameter;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.LocalContextValue;
-import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,8 +62,7 @@ class LocalContextValueMethodArgumentResolverTests {
 		assertThat(actual).isSameAs(this.book);
 	}
 
-	@Nullable
-	private Object resolveValue(@Nullable GraphQLContext localContext, int index) {
+	private @Nullable Object resolveValue(@Nullable GraphQLContext localContext, int index) {
 
 		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
 				.localContext(localContext)

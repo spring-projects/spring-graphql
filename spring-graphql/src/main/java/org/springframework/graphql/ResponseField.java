@@ -18,8 +18,9 @@ package org.springframework.graphql;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.graphql.client.ClientGraphQlResponse;
-import org.springframework.lang.Nullable;
 
 
 /**
@@ -49,8 +50,7 @@ public interface ResponseField {
 	 * @param <T> the expected value type to cast to
 	 * @return the value
 	 */
-	@Nullable
-	<T> T getValue();
+	@Nullable <T> T getValue();
 
 	/**
 	 * Return all errors that have a path, and it is at above, or below the field path.
