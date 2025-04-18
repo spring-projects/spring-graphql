@@ -386,15 +386,15 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		new ReflectiveRuntimeHintsRegistrar().registerRuntimeHints(runtimeHints, GraphQlWebSocketHandler.class);
 		ReflectionHintsPredicates reflection = RuntimeHintsPredicates.reflection();
 		assertThat(reflection.onType(GraphQlWebSocketMessage.class)).accepts(runtimeHints);
-		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "id")).accepts(runtimeHints);
-		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getId")).accepts(runtimeHints);
-		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setId")).accepts(runtimeHints);
-		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "type")).accepts(runtimeHints);
-		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getType")).accepts(runtimeHints);
-		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setType")).accepts(runtimeHints);
-		assertThat(reflection.onField(GraphQlWebSocketMessage.class, "payload")).accepts(runtimeHints);
-		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "getPayload")).accepts(runtimeHints);
-		assertThat(reflection.onMethod(GraphQlWebSocketMessage.class, "setPayload")).accepts(runtimeHints);
+		assertThat(reflection.onFieldAccess(GraphQlWebSocketMessage.class, "id")).accepts(runtimeHints);
+		assertThat(reflection.onMethodInvocation(GraphQlWebSocketMessage.class, "getId")).accepts(runtimeHints);
+		assertThat(reflection.onMethodInvocation(GraphQlWebSocketMessage.class, "setId")).accepts(runtimeHints);
+		assertThat(reflection.onFieldAccess(GraphQlWebSocketMessage.class, "type")).accepts(runtimeHints);
+		assertThat(reflection.onMethodInvocation(GraphQlWebSocketMessage.class, "getType")).accepts(runtimeHints);
+		assertThat(reflection.onMethodInvocation(GraphQlWebSocketMessage.class, "setType")).accepts(runtimeHints);
+		assertThat(reflection.onFieldAccess(GraphQlWebSocketMessage.class, "payload")).accepts(runtimeHints);
+		assertThat(reflection.onMethodInvocation(GraphQlWebSocketMessage.class, "getPayload")).accepts(runtimeHints);
+		assertThat(reflection.onMethodInvocation(GraphQlWebSocketMessage.class, "setPayload")).accepts(runtimeHints);
 	}
 
 	private TestWebSocketSession handle(Flux<WebSocketMessage> input, WebGraphQlInterceptor... interceptors) {
