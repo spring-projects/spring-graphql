@@ -2,8 +2,8 @@ name: Release Milestone
 on:
   push:
     tags:
-      - v1.4.0-M[1-9]
-      - v1.4.0-RC[1-9]
+      - v2.0.0-M[1-9]
+      - v2.0.0-RC[1-9]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
