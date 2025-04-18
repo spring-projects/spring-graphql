@@ -10,6 +10,7 @@ ext {
 subprojects {
 	apply plugin: 'org.springframework.graphql.conventions'
 	apply plugin: 'org.springframework.graphql.architecture'
+	apply plugin: 'org.springframework.graphql.nullability'
 	group = 'org.springframework.graphql'
 
 	ext.javadocLinks = [
