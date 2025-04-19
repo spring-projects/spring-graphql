@@ -124,7 +124,7 @@ public final class SchemaMappingInspector {
 
 	/**
 	 * Perform an inspection and create a {@link SchemaReport}.
-	 * The inspection is one once only, during the first call to this method.
+	 * The inspection is done once only, during the first call to this method.
 	 */
 	public SchemaReport getOrCreateReport() {
 		if (this.report == null) {
