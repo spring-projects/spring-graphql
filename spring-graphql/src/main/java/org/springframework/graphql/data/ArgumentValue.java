@@ -137,6 +137,23 @@ public final class ArgumentValue<T> {
 		return result;
 	}
 
+	/**
+	 * Returns a non-empty string representation of this {@code ArgumentValue}
+	 * suitable for debugging.
+	 *
+	 * @return the string representation of this instance
+	 */
+	@Override
+	public String toString() {
+		if (this.omitted) {
+			return "ArgumentValue.omitted";
+		}
+		if (this.value == null){
+			return "ArgumentValue.empty";
+		}
+		return "ArgumentValue[%s]".formatted(this.value);
+	}
+
 
 	/**
 	 * Static factory method for an argument value that was provided, even if
