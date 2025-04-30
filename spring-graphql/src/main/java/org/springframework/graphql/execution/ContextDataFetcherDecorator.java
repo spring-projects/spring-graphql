@@ -92,11 +92,7 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		Object value = snapshot.wrap(() -> this.delegate.get(env)).call();
 
 		if (value instanceof DataFetcherResult<?> dataFetcherResult) {
-			Object adapted = updateValue(dataFetcherResult.getData(), snapshot, graphQlContext);
-			value = DataFetcherResult.newResult()
-					.data(adapted)
-					.errors(dataFetcherResult.getErrors())
-					.localContext(dataFetcherResult.getLocalContext()).build();
+			value = dataFetcherResult.map(data -> updateValue(data, snapshot, graphQlContext));
 		}
 		else {
 			value = updateValue(value, snapshot, graphQlContext);
