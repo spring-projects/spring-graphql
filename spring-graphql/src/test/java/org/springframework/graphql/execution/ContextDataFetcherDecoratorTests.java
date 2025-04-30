@@ -19,6 +19,7 @@ package org.springframework.graphql.execution;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -347,4 +348,20 @@ public class ContextDataFetcherDecoratorTests {
 		assertThat(dataFetcherCancelled).isTrue();
 	}
 
+	@Test
+	void testExtensionsAreRetained() throws Exception {
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.queryFetcher("greeting", (env) ->
+						DataFetcherResult.newResult().data("Hello")
+								.extensions(Map.of("foo", "bar")).build())
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		ExecutionResult executionResult = graphQl.executeAsync(input).get();
+
+		String greeting = ResponseHelper.forResult(executionResult).toEntity("greeting", String.class);
+		assertThat(greeting).isEqualTo("Hello");
+
+		assertThat(executionResult.getExtensions()).containsEntry("foo", "bar");
+	}
 }
