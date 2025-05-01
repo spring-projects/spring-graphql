@@ -23,6 +23,7 @@ dependencies {
 
 	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
 	implementation("io.spring.javaformat:spring-javaformat-gradle-plugin:${javaFormatVersion}")
+	implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:${errorProneVersion}")
 	implementation "com.tngtech.archunit:archunit:1.4.0"
 }
 
@@ -39,6 +40,10 @@ gradlePlugin {
 		architecturePlugin {
 			id = "org.springframework.graphql.architecture"
 			implementationClass = "org.springframework.graphql.build.architecture.ArchitecturePlugin"
+		}
+		nullability {
+			id = "org.springframework.graphql.nullability"
+			implementationClass = "org.springframework.graphql.build.nullability.NullabilityPlugin"
 		}
 	}
 }

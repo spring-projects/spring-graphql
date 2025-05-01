@@ -55,9 +55,9 @@ abstract class ArchitectureRules {
 	static ArchRule classShouldNotUseSpringNullAnnotations() {
 		return ArchRuleDefinition.noClasses()
 				.should().dependOnClassesThat()
-				.haveFullyQualifiedName("org.springframework.lang.NonNull")
+				.haveFullyQualifiedName("org.jspecify.annotations.NonNull")
 				.orShould().dependOnClassesThat()
-				.haveFullyQualifiedName("org.springframework.lang.Nullable");
+				.haveFullyQualifiedName("org.jspecify.annotations.Nullable");
 	}
 
 
