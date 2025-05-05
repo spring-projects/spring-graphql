@@ -8,6 +8,8 @@
 
 	<!-- main -->
 	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]" checks="SpringMethodVisibility" />
+	<!-- Ignore this check for @Nullable annotations -->
+	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]" checks="AnnotationLocation" />
 
 	<!-- tests -->
 	<suppress files="[\\/]src[\\/]testFixtures[\\/]java[\\/]" checks="JavadocPackage|SpringJavadoc" />
