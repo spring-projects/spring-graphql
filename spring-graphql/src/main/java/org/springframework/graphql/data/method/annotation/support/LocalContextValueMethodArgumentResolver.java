@@ -18,6 +18,7 @@ package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -40,7 +41,7 @@ public class LocalContextValueMethodArgumentResolver implements HandlerMethodArg
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
 
 		LocalContextValue annotation = parameter.getParameterAnnotation(LocalContextValue.class);
 		Assert.state(annotation != null, "Expected @LocalContextValue annotation");

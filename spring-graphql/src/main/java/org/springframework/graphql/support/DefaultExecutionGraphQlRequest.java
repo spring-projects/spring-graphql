@@ -24,10 +24,10 @@ import java.util.function.BiFunction;
 
 import graphql.ExecutionInput;
 import graphql.execution.ExecutionId;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -47,8 +47,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 
 	private final String id;
 
-	@Nullable
-	private ExecutionId executionId;
+	private @Nullable ExecutionId executionId;
 
 	private final Locale locale;
 
@@ -88,8 +87,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 	}
 
 	@Override
-	@Nullable
-	public ExecutionId getExecutionId() {
+	public @Nullable ExecutionId getExecutionId() {
 		return this.executionId;
 	}
 
@@ -125,7 +123,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 
 	@Override
 	public String toString() {
-		return super.toString() + ", id=" + getId() + ((getLocale() != null) ? ", Locale=" + getLocale() : "");
+		return super.toString() + ", id=" + getId() + ", Locale=" + getLocale();
 	}
 
 }

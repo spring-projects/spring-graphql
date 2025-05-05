@@ -22,12 +22,12 @@ import java.util.Map;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DelegatingDataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.support.ArgumentMethodArgumentResolver;
-import org.springframework.lang.Nullable;
 import org.springframework.validation.BindException;
 
 /**
@@ -47,7 +47,7 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 
 
 	@Override
-	protected Object doBind(
+	protected @Nullable Object doBind(
 			DataFetchingEnvironment environment, String name, ResolvableType targetType) throws BindException {
 
 		if (environment instanceof EntityDataFetchingEnvironment entityEnv) {
@@ -56,7 +56,7 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 		else if (environment instanceof EntityBatchDataFetchingEnvironment batchEnv) {
 			name = dePluralize(name);
 			targetType = targetType.getNested(2);
-			List<Object> values = new ArrayList<>();
+			List<@Nullable Object> values = new ArrayList<>();
 			for (Map<String, Object> representation : batchEnv.getRepresentations()) {
 				values.add(doBind(name, targetType, representation));
 			}
@@ -67,8 +67,7 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 		}
 	}
 
-	@Nullable
-	private Object doBind(String name, ResolvableType targetType, Map<String, Object> entityMap) throws BindException {
+	private @Nullable Object doBind(String name, ResolvableType targetType, Map<String, Object> entityMap) throws BindException {
 		Object rawValue = entityMap.get(name);
 		boolean isOmitted = !entityMap.containsKey(name);
 		return getArgumentBinder().bind(rawValue, isOmitted, targetType);

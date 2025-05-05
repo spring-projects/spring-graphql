@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -29,7 +31,6 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.ResponseField;
-import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
@@ -65,7 +66,7 @@ final class DefaultClientResponseField implements ClientResponseField {
 	}
 
 	@Override
-	public <T> T getValue() {
+	public @Nullable <T> T getValue() {
 		return this.field.getValue();
 	}
 
@@ -75,12 +76,12 @@ final class DefaultClientResponseField implements ClientResponseField {
 	}
 
 	@Override
-	public <D> D toEntity(Class<D> entityType) {
+	public @Nullable <D> D toEntity(Class<D> entityType) {
 		return toEntity(ResolvableType.forType(entityType));
 	}
 
 	@Override
-	public <D> D toEntity(ParameterizedTypeReference<D> entityType) {
+	public @Nullable <D> D toEntity(ParameterizedTypeReference<D> entityType) {
 		return toEntity(ResolvableType.forType(entityType));
 	}
 
@@ -96,9 +97,8 @@ final class DefaultClientResponseField implements ClientResponseField {
 		return (list != null) ? list : Collections.emptyList();
 	}
 
-		@SuppressWarnings("unchecked")
-		@Nullable
-	private <T> T toEntity(ResolvableType targetType) {
+	@SuppressWarnings("unchecked")
+	private @Nullable <T> T toEntity(ResolvableType targetType) {
 		if (getValue() == null) {
 			if (this.response.isValid() && getErrors().isEmpty()) {
 				return null;

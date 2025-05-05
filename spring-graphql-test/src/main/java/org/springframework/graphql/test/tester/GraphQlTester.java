@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -30,7 +31,6 @@ import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
-import org.springframework.lang.Nullable;
 
 /**
  * Define a workflow to test GraphQL requests that is independent of the

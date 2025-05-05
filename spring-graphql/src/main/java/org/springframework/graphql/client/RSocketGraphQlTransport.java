@@ -89,7 +89,8 @@ final class RSocketGraphQlTransport implements GraphQlTransport {
 	@SuppressWarnings("unchecked")
 	private Exception decodeErrors(GraphQlRequest request, RejectedException ex) {
 		try {
-			byte[] errorData = ex.getMessage().getBytes(StandardCharsets.UTF_8);
+			String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "";
+			byte[] errorData = errorMessage.getBytes(StandardCharsets.UTF_8);
 			List<GraphQLError> errors = (List<GraphQLError>) this.jsonDecoder.decode(
 					DefaultDataBufferFactory.sharedInstance.wrap(errorData), LIST_TYPE, null, null);
 			GraphQlResponse response = new ResponseMapGraphQlResponse(Collections.singletonMap("errors", errors));

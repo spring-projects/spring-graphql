@@ -23,10 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.ResponseField;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -58,8 +59,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 
 		private final List<Object> parsedPath;
 
-		@Nullable
-		private final Object value;
+		private final @Nullable Object value;
 
 		private final List<ResponseError> fieldErrors;
 
@@ -112,8 +112,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 			return dataPath;
 		}
 
-		@Nullable
-		private static Object initFieldValue(List<Object> path, GraphQlResponse response) {
+		private static @Nullable Object initFieldValue(List<Object> path, GraphQlResponse response) {
 			Object value = (response.isValid() ? response.getData() : null);
 			for (Object segment : path) {
 				if (value == null) {
@@ -162,7 +161,7 @@ public abstract class AbstractGraphQlResponse implements GraphQlResponse {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <T> T getValue() {
+		public @Nullable <T> T getValue() {
 			return (T) this.value;
 		}
 

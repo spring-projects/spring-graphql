@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
 
 package org.springframework.graphql.server.support;
 
+import java.util.Collections;
 import java.util.Map;
 
 import graphql.execution.preparsed.persisted.PersistedQuerySupport;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.lang.Nullable;
 import org.springframework.web.server.ServerWebInputException;
 
 
@@ -33,25 +34,20 @@ import org.springframework.web.server.ServerWebInputException;
  */
 public class SerializableGraphQlRequest implements GraphQlRequest {
 
-	@Nullable
-	private String query;
+	private @Nullable String query;
 
-	@Nullable
-	private String operationName;
+	private @Nullable String operationName;
 
-	@Nullable
-	private Map<String, Object> variables;
+	private Map<String, Object> variables = Collections.emptyMap();
 
-	@Nullable
-	private Map<String, Object> extensions;
+	private Map<String, Object> extensions = Collections.emptyMap();
 
 
 	public void setQuery(String query) {
 		this.query = query;
 	}
 
-	@Nullable
-	public String getQuery() {
+	public @Nullable String getQuery() {
 		return this.query;
 	}
 
@@ -59,9 +55,8 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 		this.operationName = operationName;
 	}
 
-	@Nullable
 	@Override
-	public String getOperationName() {
+	public @Nullable String getOperationName() {
 		return this.operationName;
 	}
 
@@ -69,7 +64,6 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 		this.variables = variables;
 	}
 
-	@Nullable
 	@Override
 	public Map<String, Object> getVariables() {
 		return this.variables;
@@ -79,7 +73,6 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 		this.extensions = extensions;
 	}
 
-	@Nullable
 	@Override
 	public Map<String, Object> getExtensions() {
 		return this.extensions;
@@ -88,7 +81,7 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 	@Override
 	public String getDocument() {
 		if (this.query == null) {
-			if (this.extensions != null && this.extensions.get("persistedQuery") != null) {
+			if (this.extensions.get("persistedQuery") != null) {
 				return PersistedQuerySupport.PERSISTED_QUERY_MARKER;
 			}
 			throw new ServerWebInputException("No 'query'");

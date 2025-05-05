@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodParameter;
@@ -104,7 +105,7 @@ public class ProjectedPayloadMethodArgumentResolver implements HandlerMethodArgu
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 
 		String name = (parameter.hasParameterAnnotation(Argument.class) ?
 				ArgumentMethodArgumentResolver.getArgumentName(parameter) : null);

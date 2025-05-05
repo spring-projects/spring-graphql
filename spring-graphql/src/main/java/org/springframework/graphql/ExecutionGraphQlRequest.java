@@ -21,8 +21,7 @@ import java.util.function.BiFunction;
 
 import graphql.ExecutionInput;
 import graphql.execution.ExecutionId;
-
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 
 /**
@@ -70,14 +69,12 @@ public interface ExecutionGraphQlRequest extends GraphQlRequest {
 	/**
 	 * Return the configured {@link #executionId(ExecutionId) executionId}.
 	 */
-	@Nullable
-	ExecutionId getExecutionId();
+	@Nullable ExecutionId getExecutionId();
 
 	/**
 	 * Return the transport assigned locale value, if any.
 	 */
-	@Nullable
-	Locale getLocale();
+	@Nullable Locale getLocale();
 
 	/**
 	 * Provide a {@code BiFunction} to help initialize the {@link ExecutionInput}

@@ -17,11 +17,12 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.ScrollSubrange;
-import org.springframework.lang.Nullable;
 
 
 /**

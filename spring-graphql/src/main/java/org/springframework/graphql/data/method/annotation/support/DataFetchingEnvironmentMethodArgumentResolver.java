@@ -22,6 +22,7 @@ import java.util.Optional;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
@@ -53,7 +54,7 @@ public class DataFetchingEnvironmentMethodArgumentResolver implements HandlerMet
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
 		Class<?> type = parameter.getParameterType();
 		if (type.equals(GraphQLContext.class)) {
 			return environment.getGraphQlContext();

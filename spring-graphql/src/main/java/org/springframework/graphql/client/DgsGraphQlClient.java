@@ -25,10 +25,10 @@ import com.netflix.graphql.dgs.client.codegen.BaseProjectionNode;
 import com.netflix.graphql.dgs.client.codegen.GraphQLQuery;
 import com.netflix.graphql.dgs.client.codegen.GraphQLQueryRequest;
 import graphql.schema.Coercing;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -91,14 +91,11 @@ public final class DgsGraphQlClient {
 
 		private final GraphQLQuery query;
 
-		@Nullable
-		private BaseProjectionNode projectionNode;
+		private @Nullable BaseProjectionNode projectionNode;
 
-		@Nullable
-		private Map<Class<?>, Coercing<?, ?>> coercingMap;
+		private @Nullable Map<Class<?>, Coercing<?, ?>> coercingMap;
 
-		@Nullable
-		private Map<String, Object> attributes;
+		private @Nullable Map<String, Object> attributes;
 
 		private RequestSpec(GraphQLQuery query) {
 			Assert.notNull(query, "Expected GraphQLQuery");
@@ -243,6 +240,7 @@ public final class DgsGraphQlClient {
 			return initRequestSpec().executeSubscription();
 		}
 
+		@SuppressWarnings("NullAway")
 		private GraphQlClient.RequestSpec initRequestSpec() {
 
 			Assert.state(this.projectionNode != null || this.coercingMap == null,

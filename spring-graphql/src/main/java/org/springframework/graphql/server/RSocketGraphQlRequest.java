@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import java.util.Locale;
 import java.util.Map;
 
 import io.rsocket.exceptions.RejectedException;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
-import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
@@ -43,16 +43,21 @@ public class RSocketGraphQlRequest extends DefaultExecutionGraphQlRequest implem
 	 * @param locale the locale from the HTTP request, if any
 	 */
 	public RSocketGraphQlRequest(Map<String, Object> body, String id, @Nullable Locale locale) {
-		super(getKey(QUERY_KEY, body), getKey(OPERATION_NAME_KEY, body),
+		super(getQuery(body), getKey(OPERATION_NAME_KEY, body),
 				getKey(VARIABLES_KEY, body), getKey(EXTENSIONS_KEY, body), id, locale);
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <T> T getKey(String key, Map<String, Object> body) {
-		if (key.equals("query") && !StringUtils.hasText((String) body.get(key))) {
+	private static @Nullable <T> T getKey(String key, Map<String, Object> body) {
+		return (T) body.get(key);
+	}
+
+	private static String getQuery(Map<String, Object> body) {
+		String query = getKey(QUERY_KEY, body);
+		if (!StringUtils.hasText(query)) {
 			throw new RejectedException("No \"query\" in the request document");
 		}
-		return (T) body.get(key);
+		return query;
 	}
 
 }

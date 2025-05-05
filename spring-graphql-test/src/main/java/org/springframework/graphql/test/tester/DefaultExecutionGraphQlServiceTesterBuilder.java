@@ -24,11 +24,11 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import graphql.ExecutionInput;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.graphql.ExecutionGraphQlService;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 
@@ -46,11 +46,9 @@ final class DefaultExecutionGraphQlServiceTesterBuilder
 
 	private final List<BiFunction<ExecutionInput, ExecutionInput.Builder, ExecutionInput>> executionInputConfigurers;
 
-	@Nullable
-	private Encoder<?> encoder;
+	private @Nullable Encoder<?> encoder;
 
-	@Nullable
-	private Decoder<?> decoder;
+	private @Nullable Decoder<?> decoder;
 
 
 	DefaultExecutionGraphQlServiceTesterBuilder(ExecutionGraphQlService service) {

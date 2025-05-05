@@ -32,6 +32,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.expression.BeanFactoryResolver;
@@ -53,7 +54,6 @@ import org.springframework.graphql.data.method.annotation.support.LocalContextVa
 import org.springframework.graphql.data.method.annotation.support.PrincipalMethodArgumentResolver;
 import org.springframework.graphql.execution.ClassNameTypeResolver;
 import org.springframework.graphql.execution.GraphQlSource.SchemaResourceBuilder;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -73,8 +73,7 @@ import org.springframework.util.StringUtils;
 public final class FederationSchemaFactory
 		extends AnnotatedControllerDetectionSupport<FederationSchemaFactory.EntityMappingInfo> {
 
-	@Nullable
-	private TypeResolver typeResolver;
+	private @Nullable TypeResolver typeResolver;
 
 	private final Map<String, EntityHandlerMethod> handlerMethods = new LinkedHashMap<>();
 
@@ -141,8 +140,7 @@ public final class FederationSchemaFactory
 
 
 	@Override
-	@Nullable
-	protected EntityMappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
+	protected @Nullable EntityMappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
 		EntityMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, EntityMapping.class);
 		if (mapping == null) {
 			return null;

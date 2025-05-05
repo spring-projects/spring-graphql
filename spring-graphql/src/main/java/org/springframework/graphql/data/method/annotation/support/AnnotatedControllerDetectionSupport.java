@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 import graphql.schema.DataFetcher;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -46,7 +47,6 @@ import org.springframework.format.support.FormattingConversionService;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
-import org.springframework.lang.Nullable;
 import org.springframework.scheduling.SchedulingTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -90,20 +90,16 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	private boolean fallBackOnDirectFieldAccess;
 
-	@Nullable
-	private AnnotatedControllerExceptionResolver exceptionResolver;
+	private @Nullable AnnotatedControllerExceptionResolver exceptionResolver;
 
-	@Nullable
-	private Executor executor;
+	private @Nullable Executor executor;
 
 	private Predicate<HandlerMethod> blockingMethodPredicate =
 			(virtualThreadsPresent) ? new BlockingHandlerMethodPredicate() : ((method) -> false);
 
-	@Nullable
-	private HandlerMethodArgumentResolverComposite argumentResolvers;
+	private @Nullable HandlerMethodArgumentResolverComposite argumentResolvers;
 
-	@Nullable
-	private ApplicationContext applicationContext;
+	private @Nullable ApplicationContext applicationContext;
 
 
 	/**
@@ -171,8 +167,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	/**
 	 * Return the {@link #setExecutor(Executor) configured Executor}.
 	 */
-	@Nullable
-	public Executor getExecutor() {
+	public @Nullable Executor getExecutor() {
 		return this.executor;
 	}
 
@@ -207,8 +202,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 		this.applicationContext = applicationContext;
 	}
 
-	@Nullable
-	protected ApplicationContext getApplicationContext() {
+	protected @Nullable ApplicationContext getApplicationContext() {
 		return this.applicationContext;
 	}
 
@@ -273,8 +267,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 		return map.values();
 	}
 
-	@Nullable
-	protected abstract M getMappingInfo(Method method, Object handler, Class<?> handlerType);
+	protected abstract @Nullable M getMappingInfo(Method method, Object handler, Class<?> handlerType);
 
 	protected HandlerMethod createHandlerMethod(Method originalMethod, Object handler, Class<?> handlerType) {
 		Method method = AopUtils.selectInvocableMethod(originalMethod, handlerType);

@@ -35,11 +35,11 @@ import graphql.execution.ExecutionStepInfo;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DelegatingDataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.annotation.support.HandlerDataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.lang.Nullable;
 
 /**
  * DataFetcher that handles the "_entities" query by invoking
@@ -155,13 +155,20 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 	private Mono<ErrorContainer> resolveException(
 			Throwable ex, DataFetchingEnvironment env, @Nullable EntityHandlerMethod handlerMethod, int index) {
 
-		Throwable theEx = (ex instanceof CompletionException) ? ex.getCause() : ex;
+		Throwable theEx = unwrapException(ex);
 		DataFetchingEnvironment theEnv = new IndexedDataFetchingEnvironment(env, index);
 		Object handler = (handlerMethod != null) ? handlerMethod.getBean() : null;
 
 		return this.exceptionResolver.resolveException(theEx, theEnv, handler)
 				.map(ErrorContainer::new)
 				.switchIfEmpty(Mono.fromCallable(() -> createDefaultError(theEx, theEnv)));
+	}
+
+	private Throwable unwrapException(Throwable exception) {
+		if (exception instanceof CompletionException completionException) {
+			return (completionException.getCause() != null) ? completionException.getCause() : exception;
+		}
+		return exception;
 	}
 
 	private ErrorContainer createDefaultError(Throwable ex, DataFetchingEnvironment env) {

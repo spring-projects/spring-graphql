@@ -29,6 +29,7 @@ import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLArgument;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -50,7 +51,6 @@ import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.AutoRegistrationRuntimeWiringConfigurer.DataFetcherFactory;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.validation.BindException;
 
@@ -128,7 +128,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * @param environment contextual info for the GraphQL request
 	 * @return the resulting example
 	 */
-	@SuppressWarnings({"ConstantConditions", "unchecked"})
+	@SuppressWarnings({"ConstantConditions", "unchecked", "NullAway"})
 	protected Example<T> buildExample(DataFetchingEnvironment environment) throws BindException {
 		String name = getArgumentName(environment);
 		ResolvableType targetType = ResolvableType.forClass(this.domainType.getType());
@@ -140,8 +140,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 	 * name, thereby nesting and having the example Object populated from the
 	 * sub-map. Otherwise, {@code null} to bind using the top-level map.
 	 */
-	@Nullable
-	private static String getArgumentName(DataFetchingEnvironment environment) {
+	private static @Nullable String getArgumentName(DataFetchingEnvironment environment) {
 		Map<String, Object> arguments = environment.getArguments();
 		List<GraphQLArgument> definedArguments = environment.getFieldDefinition().getArguments();
 		if (definedArguments.size() == 1) {
@@ -328,14 +327,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Class<R> resultType;
 
-		@Nullable
-		private final CursorStrategy<ScrollPosition> cursorStrategy;
+		private final @Nullable CursorStrategy<ScrollPosition> cursorStrategy;
 
-		@Nullable
-		private final Integer defaultScrollCount;
+		private final @Nullable Integer defaultScrollCount;
 
-		@Nullable
-		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
+		private final @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
@@ -507,14 +503,11 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		private final Class<R> resultType;
 
-		@Nullable
-		private final CursorStrategy<ScrollPosition> cursorStrategy;
+		private final @Nullable CursorStrategy<ScrollPosition> cursorStrategy;
 
-		@Nullable
-		private final Integer defaultScrollCount;
+		private final @Nullable Integer defaultScrollCount;
 
-		@Nullable
-		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
+		private final @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
@@ -695,7 +688,7 @@ public abstract class QueryByExampleDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings({"ConstantConditions", "unchecked"})
-		public R get(DataFetchingEnvironment env) throws BindException {
+		public @Nullable R get(DataFetchingEnvironment env) throws BindException {
 			return this.executor.findBy(buildExample(env), (query) -> {
 				FluentQuery.FetchableFluentQuery<R> queryToUse = (FluentQuery.FetchableFluentQuery<R>) query;
 

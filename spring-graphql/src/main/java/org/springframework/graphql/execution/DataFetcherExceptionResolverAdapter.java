@@ -25,9 +25,8 @@ import graphql.schema.DataFetchingEnvironment;
 import io.micrometer.context.ThreadLocalAccessor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
-
-import org.springframework.lang.Nullable;
 
 /**
  * Adapter for {@link DataFetcherExceptionResolver} that pre-implements the
@@ -92,8 +91,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 		return Mono.defer(() -> Mono.justOrEmpty(resolveInternal(ex, env)));
 	}
 
-	@Nullable
-	private List<GraphQLError> resolveInternal(Throwable exception, DataFetchingEnvironment env) {
+	private @Nullable List<GraphQLError> resolveInternal(Throwable exception, DataFetchingEnvironment env) {
 		try {
 			return (this.threadLocalContextAware) ?
 					ContextPropagationHelper.captureFrom(env.getGraphQlContext())
@@ -113,8 +111,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	 * @param env the environment for the invoked {@code DataFetcher}
 	 * @return the resolved errors or {@code null} if unresolved
 	 */
-	@Nullable
-	protected List<GraphQLError> resolveToMultipleErrors(Throwable ex, DataFetchingEnvironment env) {
+	protected @Nullable List<GraphQLError> resolveToMultipleErrors(Throwable ex, DataFetchingEnvironment env) {
 		GraphQLError error = resolveToSingleError(ex, env);
 		return (error != null) ? Collections.singletonList(error) : null;
 	}
@@ -125,8 +122,7 @@ public abstract class DataFetcherExceptionResolverAdapter implements DataFetcher
 	 * @param env the environment for the invoked {@code DataFetcher}
 	 * @return the resolved error or {@code null} if unresolved
 	 */
-	@Nullable
-	protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
+	protected @Nullable GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment env) {
 		return null;
 	}
 

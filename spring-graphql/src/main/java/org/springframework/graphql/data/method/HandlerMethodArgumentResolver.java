@@ -17,9 +17,9 @@
 package org.springframework.graphql.data.method;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
-import org.springframework.lang.Nullable;
 
 /**
  * Strategy interface for resolving method parameters into argument values in
@@ -50,7 +50,6 @@ public interface HandlerMethodArgumentResolver {
 	 * requires asynchronous resolution.
 	 * @throws Exception in case of errors with the preparation of argument values
 	 */
-	@Nullable
-	Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception;
+	@Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception;
 
 }

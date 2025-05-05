@@ -21,11 +21,11 @@ import java.lang.reflect.Type;
 
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -73,8 +73,7 @@ public class DataLoaderMethodArgumentResolver implements HandlerMethodArgumentRe
 		return dataLoader;
 	}
 
-	@Nullable
-	private Class<?> getValueType(MethodParameter param) {
+	private @Nullable Class<?> getValueType(MethodParameter param) {
 		Assert.isAssignable(DataLoader.class, param.getParameterType());
 		Type genericType = param.getGenericParameterType();
 		if (genericType instanceof ParameterizedType) {
@@ -92,27 +91,36 @@ public class DataLoaderMethodArgumentResolver implements HandlerMethodArgumentRe
 			MethodParameter parameter, DataFetchingEnvironment environment,
 			@Nullable Class<?> valueType, @Nullable String parameterName) {
 
-		String message = "Cannot resolve DataLoader for parameter" +
-				((parameterName != null) ? " '" + parameterName + "'" : "[" + parameter.getParameterIndex() + "]") +
-				" in method " + parameter.getMethod().toGenericString() + ". ";
+		StringBuilder builder = new StringBuilder("Cannot resolve DataLoader for parameter");
 
-		if (valueType == null) {
-			message += "If the batch loader was registered without a name, " +
-					"then declaring the DataLoader argument with generic types should help " +
-					"to look up the DataLoader based on the value type name.";
-		}
-		else if (parameterName == null) {
-			message += "If the batch loader was registered with a name, " +
-					"then compiling with \"-parameters\" should help " +
-					"to look up the DataLoader based on the parameter name.";
+		if (parameterName != null) {
+			builder.append(" '").append(parameterName).append("'");
 		}
 		else {
-			message += "Neither the name of the declared value type '" + valueType + "' " +
-					"nor the method parameter name '" + parameterName + "' match to any DataLoader. " +
-					"The DataLoaderRegistry contains: " + environment.getDataLoaderRegistry().getKeys();
+			builder.append("[").append(parameter.getParameterIndex()).append("]");
 		}
+		if (parameter.getMethod() != null) {
+			builder.append(" in method ").append(parameter.getMethod().toGenericString());
+		}
+		builder.append(". ");
 
-		return message;
+		if (valueType == null) {
+			builder.append("If the batch loader was registered without a name, " +
+					"then declaring the DataLoader argument with generic types should help " +
+					"to look up the DataLoader based on the value type name.");
+		}
+		else if (parameterName == null) {
+			builder.append("If the batch loader was registered with a name, " +
+					"then compiling with \"-parameters\" should help " +
+					"to look up the DataLoader based on the parameter name.");
+		}
+		else {
+			builder.append("Neither the name of the declared value type '").append(valueType)
+					.append("' nor the method parameter name '").append(parameterName)
+					.append("' match to any DataLoader. The DataLoaderRegistry contains: ")
+					.append(environment.getDataLoaderRegistry().getKeys());
+		}
+		return builder.toString();
 	}
 
 }

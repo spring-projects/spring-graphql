@@ -82,8 +82,11 @@ public abstract class AbstractAuthenticationWebSocketInterceptor implements WebS
 		}
 		Map<String, Object> attributes = webSocketRequest.getSessionInfo().getAttributes();
 		SecurityContext securityContext = (SecurityContext) attributes.get(this.authenticationAttribute);
-		ContextView contextView = getContextToWrite(securityContext);
-		return chain.next(request).contextWrite(contextView);
+		if (securityContext != null) {
+			ContextView contextView = getContextToWrite(securityContext);
+			return chain.next(request).contextWrite(contextView);
+		}
+		return chain.next(request);
 	}
 
 	/**

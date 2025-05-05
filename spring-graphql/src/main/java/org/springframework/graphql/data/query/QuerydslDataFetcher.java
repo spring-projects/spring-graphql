@@ -30,6 +30,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -54,7 +55,6 @@ import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.AutoRegistrationRuntimeWiringConfigurer.DataFetcherFactory;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -374,14 +374,11 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final Class<R> resultType;
 
-		@Nullable
-		private final CursorStrategy<ScrollPosition> cursorStrategy;
+		private final @Nullable CursorStrategy<ScrollPosition> cursorStrategy;
 
-		@Nullable
-		private final Integer defaultScrollCount;
+		private final @Nullable Integer defaultScrollCount;
 
-		@Nullable
-		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
+		private final @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
@@ -579,14 +576,11 @@ public abstract class QuerydslDataFetcher<T> {
 
 		private final Class<R> resultType;
 
-		@Nullable
-		private final CursorStrategy<ScrollPosition> cursorStrategy;
+		private final @Nullable CursorStrategy<ScrollPosition> cursorStrategy;
 
-		@Nullable
-		private final Integer defaultScrollCount;
+		private final @Nullable Integer defaultScrollCount;
 
-		@Nullable
-		private final Function<Boolean, ScrollPosition> defaultScrollPosition;
+		private final @Nullable Function<Boolean, ScrollPosition> defaultScrollPosition;
 
 		private final Sort sort;
 
@@ -797,7 +791,7 @@ public abstract class QuerydslDataFetcher<T> {
 
 		@Override
 		@SuppressWarnings({"ConstantConditions", "unchecked"})
-		public R get(DataFetchingEnvironment env) {
+		public @Nullable R get(DataFetchingEnvironment env) {
 			return this.executor.findBy(buildPredicate(env), (query) -> {
 				FetchableFluentQuery<R> queryToUse = (FetchableFluentQuery<R>) query;
 

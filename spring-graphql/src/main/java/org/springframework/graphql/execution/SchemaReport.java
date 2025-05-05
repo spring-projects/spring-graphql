@@ -25,8 +25,8 @@ import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.lang.Nullable;
 import org.springframework.util.MultiValueMap;
 
 /**
@@ -81,8 +81,7 @@ public interface SchemaReport {
 	 * Return the {@code DataFetcher} for the given field coordinates, if registered.
 	 * @param coordinates the field coordinates
 	 */
-	@Nullable
-	DataFetcher<?> dataFetcher(FieldCoordinates coordinates);
+	@Nullable DataFetcher<?> dataFetcher(FieldCoordinates coordinates);
 
 
 	/**

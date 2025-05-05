@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -35,7 +36,6 @@ import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -65,13 +65,11 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 
 	private DocumentSource documentSource;
 
-	@Nullable
-	private HttpMessageConverter<Object> jsonConverter;
+	private @Nullable HttpMessageConverter<Object> jsonConverter;
 
 	private Scheduler scheduler = Schedulers.boundedElastic();
 
-	@Nullable
-	private Duration blockingTimeout;
+	private @Nullable Duration blockingTimeout;
 
 	/**
 	 * Default constructor for use from subclasses.

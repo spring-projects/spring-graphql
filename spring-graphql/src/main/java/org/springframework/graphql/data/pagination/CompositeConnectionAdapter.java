@@ -19,7 +19,8 @@ package org.springframework.graphql.data.pagination;
 import java.util.Collection;
 import java.util.List;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 
 /**
@@ -70,8 +71,7 @@ final class CompositeConnectionAdapter implements ConnectionAdapter {
 		return adapter;
 	}
 
-	@Nullable
-	private ConnectionAdapter getAdapter(Class<?> containerType) {
+	private @Nullable ConnectionAdapter getAdapter(Class<?> containerType) {
 		for (ConnectionAdapter adapter : this.adapters) {
 			if (adapter.supports(containerType)) {
 				return adapter;

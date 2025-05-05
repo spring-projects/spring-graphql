@@ -19,6 +19,8 @@ package org.springframework.graphql.client;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -108,7 +110,7 @@ final class CodecDelegate {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
+	@Nullable GraphQlWebSocketMessage decode(WebSocketMessage webSocketMessage) {
 		DataBuffer buffer = DataBufferUtils.retain(webSocketMessage.getPayload());
 		return (GraphQlWebSocketMessage) this.decoder.decode(buffer, MESSAGE_TYPE, null, null);
 	}

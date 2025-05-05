@@ -31,6 +31,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.TypeRef;
+import org.jspecify.annotations.Nullable;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -41,7 +42,6 @@ import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.client.GraphQlTransport;
 import org.springframework.graphql.support.DefaultGraphQlRequest;
 import org.springframework.graphql.support.DocumentSource;
-import org.springframework.lang.Nullable;
 import org.springframework.test.util.AssertionErrors;
 import org.springframework.test.util.JsonPathExpectationsHelper;
 import org.springframework.util.Assert;
@@ -61,8 +61,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 	private final GraphQlTransport transport;
 
-	@Nullable
-	private final Predicate<ResponseError> errorFilter;
+	private final @Nullable Predicate<ResponseError> errorFilter;
 
 	private final Configuration jsonPathConfig;
 
@@ -120,8 +119,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		private final String document;
 
-		@Nullable
-		private String operationName;
+		private @Nullable String operationName;
 
 		List<String> fragments = new ArrayList<>();
 
@@ -173,7 +171,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 			return this;
 		}
 
-		@SuppressWarnings("ConstantConditions")
+		@SuppressWarnings({"ConstantConditions", "NullAway"})
 		@Override
 		public Response execute() {
 			return DefaultGraphQlTester.this.transport.execute(request())
@@ -374,8 +372,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 	 */
 	private static final class DefaultPath implements Path {
 
-		@Nullable
-		private final String basePath;
+		private final @Nullable String basePath;
 
 		private final String path;
 
