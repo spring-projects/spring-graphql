@@ -73,12 +73,12 @@ plugins.withType(JavaPlugin) {
 						developer {
 							id = "rstoyanchev"
 							name = "Rossen Stoyanchev"
-							email = "rstoyanchev@vmware.com"
+							email = "rossen.stoyanchev@broadcom.com"
 						}
 						developer {
 							id = "bclozel"
 							name = "Brian Clozel"
-							email = "bclozel@vmware.com"
+							email = "brian.clozel@broadcom.com"
 						}
 					}
 					issueManagement {
