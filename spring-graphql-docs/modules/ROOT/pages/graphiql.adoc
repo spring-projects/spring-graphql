@@ -6,7 +6,7 @@ It is very popular amongst developers as it makes it easy to explore and interac
 During development, a stock GraphiQL integration is often enough to help developers work on an API.
 In production, applications can require a custom GraphiQL build, that ships with a company logo or specific authentication support.
 
-Spring for GraphQL ships with https://github.com/spring-projects/spring-graphql/blob/main/spring-graphql/src/main/resources/graphiql/index.html[a stock GraphiQL `index.html` page] that uses static resources hosted on the unpkg.com CDN.
+Spring for GraphQL ships with https://github.com/spring-projects/spring-graphql/blob/main/spring-graphql/src/main/resources/graphiql/index.html[a stock GraphiQL `index.html` page] that uses static resources hosted on the esm.sh CDN.
 Spring Boot applications can easily {spring-boot-ref-docs}/reference/web/spring-graphql.html#web.graphql.graphiql[enable this page with a configuration property].
 
 Your application may need a custom GraphiQL build if it requires a setup that doesn't rely on a CDN, or if you wish to customize the user interface.
