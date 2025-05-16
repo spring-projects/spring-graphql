@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ReactiveAdapter;
 import org.springframework.core.ReactiveAdapterRegistry;
-import org.springframework.util.Assert;
 
 /**
  * Helper to adapt a result Object to {@link Mono} or {@link Flux} through
@@ -90,7 +89,8 @@ public abstract class ReactiveAdapterRegistryHelper {
 
 	/**
 	 * Return a {@link Flux} for the given result Object, adapting to a
-	 * {@link Publisher} first if necessary via {@link ReactiveAdapterRegistry}.
+	 * {@link Publisher} via {@link ReactiveAdapterRegistry} or wrapping it as
+	 * {@code Flux} if necessary.
 	 * @param result the result Object to adapt
 	 * @return a {@link Flux}, possibly empty if the result is {@code null}
 	 */
@@ -102,8 +102,7 @@ public abstract class ReactiveAdapterRegistryHelper {
 			return Flux.from(publisher);
 		}
 		ReactiveAdapter adapter = registry.getAdapter(result.getClass());
-		Assert.state(adapter != null, "Expected Publisher for a subscription");
-		return Flux.from(adapter.toPublisher(result));
+		return ((adapter != null) ? Flux.from(adapter.toPublisher(result)) : Flux.just(result));
 	}
 
 	/**

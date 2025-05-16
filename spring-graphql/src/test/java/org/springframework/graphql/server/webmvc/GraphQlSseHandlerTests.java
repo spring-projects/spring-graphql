@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,6 +104,25 @@ class GraphQlSseHandlerTests {
 
 				event:next
 				data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
+
+				event:complete
+				data:
+
+				""");
+	}
+
+	@Test // gh-1213
+	void shouldHandleNonPublisherValue() throws Exception {
+		GraphQlSseHandler handler = createSseHandler(env -> BookSource.getBook(1L));
+		MockHttpServletRequest request = createServletRequest("""
+				{ "query": "subscription TestSubscription { bookSearch { id name } }" }
+				""");
+		MockHttpServletResponse response = handleAndAwait(request, handler);
+
+		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
+		assertThat(response.getContentAsString()).isEqualTo("""
+				event:next
+				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
 				event:complete
 				data:
