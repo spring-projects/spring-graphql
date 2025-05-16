@@ -278,7 +278,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 			Observation observation = GraphQlObservationDocumentation.DATA_LOADER
 					.observation(GraphQlObservationInstrumentation.this.dataLoaderObservationConvention,
 							DEFAULT_DATA_LOADER_CONVENTION,
-							() -> new DataLoaderObservationContext(keys, environment),
+							() -> new DataLoaderObservationContext(dataLoader, keys, environment),
 							GraphQlObservationInstrumentation.this.observationRegistry);
 			if (environment.getContext() instanceof GraphQLContext graphQLContext) {
 				Observation parentObservation = graphQLContext.get(ObservationThreadLocalAccessor.KEY);

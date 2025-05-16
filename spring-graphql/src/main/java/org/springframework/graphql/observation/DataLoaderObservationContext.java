@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.micrometer.observation.Observation;
 import org.dataloader.BatchLoaderEnvironment;
+import org.dataloader.DataLoader;
 
 /**
  * Context that holds information for metadata collection during observations
@@ -30,15 +31,25 @@ import org.dataloader.BatchLoaderEnvironment;
  */
 public class DataLoaderObservationContext extends Observation.Context {
 
+	private final DataLoader<?, ?> dataLoader;
+
 	private final List<?> keys;
 
 	private final BatchLoaderEnvironment environment;
 
 	private List<?> result = List.of();
 
-	DataLoaderObservationContext(List<?> keys, BatchLoaderEnvironment environment) {
+	DataLoaderObservationContext(DataLoader<?, ?> dataLoader, List<?> keys, BatchLoaderEnvironment environment) {
+		this.dataLoader = dataLoader;
 		this.keys = keys;
 		this.environment = environment;
+	}
+
+	/**
+	 * Return the {@link DataLoader} being used for the operation.
+	 */
+	public DataLoader<?, ?> getDataLoader() {
+		return this.dataLoader;
 	}
 
 	/**

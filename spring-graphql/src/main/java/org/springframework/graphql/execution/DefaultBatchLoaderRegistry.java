@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,12 +60,11 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	private final Supplier<DataLoaderOptions> defaultOptionsSupplier;
 
 
-
 	/**
 	 * Default constructor.
 	 */
 	public DefaultBatchLoaderRegistry() {
-		this(DataLoaderOptions::newOptions);
+		this(DataLoaderOptions::newDefaultOptions);
 	}
 
 	/**
@@ -99,24 +98,24 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 	public void registerDataLoaders(DataLoaderRegistry registry, GraphQLContext context) {
 		BatchLoaderContextProvider contextProvider = () -> context;
 		for (ReactorBatchLoader<?, ?> loader : this.loaders) {
-			DataLoaderOptions options = loader.getOptions();
-			options = options.setBatchLoaderContextProvider(contextProvider);
-			DataLoader<?, ?> dataLoader = DataLoaderFactory.newDataLoader(loader, options);
-			registerDataLoader(loader.getName(), dataLoader, registry);
+			DataLoaderOptions options = loader.getOptions()
+					.transform((opt) -> opt.setBatchLoaderContextProvider(contextProvider));
+			DataLoader<?, ?> dataLoader = DataLoaderFactory.newDataLoader(loader.getName(), loader, options);
+			registerDataLoader(dataLoader, registry);
 		}
 		for (ReactorMappedBatchLoader<?, ?> loader : this.mappedLoaders) {
-			DataLoaderOptions options = loader.getOptions();
-			options = options.setBatchLoaderContextProvider(contextProvider);
-			DataLoader<?, ?> dataLoader = DataLoaderFactory.newMappedDataLoader(loader, options);
-			registerDataLoader(loader.getName(), dataLoader, registry);
+			DataLoaderOptions options = loader.getOptions()
+					.transform((opt) -> opt.setBatchLoaderContextProvider(contextProvider));
+			DataLoader<?, ?> dataLoader = DataLoaderFactory.newMappedDataLoader(loader.getName(), loader, options);
+			registerDataLoader(dataLoader, registry);
 		}
 	}
 
-	private void registerDataLoader(String name, DataLoader<?, ?> dataLoader, DataLoaderRegistry registry) {
-		if (registry.getDataLoader(name) != null) {
-			throw new IllegalStateException("More than one DataLoader named '" + name + "'");
+	private void registerDataLoader(DataLoader<?, ?> dataLoader, DataLoaderRegistry registry) {
+		if (registry.getDataLoader(dataLoader.getName()) != null) {
+			throw new IllegalStateException("More than one DataLoader named '" + dataLoader.getName() + "'");
 		}
-		registry.register(name, dataLoader);
+		registry.register(dataLoader.getName(), dataLoader);
 	}
 
 
@@ -183,20 +182,21 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		}
 
 		private Supplier<DataLoaderOptions> initOptionsSupplier() {
-
-			Supplier<DataLoaderOptions> optionsSupplier = () ->
-					new DataLoaderOptions((this.options != null) ?
-							this.options : DefaultBatchLoaderRegistry.this.defaultOptionsSupplier.get());
-
-			if (this.optionsBuilderConsumer == null) {
-				return optionsSupplier;
-			}
-
 			return () -> {
-				DataLoaderOptions options = optionsSupplier.get();
-				return options.transform(this.optionsBuilderConsumer);
+				DataLoaderOptions.Builder builder;
+				if (this.options != null) {
+					builder = DataLoaderOptions.newOptions(this.options);
+				}
+				else {
+					builder = DataLoaderOptions.newOptions(DefaultBatchLoaderRegistry.this.defaultOptionsSupplier.get());
+				}
+				if (this.optionsBuilderConsumer != null) {
+					this.optionsBuilderConsumer.accept(builder);
+				}
+				return builder.build();
 			};
 		}
+
 	}
 
 

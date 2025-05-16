@@ -46,7 +46,7 @@ class DefaultBatchLoaderRegistryTests {
 	private final BatchLoaderRegistry batchLoaderRegistry =
 			new DefaultBatchLoaderRegistry(() -> {
 				// Disable batching, so we can test loading immediately
-				return DataLoaderOptions.newOptions().setBatchingEnabled(false);
+				return DataLoaderOptions.newOptions().setBatchingEnabled(false).build();
 			});
 
 	private final DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build();
@@ -105,7 +105,7 @@ class DefaultBatchLoaderRegistryTests {
 	@Test
 	void dataLoaderOptions() throws Exception {
 
-		DataLoaderOptions defaultOptions = DataLoaderOptions.newOptions().setBatchingEnabled(false);
+		DataLoaderOptions defaultOptions = DataLoaderOptions.newOptions().setBatchingEnabled(false).build();
 		DefaultBatchLoaderRegistry batchLoaderRegistry = new DefaultBatchLoaderRegistry(() -> defaultOptions);
 
 		AtomicInteger counter = new AtomicInteger(1);

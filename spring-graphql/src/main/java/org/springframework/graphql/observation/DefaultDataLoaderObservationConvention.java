@@ -24,6 +24,7 @@ import io.micrometer.common.KeyValues;
 
 import org.springframework.graphql.observation.GraphQlObservationDocumentation.DataLoaderHighCardinalityKeyNames;
 import org.springframework.graphql.observation.GraphQlObservationDocumentation.DataLoaderLowCardinalityKeyNames;
+import org.springframework.util.StringUtils;
 
 /**
  * Default implementation for a {@link DataLoaderObservationConvention}
@@ -38,7 +39,7 @@ public class DefaultDataLoaderObservationConvention implements DataLoaderObserva
 
 	private static final KeyValue ERROR_TYPE_NONE = KeyValue.of(DataLoaderLowCardinalityKeyNames.ERROR_TYPE, "NONE");
 
-	private static final KeyValue LOADER_TYPE_UNKNOWN = KeyValue.of(DataLoaderLowCardinalityKeyNames.LOADER_TYPE, "unknown");
+	private static final KeyValue LOADER_TYPE_UNKNOWN = KeyValue.of(DataLoaderLowCardinalityKeyNames.LOADER_NAME, "unknown");
 
 	private static final KeyValue OUTCOME_SUCCESS = KeyValue.of(DataLoaderLowCardinalityKeyNames.OUTCOME, "SUCCESS");
 
@@ -78,10 +79,10 @@ public class DefaultDataLoaderObservationConvention implements DataLoaderObserva
 	}
 
 	protected KeyValue loaderType(DataLoaderObservationContext context) {
-		if (context.getResult().isEmpty()) {
-			return LOADER_TYPE_UNKNOWN;
+		if (StringUtils.hasText(context.getDataLoader().getName())) {
+			return KeyValue.of(DataLoaderLowCardinalityKeyNames.LOADER_NAME, context.getDataLoader().getName());
 		}
-		return KeyValue.of(DataLoaderLowCardinalityKeyNames.LOADER_TYPE, context.getResult().get(0).getClass().getSimpleName());
+		return LOADER_TYPE_UNKNOWN;
 	}
 
 	protected KeyValue outcome(DataLoaderObservationContext context) {

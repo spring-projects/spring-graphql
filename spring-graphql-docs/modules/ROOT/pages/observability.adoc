@@ -96,7 +96,7 @@ By default, the following KeyValues are created:
 |===
 |Name | Description
 |`graphql.error.type` _(required)_|Class name of the data fetching error
-|`graphql.loader.type` _(required)_|Class name of the elements being fetched.
+|`graphql.loader.name` _(required)_|Name of the DataLoader being used.
 |`graphql.outcome` _(required)_|Outcome of the GraphQL data fetching operation, "SUCCESS" or "ERROR".
 |===
 

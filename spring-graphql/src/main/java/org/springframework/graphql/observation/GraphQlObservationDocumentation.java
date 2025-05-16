@@ -21,6 +21,7 @@ import io.micrometer.common.docs.KeyName;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationConvention;
 import io.micrometer.observation.docs.ObservationDocumentation;
+import org.dataloader.DataLoader;
 
 /**
  * Documented {@link io.micrometer.common.KeyValue KeyValues} for {@link graphql.GraphQL GraphQL server observations}.
@@ -205,12 +206,12 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		},
 
 		/**
-		 * {@link Class#getSimpleName()} of the returned elements.
+		 * {@link DataLoader#getName()} of the data loader.
 		 */
-		LOADER_TYPE {
+		LOADER_NAME {
 			@Override
 			public String asString() {
-				return "graphql.loader.type";
+				return "graphql.loader.name";
 			}
 		},
 

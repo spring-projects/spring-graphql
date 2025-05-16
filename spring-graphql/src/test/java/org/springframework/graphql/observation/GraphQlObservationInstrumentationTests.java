@@ -411,7 +411,7 @@ class GraphQlObservationInstrumentationTests {
 				.hasObservationWithNameEqualTo("graphql.dataloader")
 				.that()
 				.hasLowCardinalityKeyValue("graphql.outcome", "SUCCESS")
-				.hasLowCardinalityKeyValue("graphql.loader.type", "Author")
+				.hasLowCardinalityKeyValue("graphql.loader.name", "org.springframework.graphql.Author")
 				.hasHighCardinalityKeyValue("graphql.loader.size", "4")
 				.hasContextualNameEqualTo("graphql dataloader author");
 	}
