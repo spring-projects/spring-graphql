@@ -105,6 +105,26 @@ class GraphQlSseHandlerTests {
 				""");
 	}
 
+	@Test // gh-1213
+	void shouldHandleNonPublisherValue() {
+
+		SerializableGraphQlRequest request = initRequest(
+				"subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
+
+		GraphQlSseHandler handler = createHandler(env -> BookSource.getBook(1L));
+		MockServerHttpResponse response = handleRequest(this.httpRequest, handler, request);
+
+		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
+		assertThat(response.getBodyAsString().block()).isEqualTo("""
+				event:next
+				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+
+				event:complete
+				data:{}
+
+				""");
+	}
+
 	@Test
 	void shouldWriteEventsAndTerminalError() {
 

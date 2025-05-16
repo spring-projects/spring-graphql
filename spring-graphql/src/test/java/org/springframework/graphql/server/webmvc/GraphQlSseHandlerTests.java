@@ -115,6 +115,25 @@ class GraphQlSseHandlerTests {
 				""");
 	}
 
+	@Test // gh-1213
+	void shouldHandleNonPublisherValue() throws Exception {
+		GraphQlSseHandler handler = createSseHandler(env -> BookSource.getBook(1L));
+		MockHttpServletRequest request = createServletRequest("""
+				{ "query": "subscription TestSubscription { bookSearch { id name } }" }
+				""");
+		MockHttpServletResponse response = handleAndAwait(request, handler);
+
+		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
+		assertThat(response.getContentAsString()).isEqualTo("""
+				event:next
+				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+
+				event:complete
+				data:
+
+				""");
+	}
+
 	@Test
 	void shouldSendKeepAlivePings() throws Exception {
 		WebGraphQlHandler webGraphQlHandler = createWebGraphQlHandler(env -> Mono.delay(Duration.ofMillis(50)).then());
