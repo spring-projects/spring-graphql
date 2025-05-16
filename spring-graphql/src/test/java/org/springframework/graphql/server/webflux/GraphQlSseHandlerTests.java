@@ -111,7 +111,7 @@ class GraphQlSseHandlerTests {
 		SerializableGraphQlRequest request = initRequest(
 				"subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } }");
 
-		GraphQlSseHandler handler = createHandler(env -> BookSource.getBook(1L));
+		GraphQlSseHandler handler = createSseHandler(env -> BookSource.getBook(1L));
 		MockServerHttpResponse response = handleRequest(this.httpRequest, handler, request);
 
 		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
