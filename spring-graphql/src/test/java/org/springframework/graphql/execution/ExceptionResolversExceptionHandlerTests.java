@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,6 +64,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting");
 		assertThat(response.error(0).errorType()).isEqualTo("BAD_REQUEST");
+		assertThat(response.error(0).path()).isEqualTo("/greeting");
 
 		String greeting = response.rawValue("greeting");
 		assertThat(greeting).isNull();
@@ -85,6 +86,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		ResponseHelper response = ResponseHelper.forResult(result);
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
+		assertThat(response.error(0).path()).isEqualTo("/greeting");
 	}
 
 	@Test
@@ -110,6 +112,7 @@ public class ExceptionResolversExceptionHandlerTests {
 			ResponseHelper response = ResponseHelper.forResult(result);
 			assertThat(response.errorCount()).isEqualTo(1);
 			assertThat(response.error(0).message()).isEqualTo("Resolved error: Invalid greeting, name=007");
+			assertThat(response.error(0).path()).isEqualTo("/greeting");
 		}
 		finally {
 			threadLocal.remove();
@@ -127,6 +130,7 @@ public class ExceptionResolversExceptionHandlerTests {
 		ResponseHelper response = ResponseHelper.forResult(result);
 		assertThat(response.errorCount()).isEqualTo(1);
 		assertThat(response.error(0).message()).startsWith("INTERNAL_ERROR for ");
+		assertThat(response.error(0).path()).isEqualTo("/greeting");
 		assertThat(response.error(0).errorType()).isEqualTo("INTERNAL_ERROR");
 
 		String greeting = response.rawValue("greeting");
