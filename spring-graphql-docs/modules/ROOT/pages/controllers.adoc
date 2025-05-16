@@ -920,37 +920,14 @@ Use `@GraphQlExceptionHandler` methods to handle exceptions from data fetching w
 flexible xref:controllers.adoc#controllers.exception-handler.signature[method signature]. When declared in a
 controller, exception handler methods apply to exceptions from the same controller:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@Controller
-	public class BookController {
-
-		@QueryMapping
-		public Book bookById(@Argument Long id) {
-			// ...
-		}
-
-		@GraphQlExceptionHandler
-		public GraphQLError handle(BindException ex) {
-			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
-		}
-	}
-----
+include-code::BookController[]
 
 When declared in an `@ControllerAdvice`, exception handler methods apply across controllers:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	@ControllerAdvice
-	public class GlobalExceptionHandler {
+include-code::GlobalExceptionHandler[]
 
-		@GraphQlExceptionHandler
-		public GraphQLError handle(BindException ex) {
-			return GraphQLError.newError().errorType(ErrorType.BAD_REQUEST).message("...").build();
-		}
-
-	}
-----
+As shown in the examples above, you should build errors by injecting `GraphQlErrorBuilder` in the method signature
+because it's been prepared with the current `DataFetchingEnvironment`.
 
 Exception handling via `@GraphQlExceptionHandler` methods is applied automatically to
 controller invocations. To handle exceptions from other `graphql.schema.DataFetcher`
