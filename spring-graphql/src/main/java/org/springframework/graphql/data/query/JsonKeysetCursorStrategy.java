@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+import tools.jackson.databind.DefaultTyping;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -38,9 +41,8 @@ import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.MimeTypeUtils;
@@ -57,8 +59,8 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 	private static final ResolvableType MAP_TYPE =
 			ResolvableType.forClassWithGenerics(Map.class, String.class, Object.class);
 
-	private static final boolean jackson2Present = ClassUtils.isPresent(
-			"com.fasterxml.jackson.databind.ObjectMapper", JsonKeysetCursorStrategy.class.getClassLoader());
+	private static final boolean jacksonPresent = ClassUtils.isPresent(
+			"tools.jackson.databind.ObjectMapper", JsonKeysetCursorStrategy.class.getClassLoader());
 
 
 	private final Encoder<?> encoder;
@@ -77,7 +79,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	private static ServerCodecConfigurer initCodecConfigurer() {
 		ServerCodecConfigurer configurer = ServerCodecConfigurer.create();
-		if (jackson2Present) {
+		if (jacksonPresent) {
 			JacksonObjectMapperCustomizer.customize(configurer);
 		}
 		return configurer;
@@ -148,11 +150,13 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 					.allowIfSubType(Date.class)
 					.build();
 
-			ObjectMapper mapper = Jackson2ObjectMapperBuilder.json().build();
-			mapper.activateDefaultTyping(validator, ObjectMapper.DefaultTyping.NON_FINAL);
+			JsonMapper mapper = JsonMapper.builder()
+					.activateDefaultTyping(validator, DefaultTyping.NON_FINAL)
+					.enable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+					.build();
 
-			configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
-			configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+			configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
+			configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
 		}
 
 	}

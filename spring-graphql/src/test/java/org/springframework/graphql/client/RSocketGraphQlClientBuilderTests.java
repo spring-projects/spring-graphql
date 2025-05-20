@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.local.LocalClientTransport;
 import io.rsocket.transport.local.LocalServerTransport;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -33,9 +34,8 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.lang.Nullable;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
@@ -108,7 +108,7 @@ class RSocketGraphQlClientBuilderTests {
 		public RSocketGraphQlClient.Builder<?> initBuilder() {
 
 			GraphQlRSocketController controller = new GraphQlRSocketController(
-					new GraphQlRSocketHandler(this.graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
+					new GraphQlRSocketHandler(this.graphQlService, Collections.emptyList(), new JacksonJsonEncoder()));
 
 			this.server = RSocketServer.create()
 					.acceptor(createSocketAcceptor(controller))
@@ -122,8 +122,8 @@ class RSocketGraphQlClientBuilderTests {
 		private SocketAcceptor createSocketAcceptor(GraphQlRSocketController controller) {
 
 			RSocketStrategies.Builder builder = RSocketStrategies.builder();
-			builder.encoder(new Jackson2JsonEncoder());
-			builder.decoder(new Jackson2JsonDecoder());
+			builder.encoder(new JacksonJsonEncoder());
+			builder.decoder(new JacksonJsonDecoder());
 
 			RSocketMessageHandler handler = new RSocketMessageHandler();
 			handler.setHandlers(Collections.singletonList(controller));

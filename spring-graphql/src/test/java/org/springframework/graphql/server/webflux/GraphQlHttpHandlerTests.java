@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import tools.jackson.databind.ObjectMapper;
 
 import org.springframework.core.codec.DataBufferEncoder;
 import org.springframework.core.io.buffer.DefaultDataBuffer;
@@ -42,8 +42,8 @@ import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpResponse;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -60,7 +60,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GraphQlHttpHandlerTests {
 
 	private static final List<HttpMessageReader<?>> MESSAGE_READERS =
-			List.of(new DecoderHttpMessageReader<>(new Jackson2JsonDecoder()));
+			List.of(new DecoderHttpMessageReader<>(new JacksonJsonDecoder()));
 
 	private final GraphQlHttpHandler greetingHandler =
 			GraphQlSetup.schemaContent("type Query { greeting: String }")
@@ -184,8 +184,8 @@ class GraphQlHttpHandlerTests {
 
 		ObjectMapper mapper = new ObjectMapper();
 		CodecConfigurer configurer = ServerCodecConfigurer.create();
-		configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
-		configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+		configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
+		configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
 
 		byte[] bytes = "{\"query\": \"{showId}\"}".getBytes(StandardCharsets.UTF_8);
 		Flux<DefaultDataBuffer> body = Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(bytes));
@@ -230,7 +230,7 @@ class GraphQlHttpHandlerTests {
 
 		@Override
 		public List<HttpMessageWriter<?>> messageWriters() {
-			return Collections.singletonList(new EncoderHttpMessageWriter<>(new Jackson2JsonEncoder()));
+			return Collections.singletonList(new EncoderHttpMessageWriter<>(new JacksonJsonEncoder()));
 		}
 
 		@Override

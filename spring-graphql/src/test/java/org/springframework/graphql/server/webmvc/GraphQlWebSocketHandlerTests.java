@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,9 +55,8 @@ import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
-import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
@@ -73,7 +72,7 @@ import static org.springframework.graphql.server.support.GraphQlWebSocketMessage
  */
 class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
-	private static final HttpMessageConverter<?> converter = new MappingJackson2HttpMessageConverter();
+	private static final HttpMessageConverter<Object> converter = new JacksonJsonHttpMessageConverter();
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
@@ -494,8 +493,7 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	private GraphQlWebSocketMessage decode(WebSocketMessage<?> message) {
 		try {
 			HttpInputMessageAdapter inputMessage = new HttpInputMessageAdapter((TextMessage) message);
-			return ((GenericHttpMessageConverter<GraphQlWebSocketMessage>) converter)
-					.read(GraphQlWebSocketMessage.class, null, inputMessage);
+			return (GraphQlWebSocketMessage) converter.read(GraphQlWebSocketMessage.class, inputMessage);
 		}
 		catch (IOException ex) {
 			throw new IllegalStateException(ex);

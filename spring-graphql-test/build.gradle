@@ -14,6 +14,7 @@ dependencies {
 	compileOnly 'org.springframework:spring-websocket'
 	compileOnly 'org.springframework:spring-messaging'
 	compileOnly 'jakarta.servlet:jakarta.servlet-api'
+	compileOnly 'tools.jackson.core:jackson-databind'
 	compileOnly 'io.rsocket:rsocket-core'
 	compileOnly 'io.rsocket:rsocket-transport-netty'
 	compileOnly 'org.skyscreamer:jsonassert'
@@ -32,7 +33,7 @@ dependencies {
 	testImplementation 'io.projectreactor.netty:reactor-netty'
 	testImplementation 'io.rsocket:rsocket-transport-local'
 	testImplementation 'io.micrometer:context-propagation'
-	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+	testImplementation 'tools.jackson.core:jackson-databind'
 
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-core'
 	testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'

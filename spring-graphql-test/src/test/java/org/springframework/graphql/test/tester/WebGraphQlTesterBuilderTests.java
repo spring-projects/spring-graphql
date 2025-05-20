@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import org.springframework.graphql.server.webflux.GraphQlHttpHandler;
 import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
 import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.Assert;
@@ -168,7 +168,7 @@ class WebGraphQlTesterBuilderTests {
 	@MethodSource("argumentSource")
 	void codecConfigurerRegistersJsonPathMappingProvider(TesterBuilderSetup builderSetup) {
 
-		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+		TestJacksonJsonDecoder testDecoder = new TestJacksonJsonDecoder();
 
 		WebGraphQlTester.Builder<?> builder = builderSetup.initBuilder()
 				.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
@@ -267,7 +267,7 @@ class WebGraphQlTesterBuilderTests {
 	}
 
 
-	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
+	private static class TestJacksonJsonDecoder extends JacksonJsonDecoder {
 
 		@Nullable
 		private Object lastValue;

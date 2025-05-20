@@ -34,7 +34,7 @@ import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.ServerSentEventHttpMessageWriter;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpResponse;
 import org.springframework.mock.web.reactive.function.server.MockServerRequest;
@@ -52,7 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GraphQlSseHandlerTests {
 
 	private static final List<HttpMessageWriter<?>> MESSAGE_WRITERS =
-			List.of(new ServerSentEventHttpMessageWriter(new Jackson2JsonEncoder()));
+			List.of(new ServerSentEventHttpMessageWriter(new JacksonJsonEncoder()));
 
 	private static final DataFetcher<?> SEARCH_DATA_FETCHER = env -> {
 		String author = env.getArgument("author");

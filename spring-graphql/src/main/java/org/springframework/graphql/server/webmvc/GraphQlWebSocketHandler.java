@@ -60,7 +60,6 @@ import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
-import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -102,7 +101,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final Duration initTimeoutDuration;
 
-	private final HttpMessageConverter<?> converter;
+	private final HttpMessageConverter<Object> converter;
 
 	private final @Nullable Duration keepAliveDuration;
 
@@ -117,7 +116,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * the WebSocket for the {@code "connection_ini"} message from the client.
 	 */
 	public GraphQlWebSocketHandler(
-			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter, Duration connectionInitTimeout) {
+			WebGraphQlHandler graphQlHandler, HttpMessageConverter<Object> converter, Duration connectionInitTimeout) {
 
 		this(graphQlHandler, converter, connectionInitTimeout, null);
 	}
@@ -133,7 +132,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * @since 1.3
 	 */
 	public GraphQlWebSocketHandler(
-			WebGraphQlHandler graphQlHandler, HttpMessageConverter<?> converter,
+			WebGraphQlHandler graphQlHandler, HttpMessageConverter<Object> converter,
 			Duration connectionInitTimeout, @Nullable Duration keepAliveDuration) {
 
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
@@ -289,10 +288,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private GraphQlWebSocketMessage decode(TextMessage message) throws IOException {
-		return ((GenericHttpMessageConverter<GraphQlWebSocketMessage>) this.converter)
-				.read(GraphQlWebSocketMessage.class, null, new HttpInputMessageAdapter(message));
+		return (GraphQlWebSocketMessage) this.converter
+				.read(GraphQlWebSocketMessage.class, new HttpInputMessageAdapter(message));
 	}
 
 	private SessionState getSessionInfo(WebSocketSession session) {

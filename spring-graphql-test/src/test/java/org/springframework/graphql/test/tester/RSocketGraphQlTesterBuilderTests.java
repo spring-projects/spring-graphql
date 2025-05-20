@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,8 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.GraphQlRSocketHandler;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
@@ -87,12 +87,12 @@ class RSocketGraphQlTesterBuilderTests {
 	@Test
 	void rsocketStrategiesRegistersJsonPathMappingProvider() {
 
-		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+		TestJacksonJsonDecoder testDecoder = new TestJacksonJsonDecoder();
 
 		RSocketGraphQlTester.Builder<?> builder = this.builderSetup.initBuilder()
 				.rsocketRequester(requesterBuilder -> {
 					RSocketStrategies strategies = RSocketStrategies.builder()
-							.encoder(new Jackson2JsonEncoder())
+							.encoder(new JacksonJsonEncoder())
 							.decoder(testDecoder)
 							.build();
 					requesterBuilder.rsocketStrategies(strategies);
@@ -132,7 +132,7 @@ class RSocketGraphQlTesterBuilderTests {
 		public RSocketGraphQlTester.Builder<?> initBuilder() {
 
 			GraphQlRSocketController controller = new GraphQlRSocketController(
-					new GraphQlRSocketHandler(this.graphQlService, Collections.emptyList(), new Jackson2JsonEncoder()));
+					new GraphQlRSocketHandler(this.graphQlService, Collections.emptyList(), new JacksonJsonEncoder()));
 
 			this.server = RSocketServer.create()
 					.acceptor(createSocketAcceptor(controller))
@@ -146,8 +146,8 @@ class RSocketGraphQlTesterBuilderTests {
 		private SocketAcceptor createSocketAcceptor(GraphQlRSocketController controller) {
 
 			RSocketStrategies.Builder builder = RSocketStrategies.builder();
-			builder.encoder(new Jackson2JsonEncoder());
-			builder.decoder(new Jackson2JsonDecoder());
+			builder.encoder(new JacksonJsonEncoder());
+			builder.decoder(new JacksonJsonDecoder());
 
 			RSocketMessageHandler handler = new RSocketMessageHandler();
 			handler.setHandlers(Collections.singletonList(controller));
@@ -195,7 +195,7 @@ class RSocketGraphQlTesterBuilderTests {
 	}
 
 
-	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
+	private static class TestJacksonJsonDecoder extends JacksonJsonDecoder {
 
 		@Nullable
 		private Object lastValue;

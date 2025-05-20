@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DocumentSource;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 
@@ -91,10 +91,10 @@ class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 	@Test
 	void codecConfigurerRegistersJsonPathMappingProvider() {
 
-		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+		TestJacksonJsonDecoder testDecoder = new TestJacksonJsonDecoder();
 
 		ExecutionGraphQlServiceTester.Builder<?> builder = graphQlTesterBuilder()
-				.encoder(new Jackson2JsonEncoder())
+				.encoder(new JacksonJsonEncoder())
 				.decoder(testDecoder);
 
 		String document = "{me {name}}";
@@ -138,7 +138,7 @@ class GraphQlTesterBuilderTests extends GraphQlTesterTestSupport {
 	}
 
 
-	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
+	private static class TestJacksonJsonDecoder extends JacksonJsonDecoder {
 
 		@Nullable
 		private Object lastValue;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
@@ -52,7 +52,7 @@ class ArgumentResolverTestSupport {
 		return methodParam;
 	}
 
-	protected DataFetchingEnvironment environment(String argumentsJson) throws JsonProcessingException {
+	protected DataFetchingEnvironment environment(String argumentsJson) throws JacksonException {
 		Map<String, Object> arguments = this.mapper.readValue(argumentsJson, MAP_TYPE_REFERENCE);
 		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment().arguments(arguments).build();
 	}

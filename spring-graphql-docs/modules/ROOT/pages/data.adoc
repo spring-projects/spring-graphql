@@ -452,8 +452,8 @@ You can then create `JsonKeysetCursorStrategy`:
 	ObjectMapper mapper = ... ;
 
 	CodecConfigurer configurer = ServerCodecConfigurer.create();
-	configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
-	configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+	configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
+	configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
 
 	JsonKeysetCursorStrategy strategy = new JsonKeysetCursorStrategy(configurer);
 ----

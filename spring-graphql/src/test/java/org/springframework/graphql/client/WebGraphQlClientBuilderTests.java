@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import graphql.ExecutionResultImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -42,9 +43,8 @@ import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
 import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
@@ -212,7 +212,7 @@ class WebGraphQlClientBuilderTests {
 	@MethodSource("argumentSource")
 	void codecConfigurerRegistersJsonPathMappingProvider(ClientBuilderSetup setup) {
 
-		TestJackson2JsonDecoder testDecoder = new TestJackson2JsonDecoder();
+		TestJacksonJsonDecoder testDecoder = new TestJacksonJsonDecoder();
 
 		WebGraphQlClient.Builder<?> builder = setup.initBuilder();
 		builder.codecConfigurer(codecConfigurer -> codecConfigurer.customCodecs().register(testDecoder));
@@ -335,7 +335,7 @@ class WebGraphQlClientBuilderTests {
 	}
 
 
-	private static class TestJackson2JsonDecoder extends Jackson2JsonDecoder {
+	private static class TestJacksonJsonDecoder extends JacksonJsonDecoder {
 
 		@Nullable
 		private Object lastValue;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -57,8 +57,8 @@ import org.springframework.util.ClassUtils;
 public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQlClientSyncBuilder<B>>
 		implements GraphQlClient.SyncBuilder<B> {
 
-	protected static final boolean jackson2Present = ClassUtils.isPresent(
-			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientSyncBuilder.class.getClassLoader());
+	protected static final boolean jacksonPresent = ClassUtils.isPresent(
+			"tools.jackson.databind.ObjectMapper", AbstractGraphQlClientSyncBuilder.class.getClassLoader());
 
 
 	private final List<SyncGraphQlClientInterceptor> interceptors = new ArrayList<>();
@@ -144,7 +144,7 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	 */
 	protected GraphQlClient buildGraphQlClient(SyncGraphQlTransport transport) {
 
-		if (jackson2Present) {
+		if (jacksonPresent) {
 			this.jsonConverter = (this.jsonConverter == null) ?
 					DefaultJacksonConverter.initialize() : this.jsonConverter;
 		}
@@ -189,7 +189,7 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	private static final class DefaultJacksonConverter {
 
 		static HttpMessageConverter<Object> initialize() {
-			return new MappingJackson2HttpMessageConverter();
+			return new JacksonJsonHttpMessageConverter();
 		}
 	}
 

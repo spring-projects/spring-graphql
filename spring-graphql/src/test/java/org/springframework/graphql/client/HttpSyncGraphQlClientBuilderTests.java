@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 package org.springframework.graphql.client;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.Collections;
 
 import graphql.ExecutionResultImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -41,9 +41,8 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.lang.Nullable;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.reactive.server.HttpHandlerConnector;
@@ -193,7 +192,7 @@ class HttpSyncGraphQlClientBuilderTests {
 	@Test
 	void codecConfigurerRegistersJsonPathMappingProvider() {
 
-		TestJackson2JsonConverter testConverter = new TestJackson2JsonConverter();
+		TestJacksonJsonConverter testConverter = new TestJacksonJsonConverter();
 
 		HttpSyncGraphQlClient.Builder<?> builder = this.setup.initBuilder();
 		builder.messageConverters(converters -> converters.add(0, testConverter));
@@ -295,7 +294,7 @@ class HttpSyncGraphQlClientBuilderTests {
 	}
 
 
-	private static class TestJackson2JsonConverter extends MappingJackson2HttpMessageConverter {
+	private static class TestJacksonJsonConverter extends JacksonJsonHttpMessageConverter {
 
 		@Nullable
 		private Object lastValue;
@@ -306,10 +305,8 @@ class HttpSyncGraphQlClientBuilderTests {
 		}
 
 		@Override
-		public Object read(Type type, Class<?> contextClass, HttpInputMessage inputMessage)
-				throws IOException, HttpMessageNotReadableException {
-
-			this.lastValue = super.read(type, contextClass, inputMessage);
+		protected Object readInternal(Class<?> clazz, HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
+			this.lastValue = super.readInternal(clazz, inputMessage);
 			return this.lastValue;
 		}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,11 +69,11 @@ final class DefaultRSocketGraphQlClientBuilder
 
 	private static RSocketRequester.Builder initRSocketRequestBuilder() {
 		RSocketRequester.Builder requesterBuilder = RSocketRequester.builder().dataMimeType(MimeTypeUtils.APPLICATION_JSON);
-		if (jackson2Present) {
+		if (jacksonPresent) {
 			requesterBuilder.rsocketStrategies(
 					RSocketStrategies.builder()
-							.encoder(DefaultJackson2Codecs.encoder())
-							.decoder(DefaultJackson2Codecs.decoder())
+							.encoder(DefaultJacksonCodecs.encoder())
+							.decoder(DefaultJacksonCodecs.decoder())
 							.build());
 		}
 		return requesterBuilder;

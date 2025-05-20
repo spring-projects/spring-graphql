@@ -65,7 +65,7 @@ class SortMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 	private void testResolver(Function<DataFetchingEnvironment, Sort> resolveFunction) throws Exception {
 		DataFetchingEnvironment environment = environment("""
-			{ "sortFields": ["firstName", "lastName", "id"], "sortDirection": "DESC"}"
+			{ "sortFields": ["firstName", "lastName", "id"], "sortDirection": "DESC" }
 		""");
 
 		Sort sort = resolveFunction.apply(environment);

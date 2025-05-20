@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import graphql.execution.preparsed.persisted.ApolloPersistedQuerySupport;
 import graphql.execution.preparsed.persisted.InMemoryPersistedQueryCache;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.graphql.GraphQlSetup;
@@ -40,7 +40,7 @@ import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.function.AsyncServerResponse;
@@ -58,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 class GraphQlHttpHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
-			List.of(new MappingJackson2HttpMessageConverter(), new ByteArrayHttpMessageConverter());
+			List.of(new JacksonJsonHttpMessageConverter(), new ByteArrayHttpMessageConverter());
 
 	private final GraphQlHttpHandler greetingHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 			.queryFetcher("greeting", (env) -> "Hello").toHttpHandler();
@@ -145,7 +145,7 @@ class GraphQlHttpHandlerTests {
 		WebGraphQlHandler webGraphQlHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
 				.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler();
 
-		GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler, new MappingJackson2HttpMessageConverter());
+		GraphQlHttpHandler handler = new GraphQlHttpHandler(webGraphQlHandler, new JacksonJsonHttpMessageConverter());
 		MockHttpServletRequest servletRequest = createServletRequest("{ greeting }", MediaTypes.APPLICATION_GRAPHQL_RESPONSE.toString());
 
 		ServerRequest request = ServerRequest.create(servletRequest, Collections.emptyList());

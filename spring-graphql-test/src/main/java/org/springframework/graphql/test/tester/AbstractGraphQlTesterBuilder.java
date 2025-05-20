@@ -24,8 +24,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
@@ -60,8 +58,8 @@ import org.springframework.util.ClassUtils;
  */
 public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTesterBuilder<B>> implements GraphQlTester.Builder<B> {
 
-	private static final boolean jackson2Present = ClassUtils.isPresent(
-			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
+	private static final boolean jacksonPresent = ClassUtils.isPresent(
+			"tools.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 	private static final Duration DEFAULT_RESPONSE_DURATION = Duration.ofSeconds(5);
 
@@ -130,8 +128,8 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	 */
 	protected GraphQlTester buildGraphQlTester(GraphQlTransport transport) {
 
-		if (jackson2Present) {
-			configureJsonPathConfig(Jackson2Configurer::configure);
+		if (jacksonPresent) {
+			configureJsonPathConfig(JacksonConfigurer::configure);
 		}
 
 		return new DefaultGraphQlTester(transport, this.errorFilter,
@@ -195,7 +193,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 	}
 
 
-	private static final class Jackson2Configurer {
+	private static final class JacksonConfigurer {
 
 		private static final Class<?> defaultJsonProviderType;
 

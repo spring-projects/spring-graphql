@@ -39,7 +39,7 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.web.MockAsyncContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -63,7 +63,7 @@ import static org.mockito.Mockito.mock;
 class GraphQlSseHandlerTests {
 
 	private static final List<HttpMessageConverter<?>> MESSAGE_READERS =
-			List.of(new MappingJackson2HttpMessageConverter());
+			List.of(new JacksonJsonHttpMessageConverter());
 
 	private static final AtomicBoolean DATA_FETCHER_CANCELLED = new AtomicBoolean();
 
