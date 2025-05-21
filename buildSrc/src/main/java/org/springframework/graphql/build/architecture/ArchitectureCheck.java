@@ -45,10 +45,12 @@ import org.gradle.api.tasks.SkipWhenEmpty;
 import org.gradle.api.tasks.TaskAction;
 
 import static org.springframework.graphql.build.architecture.ArchitectureRules.allPackagesShouldBeFreeOfTangles;
+import static org.springframework.graphql.build.architecture.ArchitectureRules.classShouldNotUseSpringNullAnnotations;
 import static org.springframework.graphql.build.architecture.ArchitectureRules.classesShouldNotImportForbiddenTypes;
 import static org.springframework.graphql.build.architecture.ArchitectureRules.javaClassesShouldNotImportKotlinAnnotations;
 import static org.springframework.graphql.build.architecture.ArchitectureRules.noClassesShouldCallStringToLowerCaseWithoutLocale;
 import static org.springframework.graphql.build.architecture.ArchitectureRules.noClassesShouldCallStringToUpperCaseWithoutLocale;
+import static org.springframework.graphql.build.architecture.ArchitectureRules.packageInfoShouldBeNullMarked;
 
 /**
  * {@link Task} that checks for architecture problems.
@@ -68,7 +70,9 @@ public abstract class ArchitectureCheck extends DefaultTask {
 				javaClassesShouldNotImportKotlinAnnotations(),
 				allPackagesShouldBeFreeOfTangles(),
 				noClassesShouldCallStringToLowerCaseWithoutLocale(),
-				noClassesShouldCallStringToUpperCaseWithoutLocale());
+				noClassesShouldCallStringToUpperCaseWithoutLocale(),
+				packageInfoShouldBeNullMarked(),
+				classShouldNotUseSpringNullAnnotations());
 		getRuleDescriptions().set(getRules().map((rules) -> rules.stream().map(ArchRule::getDescription).toList()));
 	}
 
