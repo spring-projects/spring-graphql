@@ -26,13 +26,13 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.graphql.data.method.HandlerMethod;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -61,8 +61,7 @@ final class ValidationHelper {
 	 * possibly {@code null} if the method or the method parameters do not have
 	 * {@link Validated}, {@link Valid}, or {@link Constraint} annotations.
 	 */
-	@Nullable
-	BiConsumer<Object, Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
+	@Nullable BiConsumer<Object, @Nullable Object[]> getValidationHelperFor(HandlerMethod handlerMethod) {
 
 		boolean requiresMethodValidation = false;
 		Class<?>[] methodValidationGroups = null;
@@ -76,7 +75,7 @@ final class ValidationHelper {
 			requiresMethodValidation = true;
 		}
 
-		BiConsumer<Object, Object[]> parameterValidator = null;
+		BiConsumer<Object, @Nullable Object[]> parameterValidator = null;
 		MethodParameter[] parameters = handlerMethod.getMethodParameters();
 
 		for (int i = 0; i < parameters.length; i++) {
@@ -95,7 +94,7 @@ final class ValidationHelper {
 			}
 		}
 
-		BiConsumer<Object, Object[]> result = (requiresMethodValidation) ?
+		BiConsumer<Object, @Nullable Object[]> result = (requiresMethodValidation) ?
 				new HandlerMethodValidator(handlerMethod, methodValidationGroups) : null;
 
 		if (parameterValidator != null) {
@@ -105,8 +104,7 @@ final class ValidationHelper {
 		return result;
 	}
 
-	@Nullable
-	private <A extends Annotation> A findAnnotation(HandlerMethod method, Class<A> annotationType) {
+	private @Nullable <A extends Annotation> A findAnnotation(HandlerMethod method, Class<A> annotationType) {
 		A annotation = AnnotationUtils.findAnnotation(method.getMethod(), annotationType);
 		if (annotation == null) {
 			annotation = AnnotationUtils.findAnnotation(method.getBeanType(), annotationType);
@@ -119,8 +117,7 @@ final class ValidationHelper {
 	 * Factory method to create a {@link ValidationHelper} if there is a
 	 * {@link Validator} bean declared, or {@code null} otherwise.
 	 */
-	@Nullable
-	static ValidationHelper createIfValidatorPresent(ApplicationContext context) {
+	static @Nullable ValidationHelper createIfValidatorPresent(ApplicationContext context) {
 		Validator validator = context.getBeanProvider(Validator.class).getIfAvailable();
 		if (validator instanceof LocalValidatorFactoryBean) {
 			validator = ((LocalValidatorFactoryBean) validator).getValidator();
@@ -142,20 +139,20 @@ final class ValidationHelper {
 	/**
 	 * Callback to apply validation to the invocation of a {@link HandlerMethod}.
 	 */
-	private class HandlerMethodValidator implements BiConsumer<Object, Object[]> {
+	private class HandlerMethodValidator implements BiConsumer<Object, @Nullable Object[]> {
 
 		private final Method method;
 
 		private final Class<?>[] validationGroups;
 
-		HandlerMethodValidator(HandlerMethod handlerMethod, @Nullable Class<?>[] validationGroups) {
+		HandlerMethodValidator(HandlerMethod handlerMethod, Class<?> @Nullable[] validationGroups) {
 			Assert.notNull(handlerMethod, "HandlerMethod is required");
 			this.method = handlerMethod.getMethod();
 			this.validationGroups = (validationGroups != null) ? validationGroups : new Class<?>[] {};
 		}
 
 		@Override
-		public void accept(Object controller, Object[] arguments) {
+		public void accept(Object controller, @Nullable Object[] arguments) {
 
 			Set<ConstraintViolation<Object>> violations =
 					ValidationHelper.this.validator.forExecutables()
@@ -173,25 +170,27 @@ final class ValidationHelper {
 	 * because it's annotated with Spring's {@code @Validated} rather than with
 	 * {@code @Valid}.
 	 */
-	private class MethodParameterValidator implements BiConsumer<Object, Object[]> {
+	private class MethodParameterValidator implements BiConsumer<Object, @Nullable Object[]> {
 
 		private final int index;
 
 		private final Class<?>[] validationGroups;
 
-		MethodParameterValidator(int index, @Nullable Class<?>[] validationGroups) {
+		MethodParameterValidator(int index, Class<?> @Nullable[] validationGroups) {
 			this.index = index;
 			this.validationGroups = (validationGroups != null) ? validationGroups : new Class<?>[] {};
 		}
 
 		@Override
-		public void accept(Object controller, Object[] arguments) {
+		public void accept(Object controller, @Nullable Object[] arguments) {
+			Object argument = arguments[this.index];
+			if (argument != null) {
+				Set<ConstraintViolation<Object>> violations =
+						ValidationHelper.this.validator.validate(argument, this.validationGroups);
 
-			Set<ConstraintViolation<Object>> violations =
-					ValidationHelper.this.validator.validate(arguments[this.index], this.validationGroups);
-
-			if (!violations.isEmpty()) {
-				throw new ConstraintViolationException(violations);
+				if (!violations.isEmpty()) {
+					throw new ConstraintViolationException(violations);
+				}
 			}
 		}
 	}

@@ -45,6 +45,7 @@ import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import org.dataloader.DataLoader;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -76,7 +77,6 @@ import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.execution.SelfDescribingDataFetcher;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -129,8 +129,7 @@ public class AnnotatedControllerConfigurer
 
 	private final InterfaceMappingHelper interfaceMappingHelper = new InterfaceMappingHelper();
 
-	@Nullable
-	private ValidationHelper validationHelper;
+	private @Nullable ValidationHelper validationHelper;
 
 
 	/**
@@ -252,7 +251,7 @@ public class AnnotatedControllerConfigurer
 	}
 
 	@Override
-	protected DataFetcherMappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
+	protected @Nullable DataFetcherMappingInfo getMappingInfo(Method method, Object handler, Class<?> handlerType) {
 		Set<Annotation> annotations = AnnotatedElementUtils.findAllMergedAnnotations(
 				method, new LinkedHashSet<>(Arrays.asList(BatchMapping.class, SchemaMapping.class)));
 
@@ -434,13 +433,11 @@ public class AnnotatedControllerConfigurer
 
 		private final HandlerMethodArgumentResolverComposite argumentResolvers;
 
-		@Nullable
-		private final BiConsumer<Object, Object[]> methodValidationHelper;
+		private final @Nullable BiConsumer<Object, @Nullable Object[]> methodValidationHelper;
 
 		private final HandlerDataFetcherExceptionResolver exceptionResolver;
 
-		@Nullable
-		private final Executor executor;
+		private final @Nullable Executor executor;
 
 		private final boolean invokeAsync;
 
@@ -511,7 +508,7 @@ public class AnnotatedControllerConfigurer
 
 		@Override
 		@SuppressWarnings({"ConstantConditions", "ReactiveStreamsUnusedPublisher"})
-		public Object get(DataFetchingEnvironment environment) throws Exception {
+		public @Nullable Object get(DataFetchingEnvironment environment) throws Exception {
 
 			DataFetcherHandlerMethod handlerMethod = new DataFetcherHandlerMethod(
 					getHandlerMethod(), this.argumentResolvers, this.methodValidationHelper,
@@ -527,9 +524,8 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@SuppressWarnings({"unchecked", "ReactiveStreamsUnusedPublisher"})
-		@Nullable
-		private <T> Object applyExceptionHandling(
-				DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod, Object result) {
+		private @Nullable <T> Object applyExceptionHandling(
+				DataFetchingEnvironment env, DataFetcherHandlerMethod handlerMethod, @Nullable Object result) {
 
 			if (this.subscription) {
 				return ReactiveAdapterRegistryHelper.toSubscriptionFlux(result)
@@ -603,7 +599,8 @@ public class AnnotatedControllerConfigurer
 		@Override
 		public Object get(DataFetchingEnvironment env) {
 			DataLoader<?, ?> dataLoader = env.getDataLoader(this.dataLoaderKey);
-			Assert.state(dataLoader != null, "No DataLoader for key '" + this.dataLoaderKey + "'");
+			Assert.state(dataLoader != null, () -> "No DataLoader for key '" + this.dataLoaderKey + "'");
+			Assert.state(env.getSource() != null, () -> "Missing Source in environment");
 			return ((env.getLocalContext() != null) ?
 					dataLoader.load(env.getSource(), env.getLocalContext()) :
 					dataLoader.load(env.getSource()));

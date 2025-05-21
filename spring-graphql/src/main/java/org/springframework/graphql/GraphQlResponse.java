@@ -20,7 +20,7 @@ package org.springframework.graphql;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a GraphQL response with the result of executing a request operation.
@@ -51,8 +51,7 @@ public interface GraphQlResponse {
 	 * is not {@link #isValid() valid}.
 	 * @param <T> a map or a list
 	 */
-	@Nullable
-	<T> T getData();
+	@Nullable <T> T getData();
 
 	/**
 	 * Return errors included in the response.

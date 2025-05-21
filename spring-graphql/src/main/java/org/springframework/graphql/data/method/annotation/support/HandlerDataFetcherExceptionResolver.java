@@ -20,10 +20,10 @@ import java.util.List;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
-import org.springframework.lang.Nullable;
 
 /**
  * Extension of {@link DataFetcherExceptionResolver} with overloaded method to

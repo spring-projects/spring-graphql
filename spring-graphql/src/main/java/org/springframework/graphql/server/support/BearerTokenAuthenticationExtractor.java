@@ -20,9 +20,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.resource.BearerTokenError;
@@ -89,8 +89,7 @@ public final class BearerTokenAuthenticationExtractor implements AuthenticationE
 		return Mono.just(new BearerTokenAuthenticationToken(token));
 	}
 
-	@Nullable
-	private String getAuthorizationValue(Map<String, Object> payload) {
+	private @Nullable String getAuthorizationValue(Map<String, Object> payload) {
 		String value = (String) payload.get(this.authorizationKey);
 		if (value != null) {
 			return value;

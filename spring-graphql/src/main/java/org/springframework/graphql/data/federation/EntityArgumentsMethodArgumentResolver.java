@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
@@ -60,7 +61,7 @@ final class EntityArgumentsMethodArgumentResolver implements HandlerMethodArgume
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment env) throws Exception {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment env) throws Exception {
 		ResolvableType targetType = ResolvableType.forMethodParameter(parameter);
 		if (env instanceof EntityDataFetchingEnvironment entityEnv) {
 			return this.argumentBinder.bind(entityEnv.getRepresentation(), false, targetType);

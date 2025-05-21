@@ -21,10 +21,10 @@ import java.net.URI;
 import java.security.Principal;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.lang.Nullable;
 
 /**
  * Expose information about the underlying WebSocketSession including the
@@ -64,7 +64,6 @@ public interface WebSocketSessionInfo {
 	 * For a server session this is the remote address where the handshake
 	 * request came from. For a client session, it is {@code null}.
 	 */
-	@Nullable
-	InetSocketAddress getRemoteAddress();
+	@Nullable InetSocketAddress getRemoteAddress();
 
 }

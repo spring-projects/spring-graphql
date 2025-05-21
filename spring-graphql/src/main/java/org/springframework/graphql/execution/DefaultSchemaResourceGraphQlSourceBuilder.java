@@ -43,9 +43,9 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.WiringFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.io.Resource;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -70,19 +70,15 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	private final List<RuntimeWiringConfigurer> runtimeWiringConfigurers = new ArrayList<>();
 
 
-	@Nullable
-	private TypeResolver typeResolver;
+	private @Nullable TypeResolver typeResolver;
 
-	@Nullable
-	private BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory;
+	private @Nullable BiFunction<TypeDefinitionRegistry, RuntimeWiring, GraphQLSchema> schemaFactory;
 
-	@Nullable
-	private Consumer<SchemaReport> schemaReportConsumer;
+	private @Nullable Consumer<SchemaReport> schemaReportConsumer;
 
 	private Consumer<SchemaMappingInspector.Initializer> inspectorInitializerConsumer = (initializer) -> { };
 
-	@Nullable
-	private Consumer<GraphQLSchema> schemaReportRunner;
+	private @Nullable Consumer<GraphQLSchema> schemaReportRunner;
 
 
 	@Override
@@ -133,6 +129,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 	}
 
 	@Override
+	@SuppressWarnings("NullAway")
 	protected GraphQLSchema initGraphQlSchema() {
 
 		TypeDefinitionRegistry registry = this.schemaResources.stream()
@@ -166,8 +163,7 @@ final class DefaultSchemaResourceGraphQlSourceBuilder
 		// visitors may transform the schema, for example to add Connection types.
 
 		if (this.schemaReportConsumer != null) {
-			this.schemaReportRunner = (schema) ->
-					this.schemaReportConsumer.accept(createSchemaReport(schema, runtimeWiring));
+			this.schemaReportRunner = (schema) -> this.schemaReportConsumer.accept(createSchemaReport(schema, runtimeWiring));
 		}
 
 		return (this.schemaFactory != null) ?

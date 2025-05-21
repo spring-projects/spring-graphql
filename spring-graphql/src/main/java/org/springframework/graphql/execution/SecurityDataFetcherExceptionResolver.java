@@ -18,6 +18,7 @@ package org.springframework.graphql.execution;
 
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
@@ -57,7 +58,7 @@ public class SecurityDataFetcherExceptionResolver extends DataFetcherExceptionRe
 
 
 	@Override
-	protected GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment environment) {
+	protected @Nullable GraphQLError resolveToSingleError(Throwable ex, DataFetchingEnvironment environment) {
 		if (ex instanceof AuthenticationException) {
 			return SecurityExceptionResolverUtils.resolveUnauthorized(environment);
 		}

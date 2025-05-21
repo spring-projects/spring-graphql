@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.Scannable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -41,7 +42,6 @@ import org.springframework.graphql.server.support.GraphQlWebSocketMessage;
 import org.springframework.graphql.server.support.GraphQlWebSocketMessageType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -68,8 +68,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 	private final Mono<GraphQlSession> graphQlSessionMono;
 
-	@Nullable
-	private final Duration keepAlive;
+	private final @Nullable Duration keepAlive;
 
 
 	WebSocketGraphQlTransport(
@@ -167,8 +166,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 		return this.graphQlSessionMono.flatMapMany((session) -> session.executeSubscription(request));
 	}
 
-	@Nullable
-	Duration getKeepAlive() {
+	@Nullable Duration getKeepAlive() {
 		return this.keepAlive;
 	}
 
@@ -193,8 +191,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 
 		private final AtomicBoolean stopped = new AtomicBoolean();
 
-		@Nullable
-		private final Duration keepAlive;
+		private final @Nullable Duration keepAlive;
 
 
 		GraphQlSessionHandler(
@@ -267,6 +264,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						if (sessionNotInitialized()) {
 							try {
 								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
+								Assert.notNull(message, () -> "Cannot decode graphql message from: " + webSocketMessage);
 								Assert.state(message.resolvedType() == GraphQlWebSocketMessageType.CONNECTION_ACK,
 										() -> "Unexpected message before connection_ack: " + message);
 								return this.interceptor.handleConnectionAck(message.getPayload())
@@ -290,6 +288,9 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 						else {
 							try {
 								GraphQlWebSocketMessage message = this.codecDelegate.decode(webSocketMessage);
+								if (message == null) {
+									throw new IllegalStateException("Cannot decode graphql message from: " + webSocketMessage);
+								}
 								switch (message.resolvedType()) {
 									case NEXT -> graphQlSession.handleNext(message);
 									case PING -> graphQlSession.sendPong(null);
@@ -300,7 +301,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 											"Unexpected message type: '" + message.getType() + "'");
 								}
 							}
-							catch (Exception ex) {
+							catch (Throwable ex) {
 								if (logger.isErrorEnabled()) {
 									logger.error("Closing " + session + ": " + ex);
 								}
@@ -654,8 +655,7 @@ final class WebSocketGraphQlTransport implements GraphQlTransport {
 	 */
 	private static final class RequestSink {
 
-		@Nullable
-		private FluxSink<GraphQlWebSocketMessage> requestSink;
+		private @Nullable FluxSink<GraphQlWebSocketMessage> requestSink;
 
 		private boolean hasSentMessages;
 

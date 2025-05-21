@@ -22,12 +22,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.CodecConfigurer;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -51,8 +51,7 @@ final class DefaultWebSocketGraphQlClientBuilder
 
 	private final CodecConfigurer codecConfigurer;
 
-	@Nullable
-	private Duration keepAlive;
+	private @Nullable Duration keepAlive;
 
 	/**
 	 * Constructor to start via {@link WebSocketGraphQlClient#builder(String, WebSocketClient)}.

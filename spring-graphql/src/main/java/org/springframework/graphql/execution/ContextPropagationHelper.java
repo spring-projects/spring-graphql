@@ -19,13 +19,12 @@ package org.springframework.graphql.execution;
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
-
-import org.springframework.lang.Nullable;
 
 /**
  * Helper for propagating context values from and to Reactor and GraphQL contexts.

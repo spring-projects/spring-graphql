@@ -17,11 +17,12 @@
 package org.springframework.graphql.data.query;
 
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.graphql.data.pagination.Subrange;
-import org.springframework.lang.Nullable;
 
 /**
  * {@link Subrange} implementation for a {@link ScrollPosition} cursor.

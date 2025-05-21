@@ -21,9 +21,9 @@ import java.util.Map;
 
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.NestedRuntimeException;
-import org.springframework.lang.Nullable;
 
 /**
  * An exception raised after a GraphQL subscription

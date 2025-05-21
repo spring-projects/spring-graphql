@@ -17,11 +17,11 @@
 package org.springframework.graphql.data.method.annotation.support;
 
 import graphql.schema.FieldCoordinates;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
-import org.springframework.lang.Nullable;
 
 
 /**

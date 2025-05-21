@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.util.function.Function;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -32,7 +33,6 @@ import org.springframework.data.repository.core.support.DefaultRepositoryMetadat
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.data.pagination.CursorEncoder;
 import org.springframework.graphql.data.pagination.CursorStrategy;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -71,8 +71,7 @@ final class RepositoryUtils {
 				String.format("Cannot resolve repository interface from %s", executor));
 	}
 
-	@Nullable
-	static String getGraphQlTypeName(Object repository) {
+	static @Nullable String getGraphQlTypeName(Object repository) {
 		GraphQlRepository annotation =
 				AnnotatedElementUtils.findMergedAnnotation(repository.getClass(), GraphQlRepository.class);
 

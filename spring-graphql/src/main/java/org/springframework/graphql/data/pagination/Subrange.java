@@ -20,7 +20,7 @@ package org.springframework.graphql.data.pagination;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Container for parameters that limit result elements to a subrange including a

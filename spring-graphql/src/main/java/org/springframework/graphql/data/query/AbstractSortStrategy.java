@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.data.domain.Sort;
-import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -48,7 +48,7 @@ public abstract class AbstractSortStrategy implements SortStrategy {
 			}
 			return Sort.by(sortOrders);
 		}
-		return null;
+		return Sort.unsorted();
 	}
 
 	/**
@@ -61,7 +61,6 @@ public abstract class AbstractSortStrategy implements SortStrategy {
 	 * Return the sort direction to use, or {@code null}.
 	 * @param environment the data fetching environment for this operation
 	 */
-	@Nullable
-	protected abstract Sort.Direction getDirection(DataFetchingEnvironment environment);
+	protected abstract Sort.@Nullable Direction getDirection(DataFetchingEnvironment environment);
 
 }

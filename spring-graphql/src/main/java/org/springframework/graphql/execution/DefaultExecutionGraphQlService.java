@@ -29,6 +29,7 @@ import graphql.execution.ExecutionIdProvider;
 import graphql.execution.instrumentation.dataloader.EmptyDataLoaderRegistryInstance;
 import io.micrometer.context.ContextSnapshotFactory;
 import org.dataloader.DataLoaderRegistry;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
@@ -36,7 +37,6 @@ import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.support.DefaultExecutionGraphQlResponse;
-import org.springframework.lang.Nullable;
 
 /**
  * {@link ExecutionGraphQlService} that uses a {@link GraphQlSource} to obtain a
@@ -55,8 +55,7 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 
 	private final List<DataLoaderRegistrar> dataLoaderRegistrars = new ArrayList<>();
 
-	@Nullable
-	private Boolean hasDataLoaderRegistrations;
+	private @Nullable Boolean hasDataLoaderRegistrations;
 
 	private final boolean isDefaultExecutionIdProvider;
 

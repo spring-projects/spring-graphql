@@ -26,6 +26,7 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.core.BridgeMethodResolver;
@@ -33,7 +34,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.SynthesizingMethodParameter;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
@@ -61,8 +61,7 @@ public class HandlerMethod {
 
 	private final Object bean;
 
-	@Nullable
-	private final BeanFactory beanFactory;
+	private final @Nullable BeanFactory beanFactory;
 
 	private final Class<?> beanType;
 
@@ -72,8 +71,7 @@ public class HandlerMethod {
 
 	private final MethodParameter[] parameters;
 
-	@Nullable
-	private volatile List<Annotation[][]> interfaceParameterAnnotations;
+	private volatile @Nullable List<Annotation[][]> interfaceParameterAnnotations;
 
 
 	/**
@@ -221,8 +219,7 @@ public class HandlerMethod {
 	 * @return the annotation, or {@code null} if none found
 	 * @see AnnotatedElementUtils#findMergedAnnotation
 	 */
-	@Nullable
-	public <A extends Annotation> A getMethodAnnotation(Class<A> annotationType) {
+	public @Nullable <A extends Annotation> A getMethodAnnotation(Class<A> annotationType) {
 		return AnnotatedElementUtils.findMergedAnnotation(this.method, annotationType);
 	}
 
@@ -242,9 +239,8 @@ public class HandlerMethod {
 	 */
 	public HandlerMethod createWithResolvedBean() {
 		Object handler = this.bean;
-		if (this.bean instanceof String) {
+		if (this.bean instanceof String beanName) {
 			Assert.state(this.beanFactory != null, "Cannot resolve bean name without BeanFactory");
-			String beanName = (String) this.bean;
 			handler = this.beanFactory.getBean(beanName);
 		}
 		return new HandlerMethod(this, handler);
@@ -317,9 +313,7 @@ public class HandlerMethod {
 
 
 	// Support methods for use in "InvocableHandlerMethod" sub-class variants..
-
-	@Nullable
-	protected static Object findProvidedArgument(MethodParameter parameter, @Nullable Object... providedArgs) {
+	protected static @Nullable Object findProvidedArgument(MethodParameter parameter, Object... providedArgs) {
 		if (!ObjectUtils.isEmpty(providedArgs)) {
 			for (Object providedArg : providedArgs) {
 				if (parameter.getParameterType().isInstance(providedArg)) {
@@ -345,7 +339,7 @@ public class HandlerMethod {
 	 * @param targetBean the bean instance
 	 * @param args the method arguments
 	 */
-	protected void assertTargetBean(Method method, Object targetBean, Object[] args) {
+	protected void assertTargetBean(Method method, Object targetBean, @Nullable Object[] args) {
 		Class<?> methodDeclaringClass = method.getDeclaringClass();
 		Class<?> targetBeanClass = targetBean.getClass();
 		if (!methodDeclaringClass.isAssignableFrom(targetBeanClass)) {
@@ -357,12 +351,18 @@ public class HandlerMethod {
 		}
 	}
 
-	protected String formatInvokeError(String text, Object[] args) {
+	protected String formatInvokeError(String text, @Nullable Object[] args) {
 
 		String formattedArgs = IntStream.range(0, args.length)
-				.mapToObj((i) -> (args[i] != null) ?
-						"[" + i + "] [type=" + args[i].getClass().getName() + "] [value=" + args[i] + "]" :
-						"[" + i + "] [null]")
+				.mapToObj((i) -> {
+					Object arg = args[i];
+					if (arg != null) {
+						return "[" + i + "] [type=" + arg.getClass().getName() + "] [value=" + arg + "]";
+					}
+					else {
+						return "[" + i + "] [null]";
+					}
+				})
 				.collect(Collectors.joining(",\n", " ", " "));
 
 		return text + "\n" +
@@ -377,8 +377,7 @@ public class HandlerMethod {
 	 */
 	protected class HandlerMethodParameter extends SynthesizingMethodParameter {
 
-		@Nullable
-		private volatile Annotation[] combinedAnnotations;
+		private volatile Annotation @Nullable [] combinedAnnotations;
 
 		public HandlerMethodParameter(int index) {
 			super(HandlerMethod.this.bridgedMethod, index);
@@ -394,7 +393,7 @@ public class HandlerMethod {
 		}
 
 		@Override
-		public <T extends Annotation> T getMethodAnnotation(Class<T> annotationType) {
+		public @Nullable <T extends Annotation> T getMethodAnnotation(Class<T> annotationType) {
 			return HandlerMethod.this.getMethodAnnotation(annotationType);
 		}
 
@@ -404,6 +403,7 @@ public class HandlerMethod {
 		}
 
 		@Override
+		@SuppressWarnings("NullAway")
 		public Annotation[] getParameterAnnotations() {
 			Annotation[] anns = this.combinedAnnotations;
 			if (anns == null) {
@@ -450,8 +450,7 @@ public class HandlerMethod {
 	 */
 	private class ReturnValueMethodParameter extends HandlerMethodParameter {
 
-		@Nullable
-		private final Object returnValue;
+		private final @Nullable Object returnValue;
 
 		ReturnValueMethodParameter(@Nullable Object returnValue) {
 			super(-1);

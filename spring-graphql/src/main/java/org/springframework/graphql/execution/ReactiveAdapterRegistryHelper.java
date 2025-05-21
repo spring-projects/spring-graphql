@@ -18,7 +18,7 @@ package org.springframework.graphql.execution;
 
 import java.util.Collection;
 
-import io.micrometer.context.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -60,8 +60,7 @@ public abstract class ReactiveAdapterRegistryHelper {
 	 * @return the same instance or a {@code Mono} if the object is known to
 	 * {@code ReactiveAdapterRegistry}
 	 */
-	@Nullable
-	public static Object toMonoIfReactive(@Nullable Object result) {
+	public static @Nullable Object toMonoIfReactive(@Nullable Object result) {
 		ReactiveAdapter adapter = ((result != null) ? registry.getAdapter(result.getClass()) : null);
 		if (adapter == null) {
 			return result;
@@ -77,8 +76,7 @@ public abstract class ReactiveAdapterRegistryHelper {
 	 * @param result the result Object to adapt
 	 * @return the same instance, a {@code Mono}, or a {@code Flux}
 	 */
-	@Nullable
-	public static Object toMonoOrFluxIfReactive(@Nullable Object result) {
+	public static @Nullable Object toMonoOrFluxIfReactive(@Nullable Object result) {
 		ReactiveAdapter adapter = ((result != null) ? registry.getAdapter(result.getClass()) : null);
 		if (adapter == null) {
 			return result;

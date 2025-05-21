@@ -22,13 +22,13 @@ import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -39,7 +39,7 @@ import org.springframework.util.Assert;
  */
 public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 
-	private final BiConsumer<Object, Object[]> validationHelper;
+	private final BiConsumer<Object, @Nullable Object[]> validationHelper;
 
 	private final boolean subscription;
 
@@ -56,7 +56,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	@Deprecated(since = "1.3.0", forRemoval = true)
 	public DataFetcherHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable BiConsumer<Object, Object[]> validationHelper, @Nullable Executor executor,
+			@Nullable BiConsumer<Object, @Nullable Object[]> validationHelper, @Nullable Executor executor,
 			boolean subscription) {
 
 		this(handlerMethod, resolvers, validationHelper, executor, subscription, false);
@@ -74,12 +74,17 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 */
 	public DataFetcherHandlerMethod(
 			HandlerMethod handlerMethod, HandlerMethodArgumentResolverComposite resolvers,
-			@Nullable BiConsumer<Object, Object[]> validationHelper,
+			@Nullable BiConsumer<Object, @Nullable Object[]> validationHelper,
 			@Nullable Executor executor, boolean invokeAsync, boolean subscription) {
 
 		super(handlerMethod, resolvers, executor, invokeAsync);
 		Assert.isTrue(!resolvers.getResolvers().isEmpty(), "No argument resolvers");
-		this.validationHelper = (validationHelper != null) ? validationHelper : (controller, args) -> { };
+		this.validationHelper = (validationHelper != null) ? validationHelper : new BiConsumer<Object, @Nullable Object[]>() {
+			@Override
+			public void accept(Object o, @Nullable Object[] objects) {
+
+			}
+		};
 		this.subscription = subscription;
 	}
 
@@ -98,8 +103,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * {@code Mono} in case a method argument requires asynchronous resolution;
 	 * {@code Mono<Throwable>} is returned if invocation fails.
 	 */
-	@Nullable
-	public Object invoke(DataFetchingEnvironment environment) {
+	public @Nullable Object invoke(DataFetchingEnvironment environment) {
 		return invoke(environment, new Object[0]);
 	}
 
@@ -111,9 +115,8 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 	 * @since 1.2.0
 	 */
 	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
-	@Nullable
-	public Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {
-		Object[] args;
+	public @Nullable Object invoke(DataFetchingEnvironment environment, Object... providedArgs) {
+		@Nullable Object[] args;
 		try {
 			args = getMethodArgumentValues(environment, providedArgs);
 		}
@@ -136,8 +139,7 @@ public class DataFetcherHandlerMethod extends DataFetcherHandlerMethodSupport {
 				});
 	}
 
-	@Nullable
-	private Object validateAndInvoke(Object[] args, DataFetchingEnvironment environment) {
+	private @Nullable Object validateAndInvoke(@Nullable Object[] args, DataFetchingEnvironment environment) {
 		this.validationHelper.accept(getBean(), args);
 		return doInvoke(environment.getGraphQlContext(), args);
 	}

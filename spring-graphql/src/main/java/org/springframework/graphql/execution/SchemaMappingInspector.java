@@ -49,6 +49,7 @@ import graphql.schema.GraphQLUnionType;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
@@ -56,7 +57,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ReactiveAdapter;
 import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.ResolvableType;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
@@ -104,8 +104,7 @@ public final class SchemaMappingInspector {
 
 	private final ReportBuilder reportBuilder = new ReportBuilder();
 
-	@Nullable
-	private SchemaReport report;
+	private @Nullable SchemaReport report;
 
 
 	private SchemaMappingInspector(
@@ -262,8 +261,7 @@ public final class SchemaMappingInspector {
 		}
 	}
 
-	@Nullable
-	private PropertyDescriptor getProperty(ResolvableType resolvableType, String fieldName) {
+	private @Nullable PropertyDescriptor getProperty(ResolvableType resolvableType, String fieldName) {
 		try {
 			Class<?> clazz = resolvableType.resolve();
 			return (clazz != null) ? BeanUtils.getPropertyDescriptor(clazz, fieldName) : null;
@@ -274,8 +272,7 @@ public final class SchemaMappingInspector {
 		}
 	}
 
-	@Nullable
-	private Field getField(ResolvableType resolvableType, String fieldName) {
+	private @Nullable Field getField(ResolvableType resolvableType, String fieldName) {
 		try {
 			Class<?> clazz = resolvableType.resolve();
 			return (clazz != null) ? clazz.getField(fieldName) : null;
@@ -285,8 +282,7 @@ public final class SchemaMappingInspector {
 		}
 	}
 
-	@Nullable
-	private static Method getRecordLikeMethod(ResolvableType resolvableType, String fieldName) {
+	private static @Nullable Method getRecordLikeMethod(ResolvableType resolvableType, String fieldName) {
 		Class<?> clazz = resolvableType.resolve();
 		if (clazz != null) {
 			for (Method method : clazz.getDeclaredMethods()) {
@@ -721,8 +717,7 @@ public final class SchemaMappingInspector {
 			return (type instanceof GraphQLNonNull graphQLNonNull) ? graphQLNonNull.getWrappedType() : type;
 		}
 
-		@Nullable
-		private static GraphQLType getPaginatedType(GraphQLType type) {
+		private static @Nullable GraphQLType getPaginatedType(GraphQLType type) {
 			if (!(type instanceof GraphQLObjectType cot && cot.getName().endsWith("Connection"))) {
 				return null;
 			}
@@ -912,8 +907,7 @@ public final class SchemaMappingInspector {
 		}
 
 		@Override
-		@Nullable
-		public DataFetcher<?> dataFetcher(FieldCoordinates coordinates) {
+		public @Nullable DataFetcher<?> dataFetcher(FieldCoordinates coordinates) {
 			return SchemaMappingInspector.this.dataFetchers
 					.getOrDefault(coordinates.getTypeName(), Collections.emptyMap())
 					.get(coordinates.getFieldName());

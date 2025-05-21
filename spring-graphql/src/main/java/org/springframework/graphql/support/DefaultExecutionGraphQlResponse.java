@@ -27,11 +27,11 @@ import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
 import graphql.language.SourceLocation;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -85,9 +85,8 @@ public class DefaultExecutionGraphQlResponse extends AbstractGraphQlResponse imp
 		return (this.result.isDataPresent() && this.result.getData() != null);
 	}
 
-	@Nullable
 	@Override
-	public <T> T getData() {
+	public @Nullable <T> T getData() {
 		return this.result.getData();
 	}
 

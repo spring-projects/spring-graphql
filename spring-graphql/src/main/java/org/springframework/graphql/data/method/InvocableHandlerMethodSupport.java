@@ -27,13 +27,13 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
 import org.springframework.data.util.KotlinReflectionUtils;
 import org.springframework.graphql.execution.ContextPropagationHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -48,8 +48,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	private static final Object NO_VALUE = new Object();
 
 
-	@Nullable
-	private final Executor executor;
+	private final @Nullable Executor executor;
 
 	private final boolean hasCallableReturnValue;
 
@@ -97,8 +96,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 * if the invocation fails.
 	 */
 	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
-	@Nullable
-	protected Object doInvoke(GraphQLContext graphQLContext, Object... argValues) {
+	protected @Nullable Object doInvoke(GraphQLContext graphQLContext, @Nullable Object... argValues) {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Invoking " + getBridgedMethod().getName() + "(" + Arrays.toString(argValues) + ")");
 		}
@@ -134,7 +132,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	}
 
 	@SuppressWarnings({"ReactiveStreamsUnusedPublisher", "unchecked"})
-	private static Object invokeSuspendingFunction(Object bean, Method method, Object[] argValues) {
+	private static Object invokeSuspendingFunction(Object bean, Method method, @Nullable Object[] argValues) {
 		Object result = CoroutinesUtils.invokeSuspendingFunction(method, bean, argValues);
 
 		// Support use of DataLoader from suspending function
@@ -148,9 +146,10 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 	@SuppressWarnings("DataFlowIssue")
 	private CompletableFuture<?> adaptCallable(
-			GraphQLContext graphQLContext, Callable<?> result, Method method, Object[] argValues) {
+			GraphQLContext graphQLContext, Callable<?> result, Method method, @Nullable Object[] argValues) {
 
 		CompletableFuture<Object> future = new CompletableFuture<>();
+		Assert.state(this.executor != null, "No Executor configured for Callable return values");
 		this.executor.execute(() -> {
 			try {
 				ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
@@ -171,14 +170,14 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	}
 
 	private IllegalStateException processIllegalArgumentException(
-			Object[] argValues, IllegalArgumentException ex, Method method) {
+			@Nullable Object[] argValues, IllegalArgumentException ex, Method method) {
 
 		assertTargetBean(method, getBean(), argValues);
 		String text = (ex.getMessage() != null) ? ex.getMessage() : "Illegal argument";
 		return new IllegalStateException(formatInvokeError(text, argValues), ex);
 	}
 
-	private Throwable processInvocationTargetException(Object[] argValues, InvocationTargetException ex) {
+	private Throwable processInvocationTargetException(@Nullable Object[] argValues, InvocationTargetException ex) {
 		// Unwrap for DataFetcherExceptionResolvers ...
 		Throwable targetException = ex.getTargetException();
 		if (targetException instanceof Error || targetException instanceof Exception) {
@@ -193,8 +192,8 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	 * useful when at least one of the values is a {@link Mono}
 	 * @param args the arguments to be resolved asynchronously
 	 */
-	@SuppressWarnings("unchecked")
-	protected Mono<Object[]> toArgsMono(Object[] args) {
+	@SuppressWarnings({"unchecked", "NullAway"})
+	protected Mono<@Nullable Object[]> toArgsMono(@Nullable Object[] args) {
 		List<Mono<Object>> monoList = new ArrayList<>();
 		for (Object arg : args) {
 			Mono<Object> argMono = ((arg instanceof Mono) ? (Mono<Object>) arg : Mono.justOrEmpty(arg));

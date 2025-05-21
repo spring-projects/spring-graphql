@@ -88,7 +88,10 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 	private Throwable unwrapException(DataFetcherExceptionHandlerParameters params) {
 		Throwable ex = params.getException();
-		return ((ex instanceof CompletionException) ? ex.getCause() : ex);
+		if (ex instanceof CompletionException completionException) {
+			return (completionException.getCause() != null) ? completionException.getCause() : completionException;
+		}
+		return ex;
 	}
 
 	private void logResolvedException(Throwable ex, DataFetcherExceptionHandlerResult result) {

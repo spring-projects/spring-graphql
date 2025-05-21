@@ -19,6 +19,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.lang.annotation.Annotation;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -30,7 +31,6 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -79,8 +79,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 	 * directly on the {@link MethodParameter} or on a custom annotation that
 	 * is meta-annotated with it.
 	 */
-	@Nullable
-	private static AuthenticationPrincipal findMethodAnnotation(MethodParameter parameter) {
+	private static @Nullable AuthenticationPrincipal findMethodAnnotation(MethodParameter parameter) {
 		AuthenticationPrincipal annotation = parameter.getParameterAnnotation(AuthenticationPrincipal.class);
 		if (annotation != null) {
 			return annotation;
@@ -96,7 +95,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 	}
 
 	@Override
-	public Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
+	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		return getCurrentAuthentication(parameter)
 				.mapNotNull((auth) -> resolvePrincipal(parameter, auth.getPrincipal()))
 				.transform((argument) -> isPublisherOrMono(parameter) ? Mono.just(argument) : argument);
@@ -113,20 +112,18 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return (value instanceof Authentication auth) ? Mono.just(auth) : (Mono<Authentication>) value;
 	}
 
-	@Nullable
-	private Object resolvePrincipal(MethodParameter parameter, Object principal) {
+	private @Nullable Object resolvePrincipal(MethodParameter parameter, Object principal) {
 		AuthenticationPrincipal annotation = findMethodAnnotation(parameter);
-		String expressionValue = annotation.expression();
-		if (StringUtils.hasLength(expressionValue)) {
+		if (annotation != null && StringUtils.hasLength(annotation.expression())) {
 			StandardEvaluationContext context = new StandardEvaluationContext();
 			context.setRootObject(principal);
 			context.setVariable("this", principal);
 			context.setBeanResolver(this.beanResolver);
-			Expression expression = this.parser.parseExpression(expressionValue);
+			Expression expression = this.parser.parseExpression(annotation.expression());
 			principal = expression.getValue(context);
 		}
 		if (isInvalidType(parameter, principal)) {
-			if (annotation.errorOnInvalidType()) {
+			if (annotation != null && annotation.errorOnInvalidType()) {
 				throw new ClassCastException(principal + " is not assignable to " + parameter.getParameterType());
 			}
 			return null;

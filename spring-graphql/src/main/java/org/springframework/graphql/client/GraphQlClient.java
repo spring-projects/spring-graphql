@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -31,7 +32,6 @@ import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseField;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
-import org.springframework.lang.Nullable;
 
 /**
  * Define a workflow to execute GraphQL requests that is independent of the
@@ -337,16 +337,14 @@ public interface GraphQlClient {
 		 * errors} or an {@link GraphQlResponse#isValid() invalid} response;
 		 * @see ResponseField#getErrors()
 		 */
-		@Nullable
-		<D> D toEntity(Class<D> entityType);
+		@Nullable <D> D toEntity(Class<D> entityType);
 
 		/**
 		 * Variant of {@link #toEntity(Class)} with a {@link ParameterizedTypeReference}.
 		 * @param <D> the type to convert to
 		 * @param entityType the type to convert to
 		 */
-		@Nullable
-		<D> D toEntity(ParameterizedTypeReference<D> entityType);
+		@Nullable <D> D toEntity(ParameterizedTypeReference<D> entityType);
 
 		/**
 		 * Variant of {@link #toEntity(Class)} to decode to a List of entities.

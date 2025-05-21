@@ -24,11 +24,11 @@ import java.util.stream.Collectors;
 import graphql.ErrorClassification;
 import graphql.GraphQLError;
 import graphql.language.SourceLocation;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.ResponseError;
 import org.springframework.graphql.support.AbstractGraphQlResponse;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -76,7 +76,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T> T getData() {
+	public @Nullable <T> T getData() {
 		return (T) this.responseMap.get("data");
 	}
 
@@ -160,8 +160,7 @@ class ResponseMapGraphQlResponse extends AbstractGraphQlResponse {
 
 
 		@Override
-		@Nullable
-		public String getMessage() {
+		public @Nullable String getMessage() {
 			return (String) this.errorMap.get("message");
 		}
 

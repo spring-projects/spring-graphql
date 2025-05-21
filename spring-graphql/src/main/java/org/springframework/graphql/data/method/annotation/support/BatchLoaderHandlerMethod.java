@@ -25,6 +25,7 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import org.dataloader.BatchLoaderEnvironment;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,7 +37,6 @@ import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.InvocableHandlerMethodSupport;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.execution.ReactiveAdapterRegistryHelper;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -91,15 +91,16 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	 * @param <V> the type of values in the map
 	 * @return a {@code Mono} with map of key-value pairs.
 	 */
-	@Nullable
-	public <K, V> Mono<Map<K, V>> invokeForMap(Collection<K> keys, BatchLoaderEnvironment environment) {
-		Object[] args = getMethodArgumentValues(keys, environment);
+	public @Nullable <K, V> Mono<Map<K, V>> invokeForMap(Collection<K> keys, BatchLoaderEnvironment environment) {
+		@Nullable Object[] args = getMethodArgumentValues(keys, environment);
+		GraphQLContext context = environment.getContext();
+		Assert.notNull(context, "No GraphQLContext available");
 		if (doesNotHaveAsyncArgs(args)) {
-			Object result = doInvoke(environment.getContext(), args);
+			Object result = doInvoke(context, args);
 			return ReactiveAdapterRegistryHelper.toMono(result);
 		}
 		return toArgsMono(args).flatMap((argValues) -> {
-			Object result = doInvoke(environment.getContext(), argValues);
+			Object result = doInvoke(context, argValues);
 			return ReactiveAdapterRegistryHelper.toMono(result);
 		});
 	}
@@ -113,27 +114,28 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 	 * @return a {@code Flux} of values.
 	 */
 	public <V> Flux<V> invokeForIterable(Collection<?> keys, BatchLoaderEnvironment environment) {
-		Object[] args = getMethodArgumentValues(keys, environment);
+		@Nullable Object[] args = getMethodArgumentValues(keys, environment);
+		GraphQLContext context = environment.getContext();
+		Assert.notNull(context, "No GraphQLContext available");
 		if (doesNotHaveAsyncArgs(args)) {
-			Object result = doInvoke(environment.getContext(), args);
+			Object result = doInvoke(context, args);
 			return ReactiveAdapterRegistryHelper.toFluxFromCollection(result);
 		}
 		return toArgsMono(args).flatMapMany((resolvedArgs) -> {
-			Object result = doInvoke(environment.getContext(), resolvedArgs);
+			Object result = doInvoke(context, resolvedArgs);
 			return ReactiveAdapterRegistryHelper.toFluxFromCollection(result);
 		});
 	}
 
-	private <K> Object[] getMethodArgumentValues(Collection<K> keys, BatchLoaderEnvironment environment) {
-		Object[] args = new Object[getMethodParameters().length];
+	private <K> @Nullable Object[] getMethodArgumentValues(Collection<K> keys, BatchLoaderEnvironment environment) {
+		@Nullable Object[] args = new Object[getMethodParameters().length];
 		for (int i = 0; i < getMethodParameters().length; i++) {
 			args[i] = resolveArgument(getMethodParameters()[i], keys, environment);
 		}
 		return args;
 	}
 
-	@Nullable
-	private  <K> Object resolveArgument(
+	private @Nullable <K> Object resolveArgument(
 			MethodParameter parameter, Collection<K> keys, BatchLoaderEnvironment environment) {
 
 		parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
@@ -169,8 +171,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 		}
 	}
 
-	@Nullable
-	private Object resolveContextValueArgument(MethodParameter parameter, BatchLoaderEnvironment environment) {
+	private @Nullable Object resolveContextValueArgument(MethodParameter parameter, BatchLoaderEnvironment environment) {
 
 		ContextValue annotation = parameter.getParameterAnnotation(ContextValue.class);
 		Assert.state(annotation != null, "Expected @ContextValue annotation");
@@ -180,7 +181,7 @@ public class BatchLoaderHandlerMethod extends InvocableHandlerMethodSupport {
 				name, annotation.required(), parameter, environment.getContext());
 	}
 
-	private boolean doesNotHaveAsyncArgs(Object[] args) {
+	private boolean doesNotHaveAsyncArgs(@Nullable Object[] args) {
 		return Arrays.stream(args).noneMatch((arg) -> arg instanceof Mono);
 	}
 

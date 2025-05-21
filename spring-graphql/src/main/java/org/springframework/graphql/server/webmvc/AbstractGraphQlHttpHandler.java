@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -43,7 +44,6 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpResponse;
-import org.springframework.lang.Nullable;
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -75,8 +75,7 @@ public abstract class AbstractGraphQlHttpHandler {
 
 	private final WebGraphQlHandler graphQlHandler;
 
-	@Nullable
-	private final HttpMessageConverter<Object> messageConverter;
+	private final @Nullable HttpMessageConverter<Object> messageConverter;
 
 
 	@SuppressWarnings("unchecked")
@@ -97,8 +96,7 @@ public abstract class AbstractGraphQlHttpHandler {
 	 * @return the write function, or {@code null} if a
 	 * {@code HttpMessageConverter} was not provided to the constructor
 	 */
-	@Nullable
-	protected ServerResponse.HeadersBuilder.WriteFunction getWriteFunction(
+	protected ServerResponse.HeadersBuilder.@Nullable WriteFunction getWriteFunction(
 			Map<String, Object> resultMap, MediaType contentType) {
 
 		return (this.messageConverter != null) ?
@@ -221,7 +219,7 @@ public abstract class AbstractGraphQlHttpHandler {
 			implements ServerResponse.HeadersBuilder.WriteFunction {
 
 		@Override
-		public ModelAndView write(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		public @Nullable ModelAndView write(HttpServletRequest request, HttpServletResponse response) throws Exception {
 			ServletServerHttpResponse httpResponse = new ServletServerHttpResponse(response);
 			this.converter.write(this.resultMap, this.contentType, httpResponse);
 			return null;

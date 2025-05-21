@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import graphql.GraphQLError;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.graphql.GraphQlRequest;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -38,14 +38,11 @@ import org.springframework.util.ObjectUtils;
  */
 public class GraphQlWebSocketMessage {
 
-	@Nullable
-	private String id;
+	private @Nullable String id;
 
-	@Nullable
-	private GraphQlWebSocketMessageType type;
+	private @Nullable GraphQlWebSocketMessageType type;
 
-	@Nullable
-	private Object payload;
+	private @Nullable Object payload;
 
 
 	/**
@@ -73,8 +70,7 @@ public class GraphQlWebSocketMessage {
 	 * Return the request id that is applicable to messages associated with a
 	 * request, or {@code null} for connection level messages.
 	 */
-	@Nullable
-	public String getId() {
+	public @Nullable String getId() {
 		return this.id;
 	}
 

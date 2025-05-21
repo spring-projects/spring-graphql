@@ -36,10 +36,10 @@ import org.dataloader.DataLoaderFactory;
 import org.dataloader.DataLoaderOptions;
 import org.dataloader.DataLoaderRegistry;
 import org.dataloader.MappedBatchLoaderWithContext;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -111,6 +111,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		}
 	}
 
+	@SuppressWarnings("NullAway") // DataLoaderRegistry#getDataLoader should be @Nullable
 	private void registerDataLoader(DataLoader<?, ?> dataLoader, DataLoaderRegistry registry) {
 		if (registry.getDataLoader(dataLoader.getName()) != null) {
 			throw new IllegalStateException("More than one DataLoader named '" + dataLoader.getName() + "'");
@@ -121,17 +122,13 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 
 	private class DefaultRegistrationSpec<K, V> implements RegistrationSpec<K, V> {
 
-		@Nullable
-		private final Class<?> valueType;
+		private final @Nullable Class<?> valueType;
 
-		@Nullable
-		private String name;
+		private @Nullable String name;
 
-		@Nullable
-		private DataLoaderOptions options;
+		private @Nullable DataLoaderOptions options;
 
-		@Nullable
-		private Consumer<DataLoaderOptions.Builder> optionsBuilderConsumer;
+		private @Nullable Consumer<DataLoaderOptions.Builder> optionsBuilderConsumer;
 
 		DefaultRegistrationSpec(Class<V> valueType) {
 			this.valueType = valueType;
@@ -232,6 +229,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<List<V>> load(List<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
+			Assert.state(graphQLContext != null, "No GraphQLContext available");
 			ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->
@@ -280,6 +278,7 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		@Override
 		public CompletionStage<Map<K, V>> load(Set<K> keys, BatchLoaderEnvironment environment) {
 			GraphQLContext graphQLContext = environment.getContext();
+			Assert.state(graphQLContext != null, "No GraphQLContext available");
 			ContextSnapshot snapshot = ContextPropagationHelper.captureFrom(graphQLContext);
 			try {
 				return snapshot.wrap(() ->

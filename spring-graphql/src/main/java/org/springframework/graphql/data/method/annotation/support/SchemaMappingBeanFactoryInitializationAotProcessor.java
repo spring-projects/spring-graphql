@@ -139,7 +139,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 			RuntimeHints runtimeHints = context.getRuntimeHints();
 			registerSpringDataSpelSupport(runtimeHints);
 			this.controllers.forEach((controller) -> {
-				runtimeHints.reflection().registerType(controller, MemberCategory.INTROSPECT_DECLARED_METHODS);
+				runtimeHints.reflection().registerType(controller);
 				ReflectionUtils.doWithMethods(controller,
 						(method) -> processSchemaMappingMethod(runtimeHints, method),
 						this::isGraphQlHandlerMethod);
@@ -148,7 +148,7 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 						this::isExceptionHandlerMethod);
 			});
 			this.controllerAdvices.forEach((controllerAdvice) -> {
-				runtimeHints.reflection().registerType(controllerAdvice, MemberCategory.INTROSPECT_DECLARED_METHODS);
+				runtimeHints.reflection().registerType(controllerAdvice);
 				ReflectionUtils.doWithMethods(controllerAdvice,
 						(method) -> processExceptionHandlerMethod(runtimeHints, method),
 						this::isExceptionHandlerMethod);

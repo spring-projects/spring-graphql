@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.BeanUtils;
@@ -40,7 +41,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.data.util.DirectFieldAccessFallbackBeanWrapper;
-import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.validation.AbstractBindingResult;
@@ -76,8 +77,7 @@ import org.springframework.validation.FieldError;
  */
 public class GraphQlArgumentBinder {
 
-	@Nullable
-	private final SimpleTypeConverter typeConverter;
+	private final @Nullable SimpleTypeConverter typeConverter;
 
 	private final boolean fallBackOnDirectFieldAccess;
 
@@ -95,8 +95,7 @@ public class GraphQlArgumentBinder {
 		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
 	}
 
-	@Nullable
-	private static SimpleTypeConverter initTypeConverter(@Nullable ConversionService conversionService) {
+	private static @Nullable SimpleTypeConverter initTypeConverter(@Nullable ConversionService conversionService) {
 		if (conversionService == null) {
 			//  Not thread-safe when using PropertyEditors
 			return null;
@@ -119,8 +118,7 @@ public class GraphQlArgumentBinder {
 	 * @throws BindException containing one or more accumulated errors from
 	 * matching and/or converting arguments to the target Object
 	 */
-	@Nullable
-	public Object bind(
+	public @Nullable Object bind(
 			DataFetchingEnvironment environment, @Nullable String name, ResolvableType targetType)
 			throws BindException {
 
@@ -139,8 +137,7 @@ public class GraphQlArgumentBinder {
 	 * @param targetType the type of Object to create
 	 * @since 1.3.0
 	 */
-	@Nullable
-	public Object bind(@Nullable Object rawValue, boolean isOmitted, ResolvableType targetType) throws BindException {
+	public @Nullable Object bind(@Nullable Object rawValue, boolean isOmitted, ResolvableType targetType) throws BindException {
 		ArgumentsBindingResult bindingResult = new ArgumentsBindingResult(targetType);
 		Class<?> targetClass = targetType.resolve(Object.class);
 		Object value = bindRawValue("$", rawValue, isOmitted, targetType, targetClass, bindingResult);
@@ -168,8 +165,7 @@ public class GraphQlArgumentBinder {
 	 * a {@link BindException} at the end to record as many errors as possible
 	 */
 	@SuppressWarnings({"ConstantConditions", "unchecked"})
-	@Nullable
-	private Object bindRawValue(
+	private @Nullable Object bindRawValue(
 			String name, @Nullable Object rawValue, boolean isOmitted,
 			ResolvableType targetType, Class<?> targetClass, ArgumentsBindingResult bindingResult) {
 
@@ -179,6 +175,7 @@ public class GraphQlArgumentBinder {
 		if (isOptional || isArgumentValue) {
 			targetType = targetType.getNested(2);
 			targetClass = targetType.resolve();
+			Assert.state(targetClass != null, "Could not resolve target type for: " + targetType);
 		}
 
 		Object value;
@@ -229,8 +226,7 @@ public class GraphQlArgumentBinder {
 		return collection;
 	}
 
-	@Nullable
-	private Object bindMap(
+	private @Nullable Object bindMap(
 			String name, Map<String, Object> rawMap, ResolvableType targetType, Class<?> targetClass,
 			ArgumentsBindingResult bindingResult) {
 
@@ -272,13 +268,12 @@ public class GraphQlArgumentBinder {
 		return map;
 	}
 
-	@Nullable
-	private Object bindViaConstructorAndSetters(Constructor<?> constructor,
+	private @Nullable Object bindViaConstructorAndSetters(Constructor<?> constructor,
 			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
 
 		String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
-		Object[] constructorArguments = new Object[paramTypes.length];
+		@Nullable Object[] constructorArguments = new Object[paramTypes.length];
 
 		for (int i = 0; i < paramNames.length; i++) {
 			String name = paramNames[i];
@@ -359,8 +354,7 @@ public class GraphQlArgumentBinder {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Nullable
-	private <T> T convertValue(
+	private @Nullable <T> T convertValue(
 			String name, @Nullable Object rawValue, ResolvableType type, Class<T> clazz,
 			ArgumentsBindingResult bindingResult) {
 
@@ -398,12 +392,12 @@ public class GraphQlArgumentBinder {
 		}
 
 		@Override
-		public Object getTarget() {
+		public @Nullable Object getTarget() {
 			return null;
 		}
 
 		@Override
-		protected Object getActualFieldValue(String field) {
+		protected @Nullable Object getActualFieldValue(String field) {
 			return null;
 		}
 

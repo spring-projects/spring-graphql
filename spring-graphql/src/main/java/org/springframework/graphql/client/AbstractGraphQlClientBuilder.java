@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.ClassPathResource;
@@ -33,7 +35,6 @@ import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -62,14 +63,11 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	private DocumentSource documentSource;
 
-	@Nullable
-	private Encoder<?> jsonEncoder;
+	private @Nullable Encoder<?> jsonEncoder;
 
-	@Nullable
-	private Decoder<?> jsonDecoder;
+	private @Nullable Decoder<?> jsonDecoder;
 
-	@Nullable
-	private Duration blockingTimeout;
+	private @Nullable Duration blockingTimeout;
 
 
 	/**

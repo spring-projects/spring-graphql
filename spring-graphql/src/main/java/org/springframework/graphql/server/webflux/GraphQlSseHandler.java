@@ -25,6 +25,7 @@ import graphql.ErrorType;
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -34,7 +35,6 @@ import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -57,11 +57,9 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 	private static final Mono<ServerSentEvent<Map<String, Object>>> COMPLETE_EVENT_MONO =
 			Mono.just(ServerSentEvent.<Map<String, Object>>builder(Collections.emptyMap()).event("complete").build());
 
-	@Nullable
-	private final Duration timeout;
+	private final @Nullable Duration timeout;
 
-	@Nullable
-	private final Duration keepAliveDuration;
+	private final @Nullable Duration keepAliveDuration;
 
 
 	/**

@@ -37,12 +37,12 @@ import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -81,7 +81,7 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 
 	@Override
-	public Object get(DataFetchingEnvironment env) throws Exception {
+	public @Nullable Object get(DataFetchingEnvironment env) throws Exception {
 
 		GraphQLContext graphQlContext = env.getGraphQlContext();
 		ContextSnapshotFactory snapshotFactory = ContextPropagationHelper.getInstance(graphQlContext);

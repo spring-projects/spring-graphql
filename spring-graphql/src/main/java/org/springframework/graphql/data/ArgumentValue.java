@@ -20,7 +20,8 @@ package org.springframework.graphql.data;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -54,8 +55,7 @@ public final class ArgumentValue<T> {
 	private static final ArgumentValue<?> OMITTED = new ArgumentValue<>(null, true);
 
 
-	@Nullable
-	private final T value;
+	private final @Nullable T value;
 
 	private final boolean omitted;
 
@@ -94,8 +94,7 @@ public final class ArgumentValue<T> {
 	/**
 	 * Return the contained value, or {@code null}.
 	 */
-	@Nullable
-	public T value() {
+	public @Nullable T value() {
 		return this.value;
 	}
 

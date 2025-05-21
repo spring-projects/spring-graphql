@@ -39,6 +39,7 @@ import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.BaseSubscriber;
@@ -63,7 +64,6 @@ import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.socket.CloseStatus;
@@ -104,8 +104,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 	private final HttpMessageConverter<?> converter;
 
-	@Nullable
-	private final Duration keepAliveDuration;
+	private final @Nullable Duration keepAliveDuration;
 
 	private final Map<String, SessionState> sessionInfoMap = new ConcurrentHashMap<>();
 
@@ -495,8 +494,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 			return this.sessionInfo;
 		}
 
-		@Nullable
-		Map<String, Object> getConnectionInitPayload() {
+		@Nullable Map<String, Object> getConnectionInitPayload() {
 			return this.connectionInitPayloadRef.get();
 		}
 
@@ -553,8 +551,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		@Override
 		public URI getUri() {
-			Assert.notNull(this.session.getUri(), "Expected URI");
-			return this.session.getUri();
+			URI uri = this.session.getUri();
+			Assert.notNull(uri, "Expected URI");
+			return uri;
 		}
 
 		@Override
@@ -568,7 +567,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 		}
 
 		@Override
-		public InetSocketAddress getRemoteAddress() {
+		public @Nullable InetSocketAddress getRemoteAddress() {
 			return this.session.getRemoteAddress();
 		}
 

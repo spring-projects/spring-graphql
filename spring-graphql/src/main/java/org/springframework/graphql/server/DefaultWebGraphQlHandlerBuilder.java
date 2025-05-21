@@ -22,12 +22,12 @@ import java.util.List;
 
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.ExecutionGraphQlService;
 import org.springframework.graphql.execution.ContextPropagationHelper;
 import org.springframework.graphql.server.WebGraphQlInterceptor.Chain;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 
@@ -42,11 +42,9 @@ class DefaultWebGraphQlHandlerBuilder implements WebGraphQlHandler.Builder {
 
 	private final List<WebGraphQlInterceptor> interceptors = new ArrayList<>();
 
-	@Nullable
-	private ContextSnapshotFactory snapshotFactory;
+	private @Nullable ContextSnapshotFactory snapshotFactory;
 
-	@Nullable
-	private WebSocketGraphQlInterceptor webSocketInterceptor;
+	private @Nullable WebSocketGraphQlInterceptor webSocketInterceptor;
 
 
 	DefaultWebGraphQlHandlerBuilder(ExecutionGraphQlService service) {
