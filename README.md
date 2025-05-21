@@ -16,11 +16,8 @@ For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: S
 This project has reference documentation ([published](https://docs.spring.io/spring-graphql/reference/) and [source](spring-graphql-docs/modules/ROOT)), an
 [API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/api/). There are [samples](https://github.com/spring-projects/spring-graphql/tree/1.0.x/samples) in the 1.0.x branch that will be [moved out](https://github.com/spring-projects/spring-graphql/issues/208) into a separate repository.
 
-## Stay in Touch
-
-Follow [@SpringCentral](https://twitter.com/springcentral).
-
 ## Getting Support
+
 Check out the [Spring GraphQL tags on Stack Overflow](https://stackoverflow.com/questions/tagged/spring-graphql).
 [Commercial support](https://spring.io/support) is available too.
 
