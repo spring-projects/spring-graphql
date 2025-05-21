@@ -571,14 +571,13 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 	}
 
 	private void assertThatIntrospectionOnMethodsHintRegisteredForType(Class<?> type) {
-		Predicate<RuntimeHints> predicate = RuntimeHintsPredicates.reflection()
-				.onType(type).withAnyMemberCategory(MemberCategory.INTROSPECT_DECLARED_METHODS);
+		Predicate<RuntimeHints> predicate = RuntimeHintsPredicates.reflection().onType(type);
 		assertThat(predicate).accepts(this.generationContext.getRuntimeHints());
 	}
 
 	private void assertThatInvocationHintRegisteredForMethods(Class<?> type, String... methodNames) {
 		Predicate<RuntimeHints> predicate = Arrays.stream(methodNames)
-				.map(methodName -> (Predicate<RuntimeHints>) RuntimeHintsPredicates.reflection().onMethod(type, methodName))
+				.map(methodName -> RuntimeHintsPredicates.reflection().onMethodInvocation(type, methodName))
 				.reduce(Predicate::and)
 				.orElseThrow(() -> new IllegalArgumentException("Could not generate predicate on type " + type + " for methods " + Arrays.toString(methodNames)));
 		assertThat(predicate).accepts(this.generationContext.getRuntimeHints());
@@ -602,18 +601,18 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 
 	private Predicate<RuntimeHints> javaBeanBindingOnType(Class<?> type) {
 		Predicate<RuntimeHints> predicate = RuntimeHintsPredicates.reflection().onType(type)
-				.withMemberCategories(MemberCategory.DECLARED_FIELDS, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+				.withMemberCategories(MemberCategory.ACCESS_DECLARED_FIELDS, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
 		try {
 			BeanInfo beanInfo = Introspector.getBeanInfo(type);
 			PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
 			for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
 				Method readMethod = propertyDescriptor.getReadMethod();
 				if (readMethod != null && readMethod.getDeclaringClass() != Object.class) {
-					predicate = predicate.and(RuntimeHintsPredicates.reflection().onMethod(readMethod));
+					predicate = predicate.and(RuntimeHintsPredicates.reflection().onMethodInvocation(readMethod));
 				}
 				Method writeMethod = propertyDescriptor.getWriteMethod();
 				if (writeMethod != null && writeMethod.getDeclaringClass() != Object.class) {
-					predicate = predicate.and(RuntimeHintsPredicates.reflection().onMethod(writeMethod));
+					predicate = predicate.and(RuntimeHintsPredicates.reflection().onMethodInvocation(writeMethod));
 				}
 			}
 		}

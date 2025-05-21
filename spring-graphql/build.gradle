@@ -62,7 +62,7 @@ dependencies {
 	}
 	testImplementation 'io.micrometer:micrometer-tracing-test'
 	testImplementation 'com.h2database:h2'
-	testImplementation 'org.hibernate:hibernate-core'
+	testImplementation 'org.hibernate.orm:hibernate-core'
 	testImplementation 'org.hibernate.validator:hibernate-validator'
 	testImplementation 'org.springframework.data:spring-data-mongodb'
 	testImplementation 'org.springframework.data:spring-data-neo4j'
