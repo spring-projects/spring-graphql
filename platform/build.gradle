@@ -17,7 +17,7 @@ dependencies {
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
-	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
+	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.10.1"))
 	api(platform("org.junit:junit-bom:5.12.2"))
 	api(platform("org.mockito:mockito-bom:5.16.0"))
 	api(platform("org.testcontainers:testcontainers-bom:1.21.0"))

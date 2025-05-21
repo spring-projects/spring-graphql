@@ -22,7 +22,6 @@ dependencies {
 	checkstyle("io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}")
 
 	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-	implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${kotlinVersion}")
 	implementation("io.spring.javaformat:spring-javaformat-gradle-plugin:${javaFormatVersion}")
 	implementation "com.tngtech.archunit:archunit:1.4.0"
 }

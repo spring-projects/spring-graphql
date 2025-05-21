@@ -16,11 +16,9 @@
 
 package org.springframework.graphql.build.conventions;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.gradle.api.Project;
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions;
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget;
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion;
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile;
 
 /**
@@ -35,15 +33,19 @@ public class KotlinConventions {
 	}
 
 	private void configure(KotlinCompile compile) {
-		KotlinJvmOptions kotlinOptions = compile.getKotlinOptions();
-		kotlinOptions.setApiVersion("1.7");
-		kotlinOptions.setLanguageVersion("1.7");
-		kotlinOptions.setJvmTarget("17");
-		kotlinOptions.setJavaParameters(true);
-		kotlinOptions.setAllWarningsAsErrors(true);
-		List<String> freeCompilerArgs = new ArrayList<>(compile.getKotlinOptions().getFreeCompilerArgs());
-		freeCompilerArgs.addAll(List.of("-Xsuppress-version-warnings", "-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn"));
-		compile.getKotlinOptions().setFreeCompilerArgs(freeCompilerArgs);
+		compile.compilerOptions(options -> {
+			options.getApiVersion().set(KotlinVersion.KOTLIN_2_1);
+			options.getLanguageVersion().set(KotlinVersion.KOTLIN_2_1);
+			options.getJvmTarget().set(JvmTarget.JVM_17);
+			options.getJavaParameters().set(true);
+			options.getAllWarningsAsErrors().set(true);
+			options.getFreeCompilerArgs().addAll(
+					"-Xsuppress-version-warnings",
+					"-Xjsr305=strict", // For dependencies using JSR 305
+					"-opt-in=kotlin.RequiresOptIn",
+					"-Xjdk-release=17" // Needed due to https://youtrack.jetbrains.com/issue/KT-49746
+			);
+		});
 	}
 
 }
