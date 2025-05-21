@@ -24,7 +24,10 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaLibraryPlugin;
 import org.gradle.api.plugins.JavaPlugin;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.tasks.compile.JavaCompile;
+import org.gradle.jvm.toolchain.JavaLanguageVersion;
+import org.gradle.jvm.toolchain.JvmVendorSpec;
 
 /**
  * {@link Plugin} that applies conventions for compiling Java sources in Spring Framework.
@@ -38,6 +41,19 @@ public class JavaConventions {
 	private static final List<String> COMPILER_ARGS;
 
 	private static final List<String> TEST_COMPILER_ARGS;
+
+	/**
+	 * The Java version we should use as the JVM baseline for building the project.
+	 * <p>NOTE: If you update this value, you should also update the value used in
+	 * the {@code javadoc} task in {@code framework-api.gradle}.
+	 */
+	private static final JavaLanguageVersion DEFAULT_LANGUAGE_VERSION = JavaLanguageVersion.of(24);
+
+	/**
+	 * The Java version we should use as the baseline for the compiled bytecode
+	 * (the "-release" compiler argument).
+	 */
+	private static final JavaLanguageVersion DEFAULT_RELEASE_VERSION = JavaLanguageVersion.of(17);
 
 	static {
 		List<String> commonCompilerArgs = Arrays.asList(
@@ -59,28 +75,64 @@ public class JavaConventions {
 	}
 
 	public void apply(Project project) {
-		project.getPlugins().withType(JavaLibraryPlugin.class, (javaPlugin) -> applyJavaCompileConventions(project));
+		project.getPlugins().withType(JavaLibraryPlugin.class, (javaPlugin) -> {
+			applyToolchainConventions(project);
+			applyJavaCompileConventions(project);
+		});
 	}
 
 	/**
-	 * Applies the common Java compiler options for main sources, test fixture sources, and
+	 * Configure the Toolchain support for the project.
+	 * @param project the current project
+	 */
+	private static void applyToolchainConventions(Project project) {
+		project.getExtensions().getByType(JavaPluginExtension.class).toolchain(toolchain -> {
+			toolchain.getVendor().set(JvmVendorSpec.BELLSOFT);
+			toolchain.getLanguageVersion().set(DEFAULT_LANGUAGE_VERSION);
+		});
+	}
+
+	/**
+	 * Apply the common Java compiler options for main sources, test fixture sources, and
 	 * test sources.
 	 * @param project the current project
 	 */
 	private void applyJavaCompileConventions(Project project) {
-		project.getTasks().withType(JavaCompile.class)
-				.matching((compileTask) -> compileTask.getName().equals(JavaPlugin.COMPILE_JAVA_TASK_NAME))
-				.forEach((compileTask) -> {
-					compileTask.getOptions().setCompilerArgs(COMPILER_ARGS);
-					compileTask.getOptions().setEncoding("UTF-8");
-				});
-		project.getTasks().withType(JavaCompile.class)
-				.matching((compileTask) -> compileTask.getName().equals(JavaPlugin.COMPILE_TEST_JAVA_TASK_NAME)
-						|| compileTask.getName().equals("compileTestFixturesJava"))
-				.forEach((compileTask) -> {
-					compileTask.getOptions().setCompilerArgs(TEST_COMPILER_ARGS);
-					compileTask.getOptions().setEncoding("UTF-8");
-				});
+		project.afterEvaluate(p -> {
+			p.getTasks().withType(JavaCompile.class)
+					.matching(compileTask -> compileTask.getName().startsWith(JavaPlugin.COMPILE_JAVA_TASK_NAME))
+					.forEach(compileTask -> {
+						compileTask.getOptions().setCompilerArgs(COMPILER_ARGS);
+						compileTask.getOptions().setEncoding("UTF-8");
+						setJavaRelease(compileTask);
+					});
+			p.getTasks().withType(JavaCompile.class)
+					.matching(compileTask -> compileTask.getName().startsWith(JavaPlugin.COMPILE_TEST_JAVA_TASK_NAME)
+							|| compileTask.getName().equals("compileTestFixturesJava"))
+					.forEach(compileTask -> {
+						compileTask.getOptions().setCompilerArgs(TEST_COMPILER_ARGS);
+						compileTask.getOptions().setEncoding("UTF-8");
+						setJavaRelease(compileTask);
+					});
+
+		});
+	}
+
+	/**
+	 * We should pick the {@link #DEFAULT_RELEASE_VERSION} for all compiled classes,
+	 * unless the current task is compiling multi-release JAR code with a higher version.
+	 */
+	private void setJavaRelease(JavaCompile task) {
+		int defaultVersion = DEFAULT_RELEASE_VERSION.asInt();
+		int releaseVersion = defaultVersion;
+		int compilerVersion = task.getJavaCompiler().get().getMetadata().getLanguageVersion().asInt();
+		for (int version = defaultVersion ; version <= compilerVersion ; version++) {
+			if (task.getName().contains("Java" + version)) {
+				releaseVersion = version;
+				break;
+			}
+		}
+		task.getOptions().getRelease().set(releaseVersion);
 	}
 
 }

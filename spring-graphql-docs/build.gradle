@@ -41,11 +41,11 @@ javadoc {
 	enabled = false
 }
 
-
 /**
  * Produce Javadoc for all Spring for GraphQL modules in "build/docs/javadoc"
  */
-task api(type: Javadoc) {
+tasks.register("api", Javadoc) {
+
 	group = "Documentation"
 	description = "Generates aggregated Javadoc API documentation."
 	title = "${rootProject.description} ${version} API"
@@ -74,6 +74,9 @@ task api(type: Javadoc) {
 	}.sum()
 	maxMemory = "1024m"
 	destinationDir = file("$buildDir/docs/javadoc")
+	javadocTool.set(javaToolchains.javadocToolFor({
+		languageVersion = JavaLanguageVersion.of(24)
+	}))
 }
 
 
@@ -98,7 +101,8 @@ tasks.named("antora") {
 /**
  * Zip all docs into a single archive
  */
-task docsZip(type: Zip, dependsOn: ['api']) {
+tasks.register("docsZip", Zip) {
+	dependsOn = ['api']
 	group = "Distribution"
 	description = "Builds -${archiveClassifier} archive containing api and reference " +
 			"for deployment at https://docs.spring.io/spring-graphql/docs."
