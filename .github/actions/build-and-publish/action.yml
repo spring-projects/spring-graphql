@@ -3,7 +3,7 @@ description: 'Builds the project, optionally publishing it to a local deployment
 inputs:
   java-version:
     required: false
-    default: '17'
+    default: '24'
     description: 'The Java version to compile and test with'
   java-distribution:
     required: false
