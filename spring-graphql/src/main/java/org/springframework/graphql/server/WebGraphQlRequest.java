@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.support.DefaultExecutionGraphQlRequest;
 import org.springframework.http.HttpCookie;
@@ -47,7 +46,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * @author Rossen Stoyanchev
  * @since 1.0.0
  */
-public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest implements ExecutionGraphQlRequest {
+public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest {
 
 	private static final MultiValueMap<String, HttpCookie> EMPTY_COOKIES =
 			CollectionUtils.unmodifiableMultiValueMap(new LinkedMultiValueMap<>());
