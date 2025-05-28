@@ -26,6 +26,9 @@ import java.util.stream.Collectors;
 
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava.SchemaTransformer;
+import graphql.language.Argument;
+import graphql.language.BooleanValue;
+import graphql.language.Directive;
 import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
@@ -190,12 +193,9 @@ public final class FederationSchemaFactory
 	private void checkEntityMappings(TypeDefinitionRegistry registry) {
 		List<String> unmappedEntities = new ArrayList<>();
 		for (TypeDefinition<?> type : registry.types().values()) {
-			type.getDirectives().forEach((directive) -> {
-				boolean isEntityType = directive.getName().equalsIgnoreCase("key");
-				if (isEntityType && !this.handlerMethods.containsKey(type.getName())) {
-					unmappedEntities.add(type.getName());
-				}
-			});
+			if (isEntityMappingExpected(type) && !this.handlerMethods.containsKey(type.getName())) {
+				unmappedEntities.add(type.getName());
+			}
 		}
 		if (!unmappedEntities.isEmpty()) {
 			throw new IllegalStateException("Unmapped entity types: " +
@@ -203,6 +203,21 @@ public final class FederationSchemaFactory
 		}
 	}
 
+	/**
+	 * Determine if a handler method is expected for this type: there is at least one '@key' directive
+	 * whose 'resolvable' argument resolves to true (either explicitly, or if the argument is not set).
+	 * @param type the type to inspect.
+	 * @return true if a handler method is expected for this type
+	 */
+	private boolean isEntityMappingExpected(TypeDefinition<?> type) {
+		List<Directive> keyDirectives = type.getDirectives("key");
+		return !keyDirectives.isEmpty() && keyDirectives.stream()
+			.anyMatch((keyDirective) -> {
+				Argument resolvableArg = keyDirective.getArgument("resolvable");
+				return resolvableArg == null ||
+					(resolvableArg.getValue() instanceof BooleanValue) && ((BooleanValue) resolvableArg.getValue()).isValue();
+			});
+	}
 
 	public record EntityMappingInfo(String typeName, HandlerMethod handlerMethod) {
 
