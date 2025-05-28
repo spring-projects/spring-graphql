@@ -1,10 +1,17 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.9", import: ["@key", "@extends", "@external"] )
+
 type Book @key(fields: "id") @extends {
     id: ID! @external
     author: Author
+    publisher: Publisher
 }
 
 type Author {
     id: ID
     firstName: String
     lastName: String
+}
+
+type Publisher @key(fields: "id", resolvable: false) {
+    id: ID! @external
 }
