@@ -193,9 +193,11 @@ public final class FederationSchemaFactory
 	private void checkEntityMappings(TypeDefinitionRegistry registry) {
 		List<String> unmappedEntities = new ArrayList<>();
 		for (TypeDefinition<?> type : registry.types().values()) {
-			if (isEntityMappingExpected(type) && !this.handlerMethods.containsKey(type.getName())) {
-				unmappedEntities.add(type.getName());
-			}
+			type.getDirectives().forEach((directive) -> {
+				if (isResolvableKeyDirective(directive) && !this.handlerMethods.containsKey(type.getName())) {
+					unmappedEntities.add(type.getName());
+				}
+			});
 		}
 		if (!unmappedEntities.isEmpty()) {
 			throw new IllegalStateException("Unmapped entity types: " +
@@ -203,21 +205,18 @@ public final class FederationSchemaFactory
 		}
 	}
 
-	/**
-	 * Determine if a handler method is expected for this type: there is at least one '@key' directive
-	 * whose 'resolvable' argument resolves to true (either explicitly, or if the argument is not set).
-	 * @param type the type to inspect.
-	 * @return true if a handler method is expected for this type
-	 */
-	private boolean isEntityMappingExpected(TypeDefinition<?> type) {
-		List<Directive> keyDirectives = type.getDirectives("key");
-		return !keyDirectives.isEmpty() && keyDirectives.stream()
-			.anyMatch((keyDirective) -> {
-				Argument resolvableArg = keyDirective.getArgument("resolvable");
-				return resolvableArg == null ||
-					(resolvableArg.getValue() instanceof BooleanValue) && ((BooleanValue) resolvableArg.getValue()).isValue();
-			});
+	private boolean isResolvableKeyDirective(Directive directive) {
+		if (!directive.getName().equalsIgnoreCase("key")) {
+			return false;
+		}
+		Argument argument = directive.getArgument("resolvable");
+		if (argument != null) {
+			Object value = argument.getValue();
+			return (value instanceof BooleanValue bv && bv.isValue());
+		}
+		return true;
 	}
+
 
 	public record EntityMappingInfo(String typeName, HandlerMethod handlerMethod) {
 
