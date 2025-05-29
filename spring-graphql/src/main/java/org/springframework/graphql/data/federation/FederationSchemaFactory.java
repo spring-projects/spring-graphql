@@ -26,6 +26,9 @@ import java.util.stream.Collectors;
 
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava.SchemaTransformer;
+import graphql.language.Argument;
+import graphql.language.BooleanValue;
+import graphql.language.Directive;
 import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
@@ -189,8 +192,7 @@ public final class FederationSchemaFactory
 		List<String> unmappedEntities = new ArrayList<>();
 		for (TypeDefinition<?> type : registry.types().values()) {
 			type.getDirectives().forEach((directive) -> {
-				boolean isEntityType = directive.getName().equalsIgnoreCase("key");
-				if (isEntityType && !this.handlerMethods.containsKey(type.getName())) {
+				if (isResolvableKeyDirective(directive) && !this.handlerMethods.containsKey(type.getName())) {
 					unmappedEntities.add(type.getName());
 				}
 			});
@@ -199,6 +201,18 @@ public final class FederationSchemaFactory
 			throw new IllegalStateException("Unmapped entity types: " +
 					unmappedEntities.stream().collect(Collectors.joining("', '", "'", "'")));
 		}
+	}
+
+	private boolean isResolvableKeyDirective(Directive directive) {
+		if (!directive.getName().equalsIgnoreCase("key")) {
+			return false;
+		}
+		Argument argument = directive.getArgument("resolvable");
+		if (argument != null) {
+			Object value = argument.getValue();
+			return (value instanceof BooleanValue bv && bv.isValue());
+		}
+		return true;
 	}
 
 
