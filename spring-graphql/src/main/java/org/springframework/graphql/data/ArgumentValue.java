@@ -112,6 +112,12 @@ public final class ArgumentValue<T> {
 		return result;
 	}
 
+	@Override
+	public String toString() {
+		String v = ((this.value != null) ? this.value.toString() : (this.omitted) ? "omitted" : "empty");
+		return "ArgumentValue[" + v + "]";
+	}
+
 
 	/**
 	 * Static factory method for an argument value that was provided, even if
