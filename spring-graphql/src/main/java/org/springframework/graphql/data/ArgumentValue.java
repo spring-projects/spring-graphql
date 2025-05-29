@@ -137,21 +137,10 @@ public final class ArgumentValue<T> {
 		return result;
 	}
 
-	/**
-	 * Returns a non-empty string representation of this {@code ArgumentValue}
-	 * suitable for debugging.
-	 *
-	 * @return the string representation of this instance
-	 */
 	@Override
 	public String toString() {
-		if (this.omitted) {
-			return "ArgumentValue.omitted";
-		}
-		if (this.value == null){
-			return "ArgumentValue.empty";
-		}
-		return "ArgumentValue[%s]".formatted(this.value);
+		String v = ((this.value != null) ? this.value.toString() : (this.omitted) ? "omitted" : "empty");
+		return "ArgumentValue[" + v + "]";
 	}
 
 
