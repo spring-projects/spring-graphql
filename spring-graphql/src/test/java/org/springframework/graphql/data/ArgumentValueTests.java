@@ -80,4 +80,10 @@ class ArgumentValueTests {
 		assertThat(called.get()).isFalse();
 	}
 
+	@Test
+	void toStringValue() {
+		assertThat(ArgumentValue.omitted()).hasToString("ArgumentValue[omitted]");
+		assertThat(ArgumentValue.ofNullable(null)).hasToString("ArgumentValue[empty]");
+		assertThat(ArgumentValue.ofNullable("hello")).hasToString("ArgumentValue[hello]");
+	}
 }

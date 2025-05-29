@@ -158,13 +158,14 @@ public abstract class QuerydslDataFetcher<T> {
 			@Nullable String prefix, Map<String, Object> arguments, MultiValueMap<String, Object> parameters) {
 
 		for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+			String key = ((prefix != null) ? prefix + "." : "") + entry.getKey();
 			Object value = entry.getValue();
 			if (value instanceof Map<?, ?> nested) {
-				addParameters(entry.getKey(), (Map<String, Object>) nested, parameters);
+				addParameters(key, (Map<String, Object>) nested, parameters);
 				continue;
 			}
 			List<Object> values = (value instanceof List) ? (List<Object>) value : Collections.singletonList(value);
-			parameters.put(((prefix != null) ? prefix + "." : "") + entry.getKey(), values);
+			parameters.put(key, values);
 		}
 	}
 
