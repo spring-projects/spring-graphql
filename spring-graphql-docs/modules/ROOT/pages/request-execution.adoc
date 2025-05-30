@@ -84,16 +84,16 @@ A `RuntimeWiringConfigurer` is useful to register the following:
 - and more...
 
 TIP: Spring applications typically do not need to perform direct `DataFetcher` registrations.
-Instead, controller method are registered as ``DataFetcher``s via
+Instead, controller methods are registered as ``DataFetcher``s via
 `AnnotatedControllerConfigurer`, which is a `RuntimeWiringConfigurer`.
 
-NOTE: GraphQL Java, server applications use Jackson only for serialization to and from maps of data.
+NOTE: GraphQL Java server applications use Jackson only for serialization to and from maps of data.
 Client input is parsed into a map. Server output is assembled into a map based on the field selection set.
 This means you can't rely on Jackson serialization/deserialization annotations.
 Instead, you can use https://www.graphql-java.com/documentation/scalars/[custom scalar types].
 
 The xref:boot-starter.adoc[Boot Starter] detects beans of type `RuntimeWiringConfigurer` and
-registers them in the `GraphQlSource.Builder`. That means in most cases, you'll' have
+registers them in the `GraphQlSource.Builder`. That means in most cases, you'll have
 something like the following in your configuration:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -310,15 +310,15 @@ controller method, or controller class, mapped to the union or interface field.
 concrete union member or interface implementation type.
 - You have registered a
 xref:request-execution.adoc#execution.graphqlsource.default-type-resolver[TypeResolver]
-that has explicit `Class` to GraphQL type mappings .
+that has explicit `Class` to GraphQL type mappings.
 
-In none the above help, and GraphQL types are reported as skipped in the schema inspection
+If none the above helps, and GraphQL types are reported as skipped in the schema inspection
 report, you can make the following customizations:
 
 - Explicitly map a GraphQL type name to a Java class or classes.
 - Configure a function that customizes how a GraphQL type name is adapted to a simple
-`Class` name. This can help with a specific Java class naming conventions.
-- Provide a `ClassNameTypeResolver` to map a GraphQL type a Java classes.
+`Class` name. This can help with specific Java class naming conventions.
+- Provide a `ClassNameTypeResolver` to map a GraphQL type to a Java class.
 
 For example:
 
@@ -344,8 +344,7 @@ configure a `PreparsedDocumentProvider` that caches and reuses Document instance
 query caching through a `PreparsedDocumentProvider`.
 
 In Spring GraphQL you can register a `PreparsedDocumentProvider` through
-`GraphQlSource.Builder#configureGraphQl`:
-.
+`GraphQlSource.Builder#configureGraphQl`.
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -542,7 +541,7 @@ with a generic message that includes the category name and the `executionId` fro
 implementation details. Applications can use a `DataFetcherExceptionResolver` to customize
 error details.
 
-Unresolved exception are logged at ERROR level along with the `executionId` to correlate
+Unresolved exceptions are logged at ERROR level along with the `executionId` to correlate
 to the error sent to the client. Resolved exceptions are logged at DEBUG level.
 
 
@@ -627,7 +626,7 @@ To have connection types generated, configure `ConnectionTypeDefinitionConfigure
 ----
 GraphQlSource.schemaResourceBuilder()
 		.schemaResources(..)
-		.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer)
+		.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer())
 ----
 
 The above will add the following type definitions:
@@ -683,9 +682,9 @@ GraphQlSource.schemaResourceBuilder()
 ----
 
 <1> Create type visitor with one or more ``ConnectionAdapter``s.
-<2> Resister the type visitor.
+<2> Register the type visitor.
 
-There are built-in xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s
+There are xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s
 for Spring Data's `Window` and `Slice`. You can also create your own custom adapter.
 `ConnectionAdapter` implementations rely on a
 xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] to
@@ -743,10 +742,10 @@ You can find the full details in the
 {graphql-java-docs}/batching/[GraphQL Java docs]. Below is a
 summary of how it works:
 
- 1. Register ``DataLoader``'s in the `DataLoaderRegistry` that can load entities, given unique keys.
- 2. ``DataFetcher``'s can access ``DataLoader``'s and use them to load entities by id.
+ 1. Register ``DataLoader``s in the `DataLoaderRegistry` that can load entities, given unique keys.
+ 2. ``DataFetcher``s can access ``DataLoader``s and use them to load entities by id.
  3. A `DataLoader` defers loading by returning a future so it can be done in a batch.
- 4. ``DataLoader``'s maintain a per request cache of loaded entities that can further
+ 4. ``DataLoader``s maintain a per request cache of loaded entities that can further
  improve efficiency.
 
 
@@ -818,7 +817,7 @@ DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry().build()
 batchLoaderRegistry.registerDataLoaders(dataLoaderRegistry, graphQLContext);
 ----
 
-Now you can access and test individual ``DataLoader``'s as follows:
+Now you can access and test individual ``DataLoader``s as follows:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
