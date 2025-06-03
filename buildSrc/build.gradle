@@ -41,10 +41,6 @@ gradlePlugin {
 			id = "org.springframework.graphql.architecture"
 			implementationClass = "org.springframework.graphql.build.architecture.ArchitecturePlugin"
 		}
-		nullability {
-			id = "org.springframework.graphql.nullability"
-			implementationClass = "org.springframework.graphql.build.nullability.NullabilityPlugin"
-		}
 	}
 }
 
