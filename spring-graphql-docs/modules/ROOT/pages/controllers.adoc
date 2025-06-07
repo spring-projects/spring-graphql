@@ -975,7 +975,7 @@ Supported return types are listed below:
 == Namespacing
 
 At the schema level, query and mutation operations are defined directly under the `Query` and `Mutation` types.
-Rich GraphQL APIs can define dozens of operation sunder those types, making it harder to explore the API and separate concerns.
+Rich GraphQL APIs can define dozens of operations under those types, making it harder to explore the API and separate concerns.
 You can choose to https://www.apollographql.com/docs/technotes/TN0012-namespacing-by-separation-of-concern/[define Namespaces in your GraphQL schema].
 While there are some caveats with this approach, you can implement this pattern with Spring for GraphQL annotated controllers.
 
