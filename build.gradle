@@ -45,12 +45,6 @@ configure(moduleProjects) {
 	apply plugin: 'java-library'
 	apply plugin: 'java-test-fixtures'
 
-	java {
-		toolchain {
-			languageVersion = JavaLanguageVersion.of(17)
-		}
-	}
-
 	configurations {
 		dependencyManagement {
 			canBeConsumed = false
