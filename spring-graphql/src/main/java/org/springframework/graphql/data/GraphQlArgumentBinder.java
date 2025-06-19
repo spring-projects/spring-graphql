@@ -271,12 +271,13 @@ public class GraphQlArgumentBinder {
 	private @Nullable Object bindViaConstructorAndSetters(Constructor<?> constructor,
 			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
 
-		String[] paramNames = BeanUtils.getParameterNames(constructor);
+		@Nullable String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
 		@Nullable Object[] constructorArguments = new Object[paramTypes.length];
 
 		for (int i = 0; i < paramNames.length; i++) {
 			String name = paramNames[i];
+			Assert.notNull(name, () -> "Missing parameter name in " + constructor);
 
 			ResolvableType targetType = ResolvableType.forType(
 					ResolvableType.forConstructorParameter(constructor, i).getType(), ownerType);

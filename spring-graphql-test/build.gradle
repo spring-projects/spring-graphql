@@ -20,6 +20,7 @@ dependencies {
 	compileOnly 'org.skyscreamer:jsonassert'
 	compileOnly 'com.google.code.findbugs:jsr305'
 	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
+	compileOnly 'org.hamcrest:hamcrest'
 
 	testImplementation(testFixtures(project(":spring-graphql")))
 	testImplementation 'org.junit.jupiter:junit-jupiter'

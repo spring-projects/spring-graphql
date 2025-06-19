@@ -41,6 +41,7 @@ dependencies {
 		api("org.skyscreamer:jsonassert:1.5.3")
 		api("org.awaitility:awaitility:4.3.0")
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
+		api("org.hamcrest:hamcrest:3.0")
 
 		api("com.h2database:h2:2.3.232")
 		api("org.hibernate.orm:hibernate-core:7.0.0.CR1")
