@@ -33,6 +33,7 @@ dependencies {
 	compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
 
 	compileOnly 'tools.jackson.core:jackson-databind'
+	compileOnly 'com.fasterxml.jackson.core:jackson-databind'
 
 	compileOnly('com.apollographql.federation:federation-graphql-java-support')
 	compileOnly('com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core') {
@@ -82,6 +83,8 @@ dependencies {
 	testImplementation 'jakarta.validation:jakarta.validation-api'
 	testImplementation 'com.jayway.jsonpath:json-path'
 	testImplementation 'tools.jackson.core:jackson-databind'
+	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+	testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 	testImplementation 'org.apache.tomcat.embed:tomcat-embed-el:10.0.21'
 	testImplementation 'com.apollographql.federation:federation-graphql-java-support'
 
@@ -93,6 +96,7 @@ dependencies {
 	testFixturesApi 'org.junit.jupiter:junit-jupiter-engine'
 	testFixturesApi 'com.squareup.okhttp3:mockwebserver'
 	testFixturesApi 'tools.jackson.core:jackson-databind'
+	testFixturesApi 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 test {

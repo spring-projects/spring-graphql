@@ -33,6 +33,8 @@ import org.springframework.graphql.client.GraphQlClientInterceptor.SubscriptionC
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.http.codec.json.JacksonJsonDecoder;
 import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.util.Assert;
@@ -58,6 +60,8 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	protected static final boolean jacksonPresent = ClassUtils.isPresent(
 			"tools.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
+	protected static final boolean jackson2Present = ClassUtils.isPresent(
+			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 	private final List<GraphQlClientInterceptor> interceptors = new ArrayList<>();
 
@@ -181,6 +185,10 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 			this.jsonEncoder = (this.jsonEncoder == null) ? DefaultJacksonCodecs.encoder() : this.jsonEncoder;
 			this.jsonDecoder = (this.jsonDecoder == null) ? DefaultJacksonCodecs.decoder() : this.jsonDecoder;
 		}
+		else if (jackson2Present) {
+			this.jsonEncoder = (this.jsonEncoder == null) ? DefaultJackson2Codecs.encoder() : this.jsonEncoder;
+			this.jsonDecoder = (this.jsonDecoder == null) ? DefaultJackson2Codecs.decoder() : this.jsonDecoder;
+		}
 
 		return new DefaultGraphQlClient(this.documentSource,
 				createExecuteChain(transport), createSubscriptionChain(transport), this.blockingTimeout);
@@ -241,6 +249,18 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 			return new JacksonJsonDecoder();
 		}
 
+	}
+
+	@SuppressWarnings("removal")
+	protected static class DefaultJackson2Codecs {
+
+		static Encoder<?> encoder() {
+			return new Jackson2JsonEncoder();
+		}
+
+		static Decoder<?> decoder() {
+			return new Jackson2JsonDecoder();
+		}
 	}
 
 }

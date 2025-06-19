@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
@@ -60,6 +61,9 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 
 	private static final boolean jacksonPresent = ClassUtils.isPresent(
 			"tools.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
+
+	private static final boolean jackson2Present = ClassUtils.isPresent(
+			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientBuilder.class.getClassLoader());
 
 	private static final Duration DEFAULT_RESPONSE_DURATION = Duration.ofSeconds(5);
 
@@ -131,6 +135,9 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 		if (jacksonPresent) {
 			configureJsonPathConfig(JacksonConfigurer::configure);
 		}
+		else if (jackson2Present) {
+			configureJsonPathConfig(Jackson2Configurer::configure);
+		}
 
 		return new DefaultGraphQlTester(transport, this.errorFilter,
 				this.jsonPathConfig, this.documentSource, this.responseTimeout);
@@ -192,9 +199,7 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 		};
 	}
 
-
-	private static final class JacksonConfigurer {
-
+	private abstract static class AbstractJacksonConfigurer {
 		private static final Class<?> defaultJsonProviderType;
 
 		private static final Class<?> defaultMappingProviderType;
@@ -208,18 +213,35 @@ public abstract class AbstractGraphQlTesterBuilder<B extends AbstractGraphQlTest
 		// GraphQlTransport returns ExecutionResult with JSON parsed to Map/List,
 		// but we still need JsonProvider for matchesJson(String)
 
-		static Configuration configure(Configuration config) {
+		static Configuration configure(Configuration config, JsonProvider jsonProvider, MappingProvider mappingProvider) {
 			if (isDefault(config.jsonProvider(), defaultJsonProviderType)) {
-				config = config.jsonProvider(new JacksonJsonProvider());
+				config = config.jsonProvider(jsonProvider);
 			}
 			if (isDefault(config.mappingProvider(), defaultMappingProviderType)) {
-				config = config.mappingProvider(new JacksonMappingProvider());
+				config = config.mappingProvider(mappingProvider);
 			}
 			return config;
 		}
 
-		private static <T> boolean isDefault(@Nullable T provider, Class<? extends T> defaultProviderType) {
+		static <T> boolean isDefault(@Nullable T provider, Class<? extends T> defaultProviderType) {
 			return (provider == null || defaultProviderType.isInstance(provider));
+		}
+
+	}
+
+	private static final class JacksonConfigurer extends AbstractJacksonConfigurer {
+
+		static Configuration configure(Configuration config) {
+			return configure(config, new JacksonJsonProvider(), new JacksonMappingProvider());
+		}
+
+	}
+
+	private static final class Jackson2Configurer extends AbstractJacksonConfigurer {
+
+		static Configuration configure(Configuration config) {
+			return configure(config, new com.jayway.jsonpath.spi.json.JacksonJsonProvider(),
+					new com.jayway.jsonpath.spi.mapper.JacksonMappingProvider());
 		}
 
 	}

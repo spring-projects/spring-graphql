@@ -76,6 +76,13 @@ final class DefaultRSocketGraphQlClientBuilder
 							.decoder(DefaultJacksonCodecs.decoder())
 							.build());
 		}
+		else if (jackson2Present) {
+			requesterBuilder.rsocketStrategies(
+					RSocketStrategies.builder()
+							.encoder(DefaultJackson2Codecs.encoder())
+							.decoder(DefaultJackson2Codecs.decoder())
+							.build());
+		}
 		return requesterBuilder;
 	}
 

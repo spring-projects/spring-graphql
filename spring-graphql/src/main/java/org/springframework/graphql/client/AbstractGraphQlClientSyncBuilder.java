@@ -36,6 +36,7 @@ import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -59,6 +60,9 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 
 	protected static final boolean jacksonPresent = ClassUtils.isPresent(
 			"tools.jackson.databind.ObjectMapper", AbstractGraphQlClientSyncBuilder.class.getClassLoader());
+
+	protected static final boolean jackson2Present = ClassUtils.isPresent(
+			"com.fasterxml.jackson.databind.ObjectMapper", AbstractGraphQlClientSyncBuilder.class.getClassLoader());
 
 
 	private final List<SyncGraphQlClientInterceptor> interceptors = new ArrayList<>();
@@ -148,6 +152,10 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 			this.jsonConverter = (this.jsonConverter == null) ?
 					DefaultJacksonConverter.initialize() : this.jsonConverter;
 		}
+		else if (jackson2Present) {
+			this.jsonConverter = (this.jsonConverter == null) ?
+					DefaultJackson2Converter.initialize() : this.jsonConverter;
+		}
 
 		return new DefaultGraphQlClient(
 				this.documentSource, createExecuteChain(transport), this.scheduler, this.blockingTimeout);
@@ -190,6 +198,14 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 
 		static HttpMessageConverter<Object> initialize() {
 			return new JacksonJsonHttpMessageConverter();
+		}
+	}
+
+	@SuppressWarnings("removal")
+	private static final class DefaultJackson2Converter {
+
+		static HttpMessageConverter<Object> initialize() {
+			return new MappingJackson2HttpMessageConverter();
 		}
 	}
 
