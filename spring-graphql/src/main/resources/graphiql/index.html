@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -7,7 +7,6 @@
     <style>
         body {
             margin: 0;
-            overflow: hidden;
         }
         #graphiql {
             height: 100dvh;
@@ -20,8 +19,8 @@
             font-size: 4rem;
         }
     </style>
-    <link rel="stylesheet" href="https://esm.sh/graphiql@4.0.0/dist/style.css"/>
-    <link rel="stylesheet" href="https://esm.sh/@graphiql/plugin-explorer@4.0.0/dist/style.css"/>
+    <link rel="stylesheet" href="https://esm.sh/graphiql@5.0.0/dist/style.css"/>
+    <link rel="stylesheet" href="https://esm.sh/@graphiql/plugin-explorer@5.0.0/dist/style.css"/>
     <script type="importmap">
         {
           "imports": {
@@ -29,10 +28,10 @@
             "react/jsx-runtime": "https://esm.sh/react@19.1.0/jsx-runtime",
             "react-dom": "https://esm.sh/react-dom@19.1.0",
             "react-dom/client": "https://esm.sh/react-dom@19.1.0/client",
-            "graphiql": "https://esm.sh/graphiql@4.0.0?standalone&external=react,react/jsx-runtime,react-dom,@graphiql/react",
-            "@graphiql/plugin-explorer": "https://esm.sh/@graphiql/plugin-explorer@4.0.0?standalone&external=react,react/jsx-runtime,react-dom,@graphiql/react,graphql",
-            "@graphiql/react": "https://esm.sh/@graphiql/react@0.30.0?standalone&external=react,react/jsx-runtime,react-dom,graphql,@graphiql/toolkit",
-            "@graphiql/toolkit": "https://esm.sh/@graphiql/toolkit@0.11.2?standalone&external=graphql",
+            "graphiql": "https://esm.sh/graphiql@5.0.0?standalone&external=react,react-dom,@graphiql/react,graphql",
+            "@graphiql/plugin-explorer": "https://esm.sh/@graphiql/plugin-explorer@5.0.0?standalone&external=react,@graphiql/react,graphql",
+            "@graphiql/react": "https://esm.sh/@graphiql/react@0.35.0?standalone&external=react,react-dom,graphql",
+            "@graphiql/toolkit": "https://esm.sh/@graphiql/toolkit@0.11.3?standalone&external=graphql",
             "graphql": "https://esm.sh/graphql@16.11.0"
           }
         }
@@ -40,9 +39,25 @@
     <script type="module">
         import React from 'react';
         import ReactDOM from 'react-dom/client';
-        import { GraphiQL } from 'graphiql';
+        import { GraphiQL, HISTORY_PLUGIN } from 'graphiql';
         import { createGraphiQLFetcher } from '@graphiql/toolkit';
         import { explorerPlugin } from '@graphiql/plugin-explorer';
+
+        import createJSONWorker from 'https://esm.sh/monaco-editor/esm/vs/language/json/json.worker.js?worker';
+        import createGraphQLWorker from 'https://esm.sh/monaco-graphql/esm/graphql.worker.js?worker';
+        import createEditorWorker from 'https://esm.sh/monaco-editor/esm/vs/editor/editor.worker.js?worker';
+
+        globalThis.MonacoEnvironment = {
+            getWorker(_workerId, label) {
+                switch (label) {
+                    case 'json':
+                        return createJSONWorker();
+                    case 'graphql':
+                        return createGraphQLWorker();
+                }
+                return createEditorWorker();
+            },
+        };
 
         const params = new URLSearchParams(window.location.search);
         const path = params.get("path") || "/graphql";
@@ -51,18 +66,18 @@
         const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         const subscriptionUrl = `${wsProtocol}//${location.host}${wsPath}`;
         const gqlFetcher = createGraphiQLFetcher({'url': url, 'subscriptionUrl': subscriptionUrl});
-        const explorer = explorerPlugin();
+        const plugins = [HISTORY_PLUGIN, explorerPlugin()];
         const xsrfToken = document.cookie.match(new RegExp('(?:^| )XSRF-TOKEN=([^;]+)'));
-        const headers = xsrfToken ? `{ "X-XSRF-TOKEN" : "${ xsrfToken[1] }" }` : `{}`;
+        const initialHeaders = xsrfToken ? `{ "X-XSRF-TOKEN" : "${ xsrfToken[1] }" }` : `{}`;
 
         function App() {
             return React.createElement(GraphiQL, {
                 fetcher: gqlFetcher,
-                defaultVariableEditorOpen: true,
+                defaultEditorToolsVisibility: true,
                 headerEditorEnabled: true,
                 shouldPersistHeaders: true,
-                headers: headers,
-                plugins: [explorer],
+                initialHeaders: initialHeaders,
+                plugins: plugins,
             });
         }
 
