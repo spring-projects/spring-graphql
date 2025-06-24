@@ -602,7 +602,7 @@ be added for you:
 
 [source,graphql,indent=0,subs="verbatim,quotes"]
 ----
-	Query {
+	type Query {
 		books(first:Int, after:String, last:Int, before:String): BookConnection
 	}
 
