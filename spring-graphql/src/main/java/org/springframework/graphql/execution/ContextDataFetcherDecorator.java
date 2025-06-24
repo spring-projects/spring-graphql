@@ -121,7 +121,7 @@ final class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);
 
 		if (value instanceof Mono<?> mono) {
-			value = ContextPropagationHelper.bindCancelFrom(mono, graphQlContext).contextWrite(snapshot::updateContext).toFuture();
+			value = mono.contextWrite(snapshot::updateContext).toFuture();
 		}
 
 		return value;

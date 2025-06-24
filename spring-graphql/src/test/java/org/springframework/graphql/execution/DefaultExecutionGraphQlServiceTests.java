@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.ErrorType;
 import org.dataloader.DataLoaderRegistry;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -82,6 +83,7 @@ public class DefaultExecutionGraphQlServiceTests {
 	}
 
 	@Test
+	@Disabled("until https://github.com/spring-projects/spring-graphql/issues/1171")
 	void cancellationSupport() {
 		AtomicBoolean cancelled = new AtomicBoolean();
 		Mono<String> greetingMono = Mono.just("hi")

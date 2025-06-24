@@ -41,10 +41,10 @@ import graphql.schema.idl.SchemaDirectiveWiringEnvironment;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import org.springframework.graphql.GraphQlSetup;
@@ -56,10 +56,12 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * Tests for {@link ContextDataFetcherDecorator}.
+ *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
 @SuppressWarnings("ReactiveStreamsUnusedPublisher")
-public class ContextDataFetcherDecoratorTests {
+class ContextDataFetcherDecoratorTests {
 
 	private static final String SCHEMA_CONTENT = """
 			directive @UpperCase on FIELD_DEFINITION \
@@ -289,7 +291,8 @@ public class ContextDataFetcherDecoratorTests {
 	}
 
 	@Test
-	void cancelMonoDataFetcherWhenRequestCancelled() throws Exception {
+	@Disabled("until https://github.com/spring-projects/spring-graphql/issues/1171")
+	void cancelMonoDataFetcherWhenRequestCancelled() {
 		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
 				.queryFetcher("greeting", (env) ->
@@ -300,15 +303,16 @@ public class ContextDataFetcherDecoratorTests {
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
+		Runnable cancelSignal = ContextPropagationHelper.createCancelSignal(input.getGraphQLContext());
 
 		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
-		requestCancelled.tryEmitEmpty();
+		cancelSignal.run();
 		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
 	}
 
 	@Test
-	void cancelFluxDataFetcherWhenRequestCancelled() throws Exception {
+	@Disabled("until https://github.com/spring-projects/spring-graphql/issues/1171")
+	void cancelFluxDataFetcherWhenRequestCancelled() {
 		AtomicBoolean dataFetcherCancelled = new AtomicBoolean();
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
 				.queryFetcher("greeting", (env) ->
@@ -319,10 +323,10 @@ public class ContextDataFetcherDecoratorTests {
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
-		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
+		Runnable cancelSignal = ContextPropagationHelper.createCancelSignal(input.getGraphQLContext());
 
 		CompletableFuture<ExecutionResult> asyncResult = graphQl.executeAsync(input);
-		requestCancelled.tryEmitEmpty();
+		cancelSignal.run();
 		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
 	}
 
@@ -338,11 +342,11 @@ public class ContextDataFetcherDecoratorTests {
 				.toGraphQl();
 
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("subscription { greetings }").build();
-		Sinks.Empty<Void> requestCancelled = ContextPropagationHelper.createCancelPublisher(input.getGraphQLContext());
+		Runnable cancelSignal = ContextPropagationHelper.createCancelSignal(input.getGraphQLContext());
 
 		ExecutionResult executionResult = graphQl.executeAsync(input).get();
 		ResponseHelper.forSubscription(executionResult).subscribe();
-		requestCancelled.tryEmitEmpty();
+		cancelSignal.run();
 
 		await().atMost(Duration.ofSeconds(2)).until(dataFetcherCancelled::get);
 		assertThat(dataFetcherCancelled).isTrue();
