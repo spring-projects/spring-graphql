@@ -1,15 +1,12 @@
 name: Update Antora UI Spring
-
 on:
   schedule:
     - cron: '0 10 * * *' # Once per day at 10am UTC
   workflow_dispatch:
-
 permissions:
   pull-requests: write
   issues: write
   contents: write
-
 jobs:
   update-antora-ui-spring:
     runs-on: ubuntu-latest

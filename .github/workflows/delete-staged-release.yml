@@ -5,6 +5,8 @@ on:
       build-version:
         description: 'Version of the build to delete'
         required: true
+permissions:
+  contents: read
 jobs:
   delete-staged-release:
     name: Delete Staged Release
