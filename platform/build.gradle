@@ -8,7 +8,7 @@ javaPlatform {
 
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	api(platform("com.fasterxml.jackson:jackson-bom:2.18.3"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.18.4"))
 	api(platform("io.projectreactor:reactor-bom:2024.0.7"))
 	api(platform("io.micrometer:micrometer-bom:1.15.1"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.5.1"))
@@ -20,7 +20,7 @@ dependencies {
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
 	api(platform("org.junit:junit-bom:5.12.2"))
 	api(platform("org.mockito:mockito-bom:5.16.0"))
-	api(platform("org.testcontainers:testcontainers-bom:1.21.0"))
+	api(platform("org.testcontainers:testcontainers-bom:1.21.2"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.24.3"))
 	api(platform("org.assertj:assertj-bom:3.27.3"))
 
@@ -34,7 +34,7 @@ dependencies {
 		api("jakarta.persistence:jakarta.persistence-api:3.1.0")
 
 		api("com.apollographql.federation:federation-graphql-java-support:5.4.0")
-		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:8.0.4")
+		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:8.0.5")
 
 		api("com.google.code.findbugs:jsr305:3.0.2")
 		api("com.jayway.jsonpath:json-path:2.9.0")
