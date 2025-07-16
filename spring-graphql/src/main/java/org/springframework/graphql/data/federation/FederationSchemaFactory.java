@@ -117,8 +117,7 @@ public final class FederationSchemaFactory
 
 		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
 
-		GraphQlArgumentBinder argumentBinder =
-				new GraphQlArgumentBinder(getConversionService(), isFallBackOnDirectFieldAccess());
+		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(getBinderOptions());
 
 		// Annotation based
 		resolvers.addResolver(new ContextValueMethodArgumentResolver());

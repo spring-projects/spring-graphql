@@ -57,7 +57,8 @@ class GraphQlArgumentBinderTests {
 
 	private final ObjectMapper mapper = new ObjectMapper();
 
-	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder(new DefaultFormattingConversionService());
+	private final GraphQlArgumentBinder binder = new GraphQlArgumentBinder(
+			GraphQlArgumentBinder.Options.create().conversionService(new DefaultFormattingConversionService()));
 
 
 	@Test

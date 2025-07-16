@@ -82,29 +82,49 @@ public class GraphQlArgumentBinder {
 	private final boolean fallBackOnDirectFieldAccess;
 
 
+	/**
+	 * Default constructor.
+	 */
 	public GraphQlArgumentBinder() {
-		this(null);
+		this((Options) null);
 	}
 
+	/**
+	 * Constructor with additional flag for direct field access support.
+	 * @param conversionService the service to use
+	 * @deprecated in favor of {@link #GraphQlArgumentBinder(Options)}
+	 */
+	@Deprecated(since = "2.0", forRemoval = true)
 	public GraphQlArgumentBinder(@Nullable ConversionService conversionService) {
 		this(conversionService, false);
 	}
 
-	public GraphQlArgumentBinder(@Nullable ConversionService conversionService, boolean fallBackOnDirectFieldAccess) {
-		this.typeConverter = initTypeConverter(conversionService);
+	/**
+	 * Constructor with additional flag for direct field access support.
+	 * @param service the service to use
+	 * @param fallBackOnDirectFieldAccess whether to fall back on direct field access
+	 * @deprecated in favor of {@link #GraphQlArgumentBinder(Options)}
+	 */
+	@Deprecated(since = "2.0", forRemoval = true)
+	public GraphQlArgumentBinder(@Nullable ConversionService service, boolean fallBackOnDirectFieldAccess) {
+		this.typeConverter = initTypeConverter(service);
 		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
 	}
 
-	private static @Nullable SimpleTypeConverter initTypeConverter(@Nullable ConversionService conversionService) {
-		if (conversionService == null) {
+	public GraphQlArgumentBinder(@Nullable Options options) {
+		this.typeConverter = ((options != null) ? initTypeConverter(options.conversionService()) : null);
+		this.fallBackOnDirectFieldAccess = (options != null && options.fallBackOnDirectFieldAccess());
+	}
+
+	private static @Nullable SimpleTypeConverter initTypeConverter(@Nullable ConversionService service) {
+		if (service == null) {
 			//  Not thread-safe when using PropertyEditors
 			return null;
 		}
 		SimpleTypeConverter typeConverter = new SimpleTypeConverter();
-		typeConverter.setConversionService(conversionService);
+		typeConverter.setConversionService(service);
 		return typeConverter;
 	}
-
 
 
 	/**
@@ -372,6 +392,58 @@ public class GraphQlArgumentBinder {
 		}
 
 		return (T) value;
+	}
+
+
+	/**
+	 * Container of configuration settings for {@link GraphQlArgumentBinder}.
+	 * @since 2.0.0
+	 */
+	public static final class Options {
+
+		private final @Nullable ConversionService conversionService;
+
+		private final boolean fallBackOnDirectFieldAccess;
+
+		private Options(@Nullable ConversionService conversionService, boolean fallBackOnDirectFieldAccess) {
+			this.conversionService = conversionService;
+			this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
+		}
+
+		/**
+		 * Add a {@link ConversionService} to apply type conversion to argument
+		 * values where needed.
+		 * @param service the service to use
+		 */
+		public Options conversionService(@Nullable ConversionService service) {
+			return new Options(service, this.fallBackOnDirectFieldAccess);
+		}
+
+		/**
+		 * Whether binding GraphQL arguments onto
+		 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
+		 * should falls back to direct field access in case the target object does
+		 * not use accessor methods.
+		 * @param fallBackOnDirectFieldAccess whether to fall back on direct field access
+		 */
+		public Options fallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
+			return new Options(this.conversionService, fallBackOnDirectFieldAccess);
+		}
+
+		public @Nullable ConversionService conversionService() {
+			return this.conversionService;
+		}
+
+		public boolean fallBackOnDirectFieldAccess() {
+			return this.fallBackOnDirectFieldAccess;
+		}
+
+		/**
+		 * Create an instance without any options set.
+		 */
+		public static Options create() {
+			return new Options(null, false);
+		}
 	}
 
 

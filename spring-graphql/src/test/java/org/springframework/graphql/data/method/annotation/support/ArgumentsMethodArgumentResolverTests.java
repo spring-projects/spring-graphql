@@ -42,7 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ArgumentsMethodArgumentResolverTests extends ArgumentResolverTestSupport {
 
 	private final HandlerMethodArgumentResolver resolver = new ArgumentsMethodArgumentResolver(
-			new GraphQlArgumentBinder(new DefaultFormattingConversionService()));
+			new GraphQlArgumentBinder(GraphQlArgumentBinder.Options.create()
+					.conversionService(new DefaultFormattingConversionService())));
 
 
 	@Test

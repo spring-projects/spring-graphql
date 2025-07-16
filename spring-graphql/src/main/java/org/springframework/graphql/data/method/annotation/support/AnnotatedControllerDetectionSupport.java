@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import graphql.schema.DataFetcher;
@@ -44,6 +45,7 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.format.FormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
+import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
@@ -86,9 +88,8 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	protected final Log logger = LogFactory.getLog(getClass());
 
 
-	private final FormattingConversionService conversionService = new DefaultFormattingConversionService();
-
-	private boolean fallBackOnDirectFieldAccess;
+	private GraphQlArgumentBinder.Options binderOptions = GraphQlArgumentBinder.Options.create()
+			.conversionService(new DefaultFormattingConversionService());
 
 	private @Nullable AnnotatedControllerExceptionResolver exceptionResolver;
 
@@ -103,18 +104,50 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 
 	/**
+	 * Callback to configure options for binding GraphQL arguments to target objects.
+	 * @param binderOptionsConsumer consumer to customize options with
+	 * @since 2.0.0
+	 */
+	public void configureBinder(Consumer<GraphQlArgumentBinder.Options> binderOptionsConsumer) {
+		binderOptionsConsumer.accept(this.binderOptions);
+	}
+
+	/**
+	 * Set the options to use for binding GraphQL arguments to target objects.
+	 * @param binderOptions the options to use
+	 * @since 2.0.0
+	 */
+	public void setBinderOptions(GraphQlArgumentBinder.Options binderOptions) {
+		this.binderOptions = binderOptions;
+	}
+
+	protected GraphQlArgumentBinder.Options getBinderOptions() {
+		return this.binderOptions;
+	}
+
+	/**
 	 * Add a {@code FormatterRegistrar} to customize the {@link ConversionService}
 	 * that assists in binding GraphQL arguments onto
 	 * {@link org.springframework.graphql.data.method.annotation.Argument @Argument}
 	 * annotated method parameters.
 	 * @param registrar the formatter registrar
+	 * @deprecated in favor of {@link #configureBinder(Consumer)}
 	 */
+	@Deprecated(since = "2.0", forRemoval = true)
 	public void addFormatterRegistrar(FormatterRegistrar registrar) {
-		registrar.registerFormatters(this.conversionService);
+		if (this.binderOptions.conversionService() instanceof FormattingConversionService fcs) {
+			registrar.registerFormatters(fcs);
+			return;
+		}
+		throw new IllegalStateException("Expected FormattingConversionService");
 	}
 
+	@Deprecated(since = "2.0", forRemoval = true)
 	protected FormattingConversionService getConversionService() {
-		return this.conversionService;
+		if (this.binderOptions.conversionService() instanceof FormattingConversionService fcs) {
+			return fcs;
+		}
+		throw new IllegalStateException("Expected FormattingConversionService");
 	}
 
 	/**
@@ -123,14 +156,16 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	 * should falls back to direct field access in case the target object does
 	 * not use accessor methods.
 	 * @param fallBackOnDirectFieldAccess whether binding should fall back on direct field access
-	 * @since 1.2.0
+	 * @deprecated in favor of {@link #configureBinder(Consumer)}
 	 */
+	@Deprecated(since = "2.0", forRemoval = true)
 	public void setFallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
-		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
+		this.binderOptions = this.binderOptions.fallBackOnDirectFieldAccess(fallBackOnDirectFieldAccess);
 	}
 
+	@Deprecated(since = "2.0", forRemoval = true)
 	protected boolean isFallBackOnDirectFieldAccess() {
-		return this.fallBackOnDirectFieldAccess;
+		return this.binderOptions.fallBackOnDirectFieldAccess();
 	}
 
 	/**

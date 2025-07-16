@@ -169,8 +169,7 @@ public class AnnotatedControllerConfigurer
 			resolvers.addResolver(new ProjectedPayloadMethodArgumentResolver(obtainApplicationContext()));
 		}
 
-		GraphQlArgumentBinder argumentBinder =
-				new GraphQlArgumentBinder(getConversionService(), isFallBackOnDirectFieldAccess());
+		GraphQlArgumentBinder argumentBinder = new GraphQlArgumentBinder(getBinderOptions());
 
 		resolvers.addResolver(new ArgumentMethodArgumentResolver(argumentBinder));
 		resolvers.addResolver(new ArgumentsMethodArgumentResolver(argumentBinder));
