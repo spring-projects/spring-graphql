@@ -71,6 +71,19 @@ class GraphQlArgumentBinderTests {
 	}
 
 	@Test
+	void dataBindingWithNameResolver() throws Exception {
+
+		GraphQlArgumentBinder.Options options = GraphQlArgumentBinder.Options.create()
+				.nameResolver(name -> name.equals("name__") ? "name" : name);
+
+		Object result = bind(new GraphQlArgumentBinder(options),
+				"{\"name__\":\"test\"}", ResolvableType.forClass(SimpleBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(SimpleBean.class);
+		assertThat(((SimpleBean) result).getName()).isEqualTo("test");
+	}
+
+	@Test
 	void dataBindingWithNestedBeanProperty() throws Exception {
 
 		Object result = bind(
@@ -123,8 +136,11 @@ class GraphQlArgumentBinderTests {
 	@Test // gh-599
 	void dataBindingWithDirectFieldAccess() throws Exception {
 
-		Object result = bind(
-				new GraphQlArgumentBinder(new DefaultFormattingConversionService(), true /* fallBackOnFieldAccess */),
+		GraphQlArgumentBinder.Options options = GraphQlArgumentBinder.Options.create()
+				.conversionService(new DefaultFormattingConversionService())
+				.fallBackOnDirectFieldAccess(true);
+
+		Object result = bind(new GraphQlArgumentBinder(options),
 				"{\"items\":[{\"name\":\"first\"},{\"name\":\"second\"}]}",
 				ResolvableType.forClass(DirectFieldAccessItemListHolder.class));
 
@@ -221,6 +237,27 @@ class GraphQlArgumentBinderTests {
 		assertThat(itemBean.getAge()).isEqualTo(30);
 	}
 
+
+	@Test
+	void primaryConstructorWithNameResolver() throws Exception {
+
+		GraphQlArgumentBinder.Options options = GraphQlArgumentBinder.Options.create()
+				.nameResolver(name -> name.equals("age__") ? "age" : name);
+
+		Object result = bind(
+				new GraphQlArgumentBinder(options),
+				"{\"name\":\"Hello\",\"age__\":\"1\",\"item\":{\"name\":\"Item name\",\"age__\":\"2\"}}",
+				ResolvableType.forClass(PrimaryConstructorItemBean.class));
+
+		assertThat(result).isNotNull().isInstanceOf(PrimaryConstructorItemBean.class);
+		PrimaryConstructorItemBean itemBean = (PrimaryConstructorItemBean) result;
+
+		assertThat(itemBean.getName()).isEqualTo("Hello");
+		assertThat(itemBean.getAge()).isEqualTo(1);
+		assertThat(itemBean.getItem().getName()).isEqualTo("Item name");
+		assertThat(itemBean.getItem().getAge()).isEqualTo(2);
+	}
+
 	@Test
 	void primaryConstructorWithOptionalBeanArgument() throws Exception {
 
@@ -242,14 +279,14 @@ class GraphQlArgumentBinderTests {
 				ResolvableType.forClass(PrimaryConstructorOptionalArgumentItemBean.class);
 
 		Object result = bind(
-				"{\"item\":{\"name\":\"Item name\",\"age\":\"30\"},\"name\":\"Hello\"}", targetType);
+				"{\"name\":\"Hello\",\"item\":{\"name\":\"Item name\",\"age\":\"30\"}}", targetType);
 
 		assertThat(result).isInstanceOf(PrimaryConstructorOptionalArgumentItemBean.class).isNotNull();
 		PrimaryConstructorOptionalArgumentItemBean itemBean = (PrimaryConstructorOptionalArgumentItemBean) result;
 
+		assertThat(itemBean.getName().value()).isEqualTo("Hello");
 		assertThat(itemBean.getItem().value().getName()).isEqualTo("Item name");
 		assertThat(itemBean.getItem().value().getAge()).isEqualTo(30);
-		assertThat(itemBean.getName().value()).isEqualTo("Hello");
 
 		result = bind("{\"key\":{}}", targetType);
 		itemBean = (PrimaryConstructorOptionalArgumentItemBean) result;

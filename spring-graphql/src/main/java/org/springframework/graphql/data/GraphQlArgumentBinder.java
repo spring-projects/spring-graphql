@@ -79,6 +79,8 @@ public class GraphQlArgumentBinder {
 
 	private final @Nullable SimpleTypeConverter typeConverter;
 
+	private final @Nullable NameResolver nameResolver;
+
 	private final boolean fallBackOnDirectFieldAccess;
 
 
@@ -86,7 +88,7 @@ public class GraphQlArgumentBinder {
 	 * Default constructor.
 	 */
 	public GraphQlArgumentBinder() {
-		this((Options) null);
+		this(Options.create());
 	}
 
 	/**
@@ -96,7 +98,7 @@ public class GraphQlArgumentBinder {
 	 */
 	@Deprecated(since = "2.0", forRemoval = true)
 	public GraphQlArgumentBinder(@Nullable ConversionService conversionService) {
-		this(conversionService, false);
+		this(Options.create().conversionService(conversionService));
 	}
 
 	/**
@@ -107,13 +109,13 @@ public class GraphQlArgumentBinder {
 	 */
 	@Deprecated(since = "2.0", forRemoval = true)
 	public GraphQlArgumentBinder(@Nullable ConversionService service, boolean fallBackOnDirectFieldAccess) {
-		this.typeConverter = initTypeConverter(service);
-		this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
+		this(Options.create().conversionService(service).fallBackOnDirectFieldAccess(fallBackOnDirectFieldAccess));
 	}
 
-	public GraphQlArgumentBinder(@Nullable Options options) {
-		this.typeConverter = ((options != null) ? initTypeConverter(options.conversionService()) : null);
-		this.fallBackOnDirectFieldAccess = (options != null && options.fallBackOnDirectFieldAccess());
+	public GraphQlArgumentBinder(Options options) {
+		this.typeConverter = initTypeConverter(options.conversionService());
+		this.nameResolver = options.nameResolver();
+		this.fallBackOnDirectFieldAccess = options.fallBackOnDirectFieldAccess();
 	}
 
 	private static @Nullable SimpleTypeConverter initTypeConverter(@Nullable ConversionService service) {
@@ -196,6 +198,10 @@ public class GraphQlArgumentBinder {
 			targetType = targetType.getNested(2);
 			targetClass = targetType.resolve();
 			Assert.state(targetClass != null, "Could not resolve target type for: " + targetType);
+		}
+
+		if (this.nameResolver != null) {
+			name = this.nameResolver.resolveName(name);
 		}
 
 		Object value;
@@ -302,8 +308,21 @@ public class GraphQlArgumentBinder {
 			ResolvableType targetType = ResolvableType.forType(
 					ResolvableType.forConstructorParameter(constructor, i).getType(), ownerType);
 
+			Object rawValue = rawMap.get(name);
+			boolean isNotPresent = !rawMap.containsKey(name);
+
+			if (rawValue == null && this.nameResolver != null) {
+				for (String key : rawMap.keySet()) {
+					if (this.nameResolver.resolveName(key).equals(name)) {
+						rawValue = rawMap.get(key);
+						isNotPresent = false;
+						break;
+					}
+				}
+			}
+
 			constructorArguments[i] = bindRawValue(
-					name, rawMap.get(name), !rawMap.containsKey(name), targetType, paramTypes[i], bindingResult);
+					name, rawValue, isNotPresent, targetType, paramTypes[i], bindingResult);
 		}
 
 		Object target;
@@ -342,6 +361,9 @@ public class GraphQlArgumentBinder {
 
 		for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
 			String key = entry.getKey();
+			if (this.nameResolver != null) {
+				key = this.nameResolver.resolveName(key);
+			}
 			TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(key);
 			if (typeDescriptor == null && this.fallBackOnDirectFieldAccess) {
 				Field field = ReflectionUtils.findField(beanWrapper.getWrappedClass(), key);
@@ -403,10 +425,15 @@ public class GraphQlArgumentBinder {
 
 		private final @Nullable ConversionService conversionService;
 
+		private final @Nullable NameResolver nameResolver;
+
 		private final boolean fallBackOnDirectFieldAccess;
 
-		private Options(@Nullable ConversionService conversionService, boolean fallBackOnDirectFieldAccess) {
+		private Options(@Nullable ConversionService conversionService, @Nullable NameResolver nameResolver,
+				boolean fallBackOnDirectFieldAccess) {
+
 			this.conversionService = conversionService;
+			this.nameResolver = nameResolver;
 			this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
 		}
 
@@ -416,7 +443,16 @@ public class GraphQlArgumentBinder {
 		 * @param service the service to use
 		 */
 		public Options conversionService(@Nullable ConversionService service) {
-			return new Options(service, this.fallBackOnDirectFieldAccess);
+			return new Options(service, this.nameResolver, this.fallBackOnDirectFieldAccess);
+		}
+
+		/**
+		 * Add a resolver to help to map GraphQL argument names to Object property names.
+		 * @param resolver the resolver to add
+		 */
+		public Options nameResolver(NameResolver resolver) {
+			resolver = ((this.nameResolver != null) ? this.nameResolver.andThen(resolver) : resolver);
+			return new Options(this.conversionService, resolver, this.fallBackOnDirectFieldAccess);
 		}
 
 		/**
@@ -427,11 +463,15 @@ public class GraphQlArgumentBinder {
 		 * @param fallBackOnDirectFieldAccess whether to fall back on direct field access
 		 */
 		public Options fallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
-			return new Options(this.conversionService, fallBackOnDirectFieldAccess);
+			return new Options(this.conversionService, this.nameResolver, fallBackOnDirectFieldAccess);
 		}
 
 		public @Nullable ConversionService conversionService() {
 			return this.conversionService;
+		}
+
+		public @Nullable NameResolver nameResolver() {
+			return this.nameResolver;
 		}
 
 		public boolean fallBackOnDirectFieldAccess() {
@@ -442,7 +482,33 @@ public class GraphQlArgumentBinder {
 		 * Create an instance without any options set.
 		 */
 		public static Options create() {
-			return new Options(null, false);
+			return new Options(null, (name) -> name, false);
+		}
+	}
+
+
+	/**
+	 * Contract to customize the mapping of GraphQL argument names to Object
+	 * properties. This can be useful for dealing with naming conventions like
+	 * the use of "-" that cannot be used in Java property names.
+	 * @since 2.0.0
+	 */
+	public interface NameResolver {
+
+		/**
+		 * Resolve the given GraphQL argument name to an Object property name.
+		 * @param name the argument name
+		 * @return the resolved name to use
+		 */
+		String resolveName(String name);
+
+		/**
+		 * Append another resolver to be invoked after the current one.
+		 * @param resolver the resolver to invoked
+		 * @return a new composite resolver
+		 */
+		default NameResolver andThen(NameResolver resolver) {
+			return (name) -> resolver.resolveName(resolveName(name));
 		}
 	}
 
