@@ -13,7 +13,7 @@ dependencies {
 	api(platform("io.projectreactor:reactor-bom:2025.0.0-M5"))
 	api(platform("io.micrometer:micrometer-bom:1.16.0-M1"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.6.0-M1"))
-	api(platform("org.springframework.data:spring-data-bom:2025.1.0-M3"))
+	api(platform("org.springframework.data:spring-data-bom:2025.1.0-SNAPSHOT"))
 	api(platform("org.springframework.security:spring-security-bom:6.5.0"))
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
@@ -44,12 +44,12 @@ dependencies {
 		api("org.hamcrest:hamcrest:3.0")
 
 		api("com.h2database:h2:2.3.232")
-		api("org.hibernate.orm:hibernate-core:7.0.0.CR1")
-		api("org.hibernate.validator:hibernate-validator:9.0.0.CR1")
-		api("org.mongodb:bson:5.3.1")
-		api("org.mongodb:mongodb-driver-core:5.3.1")
-		api("org.mongodb:mongodb-driver-reactivestreams:5.3.1")
-		api("org.mongodb:mongodb-driver-sync:5.3.1")
+		api("org.hibernate.orm:hibernate-core:7.0.5.Final")
+		api("org.hibernate.validator:hibernate-validator:9.0.1.Final")
+		api("org.mongodb:bson:5.5.0")
+		api("org.mongodb:mongodb-driver-core:5.5.0")
+		api("org.mongodb:mongodb-driver-reactivestreams:5.5.0")
+		api("org.mongodb:mongodb-driver-sync:5.5.0")
 	}
 
 }
