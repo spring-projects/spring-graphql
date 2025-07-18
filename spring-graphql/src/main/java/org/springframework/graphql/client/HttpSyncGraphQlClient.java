@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverters;
 import org.springframework.web.client.RestClient;
 
 
@@ -112,8 +113,19 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 		 * data to higher level objects.
 		 * @param configurer the configurer to apply
 		 * @return this builder
+		 * @deprecated since 2.0 in favor of {@link #configureMessageConverters(Consumer)}.
 		 */
+		@Deprecated(since = "2.0.0", forRemoval = true)
 		B messageConverters(Consumer<List<HttpMessageConverter<?>>> configurer);
+
+		/**
+		 * Configure message converters for JSON for use in the
+		 * {@link org.springframework.graphql.GraphQlResponse} to convert response
+		 * data to higher level objects.
+		 * @param configurer the configurer to apply
+		 * @return this builder
+		 */
+		B configureMessageConverters(Consumer<HttpMessageConverters.ClientBuilder> configurer);
 
 		/**
 		 * Customize the underlying {@code RestClient}.
@@ -122,7 +134,7 @@ public interface HttpSyncGraphQlClient extends GraphQlClient {
 		 * @param builderConsumer a consumer that customizes the {@code RestClient}.
 		 * @see #url(String)
 		 * @see #header(String, String...)
-		 * @see #messageConverters(Consumer)
+		 * @see #configureMessageConverters(Consumer)
 		 */
 		B restClient(Consumer<RestClient.Builder> builderConsumer);
 

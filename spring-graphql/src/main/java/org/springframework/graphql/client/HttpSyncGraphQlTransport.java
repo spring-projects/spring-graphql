@@ -62,6 +62,7 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 
 
 	@Override
+	@SuppressWarnings("NullAway")
 	public GraphQlResponse execute(GraphQlRequest request) {
 
 		Map<String, Object> body = this.restClient.post()

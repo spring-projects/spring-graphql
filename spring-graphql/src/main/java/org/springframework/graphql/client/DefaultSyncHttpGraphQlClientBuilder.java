@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverters;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -90,8 +91,15 @@ final class DefaultSyncHttpGraphQlClientBuilder
 	}
 
 	@Override
+	@SuppressWarnings("removal")
 	public DefaultSyncHttpGraphQlClientBuilder messageConverters(Consumer<List<HttpMessageConverter<?>>> configurer) {
 		this.restClientBuilder.messageConverters(configurer);
+		return this;
+	}
+
+	@Override
+	public DefaultSyncHttpGraphQlClientBuilder configureMessageConverters(Consumer<HttpMessageConverters.ClientBuilder> configurer) {
+		this.restClientBuilder.configureMessageConverters(configurer);
 		return this;
 	}
 
@@ -102,6 +110,7 @@ final class DefaultSyncHttpGraphQlClientBuilder
 	}
 
 	@Override
+	@SuppressWarnings("removal")
 	public HttpSyncGraphQlClient build() {
 
 		this.restClientBuilder.messageConverters((converters) -> {
