@@ -202,7 +202,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 							observationContext.setValue(result);
 							if (error != null) {
 								if (error instanceof CompletionException completionException) {
-									dataFetcherObservation.error(error.getCause());
+									dataFetcherObservation.error((error.getCause() != null) ? error.getCause() : error);
 									dataFetcherObservation.stop();
 									throw completionException;
 								}
