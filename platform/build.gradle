@@ -8,8 +8,8 @@ javaPlatform {
 
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	api(platform("com.fasterxml.jackson:jackson-bom:2.18.4"))
-	api(platform("tools.jackson:jackson-bom:3.0.0-rc4"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.19.2"))
+	api(platform("tools.jackson:jackson-bom:3.0.0-rc6"))
 	api(platform("io.projectreactor:reactor-bom:2025.0.0-M5"))
 	api(platform("io.micrometer:micrometer-bom:1.16.0-M1"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.6.0-M1"))
