@@ -16,12 +16,16 @@
 
 package org.springframework.graphql.client;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import com.netflix.graphql.dgs.client.codegen.BaseProjectionNode;
+import com.netflix.graphql.dgs.client.codegen.GraphQLMultiQueryRequest;
 import com.netflix.graphql.dgs.client.codegen.GraphQLQuery;
 import com.netflix.graphql.dgs.client.codegen.GraphQLQueryRequest;
 import graphql.schema.Coercing;
@@ -91,6 +95,8 @@ public final class DgsGraphQlClient {
 
 		private final GraphQLQuery query;
 
+		private final List<GraphQLQueryRequest> additionalRequests;
+
 		private @Nullable BaseProjectionNode projectionNode;
 
 		private @Nullable Map<Class<?>, Coercing<?, ?>> coercingMap;
@@ -98,14 +104,34 @@ public final class DgsGraphQlClient {
 		private @Nullable Map<String, Object> attributes;
 
 		private RequestSpec(GraphQLQuery query) {
+			this(query, Collections.emptyList(), null);
+		}
+
+		private RequestSpec(GraphQLQuery query, List<GraphQLQueryRequest> additionalRequests,
+							@Nullable Map<String, Object> existingAttributes) {
 			Assert.notNull(query, "Expected GraphQLQuery");
+			Assert.notNull(additionalRequests, "Expected additionalRequests");
 			this.query = query;
+			this.additionalRequests = additionalRequests;
+			if (existingAttributes != null) {
+				attributes((attr) -> attr.putAll(existingAttributes));
+			}
+		}
+
+		/**
+		 * Configure an alias for the current query.
+		 * @param queryAlias the alias for this query
+		 * @return the same builder instance
+		 */
+		public RequestSpec queryAlias(String queryAlias) {
+			this.query.setQueryAlias(queryAlias);
+			return this;
 		}
 
 		/**
 		 * Provide a {@link BaseProjectionNode} that defines the response selection set.
 		 * @param projectionNode the response selection set
-		 * @return ths same builder instance
+		 * @return the same builder instance
 		 */
 		public RequestSpec projection(BaseProjectionNode projectionNode) {
 			this.projectionNode = projectionNode;
@@ -116,7 +142,7 @@ public final class DgsGraphQlClient {
 		 * Configure {@link Coercing} for serialization of scalar types.
 		 * @param scalarType the scalar type
 		 * @param coercing the coercing function for this scalar
-		 * @return ths same builder instance
+		 * @return the same builder instance
 		 */
 		public RequestSpec coercing(Class<?> scalarType, Coercing<?, ?> coercing) {
 			this.coercingMap = (this.coercingMap != null) ? this.coercingMap : new LinkedHashMap<>();
@@ -127,7 +153,7 @@ public final class DgsGraphQlClient {
 		/**
 		 * Configure {@link Coercing} for serialization of scalar types.
 		 * @param coercingMap the map of coercing function
-		 * @return ths same builder instance
+		 * @return the same builder instance
 		 */
 		public RequestSpec coercing(Map<Class<?>, Coercing<?, ?>> coercingMap) {
 			this.coercingMap = (this.coercingMap != null) ? this.coercingMap : new LinkedHashMap<>();
@@ -141,7 +167,7 @@ public final class DgsGraphQlClient {
 		 * throughout the {@link GraphQlClientInterceptor} chain but not sent.
 		 * @param name the attribute name
 		 * @param value the attribute value
-		 * @return ths same builder instance
+		 * @return the same builder instance
 		 */
 		public RequestSpec attribute(String name, Object value) {
 			this.attributes = (this.attributes != null) ? this.attributes : new HashMap<>();
@@ -153,12 +179,24 @@ public final class DgsGraphQlClient {
 		 * Manipulate the client request attributes. The map provided to the consumer
 		 * is "live", so the consumer can inspect and modify attributes accordingly.
 		 * @param attributesConsumer the consumer that will manipulate request attributes
-		 * @return ths same builder instance
+		 * @return the same builder instance
 		 */
 		public RequestSpec attributes(Consumer<Map<String, Object>> attributesConsumer) {
 			this.attributes = (this.attributes != null) ? this.attributes : new HashMap<>();
 			attributesConsumer.accept(this.attributes);
 			return this;
+		}
+
+		/**
+		 * Define an additional GraphQL request for the given {@link GraphQLQuery},
+		 * resulting in a {@link GraphQLMultiQueryRequest} being sent.
+		 * @param query the GraphQL query
+		 * @see #queryAlias(String)
+		 */
+		public RequestSpec request(GraphQLQuery query) {
+			List<GraphQLQueryRequest> otherRequests = new ArrayList<>(this.additionalRequests);
+			otherRequests.add(createRequest());
+			return new RequestSpec(query, otherRequests, this.attributes);
 		}
 
 		/**
@@ -240,19 +278,38 @@ public final class DgsGraphQlClient {
 			return initRequestSpec().executeSubscription();
 		}
 
-		@SuppressWarnings("NullAway")
-		private GraphQlClient.RequestSpec initRequestSpec() {
-
+		private GraphQLQueryRequest createRequest() {
 			Assert.state(this.projectionNode != null || this.coercingMap == null,
 					"Coercing map provided without projection");
 
-			GraphQLQueryRequest request = (this.coercingMap != null) ?
-					new GraphQLQueryRequest(this.query, this.projectionNode, this.coercingMap) :
-					new GraphQLQueryRequest(this.query, this.projectionNode);
+			GraphQLQueryRequest request;
+			if (this.coercingMap != null && this.projectionNode != null) {
+				request = new GraphQLQueryRequest(this.query, this.projectionNode, this.coercingMap);
+			}
+			else if (this.projectionNode != null) {
+				request = new GraphQLQueryRequest(this.query, this.projectionNode);
+			}
+			else {
+				request = new GraphQLQueryRequest(this.query);
+			}
+			return request;
+		}
 
-			String operationName = (this.query.getName() != null) ? this.query.getName() : null;
+		@SuppressWarnings("NullAway")
+		private GraphQlClient.RequestSpec initRequestSpec() {
+			String document;
+			String operationName;
+			if (!this.additionalRequests.isEmpty()) {
+				this.additionalRequests.add(createRequest());
+				document = new GraphQLMultiQueryRequest(this.additionalRequests).serialize();
+				operationName = null;
+			}
+			else {
+				document = createRequest().serialize();
+				operationName = (this.query.getName() != null) ? this.query.getName() : null;
+			}
 
-			return DgsGraphQlClient.this.graphQlClient.document(request.serialize())
+			return DgsGraphQlClient.this.graphQlClient.document(document)
 					.operationName(operationName)
 					.attributes((map) -> {
 						if (this.attributes != null) {

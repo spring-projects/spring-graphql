@@ -420,17 +420,17 @@ For example, given the following schema:
 
 You can perform a request as follows:
 
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	HttpGraphQlClient client = ... ;
-	DgsGraphQlClient dgsClient = DgsGraphQlClient.create(client); // <1>
+include-code::DgsClientUsage[tag=sendSingleQuery,indent=0]
+<1> Create `DgsGraphQlClient` by wrapping any `GraphQlClient`.
+<2> Specify the operation for the request.
+<3> Define the selection set.
 
-	List<Book> books = dgsClient.request(new BooksGraphQLQuery()) // <2>
-			.projection(new BooksProjectionRoot<>().id().name()) // <3>
-			.retrieveSync("books")
-			.toEntityList(Book.class);
-----
+The `DgsGraphQlClient` also supports multiple queries by chaining `query()` calls:
 
-<1> - Create `DgsGraphQlClient` by wrapping any `GraphQlClient`.
-<2> - Specify the operation for the request.
-<3> - Define the selection set.
+include-code::DgsClientUsage[tag=sendManyQueries,indent=0]
+<1> Create `DgsGraphQlClient` by wrapping any `GraphQlClient`.
+<2> Specify the operation for the first request.
+<3> When multiple requests are sent, we need to specify an alias for each
+<4> Specify the operation for the second request.
+<5> Get the complete response
+<6> Get the relevant document parts with the configured aliases
