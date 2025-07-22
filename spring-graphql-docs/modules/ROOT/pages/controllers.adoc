@@ -440,6 +440,9 @@ For example:
 method parameter, either initialized via a constructor argument or via a setter, including
 as a field of an object nested at any level below the top level object.
 
+This is also supported on the client side with a dedicated Jackson Module,
+see the xref:client.adoc#client.argumentvalue[`ArgumentValue` support for clients] section.
+
 
 [[controllers.schema-mapping.arguments]]
 === `@Arguments`

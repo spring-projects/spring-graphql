@@ -24,19 +24,26 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.client.GraphQlClientInterceptor.Chain;
 import org.springframework.graphql.client.GraphQlClientInterceptor.SubscriptionChain;
+import org.springframework.graphql.client.json.GraphQlJackson2Module;
+import org.springframework.graphql.client.json.GraphQlJacksonModule;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.http.codec.json.JacksonJsonDecoder;
 import org.springframework.http.codec.json.JacksonJsonEncoder;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -47,7 +54,7 @@ import org.springframework.util.ClassUtils;
  *
  * <p>Subclasses must implement {@link #build()} and call
  * {@link #buildGraphQlClient(GraphQlTransport)} to obtain a default, transport
- * agnostic {@code GraphQlClient}. A transport specific extension can then wrap
+ * agnostic {@code GraphQlClient}. A transport-specific extension can then wrap
  * this default tester by extending {@link AbstractDelegatingGraphQlClient}.
  *
  * @param <B> the type of builder
@@ -241,12 +248,15 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	protected static class DefaultJacksonCodecs {
 
+		private static final ObjectMapper JSON_MAPPER = JsonMapper.builder()
+				.addModule(new GraphQlJacksonModule()).build();
+
 		static Encoder<?> encoder() {
-			return new JacksonJsonEncoder();
+			return new JacksonJsonEncoder(JSON_MAPPER, MediaType.APPLICATION_JSON);
 		}
 
 		static Decoder<?> decoder() {
-			return new JacksonJsonDecoder();
+			return new JacksonJsonDecoder(JSON_MAPPER, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE);
 		}
 
 	}
@@ -254,12 +264,15 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 	@SuppressWarnings("removal")
 	protected static class DefaultJackson2Codecs {
 
+		private static final com.fasterxml.jackson.databind.ObjectMapper JSON_MAPPER =
+				Jackson2ObjectMapperBuilder.json().modulesToInstall(new GraphQlJackson2Module()).build();
+
 		static Encoder<?> encoder() {
-			return new Jackson2JsonEncoder();
+			return new Jackson2JsonEncoder(JSON_MAPPER, MediaType.APPLICATION_JSON);
 		}
 
 		static Decoder<?> decoder() {
-			return new Jackson2JsonDecoder();
+			return new Jackson2JsonDecoder(JSON_MAPPER, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE);
 		}
 	}
 

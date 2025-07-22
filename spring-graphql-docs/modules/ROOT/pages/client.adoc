@@ -393,6 +393,49 @@ include-code::UseInterceptor[tag=register,indent=0]
 
 
 
+[[client.argumentvalue]]
+== Optional input
+
+By default, input types in GraphQL are nullable and optional.
+An input value (or any of its fields) can be set to the `null` literal, or not provided at all.
+This distinction is useful for partial updates with a mutation where the underlying data may also be,
+either set to `null` or not changed at all accordingly.
+
+Similar to the xref:controllers.adoc#controllers.schema-mapping.argument-value[`ArgumentValue<T> support in controllers`],
+we can wrap an Input type with `ArgumentValue<T>` or use it at the level of class attributes on the client side.
+Given a `ProjectInput` class like:
+
+include-code::ProjectInput[indent=0]
+
+We can use our client to send a mutation request:
+
+include-code::ArgumentValueClient[tag=argumentvalue,indent=0]
+<1> we can use `ArgumentValue.omitted()` instead, to ignore this field
+
+For this to work, the client must use Jackson for JSON (de)serialization and must be configured
+with the `org.springframework.graphql.client.json.GraphQlJacksonModule`.
+This can be registered manually on the underlying HTTP client like so:
+
+include-code::ArgumentValueClient[tag=createclient,indent=0]
+
+This `GraphQlJacksonModule` can be globally registered in Spring Boot applications by contributing it as a bean:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    @Configuration
+    public class GraphQlJsonConfiguration {
+
+    	@Bean
+    	public GraphQlJacksonModule graphQLModule() {
+    		return new GraphQlJacksonModule();
+    	}
+
+    }
+----
+
+NOTE: Jackson 2.x support is also available with the `GraphQlJackson2Module`.
+
+
 [[client.dgsgraphqlclient]]
 == DGS Codegen
 

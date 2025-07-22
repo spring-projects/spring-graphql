@@ -17,16 +17,27 @@
 package org.springframework.graphql.client;
 
 
+import java.util.Map;
+import java.util.stream.Stream;
+
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.graphql.Book;
+import org.springframework.graphql.MediaTypes;
 import org.springframework.graphql.MockWebServerExtension;
+import org.springframework.graphql.client.json.GraphQlJacksonModule;
+import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,6 +49,49 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @ExtendWith(MockWebServerExtension.class)
 class HttpGraphQlTransportIntegrationTests {
+
+	@ParameterizedTest
+	@MethodSource("argumentValues")
+	void shouldSerializeFieldValues(ProjectInput projectInput, String variable, MockWebServer server) throws Exception {
+		JsonMapper jsonMapper = JsonMapper.builder().addModule(new GraphQlJacksonModule()).build();
+		JacksonJsonEncoder jsonEncoder = new JacksonJsonEncoder(jsonMapper, MediaType.APPLICATION_JSON);
+		WebClient webClient = WebClient.builder()
+				.baseUrl(server.url("/graphql").toString())
+				.codecs(codecs -> codecs.defaultCodecs().jacksonJsonEncoder(jsonEncoder))
+				.build();
+		HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
+
+		server.enqueue(new MockResponse().addHeader("Content-Type", MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+				.setBody("""
+						{
+							"data": {
+								"createProject": {
+									"id": "spring-graphql"
+								}
+							}
+						}
+						"""));
+		graphQlClient.document("""
+						mutation createProject($project: ProjectInput!) {
+							  createProject($project: $project) {
+								id
+							  }
+						}
+						""")
+				.variables(Map.of("project", projectInput))
+				.executeSync();
+
+		assertThat(server.takeRequest().getBody().readUtf8()).contains("\"variables\":{\"project\":" + variable + "}");
+	}
+
+	static Stream<Arguments> argumentValues() {
+		return Stream.of(
+				Arguments.arguments(new ProjectInput("spring-graphql", ArgumentValue.omitted()), "{\"id\":\"spring-graphql\"}"),
+				Arguments.arguments(new ProjectInput("spring-graphql", ArgumentValue.ofNullable(null)), "{\"id\":\"spring-graphql\",\"name\":null}"),
+				Arguments.arguments(new ProjectInput("spring-graphql", ArgumentValue.ofNullable("Spring for GraphQL")), "{\"id\":\"spring-graphql\",\"name\":\"Spring for GraphQL\"}")
+		);
+	}
+
 
 	@Test
 	void shouldStreamSubscriptionResultsOverSse(MockWebServer server) {
@@ -94,5 +148,9 @@ class HttpGraphQlTransportIntegrationTests {
 				.verifyComplete();
 	}
 
+
+	public record ProjectInput(String id, ArgumentValue<String> name) {
+
+	}
 
 }

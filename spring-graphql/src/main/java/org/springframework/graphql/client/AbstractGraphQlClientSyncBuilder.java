@@ -25,16 +25,20 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.SyncGraphQlClientInterceptor.Chain;
+import org.springframework.graphql.client.json.GraphQlJackson2Module;
+import org.springframework.graphql.client.json.GraphQlJacksonModule;
 import org.springframework.graphql.support.CachingDocumentSource;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.graphql.support.ResourceDocumentSource;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.util.Assert;
@@ -197,7 +201,8 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	private static final class DefaultJacksonConverter {
 
 		static HttpMessageConverter<Object> initialize() {
-			return new JacksonJsonHttpMessageConverter();
+			JsonMapper jsonMapper = JsonMapper.builder().addModule(new GraphQlJacksonModule()).build();
+			return new JacksonJsonHttpMessageConverter(jsonMapper);
 		}
 	}
 
@@ -205,7 +210,9 @@ public abstract class AbstractGraphQlClientSyncBuilder<B extends AbstractGraphQl
 	private static final class DefaultJackson2Converter {
 
 		static HttpMessageConverter<Object> initialize() {
-			return new MappingJackson2HttpMessageConverter();
+			com.fasterxml.jackson.databind.ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json()
+					.modulesToInstall(new GraphQlJackson2Module()).build();
+			return new MappingJackson2HttpMessageConverter(objectMapper);
 		}
 	}
 
