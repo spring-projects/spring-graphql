@@ -34,10 +34,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
 
 /**
- * {@link DocumentSource} that looks for a document {@link Resource} under a set
- * of locations and trying a number of different file extension.
+ * {@link DocumentSource} that searches for document {@link Resource}s across
+ * multiple locations while trying different file extensions.
  *
  * @author Rossen Stoyanchev
+ * @author Marco Schäck
  * @since 1.0.0
  */
 public class ResourceDocumentSource implements DocumentSource {
@@ -59,6 +60,14 @@ public class ResourceDocumentSource implements DocumentSource {
 	 */
 	public ResourceDocumentSource() {
 		this(Collections.singletonList(new ClassPathResource("graphql/")), FILE_EXTENSIONS);
+	}
+
+	/**
+	 * Constructor with a single location and the default file extensions.
+	 * @param location the resource location
+	 */
+	public ResourceDocumentSource(Resource location) {
+		this(Collections.singletonList(location), FILE_EXTENSIONS);
 	}
 
 	/**

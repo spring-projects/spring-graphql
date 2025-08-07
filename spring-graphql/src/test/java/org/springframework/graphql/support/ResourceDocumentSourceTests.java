@@ -19,7 +19,7 @@ package org.springframework.graphql.support;
 import java.time.Duration;
 import java.util.Collections;
 
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
@@ -30,33 +30,75 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link ResourceDocumentSource}.
  * @author Rossen Stoyanchev
+ * @author Marco Schäck
  */
 class ResourceDocumentSourceTests {
 
-	private ResourceDocumentSource source;
+	@Nested
+	class DefaultConstructorTests {
 
+		@Test
+		void getDocument() {
+			ResourceDocumentSource source = new ResourceDocumentSource();
+			String content = source.getDocument("test-document").block(Duration.ofSeconds(5));
+			assertThat(content).startsWith("query GetUser($id: ID!)");
+		}
 
-	@BeforeEach
-	void setUp() {
-		this.source = new ResourceDocumentSource(
-				Collections.singletonList(new ClassPathResource("books/")),
-				ResourceDocumentSource.FILE_EXTENSIONS);
+		@Test
+		void getDocumentNotFound() {
+			ResourceDocumentSource source = new ResourceDocumentSource();
+			StepVerifier.create(source.getDocument("invalid"))
+					.expectErrorMessage(
+							"Failed to find document, name='invalid', " +
+									"under location(s)=[class path resource [graphql/]]")
+					.verify(Duration.ofSeconds(5));
+		}
 	}
 
+	@Nested
+	class SingleResourceConstructorTests {
 
-	@Test
-	void getDocument() {
-		String content = this.source.getDocument("book-document").block(Duration.ofSeconds(5));
-		assertThat(content).startsWith("bookById(id:\"1\"");
+		@Test
+		void getDocument() {
+			ResourceDocumentSource source = new ResourceDocumentSource(new ClassPathResource("books/"));
+			String content = source.getDocument("book-document").block(Duration.ofSeconds(5));
+			assertThat(content).startsWith("bookById(id:\"1\"");
+		}
+
+		@Test
+		void getDocumentNotFound() {
+			ResourceDocumentSource source = new ResourceDocumentSource(new ClassPathResource("books/"));
+			StepVerifier.create(source.getDocument("invalid"))
+					.expectErrorMessage(
+							"Failed to find document, name='invalid', " +
+									"under location(s)=[class path resource [books/]]")
+					.verify(Duration.ofSeconds(5));
+		}
 	}
 
-	@Test
-	void getDocumentNotFound() {
-		StepVerifier.create(this.source.getDocument("invalid"))
-				.expectErrorMessage(
-						"Failed to find document, name='invalid', " +
-								"under location(s)=[class path resource [books/]]")
-				.verify(Duration.ofSeconds(5));
+	@Nested
+	class ListResourceConstructorTests {
+
+		@Test
+		void getDocument() {
+			ResourceDocumentSource source = new ResourceDocumentSource(
+					Collections.singletonList(new ClassPathResource("books/")),
+					ResourceDocumentSource.FILE_EXTENSIONS);
+			String content = source.getDocument("book-document").block(Duration.ofSeconds(5));
+			assertThat(content).startsWith("bookById(id:\"1\"");
+		}
+
+		@Test
+		void getDocumentNotFound() {
+			ResourceDocumentSource source = new ResourceDocumentSource(
+					Collections.singletonList(new ClassPathResource("books/")),
+					ResourceDocumentSource.FILE_EXTENSIONS);
+			StepVerifier.create(source.getDocument("invalid"))
+					.expectErrorMessage(
+							"Failed to find document, name='invalid', " +
+									"under location(s)=[class path resource [books/]]")
+					.verify(Duration.ofSeconds(5));
+		}
 	}
 
 }
