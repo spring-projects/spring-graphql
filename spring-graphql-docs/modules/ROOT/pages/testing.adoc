@@ -182,7 +182,7 @@ xref:testing.adoc#testing.requests[execute requests] using the same API, indepen
 === Builder
 
 `GraphQlTester` defines a parent `Builder` with common configuration options for the
-builders of all extensions. It lets you configure the following:
+builders of all extensions. These include builders like the one of the ExecutionGraphQlServiceTester, listed above. It lets you configure at least the following:
 
 - `errorFilter` - a predicate to suppress expected errors, so you can inspect the data
 of the response.
@@ -191,8 +191,7 @@ the classpath or from anywhere else.
 - `responseTimeout` - how long to wait for request execution to complete before timing
 out.
 
-
-
+include-code::GraphQlTesterBuilder[tag=inlineDocument,indent=0]
 
 [[testing.requests]]
 == Requests
