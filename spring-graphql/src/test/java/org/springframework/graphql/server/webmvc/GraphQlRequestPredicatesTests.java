@@ -189,7 +189,7 @@ class GraphQlRequestPredicatesTests {
 		}
 
 		@Test
-		void shouldRejectRequestWithIncmopatibleContentType() {
+		void shouldRejectRequestWithIncompatibleContentType() {
 			MockHttpServletRequest request = createMatchingSseRequest();
 			request.setContentType("text/xml");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());

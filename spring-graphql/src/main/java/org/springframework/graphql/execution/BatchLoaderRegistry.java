@@ -53,7 +53,7 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 	 * <p>When this method is used, the name for the
 	 * {@link org.dataloader.DataLoader} is automatically set as defined in
 	 * {@link RegistrationSpec#withName(String)}, and likewise,
-	 * {@code @SchemaMapping} handler methods can transparenly locate and
+	 * {@code @SchemaMapping} handler methods can transparently locate and
 	 * inject a {@code DataLoader<T>} argument based on the generic type
 	 * {@code <T>}.
 	 * @param keyType the type of keys that will be used as input
