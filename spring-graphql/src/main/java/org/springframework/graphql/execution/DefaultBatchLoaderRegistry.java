@@ -111,8 +111,10 @@ public class DefaultBatchLoaderRegistry implements BatchLoaderRegistry {
 		}
 	}
 
-	@SuppressWarnings("NullAway") // DataLoaderRegistry#getDataLoader should be @Nullable
 	private void registerDataLoader(DataLoader<?, ?> dataLoader, DataLoaderRegistry registry) {
+		if (dataLoader.getName() == null) {
+			throw new IllegalStateException("DataLoader '" + dataLoader.getClass() + "' should be named");
+		}
 		if (registry.getDataLoader(dataLoader.getName()) != null) {
 			throw new IllegalStateException("More than one DataLoader named '" + dataLoader.getName() + "'");
 		}
