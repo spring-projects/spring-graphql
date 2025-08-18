@@ -109,11 +109,15 @@ final class DefaultClientResponseField implements ClientResponseField {
 		DataBufferFactory bufferFactory = DefaultDataBufferFactory.sharedInstance;
 		MimeType mimeType = MimeTypeUtils.APPLICATION_JSON;
 		Map<String, Object> hints = Collections.emptyMap();
+		try {
+			DataBuffer buffer = ((Encoder<T>) this.response.getEncoder()).encodeValue(
+					(T) getValue(), bufferFactory, ResolvableType.forInstance(getValue()), mimeType, hints);
 
-		DataBuffer buffer = ((Encoder<T>) this.response.getEncoder()).encodeValue(
-				(T) getValue(), bufferFactory, ResolvableType.forInstance(getValue()), mimeType, hints);
-
-		return ((Decoder<T>) this.response.getDecoder()).decode(buffer, targetType, mimeType, hints);
+			return ((Decoder<T>) this.response.getDecoder()).decode(buffer, targetType, mimeType, hints);
+		}
+		catch (Throwable ex) {
+			throw new GraphQlClientException("Cannot read field '" + this.field.getPath() + "'", ex, this.response.getRequest());
+		}
 	}
 
 }

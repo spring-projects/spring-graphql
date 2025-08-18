@@ -22,29 +22,30 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.ResultPath;
 import graphql.language.SourceLocation;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.DeserializationFeature;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.core.codec.DecodingException;
 import org.springframework.graphql.ResponseError;
 import org.springframework.http.codec.json.JacksonJsonDecoder;
 import org.springframework.http.codec.json.JacksonJsonEncoder;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 /**
  * Unit tests for {@link DefaultClientGraphQlResponse}.
  * @author Rossen Stoyanchev
  */
-class DefaultGraphQlClientResponseTests {
+class DefaultClientGraphQlResponseTests {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -120,6 +121,37 @@ class DefaultGraphQlClientResponseTests {
 				.withMessageStartingWith("Invalid path");
 	}
 
+
+	@Test
+	void fieldToEntity() throws Exception {
+		ClientResponseField bookById = getFieldOnDataResponse("bookById", """
+				{
+				  "bookById": {
+				  	"id": "42",
+				  	"name": "Spring for GraphQL"
+				  }
+				}
+				""");
+		Book book = bookById.toEntity(Book.class);
+		assertThat(book).isEqualTo(new Book(42L, "Spring for GraphQL"));
+	}
+
+	@Test
+	void fieldToEntityWhenNullThrowsFieldAccessException() throws Exception {
+		ClientGraphQlResponse response = createResponse("{ \"bookById\": null }", createError("/bookById", "fail-book"));
+		assertThatThrownBy(() -> response.field("bookById").toEntity(Book.class))
+				.isInstanceOf(FieldAccessException.class).hasMessageContaining("Invalid field 'bookById'");
+	}
+
+	@Test
+	void fieldToEntityWhenInvalidThrowsGraphQlClientException() throws Exception {
+		ClientGraphQlResponse response = createResponse("{ \"bookById\": \"invalid\" }");
+		assertThatThrownBy(() -> response.field("bookById").toEntity(Book.class))
+				.isInstanceOf(GraphQlClientException.class)
+				.hasMessageContaining("Cannot read field 'bookById'")
+				.hasCauseInstanceOf(DecodingException.class);
+	}
+
 	@Test
 	void fieldErrors() {
 
@@ -181,11 +213,21 @@ class DefaultGraphQlClientResponseTests {
 		return response.field(path);
 	}
 
+	private ClientGraphQlResponse createResponse(String dataJson, GraphQLError... errors) throws Exception {
+		Map<?, ?> dataMap = mapper.readValue(dataJson, Map.class);
+		List<?> errorList = Arrays.stream(errors).map(GraphQLError::toSpecification).toList();
+		return createResponse(Map.of("data", dataMap, "errors", errorList));
+	}
+
 	private ClientGraphQlResponse createResponse(Map<String, Object> responseMap) {
 		return new DefaultClientGraphQlResponse(
 				new DefaultClientGraphQlRequest("{test}", null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap()),
 				new ResponseMapGraphQlResponse(responseMap),
 				new JacksonJsonEncoder(), new JacksonJsonDecoder());
+	}
+
+	record Book(Long id, String name) {
+
 	}
 
 }

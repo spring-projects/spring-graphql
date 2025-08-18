@@ -249,6 +249,8 @@ include::{include-java}/client/requests/retrieve/Retrieve.java[tag=fieldError,in
 ----
 ======
 
+If the field is present but cannot be decoded to the requested type, a plain `GraphQlClientException`
+is thrown instead.
 
 
 [[client.requests.execute]]
