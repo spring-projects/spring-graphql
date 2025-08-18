@@ -81,6 +81,7 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 
 	@Override
+	@SuppressWarnings("NullAway")
 	public @Nullable Object get(DataFetchingEnvironment env) throws Exception {
 
 		GraphQLContext graphQlContext = env.getGraphQlContext();

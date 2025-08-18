@@ -97,7 +97,7 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 	}
 
 	protected KeyValue executionId(ExecutionRequestObservationContext context) {
-		return KeyValue.of(ExecutionRequestHighCardinalityKeyNames.EXECUTION_ID, context.getExecutionInput().getExecutionId().toString());
+		return KeyValue.of(ExecutionRequestHighCardinalityKeyNames.EXECUTION_ID, context.getExecutionInput().getExecutionIdNonNull().toString());
 	}
 
 }
