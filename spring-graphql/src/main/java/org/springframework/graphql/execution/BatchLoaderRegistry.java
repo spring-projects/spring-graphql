@@ -53,7 +53,7 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 	 * <p>When this method is used, the name for the
 	 * {@link org.dataloader.DataLoader} is automatically set as defined in
 	 * {@link RegistrationSpec#withName(String)}, and likewise,
-	 * {@code @SchemaMapping} handler methods can transparenly locate and
+	 * {@code @SchemaMapping} handler methods can transparently locate and
 	 * inject a {@code DataLoader<T>} argument based on the generic type
 	 * {@code <T>}.
 	 * @param keyType the type of keys that will be used as input
@@ -116,7 +116,7 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 		 * Set the {@link DataLoaderOptions} to use to create the
 		 * {@link org.dataloader.DataLoader} via {@link org.dataloader.DataLoaderFactory}.
 		 * <p><strong>Note:</strong> Do not set
-		 * {@link DataLoaderOptions#setBatchLoaderContextProvider(BatchLoaderContextProvider)}
+		 * {@link DataLoaderOptions.Builder#setBatchLoaderContextProvider(BatchLoaderContextProvider)}
 		 * as this will be set later to a provider that returns the context from
 		 * {@link ExecutionInput#getGraphQLContext()}, so that batch loading
 		 * functions and data fetchers can rely on access to the same context.
@@ -126,7 +126,7 @@ public interface BatchLoaderRegistry extends DataLoaderRegistrar {
 		RegistrationSpec<K, V> withOptions(DataLoaderOptions options);
 
 		/**
-		 * Register the give batch loading function.
+		 * Register the given batch loading function.
 		 * <p>The values returned from the function must match the order and
 		 * the number of keys, with {@code null} for missing values.
 		 * Please, see {@link org.dataloader.BatchLoader}.
