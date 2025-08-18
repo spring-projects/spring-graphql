@@ -19,7 +19,7 @@ package org.springframework.graphql.docs.controllers.namespacing;
 import java.util.Collections;
 import java.util.List;
 
-import org.springframework.boot.autoconfigure.graphql.GraphQlSourceBuilderCustomizer;
+import org.springframework.boot.graphql.autoconfigure.GraphQlSourceBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
