@@ -112,7 +112,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return (value instanceof Authentication auth) ? Mono.just(auth) : (Mono<Authentication>) value;
 	}
 
-	private @Nullable Object resolvePrincipal(MethodParameter parameter, Object principal) {
+	private @Nullable Object resolvePrincipal(MethodParameter parameter, @Nullable Object principal) {
 		AuthenticationPrincipal annotation = findMethodAnnotation(parameter);
 		if (annotation != null && StringUtils.hasLength(annotation.expression())) {
 			StandardEvaluationContext context = new StandardEvaluationContext();

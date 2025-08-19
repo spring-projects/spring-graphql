@@ -41,6 +41,7 @@ final class SecurityExceptionResolverUtils {
 				.build();
 	}
 
+	@SuppressWarnings("NullAway") // until https://github.com/spring-projects/spring-security/issues/17764
 	static GraphQLError resolveAccessDenied(
 			DataFetchingEnvironment env, AuthenticationTrustResolver resolver, SecurityContext securityContext) {
 
