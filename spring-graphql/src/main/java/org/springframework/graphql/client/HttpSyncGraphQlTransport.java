@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.client;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 
@@ -24,11 +26,16 @@ import org.springframework.graphql.GraphQlRequest;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.MediaTypes;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpInputMessage;
+import org.springframework.http.HttpMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 
@@ -75,7 +82,16 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 					else if (httpResponse.getStatusCode().is4xxClientError() && isGraphQlResponse(httpResponse)) {
 						return httpResponse.bodyTo(MAP_TYPE);
 					}
-					throw new HttpClientErrorException(httpResponse.getStatusCode(), httpResponse.getStatusText());
+					else if (httpResponse.getStatusCode().is4xxClientError()) {
+						throw HttpClientErrorException.create(httpResponse.getStatusText(), httpResponse.getStatusCode(),
+								httpResponse.getStatusText(), httpResponse.getHeaders(),
+								getBody(httpResponse), getCharset(httpResponse));
+					}
+					else {
+						throw HttpServerErrorException.create(httpResponse.getStatusText(), httpResponse.getStatusCode(),
+								httpResponse.getStatusText(), httpResponse.getHeaders(),
+								getBody(httpResponse), getCharset(httpResponse));
+					}
 				});
 		return new ResponseMapGraphQlResponse((body != null) ? body : Collections.emptyMap());
 	}
@@ -83,6 +99,22 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 	private static boolean isGraphQlResponse(ClientHttpResponse clientResponse) {
 		return MediaTypes.APPLICATION_GRAPHQL_RESPONSE
 				.isCompatibleWith(clientResponse.getHeaders().getContentType());
+	}
+
+	private static byte[] getBody(HttpInputMessage message) {
+		try {
+			return FileCopyUtils.copyToByteArray(message.getBody());
+		}
+		catch (IOException ignore) {
+		}
+		return new byte[0];
+	}
+
+	@Nullable
+	private static Charset getCharset(HttpMessage response) {
+		HttpHeaders headers = response.getHeaders();
+		MediaType contentType = headers.getContentType();
+		return (contentType != null) ? contentType.getCharset() : null;
 	}
 
 }
