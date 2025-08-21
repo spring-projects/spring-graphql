@@ -15,6 +15,8 @@ configurations {
 	matching { it.name.endsWith("Classpath") }.all { it.extendsFrom(dependencyManagement) }
 }
 
+def springBootVersion = "4.0.0-M1"
+
 dependencies {
 	dependencyManagement(enforcedPlatform(dependencies.project(path: ":platform")))
 	api project(':spring-graphql')
@@ -25,7 +27,9 @@ dependencies {
 	implementation 'org.springframework:spring-messaging'
 	implementation 'org.springframework.data:spring-data-commons'
 	implementation 'com.querydsl:querydsl-core'
-	implementation "org.springframework.boot:spring-boot-starter-graphql:${springBootVersion}"
+	implementation ("org.springframework.boot:spring-boot-graphql:${springBootVersion}") {
+        exclude group: 'org.springframework.graphql'
+    }
 	implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
 	implementation 'tools.jackson.core:jackson-databind'
 	implementation 'io.rsocket:rsocket-core'
