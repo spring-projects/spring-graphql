@@ -22,7 +22,6 @@ import java.util.Map;
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import graphql.TrivialDataFetcher;
-import graphql.execution.AbortExecutionException;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -53,7 +52,6 @@ import org.springframework.util.Assert;
  * <li>Re-establish Reactor Context passed via {@link ExecutionInput}.
  * <li>Re-establish ThreadLocal context passed via {@link ExecutionInput}.
  * <li>Resolve exceptions from a GraphQL subscription {@link Publisher}.
- * <li>Propagate the cancellation signal to {@code DataFetcher} from the transport layer.
  * </ul>
  *
  * @author Rossen Stoyanchev
@@ -109,11 +107,6 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		if (value == null) {
 			return null;
 		}
-		if (ContextPropagationHelper.isCancelled(graphQlContext)) {
-			return DataFetcherResult.newResult()
-					.error(new AbortExecutionException("GraphQL request has been cancelled by the client."))
-					.build();
-		}
 
 		if (this.subscription) {
 			Flux<?> subscriptionResult = ReactiveAdapterRegistryHelper.toSubscriptionFlux(value)
@@ -125,8 +118,7 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 						return this.subscriptionExceptionResolver.resolveException(exception)
 								.flatMap((errors) -> Mono.error(new SubscriptionPublisherException(errors, exception)));
 					});
-			return ContextPropagationHelper.bindCancelFrom(subscriptionResult, graphQlContext)
-					.contextWrite(snapshot::updateContext);
+			return subscriptionResult.contextWrite(snapshot::updateContext);
 		}
 
 		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);

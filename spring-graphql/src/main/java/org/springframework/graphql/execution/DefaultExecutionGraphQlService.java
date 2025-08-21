@@ -91,13 +91,12 @@ public class DefaultExecutionGraphQlService implements ExecutionGraphQlService {
 			factory.captureFrom(contextView).updateContext(graphQLContext);
 
 			ExecutionInput executionInputToUse = registerDataLoaders(executionInput);
-			Runnable cancelSignal = ContextPropagationHelper.createCancelSignal(graphQLContext);
 
 			return Mono.fromFuture(this.graphQlSource.graphQl().executeAsync(executionInputToUse))
 					.onErrorResume((ex) -> ex instanceof GraphQLError, (ex) ->
 							Mono.just(ExecutionResult.newExecutionResult().addError((GraphQLError) ex).build()))
 					.map((result) -> new DefaultExecutionGraphQlResponse(executionInputToUse, result))
-					.doOnCancel(cancelSignal::run);
+					.doOnCancel(executionInputToUse::cancel);
 		});
 	}
 
