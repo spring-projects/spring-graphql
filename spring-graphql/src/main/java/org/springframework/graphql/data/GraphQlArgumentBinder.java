@@ -20,6 +20,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -297,6 +298,7 @@ public class GraphQlArgumentBinder {
 	private @Nullable Object bindViaConstructorAndSetters(Constructor<?> constructor,
 			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
 
+		Map<String, Object> dataToBind = new HashMap<>(rawMap);
 		@Nullable String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
 		@Nullable Object[] constructorArguments = new Object[paramTypes.length];
@@ -308,14 +310,16 @@ public class GraphQlArgumentBinder {
 			ResolvableType targetType = ResolvableType.forType(
 					ResolvableType.forConstructorParameter(constructor, i).getType(), ownerType);
 
-			Object rawValue = rawMap.get(name);
-			boolean isNotPresent = !rawMap.containsKey(name);
+			Object rawValue = dataToBind.get(name);
+			boolean isNotPresent = !dataToBind.containsKey(name);
+			dataToBind.remove(name);
 
 			if (rawValue == null && this.nameResolver != null) {
-				for (String key : rawMap.keySet()) {
+				for (String key : dataToBind.keySet()) {
 					if (this.nameResolver.resolveName(key).equals(name)) {
-						rawValue = rawMap.get(key);
+						rawValue = dataToBind.get(key);
 						isNotPresent = false;
+						dataToBind.remove(key);
 						break;
 					}
 				}
@@ -337,9 +341,9 @@ public class GraphQlArgumentBinder {
 			throw ex;
 		}
 
-		// If no errors, apply setters too
-		if (!bindingResult.hasErrors()) {
-			bindViaSetters(target, rawMap, ownerType, bindingResult);
+		// If no errors and data remains to be bound, apply setters too
+		if (!dataToBind.isEmpty() && !bindingResult.hasErrors()) {
+			bindViaSetters(target, dataToBind, ownerType, bindingResult);
 		}
 
 		return target;
