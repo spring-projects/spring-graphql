@@ -18,9 +18,12 @@ jobs:
           - id: ubuntu-latest
             name: Linux
         java:
+          - version: 17
+            toolchain: true
           - version: 21
             toolchain: true
-          - version: 22
+          - version: 25
+            early-access: true
             toolchain: true
     steps:
       - name: Check Out Code
@@ -29,7 +32,9 @@ jobs:
         id: build
         uses: ./.github/actions/build-and-publish
         with:
+          publish: false
           java-version: ${{ matrix.java.version }}
+          java-early-access: ${{ matrix.java.early-access || 'false' }}
           java-distribution: ${{ matrix.java.distribution || 'liberica' }}
           java-toolchain: ${{ matrix.java.toolchain }}
           develocity-access-key: ${{ secrets.GRADLE_ENTERPRISE_SECRET_ACCESS_KEY }}
