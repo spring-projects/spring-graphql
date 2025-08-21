@@ -20,6 +20,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -276,6 +277,7 @@ public class GraphQlArgumentBinder {
 	private Object bindViaConstructorAndSetters(Constructor<?> constructor,
 			Map<String, Object> rawMap, ResolvableType ownerType, ArgumentsBindingResult bindingResult) {
 
+		Map<String, Object> dataToBind = new HashMap<>(rawMap);
 		String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
 		Object[] constructorArguments = new Object[paramTypes.length];
@@ -287,7 +289,8 @@ public class GraphQlArgumentBinder {
 					ResolvableType.forConstructorParameter(constructor, i).getType(), ownerType);
 
 			constructorArguments[i] = bindRawValue(
-					name, rawMap.get(name), !rawMap.containsKey(name), targetType, paramTypes[i], bindingResult);
+					name, dataToBind.get(name), !dataToBind.containsKey(name), targetType, paramTypes[i], bindingResult);
+			dataToBind.remove(name);
 		}
 
 		Object target;
@@ -302,9 +305,9 @@ public class GraphQlArgumentBinder {
 			throw ex;
 		}
 
-		// If no errors, apply setters too
-		if (!bindingResult.hasErrors()) {
-			bindViaSetters(target, rawMap, ownerType, bindingResult);
+		// If no errors and data remains to be bound, apply setters too
+		if (!dataToBind.isEmpty() && !bindingResult.hasErrors()) {
+			bindViaSetters(target, dataToBind, ownerType, bindingResult);
 		}
 
 		return target;
