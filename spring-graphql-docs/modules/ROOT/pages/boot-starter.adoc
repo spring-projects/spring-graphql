@@ -16,6 +16,6 @@ features, and more. For testing support, see
 For further reference, check the following GraphQL related:
 
 - {spring-boot-ref-docs}/appendix/application-properties/index.html#appendix.application-properties.web[Configuration Properties]
-- {spring-boot-ref-docs}/appendix/auto-configuration-classes/core.html[GraphQL Auto-Configuration Classes]
-- {spring-boot-ref-docs}/appendix/auto-configuration-classes/actuator.html[GraphQL Actuator Auto-Configuration Classes]
+- {spring-boot-ref-docs}/appendix/auto-configuration-classes/spring-boot-autoconfigure.html[GraphQL Auto-Configuration Classes]
+- {spring-boot-ref-docs}/appendix/auto-configuration-classes/spring-boot-actuator-autoconfigure.html[GraphQL Actuator Auto-Configuration Classes]
 
