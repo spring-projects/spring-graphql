@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.core.codec.Decoder;
@@ -248,7 +247,7 @@ public abstract class AbstractGraphQlClientBuilder<B extends AbstractGraphQlClie
 
 	protected static class DefaultJacksonCodecs {
 
-		private static final ObjectMapper JSON_MAPPER = JsonMapper.builder()
+		private static final JsonMapper JSON_MAPPER = JsonMapper.builder()
 				.addModule(new GraphQlJacksonModule()).build();
 
 		static Encoder<?> encoder() {

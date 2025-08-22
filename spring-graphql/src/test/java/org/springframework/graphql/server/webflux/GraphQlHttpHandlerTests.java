@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.core.codec.DataBufferEncoder;
 import org.springframework.core.io.buffer.DefaultDataBuffer;
@@ -182,7 +183,7 @@ class GraphQlHttpHandlerTests {
 				.queryFetcher("showId", (env) -> env.getExecutionId().toString())
 				.toWebGraphQlHandler();
 
-		ObjectMapper mapper = new ObjectMapper();
+		JsonMapper mapper = JsonMapper.builder().build();
 		CodecConfigurer configurer = ServerCodecConfigurer.create();
 		configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
 		configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
