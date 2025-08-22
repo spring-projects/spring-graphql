@@ -1,0 +1,16 @@
+query {
+    me {
+        name
+        friends(filter: {favoriteBeverage: "tea"}) {
+            name
+            favoriteBeverage
+        }
+    }
+    people {
+        name
+        friends(filter: {favoriteBeverage: "coffee"}) {
+            name
+            favoriteBeverage
+        }
+    }
+}

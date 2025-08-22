@@ -743,10 +743,10 @@ You can find the full details in the
 {graphql-java-docs}/batching/[GraphQL Java docs]. Below is a
 summary of how it works:
 
- 1. Register ``DataLoader``'s in the `DataLoaderRegistry` that can load entities, given unique keys.
- 2. ``DataFetcher``'s can access ``DataLoader``'s and use them to load entities by id.
+ 1. Register ``DataLoader``s in the `DataLoaderRegistry` that can load entities, given unique keys.
+ 2. ``DataFetcher``s can access ``DataLoader``s and use them to load entities by id.
  3. A `DataLoader` defers loading by returning a future so it can be done in a batch.
- 4. ``DataLoader``'s maintain a per request cache of loaded entities that can further
+ 4. ``DataLoader``s maintain a per request cache of loaded entities that can further
  improve efficiency.
 
 
@@ -803,6 +803,59 @@ as well as ensures xref:request-execution.adoc#execution.context[Context Propaga
 to use it. It is possible to perform your own `DataLoader` registrations directly but
 such registrations would forgo the above benefits.
 
+
+
+[[execution.batching.recipes]]
+=== Batch Loading Recipes
+
+For straightforward cases, the xref:controllers.adoc#controllers.batch-mapping[@BatchMapping] annotation is often
+the best choice, with minimal boilerplate. For more advanced use cases, the `BatchLoaderRegistry` offers more flexibility.
+
+xref:request-execution.adoc#execution.batching.dataloader[As outlined above], ``DataLoader``s will queue `load()` calls
+and might dispatch them all at once, or in batches. This means that a single dispatch can load entities for different
+`@SchemaMapping` calls and different GraphQL contexts. Because loaded entities will be cached by their key by GraphQL Java,
+for the entire lifetime of the request, developers should consider different strategies to optimize memory consumption vs. number of I/O calls.
+
+For the next section, we will consider the following schema for loading information about friends.
+Notice that we can filter friends and only load friends with a particular favorite beverage.
+
+[source,graphql,subs="verbatim,quotes"]
+----
+include::ROOT:{include-resources}/execution/batching/recipes/friendsAndBeverages.graphqls[]
+----
+
+We can approach this problem by first loading all friends for a given person in the `DataLoader`,
+then filter out unnecessary ones at the `@SchemaMapping` level. This will load more `Person` instances
+in the `DataLoader` cache and use more memory, but it's likely to perform less I/O calls.
+
+include-code::FriendsControllerFiltering[tag=sample]
+<1> fetch all friends and do not apply filter, caching Person by their id
+<2> load all friends, then apply the given filter
+
+This is well suited for small groups of well-connected friends and for popular beverages.
+If instead we're dealing with large groups of friends and few friends in common, or more niche beverages,
+we risk loading large amounts of data in memory for just a few entries actually sent to the client.
+
+Here, we can use a different strategy by batch loading entities with a composed key: the person and the chosen filter.
+This approach will load just enough entities in memory, at the cost of possible duplicates `Person` in the cache
+and more I/O operations.
+
+include-code::FriendsControllerComposedKey[tag=sample]
+<1> because this key contains both the person and the filter, we will need to fetch the same friend multiple times
+
+In both cases, the query:
+
+[source,graphql,subs="verbatim,quotes"]
+----
+include::ROOT:{include-resources}/execution/batching/recipes/query.graphql[]
+----
+
+Will yield the following result:
+
+[source,json,subs="verbatim,quotes"]
+----
+include::ROOT:{include-resources}/execution/batching/recipes/result.json[]
+----
 
 [[execution.batching.testing]]
 === Testing Batch Loading

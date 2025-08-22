@@ -1,0 +1,67 @@
+{
+  "data": {
+    "me": {
+      "name": "Brian",
+      "friends": [
+        {
+          "name": "Donna",
+          "favoriteBeverage": "tea"
+        }
+      ]
+    },
+    "people": [
+      {
+        "name": "Andi",
+        "friends": [
+          {
+            "name": "Rossen",
+            "favoriteBeverage": "coffee"
+          },
+          {
+            "name": "Brad",
+            "favoriteBeverage": "coffee"
+          }
+        ]
+      },
+      {
+        "name": "Brad",
+        "friends": [
+          {
+            "name": "Rossen",
+            "favoriteBeverage": "coffee"
+          },
+          {
+            "name": "Andi",
+            "favoriteBeverage": "coffee"
+          }
+        ]
+      },
+      {
+        "name": "Donna",
+        "friends": [
+          {
+            "name": "Rossen",
+            "favoriteBeverage": "coffee"
+          },
+          {
+            "name": "Brad",
+            "favoriteBeverage": "coffee"
+          }
+        ]
+      },
+      {
+        "name": "Brian",
+        "friends": [
+          {
+            "name": "Rossen",
+            "favoriteBeverage": "coffee"
+          }
+        ]
+      },
+      {
+        "name": "Rossen",
+        "friends": []
+      }
+    ]
+  }
+}

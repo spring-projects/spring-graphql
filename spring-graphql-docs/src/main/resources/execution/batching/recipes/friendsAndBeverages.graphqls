@@ -1,0 +1,15 @@
+type Query {
+    me: Person
+    people: [Person]
+}
+
+input FriendsFilter {
+    favoriteBeverage: String
+}
+
+type Person {
+    id: ID!
+    name: String
+    favoriteBeverage: String
+    friends(filter: FriendsFilter): [Person]
+}

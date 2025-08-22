@@ -754,6 +754,15 @@ the simple class name of the input `List` element type. Both can be customized t
 annotation attributes. The type name can also be inherited from a class level
 `@SchemaMapping`.
 
+[WARNING]
+====
+`@BatchMapping` is effectively a "shortcut" for the straightforward cases, when using `BatchLoaderRegistry`
+adds too much boilerplate for no real benefit.
+If your use case requires more information about the parent `@SchemaMapping` call (such as `@Argument` or context data),
+for example for filtering the entities to load, using the `BatchLoaderRegistry` is required.
+Please refer to the xref:request-execution.adoc#execution.batching.recipes[Batch Loading Recipes] section.
+====
+
 
 [[controllers.batch-mapping.signature]]
 === Method Arguments
@@ -787,7 +796,8 @@ Batch mapping methods support the following arguments:
   methods through the `DataFetchingEnvironment`.
 
   The `keyContexts` property of `BatchLoaderEnvironment` returns the
-  localContext obtained from the `DataFetchingEnvironment` when the
+  xref:controllers.adoc#controllers.schema-mapping.localcontext[localContext]
+  obtained from the `DataFetchingEnvironment` when the
   `DataLoader` was called for each key.
 
 |===
