@@ -137,10 +137,30 @@ class ConnectionFieldTypeVisitorTests {
 		);
 	}
 
-	@Test // gh-707
-	void nullValueTreatedAsEmptyConnection() {
+	@Test // gh-707, gh-1295
+	void nullValueTreatedAsNullConnectionWhenNullable() {
 
 		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.dataFetcher("Query", "books", environment -> null)
+				.connectionSupport(new ListConnectionAdapter())
+				.toGraphQlService()
+				.execute(BookSource.booksConnectionQuery(null));
+
+		ResponseHelper.forResponse(response).assertData("{\"books\":null}");
+	}
+
+	@Test // gh-1295
+	void nullValueTreatedAsEmptyConnectionWhenNonNullable() {
+		Mono<ExecutionGraphQlResponse> response = GraphQlSetup.schemaContent("""
+						type Query {
+							books(first:Int, after:String): BookConnection!
+						}
+
+						type Book {
+							id: ID
+							name: String
+						}
+						""")
 				.dataFetcher("Query", "books", environment -> null)
 				.connectionSupport(new ListConnectionAdapter())
 				.toGraphQlService()

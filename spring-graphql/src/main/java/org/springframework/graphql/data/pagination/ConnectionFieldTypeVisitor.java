@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 
 import graphql.TrivialDataFetcher;
 import graphql.execution.DataFetcherResult;
+import graphql.language.NonNullType;
 import graphql.relay.Connection;
 import graphql.relay.DefaultConnection;
 import graphql.relay.DefaultConnectionCursor;
@@ -50,6 +51,7 @@ import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.graphql.execution.TypeVisitorHelper;
+import org.springframework.lang.Contract;
 import org.springframework.util.Assert;
 
 /**
@@ -101,7 +103,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 				}
 			}
 			else {
-				dataFetcher = new ConnectionDataFetcher(dataFetcher, this.adapter);
+				dataFetcher = new ConnectionDataFetcher(dataFetcher, this.adapter, fieldDefinition);
 				codeRegistry.dataFetcher(fieldCoordinates, dataFetcher);
 			}
 		}
@@ -186,10 +188,11 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 
 	/**
 	 * {@code DataFetcher} decorator that adapts return values with an adapter.
-	 * @param delegate the datafetcher delegate
+	 * @param delegate the DataFetcher delegate
 	 * @param adapter the connection adapter to use
+	 * @param connectionFieldDefinition the field definition for the connection type
 	 */
-	record ConnectionDataFetcher(DataFetcher<?> delegate, ConnectionAdapter adapter) implements DataFetcher<Object> {
+	record ConnectionDataFetcher(DataFetcher<?> delegate, ConnectionAdapter adapter, GraphQLFieldDefinition connectionFieldDefinition) implements DataFetcher<Object> {
 
 		private static final Connection<?> EMPTY_CONNECTION =
 				new DefaultConnection<>(Collections.emptyList(), new DefaultPageInfo(null, null, false, false));
@@ -198,11 +201,12 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 		ConnectionDataFetcher {
 			Assert.notNull(delegate, "DataFetcher delegate is required");
 			Assert.notNull(adapter, "ConnectionAdapter is required");
+			Assert.notNull(connectionFieldDefinition, "GraphQLFieldDefinition is required");
 		}
 
 
 		@Override
-		public Object get(DataFetchingEnvironment environment) throws Exception {
+		public @Nullable Object get(DataFetchingEnvironment environment) throws Exception {
 			Object result = this.delegate.get(environment);
 			if (result instanceof Mono<?> mono) {
 				return mono.map(this::adaptDataFetcherResult);
@@ -215,7 +219,8 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 		}
 
-		private Object adaptDataFetcherResult(@Nullable Object value) {
+		@Contract("!null -> !null")
+		private @Nullable Object adaptDataFetcherResult(@Nullable Object value) {
 			if (value instanceof DataFetcherResult<?> dataFetcherResult) {
 				Object adapted = adaptDataContainer(dataFetcherResult.getData());
 				return DataFetcherResult.newResult()
@@ -228,9 +233,9 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 		}
 
-		private <T> Object adaptDataContainer(@Nullable Object container) {
+		private <T> @Nullable Object adaptDataContainer(@Nullable Object container) {
 			if (container == null) {
-				return EMPTY_CONNECTION;
+				return isConnectionTypeNullable() ? null : EMPTY_CONNECTION;
 			}
 
 			if (container instanceof Connection<?>) {
@@ -262,6 +267,13 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 					this.adapter.hasPrevious(container), this.adapter.hasNext(container));
 
 			return new DefaultConnection<>(edges, pageInfo);
+		}
+
+		private boolean isConnectionTypeNullable() {
+			if (this.connectionFieldDefinition.getDefinition() != null) {
+				return !(this.connectionFieldDefinition.getDefinition().getType() instanceof NonNullType);
+			}
+			return true;
 		}
 
 	}
