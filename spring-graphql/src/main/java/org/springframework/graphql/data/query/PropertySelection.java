@@ -24,6 +24,8 @@ import java.util.function.Function;
 
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLNamedOutputType;
+import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLType;
 import graphql.schema.SelectedField;
 
 import org.springframework.data.mapping.PropertyPath;
@@ -108,9 +110,16 @@ final class PropertySelection {
 	}
 
 	private static boolean isConnectionEdges(SelectedField selectedField) {
-		return selectedField.getName().equals("edges") &&
-				selectedField.getParentField().getType() instanceof GraphQLNamedOutputType namedType &&
-				namedType.getName().endsWith("Connection");
+		if (selectedField.getName().equals("edges")) {
+			GraphQLType fieldType = selectedField.getParentField().getType();
+			if (fieldType instanceof GraphQLNonNull nonNullType) {
+				fieldType = nonNullType.getWrappedType();
+			}
+			if (fieldType instanceof GraphQLNamedOutputType namedType) {
+				return namedType.getName().endsWith("Connection");
+			}
+		}
+		return false;
 	}
 
 	private static boolean isConnectionEdgeNode(SelectedField selectedField) {
