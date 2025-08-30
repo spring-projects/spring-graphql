@@ -25,6 +25,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import graphql.schema.DataFetchingEnvironment;
+import kotlin.jvm.JvmClassMappingKt;
+import kotlin.reflect.KClass;
+import kotlin.reflect.KFunction;
+import kotlin.reflect.KParameter;
+import kotlin.reflect.KType;
+import kotlin.reflect.full.KClasses;
+import kotlin.reflect.jvm.KCallablesJvm;
+import kotlin.reflect.jvm.ReflectJvmMapping;
 
 import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.BeanUtils;
@@ -36,6 +44,7 @@ import org.springframework.beans.TypeConverter;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.Conventions;
+import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
@@ -280,7 +289,7 @@ public class GraphQlArgumentBinder {
 		Map<String, Object> dataToBind = new HashMap<>(rawMap);
 		String[] paramNames = BeanUtils.getParameterNames(constructor);
 		Class<?>[] paramTypes = constructor.getParameterTypes();
-		Object[] constructorArguments = new Object[paramTypes.length];
+		Object[] constructorArguments = new Object[paramNames.length];
 
 		for (int i = 0; i < paramNames.length; i++) {
 			String name = paramNames[i];
@@ -290,7 +299,11 @@ public class GraphQlArgumentBinder {
 
 			constructorArguments[i] = bindRawValue(
 					name, dataToBind.get(name), !dataToBind.containsKey(name), targetType, paramTypes[i], bindingResult);
+
 			dataToBind.remove(name);
+		}
+		if (KotlinDetector.isKotlinReflectPresent() && KotlinDetector.isKotlinType(constructor.getDeclaringClass())) {
+			KotlinDelegate.rebindKotlinArguments(constructorArguments, constructor);
 		}
 
 		Object target;
@@ -416,6 +429,39 @@ public class GraphQlArgumentBinder {
 			addError(new FieldError(
 					getObjectName(), fixedField(field), rawValue, true, resolveMessageCodes(code),
 					null, defaultMessage));
+		}
+	}
+
+	// remove in favor of https://github.com/spring-projects/spring-framework/issues/33630
+	private static final class KotlinDelegate {
+
+		public static void rebindKotlinArguments(Object[] arguments, Constructor<?> constructor) {
+			KFunction<?> function = ReflectJvmMapping.getKotlinFunction(constructor);
+			if (function == null) {
+				return;
+			}
+			int index = 0;
+			for (KParameter parameter : function.getParameters()) {
+				switch (parameter.getKind()) {
+					case VALUE, EXTENSION_RECEIVER -> {
+						Object rawValue = arguments[index];
+						if (!(parameter.isOptional() && rawValue == null)) {
+							KType type = parameter.getType();
+							if (!(type.isMarkedNullable() && rawValue == null) && type.getClassifier() instanceof KClass<?> kClass
+									&& KotlinDetector.isInlineClass(JvmClassMappingKt.getJavaClass(kClass))) {
+								KFunction<?> argConstructor = KClasses.getPrimaryConstructor(kClass);
+								if (argConstructor != null) {
+									if (!KCallablesJvm.isAccessible(argConstructor)) {
+										KCallablesJvm.setAccessible(argConstructor, true);
+									}
+									arguments[index] = argConstructor.call(rawValue);
+								}
+							}
+						}
+					}
+				}
+				index++;
+			}
 		}
 	}
 
