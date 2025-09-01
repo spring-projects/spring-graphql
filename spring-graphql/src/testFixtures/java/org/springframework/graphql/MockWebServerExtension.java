@@ -16,7 +16,7 @@
 
 package org.springframework.graphql;
 
-import okhttp3.mockwebserver.MockWebServer;
+import mockwebserver3.MockWebServer;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -54,8 +54,8 @@ public class MockWebServerExtension implements BeforeEachCallback, AfterEachCall
 	}
 
 	@Override
-	public void afterEach(ExtensionContext extensionContext) throws Exception {
-		this.mockWebServer.shutdown();
+	public void afterEach(ExtensionContext extensionContext) {
+		this.mockWebServer.close();
 	}
 
 }

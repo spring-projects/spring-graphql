@@ -20,8 +20,8 @@ package org.springframework.graphql.client;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -61,8 +61,8 @@ class HttpGraphQlTransportIntegrationTests {
 				.build();
 		HttpGraphQlClient graphQlClient = HttpGraphQlClient.create(webClient);
 
-		server.enqueue(new MockResponse().addHeader("Content-Type", MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
-				.setBody("""
+		server.enqueue(new MockResponse.Builder().addHeader("Content-Type", MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+				.body("""
 						{
 							"data": {
 								"createProject": {
@@ -70,7 +70,8 @@ class HttpGraphQlTransportIntegrationTests {
 								}
 							}
 						}
-						"""));
+						""")
+				.build());
 		graphQlClient.document("""
 						mutation createProject($project: ProjectInput!) {
 							  createProject($project: $project) {
@@ -81,7 +82,7 @@ class HttpGraphQlTransportIntegrationTests {
 				.variables(Map.of("project", projectInput))
 				.executeSync();
 
-		assertThat(server.takeRequest().getBody().readUtf8()).contains("\"variables\":{\"project\":" + variable + "}");
+		assertThat(server.takeRequest().getBody().utf8()).contains("\"variables\":{\"project\":" + variable + "}");
 	}
 
 	static Stream<Arguments> argumentValues() {
@@ -101,8 +102,8 @@ class HttpGraphQlTransportIntegrationTests {
 				.document("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } ")
 				.executeSubscription();
 
-		server.enqueue(new MockResponse().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
-				.setBody("""
+		server.enqueue(new MockResponse.Builder().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
+				.body("""
 						event:next
 						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
@@ -111,7 +112,8 @@ class HttpGraphQlTransportIntegrationTests {
 
 						event:complete
 
-						"""));
+						""")
+				.build());
 
 		StepVerifier.create(responses)
 				.assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Nineteen Eighty-Four"))
@@ -127,8 +129,8 @@ class HttpGraphQlTransportIntegrationTests {
 				.document("subscription TestSubscription { bookSearch(author:\"Orwell\") { id name } ")
 				.executeSubscription();
 
-		server.enqueue(new MockResponse().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
-				.setBody("""
+		server.enqueue(new MockResponse.Builder().addHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
+				.body("""
 						event:next
 						data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
@@ -137,7 +139,8 @@ class HttpGraphQlTransportIntegrationTests {
 
 						event:complete
 
-						"""));
+						""")
+				.build());
 		StepVerifier.create(responses)
 				.assertNext(item -> assertThat(item.field("bookSearch").toEntity(Book.class).getName()).isEqualTo("Nineteen Eighty-Four"))
 				.assertNext(item -> {

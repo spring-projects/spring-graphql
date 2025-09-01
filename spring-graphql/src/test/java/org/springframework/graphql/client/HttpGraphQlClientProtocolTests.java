@@ -19,8 +19,8 @@ package org.springframework.graphql.client;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -60,7 +60,7 @@ class HttpGraphQlClientProtocolTests {
 
 	@AfterEach
 	void tearDown() throws IOException {
-		this.server.shutdown();
+		this.server.close();
 	}
 
 
@@ -277,8 +277,7 @@ class HttpGraphQlClientProtocolTests {
 		}
 
 		void prepareBadRequestResponse() {
-			MockResponse mockResponse = new MockResponse();
-			mockResponse.setResponseCode(400);
+			MockResponse mockResponse = new MockResponse.Builder().code(400).build();
 			server.enqueue(mockResponse);
 		}
 
@@ -322,10 +321,10 @@ class HttpGraphQlClientProtocolTests {
 	}
 
 	private void prepareResponse(int status, MediaType contentType, String body) {
-		MockResponse mockResponse = new MockResponse();
-		mockResponse.setResponseCode(status);
-		mockResponse.setHeader("Content-Type", contentType.toString());
-		mockResponse.setBody(body);
+		MockResponse mockResponse = new MockResponse.Builder().code(status)
+				.setHeader("Content-Type", contentType.toString())
+				.body(body)
+				.build();
 		this.server.enqueue(mockResponse);
 	}
 
