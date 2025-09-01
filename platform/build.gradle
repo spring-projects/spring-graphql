@@ -8,7 +8,7 @@ javaPlatform {
 
 dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
-	api(platform("com.fasterxml.jackson:jackson-bom:2.20.0-rc1"))
+	api(platform("com.fasterxml.jackson:jackson-bom:2.20.0"))
 	api(platform("tools.jackson:jackson-bom:3.0.0-rc8"))
 	api(platform("io.projectreactor:reactor-bom:2025.0.0-M6"))
 	api(platform("io.micrometer:micrometer-bom:1.16.0-M2"))
@@ -19,8 +19,8 @@ dependencies {
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.10.2"))
-	api(platform("org.junit:junit-bom:5.13.3"))
-	api(platform("org.mockito:mockito-bom:5.18.0"))
+	api(platform("org.junit:junit-bom:5.13.4"))
+	api(platform("org.mockito:mockito-bom:5.19.0"))
 	api(platform("org.testcontainers:testcontainers-bom:1.21.3"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.25.1"))
 	api(platform("org.assertj:assertj-bom:3.27.3"))
@@ -44,12 +44,12 @@ dependencies {
 		api("org.hamcrest:hamcrest:3.0")
 
 		api("com.h2database:h2:2.3.232")
-		api("org.hibernate.orm:hibernate-core:7.0.5.Final")
+		api("org.hibernate.orm:hibernate-core:7.1.0.Final")
 		api("org.hibernate.validator:hibernate-validator:9.0.1.Final")
-		api("org.mongodb:bson:5.5.0")
-		api("org.mongodb:mongodb-driver-core:5.5.0")
-		api("org.mongodb:mongodb-driver-reactivestreams:5.5.0")
-		api("org.mongodb:mongodb-driver-sync:5.5.0")
+		api("org.mongodb:bson:5.5.1")
+		api("org.mongodb:mongodb-driver-core:5.5.1")
+		api("org.mongodb:mongodb-driver-reactivestreams:5.5.1")
+		api("org.mongodb:mongodb-driver-sync:5.5.1")
 	}
 
 }
