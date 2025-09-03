@@ -34,8 +34,8 @@ public class KotlinConventions {
 
 	private void configure(KotlinCompile compile) {
 		compile.compilerOptions(options -> {
-			options.getApiVersion().set(KotlinVersion.KOTLIN_2_1);
-			options.getLanguageVersion().set(KotlinVersion.KOTLIN_2_1);
+			options.getApiVersion().set(KotlinVersion.KOTLIN_2_2);
+			options.getLanguageVersion().set(KotlinVersion.KOTLIN_2_2);
 			options.getJvmTarget().set(JvmTarget.JVM_17);
 			options.getJavaParameters().set(true);
 			options.getAllWarningsAsErrors().set(true);
