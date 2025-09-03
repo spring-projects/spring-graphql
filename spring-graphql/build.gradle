@@ -82,7 +82,7 @@ dependencies {
 	testImplementation 'tools.jackson.core:jackson-databind'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 	testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-	testImplementation 'org.apache.tomcat.embed:tomcat-embed-el:10.0.21'
+	testImplementation 'org.apache.tomcat.embed:tomcat-embed-el'
 	testImplementation('com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core') {
 		exclude group: "com.apollographql.federation", module: "federation-graphql-java-support"
 		exclude group: "com.graphql-java"

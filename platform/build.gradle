@@ -36,6 +36,8 @@ dependencies {
 		api("com.apollographql.federation:federation-graphql-java-support:5.4.0")
 		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:8.1.0")
 
+		api("org.apache.tomcat.embed:tomcat-embed-el:11.0.10")
+
 		api("com.google.code.findbugs:jsr305:3.0.2")
 		api("com.jayway.jsonpath:json-path:2.9.0")
 		api("org.skyscreamer:jsonassert:1.5.3")
