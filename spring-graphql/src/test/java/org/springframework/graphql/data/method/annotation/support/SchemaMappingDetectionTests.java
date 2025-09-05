@@ -124,7 +124,7 @@ class SchemaMappingDetectionTests {
 		AnnotatedControllerConfigurer.SchemaMappingDataFetcher dataFetcher =
 				(AnnotatedControllerConfigurer.SchemaMappingDataFetcher) map.get(typeName).get(field);
 
-		assertThat(dataFetcher.getHandlerMethod().getMethod().getName()).isEqualTo(methodName);
+		assertThat(dataFetcher.asMethod().getName()).isEqualTo(methodName);
 	}
 
 

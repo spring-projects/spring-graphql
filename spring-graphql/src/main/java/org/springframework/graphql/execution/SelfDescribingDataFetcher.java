@@ -16,10 +16,12 @@
 
 package org.springframework.graphql.execution;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
 
 import graphql.schema.DataFetcher;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.ResolvableType;
 
@@ -57,6 +59,15 @@ public interface SelfDescribingDataFetcher<T> extends DataFetcher<T> {
 	 */
 	default Map<String, ResolvableType> getArguments() {
 		return Collections.emptyMap();
+	}
+
+	/**
+	 * Return the current {@link DataFetcher} as a Java method, if possible.
+	 * <p>This can be supported for annotated {@code @Controller}, or Spring Data {@code Repository} interfaces.
+	 * @since 2.0.0
+	 */
+	default @Nullable Method asMethod() {
+		return null;
 	}
 
 	/**

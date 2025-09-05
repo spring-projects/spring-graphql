@@ -501,6 +501,11 @@ public class AnnotatedControllerConfigurer
 		}
 
 		@Override
+		public Method asMethod() {
+			return this.mappingInfo.getHandlerMethod().getMethod();
+		}
+
+		@Override
 		public boolean usesDataLoader() {
 			return this.usesDataLoader;
 		}
@@ -593,6 +598,11 @@ public class AnnotatedControllerConfigurer
 		@Override
 		public ResolvableType getReturnType() {
 			return this.returnType;
+		}
+
+		@Override
+		public Method asMethod() {
+			return this.mappingInfo.getHandlerMethod().getMethod();
 		}
 
 		@Override

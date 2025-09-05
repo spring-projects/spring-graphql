@@ -17,9 +17,12 @@
 package org.springframework.graphql.execution;
 
 import java.beans.PropertyDescriptor;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,8 +34,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import graphql.language.NonNullType;
+import graphql.language.Type;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
+import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldsContainer;
@@ -54,6 +60,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.Nullness;
 import org.springframework.core.ReactiveAdapter;
 import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.ResolvableType;
@@ -70,6 +77,9 @@ import org.springframework.util.StringUtils;
  * corresponding Class property.
  * <li>{@code DataFetcher} registrations refer to a schema field that exists.
  * <li>{@code DataFetcher} arguments have matching schema field arguments.
+ * <li>The nullness of schema fields matches the nullness of {@link DataFetcher}
+ * return types, class properties or class methods.
+ * <li>{@code DataFetcher} arguments match the nullness of schema argument types.
  * </ul>
  *
  * <p>Use methods of {@link GraphQlSource.SchemaResourceBuilder} to enable schema
@@ -166,10 +176,14 @@ public final class SchemaMappingInspector {
 		for (GraphQLFieldDefinition field : fieldContainer.getFieldDefinitions()) {
 			String fieldName = field.getName();
 			DataFetcher<?> dataFetcher = dataFetcherMap.get(fieldName);
+			FieldCoordinates fieldCoordinates = FieldCoordinates.coordinates(typeName, fieldName);
+			Nullness schemaNullness = resolveNullness(field);
 
 			if (dataFetcher != null) {
 				if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribing) {
+					checkDataFetcherNullness(fieldCoordinates, selfDescribing, schemaNullness);
 					checkFieldArguments(field, selfDescribing);
+					checkFieldArgumentsNullness(field, selfDescribing);
 					checkField(fieldContainer, field, selfDescribing.getReturnType());
 				}
 				else {
@@ -182,11 +196,13 @@ public final class SchemaMappingInspector {
 				PropertyDescriptor descriptor = getProperty(resolvableType, fieldName);
 				if (descriptor != null) {
 					MethodParameter returnType = new MethodParameter(descriptor.getReadMethod(), -1);
+					checkReadMethodNullness(fieldCoordinates, resolvableType, descriptor, schemaNullness);
 					checkField(fieldContainer, field, ResolvableType.forMethodParameter(returnType, resolvableType));
 					continue;
 				}
 				Field javaField = getField(resolvableType, fieldName);
 				if (javaField != null) {
+					checkFieldNullNess(fieldCoordinates, javaField, schemaNullness);
 					checkField(fieldContainer, field, ResolvableType.forField(javaField));
 					continue;
 				}
@@ -199,7 +215,34 @@ public final class SchemaMappingInspector {
 				}
 			}
 
-			this.reportBuilder.unmappedField(FieldCoordinates.coordinates(typeName, fieldName));
+			this.reportBuilder.unmappedField(fieldCoordinates);
+		}
+	}
+
+	private void checkFieldNullNess(FieldCoordinates fieldCoordinates, Field javaField, Nullness schemaNullness) {
+		Nullness applicationNullness = Nullness.forField(javaField);
+		if (isMismatch(schemaNullness, applicationNullness)) {
+			DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(javaField,
+					javaField.getDeclaringClass().getSimpleName() + "#" + javaField.getName());
+			this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
+					new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));
+
+		}
+	}
+
+	private void checkDataFetcherNullness(FieldCoordinates fieldCoordinates, SelfDescribingDataFetcher dataFetcher, Nullness schemaNullness) {
+		Method dataFetcherMethod = dataFetcher.asMethod();
+		if (dataFetcherMethod != null) {
+			Nullness applicationNullness = Nullness.forMethodReturnType(dataFetcherMethod);
+			// we cannot infer nullness if wrapped by reactive types
+			ReactiveAdapter reactiveAdapter = ReactiveAdapterRegistry.getSharedInstance()
+					.getAdapter(dataFetcherMethod.getReturnType());
+			if (reactiveAdapter == null && isMismatch(schemaNullness, applicationNullness)) {
+				DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(dataFetcherMethod, dataFetcher.getDescription());
+				this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
+						new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));
+
+			}
 		}
 	}
 
@@ -214,6 +257,37 @@ public final class SchemaMappingInspector {
 			this.reportBuilder.unmappedArgument(dataFetcher, arguments);
 		}
 	}
+
+	private void checkFieldArgumentsNullness(GraphQLFieldDefinition field, SelfDescribingDataFetcher<?> dataFetcher) {
+		Method dataFetcherMethod = dataFetcher.asMethod();
+		if (dataFetcherMethod != null) {
+			List<SchemaReport.NullnessMismatch> mismatches = new ArrayList<>();
+			for (Parameter parameter : dataFetcherMethod.getParameters()) {
+				GraphQLArgument argument = field.getArgument(parameter.getName());
+				if (argument != null) {
+					Nullness schemaNullness = resolveNullness(argument.getDefinition().getType());
+					Nullness applicationNullness = Nullness.forMethodParameter(MethodParameter.forParameter(parameter));
+					if (isMismatch(schemaNullness, applicationNullness)) {
+						mismatches.add(new DefaultNullnessMismatch(schemaNullness, applicationNullness, parameter));
+					}
+				}
+			}
+			if (!mismatches.isEmpty()) {
+				this.reportBuilder.argumentsNullnessMismatches(dataFetcher, mismatches);
+			}
+		}
+	}
+
+	private void checkReadMethodNullness(FieldCoordinates fieldCoordinates, ResolvableType resolvableType, PropertyDescriptor descriptor, Nullness schemaNullness) {
+		Nullness applicationNullness = Nullness.forMethodReturnType(descriptor.getReadMethod());
+		if (isMismatch(schemaNullness, applicationNullness)) {
+			DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(descriptor.getReadMethod(),
+					resolvableType.toClass().getSimpleName() + "#" + descriptor.getName());
+			this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
+					new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));
+		}
+	}
+
 
 	/**
 	 * Resolve field wrapper types (connection, list, non-null), nest into generic types,
@@ -306,6 +380,22 @@ public final class SchemaMappingInspector {
 						this.reportBuilder.unmappedRegistration(coordinates, dataFetcher);
 					}
 				}));
+	}
+
+	private Nullness resolveNullness(GraphQLFieldDefinition fieldDefinition) {
+		return resolveNullness(fieldDefinition.getDefinition().getType());
+	}
+
+	private Nullness resolveNullness(Type type) {
+		if (type instanceof NonNullType) {
+			return Nullness.NON_NULL;
+		}
+		return  Nullness.NULLABLE;
+	}
+
+	private boolean isMismatch(Nullness first, Nullness second) {
+		return (first == Nullness.NON_NULL && second == Nullness.NULLABLE) ||
+				(first == Nullness.NULLABLE && second == Nullness.NON_NULL);
 	}
 
 
@@ -801,6 +891,10 @@ public final class SchemaMappingInspector {
 
 		private final MultiValueMap<DataFetcher<?>, String> unmappedArguments = new LinkedMultiValueMap<>();
 
+		private final Map<FieldCoordinates, SchemaReport.NullnessMismatch> fieldNullnessMismatches = new LinkedHashMap<>();
+
+		private final MultiValueMap<DataFetcher<?>, SchemaReport.NullnessMismatch> argumentsNullnessMismatches = new LinkedMultiValueMap<>();
+
 		private final List<DefaultSkippedType> skippedTypes = new ArrayList<>();
 
 		private final List<DefaultSkippedType> candidateSkippedTypes = new ArrayList<>();
@@ -815,6 +909,14 @@ public final class SchemaMappingInspector {
 
 		void unmappedArgument(DataFetcher<?> dataFetcher, List<String> arguments) {
 			this.unmappedArguments.put(dataFetcher, arguments);
+		}
+
+		void fieldNullnessMismatch(FieldCoordinates coordinates, SchemaReport.NullnessMismatch nullnessMismatch) {
+			this.fieldNullnessMismatches.put(coordinates, nullnessMismatch);
+		}
+
+		void argumentsNullnessMismatches(DataFetcher<?> dataFetcher, List<SchemaReport.NullnessMismatch> nullnessMismatches) {
+			this.argumentsNullnessMismatches.put(dataFetcher, nullnessMismatches);
 		}
 
 		void skippedType(
@@ -852,8 +954,8 @@ public final class SchemaMappingInspector {
 				skippedType(skippedType);
 			});
 
-			return new DefaultSchemaReport(
-					this.unmappedFields, this.unmappedRegistrations, this.unmappedArguments, this.skippedTypes);
+			return new DefaultSchemaReport(this.unmappedFields, this.unmappedRegistrations,
+					this.unmappedArguments, this.fieldNullnessMismatches, this.argumentsNullnessMismatches, this.skippedTypes);
 		}
 	}
 
@@ -869,15 +971,24 @@ public final class SchemaMappingInspector {
 
 		private final MultiValueMap<DataFetcher<?>, String> unmappedArguments;
 
+		private final Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches;
+
+		private final MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches;
+
 		private final List<SchemaReport.SkippedType> skippedTypes;
 
 		DefaultSchemaReport(
 				List<FieldCoordinates> unmappedFields, Map<FieldCoordinates, DataFetcher<?>> unmappedRegistrations,
-				MultiValueMap<DataFetcher<?>, String> unmappedArguments, List<DefaultSkippedType> skippedTypes) {
+				MultiValueMap<DataFetcher<?>, String> unmappedArguments,
+				Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches,
+				MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches,
+				List<DefaultSkippedType> skippedTypes) {
 
 			this.unmappedFields = Collections.unmodifiableList(unmappedFields);
 			this.unmappedRegistrations = Collections.unmodifiableMap(unmappedRegistrations);
 			this.unmappedArguments = CollectionUtils.unmodifiableMultiValueMap(unmappedArguments);
+			this.fieldsNullnessMismatches = Collections.unmodifiableMap(fieldsNullnessMismatches);
+			this.argumentsNullnessMismatches = CollectionUtils.unmodifiableMultiValueMap(argumentsNullnessMismatches);
 			this.skippedTypes = Collections.unmodifiableList(skippedTypes);
 		}
 
@@ -894,6 +1005,16 @@ public final class SchemaMappingInspector {
 		@Override
 		public MultiValueMap<DataFetcher<?>, String> unmappedArguments() {
 			return this.unmappedArguments;
+		}
+
+		@Override
+		public Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches() {
+			return this.fieldsNullnessMismatches;
+		}
+
+		@Override
+		public MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches() {
+			return this.argumentsNullnessMismatches;
 		}
 
 		@Override
@@ -919,6 +1040,8 @@ public final class SchemaMappingInspector {
 					"\tUnmapped fields: " + formatUnmappedFields() + "\n" +
 					"\tUnmapped registrations: " + this.unmappedRegistrations + "\n" +
 					"\tUnmapped arguments: " + this.unmappedArguments + "\n" +
+					"\tFields nullness mismatches: " + formatFieldsNullnessMismatches() + "\n" +
+					"\tArguments nullness mismatches: " + formatArgumentsNullnessMismatches() + "\n" +
 					"\tSkipped types: " + this.skippedTypes;
 		}
 
@@ -927,6 +1050,27 @@ public final class SchemaMappingInspector {
 			this.unmappedFields.forEach((coordinates) -> {
 				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), (s) -> new ArrayList<>());
 				fields.add(coordinates.getFieldName());
+			});
+			return map.toString();
+		}
+
+		private String formatFieldsNullnessMismatches() {
+			MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+			this.fieldsNullnessMismatches.forEach((coordinates, mismatch) -> {
+				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), (s) -> new ArrayList<>());
+				fields.add(String.format("%s is %s -> '%s' is %s", coordinates.getFieldName(), mismatch.schemaNullness(),
+						mismatch.annotatedElement(), mismatch.applicationNullness()));
+			});
+			return map.toString();
+		}
+
+		private String formatArgumentsNullnessMismatches() {
+			MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+			this.argumentsNullnessMismatches.forEach((dataFetcher, mismatches) -> {
+				List<String> arguments = mismatches.stream()
+						.map((mismatch) -> String.format("%s should be %s", mismatch.annotatedElement(), mismatch.schemaNullness()))
+						.toList();
+				map.put(dataFetcher.toString(), arguments);
 			});
 			return map.toString();
 		}
@@ -951,6 +1095,42 @@ public final class SchemaMappingInspector {
 
 			return new DefaultSkippedType(type, FieldCoordinates.coordinates(parent, field), reason);
 		}
+	}
+
+	/**
+	 * Default implementation of a {@link SchemaReport.NullnessMismatch}.
+	 */
+	private record DefaultNullnessMismatch(
+			Nullness schemaNullness, Nullness applicationNullness, AnnotatedElement annotatedElement)
+			implements SchemaReport.NullnessMismatch {
+
+	}
+
+	/**
+	 * {@link AnnotatedElement} that overrides the {@code toString} method for displaying in the report.
+	 */
+	private record DescribedAnnotatedElement(AnnotatedElement delegate,
+			String description) implements AnnotatedElement {
+
+		@Override
+			public String toString() {
+				return this.description;
+			}
+
+			@Override
+			public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+				return this.delegate.getAnnotation(annotationClass);
+			}
+
+			@Override
+			public Annotation[] getAnnotations() {
+				return this.delegate.getAnnotations();
+			}
+
+			@Override
+			public Annotation[] getDeclaredAnnotations() {
+				return this.delegate.getDeclaredAnnotations();
+			}
 	}
 
 }

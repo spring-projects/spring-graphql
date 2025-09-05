@@ -88,6 +88,12 @@ public class SchemaMappingInspectorTestSupport {
 			if (!this.actual.unmappedRegistrations().isEmpty()) {
 				failWithMessage("Report contains missing DataFetcher registrations for %s", this.actual.unmappedRegistrations());
 			}
+			if (!this.actual.fieldsNullnessMismatches().isEmpty()) {
+				failWithMessage("Report contains fields nullness mismatches: %s", this.actual.fieldsNullnessMismatches());
+			}
+			if (!this.actual.argumentsNullnessMismatches().isEmpty()) {
+				failWithMessage("Report contains arguments nullness mismatches: %s", this.actual.argumentsNullnessMismatches());
+			}
 			if (!this.actual.skippedTypes().isEmpty()) {
 				failWithMessage("Report contains skipped types: %s", this.actual.skippedTypes());
 			}
@@ -157,6 +163,32 @@ public class SchemaMappingInspectorTestSupport {
 					.toList();
 			if (!actual.containsAll(expected)) {
 				failWithMessage("Expected unmapped arguments: %s, found %s", expected, actual);
+			}
+			return this;
+		}
+
+		public SchemaInspectionReportAssert containsFieldsNullnessMismatches(String typeName, String... fieldNames) {
+			isNotNull();
+			List<String> expected = Arrays.asList(fieldNames);
+			List<String> actual = this.actual.fieldsNullnessMismatches().keySet().stream()
+					.filter((coordinates) -> coordinates.getTypeName().equals(typeName))
+					.map(FieldCoordinates::getFieldName)
+					.toList();
+			if (!actual.containsAll(expected)) {
+				failWithMessage("Expected nullness mismatch for fields %s: %s, found %s", typeName, expected, actual);
+			}
+			return this;
+		}
+
+		public SchemaInspectionReportAssert containsArgumentsNullnessMismatches(String... arguments) {
+			isNotNull();
+			List<String> expected = Arrays.asList(arguments);
+			List<String> actual = this.actual.argumentsNullnessMismatches().entrySet().stream()
+					.flatMap(entry -> entry.getValue().stream())
+					.map(mismatch -> mismatch.annotatedElement().toString())
+					.toList();
+			if (!actual.containsAll(expected)) {
+				failWithMessage("Expected nullness mismatch for arguments: %s, found %s", expected, actual);
 			}
 			return this;
 		}

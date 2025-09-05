@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.execution;
 
+import java.lang.reflect.AnnotatedElement;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.core.Nullness;
 import org.springframework.util.MultiValueMap;
 
 /**
@@ -70,6 +72,20 @@ public interface SchemaReport {
 	MultiValueMap<DataFetcher<?>, String> unmappedArguments();
 
 	/**
+	 * Return the coordinates for mismatches when a schema field type
+	 * nullness information does not match the nullness of the
+	 * corresponding {@link AnnotatedElement} in the application.
+	 */
+	Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches();
+
+	/**
+	 * Return a map with {@link DataFetcher}s and information for its arguments
+	 * if the schema nullness does not match the nullness of the
+	 * corresponding {@link AnnotatedElement} in the application.
+	 */
+	MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches();
+
+	/**
 	 * Return types skipped during the inspection, either because the schema type
 	 * is not supported, e.g. union, or because there is insufficient Java type
 	 * information, e.g. controller method that returns {@code Object} or wrapper
@@ -101,6 +117,28 @@ public interface SchemaReport {
 		 * Return the coordinates of the field where the type was encountered.
 		 */
 		FieldCoordinates fieldCoordinates();
+
+	}
+
+	/**
+	 * Information about a Nullness mismatch between the GraphQL schema and the application code.
+	 */
+	interface NullnessMismatch {
+
+		/**
+		 * Nullness expected in the schema.
+		 */
+		Nullness schemaNullness();
+
+		/**
+		 * Nullness in the application code.
+		 */
+		Nullness applicationNullness();
+
+		/**
+		 * The annotated element implementing the considered part of the schema.
+		 */
+		AnnotatedElement annotatedElement();
 
 	}
 

@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
+import org.jspecify.annotations.NullUnmarked;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -567,6 +568,30 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 	class ReportFormatTests {
 
 		@Test
+		void emptyReportFormat() {
+			String schemaContent = """
+					type Query {
+						greeting: String
+					}
+				""";
+
+			GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
+			RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
+					.type("Query", builder -> builder.dataFetcher("greeting", environment -> null))
+					.build();
+
+			SchemaReport report = SchemaMappingInspector.inspect(schema, wiring);
+			assertThat(report.toString()).isEqualTo("""
+			GraphQL schema inspection:
+				Unmapped fields: {}
+				Unmapped registrations: {}
+				Unmapped arguments: {}
+				Fields nullness mismatches: {}
+				Arguments nullness mismatches: {}
+				Skipped types: []""");
+		}
+
+		@Test
 		void reportUnmappedField() {
 			String schema = """
 						type Query {
@@ -612,6 +637,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Controller
+	@NullUnmarked
 	static class GreetingController {
 
 		@QueryMapping
@@ -622,6 +648,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Controller
+	@NullUnmarked
 	static class BookController {
 
 		@QueryMapping
@@ -672,6 +699,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Controller
+	@NullUnmarked
 	private static class BatchMappingBookController {
 
 		@QueryMapping
@@ -687,6 +715,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Controller
+	@NullUnmarked
 	static class BookWithAuthorController {
 
 		@QueryMapping
@@ -698,6 +727,7 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 
 	@Controller
+	@NullUnmarked
 	static class TeamController {
 
 		@QueryMapping

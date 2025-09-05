@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.execution;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -215,6 +216,11 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		@Override
 		public ResolvableType getReturnType() {
 			return this.delegate.getReturnType();
+		}
+
+		@Override
+		public @Nullable Method asMethod() {
+			return this.delegate.asMethod();
 		}
 
 		@Override
