@@ -343,11 +343,9 @@ argument values. The values can be simple scalar values (e.g. String, Long), a `
 values for more complex input, or a `List` of values.
 
 Use the `@Argument` annotation to have an argument bound to a target object and
-injected into the handler method. Binding is performed by mapping argument values to a
-primary data constructor of the expected method parameter type, or by using a default
-constructor to create the object and then map argument values to its properties. This is
-repeated recursively, using all nested argument values and creating nested target objects
-accordingly. For example:
+injected into the handler method. If the target object is not a simple Java type, binding
+is performed through a primary data constructor, and this is repeated recursively by using
+nested argument values to invoke the constructors of nested target objects. For example:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -366,15 +364,18 @@ accordingly. For example:
 	}
 ----
 
-TIP: If the target object doesn't have setters, and you can't change that, you can use a
-property on `AnnotatedControllerConfigurer` to allow falling back on binding via direct
-field access.
+Alternatively, binding can also be done by invoking a default constructor first, and then
+applying argument values via setters on the target object.
 
-By default, if the method parameter name is available (requires the `-parameters` compiler
-flag with Java 8+ or debugging info from the compiler), it is used to look up the argument.
-If needed, you can customize the name through the annotation, e.g. `@Argument("bookInput")`.
+TIP: If the target object doesn't have setters, and you can't change that, you can
+configure the argument binder to fall back on binding via direct field access.
 
-TIP: The `@Argument` annotation does not have a "required" flag, nor the option to
+By default, if the method parameter name is available, for example with the `-parameters`
+compiler flag in Java 8+ or with debugging info from the compiler, it is used to look up
+the argument. If necessary, you can customize the name through the annotation, for example
+`@Argument("bookInput")`.
+
+Note that the `@Argument` annotation does not have a "required" flag, nor the option to
 specify a default value. Both of these can be specified at the GraphQL schema level and
 are enforced by GraphQL Java.
 
@@ -396,11 +397,11 @@ the argument. For example:
 	}
 ----
 
-NOTE: Prior to 1.2, `@Argument Map<String, Object>` returned the full arguments map if
-the annotation did not specify a name. After 1.2, `@Argument` with
-`Map<String, Object>` always returns the raw argument value, matching either to the name
-specified in the annotation, or to the parameter name. For access to the full arguments
-map, please use xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
+NOTE: Prior to 1.2, `@Argument Map<String, Object>` returned the full arguments map when
+the annotation did not specify a name. After 1.2, `@Argument Map<String, Object>` always
+returns the raw argument value, either based on the parameter name or the name in the
+annotation. For access to the full arguments map, please use
+xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
 
 
 [[controllers.schema-mapping.argument-value]]
