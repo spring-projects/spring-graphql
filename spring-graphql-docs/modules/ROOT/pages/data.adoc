@@ -471,3 +471,182 @@ Spring for GraphQL defines a `SortStrategy` to create `Sort` from GraphQL argume
 `AbstractSortStrategy` implements the contract with abstract methods to extract the sort
 direction and properties. To enable support for `Sort` as a controller method argument,
 you need to declare a `SortStrategy` bean.
+
+
+
+[[data.transaction-management]]
+== Transaction Management
+
+At some point when working with data atomicity and isolation of operations start to
+matter. These are both properties of transactions. GraphQL itself does not define any
+transaction semantics, so it is up to the server and your application to decide how to
+handle transactions.
+
+GraphQL and specifically GraphQL Java are designed to be non-opinionated about how data
+is fetched. A core property of GraphQL is that clients drive the request; Fields
+can be resolved independently of their original source to allow for composition.
+A reduced fieldset can require less data to be fetched resulting in better performance.
+
+Applying the concept of distributed field resolution within transactions is not a good fit:
+
+* Transactions keep a unit of work together resulting typically in fetching the entire
+object graph (like a typical object-relational mapper would behave) within a single
+transaction. This is at odds with GraphQL's core design to let the client drive queries.
+
+* Keeping a transaction open across multiple data fetchers of which each one would
+fetch only its flat object mitigates the performance aspect and aligns with decoupled
+field resolution, but it can lead to long-running transactions that hold on to resources
+for longer than necessary.
+
+Generally speaking, transactions are best applied to mutations that change state and not
+necessarily to queries that just read data. However, there are use cases where
+transactional reads are required.
+
+GraphQL is designed to support multiple mutations within a single request. Depending on
+the use case, you might want to:
+
+* Run each mutation within its own transaction.
+* Keep some mutations within a single transaction to ensure a consistent state.
+* Span a single transaction over all involved mutations.
+
+Each approach requires a slightly different transaction management strategy.
+
+When using Spring Framework (e.g. JDBC) or Spring Data, the Template API and repositories
+default (without any further instrumentation) to use implicit transactions for individual
+operations resulting in starting and commiting a transaction for each repository method
+call. This is the normal mode of operation for most databases.
+
+The following sections are outlining two different strategies to manage transactions in a
+GraphQL server:
+
+1. <<data.transaction-management.transactional-service-methods,Transaction per Controller Method>>
+2. <<data.transaction-management.transactional-instrumentation,Spanning a Transaction programmatically over the entire request>>
+
+
+[[data.transaction-management.transactional-service-methods]]
+=== Transactional Controller Methods
+
+The simplest approach to manage transactions is to use Spring's Transaction Management
+together with `@MutationMapping` controller methods (or any other `@SchemaMapping` method)
+for example:
+
+[tabs]
+======
+Declarative::
++
+[source,java,indent=0,subs="verbatim,quotes,attributes",role="primary"]
+----
+@Controller
+public class AccountController {
+
+	@MutationMapping
+	@Transactional
+	public Account addAccount(@Argument AccountInput input) {
+		// ...
+	}
+}
+----
+
+Programmatic::
++
+[source,java,indent=0,subs="verbatim,quotes,attributes",role="secondary"]
+----
+@Controller
+public class AccountController {
+
+	private final TransactionOperations transactionOperations;
+
+	@MutationMapping
+	public Account addAccount(@Argument AccountInput input) {
+		return transactionOperations.execute(status -> {
+			// ...
+		});
+	}
+}
+----
+======
+
+A transaction spans from entering the `addAccount` method until its return.
+All invocations to transactional resources are part of the same transaction resulting in
+atomicity and isolation of the mutation.
+
+This is the recommended approach. It gives you full control over transaction boundaries
+with a clearly defined entrypoint without the need to instrument GraphQL server
+infrastructure.
+
+Cleaning up a transaction after the method call results that subsequent data fetching
+(e.g. for nested fields) is not part of the transactional method `addAccount` as
+outlined below:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class AccountController {
+
+	@MutationMapping
+	@Transactional
+	public Account addAccount(@Argument AccountInput input) {    <1>
+		// ...
+	}
+
+	@SchemaMapping
+	@Transactional
+	public Person person(Account account) {                      <2>
+		... // fetching the person within a separate transaction
+	}
+}
+----
+<1> The `addAccount` method invocation runs within its own transaction.
+<2> The `person` method invocation creates its own, separate transaction that is not
+tied to the `addAccount` method in case both methods were invoked as part of the same
+GraphQL request. A separate transaction comes with all possible drawbacks of not
+being part of the same transaction, such as non-repeatable reads or inconsistencies
+in case the data has been modified between the `addAcount` and `person` method invocations.
+
+To run multiple mutations in a single transaction maintaining a simple setup we recommend
+designing a mutation method that accepts all required inputs. This method can then call
+multiple service methods, ensuring they all participate in the same transaction.
+
+
+[[data.transaction-management.transactional-instrumentation]]
+=== Transactional Instrumentation
+
+Applying a Transactional Instrumentation is a more advanced approach to span a
+transaction over the entire execution of a GraphQL request. By stating a transaction
+before the first data fetcher is invoked your application can ensure that all data
+fetchers can participate in the same transaction.
+
+When instrumenting the server, you need to ensure an `ExecutionStrategy` runs
+`DataFetcher` invocations serially so that all invocations are executed on the same
+`Thread`. This is mandatory: Synchronous transaction management uses `ThreadLocal` state
+to allow participation in transactions. Considering `AsyncSerialExecutionStrategy` as
+starting point is a good choice as it executes data fetchers serially.
+
+You have two general options to implement transactional instrumentation:
+
+1. GraphQL Java's `Instrumentation` contract allows to hook into the execution lifecycle
+at various stages. The Instrumentation SPI was designed with observability in mind, yet it
+serves as execution-agnostic extension points regardless of whether you're using
+synchronous reactive, or any other asynchronous form to invoke data fetchers and is less
+opinionated in that regard.
+
+2. An `ExecutionStrategy` provides full control over the execution and opens a variety
+of possibilities how to communicate failed transactions or errors during transaction
+cleanup back to the client. It can also serve as good entry point to implement custom
+directives that allow clients specifying transactional attributes through directives or
+using directives in your schema to demarcate transactional boundaries for certain queries
+or mutations.
+
+When manually managing transactions, ensure to clean up the transaction, that is either
+commiting or rolling back, after completing the unit of work.
+`ExceptionWhileDataFetching` can be a useful `GraphQLError` to obtain an underlying
+`Exception`. This error is constructed when using `SimpleDataFetcherExceptionHandler`.
+By default, Spring GraphQL falls back to an internal `GraphQLError` that doesn't expose
+the original exception.
+
+Applying transactional instrumentation creates opportunities to rethink transaction
+participation: All `@SchemaMapping` controller methods participate in the transaction
+regardless whether they are invoked for the root, nested fields, or as part of a mutation.
+Transactional controller methods (or service methods within the invocation chain) can
+declare transactional attributes such as propagation behavior `REQUIRES_NEW` to start
+a new transaction if required.
