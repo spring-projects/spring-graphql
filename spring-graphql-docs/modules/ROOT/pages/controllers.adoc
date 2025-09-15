@@ -367,8 +367,9 @@ nested argument values to invoke the constructors of nested target objects. For 
 Alternatively, binding can also be done by invoking a default constructor first, and then
 applying argument values via setters on the target object.
 
-TIP: If the target object doesn't have setters, and you can't change that, you can
-configure the argument binder to fall back on binding via direct field access.
+TIP: If the target object doesn't have setters, you can configure the argument binder to
+fall back on binding via direct field access, see
+xref:controllers.adoc#controllers.schema-mapping.argument.binding[].
 
 By default, if the method parameter name is available, for example with the `-parameters`
 compiler flag in Java 8+ or with debugging info from the compiler, it is used to look up
@@ -402,6 +403,25 @@ the annotation did not specify a name. After 1.2, `@Argument Map<String, Object>
 returns the raw argument value, either based on the parameter name or the name in the
 annotation. For access to the full arguments map, please use
 xref:controllers.adoc#controllers.schema-mapping.arguments[`@Arguments`] instead.
+
+
+[[controllers.schema-mapping.argument.binding]]
+==== Argument Binding
+
+Support for `@Argument` binding is provided by `GraphQlArgumentBinder`. This class is
+responsible for creating and populating target object from GraphQL argument values.
+
+Argument binding supports several customizations options:
+
+- `nameResolver` -- customize the mapping of GraphQL argument names to Object properties,
+which can be useful to deal with naming conventions like the use of "-".
+- `fallBackOnDirectFieldAccess` -- falls back to direct field access in case the target
+object does not use accessor methods.
+- `conversionService` -- used for type conversion where needed.
+
+To customize argument binding, use dedicated properties on `AnnotatedControllerConfigurer`
+to set `GraphQlArgumentBinder.Options`.
+
 
 
 [[controllers.schema-mapping.argument-value]]
