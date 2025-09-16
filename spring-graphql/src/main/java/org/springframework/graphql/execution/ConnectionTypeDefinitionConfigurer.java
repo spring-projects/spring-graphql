@@ -74,7 +74,7 @@ public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigu
 
 				registry.add(ObjectTypeDefinition.newObjectTypeDefinition()
 						.name(connectionTypeName)
-						.fieldDefinition(initFieldDefinition("edges", new NonNullType(new ListType(new TypeName(edgeTypeName)))))
+						.fieldDefinition(initFieldDefinition("edges", new ListType(new TypeName(edgeTypeName))))
 						.fieldDefinition(initFieldDefinition("pageInfo", new NonNullType(PAGE_INFO_TYPE)))
 						.build());
 

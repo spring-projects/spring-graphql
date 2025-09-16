@@ -27,6 +27,8 @@ import graphql.relay.DefaultEdge;
 import graphql.relay.DefaultPageInfo;
 import graphql.relay.Edge;
 import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.idl.SchemaPrinter;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -36,13 +38,44 @@ import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Unit tests for {@link ConnectionTypeDefinitionConfigurer}.
  *
  * @author Rossen Stoyanchev
- * @since 1.2.0
+ * @author Brian Clozel
  */
 class ConnectionTypeDefinitionConfigurerTests {
+
+	@Test
+	void generateTypesInSchema() {
+		GraphQlSetup graphQlSetup = GraphQlSetup.schemaResource(BookSource.paginationSchema)
+				.typeDefinitionConfigurer(new ConnectionTypeDefinitionConfigurer());
+		GraphQLSchema schema = graphQlSetup.toGraphQl().getGraphQLSchema();
+		SchemaPrinter printer = new SchemaPrinter(SchemaPrinter.Options.defaultOptions());
+		String schemaString = printer.print(schema);
+		assertThat(schemaString).contains("""
+				type BookConnection {
+				  edges: [BookEdge]
+				  pageInfo: PageInfo!
+				}
+				""",
+				"""
+				type BookEdge {
+				  cursor: String!
+				  node: Book!
+				}
+				""",
+				"""
+				type PageInfo {
+				  endCursor: String
+				  hasNextPage: Boolean!
+				  hasPreviousPage: Boolean!
+				  startCursor: String
+				}
+				""");
+	}
 
 	@Test
 	void connectionTypeGeneration() {
