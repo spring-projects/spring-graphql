@@ -10,7 +10,7 @@ dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
 	api(platform("com.fasterxml.jackson:jackson-bom:2.20.0"))
 	api(platform("tools.jackson:jackson-bom:3.0.0-rc8"))
-	api(platform("io.projectreactor:reactor-bom:2025.0.0-M6"))
+	api(platform("io.projectreactor:reactor-bom:2025.0.0-M7"))
 	api(platform("io.micrometer:micrometer-bom:1.16.0-M2"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.6.0-M2"))
 	api(platform("org.springframework.data:spring-data-bom:2025.1.0-M5"))
