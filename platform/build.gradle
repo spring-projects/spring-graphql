@@ -20,6 +20,7 @@ dependencies {
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
 	api(platform("org.junit:junit-bom:5.12.2"))
 	api(platform("org.mockito:mockito-bom:5.16.0"))
+	api(platform("org.mongodb:mongodb-driver-bom:5.5.1"))
 	api(platform("org.testcontainers:testcontainers-bom:1.21.2"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.24.3"))
 	api(platform("org.assertj:assertj-bom:3.27.3"))
@@ -43,12 +44,8 @@ dependencies {
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
 
 		api("com.h2database:h2:2.3.232")
-		api("org.hibernate:hibernate-core:6.6.11.Final")
-		api("org.hibernate.validator:hibernate-validator:8.0.2.Final")
-		api("org.mongodb:bson:5.3.1")
-		api("org.mongodb:mongodb-driver-core:5.3.1")
-		api("org.mongodb:mongodb-driver-reactivestreams:5.3.1")
-		api("org.mongodb:mongodb-driver-sync:5.3.1")
+		api("org.hibernate:hibernate-core:6.6.29.Final")
+		api("org.hibernate.validator:hibernate-validator:8.0.3.Final")
 	}
 
 }

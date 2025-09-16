@@ -71,7 +71,7 @@ import static org.mockito.Mockito.mock;
 class QueryByExampleDataFetcherMongoDbTests {
 
 	@Container
-	static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:4.0.10"));
+	static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:5.0"));
 
 	@Autowired
 	private BookMongoRepository repository;
