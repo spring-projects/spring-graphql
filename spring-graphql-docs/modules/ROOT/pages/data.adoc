@@ -471,3 +471,258 @@ Spring for GraphQL defines a `SortStrategy` to create `Sort` from GraphQL argume
 `AbstractSortStrategy` implements the contract with abstract methods to extract the sort
 direction and properties. To enable support for `Sort` as a controller method argument,
 you need to declare a `SortStrategy` bean.
+
+
+
+[[data.transaction-management]]
+== Transaction Management
+
+At some point when working with data then transactional boundaries start to matter.
+GraphQL itself does not define any transaction semantics, so it is up to the server
+and your application to decide how to handle transactions.
+
+Spring Data repositories use implicit transactions for individual operations resulting
+in starting and commiting a transaction for each repository method call. This is the
+normal mode of operation for most NoSQL databases but not necessarily what you
+would want for relational databases.
+
+You have several options how you could manage transactions in a GraphQL server:
+
+1. <<data.transaction-management.transactional-service-methods,Use transactional service methods>>
+2. <<data.transaction-management.instrumentation,Using a `Instrumentation` that manages transactions programmatically>>
+3. <<data.transaction-management.execution-strategy,Implement a custom `ExecutionStrategy` that manages transactions programmatically>>
+
+We generally recommend isolating transaction management in the controller or service.
+Any extended use (such as batch loading) might have their own requirements to transaction
+management and so you might want to consider the other two options.
+
+[[data.transaction-management.transactional-service-methods]]
+=== Transactional Service Methods
+
+Use Spring's `@Transactional` annotation on service methods that are
+invoked from your `@QueryMapping` controller method. This is the recommended approach
+as it gives you full control over the transaction boundaries with a clearly defined
+entrypoint, for example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class AccountController {
+
+	@QueryMapping
+	@Transactional
+	public Account accountById(@Argument String id) {
+		... // fetch the entire account object within a single transaction
+	}
+}
+----
+
+A transaction spans from entering the `accountById` method until it returns meaning
+that the entire object must be materialized within that method. Taking GraphQL's core
+design principles into account, this is not idiomatic as it limits the ability of the
+client to drive the query and forces the server to load the entire object graph upfront.
+
+Another aspect to consider is that subsequent data fetching for nested fields is not part
+of the transactional method `accountById` as the transaction is cleaned up after leaving
+the method.
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Controller
+public class AccountController {
+
+	@QueryMapping
+	@Transactional
+	public Account accountById(@Argument String id) {
+		... // fetch the account within a transaction
+	}
+
+	@SchemaMapping
+	@Transactional
+	public Person person(Account account) {
+		... // fetching the person within a separate transaction
+	}
+}
+----
+
+Using `@Transactional` on multiple controller methods is possible and in fact
+recommended when applying mutations. Any transactional queries that would resolve nested
+fields fall into their own transaction.
+
+You can replace Spring's `@Transactional` with `TransactionOperations` or
+`TransactionalOperator` if you wish to manage the transaction programmatically instead
+of using Spring's aspect-oriented programming (AOP) support for transactions.
+
+
+[[data.transaction-management.instrumentation]]
+=== Transactional Instrumentation
+
+GraphQL Java's `Instrumentation` contract allows you to hook into the execution lifecycle
+at various stages. The Instrumentation SPI was designed with observability in mind, yet it
+serves as execution-agnostic extension points regardless of whether you're using synchronous
+reactive, or any other asynchronous form to invoke data fetchers.
+
+Spanning an instrumentation over the entire execution creates an enclosing transaction.
+Ideally, the underlying `ExecutionStrategy` runs `DataFetcher` invocations serially so
+that all invocations are executed on the same `Thread`. This is mandatory: Synchronous
+transaction management uses `ThreadLocal` state to allow participation in transactions.
+
+Another aspect of creating an outer transaction is that it spans across the entire execution.
+All `@SchemaMapping` controller methods participate in the transaction regardless whether
+they are invoked for the root, nested fields, or as part of a mutation. When participating
+in an ongoing transaction, transactional controller or service methods can declare
+transactional attributes such as propagation behavior `REQUIRES_NEW` to start
+a new transaction.
+
+An example transactional `Instrumentation` must start a transaction before execution and
+clean up the transaction after execution completes. An example instrumentation could look
+like as follows:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+class TransactionalInstrumentation implements Instrumentation {
+
+	private final Log logger = LogFactory.getLog(getClass());
+
+	private final PlatformTransactionManager txManager;
+	private final TransactionDefinition definition;
+
+	TransactionalInstrumentation(PlatformTransactionManager txManager, TransactionDefinition definition) {
+		this.transactionManager = transactionManager;
+		this.definition = definition;
+	}
+
+	@Override
+	public @Nullable InstrumentationContext<ExecutionResult> beginExecution(
+			InstrumentationExecutionParameters parameters, InstrumentationState state) {
+
+		TransactionStatus status = this.transactionManager.getTransaction(definition);
+
+		return SimpleInstrumentationContext.whenCompleted((result, t) -> {
+			if (t != null) {
+				rollbackOnException(status, t);
+			} else {
+				for (GraphQLError error : result.getErrors()) {
+					if (error instanceof ExceptionWhileDataFetching e) {
+						rollbackOnException(status, e.getException());
+						return;
+					}
+				}
+				this.transactionManager.commit(status);
+			}
+		});
+	}
+
+	private void rollbackOnException(TransactionStatus status, Throwable ex) throws TransactionException {
+
+		logger.debug("Initiating transaction rollback on application exception", ex);
+		try {
+			this.transactionManager.rollback(status);
+		} catch (TransactionSystemException ex2) {
+			logger.error("Application exception overridden by rollback exception", ex);
+			ex2.initApplicationException(ex);
+			throw ex2;
+		} catch (RuntimeException | Error ex2) {
+			logger.error("Application exception overridden by rollback exception", ex);
+		}
+	}
+}
+----
+
+This implementation repeats parts that reside in `TransactionTemplate` for proper
+transaction management. Another aspect to consider is that the above implementation relies
+on `ExceptionWhileDataFetching` that is only available if the underlying
+`ExecutionStrategy` uses `SimpleDataFetcherExceptionHandler`. By default, Spring GraphQL
+falls back to an internal `GraphQLError` that doesn't expose the original exception.
+
+If there is already an `Instrumentation` configured, then you need to go a step further
+and use the `ExecutionStrategy` method.
+
+[[data.transaction-management.execution-strategy]]
+=== Transactional `ExecutionStrategy`
+
+Implementing an own transactional `ExecutionStrategy` is similar to the `Instrumentation`
+approach, but it gives you more control over the execution.
+
+It can also serve as good entry point to implement custom directives that allow clients
+specifying transactional attributes through directives or using directives in your schema
+to demarcate transactional boundaries for certain queries or mutations.
+
+An `ExecutionStrategy` provides full control over the execution and opens a multitude
+of possibilities over how to communicate failed transactions or errors during transaction
+cleanup back to the client.
+
+The following block shows a rather simple example implementation without considering
+all invariants of exception handling:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+static class TransactionalExecutionStrategy extends AsyncSerialExecutionStrategy {
+
+	protected final Log logger = LogFactory.getLog(getClass());
+
+	private final PlatformTransactionManager transactionManager;
+	private final TransactionDefinition definition;
+
+	public TransactionalExecutionStrategy(PlatformTransactionManager transactionManager,
+			TransactionDefinition definition) {
+		this.transactionManager = transactionManager;
+		this.definition = definition;
+	}
+
+	@Override
+	public CompletableFuture<ExecutionResult> execute(ExecutionContext executionContext,
+			ExecutionStrategyParameters parameters) throws NonNullableFieldWasNullException {
+
+		TransactionStatus status = this.transactionManager.getTransaction(definition);
+		try {
+			return super.execute(executionContext, parameters).whenComplete((result, exception) -> {
+
+				if (exception != null) {
+					rollbackOnException(status, exception);
+				} else {
+
+					for (GraphQLError error : result.getErrors()) {
+						if (error instanceof ExceptionWhileDataFetching e) {
+							rollbackOnException(status, e.getException());
+							return;
+						}
+					}
+
+					this.transactionManager.commit(status);
+				}
+			});
+		} catch (RuntimeException | Error ex) {
+			// Transactional code threw application exception -> rollback
+			return CompletableFuture.failedFuture(rollbackOnException(status, ex));
+		} catch (Throwable ex) {
+			// Transactional code threw unexpected exception -> rollback
+			return CompletableFuture.failedFuture(new UndeclaredThrowableException(rollbackOnException(status, ex),
+					"TransactionCallback threw undeclared checked exception"));
+		}
+	}
+
+	/**
+	 * Perform a rollback, handling rollback exceptions properly.
+	 *
+	 * @param status object representing the transaction
+	 * @param ex the thrown application exception or error
+	 */
+	private Throwable rollbackOnException(TransactionStatus status, Throwable ex) {
+
+		logger.debug("Initiating transaction rollback on application exception", ex);
+		try {
+			this.transactionManager.rollback(status);
+		} catch (TransactionSystemException ex2) {
+			logger.error("Application exception overridden by rollback exception", ex);
+			ex2.initApplicationException(ex);
+			return ex2;
+		} catch (RuntimeException | Error ex2) {
+			logger.error("Application exception overridden by rollback exception", ex);
+			return ex2;
+		}
+
+		return ex;
+	}
+}
+----
