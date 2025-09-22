@@ -25,6 +25,11 @@ dependencies {
 	implementation("io.spring.javaformat:spring-javaformat-gradle-plugin:${javaFormatVersion}")
 	implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:${errorProneVersion}")
 	implementation "com.tngtech.archunit:archunit:1.4.0"
+
+    testImplementation("org.assertj:assertj-core:${assertjVersion}")
+    testImplementation(platform("org.junit:junit-bom:${junitVersion}"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 checkstyle {
@@ -41,9 +46,15 @@ gradlePlugin {
 			id = "org.springframework.graphql.architecture"
 			implementationClass = "org.springframework.graphql.build.architecture.ArchitecturePlugin"
 		}
+        multiReleasePlugin {
+            id = "org.springframework.graphql.multiReleaseJar"
+            implementationClass = "org.springframework.graphql.build.multirelease.MultiReleaseJarPlugin"
+        }
 	}
 }
 
 test {
 	useJUnitPlatform()
 }
+
+jar.dependsOn check
