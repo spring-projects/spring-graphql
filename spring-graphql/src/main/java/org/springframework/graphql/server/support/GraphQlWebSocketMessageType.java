@@ -111,7 +111,7 @@ public enum GraphQlWebSocketMessageType {
 				return type;
 			}
 		}
-		throw new IllegalArgumentException("No matching constant for [" + value + "]");
+		throw new IllegalArgumentException("No matching constant for [%s]".formatted(value));
 	}
 
 

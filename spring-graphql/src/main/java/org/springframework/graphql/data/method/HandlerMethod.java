@@ -365,10 +365,11 @@ public class HandlerMethod {
 				})
 				.collect(Collectors.joining(",\n", " ", " "));
 
-		return text + "\n" +
-				"Class [" + getBeanType().getName() + "]\n" +
-				"Method [" + getBridgedMethod().toGenericString() + "] " +
-				"with argument values:\n" + formattedArgs;
+		return """
+				%s
+				Class [%s]
+				Method [%s] with argument values:
+				%s""".formatted(text, getBeanType().getName(), getBridgedMethod().toGenericString(), formattedArgs);
 	}
 
 
