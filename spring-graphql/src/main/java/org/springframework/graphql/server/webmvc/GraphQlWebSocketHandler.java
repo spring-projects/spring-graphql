@@ -46,10 +46,10 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.graphql.execution.ErrorType;
+import org.springframework.graphql.execution.ReactorSchedulers;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlResponse;
@@ -484,7 +484,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		SessionState(String graphQlSessionId, WebMvcSessionInfo sessionInfo) {
 			this.sessionInfo = sessionInfo;
-			this.scheduler = Schedulers.newSingle("GraphQL-WsSession-" + graphQlSessionId);
+			this.scheduler = ReactorSchedulers.singleThread("GraphQL-WsSession-" + graphQlSessionId);
 			this.keepAliveSubscriber = new KeepAliveSubscriber(sessionInfo.getSession());
 		}
 

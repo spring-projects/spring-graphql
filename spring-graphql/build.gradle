@@ -1,6 +1,19 @@
+plugins {
+    id 'org.springframework.graphql.multiReleaseJar'
+}
+
 description = "GraphQL Support for Spring Applications"
 
 apply plugin: "kotlin"
+
+multiRelease {
+    releaseVersions 21
+}
+
+configurations {
+    java21Api.extendsFrom(api)
+    java21Implementation.extendsFrom(implementation)
+}
 
 dependencies {
 	api 'com.graphql-java:graphql-java'
@@ -102,4 +115,7 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+}
+java21Test {
+    useJUnitPlatform()
 }
