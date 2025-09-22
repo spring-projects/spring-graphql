@@ -10,8 +10,8 @@
 	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]" checks="SpringMethodVisibility" />
 
 	<!-- tests -->
-	<suppress files="[\\/]src[\\/]testFixtures[\\/]java[\\/]" checks="JavadocPackage|SpringJavadoc" />
-	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]" checks="JavadocPackage|SpringJavadoc|InnerTypeLast|SpringMethodVisibility|RequireThis|SpringLambda|SpringTernary|FinalClass|RedundantModifier|SpringAvoidStaticImport" />
+	<suppress files="[\\/]src[\\/]testFixtures[\\/](java|java21)[\\/]" checks="JavadocPackage|SpringJavadoc" />
+	<suppress files="[\\/]src[\\/]test[\\/](java|java21)[\\/]" checks="JavadocPackage|SpringJavadoc|InnerTypeLast|SpringMethodVisibility|RequireThis|SpringLambda|SpringTernary|FinalClass|RedundantModifier|SpringAvoidStaticImport" />
 
 	<!-- docs -->
 	<suppress files="(.*graphql-docs.*)" checks="JavadocPackage|OneTopLevelClass|InnerTypeLast" />
