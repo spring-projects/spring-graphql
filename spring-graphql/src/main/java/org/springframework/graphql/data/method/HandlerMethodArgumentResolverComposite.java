@@ -77,7 +77,7 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 		if (resolver == null) {
-			throw new IllegalArgumentException("Unsupported parameter [" + parameter + "].");
+			throw new IllegalArgumentException("Unsupported parameter [%s].".formatted(parameter));
 		}
 		return resolver.resolveArgument(parameter, environment);
 	}
