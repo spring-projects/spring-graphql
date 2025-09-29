@@ -122,17 +122,27 @@ public enum GraphQlObservationDocumentation implements ObservationDocumentation 
 		},
 
 		/**
-		 * GraphQL Operation name.
+		 * GraphQL {@link graphql.language.OperationDefinition.Operation Operation type}.
 		 */
-		OPERATION {
+		OPERATION_TYPE {
 			@Override
 			public String asString() {
-				return "graphql.operation";
+				return "graphql.operation.type";
 			}
 		}
 	}
 
 	public enum ExecutionRequestHighCardinalityKeyNames implements KeyName {
+
+		/**
+		 * GraphQL Operation name.
+		 */
+		OPERATION_NAME {
+			@Override
+			public String asString() {
+				return "graphql.operation.name";
+			}
+		},
 
 		/**
 		 * {@link graphql.execution.ExecutionId} of the GraphQL request.
