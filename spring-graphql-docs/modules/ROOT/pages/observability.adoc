@@ -27,11 +27,12 @@ By default, the following KeyValues are created:
 [cols="a,a"]
 |===
 |Name | Description
-|`graphql.operation` _(required)_|GraphQL Operation name.
+|`graphql.operation.type` _(required)_|GraphQL Operation type.
 |`graphql.outcome` _(required)_|Outcome of the GraphQL request.
 |===
 
-The `graphql.operation` KeyValue will use the custom name of the provided query, or http://spec.graphql.org/draft/#sec-Language.Operations[the standard name for the operation] if none (`"query"`, `"mutation"` or `"subscription"`).
+The `graphql.operation.type` KeyValue will use the http://spec.graphql.org/draft/#sec-Language.Operations[the standard name for the operation] (`"query"`, `"mutation"` or `"subscription"`) or `"operation"` if the request document could not be parsed.
+
 The `graphql.outcome` KeyValue will be:
 
 * `"SUCCESS"` if a valid GraphQL response has been sent and it contains no errors
@@ -43,7 +44,10 @@ The `graphql.outcome` KeyValue will be:
 |===
 |Name | Description
 |`graphql.execution.id` _(required)_|`graphql.execution.ExecutionId` of the GraphQL request.
+|`graphql.operation.name` _(required)_|GraphQL Operation name.
 |===
+
+The `graphql.operation.name` KeyValue will be similar to `graphql.operation.name` will use the operation name provided by the client.
 
 Spring for GraphQL also contributes Events for Server Request Observations.
 https://docs.micrometer.io/micrometer/reference/observation/components.html#micrometer-observation-events[Micrometer Observation Events] are usually handled as span annotations in traces.

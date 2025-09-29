@@ -18,6 +18,7 @@ package org.springframework.graphql.observation;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
+import graphql.execution.ExecutionContext;
 import io.micrometer.observation.Observation;
 
 import org.springframework.lang.Nullable;
@@ -33,6 +34,8 @@ public class ExecutionRequestObservationContext extends Observation.Context {
 
 	private final ExecutionInput executionInput;
 
+	private ExecutionContext executionContext;
+
 	@Nullable
 	private ExecutionResult executionResult;
 
@@ -46,6 +49,24 @@ public class ExecutionRequestObservationContext extends Observation.Context {
 	 */
 	public ExecutionInput getExecutionInput() {
 		return this.executionInput;
+	}
+
+	/**
+	 * Return the {@link ExecutionContext context} for the request execution.
+	 * @since 1.3.7
+	 */
+	@Nullable
+	public ExecutionContext getExecutionContext() {
+		return this.executionContext;
+	}
+
+	/**
+	 * Set the {@link ExecutionContext context} for the request execution.
+	 * @param executionContext the execution context
+	 * @since 1.3.7
+	 */
+	public void setExecutionContext(ExecutionContext executionContext) {
+		this.executionContext = executionContext;
 	}
 
 	/**

@@ -16,6 +16,9 @@
 
 package org.springframework.graphql.observation;
 
+import java.util.Locale;
+
+import graphql.language.OperationDefinition;
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
 
@@ -42,7 +45,9 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 
 	private static final KeyValue OUTCOME_INTERNAL_ERROR = KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OUTCOME, "INTERNAL_ERROR");
 
-	private static final KeyValue OPERATION_QUERY = KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OPERATION, "query");
+	private static final KeyValue OPERATION_NAME_QUERY = KeyValue.of(ExecutionRequestHighCardinalityKeyNames.OPERATION_NAME, "query");
+
+	private static final KeyValue OPERATION_TYPE_DEFAULT = KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OPERATION_TYPE, "operation");
 
 	private final String name;
 
@@ -61,13 +66,12 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 
 	@Override
 	public String getContextualName(ExecutionRequestObservationContext context) {
-		String operationName = (context.getExecutionInput().getOperationName() != null) ? context.getExecutionInput().getOperationName() : "query";
-		return BASE_CONTEXTUAL_NAME + operationName;
+		return BASE_CONTEXTUAL_NAME + operationType(context).getValue();
 	}
 
 	@Override
 	public KeyValues getLowCardinalityKeyValues(ExecutionRequestObservationContext context) {
-		return KeyValues.of(outcome(context), operation(context));
+		return KeyValues.of(outcome(context), operationType(context));
 	}
 
 	protected KeyValue outcome(ExecutionRequestObservationContext context) {
@@ -83,21 +87,29 @@ public class DefaultExecutionRequestObservationConvention implements ExecutionRe
 		return OUTCOME_SUCCESS;
 	}
 
-	protected KeyValue operation(ExecutionRequestObservationContext context) {
-		String operationName = context.getExecutionInput().getOperationName();
-		if (operationName != null) {
-			return KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OPERATION, operationName);
+	protected KeyValue operationType(ExecutionRequestObservationContext context) {
+		if (context.getExecutionContext() != null) {
+			OperationDefinition.Operation operation = context.getExecutionContext().getOperationDefinition().getOperation();
+			return KeyValue.of(ExecutionRequestLowCardinalityKeyNames.OPERATION_TYPE, operation.name().toLowerCase(Locale.ROOT));
 		}
-		return OPERATION_QUERY;
+		return OPERATION_TYPE_DEFAULT;
 	}
 
 	@Override
 	public KeyValues getHighCardinalityKeyValues(ExecutionRequestObservationContext context) {
-		return KeyValues.of(executionId(context));
+		return KeyValues.of(executionId(context), operationName(context));
 	}
 
 	protected KeyValue executionId(ExecutionRequestObservationContext context) {
 		return KeyValue.of(ExecutionRequestHighCardinalityKeyNames.EXECUTION_ID, context.getExecutionInput().getExecutionId().toString());
+	}
+
+	protected KeyValue operationName(ExecutionRequestObservationContext context) {
+		String operationName = context.getExecutionInput().getOperationName();
+		if (operationName != null) {
+			return KeyValue.of(ExecutionRequestHighCardinalityKeyNames.OPERATION_NAME, operationName);
+		}
+		return OPERATION_NAME_QUERY;
 	}
 
 }

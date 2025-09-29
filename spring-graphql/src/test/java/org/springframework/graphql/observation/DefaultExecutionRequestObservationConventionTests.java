@@ -22,7 +22,10 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.GraphQLError;
+import graphql.execution.ExecutionContext;
+import graphql.execution.ExecutionContextBuilder;
 import graphql.execution.ExecutionId;
+import graphql.language.OperationDefinition;
 import graphql.schema.idl.errors.QueryOperationMissingError;
 import io.micrometer.common.KeyValue;
 import org.junit.jupiter.api.Test;
@@ -61,21 +64,19 @@ class DefaultExecutionRequestObservationConventionTests {
 	void hasContextualName() {
 		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }")
 				.operationName("mutation").build();
-		ExecutionRequestObservationContext context = createObservationContext(input, builder -> { });
+		ExecutionRequestObservationContext context = createObservationContext(input);
 		assertThat(this.convention.getContextualName(context)).isEqualTo("graphql mutation");
 	}
 
 	@Test
 	void hasOperationKeyValueWhenSuccessfulOutput() {
-		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
-		});
-		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.operation", "query"));
+		ExecutionRequestObservationContext context = createObservationContext(this.input);
+		assertThat(this.convention.getHighCardinalityKeyValues(context)).contains(KeyValue.of("graphql.operation.name", "query"));
 	}
 
 	@Test
 	void hasOutcomeKeyValueWhenSuccessfulOutput() {
-		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
-		});
+		ExecutionRequestObservationContext context = createObservationContext(this.input);
 		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.outcome", "SUCCESS"));
 	}
 
@@ -88,8 +89,7 @@ class DefaultExecutionRequestObservationConventionTests {
 
 	@Test
 	void hasOutcomeKeyValueWhenInternalError() {
-		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
-		});
+		ExecutionRequestObservationContext context = createObservationContext(this.input);
 		GraphQLError graphQLError = GraphQLError.newError().errorType(ErrorType.INTERNAL_ERROR).message(ErrorType.INTERNAL_ERROR + " for [executionId]").build();
 		context.setExecutionResult(ExecutionResult.newExecutionResult().addError(graphQLError).build());
 		assertThat(this.convention.getLowCardinalityKeyValues(context)).contains(KeyValue.of("graphql.outcome", "INTERNAL_ERROR"));
@@ -97,17 +97,26 @@ class DefaultExecutionRequestObservationConventionTests {
 
 	@Test
 	void hasExecutionIdKeyValue() {
-		ExecutionRequestObservationContext context = createObservationContext(this.input, builder -> {
-		});
+		ExecutionRequestObservationContext context = createObservationContext(this.input);
 		assertThat(this.convention.getHighCardinalityKeyValues(context)).contains(KeyValue.of("graphql.execution.id", "42"));
 	}
 
+	private ExecutionRequestObservationContext createObservationContext(ExecutionInput executionInput) {
+		return createObservationContext(executionInput, builder -> { });
+	}
 
 	private ExecutionRequestObservationContext createObservationContext(ExecutionInput executionInput, Consumer<ExecutionResultImpl.Builder> resultConsumer) {
 		ExecutionRequestObservationContext context = new ExecutionRequestObservationContext(executionInput);
 		ExecutionResultImpl.Builder builder = ExecutionResultImpl.newExecutionResult();
 		resultConsumer.accept(builder);
 		context.setExecutionResult(builder.build());
+
+		ExecutionContext executionContext = ExecutionContextBuilder.newExecutionContextBuilder()
+				.executionId(ExecutionId.from("123_456_789"))
+				.executionInput(executionInput)
+				.operationDefinition(OperationDefinition.newOperationDefinition().operation(OperationDefinition.Operation.MUTATION).build())
+				.build();
+		context.setExecutionContext(executionContext);
 		return context;
 	}
 

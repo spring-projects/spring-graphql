@@ -29,6 +29,7 @@ import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentationContext;
 import graphql.execution.instrumentation.SimplePerformantInstrumentation;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationExecuteOperationParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
 import graphql.schema.DataFetcher;
@@ -144,14 +145,15 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	@Override
 	public CompletableFuture<InstrumentationState> createStateAsync(InstrumentationCreateStateParameters parameters) {
-		return CompletableFuture.completedFuture(RequestObservationInstrumentationState.INSTANCE);
+		ExecutionRequestObservationContext requestObservationContext = new ExecutionRequestObservationContext(parameters.getExecutionInput());
+		return CompletableFuture.completedFuture(new RequestObservationInstrumentationState(requestObservationContext));
 	}
 
 	@Override
 	public InstrumentationContext<ExecutionResult> beginExecution(InstrumentationExecutionParameters parameters,
 			InstrumentationState state) {
-		if (state == RequestObservationInstrumentationState.INSTANCE) {
-			ExecutionRequestObservationContext observationContext = new ExecutionRequestObservationContext(parameters.getExecutionInput());
+		if (state instanceof RequestObservationInstrumentationState observationState) {
+			ExecutionRequestObservationContext observationContext = observationState.requestObservationContext;
 			Observation requestObservation = GraphQlObservationDocumentation.EXECUTION_REQUEST.observation(this.requestObservationConvention,
 					DEFAULT_REQUEST_CONVENTION, () -> observationContext, this.observationRegistry);
 			setCurrentObservation(requestObservation, parameters.getGraphQLContext());
@@ -181,10 +183,18 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	@Override
+	public InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters, InstrumentationState state) {
+		if (state instanceof RequestObservationInstrumentationState observationState) {
+			observationState.requestObservationContext.setExecutionContext(parameters.getExecutionContext());
+		}
+		return super.beginExecuteOperation(parameters, state);
+	}
+
+	@Override
 	public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher,
 			InstrumentationFieldFetchParameters parameters, InstrumentationState state) {
 		if (!parameters.isTrivialDataFetcher()
-				&& state == RequestObservationInstrumentationState.INSTANCE) {
+				&& state instanceof RequestObservationInstrumentationState) {
 			// skip batch loading operations, already instrumented at the dataloader level
 			if (dataFetcher instanceof SelfDescribingDataFetcher<?> selfDescribingDataFetcher
 					&& selfDescribingDataFetcher.usesDataLoader()) {
@@ -266,7 +276,11 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	static class RequestObservationInstrumentationState implements InstrumentationState {
 
-		static final RequestObservationInstrumentationState INSTANCE = new RequestObservationInstrumentationState();
+		final ExecutionRequestObservationContext requestObservationContext;
+
+		RequestObservationInstrumentationState(ExecutionRequestObservationContext requestObservationContext) {
+			this.requestObservationContext = requestObservationContext;
+		}
 
 	}
 
