@@ -441,8 +441,10 @@ allowed types. For example:
 			.allowIfSubType(ZonedDateTime.class)
 			.build();
 
-	ObjectMapper mapper = new ObjectMapper();
-	mapper.activateDefaultTyping(validator, ObjectMapper.DefaultTyping.NON_FINAL);
+	JsonMapper mapper = JsonMapper.builder()
+	    .activateDefaultTyping(validator, DefaultTyping.NON_FINAL)
+        .enable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .build();
 ----
 
 You can then create `JsonKeysetCursorStrategy`:
@@ -460,7 +462,7 @@ You can then create `JsonKeysetCursorStrategy`:
 
 By default, if `JsonKeysetCursorStrategy` is created without a `CodecConfigurer` and the
 Jackson library is on the classpath, customizations like the above are applied for
-`Date`, `Calendar`, and any type from `java.time`.
+`Date`, `Calendar`, `UUID` and any type from `java.time`.
 
 
 

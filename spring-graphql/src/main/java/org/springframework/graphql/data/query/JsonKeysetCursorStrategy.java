@@ -21,6 +21,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 import tools.jackson.databind.DefaultTyping;
 import tools.jackson.databind.ObjectMapper;
@@ -146,7 +147,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	/**
 	 * Customizes the {@link ObjectMapper} to use default typing that supports
-	 * {@link Date}, {@link Calendar}, and classes in {@code java.time}.
+	 * {@link Date}, {@link Calendar}, {@link UUID} and classes in {@code java.time}.
 	 */
 	private static final class JacksonObjectMapperCustomizer {
 
@@ -157,6 +158,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 					.allowIfSubType("java.time.")
 					.allowIfSubType(Calendar.class)
 					.allowIfSubType(Date.class)
+					.allowIfSubType(UUID.class)
 					.build();
 
 			JsonMapper mapper = JsonMapper.builder()
@@ -172,7 +174,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	/**
 	 * Customizes the {@link ObjectMapper} to use default typing that supports
-	 * {@link Date}, {@link Calendar}, and classes in {@code java.time}.
+	 * {@link Date}, {@link Calendar}, {@link UUID} and classes in {@code java.time}.
 	 */
 	@SuppressWarnings("removal")
 	private static final class Jackson2ObjectMapperCustomizer {
@@ -185,6 +187,7 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 					.allowIfSubType("java.time.")
 					.allowIfSubType(Calendar.class)
 					.allowIfSubType(Date.class)
+					.allowIfSubType(UUID.class)
 					.build();
 
 			com.fasterxml.jackson.databind.ObjectMapper mapper = Jackson2ObjectMapperBuilder.json().build();
