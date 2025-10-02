@@ -18,7 +18,7 @@ jobs:
         java:
           - version: 21
             toolchain: true
-          - version: 22
+          - version: 24
             toolchain: true
     steps:
       - name: Check Out Code
