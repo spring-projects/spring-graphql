@@ -27,8 +27,8 @@ import reactor.core.scheduler.Schedulers;
 public abstract class ReactorSchedulers {
 
 	/**
-	 * Create a scheduler backed by a single new thread, using {@link Schedulers#newSingle(String)} on Java < 21
-	 * and a custom Virtual Thread factory on Java >= 21.
+	 * Create a scheduler backed by a single new thread, using {@link Schedulers#newSingle(String)} on Java &lt; 21
+	 * and a custom Virtual Thread factory on Java &gte; 21.
 	 * @param name component and thread name prefix
 	 */
 	public static Scheduler singleThread(String name) {
