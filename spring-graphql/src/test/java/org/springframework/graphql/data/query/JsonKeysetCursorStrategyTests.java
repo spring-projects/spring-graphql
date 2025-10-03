@@ -23,6 +23,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -78,4 +79,16 @@ class JsonKeysetCursorStrategyTests {
 		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
 	}
 
+	@Test
+	void toAndFromCursorWithUUID() {
+
+		UUID uuid = UUID.randomUUID();
+
+		Map<String, Object> keys = new LinkedHashMap<>();
+		keys.put("uuid", uuid);
+		String json = "[\"java.util.LinkedHashMap\",{\"uuid\":[\"java.util.UUID\",\"" + uuid + "\"]}]";
+
+		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
+		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
+	}
 }
