@@ -57,6 +57,7 @@ dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
 	testImplementation 'org.mockito:mockito-core'
+	testImplementation 'io.mockk:mockk'
 	testImplementation 'org.awaitility:awaitility'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation "org.jetbrains.kotlin:kotlin-reflect"

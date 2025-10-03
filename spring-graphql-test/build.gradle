@@ -1,5 +1,7 @@
 description = "Spring Support for Testing GraphQL Applications"
 
+apply plugin: "kotlin"
+
 dependencies {
 	api project(':spring-graphql')
 	api 'com.graphql-java:graphql-java'
@@ -27,6 +29,7 @@ dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testImplementation 'org.assertj:assertj-core'
 	testImplementation 'org.mockito:mockito-core'
+	testImplementation 'io.mockk:mockk'
 	testImplementation 'org.skyscreamer:jsonassert'
 	testImplementation 'org.springframework:spring-messaging'
 	testImplementation 'org.springframework:spring-webflux'

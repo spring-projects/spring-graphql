@@ -44,6 +44,7 @@ dependencies {
 		api("org.awaitility:awaitility:4.3.0")
 		api("com.squareup.okhttp3:mockwebserver3:5.1.0")
 		api("org.hamcrest:hamcrest:3.0")
+		api("io.mockk:mockk:1.14.5")
 
 		api("com.h2database:h2:2.3.232")
 		api("org.hibernate.orm:hibernate-core:7.1.0.Final")
