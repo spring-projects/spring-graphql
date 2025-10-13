@@ -1,12 +1,12 @@
 plugins {
-	id "io.spring.nullability" version "0.0.3" apply false
+	id "io.spring.nullability" version "0.0.5" apply false
 }
 
 description = "Spring for GraphQL"
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
-	springFrameworkVersion = "7.0.0-M9"
+	springFrameworkVersion = "7.0.0-SNAPSHOT"
 	graphQlJavaVersion = "25.0.beta-9"
 }
 

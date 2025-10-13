@@ -110,14 +110,15 @@ final class DefaultSyncHttpGraphQlClientBuilder
 	}
 
 	@Override
-	@SuppressWarnings("removal")
+	@SuppressWarnings("unchecked")
 	public HttpSyncGraphQlClient build() {
-
-		this.restClientBuilder.messageConverters((converters) -> {
-			HttpMessageConverter<Object> converter = HttpMessageConverterDelegate.findJsonConverter(converters);
-			setJsonConverter(converter);
+		this.restClientBuilder.configureMessageConverters((builder) -> {
+			builder.registerDefaults().configureMessageConverters((converter) -> {
+				if (HttpMessageConverterDelegate.isJsonConverter(converter)) {
+					setJsonConverter((HttpMessageConverter<Object>) converter);
+				}
+			});
 		});
-
 		RestClient restClient = this.restClientBuilder.build();
 		HttpSyncGraphQlTransport transport = new HttpSyncGraphQlTransport(restClient);
 

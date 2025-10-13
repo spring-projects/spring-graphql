@@ -61,14 +61,8 @@ final class HttpMessageConverterDelegate {
 
 	}
 
-	@SuppressWarnings("unchecked")
-	static HttpMessageConverter<Object> findJsonConverter(Iterable<HttpMessageConverter<?>> converters) {
-		for (HttpMessageConverter<?> converter : converters) {
-			if (converter.canRead(Map.class, MediaType.APPLICATION_JSON)) {
-				return (HttpMessageConverter<Object>) converter;
-			}
-		}
-		throw new IllegalArgumentException("No JSON HttpMessageConverter");
+	static boolean isJsonConverter(HttpMessageConverter<?> converter) {
+		return converter.canRead(Map.class, MediaType.APPLICATION_JSON);
 	}
 
 	static HttpMessageConverterEncoder asEncoder(HttpMessageConverter<Object> converter) {
