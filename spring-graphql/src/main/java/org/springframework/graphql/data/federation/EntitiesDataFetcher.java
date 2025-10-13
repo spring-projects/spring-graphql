@@ -116,6 +116,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 				.onErrorResume((ex) -> resolveException(ex, environment, handlerMethod, index));
 	}
 
+	@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 	private Mono<EntitiesResultContainer> invokeEntitiesMethod(
 			DataFetchingEnvironment environment, EntityHandlerMethod handlerMethod,
 			List<Map<String, Object>> representations, String type) {

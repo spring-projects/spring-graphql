@@ -206,7 +206,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 
 
 		@Override
-		public @Nullable Object get(DataFetchingEnvironment environment) throws Exception {
+		public Object get(DataFetchingEnvironment environment) throws Exception {
 			Object result = this.delegate.get(environment);
 			if (result instanceof Mono<?> mono) {
 				return mono.map(this::adaptDataFetcherResult);
@@ -219,8 +219,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 		}
 
-		@Contract("!null -> !null")
-		private @Nullable Object adaptDataFetcherResult(@Nullable Object value) {
+		private Object adaptDataFetcherResult(Object value) {
 			if (value instanceof DataFetcherResult<?> dataFetcherResult) {
 				Object adapted = adaptDataContainer(dataFetcherResult.getData());
 				return DataFetcherResult.newResult()
@@ -233,6 +232,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 			}
 		}
 
+		@Contract("!null -> !null")
 		private <T> @Nullable Object adaptDataContainer(@Nullable Object container) {
 			if (container == null) {
 				return isConnectionTypeNullable() ? null : EMPTY_CONNECTION;

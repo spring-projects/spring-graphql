@@ -94,6 +94,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
 		return null;
 	}
 
+	@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 	@Override
 	public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) throws Exception {
 		return getCurrentAuthentication(parameter)

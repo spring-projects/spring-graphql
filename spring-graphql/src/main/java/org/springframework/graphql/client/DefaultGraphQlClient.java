@@ -299,11 +299,13 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			this.responseMono = responseMono;
 		}
 
+		@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 		@Override
 		public <D> Mono<D> toEntity(Class<D> entityType) {
 			return this.responseMono.mapNotNull(this::getValidField).mapNotNull((field) -> field.toEntity(entityType));
 		}
 
+		@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 		@Override
 		public <D> Mono<D> toEntity(ParameterizedTypeReference<D> entityType) {
 			return this.responseMono.mapNotNull(this::getValidField).mapNotNull((field) -> field.toEntity(entityType));
@@ -337,11 +339,13 @@ final class DefaultGraphQlClient implements GraphQlClient {
 			this.responseFlux = responseFlux;
 		}
 
+		@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 		@Override
 		public <D> Flux<D> toEntity(Class<D> entityType) {
 			return this.responseFlux.mapNotNull(this::getValidField).mapNotNull((field) -> field.toEntity(entityType));
 		}
 
+		@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 		@Override
 		public <D> Flux<D> toEntity(ParameterizedTypeReference<D> entityType) {
 			return this.responseFlux.mapNotNull(this::getValidField).mapNotNull((field) -> field.toEntity(entityType));

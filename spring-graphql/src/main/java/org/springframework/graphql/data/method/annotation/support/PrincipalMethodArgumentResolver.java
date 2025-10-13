@@ -56,6 +56,7 @@ public class PrincipalMethodArgumentResolver implements HandlerMethodArgumentRes
 		return resolveAuthentication(parameter);
 	}
 
+	@SuppressWarnings("NullAway") // https://github.com/uber/NullAway/issues/1290
 	static Object resolveAuthentication(MethodParameter parameter) {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		if (auth != null) {
