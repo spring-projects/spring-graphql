@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import graphql.language.FieldDefinition;
 import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.schema.DataFetcher;
@@ -383,7 +384,11 @@ public final class SchemaMappingInspector {
 	}
 
 	private Nullness resolveNullness(GraphQLFieldDefinition fieldDefinition) {
-		return resolveNullness(fieldDefinition.getDefinition().getType());
+		FieldDefinition definition = fieldDefinition.getDefinition();
+		if (definition != null) {
+			return resolveNullness(definition.getType());
+		}
+		return Nullness.UNSPECIFIED;
 	}
 
 	private Nullness resolveNullness(Type type) {

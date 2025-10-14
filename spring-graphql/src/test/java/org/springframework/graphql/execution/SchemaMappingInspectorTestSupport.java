@@ -43,8 +43,12 @@ public class SchemaMappingInspectorTestSupport {
 
 	protected SchemaReport inspectSchema(
 			String schemaContent, Consumer<SchemaMappingInspector.Initializer> consumer, Class<?>... controllers) {
-
 		GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
+		return inspectSchema(schema, consumer, controllers);
+	}
+
+	protected  SchemaReport inspectSchema(
+			GraphQLSchema schema, Consumer<SchemaMappingInspector.Initializer> consumer, Class<?>... controllers) {
 		RuntimeWiring runtimeWiring = createRuntimeWiring(controllers);
 		SchemaMappingInspector.Initializer initializer = SchemaMappingInspector.initializer();
 		consumer.accept(initializer);

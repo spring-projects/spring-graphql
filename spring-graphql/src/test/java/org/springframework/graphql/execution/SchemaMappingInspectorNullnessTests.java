@@ -18,6 +18,17 @@ package org.springframework.graphql.execution;
 
 import java.util.concurrent.CompletableFuture;
 
+import graphql.Scalars;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLTypeVisitorStub;
+import graphql.schema.SchemaTransformer;
+import graphql.schema.idl.SchemaGenerator;
+import graphql.util.TraversalControl;
+import graphql.util.TraverserContext;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.NullUnmarked;
@@ -349,6 +360,24 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 			assertThatReport(report).isEmpty();
 		}
 
+		@Test
+		void doesNotFailWhenNullFieldDefinitionType() {
+			String schemaContent = """
+						type Query {
+							bookById(id: ID): DefaultBook
+						}
+						type DefaultBook {
+							id: ID
+							title: String
+						}
+					""";
+
+			GraphQLSchema schema = SchemaGenerator.createdMockedSchema(schemaContent);
+			schema = SchemaTransformer.transformSchema(schema, new NullFieldTypeVisitor());
+			SchemaReport report = inspectSchema(schema, initializer -> { }, DefaultBookController.class);
+			assertThatReport(report).containsUnmappedFields("DefaultBook", "_service");
+		}
+
 		@Controller
 		@NullUnmarked
 		static class DefaultBookController {
@@ -382,9 +411,6 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 
 		}
 
-
-
-
 		@Controller
 		@NullUnmarked
 		static class NullableAsyncBookController {
@@ -398,6 +424,26 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 
 		record Book(String id, String title) {
 
+		}
+
+		static class NullFieldTypeVisitor extends GraphQLTypeVisitorStub {
+			@Override
+			public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition node, TraverserContext<GraphQLSchemaElement> context) {
+				if (node.getName().equals("title")) {
+					GraphQLObjectType type = GraphQLObjectType.newObject()
+							.name("_Service")
+							.field(
+									GraphQLFieldDefinition.newFieldDefinition()
+											.name("sdl")
+											.type(new GraphQLNonNull(Scalars.GraphQLString))
+											.build())
+							.build();
+					GraphQLFieldDefinition field = GraphQLFieldDefinition.newFieldDefinition()
+							.name("_service").type(GraphQLNonNull.nonNull(type)).build();
+					return insertAfter(context, field);
+				}
+				return TraversalControl.CONTINUE;
+			}
 		}
 
 	}
