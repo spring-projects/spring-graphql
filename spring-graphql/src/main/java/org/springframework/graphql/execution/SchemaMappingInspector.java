@@ -235,10 +235,17 @@ public final class SchemaMappingInspector {
 		Method dataFetcherMethod = dataFetcher.asMethod();
 		if (dataFetcherMethod != null) {
 			Nullness applicationNullness = Nullness.forMethodReturnType(dataFetcherMethod);
-			// we cannot infer nullness if wrapped by reactive types
 			ReactiveAdapter reactiveAdapter = ReactiveAdapterRegistry.getSharedInstance()
 					.getAdapter(dataFetcherMethod.getReturnType());
-			if (reactiveAdapter == null && isMismatch(schemaNullness, applicationNullness)) {
+			if (reactiveAdapter != null) {
+				// we cannot infer nullness if wrapped by reactive types
+				logger.debug("Skip nullness check for data fetcher '" + dataFetcherMethod.getName() + "' because of Reactive return type.");
+			}
+			else if (dataFetcher.usesDataLoader() && Map.class.isAssignableFrom(dataFetcherMethod.getReturnType())) {
+				// we cannot infer nullness if batch loader method returns a Map
+				logger.debug("Skip nullness check for data fetcher '" + dataFetcherMethod.getName() + "' because of batch loading.");
+			}
+			else if (isMismatch(schemaNullness, applicationNullness)) {
 				DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(dataFetcherMethod, dataFetcher.getDescription());
 				this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
 						new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));

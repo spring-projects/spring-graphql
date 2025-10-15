@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.execution;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import graphql.Scalars;
@@ -36,6 +38,7 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
@@ -361,6 +364,27 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 		}
 
 		@Test
+		void reportIsEmptyWhenBatchMapping() {
+			String schema = """
+						type Query {
+							bookById(id: ID!): Book
+						}
+						type Book {
+							id: ID!
+							title: String!
+							author: Author
+						}
+						type Author {
+							name: String!
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, BatchMappingBookController.class);
+			assertThatReport(report).isEmpty();
+		}
+
+
+
+		@Test
 		void doesNotFailWhenNullFieldDefinitionType() {
 			String schemaContent = """
 						type Query {
@@ -422,7 +446,26 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 
 		}
 
+		@Controller
+		@NullMarked
+		static class BatchMappingBookController {
+
+			@QueryMapping
+			public @Nullable Book bookById(String id) {
+				return new Book("42", "Spring for GraphQL Book");
+			}
+
+			@BatchMapping
+			public Map<Book, Author> author(List<Book> books) {
+				return Map.of();
+			}
+		}
+
 		record Book(String id, String title) {
+
+		}
+
+		record Author(String name) {
 
 		}
 
