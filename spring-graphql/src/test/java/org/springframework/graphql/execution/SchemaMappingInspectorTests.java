@@ -380,6 +380,20 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
 		}
 
+		@Test // gh-1332
+		void reportIsEmptyWithBooleanProperty() {
+			String schema = """
+						type Query {
+							user: User!
+						}
+						type User {
+							allowed: Boolean!
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, UserController.class);
+			assertThatReport(report).hasUnmappedFieldCount(0).hasSkippedTypeCount(0);
+		}
+
 		@Test
 		void reportHasUnmappedField() {
 			String schema = """
@@ -734,6 +748,31 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 
 	record ListContainer<T>(List<T> items) {
 
+	}
+
+
+	@Controller
+	static class UserController {
+
+		@QueryMapping
+		User user() {
+			return new User(true);
+		}
+
+	}
+
+
+	static class User {
+
+		private final Boolean allowed;
+
+		User(Boolean allowed) {
+			this.allowed = allowed;
+		}
+
+		public Boolean isAllowed() {
+			return allowed;
+		}
 	}
 
 }
