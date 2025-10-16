@@ -100,6 +100,9 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 
 	private @Nullable HandlerMethodArgumentResolverComposite argumentResolvers;
 
+	private Predicate<Class<?>> controllerPredicate =
+			(beanType) -> AnnotatedElementUtils.hasAnnotation(beanType, Controller.class);
+
 	private @Nullable ApplicationContext applicationContext;
 
 
@@ -232,6 +235,17 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 		return this.argumentResolvers;
 	}
 
+	/**
+	 * Configure a predicate to determine if a given class should be introspected
+	 * for annotated controller methods.
+	 * <p>The default predicate looks for a type-level {@link Controller} annotation.
+	 * @param controllerPredicate the predicate to use
+	 * @since 1.4.3
+	 */
+	public void setControllerPredicate(Predicate<Class<?>> controllerPredicate) {
+		this.controllerPredicate = controllerPredicate;
+	}
+
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
@@ -280,7 +294,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 					this.logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 				}
 			}
-			if (beanType == null || !AnnotatedElementUtils.hasAnnotation(beanType, Controller.class)) {
+			if (beanType == null || !this.controllerPredicate.test(beanType)) {
 				continue;
 			}
 			Class<?> beanClass = context.getType(beanName);

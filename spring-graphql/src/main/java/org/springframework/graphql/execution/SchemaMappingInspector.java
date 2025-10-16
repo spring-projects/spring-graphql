@@ -105,6 +105,7 @@ public final class SchemaMappingInspector {
 			(!method.getDeclaringClass().equals(Object.class) && !method.getReturnType().equals(Void.class) &&
 					method.getParameterCount() == 0 && Modifier.isPublic(method.getModifiers()));
 
+
 	private final GraphQLSchema schema;
 
 	private final Map<String, Map<String, DataFetcher>> dataFetchers;
@@ -207,8 +208,8 @@ public final class SchemaMappingInspector {
 					checkField(fieldContainer, field, ResolvableType.forField(javaField));
 					continue;
 				}
-				// Kotlin function?
-				Method method = getRecordLikeMethod(resolvableType, fieldName);
+				// Kotlin function, Boolean is<PropertyName>
+				Method method = getOtherAccessor(resolvableType, fieldName);
 				if (method != null) {
 					MethodParameter returnType = new MethodParameter(method, -1);
 					checkField(fieldContainer, field, ResolvableType.forMethodParameter(returnType, resolvableType));
@@ -364,11 +365,16 @@ public final class SchemaMappingInspector {
 		}
 	}
 
-	private static @Nullable Method getRecordLikeMethod(ResolvableType resolvableType, String fieldName) {
+	private static @Nullable Method getOtherAccessor(ResolvableType resolvableType, String fieldName) {
 		Class<?> clazz = resolvableType.resolve();
 		if (clazz != null) {
 			for (Method method : clazz.getDeclaredMethods()) {
 				if (recordLikePredicate.test(method) && fieldName.equals(StringUtils.uncapitalize(method.getName()))) {
+					return method;
+				}
+				// JavaBean introspection supports boolean property only
+				if (method.getReturnType().equals(Boolean.class) &&
+						method.getName().equals("is" + StringUtils.capitalize(fieldName))) {
 					return method;
 				}
 			}
