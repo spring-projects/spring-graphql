@@ -92,11 +92,11 @@ public class SchemaMappingInspectorTestSupport {
 			if (!this.actual.unmappedRegistrations().isEmpty()) {
 				failWithMessage("Report contains missing DataFetcher registrations for %s", this.actual.unmappedRegistrations());
 			}
-			if (!this.actual.fieldsNullnessMismatches().isEmpty()) {
-				failWithMessage("Report contains fields nullness mismatches: %s", this.actual.fieldsNullnessMismatches());
+			if (!this.actual.fieldNullnessErrors().isEmpty()) {
+				failWithMessage("Report contains fields nullness mismatches: %s", this.actual.fieldNullnessErrors());
 			}
-			if (!this.actual.argumentsNullnessMismatches().isEmpty()) {
-				failWithMessage("Report contains arguments nullness mismatches: %s", this.actual.argumentsNullnessMismatches());
+			if (!this.actual.argumentNullnessErrors().isEmpty()) {
+				failWithMessage("Report contains arguments nullness mismatches: %s", this.actual.argumentNullnessErrors());
 			}
 			if (!this.actual.skippedTypes().isEmpty()) {
 				failWithMessage("Report contains skipped types: %s", this.actual.skippedTypes());
@@ -171,10 +171,10 @@ public class SchemaMappingInspectorTestSupport {
 			return this;
 		}
 
-		public SchemaInspectionReportAssert containsFieldsNullnessMismatches(String typeName, String... fieldNames) {
+		public SchemaInspectionReportAssert containsFieldsNullnessErrors(String typeName, String... fieldNames) {
 			isNotNull();
 			List<String> expected = Arrays.asList(fieldNames);
-			List<String> actual = this.actual.fieldsNullnessMismatches().keySet().stream()
+			List<String> actual = this.actual.fieldNullnessErrors().keySet().stream()
 					.filter((coordinates) -> coordinates.getTypeName().equals(typeName))
 					.map(FieldCoordinates::getFieldName)
 					.toList();
@@ -184,10 +184,10 @@ public class SchemaMappingInspectorTestSupport {
 			return this;
 		}
 
-		public SchemaInspectionReportAssert containsArgumentsNullnessMismatches(String... arguments) {
+		public SchemaInspectionReportAssert containsArgumentsNullnessErrors(String... arguments) {
 			isNotNull();
 			List<String> expected = Arrays.asList(arguments);
-			List<String> actual = this.actual.argumentsNullnessMismatches().entrySet().stream()
+			List<String> actual = this.actual.argumentNullnessErrors().entrySet().stream()
 					.flatMap(entry -> entry.getValue().stream())
 					.map(mismatch -> mismatch.annotatedElement().toString())
 					.toList();

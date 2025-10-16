@@ -261,13 +261,18 @@ to inspect schema mappings on startup to ensure the following:
 
 If the application is written in Kotlin, or is using {spring-framework-ref-docs}/core/null-safety.html[Null-safety]
 annotations, further inspections can be performed. The GraphQL schema can declare nullable types (`Book`) and
-non-nullable types (`Book!`). We can ensure that both the schema and the application are in sync when it comes
-to nullability information:
+non-nullable types (`Book!`).
+As a result, we can ensure that the application does not break the nullness requirements of the schema.
 
-- For schema fields, we can check that the relevant `Class` properties and `DataFetcher` return types with the same
-  nullability.
-- For field arguments, we can ensure that `DataFetcher` parameters have the same nullability
+- When schema fields are non-null, we ensure that the relevant `Class` properties and `DataFetcher` return types
+  are also non-null.
+- When field arguments are non-null, we ensure that `DataFetcher` parameters are also non-null.
 
+The opposite situation is not considered as an error: when the schema has a nullable field `author: Author`
+and the application declares a `@NonNull Author getAuthor();`, the inspector does not raise this as an error.
+Applications should not necessarily make fields non-null in the schema, as any error during a data fetching operation
+will force the GraphQL engine tu null out fields in the hierarchy up until `null` is allowed.
+Partial responses is a key GraphQL feature, so the schema should be designed with nullness in mind.
 
 To enable schema inspection, customize `GraphQlSource.Builder` as shown below.
 In this case the report is simply logged, but you can choose to take any action:

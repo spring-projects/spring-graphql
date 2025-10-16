@@ -72,18 +72,19 @@ public interface SchemaReport {
 	MultiValueMap<DataFetcher<?>, String> unmappedArguments();
 
 	/**
-	 * Return the coordinates for mismatches when a schema field type
-	 * nullness information does not match the nullness of the
-	 * corresponding {@link AnnotatedElement} in the application.
+	 * Return the coordinates for nullness errors between
+	 * schema fields and the corresponding {@link AnnotatedElement} in the application.
+	 * @see NullnessError
 	 */
-	Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches();
+	Map<FieldCoordinates, NullnessError> fieldNullnessErrors();
 
 	/**
 	 * Return a map with {@link DataFetcher}s and information for its arguments
-	 * if the schema nullness does not match the nullness of the
+	 * if there is a nullness error between the schema arguments and the
 	 * corresponding {@link AnnotatedElement} in the application.
+	 * @see NullnessError
 	 */
-	MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches();
+	MultiValueMap<DataFetcher<?>, NullnessError> argumentNullnessErrors();
 
 	/**
 	 * Return types skipped during the inspection, either because the schema type
@@ -121,9 +122,18 @@ public interface SchemaReport {
 	}
 
 	/**
-	 * Information about a Nullness mismatch between the GraphQL schema and the application code.
+	 * Information about a Nullness error between the GraphQL schema and the application code.
+	 *
+	 * <p>Errors are raised when the application nullness information breaks requirements
+	 * from the schema: a schema field is marked as "non-null" (like {@code "id: ID!"}),
+	 * but the application element is "nullable" (like {@code @Nullable String getId();}).
+	 *
+	 * <p>The opposite ({@code "author: Author"} and {@code @NonNull Author getAuthor();}
+	 * is not considered as an error, because if an exception is raised while fetching a
+	 * field, the GraphQL engine will null out fields in the hierarchy up until {@code null}
+	 * is allowed. A schema consistently using "non-null" types will not return partial responses.
 	 */
-	interface NullnessMismatch {
+	interface NullnessError {
 
 		/**
 		 * Nullness expected in the schema.

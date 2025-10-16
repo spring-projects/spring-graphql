@@ -112,7 +112,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, NullableRecordFieldsBookController.class);
-			assertThatReport(report).containsFieldsNullnessMismatches("NullableRecordFieldsBook", "id", "title");
+			assertThatReport(report).containsFieldsNullnessErrors("NullableRecordFieldsBook", "id", "title");
 		}
 
 		@Test
@@ -135,7 +135,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 		}
 
 		@Test
-		void reportHasEntriesWhenSchemaFieldNullableAndFieldTypeNonNull() {
+		void reportIsEmptyWhenSchemaFieldNullableAndFieldTypeNonNull() {
 			String schema = """
 						type Query {
 							bookById(id: ID): NonNullFieldBook
@@ -146,7 +146,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, NonNullFieldBookController.class);
-			assertThatReport(report).containsFieldsNullnessMismatches("NonNullFieldBook", "id", "title");
+			assertThatReport(report).isEmpty();
 		}
 
 
@@ -162,7 +162,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, NullableFieldBookController.class);
-			assertThatReport(report).containsFieldsNullnessMismatches("NullableFieldBook", "title");
+			assertThatReport(report).containsFieldsNullnessErrors("NullableFieldBook", "title");
 		}
 
 		@Test
@@ -316,6 +316,21 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 			assertThatReport(report).isEmpty();
 		}
 
+		@Test
+		void reportIsEmptyWhenSchemaFieldNullableAndReturnTypeNonNull() {
+			String schema = """
+						type Query {
+							bookById(id: ID): Book
+						}
+						type Book {
+							id: ID!
+							title: String!
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, NonNullBookController.class);
+			assertThatReport(report).isEmpty();
+		}
+
 
 		@Test
 		void reportHasEntryWhenSchemaFieldNonNullAndReturnTypeNullable() {
@@ -329,7 +344,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, NullableBookController.class);
-			assertThatReport(report).containsFieldsNullnessMismatches("Query", "bookById");
+			assertThatReport(report).containsFieldsNullnessErrors("Query", "bookById");
 		}
 
 		@Test
@@ -506,7 +521,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, NullableArgBookController.class);
-			assertThatReport(report).containsArgumentsNullnessMismatches("java.lang.String id");
+			assertThatReport(report).containsArgumentsNullnessErrors("java.lang.String id");
 		}
 
 		@Test

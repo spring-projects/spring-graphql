@@ -78,9 +78,10 @@ import org.springframework.util.StringUtils;
  * corresponding Class property.
  * <li>{@code DataFetcher} registrations refer to a schema field that exists.
  * <li>{@code DataFetcher} arguments have matching schema field arguments.
- * <li>The nullness of schema fields matches the nullness of {@link DataFetcher}
- * return types, class properties or class methods.
- * <li>{@code DataFetcher} arguments match the nullness of schema argument types.
+ * <li>The nullness of {@link DataFetcher} return types, class properties or class methods
+ * match, or is more restrictive than, the nullness of schema fields.
+ * <li>The nullness of {@code DataFetcher} arguments match, or is more restrictive than,
+ * the nullness of schema argument types.
  * </ul>
  *
  * <p>Use methods of {@link GraphQlSource.SchemaResourceBuilder} to enable schema
@@ -223,11 +224,11 @@ public final class SchemaMappingInspector {
 
 	private void checkFieldNullNess(FieldCoordinates fieldCoordinates, Field javaField, Nullness schemaNullness) {
 		Nullness applicationNullness = Nullness.forField(javaField);
-		if (isMismatch(schemaNullness, applicationNullness)) {
+		if (isNullnessError(schemaNullness, applicationNullness)) {
 			DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(javaField,
 					javaField.getDeclaringClass().getSimpleName() + "#" + javaField.getName());
-			this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
-					new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));
+			this.reportBuilder.fieldNullnessError(fieldCoordinates,
+					new DefaultNullnessError(schemaNullness, applicationNullness, annotatedElement));
 
 		}
 	}
@@ -246,10 +247,10 @@ public final class SchemaMappingInspector {
 				// we cannot infer nullness if batch loader method returns a Map
 				logger.debug("Skip nullness check for data fetcher '" + dataFetcherMethod.getName() + "' because of batch loading.");
 			}
-			else if (isMismatch(schemaNullness, applicationNullness)) {
+			else if (isNullnessError(schemaNullness, applicationNullness)) {
 				DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(dataFetcherMethod, dataFetcher.getDescription());
-				this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
-						new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));
+				this.reportBuilder.fieldNullnessError(fieldCoordinates,
+						new DefaultNullnessError(schemaNullness, applicationNullness, annotatedElement));
 
 			}
 		}
@@ -270,30 +271,30 @@ public final class SchemaMappingInspector {
 	private void checkFieldArgumentsNullness(GraphQLFieldDefinition field, SelfDescribingDataFetcher<?> dataFetcher) {
 		Method dataFetcherMethod = dataFetcher.asMethod();
 		if (dataFetcherMethod != null) {
-			List<SchemaReport.NullnessMismatch> mismatches = new ArrayList<>();
+			List<SchemaReport.NullnessError> nullnessErrors = new ArrayList<>();
 			for (Parameter parameter : dataFetcherMethod.getParameters()) {
 				GraphQLArgument argument = field.getArgument(parameter.getName());
-				if (argument != null) {
+				if (argument != null && argument.getDefinition() != null) {
 					Nullness schemaNullness = resolveNullness(argument.getDefinition().getType());
 					Nullness applicationNullness = Nullness.forMethodParameter(MethodParameter.forParameter(parameter));
-					if (isMismatch(schemaNullness, applicationNullness)) {
-						mismatches.add(new DefaultNullnessMismatch(schemaNullness, applicationNullness, parameter));
+					if (isNullnessError(schemaNullness, applicationNullness)) {
+						nullnessErrors.add(new DefaultNullnessError(schemaNullness, applicationNullness, parameter));
 					}
 				}
 			}
-			if (!mismatches.isEmpty()) {
-				this.reportBuilder.argumentsNullnessMismatches(dataFetcher, mismatches);
+			if (!nullnessErrors.isEmpty()) {
+				this.reportBuilder.argumentsNullnessErrors(dataFetcher, nullnessErrors);
 			}
 		}
 	}
 
 	private void checkReadMethodNullness(FieldCoordinates fieldCoordinates, ResolvableType resolvableType, PropertyDescriptor descriptor, Nullness schemaNullness) {
 		Nullness applicationNullness = Nullness.forMethodReturnType(descriptor.getReadMethod());
-		if (isMismatch(schemaNullness, applicationNullness)) {
+		if (isNullnessError(schemaNullness, applicationNullness)) {
 			DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(descriptor.getReadMethod(),
 					resolvableType.toClass().getSimpleName() + "#" + descriptor.getName());
-			this.reportBuilder.fieldNullnessMismatch(fieldCoordinates,
-					new DefaultNullnessMismatch(schemaNullness, applicationNullness, annotatedElement));
+			this.reportBuilder.fieldNullnessError(fieldCoordinates,
+					new DefaultNullnessError(schemaNullness, applicationNullness, annotatedElement));
 		}
 	}
 
@@ -408,12 +409,11 @@ public final class SchemaMappingInspector {
 		if (type instanceof NonNullType) {
 			return Nullness.NON_NULL;
 		}
-		return  Nullness.NULLABLE;
+		return Nullness.NULLABLE;
 	}
 
-	private boolean isMismatch(Nullness first, Nullness second) {
-		return (first == Nullness.NON_NULL && second == Nullness.NULLABLE) ||
-				(first == Nullness.NULLABLE && second == Nullness.NON_NULL);
+	private boolean isNullnessError(Nullness schemaNullness, Nullness applicationNullness) {
+		return (schemaNullness == Nullness.NON_NULL && applicationNullness == Nullness.NULLABLE);
 	}
 
 
@@ -909,9 +909,9 @@ public final class SchemaMappingInspector {
 
 		private final MultiValueMap<DataFetcher<?>, String> unmappedArguments = new LinkedMultiValueMap<>();
 
-		private final Map<FieldCoordinates, SchemaReport.NullnessMismatch> fieldNullnessMismatches = new LinkedHashMap<>();
+		private final Map<FieldCoordinates, SchemaReport.NullnessError> fieldNullnessErrors = new LinkedHashMap<>();
 
-		private final MultiValueMap<DataFetcher<?>, SchemaReport.NullnessMismatch> argumentsNullnessMismatches = new LinkedMultiValueMap<>();
+		private final MultiValueMap<DataFetcher<?>, SchemaReport.NullnessError> argumentsNullnessErrors = new LinkedMultiValueMap<>();
 
 		private final List<DefaultSkippedType> skippedTypes = new ArrayList<>();
 
@@ -929,12 +929,12 @@ public final class SchemaMappingInspector {
 			this.unmappedArguments.put(dataFetcher, arguments);
 		}
 
-		void fieldNullnessMismatch(FieldCoordinates coordinates, SchemaReport.NullnessMismatch nullnessMismatch) {
-			this.fieldNullnessMismatches.put(coordinates, nullnessMismatch);
+		void fieldNullnessError(FieldCoordinates coordinates, SchemaReport.NullnessError nullnessError) {
+			this.fieldNullnessErrors.put(coordinates, nullnessError);
 		}
 
-		void argumentsNullnessMismatches(DataFetcher<?> dataFetcher, List<SchemaReport.NullnessMismatch> nullnessMismatches) {
-			this.argumentsNullnessMismatches.put(dataFetcher, nullnessMismatches);
+		void argumentsNullnessErrors(DataFetcher<?> dataFetcher, List<SchemaReport.NullnessError> nullnessErrors) {
+			this.argumentsNullnessErrors.put(dataFetcher, nullnessErrors);
 		}
 
 		void skippedType(
@@ -973,7 +973,7 @@ public final class SchemaMappingInspector {
 			});
 
 			return new DefaultSchemaReport(this.unmappedFields, this.unmappedRegistrations,
-					this.unmappedArguments, this.fieldNullnessMismatches, this.argumentsNullnessMismatches, this.skippedTypes);
+					this.unmappedArguments, this.fieldNullnessErrors, this.argumentsNullnessErrors, this.skippedTypes);
 		}
 	}
 
@@ -989,24 +989,24 @@ public final class SchemaMappingInspector {
 
 		private final MultiValueMap<DataFetcher<?>, String> unmappedArguments;
 
-		private final Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches;
+		private final Map<FieldCoordinates, NullnessError> fieldNullnessErrors;
 
-		private final MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches;
+		private final MultiValueMap<DataFetcher<?>, NullnessError> argumentNullnessErrors;
 
 		private final List<SchemaReport.SkippedType> skippedTypes;
 
 		DefaultSchemaReport(
 				List<FieldCoordinates> unmappedFields, Map<FieldCoordinates, DataFetcher<?>> unmappedRegistrations,
 				MultiValueMap<DataFetcher<?>, String> unmappedArguments,
-				Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches,
-				MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches,
+				Map<FieldCoordinates, NullnessError> fieldNullnessErrors,
+				MultiValueMap<DataFetcher<?>, NullnessError> argumentNullnessErrors,
 				List<DefaultSkippedType> skippedTypes) {
 
 			this.unmappedFields = Collections.unmodifiableList(unmappedFields);
 			this.unmappedRegistrations = Collections.unmodifiableMap(unmappedRegistrations);
 			this.unmappedArguments = CollectionUtils.unmodifiableMultiValueMap(unmappedArguments);
-			this.fieldsNullnessMismatches = Collections.unmodifiableMap(fieldsNullnessMismatches);
-			this.argumentsNullnessMismatches = CollectionUtils.unmodifiableMultiValueMap(argumentsNullnessMismatches);
+			this.fieldNullnessErrors = Collections.unmodifiableMap(fieldNullnessErrors);
+			this.argumentNullnessErrors = CollectionUtils.unmodifiableMultiValueMap(argumentNullnessErrors);
 			this.skippedTypes = Collections.unmodifiableList(skippedTypes);
 		}
 
@@ -1026,13 +1026,13 @@ public final class SchemaMappingInspector {
 		}
 
 		@Override
-		public Map<FieldCoordinates, NullnessMismatch> fieldsNullnessMismatches() {
-			return this.fieldsNullnessMismatches;
+		public Map<FieldCoordinates, NullnessError> fieldNullnessErrors() {
+			return this.fieldNullnessErrors;
 		}
 
 		@Override
-		public MultiValueMap<DataFetcher<?>, NullnessMismatch> argumentsNullnessMismatches() {
-			return this.argumentsNullnessMismatches;
+		public MultiValueMap<DataFetcher<?>, NullnessError> argumentNullnessErrors() {
+			return this.argumentNullnessErrors;
 		}
 
 		@Override
@@ -1058,8 +1058,8 @@ public final class SchemaMappingInspector {
 					"\tUnmapped fields: " + formatUnmappedFields() + "\n" +
 					"\tUnmapped registrations: " + this.unmappedRegistrations + "\n" +
 					"\tUnmapped arguments: " + this.unmappedArguments + "\n" +
-					"\tFields nullness mismatches: " + formatFieldsNullnessMismatches() + "\n" +
-					"\tArguments nullness mismatches: " + formatArgumentsNullnessMismatches() + "\n" +
+					"\tField nullness errors: " + formatFieldNullnessErrors() + "\n" +
+					"\tArgument nullness errors: " + formatArgumentNullnessErrors() + "\n" +
 					"\tSkipped types: " + this.skippedTypes;
 		}
 
@@ -1072,21 +1072,21 @@ public final class SchemaMappingInspector {
 			return map.toString();
 		}
 
-		private String formatFieldsNullnessMismatches() {
+		private String formatFieldNullnessErrors() {
 			MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-			this.fieldsNullnessMismatches.forEach((coordinates, mismatch) -> {
+			this.fieldNullnessErrors.forEach((coordinates, nullnessError) -> {
 				List<String> fields = map.computeIfAbsent(coordinates.getTypeName(), (s) -> new ArrayList<>());
-				fields.add(String.format("%s is %s -> '%s' is %s", coordinates.getFieldName(), mismatch.schemaNullness(),
-						mismatch.annotatedElement(), mismatch.applicationNullness()));
+				fields.add(String.format("%s is %s -> '%s' is %s", coordinates.getFieldName(), nullnessError.schemaNullness(),
+						nullnessError.annotatedElement(), nullnessError.applicationNullness()));
 			});
 			return map.toString();
 		}
 
-		private String formatArgumentsNullnessMismatches() {
+		private String formatArgumentNullnessErrors() {
 			MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-			this.argumentsNullnessMismatches.forEach((dataFetcher, mismatches) -> {
-				List<String> arguments = mismatches.stream()
-						.map((mismatch) -> String.format("%s should be %s", mismatch.annotatedElement(), mismatch.schemaNullness()))
+			this.argumentNullnessErrors.forEach((dataFetcher, nullnessErrors) -> {
+				List<String> arguments = nullnessErrors.stream()
+						.map((nullnessError) -> String.format("%s should be %s", nullnessError.annotatedElement(), nullnessError.schemaNullness()))
 						.toList();
 				map.put(dataFetcher.toString(), arguments);
 			});
@@ -1116,11 +1116,11 @@ public final class SchemaMappingInspector {
 	}
 
 	/**
-	 * Default implementation of a {@link SchemaReport.NullnessMismatch}.
+	 * Default implementation of a {@link SchemaReport.NullnessError}.
 	 */
-	private record DefaultNullnessMismatch(
+	private record DefaultNullnessError(
 			Nullness schemaNullness, Nullness applicationNullness, AnnotatedElement annotatedElement)
-			implements SchemaReport.NullnessMismatch {
+			implements SchemaReport.NullnessError {
 
 	}
 

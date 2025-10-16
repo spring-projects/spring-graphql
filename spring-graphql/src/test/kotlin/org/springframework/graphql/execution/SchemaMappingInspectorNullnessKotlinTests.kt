@@ -39,7 +39,7 @@ class SchemaMappingInspectorNullnessKotlinTests : SchemaMappingInspectorTestSupp
 					
 					""".trimIndent()
         val report: SchemaReport = inspectSchema(schema, NullableDataBookController::class.java)
-        assertThatReport(report).containsFieldsNullnessMismatches("NullableDataBook", "title")
+        assertThatReport(report).containsFieldsNullnessErrors("NullableDataBook", "title")
     }
 
     @Test
@@ -55,7 +55,7 @@ class SchemaMappingInspectorNullnessKotlinTests : SchemaMappingInspectorTestSupp
 					
 					""".trimIndent()
         val report: SchemaReport = inspectSchema(schema, NullableFetcherBookController::class.java)
-        assertThatReport(report).containsFieldsNullnessMismatches("Query", "bookById")
+        assertThatReport(report).containsFieldsNullnessErrors("Query", "bookById")
     }
 
     @Test
@@ -71,7 +71,7 @@ class SchemaMappingInspectorNullnessKotlinTests : SchemaMappingInspectorTestSupp
 					
 					""".trimIndent()
         val report: SchemaReport = inspectSchema(schema, NullableFetcherArgumentBookController::class.java)
-        assertThatReport(report).containsArgumentsNullnessMismatches("java.lang.String id");
+        assertThatReport(report).containsArgumentsNullnessErrors("java.lang.String id");
     }
 
 

@@ -600,8 +600,8 @@ class SchemaMappingInspectorTests extends SchemaMappingInspectorTestSupport {
 				Unmapped fields: {}
 				Unmapped registrations: {}
 				Unmapped arguments: {}
-				Fields nullness mismatches: {}
-				Arguments nullness mismatches: {}
+				Field nullness errors: {}
+				Argument nullness errors: {}
 				Skipped types: []""");
 		}
 
