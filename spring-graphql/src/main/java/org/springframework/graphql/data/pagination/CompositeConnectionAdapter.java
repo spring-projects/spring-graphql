@@ -24,17 +24,17 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * {@link ConnectionAdapter} that contains a list of others adapter, looks for
- * the first one that supports a given Object container type, and delegates to it.
+ * {@link ConnectionAdapter} that wraps a list of other adapters, and delegates
+ * to the one that supports a given type of Object container.
  *
  * @author Rossen Stoyanchev
  */
-final class CompositeConnectionAdapter implements ConnectionAdapter {
+public class CompositeConnectionAdapter implements ConnectionAdapter {
 
 	private final List<ConnectionAdapter> adapters;
 
 
-	CompositeConnectionAdapter(List<ConnectionAdapter> adapters) {
+	public CompositeConnectionAdapter(List<ConnectionAdapter> adapters) {
 		Assert.notEmpty(adapters, "ConnectionAdapter's are required");
 		this.adapters = adapters;
 	}

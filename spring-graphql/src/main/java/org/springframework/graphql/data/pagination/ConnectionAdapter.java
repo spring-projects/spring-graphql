@@ -19,8 +19,12 @@ package org.springframework.graphql.data.pagination;
 import java.util.Collection;
 import java.util.List;
 
+import graphql.relay.DefaultConnection;
+import graphql.relay.Edge;
+import graphql.relay.PageInfo;
+
 /**
- * Contract to adapt a container object for a window of elements from a larger
+ * Contract to adapt any representation of a subset of elements from a larger
  * result set to {@link graphql.relay.Connection}.
  *
  * @author Rossen Stoyanchev
@@ -59,6 +63,22 @@ public interface ConnectionAdapter {
 	 * @param index the index of an element in the container
 	 */
 	String cursorAt(Object container, int index);
+
+	/**
+	 * Create the {@link graphql.relay.Connection}.
+	 * <p>The relay spec says that a Connection may have additional fields
+	 * related to the connection, and this method allows adapter
+	 * implementations to create such an extended Connection.
+	 * <p>By default, {@link DefaultConnection} is created.
+	 * @param container the underlying container of elements
+	 * @param edges the adapted edges to use
+	 * @param pageInfo the page info for the connection
+	 * @param <T> the type edge node
+	 * @since 2.0
+	 */
+	default <T> Object createConnection(Object container, List<Edge<T>> edges, PageInfo pageInfo) {
+		return new DefaultConnection<>(edges, pageInfo);
+	}
 
 
 	/**

@@ -182,7 +182,18 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 	 */
 	public static ConnectionFieldTypeVisitor create(List<ConnectionAdapter> adapters) {
 		Assert.notEmpty(adapters, "Expected at least one ConnectionAdapter");
-		return new ConnectionFieldTypeVisitor(ConnectionAdapter.from(adapters));
+		return create(ConnectionAdapter.from(adapters));
+	}
+
+	/**
+	 * Variant of {@link #create(List)} with a single adapter. This may be used
+	 * with a custom {@link CompositeConnectionAdapter}.
+	 * @param adapter the adapter to use
+	 * @return the type visitor
+	 * @since 2.0
+	 */
+	public static ConnectionFieldTypeVisitor create(ConnectionAdapter adapter) {
+		return new ConnectionFieldTypeVisitor(adapter);
 	}
 
 
@@ -266,7 +277,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 					edges.get(0).getCursor(), edges.get(edges.size() - 1).getCursor(),
 					this.adapter.hasPrevious(container), this.adapter.hasNext(container));
 
-			return new DefaultConnection<>(edges, pageInfo);
+			return this.adapter.createConnection(container, edges, pageInfo);
 		}
 
 		private boolean isConnectionTypeNullable() {
