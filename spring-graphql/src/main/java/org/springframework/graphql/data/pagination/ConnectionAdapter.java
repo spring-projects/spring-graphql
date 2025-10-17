@@ -74,7 +74,7 @@ public interface ConnectionAdapter {
 	 * @param edges the adapted edges to use
 	 * @param pageInfo the page info for the connection
 	 * @param <T> the type edge node
-	 * @since 2.0
+	 * @since 2.0.0
 	 */
 	default <T> Object createConnection(Object container, List<Edge<T>> edges, PageInfo pageInfo) {
 		return new DefaultConnection<>(edges, pageInfo);

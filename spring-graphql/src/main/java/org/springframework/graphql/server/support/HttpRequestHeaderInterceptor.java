@@ -41,7 +41,7 @@ import org.springframework.util.ObjectUtils;
  * interest that should be copied to the GraphQL context.
  *
  * @author Rossen Stoyanchev
- * @since 2.0
+ * @since 2.0.0
  */
 public final class HttpRequestHeaderInterceptor implements WebGraphQlInterceptor {
 

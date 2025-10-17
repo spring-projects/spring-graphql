@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlClient.RetrieveSpec.toEntity(): Mono<T> =
     toEntity(object : ParameterizedTypeReference<T>() {})
@@ -37,7 +37,7 @@ inline fun <reified T : Any> GraphQlClient.RetrieveSpec.toEntity(): Mono<T> =
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlClient.RetrieveSpec.toEntityList(): Mono<List<T>> =
     toEntityList(object : ParameterizedTypeReference<T>() {})
@@ -48,7 +48,7 @@ inline fun <reified T : Any> GraphQlClient.RetrieveSpec.toEntityList(): Mono<Lis
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlClient.RetrieveSyncSpec.toEntity(): T? =
     toEntity(object : ParameterizedTypeReference<T>() {})
@@ -59,7 +59,7 @@ inline fun <reified T : Any> GraphQlClient.RetrieveSyncSpec.toEntity(): T? =
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlClient.RetrieveSyncSpec.toEntityList(): List<T> =
     toEntityList(object : ParameterizedTypeReference<T>() {})
@@ -70,7 +70,7 @@ inline fun <reified T : Any> GraphQlClient.RetrieveSyncSpec.toEntityList(): List
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlClient.RetrieveSubscriptionSpec.toEntity(): Flux<T> =
     toEntity(object : ParameterizedTypeReference<T>() {})
@@ -81,7 +81,7 @@ inline fun <reified T : Any> GraphQlClient.RetrieveSubscriptionSpec.toEntity(): 
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlClient.RetrieveSubscriptionSpec.toEntityList(): Flux<List<T>> =
     toEntityList(object : ParameterizedTypeReference<T>() {})

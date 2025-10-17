@@ -244,7 +244,7 @@ public interface GraphQlTester {
 		 * path as a base path such that any further navigation through this
 		 * {@link Path} is relative to the current path.
 		 * @return spec with further options at the given path
-		 * @since 1.2
+		 * @since 1.2.0
 		 */
 		Path path(String path, Consumer<Path> pathConsumer);
 

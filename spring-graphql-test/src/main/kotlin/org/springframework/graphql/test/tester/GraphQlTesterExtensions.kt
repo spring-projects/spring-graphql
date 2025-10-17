@@ -24,7 +24,7 @@ import org.springframework.core.ParameterizedTypeReference
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlTester.Path.entity(): GraphQlTester.Entity<T, *> =
     entity(object : ParameterizedTypeReference<T>() {})
@@ -35,7 +35,7 @@ inline fun <reified T : Any> GraphQlTester.Path.entity(): GraphQlTester.Entity<T
  * erasure and retains actual generic type arguments.
  *
  * @author Brian Clozel
- * @since 2.0
+ * @since 2.0.0
  */
 inline fun <reified T : Any> GraphQlTester.Path.entityList(): GraphQlTester.EntityList<T> =
     entityList(object : ParameterizedTypeReference<T>() {})

@@ -28,6 +28,7 @@ import org.springframework.util.Assert;
  * to the one that supports a given type of Object container.
  *
  * @author Rossen Stoyanchev
+ * @since 1.2.0
  */
 public class CompositeConnectionAdapter implements ConnectionAdapter {
 

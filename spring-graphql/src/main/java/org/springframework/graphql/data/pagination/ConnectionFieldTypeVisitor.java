@@ -190,7 +190,7 @@ public final class ConnectionFieldTypeVisitor extends GraphQLTypeVisitorStub {
 	 * with a custom {@link CompositeConnectionAdapter}.
 	 * @param adapter the adapter to use
 	 * @return the type visitor
-	 * @since 2.0
+	 * @since 2.0.0
 	 */
 	public static ConnectionFieldTypeVisitor create(ConnectionAdapter adapter) {
 		return new ConnectionFieldTypeVisitor(adapter);
