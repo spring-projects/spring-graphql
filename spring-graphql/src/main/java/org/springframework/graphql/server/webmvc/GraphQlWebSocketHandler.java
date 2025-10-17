@@ -129,7 +129,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	 * the WebSocket for the {@code "connection_ini"} message from the client.
 	 * @param keepAliveDuration how frequently to send ping messages when no
 	 * other messages are sent
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	public GraphQlWebSocketHandler(
 			WebGraphQlHandler graphQlHandler, HttpMessageConverter<Object> converter,

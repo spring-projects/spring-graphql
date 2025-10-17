@@ -221,7 +221,7 @@ public abstract class AnnotatedControllerDetectionSupport<M> implements Applicat
 	 * On Java 20 and lower, the predicate returns false. You can configure the
 	 * predicate for more control, or alternatively, return {@link Callable}.
 	 * @param predicate the predicate to use
-	 * @since 1.3
+	 * @since 1.3.0
 	 */
 	public void setBlockingMethodPredicate(@Nullable Predicate<HandlerMethod> predicate) {
 		this.blockingMethodPredicate = ((predicate != null) ? predicate : (handlerMethod) -> false);

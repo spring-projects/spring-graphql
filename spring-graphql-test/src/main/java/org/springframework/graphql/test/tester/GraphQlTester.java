@@ -152,7 +152,7 @@ public interface GraphQlTester {
 		 * and is defined with the {@code fragment} keyword.
 		 * @param fragment the fragment definition
 		 * @return this request spec
-		 * @since 1.3
+		 * @since 1.3.0
 		 * @see <a href="http://spec.graphql.org/October2021/#sec-Language.Fragments">Fragments specification</a>
 		 */
 		T fragment(String fragment);
@@ -164,7 +164,7 @@ public interface GraphQlTester {
 		 * @param fragmentName the name of the fragment to append
 		 * @return this request spec
 		 * @throws IllegalArgumentException if the fragmentName cannot be resolved
-		 * @since 1.3
+		 * @since 1.3.0
 		 */
 		T fragmentName(String fragmentName);
 

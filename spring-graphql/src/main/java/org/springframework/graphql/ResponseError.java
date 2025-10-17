@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * Represents a GraphQL response error.
  *
  * @author Rossen Stoyanchev
- * @since 1.0
+ * @since 1.0.0
  */
 public interface ResponseError {
 

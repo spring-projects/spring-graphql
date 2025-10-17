@@ -31,7 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
  * until the response stream is established. Transport-specific timeouts are
  * configurable on the transport handlers directly.
  * @author Brian Clozel
- * @since 1.4
+ * @since 1.4.0
  */
 public class TimeoutWebGraphQlInterceptor implements WebGraphQlInterceptor {
 

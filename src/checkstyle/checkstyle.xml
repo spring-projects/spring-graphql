@@ -20,5 +20,13 @@
 			<property name="accessModifiers" value="public,protected"/>
 			<property name="allowMissingReturnTag" value="true"/>
 		</module>
+        <module name="com.puppycrawl.tools.checkstyle.checks.regexp.RegexpSinglelineJavaCheck">
+            <property name="id" value="atSinceVersionConvention"/>
+            <property name="format" value="\@since \d+\.\d+$"/>
+            <property name="maximum" value="0"/>
+            <property name="message"
+                      value="@since should use Major.Minor.Patch version convention"/>
+            <property name="ignoreComments" value="false"/>
+        </module>
 	</module>
 </module>
