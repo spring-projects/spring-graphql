@@ -16,25 +16,19 @@
 
 package org.springframework.graphql.docs.server.interception.web;
 
-import java.util.Collections;
-
-import reactor.core.publisher.Mono;
-
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.server.WebGraphQlInterceptor;
-import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.WebGraphQlResponse;
+import org.springframework.graphql.server.support.HttpRequestHeaderInterceptor;
 import org.springframework.stereotype.Controller;
 
-class RequestHeaderInterceptor implements WebGraphQlInterceptor { // <1>
+@Configuration
+class RequestHeaderInterceptorConfig {
 
-	@Override
-	public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request, Chain chain) {
-		String value = request.getHeaders().getFirst("myHeader");
-		request.configureExecutionInput((executionInput, builder) ->
-				builder.graphQLContext(Collections.singletonMap("myHeader", value)).build());
-		return chain.next(request);
+	@Bean
+	public HttpRequestHeaderInterceptor headerInterceptor() { // <1>
+		return HttpRequestHeaderInterceptor.builder().mapHeader("myHeader").build();
 	}
 }
 

@@ -703,6 +703,18 @@ https://github.com/spring-projects/spring-graphql/issues/344#issuecomment-108281
 for links to relevant issues and a suggested workaround.
 ====
 
+
+[[controllers.schema-mapping.httpheaders]]
+=== HTTP Headers
+
+To access HTTP headers from controller methods, we recommend using a `WebGraphQlInterceptor`
+to copy HTTP headers of interest into the `GraphQLContext` from where they are available to
+any `DataFetcher`, and to annotated controller methods as `@GraphQlContext` arguments.
+
+There is a built-in `HttpRequestHeaderInterceptor` to help with that.
+see xref:transports.adoc#server.interception.web[Web Interceptors].
+
+
 [[controllers.schema-mapping.localcontext]]
 === Local Context
 

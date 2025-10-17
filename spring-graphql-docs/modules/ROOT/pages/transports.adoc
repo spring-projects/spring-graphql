@@ -40,9 +40,6 @@ and the `DecoderHttpMessageReader/EncoderHttpMessageWriter` (WebFlux) configured
 In some cases, the application will configure the JSON codec for the HTTP endpoint in a way that is not compatible with the GraphQL payloads.
 Applications can instantiate `GraphQlHttpHandler` with a custom JSON codec that will be used for GraphQL payloads.
 
-The 1.0.x branch of this repository contains a Spring MVC
-{github-10x-branch}/samples/webmvc-http[HTTP sample] application.
-
 
 [[server.transports.sse]]
 == Server-Sent Events
@@ -165,13 +162,16 @@ Interceptors allow applications to intercept incoming requests in order to:
 - Customize the `graphql.ExecutionResult`
 - and more
 
-For example, an interceptor can pass an HTTP request header to a `DataFetcher`:
+Spring for GraphQL provides a built-in `HttpRequestHeaderInterceptor` that copies HTTP headers
+from the request to the GraphQL context, which then makes them available to data fetchers
+such as annotated controllers. For example in a Spring Boot application this may be done
+as follows:
 
-include-code::RequestHeaderInterceptor[]
-<1> Interceptor adds HTTP request header value into GraphQLContext
+include-code::RequestHeaderInterceptorConfig[]
+<1> Create interceptor to copy an HTTP request header value into the GraphQLContext
 <2> Data controller method accesses the value
 
-Reversely, an interceptor can access values added to the `GraphQLContext` by a controller:
+An interceptor can also access values added to the `GraphQLContext` by a controller:
 
 include-code::ResponseHeaderInterceptor[]
 <1> Controller adds value to the `GraphQLContext`
