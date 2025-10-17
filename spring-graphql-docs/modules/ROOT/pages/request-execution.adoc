@@ -264,15 +264,16 @@ annotations, further inspections can be performed. The GraphQL schema can declar
 non-nullable types (`Book!`).
 As a result, we can ensure that the application does not break the nullness requirements of the schema.
 
-- When schema fields are non-null, we ensure that the relevant `Class` properties and `DataFetcher` return types
-  are also non-null.
-- When field arguments are non-null, we ensure that `DataFetcher` parameters are also non-null.
-
-The opposite situation is not considered as an error: when the schema has a nullable field `author: Author`
+When schema fields are non-null, we ensure that the relevant `Class` properties and `DataFetcher` return types
+are also non-null. The opposite situation is not considered as an error: when the schema has a nullable field `author: Author`
 and the application declares a `@NonNull Author getAuthor();`, the inspector does not raise this as an error.
 Applications should not necessarily make fields non-null in the schema, as any error during a data fetching operation
 will force the GraphQL engine tu null out fields in the hierarchy up until `null` is allowed.
 Partial responses is a key GraphQL feature, so the schema should be designed with nullness in mind.
+
+When field arguments are nullable, we ensure that `DataFetcher` parameters are also nullable.
+In this case, user input should not be fed to the application if it breaks the nullability contract as this will lead
+to runtime failures.
 
 To enable schema inspection, customize `GraphQlSource.Builder` as shown below.
 In this case the report is simply logged, but you can choose to take any action:
@@ -294,13 +295,17 @@ GraphQL schema inspection:
     Unmapped fields: {Book=[title], Author[firstName, lastName]} // <1>
     Unmapped registrations: {Book.reviews=BookController#reviews[1 args]} <2>
     Unmapped arguments: {BookController#bookSearch[1 args]=[myAuthor]} // <3>
-    Skipped types: [BookOrAuthor] // <4>
+    Field nullness errors: {Book=[title is NON_NULL -> 'Book#title' is NULLABLE]} <4>
+    Argument nullness errors: {BookController#bookById[1 args]=[java.lang.String id should be NULLABLE]} <5>
+    Skipped types: [BookOrAuthor] // <6>
 ----
 
 <1> Schema fields that are not covered in any way
 <2> `DataFetcher` registrations to fields that don't exist
 <3> `DataFetcher` expected arguments that don't exist
-<4> Schema types that have been skipped (explained next)
+<4> "title" schema field is non null, but `Book.getTitle()` is `@Nullable`
+<5> `bookById(id: ID)` has a nullable "id" argument, but `Book bookById(@NonNull String id)` is non null.
+<6> Schema types that have been skipped (explained next)
 
 In some cases, the `Class` type for a schema type is unknown. Maybe the `DataFetcher` does not
 implement `SelfDescribingDataFetcher`, or the declared return type is too general

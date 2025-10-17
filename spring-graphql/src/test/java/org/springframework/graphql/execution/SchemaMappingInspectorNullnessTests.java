@@ -138,7 +138,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 		void reportIsEmptyWhenSchemaFieldNullableAndFieldTypeNonNull() {
 			String schema = """
 						type Query {
-							bookById(id: ID): NonNullFieldBook
+							bookById(id: ID!): NonNullFieldBook
 						}
 						type NonNullFieldBook {
 							id: ID
@@ -510,7 +510,7 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 	class ArgumentsNullnessTests {
 
 		@Test
-		void reportHasEntryWhenSchemaFieldNonNullAndReturnTypeNullable() {
+		void reportIsEmptyWhenSchemaArgumentIsNonNullAndMethodArgumentNullable() {
 			String schema = """
 						type Query {
 							bookById(id: ID!): Book!
@@ -521,23 +521,38 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 						}
 					""";
 			SchemaReport report = inspectSchema(schema, NullableArgBookController.class);
+			assertThatReport(report).isEmpty();
+		}
+
+		@Test
+		void reportHasEntryWhenSchemaArgumentNullableAndMethodArgumentNonNull() {
+			String schema = """
+						type Query {
+							bookById(id: ID): Book!
+						}
+						type Book {
+							id: ID!
+							title: String!
+						}
+					""";
+			SchemaReport report = inspectSchema(schema, NonNullArgBookController.class);
 			assertThatReport(report).containsArgumentsNullnessErrors("java.lang.String id");
 		}
 
 		@Test
-		void reportFormatWhenSchemaFieldNonNullAndReturnTypeNullable() {
+		void reportFormatWhenSchemaArgumentNullableAndMethodArgumentNonNull() {
 			String schema = """
 						type Query {
-							bookById(id: ID!): Book!
+							bookById(id: ID): Book!
 						}
 						type Book {
 							id: ID!
 							title: String!
 						}
 					""";
-			SchemaReport report = inspectSchema(schema, NullableArgBookController.class);
+			SchemaReport report = inspectSchema(schema, NonNullArgBookController.class);
 			assertThat(report.toString())
-					.contains("{NullableArgBookController#bookById[1 args]=[java.lang.String id should be NON_NULL]}");
+					.contains("{NonNullArgBookController#bookById[1 args]=[java.lang.String id should be NULLABLE]}");
 		}
 
 
@@ -547,6 +562,18 @@ class SchemaMappingInspectorNullnessTests extends SchemaMappingInspectorTestSupp
 
 			@QueryMapping
 			public @NonNull Book bookById(@Nullable String id) {
+				return new Book("42", "Spring for GraphQL Book");
+			}
+
+		}
+
+
+		@Controller
+		@NullMarked
+		static class NonNullArgBookController {
+
+			@QueryMapping
+			public Book bookById(String id) {
 				return new Book("42", "Spring for GraphQL Book");
 			}
 

@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.execution
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
@@ -26,7 +25,6 @@ class SchemaMappingInspectorNullnessKotlinTests : SchemaMappingInspectorTestSupp
 
 
     @Test
-    @Disabled("until https://github.com/spring-projects/spring-framework/issues/35419 is fixed")
     fun reportHasEntriesWhenSchemaFieldNonNullAndTypeFieldNullable() {
         val schema = """
 						type Query {
@@ -59,7 +57,7 @@ class SchemaMappingInspectorNullnessKotlinTests : SchemaMappingInspectorTestSupp
     }
 
     @Test
-    fun reportHasEntriesWhenSchemaFieldNonNullAndDataFetcherArgumentNullable() {
+    fun reportIsEmptuWhenSchemaFieldNonNullAndDataFetcherArgumentNullable() {
         val schema = """
 						type Query {
 							bookById(id: ID!): Book
@@ -71,7 +69,7 @@ class SchemaMappingInspectorNullnessKotlinTests : SchemaMappingInspectorTestSupp
 					
 					""".trimIndent()
         val report: SchemaReport = inspectSchema(schema, NullableFetcherArgumentBookController::class.java)
-        assertThatReport(report).containsArgumentsNullnessErrors("java.lang.String id");
+        assertThatReport(report).isEmpty();
     }
 
 

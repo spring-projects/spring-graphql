@@ -224,7 +224,7 @@ public final class SchemaMappingInspector {
 
 	private void checkFieldNullNess(FieldCoordinates fieldCoordinates, Field javaField, Nullness schemaNullness) {
 		Nullness applicationNullness = Nullness.forField(javaField);
-		if (isNullnessError(schemaNullness, applicationNullness)) {
+		if (isFieldNullnessError(schemaNullness, applicationNullness)) {
 			DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(javaField,
 					javaField.getDeclaringClass().getSimpleName() + "#" + javaField.getName());
 			this.reportBuilder.fieldNullnessError(fieldCoordinates,
@@ -247,7 +247,7 @@ public final class SchemaMappingInspector {
 				// we cannot infer nullness if batch loader method returns a Map
 				logger.debug("Skip nullness check for data fetcher '" + dataFetcherMethod.getName() + "' because of batch loading.");
 			}
-			else if (isNullnessError(schemaNullness, applicationNullness)) {
+			else if (isFieldNullnessError(schemaNullness, applicationNullness)) {
 				DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(dataFetcherMethod, dataFetcher.getDescription());
 				this.reportBuilder.fieldNullnessError(fieldCoordinates,
 						new DefaultNullnessError(schemaNullness, applicationNullness, annotatedElement));
@@ -277,7 +277,7 @@ public final class SchemaMappingInspector {
 				if (argument != null && argument.getDefinition() != null) {
 					Nullness schemaNullness = resolveNullness(argument.getDefinition().getType());
 					Nullness applicationNullness = Nullness.forMethodParameter(MethodParameter.forParameter(parameter));
-					if (isNullnessError(schemaNullness, applicationNullness)) {
+					if (isArgumentNullnessError(schemaNullness, applicationNullness)) {
 						nullnessErrors.add(new DefaultNullnessError(schemaNullness, applicationNullness, parameter));
 					}
 				}
@@ -290,7 +290,7 @@ public final class SchemaMappingInspector {
 
 	private void checkReadMethodNullness(FieldCoordinates fieldCoordinates, ResolvableType resolvableType, PropertyDescriptor descriptor, Nullness schemaNullness) {
 		Nullness applicationNullness = Nullness.forMethodReturnType(descriptor.getReadMethod());
-		if (isNullnessError(schemaNullness, applicationNullness)) {
+		if (isFieldNullnessError(schemaNullness, applicationNullness)) {
 			DescribedAnnotatedElement annotatedElement = new DescribedAnnotatedElement(descriptor.getReadMethod(),
 					resolvableType.toClass().getSimpleName() + "#" + descriptor.getName());
 			this.reportBuilder.fieldNullnessError(fieldCoordinates,
@@ -412,8 +412,12 @@ public final class SchemaMappingInspector {
 		return Nullness.NULLABLE;
 	}
 
-	private boolean isNullnessError(Nullness schemaNullness, Nullness applicationNullness) {
+	private boolean isFieldNullnessError(Nullness schemaNullness, Nullness applicationNullness) {
 		return (schemaNullness == Nullness.NON_NULL && applicationNullness == Nullness.NULLABLE);
+	}
+
+	private boolean isArgumentNullnessError(Nullness schemaNullness, Nullness applicationNullness) {
+		return (schemaNullness == Nullness.NULLABLE && applicationNullness == Nullness.NON_NULL);
 	}
 
 
