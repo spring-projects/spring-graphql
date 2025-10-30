@@ -34,6 +34,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.OffsetScrollPosition;
@@ -43,7 +44,6 @@ import org.springframework.data.domain.Window;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
-import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.data.pagination.CursorEncoder;

@@ -29,7 +29,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.data.util.TypeInformation;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.execution.ConnectionTypeDefinitionConfigurer;

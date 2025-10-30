@@ -28,8 +28,8 @@ import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLType;
 import graphql.schema.SelectedField;
 
-import org.springframework.data.mapping.PropertyPath;
-import org.springframework.data.util.TypeInformation;
+import org.springframework.data.core.PropertyPath;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.util.CollectionUtils;
 
 /**

@@ -36,6 +36,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.OffsetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
@@ -48,7 +49,6 @@ import org.springframework.data.querydsl.binding.QuerydslBindings;
 import org.springframework.data.querydsl.binding.QuerydslPredicateBuilder;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery;
-import org.springframework.data.util.TypeInformation;
 import org.springframework.graphql.data.GraphQlRepository;
 import org.springframework.graphql.data.pagination.CursorEncoder;
 import org.springframework.graphql.data.pagination.CursorStrategy;
