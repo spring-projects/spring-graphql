@@ -52,13 +52,18 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 	private final Map<String, EntityHandlerMethod> handlerMethods;
 
+	/** schema object type to interface types it implements. */
+	private final Map<String, String> objectToInterfaceMap;
+
 	private final HandlerDataFetcherExceptionResolver exceptionResolver;
 
 
 	EntitiesDataFetcher(
-			Map<String, EntityHandlerMethod> handlerMethods, HandlerDataFetcherExceptionResolver resolver) {
+			Map<String, EntityHandlerMethod> handlerMethods, Map<String, String> objectToInterfaceMap,
+			HandlerDataFetcherExceptionResolver resolver) {
 
 		this.handlerMethods = new LinkedHashMap<>(handlerMethods);
+		this.objectToInterfaceMap = objectToInterfaceMap;
 		this.exceptionResolver = resolver;
 	}
 
@@ -84,6 +89,10 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 				continue;
 			}
 			EntityHandlerMethod handlerMethod = this.handlerMethods.get(type);
+			if (handlerMethod == null) {
+				String interfaceType = this.objectToInterfaceMap.get(type);
+				handlerMethod = this.handlerMethods.get(interfaceType);
+			}
 			if (handlerMethod == null) {
 				Exception ex = new RepresentationException(map, "No entity fetcher");
 				monoList.add(resolveException(ex, env, null, index));

@@ -29,7 +29,10 @@ import com.apollographql.federation.graphqljava.SchemaTransformer;
 import graphql.language.Argument;
 import graphql.language.BooleanValue;
 import graphql.language.Directive;
+import graphql.language.ObjectTypeDefinition;
+import graphql.language.Type;
 import graphql.language.TypeDefinition;
+import graphql.language.TypeName;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeResolver;
@@ -180,18 +183,49 @@ public final class FederationSchemaFactory
 	 * @param wiring the existing runtime wiring
 	 */
 	public SchemaTransformer createSchemaTransformer(TypeDefinitionRegistry registry, RuntimeWiring wiring) {
-		checkEntityMappings(registry);
-		Assert.state(this.typeResolver != null, "afterPropertiesSet not called");
+		Assert.state(this.typeResolver != null, "Not initialized: was afterPropertiesSet called?");
+
+		Map<String, String> objectToInterfaceTypeMap = detectInterfaceImplementationTypes(registry);
+		checkEntityMappings(registry, objectToInterfaceTypeMap);
+
+		EntitiesDataFetcher entitiesDataFetcher =
+				new EntitiesDataFetcher(this.handlerMethods, objectToInterfaceTypeMap, getExceptionResolver());
+
 		return Federation.transform(registry, wiring)
-				.fetchEntities(new EntitiesDataFetcher(this.handlerMethods, getExceptionResolver()))
+				.fetchEntities(entitiesDataFetcher)
 				.resolveEntityType(this.typeResolver);
 	}
 
-	private void checkEntityMappings(TypeDefinitionRegistry registry) {
+	/**
+	 * For all schema interface types referenced in entity mappings, return a
+	 * lookup from schema object type to the interface it implements.
+	 */
+	private Map<String, String> detectInterfaceImplementationTypes(TypeDefinitionRegistry registry) {
+		Map<String, String> map = new LinkedHashMap<>();
+		for (TypeDefinition<?> typeDef : registry.types().values()) {
+			if (typeDef instanceof ObjectTypeDefinition objectDef) {
+				for (Type<?> type : objectDef.getImplements()) {
+					String interfaceName = ((TypeName) type).getName();
+					if (this.handlerMethods.containsKey(interfaceName)) {
+						String objectTypeName = objectDef.getName();
+						String existingInterface = map.put(objectTypeName, interfaceName);
+						Assert.state(existingInterface == null, () ->
+								"Object type '" + objectTypeName + "' implements two EntityMapping interfaces: '" +
+										interfaceName + "' and '" + existingInterface + "'.");
+					}
+				}
+			}
+		}
+		return map;
+	}
+
+	private void checkEntityMappings(TypeDefinitionRegistry registry, Map<String, String> objectToInterfaceTypeMap) {
 		List<String> unmappedEntities = new ArrayList<>();
 		for (TypeDefinition<?> type : registry.types().values()) {
 			type.getDirectives().forEach((directive) -> {
-				if (isResolvableKeyDirective(directive) && !this.handlerMethods.containsKey(type.getName())) {
+				if (isResolvableKeyDirective(directive) &&
+						!this.handlerMethods.containsKey(type.getName()) &&
+						!objectToInterfaceTypeMap.containsKey(type.getName())) {
 					unmappedEntities.add(type.getName());
 				}
 			});

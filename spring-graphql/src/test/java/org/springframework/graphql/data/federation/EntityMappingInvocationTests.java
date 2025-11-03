@@ -195,7 +195,7 @@ class EntityMappingInvocationTests {
 	@Test
 	void unmappedEntity() {
 		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, Map.of()))
-				.withMessage("Unmapped entity types: 'Book'");
+				.withMessage("Unmapped entity types: 'Media', 'Book'");
 	}
 
 	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {
@@ -247,7 +247,7 @@ class EntityMappingInvocationTests {
 	private static class BookController {
 
 		@Nullable
-		@EntityMapping
+		@EntityMapping("Media")
 		public Book book(@Argument int id, Map<String, Object> map) {
 
 			assertThat(map).hasSize(2)
@@ -282,7 +282,7 @@ class EntityMappingInvocationTests {
 
 		private final BookBatchService batchService = new BookBatchService();
 
-		@EntityMapping
+		@EntityMapping("Media")
 		public List<Book> book(@Argument List<Integer> idList, List<Map<String, Object>> representations) {
 			return this.batchService.book(idList, representations);
 		}
@@ -305,7 +305,7 @@ class EntityMappingInvocationTests {
 
 		private final BookBatchService batchService = new BookBatchService();
 
-		@EntityMapping
+		@EntityMapping("Media")
 		public Flux<Book> book(@Argument List<Integer> idList, List<Map<String, Object>> representations) {
 			return Flux.fromIterable(this.batchService.book(idList, representations));
 		}
@@ -334,7 +334,7 @@ class EntityMappingInvocationTests {
 		}
 
 		@Nullable
-		@EntityMapping
+		@EntityMapping("Media")
 		public Future<Book> book(@Argument int id, DataLoader<Integer, Book> dataLoader) {
 			return dataLoader.load(id);
 		}
