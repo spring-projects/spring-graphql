@@ -13,7 +13,7 @@ dependencies {
 	api(platform("io.projectreactor:reactor-bom:2025.0.0-RC1"))
 	api(platform("io.micrometer:micrometer-bom:1.16.0-RC1"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.6.0-RC1"))
-	api(platform("org.springframework.data:spring-data-bom:2025.1.0-SNAPSHOT"))
+	api(platform("org.springframework.data:spring-data-bom:2025.1.0-RC2"))
 	api(platform("org.springframework.security:spring-security-bom:7.0.0-RC1"))
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
