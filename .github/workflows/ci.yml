@@ -25,6 +25,11 @@ jobs:
           - version: 25
             early-access: true
             toolchain: true
+        exclude:
+          - os:
+              name: Linux
+            java:
+              version: 17
     steps:
       - name: Check Out Code
         uses: actions/checkout@v4
