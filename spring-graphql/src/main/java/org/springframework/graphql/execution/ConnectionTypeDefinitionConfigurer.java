@@ -102,7 +102,7 @@ public class ConnectionTypeDefinitionConfigurer implements TypeDefinitionConfigu
 							.filter((type) -> type instanceof TypeName)
 							.map((type) -> ((TypeName) type).getName())
 							.filter((name) -> name.endsWith("Connection"))
-							.filter((name) -> registry.getType(name).isEmpty())
+							.filter((name) -> registry.getTypeOrNull(name) == null)
 							.map((name) -> name.substring(0, name.length() - "Connection".length()));
 				})
 				.collect(Collectors.toCollection(LinkedHashSet::new));

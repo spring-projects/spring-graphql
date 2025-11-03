@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import graphql.ErrorType;
 import org.dataloader.DataLoaderRegistry;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -30,6 +29,7 @@ import reactor.test.StepVerifier;
 
 import org.springframework.graphql.Author;
 import org.springframework.graphql.Book;
+import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
@@ -83,20 +83,24 @@ class DefaultExecutionGraphQlServiceTests {
 	}
 
 	@Test
-	@Disabled("until https://github.com/spring-projects/spring-graphql/issues/1171")
-	void cancellationSupport() {
-		AtomicBoolean cancelled = new AtomicBoolean();
-		Mono<String> greetingMono = Mono.just("hi")
-				.delayElement(Duration.ofSeconds(3))
-				.doOnCancel(() -> cancelled.set(true));
+	void cancellationSupport() throws Exception {
+		AtomicBoolean called = new AtomicBoolean();
+		Mono<Book> bookMono = Mono.just(BookSource.getBookWithoutAuthor(1L))
+				.delayElement(Duration.ofSeconds(1));
 
-		Mono<ExecutionGraphQlResponse> execution = GraphQlSetup.schemaContent("type Query { greeting: String }")
-				.queryFetcher("greeting", (env) -> greetingMono)
+		Mono<ExecutionGraphQlResponse> execution = GraphQlSetup.schemaResource(BookSource.schema)
+				.queryFetcher("bookById", (env) -> bookMono)
+				.dataFetcher("Book", "author", (env) -> {
+					called.set(true);
+					return BookSource.getAuthor(1L);
+				})
 				.toGraphQlService()
-				.execute(TestExecutionRequest.forDocument("{ greeting }"));
 
-		StepVerifier.create(execution).thenCancel().verify();
-		assertThat(cancelled).isTrue();
+				.execute(TestExecutionRequest.forDocument("{ bookById(id: 1) { author { firstName } } }"));
+
+		StepVerifier.create(execution).thenAwait(Duration.ofMillis(500)).thenCancel().verify();
+		Thread.sleep(1000);
+		assertThat(called).isFalse();
 	}
 
 }

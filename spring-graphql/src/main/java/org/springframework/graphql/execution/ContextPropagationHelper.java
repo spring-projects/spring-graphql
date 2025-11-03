@@ -16,15 +16,10 @@
 
 package org.springframework.graphql.execution;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
 import org.jspecify.annotations.Nullable;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
@@ -40,10 +35,6 @@ public abstract class ContextPropagationHelper {
 	private static final ContextSnapshotFactory sharedInstance = ContextSnapshotFactory.builder().build();
 
 	private static final String CONTEXT_SNAPSHOT_FACTORY_KEY = ContextPropagationHelper.class.getName() + ".KEY";
-
-	private static final String CANCELED_KEY = ContextPropagationHelper.class.getName() + ".canceled";
-
-	private static final String CANCELED_PUBLISHER_KEY = ContextPropagationHelper.class.getName() + ".canceledPublisher";
 
 
 	/**
@@ -120,56 +111,6 @@ public abstract class ContextPropagationHelper {
 	public static ContextSnapshot captureFrom(GraphQLContext context) {
 		ContextSnapshotFactory factory = getInstance(context);
 		return selectInstance(factory).captureFrom(context);
-	}
-
-	/**
-	 * Create an atomic boolean and store it into the given {@link GraphQLContext}.
-	 * This boolean value can then be checked by upstream publishers to know whether the request is canceled.
-	 * @param context the current GraphQL context
-	 * @since 1.3.6
-	 */
-	public static Runnable createCancelSignal(GraphQLContext context) {
-		AtomicBoolean requestCancelled = new AtomicBoolean();
-		Sinks.Empty<Void> cancelSignal = Sinks.empty();
-		context.put(CANCELED_KEY, requestCancelled);
-		context.put(CANCELED_PUBLISHER_KEY, cancelSignal.asMono());
-		return () -> {
-			requestCancelled.set(true);
-			cancelSignal.tryEmitEmpty();
-		};
-	}
-
-	/**
-	 * Return {@code true} if the current request has been cancelled, {@code false} otherwise.
-	 * This checks whether a {@link #createCancelSignal(GraphQLContext) cancellation publisher is present}
-	 * in the given context and the cancel signal has fired already.
-	 * @param context the current GraphQL context
-	 * @since 1.4.0
-	 */
-	public static boolean isCancelled(GraphQLContext context) {
-		AtomicBoolean requestCancelled = context.get(CANCELED_KEY);
-		if (requestCancelled != null) {
-			return requestCancelled.get();
-		}
-		return false;
-	}
-
-	/**
-	 * Bind the source {@link Flux} to the publisher from the given {@link GraphQLContext}.
-	 * The returned {@code Flux} will be cancelled when this publisher completes.
-	 * Subscribers must use the returned {@code Mono} instance.
-	 * @param source the source {@code Mono}
-	 * @param context the current GraphQL context
-	 * @param <T> the type of published elements
-	 * @return the new {@code Mono} that will be cancelled when notified
-	 * @since 1.3.5
-	 */
-	public static <T> Flux<T> bindCancelFrom(Flux<T> source, GraphQLContext context) {
-		Mono<Void> cancelSignal = context.get(CANCELED_PUBLISHER_KEY);
-		if (cancelSignal != null) {
-			return source.takeUntilOther(cancelSignal);
-		}
-		return source;
 	}
 
 }
