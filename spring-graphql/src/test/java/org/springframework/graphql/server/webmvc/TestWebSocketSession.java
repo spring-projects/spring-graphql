@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketExtension;
@@ -151,8 +151,7 @@ public class TestWebSocketSession implements WebSocketSession {
 		this.statusSink.tryEmitValue(status);
 	}
 
-	@Nullable
-	public CloseStatus getCloseStatus() {
+	public @Nullable CloseStatus getCloseStatus() {
 		return (this.closed ? this.statusSink.asMono().block() : null);
 	}
 

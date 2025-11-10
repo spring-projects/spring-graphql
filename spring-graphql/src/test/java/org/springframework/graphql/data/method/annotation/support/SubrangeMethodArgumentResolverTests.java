@@ -19,6 +19,7 @@ package org.springframework.graphql.data.method.annotation.support;
 import java.util.Collections;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.MethodParameter;
@@ -27,7 +28,6 @@ import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.pagination.Subrange;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;

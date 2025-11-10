@@ -24,6 +24,7 @@ import java.util.function.Function;
 import graphql.GraphqlErrorBuilder;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,7 +44,6 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -288,11 +288,9 @@ class SchemaMappingPrincipalMethodArgumentResolverTests {
 	@SuppressWarnings("unused")
 	private static class GreetingController {
 
-		@Nullable
-		private Principal principal;
+		private @Nullable Principal principal;
 
-		@Nullable
-		public Principal principal() {
+		public @Nullable Principal principal() {
 			return this.principal;
 		}
 

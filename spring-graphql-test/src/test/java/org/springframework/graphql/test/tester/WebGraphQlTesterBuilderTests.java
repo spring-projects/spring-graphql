@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -43,7 +44,6 @@ import org.springframework.graphql.server.webflux.GraphQlWebSocketHandler;
 import org.springframework.graphql.support.DocumentSource;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.JacksonJsonDecoder;
-import org.springframework.lang.Nullable;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
@@ -206,8 +206,7 @@ class WebGraphQlTesterBuilderTests {
 
 	private static class WebBuilderSetup implements TesterBuilderSetup {
 
-		@Nullable
-		private WebGraphQlRequest request;
+		private @Nullable WebGraphQlRequest request;
 
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 

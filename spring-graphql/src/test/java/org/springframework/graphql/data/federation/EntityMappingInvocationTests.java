@@ -25,6 +25,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import org.dataloader.DataLoader;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -51,7 +52,6 @@ import org.springframework.graphql.data.method.annotation.support.AnnotatedContr
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.graphql.execution.DefaultBatchLoaderRegistry;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -246,9 +246,8 @@ class EntityMappingInvocationTests {
 	@Controller
 	private static class BookController {
 
-		@Nullable
 		@EntityMapping("Media")
-		public Book book(@Argument int id, Map<String, Object> map) {
+		public @Nullable Book book(@Argument int id, Map<String, Object> map) {
 
 			assertThat(map).hasSize(2)
 					.containsEntry("__typename", Book.class.getSimpleName())

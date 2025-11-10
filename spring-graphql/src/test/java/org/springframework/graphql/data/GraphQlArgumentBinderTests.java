@@ -31,6 +31,7 @@ import java.util.stream.IntStream;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -39,7 +40,6 @@ import org.springframework.core.ResolvableType;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.graphql.Book;
 import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.lang.Nullable;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 
@@ -451,14 +451,12 @@ class GraphQlArgumentBinderTests {
 		assertThat(input.enums()).hasSize(2).containsExactly(FancyEnum.ONE, FancyEnum.TWO);
 	}
 
-	@Nullable
-	private Object bind(String json, ResolvableType targetType) throws Exception {
+	private @Nullable Object bind(String json, ResolvableType targetType) throws Exception {
 		return bind(this.binder, json, targetType);
 	}
 
 	@SuppressWarnings("unchecked")
-	@Nullable
-	private Object bind(GraphQlArgumentBinder binder, String json, ResolvableType targetType) throws Exception {
+	private @Nullable Object bind(GraphQlArgumentBinder binder, String json, ResolvableType targetType) throws Exception {
 		DataFetchingEnvironment environment =
 				DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
 						.arguments(this.mapper.readValue("{\"key\":" + json + "}", Map.class))

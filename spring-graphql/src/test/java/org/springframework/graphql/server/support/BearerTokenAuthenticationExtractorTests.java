@@ -19,9 +19,9 @@ package org.springframework.graphql.server.support;
 import java.util.Collections;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 
@@ -74,13 +74,11 @@ class BearerTokenAuthenticationExtractorTests {
 				.hasMessage("Bearer token is malformed");
 	}
 
-	@Nullable
-	private static Authentication getAuthentication(String value) {
+	private static @Nullable Authentication getAuthentication(String value) {
 		return getAuthentication(Map.of(BearerTokenAuthenticationExtractor.AUTHORIZATION_KEY, value));
 	}
 
-	@Nullable
-	private static Authentication getAuthentication(Map<String, Object> map) {
+	private static @Nullable Authentication getAuthentication(Map<String, Object> map) {
 		return extractor.getAuthentication(map).block();
 	}
 

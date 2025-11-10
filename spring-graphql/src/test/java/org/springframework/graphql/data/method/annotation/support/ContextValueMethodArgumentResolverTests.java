@@ -27,6 +27,7 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import org.dataloader.BatchLoaderEnvironment;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -41,7 +42,6 @@ import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.LocalContextValue;
-import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -162,8 +162,7 @@ class ContextValueMethodArgumentResolverTests {
 		assertThat(controller.savedId).isEqualTo(context.get("id"));
 	}
 
-	@Nullable
-	private Object resolveValue(
+	private @Nullable Object resolveValue(
 			@Nullable GraphQLContext localContext, @Nullable GraphQLContext graphQLContext, int index) {
 
 		DataFetchingEnvironment environment = DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
@@ -196,8 +195,7 @@ class ContextValueMethodArgumentResolverTests {
 
 		private Long savedId;
 
-		@Nullable
-		public String handleMono(@ContextValue Mono<String> stringMono) {
+		public @Nullable String handleMono(@ContextValue Mono<String> stringMono) {
 			return stringMono.block(Duration.ofSeconds(1));
 		}
 

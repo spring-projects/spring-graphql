@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.micrometer.context.ContextSnapshotFactory;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -35,7 +36,6 @@ import reactor.util.context.Context;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
-import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -112,11 +112,9 @@ class BatchMappingPrincipalMethodArgumentResolverTests extends BatchMappingTestS
 	@SuppressWarnings("unused")
 	private static class PrincipalCourseController extends CourseController {
 
-		@Nullable
-		protected Principal principal;
+		protected @Nullable Principal principal;
 
-		@Nullable
-		public Principal principal() {
+		public @Nullable Principal principal() {
 			return this.principal;
 		}
 
