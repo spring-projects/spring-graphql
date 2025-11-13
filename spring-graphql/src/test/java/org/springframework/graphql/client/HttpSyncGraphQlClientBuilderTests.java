@@ -195,7 +195,7 @@ class HttpSyncGraphQlClientBuilderTests {
 		TestJacksonJsonConverter testConverter = new TestJacksonJsonConverter();
 
 		HttpSyncGraphQlClient.Builder<?> builder = this.setup.initBuilder();
-		builder.configureMessageConverters((configurer) -> configurer.jsonMessageConverter(testConverter));
+		builder.configureMessageConverters((configurer) -> configurer.withJsonConverter(testConverter));
 
 		String document = "{me {name}}";
 		MovieCharacter character = MovieCharacter.create("Luke Skywalker");
