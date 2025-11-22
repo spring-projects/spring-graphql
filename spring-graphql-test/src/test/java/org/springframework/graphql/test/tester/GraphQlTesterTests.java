@@ -213,6 +213,35 @@ class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.containsExactly(han, leia);
 
 		assertThat(getActualRequestDocument()).contains(document);
+
+		assertThatThrownBy(() -> entityList.singleElement())
+				.as("Should have exactly one element")
+				.hasMessage("Expecting list " +
+							"[MovieCharacter[name='Han Solo'], MovieCharacter[name='Leia Organa']] " +
+							"at path 'me.friends' to have size == 1\n" +
+							"Request: document='{me {name, friends}}'");
+	}
+
+	@Test
+	void entityListWithOneElement() {
+
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document,
+				"{" +
+				"  \"me\":{" +
+				"      \"name\":\"Luke Skywalker\","
+				+ "    \"friends\":[{\"name\":\"Han Solo\"}]" +
+				"  }" +
+				"}");
+
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
+
+		MovieCharacter han = MovieCharacter.create("Han Solo");
+
+		response.path("me.friends")
+				.entityList(MovieCharacter.class)
+				.singleElement()
+				.isEqualTo(han);
 	}
 
 	@Test

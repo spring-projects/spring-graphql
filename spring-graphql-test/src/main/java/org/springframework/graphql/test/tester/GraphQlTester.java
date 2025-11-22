@@ -470,6 +470,13 @@ public interface GraphQlTester {
 		 */
 		EntityList<E> hasSizeGreaterThan(int size);
 
+		/**
+		 * Verify the list has a single element and return an {@code Entity} spec for it.
+		 * <p>This is a convenience method that combines {@link #hasSize(int) hasSize(1)}
+		 * with navigating to the first element in the list.
+		 * @return an {@code Entity} spec for the single element that allows further assertions
+		 */
+		Entity<E, ?> singleElement();
 	}
 
 	/**
