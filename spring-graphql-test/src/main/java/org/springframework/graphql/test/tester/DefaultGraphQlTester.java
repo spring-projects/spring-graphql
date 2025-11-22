@@ -655,6 +655,18 @@ final class DefaultGraphQlTester implements GraphQlTester {
 						getEntity().size() > size));
 				return this;
 			}
+
+			@Override
+			public Entity<E, ?> singleElement() {
+				this.hasSize(1);
+
+				E element = this.get().get(0);
+				@SuppressWarnings("unchecked")
+				Class<E> elementClass = (Class<E>) element.getClass();
+
+				return new DefaultPath(DefaultPath.this.basePath, DefaultPath.this.path + "[0]", DefaultPath.this.delegate)
+						.entity(elementClass);
+			}
 		}
 
 
