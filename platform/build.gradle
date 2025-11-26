@@ -38,7 +38,7 @@ dependencies {
 		api("com.google.code.findbugs:jsr305:3.0.2")
 
 		api("org.assertj:assertj-core:3.25.3")
-		api("com.jayway.jsonpath:json-path:2.9.0")
+		api("com.jayway.jsonpath:json-path:2.10.0")
 		api("org.skyscreamer:jsonassert:1.5.1")
 		api("org.awaitility:awaitility:4.2.1")
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
