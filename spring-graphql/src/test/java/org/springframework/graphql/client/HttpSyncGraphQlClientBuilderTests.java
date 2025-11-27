@@ -19,12 +19,14 @@ package org.springframework.graphql.client;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
+import java.util.Map;
 
 import graphql.ExecutionResultImpl;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ResolvableType;
 import org.springframework.graphql.execution.MockExecutionGraphQlService;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
@@ -305,8 +307,8 @@ class HttpSyncGraphQlClientBuilderTests {
 		}
 
 		@Override
-		protected Object readInternal(Class<?> clazz, HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
-			this.lastValue = super.readInternal(clazz, inputMessage);
+		public Object read(ResolvableType type, HttpInputMessage inputMessage, @Nullable Map<String, Object> hints) throws IOException, HttpMessageNotReadableException {
+			this.lastValue = super.read(type, inputMessage, hints);
 			return this.lastValue;
 		}
 

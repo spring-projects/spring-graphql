@@ -44,6 +44,7 @@ import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.SmartHttpMessageConverter;
 import org.springframework.util.MimeType;
 
 
@@ -112,7 +113,10 @@ final class HttpMessageConverterDelegate {
 
 			HttpOutputMessageAdapter messageAdapter = new HttpOutputMessageAdapter();
 			try {
-				if (this.converter instanceof GenericHttpMessageConverter<Object> genericConverter) {
+				if (this.converter instanceof SmartHttpMessageConverter<Object> smartConverter) {
+					smartConverter.write(value, valueType, toMediaType(mimeType), messageAdapter, hints);
+				}
+				else if (this.converter instanceof GenericHttpMessageConverter<Object> genericConverter) {
 					genericConverter.write(value, valueType.getType(), toMediaType(mimeType), messageAdapter);
 				}
 				else {
@@ -166,7 +170,10 @@ final class HttpMessageConverterDelegate {
 
 			try {
 				HttpInputMessageAdapter messageAdapter = new HttpInputMessageAdapter(buffer);
-				if (this.converter instanceof GenericHttpMessageConverter<Object> genericConverter) {
+				if (this.converter instanceof SmartHttpMessageConverter<Object> smartConverter) {
+					return smartConverter.read(targetType, messageAdapter, hints);
+				}
+				else if (this.converter instanceof GenericHttpMessageConverter<Object> genericConverter) {
 					return genericConverter.read(targetType.getType(), null, messageAdapter);
 				}
 				else {

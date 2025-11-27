@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * Tests for {@link GraphQlClient} that check whether it supports
+ * Tests for {@link HttpGraphQlClient} that check whether it supports
  * the GraphQL over HTTP specification.
  *
  * @see <a href="https://graphql.github.io/graphql-over-http/draft/#sec-application-graphql-response-json">GraphQL over HTTP specification</a>
