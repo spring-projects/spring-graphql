@@ -147,7 +147,8 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	/**
 	 * Customizes the {@link ObjectMapper} to use default typing that supports
-	 * {@link Date}, {@link Calendar}, {@link UUID} and classes in {@code java.time}.
+	 * {@link Date}, {@link Calendar}, {@link UUID}, {@link Number}
+	 * {@link Enum} and classes in {@code java.time}.
 	 */
 	private static final class JacksonObjectMapperCustomizer {
 
@@ -159,6 +160,8 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 					.allowIfSubType(Calendar.class)
 					.allowIfSubType(Date.class)
 					.allowIfSubType(UUID.class)
+					.allowIfSubType(Number.class)
+					.allowIfSubType(Enum.class)
 					.build();
 
 			JsonMapper mapper = JsonMapper.builder()
@@ -174,7 +177,8 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 
 	/**
 	 * Customizes the {@link ObjectMapper} to use default typing that supports
-	 * {@link Date}, {@link Calendar}, {@link UUID} and classes in {@code java.time}.
+	 * {@link Date}, {@link Calendar}, {@link UUID}, {@link Number},
+	 * {@link Enum} and classes in {@code java.time}.
 	 */
 	@SuppressWarnings("removal")
 	private static final class Jackson2ObjectMapperCustomizer {
@@ -188,6 +192,8 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 					.allowIfSubType(Calendar.class)
 					.allowIfSubType(Date.class)
 					.allowIfSubType(UUID.class)
+					.allowIfSubType(Number.class)
+					.allowIfSubType(Enum.class)
 					.build();
 
 			com.fasterxml.jackson.databind.ObjectMapper mapper = Jackson2ObjectMapperBuilder.json().build();

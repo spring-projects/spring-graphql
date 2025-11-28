@@ -16,6 +16,8 @@
 
 package org.springframework.graphql.data.query;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
@@ -90,5 +92,59 @@ class JsonKeysetCursorStrategyTests {
 
 		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
 		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
+	}
+
+	@Test
+	void toAndFromCursorWithNumber() {
+		Map<String, Object> keys = new LinkedHashMap<>();
+		keys.put("byteValue", (byte) 1);
+		keys.put("shortValue", (short) 2);
+		keys.put("intValue", 3);
+		keys.put("longValue", (long) 4);
+		keys.put("floatValue", (float) 5);
+		keys.put("doubleValue", (double) 6);
+		keys.put("bigDecimal", new BigDecimal("10000000000000000000.002"));
+
+		//language=JSON
+		String json = """
+			[
+				"java.util.LinkedHashMap",
+				{
+					"byteValue": ["java.lang.Byte", 1],
+					"shortValue": ["java.lang.Short", 2],
+					"intValue": 3,
+					"longValue": ["java.lang.Long", 4],
+					"floatValue": ["java.lang.Float", 5.0],
+					"doubleValue": 6.0,
+					"bigDecimal": ["java.math.BigDecimal", 10000000000000000000.002]
+				}
+			]
+			""".replaceAll("\\s+", "");
+
+		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
+		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
+	}
+
+	@Test
+	void toAndFromCursorWithEnum() {
+		Map<String, Object> keys = new LinkedHashMap<>();
+		keys.put("enumValue", TestEnum.VALUE_1);
+
+		//language=JSON
+		String json = """
+			[
+				"java.util.LinkedHashMap",
+				{
+					"enumValue": ["org.springframework.graphql.data.query.JsonKeysetCursorStrategyTests$TestEnum", "VALUE_1"]
+				}
+			]
+			""".replaceAll("\\s+", "");
+
+		assertThat(this.cursorStrategy.toCursor(keys)).isEqualTo(json);
+		assertThat(this.cursorStrategy.fromCursor(json)).isEqualTo(keys);
+	}
+
+	enum TestEnum {
+		VALUE_1
 	}
 }
