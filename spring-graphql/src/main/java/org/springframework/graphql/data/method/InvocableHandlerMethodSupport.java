@@ -27,11 +27,14 @@ import java.util.concurrent.Executor;
 
 import graphql.GraphQLContext;
 import io.micrometer.context.ContextSnapshot;
+import kotlin.jvm.JvmClassMappingKt;
+import kotlin.reflect.KFunction;
+import kotlin.reflect.jvm.KTypesJvm;
+import kotlin.reflect.jvm.ReflectJvmMapping;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.CoroutinesUtils;
 import org.springframework.core.KotlinDetector;
-import org.springframework.data.util.KotlinReflectionUtils;
 import org.springframework.graphql.execution.ContextPropagationHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -46,6 +49,8 @@ import org.springframework.util.Assert;
 public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 
 	private static final Object NO_VALUE = new Object();
+
+	private static final boolean KOTLIN_REFLECT_PRESENT = KotlinDetector.isKotlinReflectPresent();
 
 
 	@Nullable
@@ -137,6 +142,7 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 	private static Object invokeSuspendingFunction(Object bean, Method method, Object[] argValues) {
 		Object result = CoroutinesUtils.invokeSuspendingFunction(method, bean, argValues);
 
+		Assert.state(KOTLIN_REFLECT_PRESENT, "Missing org.jetbrains.kotlin:kotlin-reflect dependency");
 		// Support use of DataLoader from suspending function
 		Class<?> returnType = KotlinReflectionUtils.getReturnType(method);
 		if (CompletableFuture.class.isAssignableFrom(returnType)) {
@@ -208,6 +214,17 @@ public abstract class InvocableHandlerMethodSupport extends HandlerMethod {
 			}
 			return values;
 		});
+	}
+
+	static class KotlinReflectionUtils {
+
+		static Class<?> getReturnType(Method method) {
+			KFunction<?> kotlinFunction = ReflectJvmMapping.getKotlinFunction(method);
+			if (kotlinFunction == null) {
+				throw new IllegalArgumentException(String.format("Cannot resolve %s to a KFunction", method));
+			}
+			return JvmClassMappingKt.getJavaClass(KTypesJvm.getJvmErasure(kotlinFunction.getReturnType()));
+		}
 	}
 
 }
