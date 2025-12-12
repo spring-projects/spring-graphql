@@ -474,7 +474,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 
 		private final WebSocketSessionInfo sessionInfo;
 
-		private final AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
+		private final AtomicReference<@Nullable Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 
 		private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
