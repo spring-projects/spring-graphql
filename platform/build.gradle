@@ -13,17 +13,17 @@ dependencies {
 	api(platform("io.micrometer:micrometer-bom:1.15.7"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.5.7"))
 	api(platform("org.springframework.data:spring-data-bom:2025.0.4"))
-	api(platform("org.springframework.security:spring-security-bom:6.5.4"))
+	api(platform("org.springframework.security:spring-security-bom:6.5.7"))
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
 	api(platform("org.junit:junit-bom:5.12.2"))
-	api(platform("org.mockito:mockito-bom:5.16.0"))
-	api(platform("org.mongodb:mongodb-driver-bom:5.5.1"))
-	api(platform("org.testcontainers:testcontainers-bom:1.21.2"))
+	api(platform("org.mockito:mockito-bom:5.17.0"))
+	api(platform("org.mongodb:mongodb-driver-bom:5.5.2"))
+	api(platform("org.testcontainers:testcontainers-bom:1.21.3"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.24.3"))
-	api(platform("org.assertj:assertj-bom:3.27.3"))
+	api(platform("org.assertj:assertj-bom:3.27.6"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
@@ -44,7 +44,7 @@ dependencies {
 		api("com.squareup.okhttp3:mockwebserver:4.12.0")
 
 		api("com.h2database:h2:2.3.232")
-		api("org.hibernate:hibernate-core:6.6.29.Final")
+		api("org.hibernate:hibernate-core:6.6.38.Final")
 		api("org.hibernate.validator:hibernate-validator:8.0.3.Final")
 	}
 
