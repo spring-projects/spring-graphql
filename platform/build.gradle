@@ -14,7 +14,7 @@ dependencies {
 	api(platform("io.micrometer:micrometer-bom:1.16.1"))
 	api(platform("io.micrometer:micrometer-tracing-bom:1.6.1"))
 	api(platform("org.springframework.data:spring-data-bom:2025.1.1"))
-	api(platform("org.springframework.security:spring-security-bom:7.0.0"))
+	api(platform("org.springframework.security:spring-security-bom:7.0.1"))
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
