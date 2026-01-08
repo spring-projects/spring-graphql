@@ -462,7 +462,7 @@ You can then create `JsonKeysetCursorStrategy`:
 
 By default, if `JsonKeysetCursorStrategy` is created without a `CodecConfigurer` and the
 Jackson library is on the classpath, customizations like the above are applied for
-`Date`, `Calendar`, `UUID` and any type from `java.time`.
+`Date`, `Calendar`, `UUID`, Java Enums and `Number`, and any type from `java.time`.
 
 
 
