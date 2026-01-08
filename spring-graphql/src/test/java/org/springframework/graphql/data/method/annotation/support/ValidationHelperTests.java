@@ -36,12 +36,16 @@ import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.graphql.data.ArgumentValue;
 import org.springframework.graphql.data.method.HandlerMethod;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.validation.beanvalidation.OptionalValidatorFactoryBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for {@link ValidationHelper}.
@@ -53,6 +57,15 @@ class ValidationHelperTests {
 	@Test
 	void shouldFailWithNullValidator() {
 		assertThatThrownBy(() -> ValidationHelper.create(null)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void shouldReturnNullValidatorWhenInstantiationFailure() {
+		OptionalValidatorFactoryBean validatorFactory = mock(OptionalValidatorFactoryBean.class);
+		given(validatorFactory.getValidator()).willThrow(new IllegalStateException("No target ValidatorFactory set"));
+		StaticApplicationContext applicationContext = new StaticApplicationContext();
+		applicationContext.registerBean(Validator.class, () -> validatorFactory);
+		assertThat(ValidationHelper.createIfValidatorPresent(applicationContext)).isNull();
 	}
 
 	@Test

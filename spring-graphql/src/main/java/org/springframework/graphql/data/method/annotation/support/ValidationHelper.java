@@ -122,11 +122,16 @@ final class ValidationHelper {
 	@Nullable
 	static ValidationHelper createIfValidatorPresent(ApplicationContext context) {
 		Validator validator = context.getBeanProvider(Validator.class).getIfAvailable();
-		if (validator instanceof LocalValidatorFactoryBean) {
-			validator = ((LocalValidatorFactoryBean) validator).getValidator();
+		try {
+			if (validator instanceof LocalValidatorFactoryBean) {
+				validator = ((LocalValidatorFactoryBean) validator).getValidator();
+			}
+			else if (validator instanceof SpringValidatorAdapter) {
+				validator = validator.unwrap(Validator.class);
+			}
 		}
-		else if (validator instanceof SpringValidatorAdapter) {
-			validator = validator.unwrap(Validator.class);
+		catch (Exception exc) {
+			return null;
 		}
 		return (validator != null) ? create(validator) : null;
 	}
