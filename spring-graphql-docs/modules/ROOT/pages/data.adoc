@@ -432,38 +432,17 @@ By default, `JsonKeysetCursorStrategy` writes the keyset `Map` to JSON. That wor
 simple like String, Boolean, Integer, and Double, but others cannot be restored back to the
 same type without target type information. The Jackson library has a default typing feature
 that can include type information in the JSON. To use it safely you must specify a list of
-allowed types. For example:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	PolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
-			.allowIfBaseType(Map.class)
-			.allowIfSubType(ZonedDateTime.class)
-			.build();
-
-	JsonMapper mapper = JsonMapper.builder()
-	    .activateDefaultTyping(validator, DefaultTyping.NON_FINAL)
-        .enable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
-        .build();
-----
-
-You can then create `JsonKeysetCursorStrategy`:
-
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	ObjectMapper mapper = ... ;
-
-	CodecConfigurer configurer = ServerCodecConfigurer.create();
-	configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
-	configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
-
-	JsonKeysetCursorStrategy strategy = new JsonKeysetCursorStrategy(configurer);
-----
+allowed types.
 
 By default, if `JsonKeysetCursorStrategy` is created without a `CodecConfigurer` and the
-Jackson library is on the classpath, customizations like the above are applied for
-`Date`, `Calendar`, `UUID`, Java Enums and `Number`, and any type from `java.time`.
+Jackson library is on the classpath, JSON keyset will support the `Date`, `Calendar`,
+`UUID`, Java Enums, `Number`, and any type from `java.time`.
 
+Applications can further refine the keyset serialization as JSON by instantiating their own
+`JsonKeysetCursorStrategy` with a custom Jackson encoder/decoder pair.
+In Spring Boot, contributing an `EncodingCursorStrategy` like the following is enough:
+
+include-code::KeysetCursorConfiguration[]
 
 
 [[data.pagination.sort]]
