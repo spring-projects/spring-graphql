@@ -4,7 +4,11 @@ interface Media @key(fields: "id") {
     id: ID! @external
 }
 
-type Book implements Media @key(fields: "id") @extends {
+interface PrintedMedia implements Media @key(fields: "id") {
+    id: ID! @external
+}
+
+type Book implements Media & PrintedMedia @key(fields: "id") @extends {
     id: ID! @external
     author: Author
     publisher: Publisher

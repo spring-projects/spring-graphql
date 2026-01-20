@@ -29,7 +29,7 @@ import com.apollographql.federation.graphqljava.SchemaTransformer;
 import graphql.language.Argument;
 import graphql.language.BooleanValue;
 import graphql.language.Directive;
-import graphql.language.ObjectTypeDefinition;
+import graphql.language.ImplementingTypeDefinition;
 import graphql.language.Type;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
@@ -203,11 +203,11 @@ public final class FederationSchemaFactory
 	private Map<String, String> detectInterfaceImplementationTypes(TypeDefinitionRegistry registry) {
 		Map<String, String> map = new LinkedHashMap<>();
 		for (TypeDefinition<?> typeDef : registry.types().values()) {
-			if (typeDef instanceof ObjectTypeDefinition objectDef) {
-				for (Type<?> type : objectDef.getImplements()) {
+			if (typeDef instanceof ImplementingTypeDefinition<?> implementingTypeDef) {
+				for (Type<?> type : implementingTypeDef.getImplements()) {
 					String interfaceName = ((TypeName) type).getName();
 					if (this.handlerMethods.containsKey(interfaceName)) {
-						String objectTypeName = objectDef.getName();
+						String objectTypeName = implementingTypeDef.getName();
 						String existingInterface = map.put(objectTypeName, interfaceName);
 						Assert.state(existingInterface == null, () ->
 								"Object type '" + objectTypeName + "' implements two EntityMapping interfaces: '" +

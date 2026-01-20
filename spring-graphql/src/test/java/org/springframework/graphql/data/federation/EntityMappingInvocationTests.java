@@ -87,12 +87,14 @@ class EntityMappingInvocationTests {
 		Map<String, Object> variables =
 				Map.of("representations", List.of(
 						Map.of("__typename", "Book", "id", "3"),
-						Map.of("__typename", "Book", "id", "5")));
+						Map.of("__typename", "Book", "id", "5"),
+						Map.of("__typename", "PrintedMedia", "id", "42")));
 
 		ResponseHelper helper = executeWith(BookController.class, variables);
 
 		assertAuthor(0, "Joseph", "Heller", helper);
 		assertAuthor(1, "George", "Orwell", helper);
+		assertAuthor(2, "Douglas", "Adams", helper);
 	}
 
 	@Test
@@ -195,7 +197,7 @@ class EntityMappingInvocationTests {
 	@Test
 	void unmappedEntity() {
 		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, Map.of()))
-				.withMessage("Unmapped entity types: 'Media', 'Book'");
+				.withMessage("Unmapped entity types: 'Media', 'PrintedMedia', 'Book'");
 	}
 
 	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {
@@ -250,8 +252,11 @@ class EntityMappingInvocationTests {
 		public @Nullable Book book(@Argument int id, Map<String, Object> map) {
 
 			assertThat(map).hasSize(2)
-					.containsEntry("__typename", Book.class.getSimpleName())
+					.containsKey("__typename")
 					.containsEntry("id", String.valueOf(id));
+
+			assertThat(map.get("__typename")).satisfies(s ->
+					assertThat(s.equals("Book") || s.equals("PrintedMedia")).isTrue());
 
 			return switch (id) {
 				case -97 -> throw new IllegalArgumentException("handled");
