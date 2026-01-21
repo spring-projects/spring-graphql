@@ -89,6 +89,7 @@ class DataLoaderArgumentResolverTests {
 
 		MethodParameter parameter = initParameter(1);
 		// Skip ParameterNameDiscovery
+		parameter.initParameterNameDiscovery(null);
 
 		assertThatThrownBy(() -> this.resolver.resolveArgument(parameter, environment()))
 				.hasMessageContaining("compiling with \"-parameters\" should help");
