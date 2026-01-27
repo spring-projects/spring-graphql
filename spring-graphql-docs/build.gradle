@@ -15,7 +15,11 @@ configurations {
 	matching { it.name.endsWith("Classpath") }.all { it.extendsFrom(dependencyManagement) }
 }
 
-def springBootVersion = "4.0.0-M1"
+nullability {
+	requireExplicitNullMarking = false
+}
+
+def springBootVersion = "4.0.2"
 
 dependencies {
 	dependencyManagement(enforcedPlatform(dependencies.project(path: ":platform")))
@@ -30,7 +34,7 @@ dependencies {
 	implementation ("org.springframework.boot:spring-boot-graphql:${springBootVersion}") {
         exclude group: 'org.springframework.graphql'
     }
-	implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+	implementation "org.springframework.boot:spring-boot-starter-webmvc:${springBootVersion}"
 	implementation 'tools.jackson.core:jackson-databind'
 	implementation 'io.rsocket:rsocket-core'
 	implementation 'io.rsocket:rsocket-transport-netty'

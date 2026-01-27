@@ -64,6 +64,7 @@ class ExceptionResolversExceptionHandler implements DataFetcherExceptionHandler 
 
 
 	@Override
+	@SuppressWarnings("NullAway")
 	public CompletableFuture<DataFetcherExceptionHandlerResult> handleException(
 			DataFetcherExceptionHandlerParameters handlerParameters) {
 
