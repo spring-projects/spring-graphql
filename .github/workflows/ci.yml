@@ -32,7 +32,7 @@ jobs:
               version: 17
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Build
         id: build
         uses: ./.github/actions/build-and-publish
