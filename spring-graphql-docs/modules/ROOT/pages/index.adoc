@@ -12,7 +12,6 @@ the GraphQL Java team. It aims to be the foundation for all Spring, GraphQL appl
 Please, use our https://github.com/spring-projects/spring-graphql/issues[issue tracker]
 to report a problem, discuss a design issue, or to request a feature.
 
-Check the https://github.com/spring-projects/spring-graphql/wiki[Wiki].
-for what's new, baseline requirements, and upgrade notes, and other cross-version information.
+Check the https://github.com/spring-projects/spring-graphql/wiki[Wiki] for the latest updates, baseline requirements, upgrade notes, and other cross-version information.
 
 To get started, see the xref:boot-starter.adoc[Boot Starter] and xref:samples.adoc[Samples] sections.
