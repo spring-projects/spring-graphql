@@ -300,7 +300,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return an {@code Entity} spec to verify the decoded value with
 		 */
-		<D> Entity<D, ?> entity(Class<D> entityType);
+		<D extends @Nullable Object> Entity<D, ?> entity(Class<D> entityType);
 
 		/**
 		 * Convert the data at the given path to the target type.
@@ -308,7 +308,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return an {@code Entity} spec to verify the decoded value with
 		 */
-		<D> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType);
+		<D extends @Nullable Object> Entity<D, ?> entity(ParameterizedTypeReference<D> entityType);
 
 		/**
 		 * Convert the data at the given path to a List of the target type.
@@ -316,7 +316,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return an {@code EntityList} spec to verify the decoded values with
 		 */
-		<D> EntityList<D> entityList(Class<D> elementType);
+		<D extends @Nullable Object> EntityList<D> entityList(Class<D> elementType);
 
 		/**
 		 * Convert the data at the given path to a List of the target type.
@@ -324,7 +324,7 @@ public interface GraphQlTester {
 		 * @param <D> the target entity type
 		 * @return an {@code EntityList} spec to verify the decoded values with
 		 */
-		<D> EntityList<D> entityList(ParameterizedTypeReference<D> elementType);
+		<D extends @Nullable Object> EntityList<D> entityList(ParameterizedTypeReference<D> elementType);
 
 		/**
 		 * Parse the JSON at the given path and the given expected JSON and assert that
@@ -360,7 +360,7 @@ public interface GraphQlTester {
 	 * @param <D> the entity type
 	 * @param <S> the {@code Entity} spec type
 	 */
-	interface Entity<D, S extends Entity<D, S>> extends Traversable {
+	interface Entity<D extends @Nullable Object, S extends Entity<D, S>> extends Traversable {
 
 		/**
 		 * Verify the decoded entity is equal to the given value.
@@ -422,7 +422,7 @@ public interface GraphQlTester {
 	 *
 	 * @param <E> the type of elements in the list
 	 */
-	interface EntityList<E> extends Entity<List<E>, EntityList<E>> {
+	interface EntityList<E extends @Nullable Object> extends Entity<List<E>, EntityList<E>> {
 
 		/**
 		 * Verify the list contains the given values, in any order.

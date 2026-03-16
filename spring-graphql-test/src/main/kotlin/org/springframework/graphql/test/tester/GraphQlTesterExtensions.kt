@@ -37,5 +37,5 @@ inline fun <reified T : Any> GraphQlTester.Path.entity(): GraphQlTester.Entity<T
  * @author Brian Clozel
  * @since 2.0.0
  */
-inline fun <reified T : Any> GraphQlTester.Path.entityList(): GraphQlTester.EntityList<T> =
+inline fun <reified T : Any?> GraphQlTester.Path.entityList(): GraphQlTester.EntityList<T> =
     entityList(object : ParameterizedTypeReference<T>() {})
