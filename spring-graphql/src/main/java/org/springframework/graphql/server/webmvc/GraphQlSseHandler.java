@@ -165,9 +165,7 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		private void sendHeartbeat() {
 			try {
-				// Currently, comment cannot be empty:
-				// https://github.com/spring-projects/spring-framework/issues/34608
-				this.sseBuilder.comment(" ");
+				this.sseBuilder.comment("");
 				this.sseBuilder.send();
 			}
 			catch (IOException exception) {

@@ -146,13 +146,13 @@ class GraphQlSseHandlerTests {
 
 		assertThat(response.getContentAsString())
 				.startsWith("""
-					:\s
+					:
 
-					:\s
+					:
 
 					""")
 				.endsWith("""
-					:\s
+					:
 
 					event:complete
 					data:
