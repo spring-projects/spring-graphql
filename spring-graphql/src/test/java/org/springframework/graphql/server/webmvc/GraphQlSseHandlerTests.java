@@ -18,7 +18,6 @@ package org.springframework.graphql.server.webmvc;
 
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -50,6 +49,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
@@ -191,8 +191,7 @@ class GraphQlSseHandlerTests {
 		HttpServletResponse servletResponse = mock(HttpServletResponse.class);
 		ServletOutputStream outputStream = mock(ServletOutputStream.class);
 
-		willThrow(new IOException("broken pipe")).given(outputStream).write(any(byte[].class));
-		willThrow(new IOException("broken pipe")).given(outputStream).write(any(ByteBuffer.class));
+		willThrow(new IOException("broken pipe")).given(outputStream).write(any(byte[].class), anyInt(), anyInt());
 		given(servletResponse.getOutputStream()).willReturn(outputStream);
 
 		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
