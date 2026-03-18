@@ -19,22 +19,18 @@ nullability {
 	requireExplicitNullMarking = false
 }
 
-def springBootVersion = "4.0.2"
 
 dependencies {
 	dependencyManagement(enforcedPlatform(dependencies.project(path: ":platform")))
 	api project(':spring-graphql')
 	api project(':spring-graphql-test')
+	implementation 'jakarta.servlet:jakarta.servlet-api'
 	implementation 'org.springframework:spring-webflux'
 	implementation 'org.springframework:spring-webmvc'
 	implementation 'org.springframework:spring-websocket'
 	implementation 'org.springframework:spring-messaging'
 	implementation 'org.springframework.data:spring-data-commons'
 	implementation 'com.querydsl:querydsl-core'
-	implementation ("org.springframework.boot:spring-boot-graphql:${springBootVersion}") {
-        exclude group: 'org.springframework.graphql'
-    }
-	implementation "org.springframework.boot:spring-boot-starter-webmvc:${springBootVersion}"
 	implementation 'tools.jackson.core:jackson-databind'
 	implementation 'io.rsocket:rsocket-core'
 	implementation 'io.rsocket:rsocket-transport-netty'
@@ -103,7 +99,6 @@ antora {
 
 tasks.named("generateAntoraYml") {
 	asciidocAttributes = project.provider( { ['spring-graphql-version': project.version,
-		'spring-boot-version': springBootVersion,
 		'spring-framework-version': springFrameworkVersion] } )
 }
 

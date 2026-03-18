@@ -28,8 +28,20 @@ and `DataFetcherExceptionResolver` and `SubscriptionExceptionResolver`  beans fo
 xref:request-execution.adoc#execution.exceptions[exception resolution]. For further customizations, you can also
 declare a `GraphQlSourceBuilderCustomizer` bean, for example:
 
-include-code::GraphQlConfig[]
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+@Configuration(proxyBeanMethods = false)
+public class GraphQlConfig {
 
+	@Bean
+	public GraphQlSourceBuilderCustomizer sourceBuilderCustomizer() {
+		return (builder) ->
+				builder.configureGraphQl((graphQlBuilder) ->
+						graphQlBuilder.executionIdProvider(new CustomExecutionIdProvider()));
+	}
+
+}
+----
 
 
 [[execution.graphqlsource.schema-resources]]

@@ -23,12 +23,6 @@ subprojects {
 
 	repositories {
 		mavenCentral()
-		maven {
-			url "https://repo.spring.io/milestone"
-			content {
-				includeGroup "org.springframework.boot"
-			}
-		}
 		if (version.contains('-')) {
 			maven { url "https://repo.spring.io/milestone" }
 		}
