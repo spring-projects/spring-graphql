@@ -173,12 +173,14 @@ class GraphQlTesterTests extends GraphQlTesterTestSupport {
 
 		String document = "{me {name, friends}}";
 		getGraphQlService().setDataAsJson(document,
-				"{" +
-				"  \"me\":{" +
-				"      \"name\":\"Luke Skywalker\","
-				+ "    \"friends\":[{\"name\":\"Han Solo\"}, {\"name\":\"Leia Organa\"}]" +
-				"  }" +
-				"}");
+				"""
+						{
+							"me":{
+								"name":"Luke Skywalker",
+								"friends":[{"name":"Han Solo"}, {"name":"Leia Organa"}]
+							}
+						}
+						""");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
@@ -213,26 +215,45 @@ class GraphQlTesterTests extends GraphQlTesterTestSupport {
 				.containsExactly(han, leia);
 
 		assertThat(getActualRequestDocument()).contains(document);
-
-		assertThatThrownBy(() -> entityList.singleElement())
-				.as("Should have exactly one element")
-				.hasMessage("Expecting list " +
-							"[MovieCharacter[name='Han Solo'], MovieCharacter[name='Leia Organa']] " +
-							"at path 'me.friends' to have size == 1\n" +
-							"Request: document='{me {name, friends}}'");
 	}
 
 	@Test
-	void entityListWithOneElement() {
+	void singleElementShouldThrowWhenMultiple() {
 
 		String document = "{me {name, friends}}";
 		getGraphQlService().setDataAsJson(document,
-				"{" +
-				"  \"me\":{" +
-				"      \"name\":\"Luke Skywalker\","
-				+ "    \"friends\":[{\"name\":\"Han Solo\"}]" +
-				"  }" +
-				"}");
+				"""
+						{
+							"me":{
+								"name":"Luke Skywalker",
+								"friends":[{"name":"Han Solo"}, {"name":"Leia Organa"}]
+							}
+						}
+						""");
+
+		GraphQlTester.Response response = graphQlTester().document(document).execute();
+		GraphQlTester.EntityList<MovieCharacter> entityList = response.path("me.friends").entityList(MovieCharacter.class);
+		assertThatThrownBy(entityList::singleElement)
+				.as("Should have exactly one element")
+				.hasMessage("Expecting list " +
+						"[MovieCharacter[name='Han Solo'], MovieCharacter[name='Leia Organa']] " +
+						"at path 'me.friends' to have size == 1\n" +
+						"Request: document='{me {name, friends}}'");
+	}
+
+	@Test
+	void entityListWithSingleElement() {
+
+		String document = "{me {name, friends}}";
+		getGraphQlService().setDataAsJson(document,
+				"""
+						{
+						  "me":{
+						      "name":"Luke Skywalker",
+						    "friends":[{"name":"Han Solo"}]
+						  }
+						}
+						""");
 
 		GraphQlTester.Response response = graphQlTester().document(document).execute();
 
