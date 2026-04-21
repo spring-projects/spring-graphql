@@ -19,6 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create Backport Issue
-        uses: spring-io/backport-bot@ae3dca6a90774213692f2f49d8826ecfa15e4ade #v0.0.2
+        uses: spring-io/backport-bot@v0.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
