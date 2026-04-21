@@ -19,11 +19,11 @@ dependencies {
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
 	api(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.10.2"))
-	api(platform("org.junit:junit-bom:6.0.0"))
+	api(platform("org.junit:junit-bom:6.0.3"))
 	api(platform("org.mockito:mockito-bom:5.20.0"))
-	api(platform("org.testcontainers:testcontainers-bom:2.0.2"))
-	api(platform("org.apache.logging.log4j:log4j-bom:2.25.1"))
-	api(platform("org.assertj:assertj-bom:3.27.3"))
+	api(platform("org.testcontainers:testcontainers-bom:2.0.5"))
+	api(platform("org.apache.logging.log4j:log4j-bom:2.25.4"))
+	api(platform("org.assertj:assertj-bom:3.27.7"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
@@ -36,7 +36,7 @@ dependencies {
 		api("com.apollographql.federation:federation-graphql-java-support:6.0.0")
 		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:8.4.3")
 
-		api("org.apache.tomcat.embed:tomcat-embed-el:11.0.10")
+		api("org.apache.tomcat.embed:tomcat-embed-el:11.0.21")
 
 		api("com.google.code.findbugs:jsr305:3.0.2")
 		api("com.jayway.jsonpath:json-path:2.10.0")
@@ -44,15 +44,15 @@ dependencies {
 		api("org.awaitility:awaitility:4.3.0")
 		api("com.squareup.okhttp3:mockwebserver3:5.1.0")
 		api("org.hamcrest:hamcrest:3.0")
-		api("io.mockk:mockk:1.14.5")
+		api("io.mockk:mockk:1.14.9")
 
-		api("com.h2database:h2:2.3.232")
-		api("org.hibernate.orm:hibernate-core:7.1.0.Final")
+		api("com.h2database:h2:2.4.240")
+		api("org.hibernate.orm:hibernate-core:7.2.12.Final")
 		api("org.hibernate.validator:hibernate-validator:9.0.1.Final")
-		api("org.mongodb:bson:5.5.1")
-		api("org.mongodb:mongodb-driver-core:5.5.1")
-		api("org.mongodb:mongodb-driver-reactivestreams:5.5.1")
-		api("org.mongodb:mongodb-driver-sync:5.5.1")
+		api("org.mongodb:bson:5.6.5")
+		api("org.mongodb:mongodb-driver-core:5.6.5")
+		api("org.mongodb:mongodb-driver-reactivestreams:5.6.5")
+		api("org.mongodb:mongodb-driver-sync:5.6.5")
 	}
 
 }
