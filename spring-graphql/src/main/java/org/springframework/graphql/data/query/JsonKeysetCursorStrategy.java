@@ -20,6 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -142,7 +144,9 @@ public final class JsonKeysetCursorStrategy implements CursorStrategy<Map<String
 		static void customize(CodecConfigurer configurer) {
 
 			PolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
-					.allowIfBaseType(Map.class)
+					.allowIfSubType(LinkedHashMap.class)
+					.allowIfSubType(HashMap.class)
+					.allowIfSubType("java.util.Collections")
 					.allowIfSubType("java.time.")
 					.allowIfSubType(Calendar.class)
 					.allowIfSubType(Date.class)
