@@ -11,7 +11,7 @@ on:
 permissions:
   contents: read
 jobs:
-  build:
+  backport-issue:
     permissions:
       contents: read
       issues: write
@@ -19,6 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create Backport Issue
-        uses: spring-io/backport-bot@f16bdf71d0e79da6bf201133eb9311eb44b94bb8 #v0.0.1
+        uses: spring-io/backport-bot@ae3dca6a90774213692f2f49d8826ecfa15e4ade #v0.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
