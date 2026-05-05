@@ -10,11 +10,11 @@ dependencies {
 	api(platform("org.springframework:spring-framework-bom:${springFrameworkVersion}"))
 	api(platform("com.fasterxml.jackson:jackson-bom:2.21.2"))
 	api(platform("tools.jackson:jackson-bom:3.1.2"))
-	api(platform("io.projectreactor:reactor-bom:2025.0.5"))
-	api(platform("io.micrometer:micrometer-bom:1.16.5"))
-	api(platform("io.micrometer:micrometer-tracing-bom:1.6.5"))
-	api(platform("org.springframework.data:spring-data-bom:2025.1.5"))
-	api(platform("org.springframework.security:spring-security-bom:7.0.5"))
+	api(platform("io.projectreactor:reactor-bom:2025.0.6-SNAPSHOT"))
+	api(platform("io.micrometer:micrometer-bom:1.16.6-SNAPSHOT"))
+	api(platform("io.micrometer:micrometer-tracing-bom:1.6.6-SNAPSHOT"))
+	api(platform("org.springframework.data:spring-data-bom:2025.1.6-SNAPSHOT"))
+	api(platform("org.springframework.security:spring-security-bom:7.0.6-SNAPSHOT"))
 	api(platform("com.querydsl:querydsl-bom:5.1.0"))
 	api(platform("io.rsocket:rsocket-bom:1.1.5"))
 	api(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
@@ -34,7 +34,7 @@ dependencies {
 		api("jakarta.persistence:jakarta.persistence-api:3.2.0")
 
 		api("com.apollographql.federation:federation-graphql-java-support:6.0.0")
-		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:8.4.3")
+		api("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-shared-core:8.5.0")
 
 		api("org.apache.tomcat.embed:tomcat-embed-el:11.0.21")
 
