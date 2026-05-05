@@ -2,7 +2,7 @@ description = "Spring for GraphQL"
 
 ext {
 	moduleProjects = [project(":spring-graphql"), project(":spring-graphql-test")]
-	springFrameworkVersion = "6.2.16"
+	springFrameworkVersion = "6.2.19-SNAPSHOT"
 	graphQlJavaVersion = "24.3"
 	springBootVersion = "3.4.9"
 }
