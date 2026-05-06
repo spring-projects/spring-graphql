@@ -63,6 +63,7 @@ import org.springframework.web.socket.WebSocketMessage;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.CONNECTION_ACK;
 import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.PING;
 import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.PONG;
@@ -262,6 +263,22 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		handler.afterConnectionClosed(this.session, closeStatus);
 		assertThat(called).isTrue();
+	}
+
+	@Test
+	void messageAfterConnectionClosed() throws Exception {
+		handle(this.handler, new TextMessage("{\"type\":\"connection_init\"}"));
+
+		StepVerifier.create(this.session.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, GraphQlWebSocketMessageType.CONNECTION_ACK))
+				.then(this.session::close)
+				.expectComplete()
+				.verify(TIMEOUT);
+
+		this.handler.afterConnectionClosed(this.session, CloseStatus.NORMAL);
+
+		assertThatNoException().isThrownBy(() ->
+				this.handler.handleTextMessage(this.session, new TextMessage("{\"type\":\"ping\"}")));
 	}
 
 	@Test

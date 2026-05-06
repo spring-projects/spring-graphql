@@ -198,10 +198,13 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 	}
 
 	private void handleInternal(WebSocketSession session, TextMessage webSocketMessage) throws IOException {
+		SessionState state = this.sessionInfoMap.get(session.getId());
+		if (state == null) {
+			return;
+		}
 		GraphQlWebSocketMessage message = decode(webSocketMessage);
 		String id = message.getId();
 		Map<String, Object> payload = message.getPayload();
-		SessionState state = getSessionInfo(session);
 		switch (message.resolvedType()) {
 			case SUBSCRIBE -> {
 				if (state.getConnectionInitPayload() == null) {
