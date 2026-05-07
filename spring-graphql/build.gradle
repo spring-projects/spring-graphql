@@ -89,6 +89,8 @@ dependencies {
 	testImplementation 'com.querydsl:querydsl-core'
 	testImplementation 'com.querydsl:querydsl-collections'
 	testImplementation 'jakarta.servlet:jakarta.servlet-api'
+	testImplementation 'jakarta.websocket:jakarta.websocket-api'
+	testImplementation 'jakarta.websocket:jakarta.websocket-client-api'
 	testImplementation 'com.squareup.okhttp3:mockwebserver'
 	testImplementation 'io.rsocket:rsocket-transport-local'
 	testImplementation 'jakarta.persistence:jakarta.persistence-api'
