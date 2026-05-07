@@ -32,6 +32,8 @@ import java.util.function.Consumer;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import jakarta.servlet.ServletContext;
+import jakarta.websocket.server.ServerContainer;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -57,12 +59,19 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockServletContext;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
+import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
+import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.CONNECTION_ACK;
 import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.PING;
 import static org.springframework.graphql.server.support.GraphQlWebSocketMessageType.PONG;
@@ -447,6 +456,42 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 		finally {
 			threadLocal.remove();
 		}
+	}
+
+	@Test
+	void shipsDefaultCorsConfiguration() throws Exception {
+		GraphQlWebSocketHandler webSocketHandler = new GraphQlWebSocketHandler(initHandler(), converter, Duration.ofSeconds(60));
+		WebSocketHttpRequestHandler httpRequestHandler = webSocketHandler.initWebSocketHttpRequestHandler(new DefaultHandshakeHandler());
+
+		MockHttpServletRequest request = new MockHttpServletRequest("GET", "https://spring.io/graphql");
+		request.addHeader("Origin", "https://example.org");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		httpRequestHandler.handleRequest(request, response);
+
+		assertThat(response.getStatus()).isEqualTo(403);
+	}
+
+	@Test
+	void allowsCustomCorsConfiguration() throws Exception {
+		CorsConfiguration corsConfiguration = new CorsConfiguration();
+		corsConfiguration.addAllowedOrigin("https://example.org");
+		GraphQlWebSocketHandler webSocketHandler = new GraphQlWebSocketHandler(initHandler(), converter, Duration.ofSeconds(60), null, corsConfiguration);
+		WebSocketHttpRequestHandler httpRequestHandler = webSocketHandler.initWebSocketHttpRequestHandler(new DefaultHandshakeHandler());
+
+		ServerContainer serverContainer = mock();
+		ServletContext servletContext = new MockServletContext();
+		servletContext.setAttribute("jakarta.websocket.server.ServerContainer", serverContainer);
+		MockHttpServletRequest request = new MockHttpServletRequest(servletContext, "GET", "/graphql");
+		request.addHeader("Host", "spring.io");
+		request.addHeader("Origin", "https://example.org");
+		request.addHeader("Upgrade", "WebSocket");
+		request.addHeader("Connection", "Upgrade");
+		request.addHeader("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==");
+		request.addHeader("Sec-WebSocket-Version", "13");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		httpRequestHandler.handleRequest(request, response);
+
+		assertThat(response.getStatus()).isEqualTo(200);
 	}
 
 	@Test

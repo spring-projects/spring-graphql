@@ -51,11 +51,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import org.springframework.web.server.ServerWebExchange;
 
 /**
  * WebSocketHandler for GraphQL based on
@@ -66,7 +69,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * @since 1.0.0
  */
 @RegisterReflectionForBinding(GraphQlWebSocketMessage.class)
-public class GraphQlWebSocketHandler implements WebSocketHandler {
+public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurationSource {
 
 	private static final Log logger = LogFactory.getLog(GraphQlWebSocketHandler.class);
 
@@ -82,6 +85,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 	private final Duration initTimeoutDuration;
 
 	private final @Nullable Duration keepAliveDuration;
+
+	private final @Nullable CorsConfiguration corsConfiguration;
 
 
 	/**
@@ -111,6 +116,26 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer,
 			Duration connectionInitTimeout, @Nullable Duration keepAliveDuration) {
 
+		this(graphQlHandler, codecConfigurer, connectionInitTimeout, keepAliveDuration, new CorsConfiguration());
+	}
+
+	/**
+	 * Create a new instance.
+	 * @param graphQlHandler common handler for GraphQL over WebSocket requests
+	 * @param codecConfigurer codec configurer for JSON encoding and decoding
+	 * @param connectionInitTimeout how long to wait after the establishment of
+	 * the WebSocket for the {@code "connection_ini"} message from the client.
+	 * @param keepAliveDuration how frequently to send ping messages when no
+	 * other messages are sent
+	 * @param corsConfiguration the CORS configuration to use, a {@code null}
+	 * configuration means no CORS check.
+	 * @since 1.4.6
+	 */
+	public GraphQlWebSocketHandler(
+			WebGraphQlHandler graphQlHandler, CodecConfigurer codecConfigurer,
+			Duration connectionInitTimeout, @Nullable Duration keepAliveDuration,
+			@Nullable CorsConfiguration corsConfiguration) {
+
 		Assert.notNull(graphQlHandler, "WebGraphQlHandler is required");
 
 		this.graphQlHandler = graphQlHandler;
@@ -118,13 +143,19 @@ public class GraphQlWebSocketHandler implements WebSocketHandler {
 		this.codecDelegate = new WebSocketCodecDelegate(codecConfigurer);
 		this.initTimeoutDuration = connectionInitTimeout;
 		this.keepAliveDuration = keepAliveDuration;
+		this.corsConfiguration = corsConfiguration;
 	}
 
 
+	@Override
 	public List<String> getSubProtocols() {
 		return SUB_PROTOCOL_LIST;
 	}
 
+	@Override
+	public @Nullable CorsConfiguration getCorsConfiguration(ServerWebExchange exchange) {
+		return this.corsConfiguration;
+	}
 
 	@SuppressWarnings("CallingSubscribeInNonBlockingScope")
 	@Override
