@@ -16,12 +16,12 @@
 
 package org.springframework.graphql.data.method.annotation.support;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
@@ -98,7 +98,7 @@ class BatchMappingDetectionTests {
 		dataLoader.loadMany(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8));
 		dataLoader.dispatchAndJoin();
 
-		assertThat(controller.getBatchSizes()).containsExactly(5, 3);
+		assertThat(controller.getBatchSizes()).containsExactlyInAnyOrder(5, 3);
 
 	}
 
@@ -177,7 +177,7 @@ class BatchMappingDetectionTests {
 	@SuppressWarnings("unused")
 	private static class BatchSizeController {
 
-		private final List<Integer> batchSizes = new ArrayList<>();
+		private final List<Integer> batchSizes = new CopyOnWriteArrayList<>();
 
 		public List<Integer> getBatchSizes() {
 			return this.batchSizes;
