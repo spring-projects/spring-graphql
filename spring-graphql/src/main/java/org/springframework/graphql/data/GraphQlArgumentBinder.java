@@ -439,11 +439,11 @@ public class GraphQlArgumentBinder {
 	 */
 	public static final class Options {
 
-		private final @Nullable ConversionService conversionService;
+		private @Nullable ConversionService conversionService;
 
-		private final @Nullable NameResolver nameResolver;
+		private @Nullable NameResolver nameResolver;
 
-		private final boolean fallBackOnDirectFieldAccess;
+		private boolean fallBackOnDirectFieldAccess;
 
 		private Options(@Nullable ConversionService conversionService, @Nullable NameResolver nameResolver,
 				boolean fallBackOnDirectFieldAccess) {
@@ -459,7 +459,8 @@ public class GraphQlArgumentBinder {
 		 * @param service the service to use
 		 */
 		public Options conversionService(@Nullable ConversionService service) {
-			return new Options(service, this.nameResolver, this.fallBackOnDirectFieldAccess);
+			this.conversionService = service;
+			return this;
 		}
 
 		/**
@@ -467,8 +468,8 @@ public class GraphQlArgumentBinder {
 		 * @param resolver the resolver to add
 		 */
 		public Options nameResolver(NameResolver resolver) {
-			resolver = ((this.nameResolver != null) ? this.nameResolver.andThen(resolver) : resolver);
-			return new Options(this.conversionService, resolver, this.fallBackOnDirectFieldAccess);
+			this.nameResolver = ((this.nameResolver != null) ? this.nameResolver.andThen(resolver) : resolver);
+			return this;
 		}
 
 		/**
@@ -479,7 +480,8 @@ public class GraphQlArgumentBinder {
 		 * @param fallBackOnDirectFieldAccess whether to fall back on direct field access
 		 */
 		public Options fallBackOnDirectFieldAccess(boolean fallBackOnDirectFieldAccess) {
-			return new Options(this.conversionService, this.nameResolver, fallBackOnDirectFieldAccess);
+			this.fallBackOnDirectFieldAccess = fallBackOnDirectFieldAccess;
+			return this;
 		}
 
 		public @Nullable ConversionService conversionService() {

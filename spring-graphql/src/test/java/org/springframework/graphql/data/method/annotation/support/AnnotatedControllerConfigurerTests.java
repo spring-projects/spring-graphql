@@ -21,6 +21,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.support.StaticApplicationContext;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.query.SortStrategy;
 
@@ -35,12 +36,13 @@ import static org.mockito.Mockito.mock;
  */
 class AnnotatedControllerConfigurerTests {
 
+	private final AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
+
 	@Test
 	void customArgumentResolvers() {
 		HandlerMethodArgumentResolver customResolver1 = mock(HandlerMethodArgumentResolver.class);
 		HandlerMethodArgumentResolver customResolver2 = mock(HandlerMethodArgumentResolver.class);
 
-		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.addCustomArgumentResolver(customResolver1);
 		configurer.addCustomArgumentResolver(customResolver2);
 		configurer.setApplicationContext(new StaticApplicationContext());
@@ -60,7 +62,6 @@ class AnnotatedControllerConfigurerTests {
 		StaticApplicationContext context = new StaticApplicationContext();
 		context.registerBean(SortStrategy.class, () -> sortStrategy);
 
-		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(context);
 		configurer.afterPropertiesSet();
 
@@ -70,12 +71,18 @@ class AnnotatedControllerConfigurerTests {
 
 	@Test
 	void sortArgumentResolverStrategyNotPresent() {
-		AnnotatedControllerConfigurer configurer = new AnnotatedControllerConfigurer();
 		configurer.setApplicationContext(new StaticApplicationContext());
 		configurer.afterPropertiesSet();
 
 		List<HandlerMethodArgumentResolver> resolvers = configurer.getArgumentResolvers().getResolvers();
 		assertThat(resolvers.stream().filter(r -> r instanceof SortMethodArgumentResolver).findFirst()).isNotPresent();
+	}
+
+	@Test
+	void customizeArgumentBinder() {
+		ConversionService conversionService = mock(ConversionService.class);
+		configurer.configureBinder(binder -> binder.conversionService(conversionService));
+		assertThat(configurer.getBinderOptions().conversionService()).isEqualTo(conversionService);
 	}
 
 }
