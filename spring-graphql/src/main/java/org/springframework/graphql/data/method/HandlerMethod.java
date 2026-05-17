@@ -285,7 +285,7 @@ public class HandlerMethod {
 		}
 		for (int i = 0; i < paramTypes.length; i++) {
 			if (paramTypes[i] !=
-					ResolvableType.forMethodParameter(candidate, i, this.method.getDeclaringClass()).resolve()) {
+					ResolvableType.forMethodParameter(candidate, i, this.method.getDeclaringClass()).toClass()) {
 				return false;
 			}
 		}
