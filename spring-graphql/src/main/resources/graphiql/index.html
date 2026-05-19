@@ -55,7 +55,7 @@
         const gqlFetcher = createGraphiQLFetcher({'url': url, 'subscriptionUrl': subscriptionUrl});
         const plugins = [HISTORY_PLUGIN, explorerPlugin()];
         const xsrfToken = document.cookie.match(new RegExp('(?:^| )XSRF-TOKEN=([^;]+)'));
-        const initialHeaders = xsrfToken ? `{ 'X-XSRF-TOKEN' : '${ xsrfToken[1] }' }` : undefined;
+        const initialHeaders = xsrfToken ? `{ "X-XSRF-TOKEN" : "${ xsrfToken[1] }" }` : undefined;
 
         function App() {
             return React.createElement(GraphiQL, {

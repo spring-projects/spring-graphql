@@ -24,6 +24,7 @@ dependencies {
 	api(platform("org.testcontainers:testcontainers-bom:2.0.5"))
 	api(platform("org.apache.logging.log4j:log4j-bom:2.25.4"))
 	api(platform("org.assertj:assertj-bom:3.27.7"))
+	api(platform("org.seleniumhq.selenium:selenium-dependencies-bom:4.20.0"))
 
 	constraints {
 		api("com.graphql-java:graphql-java:${graphQlJavaVersion}")
