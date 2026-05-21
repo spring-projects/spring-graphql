@@ -16,7 +16,6 @@
 
 package org.springframework.graphql.observation;
 
-import java.util.List;
 import java.util.Locale;
 
 import io.micrometer.common.KeyValue;
@@ -52,13 +51,12 @@ public class DefaultDataLoaderObservationConvention implements DataLoaderObserva
 
 	@Override
 	public String getContextualName(DataLoaderObservationContext context) {
-		List<?> result = context.getResult();
-		if (result.isEmpty()) {
-			return "graphql dataloader";
+		for (Object item : context.getResult()) {
+			if (item != null) {
+				return "graphql dataloader " + item.getClass().getSimpleName().toLowerCase(Locale.ROOT);
+			}
 		}
-		else {
-			return "graphql dataloader " + result.get(0).getClass().getSimpleName().toLowerCase(Locale.ROOT);
-		}
+		return "graphql dataloader";
 	}
 
 	@Override
