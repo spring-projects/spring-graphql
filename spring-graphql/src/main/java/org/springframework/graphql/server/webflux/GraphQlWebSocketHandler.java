@@ -39,6 +39,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.execution.SubscriptionPublisherException;
 import org.springframework.graphql.server.WebGraphQlHandler;
@@ -288,6 +289,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurat
 		return responseFlux
 				.map((responseMap) -> this.codecDelegate.encodeNext(session, id, responseMap))
 				.concatWith(Mono.fromCallable(() -> this.codecDelegate.encodeComplete(session, id)))
+				.doOnDiscard(WebSocketMessage.class, (msg) -> DataBufferUtils.release(msg.getPayload()))
 				.onErrorResume((ex) -> {
 					if (ex instanceof SubscriptionExistsException) {
 						CloseStatus status = new CloseStatus(4409, "Subscriber for " + id + " already exists");
