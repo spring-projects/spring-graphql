@@ -184,7 +184,7 @@ public interface GraphQlTester {
 		 * @return this request spec
 		 * @since 1.3.0
 		 */
-		T variables(Map<String, Object> values);
+		T variables(Map<String, @Nullable Object> values);
 
 		/**
 		 * Add a value for a protocol extension.

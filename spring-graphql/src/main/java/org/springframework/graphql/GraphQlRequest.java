@@ -50,7 +50,7 @@ public interface GraphQlRequest {
 	/**
 	 * Return values for variables defined by the operation.
 	 */
-	Map<String, Object> getVariables();
+	Map<String, @Nullable Object> getVariables();
 
 	/**
 	 * Return implementor specific, protocol extensions, if any.

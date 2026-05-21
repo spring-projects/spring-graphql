@@ -38,7 +38,7 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 
 	private @Nullable String operationName;
 
-	private Map<String, Object> variables = Collections.emptyMap();
+	private Map<String, @Nullable Object> variables = Collections.emptyMap();
 
 	private Map<String, Object> extensions = Collections.emptyMap();
 
@@ -60,12 +60,12 @@ public class SerializableGraphQlRequest implements GraphQlRequest {
 		return this.operationName;
 	}
 
-	public void setVariables(Map<String, Object> variables) {
+	public void setVariables(Map<String, @Nullable Object> variables) {
 		this.variables = variables;
 	}
 
 	@Override
-	public Map<String, Object> getVariables() {
+	public Map<String, @Nullable Object> getVariables() {
 		return this.variables;
 	}
 

@@ -65,7 +65,7 @@ public class DefaultExecutionGraphQlRequest extends DefaultGraphQlRequest implem
 	 */
 	public DefaultExecutionGraphQlRequest(
 			String document, @Nullable String operationName,
-			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions,
+			@Nullable Map<String, @Nullable Object> variables, @Nullable Map<String, Object> extensions,
 			String id, @Nullable Locale locale) {
 
 		super(document, operationName, variables, extensions);

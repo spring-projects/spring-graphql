@@ -127,7 +127,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 
 		private @Nullable String operationName;
 
-		private final Map<String, Object> variables = new LinkedHashMap<>();
+		private final Map<String, @Nullable Object> variables = new LinkedHashMap<>();
 
 		private final Map<String, Object> attributes = new LinkedHashMap<>();
 
@@ -151,7 +151,7 @@ final class DefaultGraphQlClient implements GraphQlClient {
 		}
 
 		@Override
-		public RequestSpec variables(Map<String, Object> variables) {
+		public RequestSpec variables(Map<String, @Nullable Object> variables) {
 			this.variables.putAll(variables);
 			return this;
 		}

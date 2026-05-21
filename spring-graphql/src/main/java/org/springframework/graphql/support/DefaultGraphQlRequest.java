@@ -49,7 +49,7 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 
 	private final @Nullable String operationName;
 
-	private final Map<String, Object> variables;
+	private final Map<String, @Nullable Object> variables;
 
 	private final Map<String, Object> extensions;
 
@@ -71,12 +71,12 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 	 */
 	public DefaultGraphQlRequest(
 			String document, @Nullable String operationName,
-			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions) {
+			@Nullable Map<String, @Nullable Object> variables, @Nullable Map<String, Object> extensions) {
 
 		Assert.notNull(document, "'document' is required");
 		this.document = document;
 		this.operationName = operationName;
-		this.variables = (variables != null) ? variables : Collections.emptyMap();
+		this.variables = (variables != null) ? variables : Collections.<String, @Nullable Object>emptyMap();
 		this.extensions = (extensions != null) ? extensions : Collections.emptyMap();
 	}
 
@@ -92,7 +92,7 @@ public class DefaultGraphQlRequest implements GraphQlRequest {
 	}
 
 	@Override
-	public Map<String, Object> getVariables() {
+	public Map<String, @Nullable Object> getVariables() {
 		return this.variables;
 	}
 

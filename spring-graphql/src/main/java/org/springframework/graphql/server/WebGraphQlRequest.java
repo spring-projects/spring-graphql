@@ -102,7 +102,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest {
 			Map<String, Object> body, String id, @Nullable Locale locale) {
 
 		this(uri, headers, cookies, remoteAddress, attributes, getQuery(body), getOperation(body),
-				getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
+				WebGraphQlRequest.<@Nullable Object>getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
 	}
 
 	/**
@@ -144,7 +144,7 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest {
 			Map<String, Object> attributes, Map<String, Object> body, String id, @Nullable Locale locale) {
 
 		this(uri, headers, cookies, null, attributes, getQuery(body), getOperation(body),
-				getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
+				WebGraphQlRequest.<@Nullable Object>getMap(VARIABLES_KEY, body), getMap(EXTENSIONS_KEY, body), id, locale);
 	}
 
 	private static String getQuery(Map<String, Object> body) {
@@ -164,19 +164,19 @@ public class WebGraphQlRequest extends DefaultExecutionGraphQlRequest {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static @Nullable Map<String, Object> getMap(String key, Map<String, Object> body) {
+	private static <V extends @Nullable Object> @Nullable Map<String, V> getMap(String key, Map<String, Object> body) {
 		Object value = body.get(key);
 		if (value != null && !(value instanceof Map)) {
 			throw new ServerWebInputException("Invalid value for '" + key + "'");
 		}
-		return (Map<String, Object>) value;
+		return (Map<String, V>) value;
 	}
 
 	private WebGraphQlRequest(
 			URI uri, HttpHeaders headers, @Nullable MultiValueMap<String, HttpCookie> cookies,
 			@Nullable InetSocketAddress remoteAddress, Map<String, Object> attributes,
 			String document, @Nullable String operationName,
-			@Nullable Map<String, Object> variables, @Nullable Map<String, Object> extensions,
+			@Nullable Map<String, @Nullable Object> variables, @Nullable Map<String, Object> extensions,
 			String id, @Nullable Locale locale) {
 
 		super(document, operationName, variables, extensions, id, locale);

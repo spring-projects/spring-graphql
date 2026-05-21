@@ -123,7 +123,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 
 		List<String> fragments = new ArrayList<>();
 
-		private final Map<String, Object> variables = new LinkedHashMap<>();
+		private final Map<String, @Nullable Object> variables = new LinkedHashMap<>();
 
 		private final Map<String, Object> extensions = new LinkedHashMap<>();
 
@@ -160,7 +160,7 @@ final class DefaultGraphQlTester implements GraphQlTester {
 		}
 
 		@Override
-		public DefaultRequest variables(Map<String, Object> variables) {
+		public DefaultRequest variables(Map<String, @Nullable Object> variables) {
 			this.variables.putAll(variables);
 			return this;
 		}

@@ -211,7 +211,7 @@ public interface GraphQlClient {
 		 * @param variables the variable values
 		 * @return this request spec
 		 */
-		RequestSpec variables(Map<String, Object> variables);
+		RequestSpec variables(Map<String, @Nullable Object> variables);
 
 		/**
 		 * Add a value for a protocol extension.
