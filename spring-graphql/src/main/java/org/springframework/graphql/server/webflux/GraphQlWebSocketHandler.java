@@ -172,7 +172,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurat
 		}
 
 		// Session state
-		WebSocketSessionInfo sessionInfo = new WebFluxSessionInfo(session);
+		WebFluxSessionInfo sessionInfo = new WebFluxSessionInfo(session);
 		AtomicReference<Map<String, Object>> connectionInitPayloadRef = new AtomicReference<>();
 		Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
@@ -244,7 +244,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurat
 							.flux();
 					if (this.keepAliveDuration != null) {
 						flux = flux.mergeWith(Flux.interval(this.keepAliveDuration, this.keepAliveDuration)
-								.filter((aLong) -> !this.codecDelegate.checkMessagesEncodedAndClear())
+								.filter((aLong) -> !sessionInfo.checkMessagesSentAndClear())
 								.map((aLong) -> this.codecDelegate.encode(session, GraphQlWebSocketMessage.ping(null))));
 					}
 					return flux.onErrorResume((ex) -> GraphQlStatus.close(session, GraphQlStatus.UNAUTHORIZED_STATUS));
@@ -253,7 +253,7 @@ public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurat
 					return GraphQlStatus.close(session, GraphQlStatus.INVALID_MESSAGE_STATUS);
 				}
 			}
-		}));
+		}).doOnNext(sessionInfo::onMessageSent));
 	}
 
 
@@ -332,6 +332,8 @@ public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurat
 
 		private final WebSocketSession session;
 
+		private boolean messagesSent;
+
 		private WebFluxSessionInfo(WebSocketSession session) {
 			this.session = session;
 		}
@@ -364,6 +366,16 @@ public class GraphQlWebSocketHandler implements WebSocketHandler, CorsConfigurat
 		@Override
 		public InetSocketAddress getRemoteAddress() {
 			return this.session.getHandshakeInfo().getRemoteAddress();
+		}
+
+		public void onMessageSent(WebSocketMessage message) {
+			this.messagesSent = true;
+		}
+
+		public boolean checkMessagesSentAndClear() {
+			boolean result = this.messagesSent;
+			this.messagesSent = false;
+			return result;
 		}
 	}
 

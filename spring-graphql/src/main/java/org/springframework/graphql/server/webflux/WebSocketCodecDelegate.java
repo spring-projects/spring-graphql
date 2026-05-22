@@ -50,8 +50,6 @@ final class WebSocketCodecDelegate {
 
 	private final Encoder<?> encoder;
 
-	private boolean messagesEncoded;
-
 
 	WebSocketCodecDelegate(CodecConfigurer codecConfigurer) {
 		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
@@ -82,8 +80,6 @@ final class WebSocketCodecDelegate {
 		DataBuffer buffer = ((Encoder<T>) this.encoder).encodeValue(
 				(T) message, session.bufferFactory(), MESSAGE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
 
-		this.messagesEncoded = true;
-
 		return new WebSocketMessage(WebSocketMessage.Type.TEXT, buffer);
 	}
 
@@ -107,12 +103,6 @@ final class WebSocketCodecDelegate {
 
 	WebSocketMessage encodeComplete(WebSocketSession session, String id) {
 		return encode(session, GraphQlWebSocketMessage.complete(id));
-	}
-
-	boolean checkMessagesEncodedAndClear() {
-		boolean result = this.messagesEncoded;
-		this.messagesEncoded = false;
-		return result;
 	}
 
 }

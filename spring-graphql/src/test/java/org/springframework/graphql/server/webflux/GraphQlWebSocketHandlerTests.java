@@ -143,6 +143,36 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	}
 
 	@Test
+	void keepAliveConcurrentClients() {
+		GraphQlWebSocketHandler handler = new GraphQlWebSocketHandler(
+				initHandler(), ServerCodecConfigurer.create(), Duration.ofSeconds(60), Duration.ofMillis(10));
+
+		TestWebSocketSession session1 =
+				new TestWebSocketSession(Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}")));
+		TestWebSocketSession session2 =
+				new TestWebSocketSession(Flux.just(toWebSocketMessage("{\"type\":\"connection_init\"}")));
+
+		handler.handle(session1).subscribe();
+		handler.handle(session2).subscribe();
+
+		StepVerifier.create(session1.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, CONNECTION_ACK))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.thenCancel()
+				.verify(TIMEOUT);
+
+		StepVerifier.create(session2.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, CONNECTION_ACK))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.consumeNextWith((message) -> assertMessageType(message, PING))
+				.thenCancel()
+				.verify(TIMEOUT);
+	}
+
+	@Test
 	void unauthorizedWithoutMessageType() {
 		TestWebSocketSession session = handle(Flux.just(
 				toWebSocketMessage("{\"type\":\"connection_init\"}"),
