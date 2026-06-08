@@ -42,6 +42,11 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.ExecutionGraphQlRequest;
 import org.springframework.graphql.ExecutionGraphQlResponse;
 import org.springframework.graphql.GraphQlSetup;
+import org.springframework.graphql.Library;
+import org.springframework.graphql.LibraryId;
+import org.springframework.graphql.Location;
+import org.springframework.graphql.LocationArea;
+import org.springframework.graphql.LocationAreaId;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.TestExecutionRequest;
@@ -64,9 +69,9 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  */
 class EntityMappingInvocationTests {
 
-	private static final Resource federationSchema = new ClassPathResource("books/federation-schema.graphqls");
+	private static final Resource bookFederationSchema = new ClassPathResource("books/federation-schema.graphqls");
 
-	private static final String document = """
+	private static final String bookDocument = """
 			query Entities($representations: [_Any!]!) {
 				_entities(representations: $representations) {
 					...on Book {
@@ -81,6 +86,32 @@ class EntityMappingInvocationTests {
 			}
 			""";
 
+	private static final Resource libraryFederationSchema = new ClassPathResource("library/federation-schema.graphqls");
+
+	private static final String locationAreaDocument = """
+			query Entities($representations: [_Any!]!) {
+				_entities(representations: $representations) {
+					...on LocationArea {
+						location {
+							id
+						}
+					}
+				}
+			}
+			""";
+
+	private static final String libraryDocument = """
+			query Entities($representations: [_Any!]!) {
+				_entities(representations: $representations) {
+					...on Library {
+						id
+						location {
+							id
+						}
+					}
+				}
+			}
+			""";
 
 	@Test
 	void fetchEntities() {
@@ -90,7 +121,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "5"),
 						Map.of("__typename", "PrintedMedia", "id", "42")));
 
-		ResponseHelper helper = executeWith(BookController.class, variables);
+		ResponseHelper helper = executeWith(BookController.class, bookFederationSchema, bookDocument, variables);
 
 		assertAuthor(0, "Joseph", "Heller", helper);
 		assertAuthor(1, "George", "Orwell", helper);
@@ -109,7 +140,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "3"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ResponseHelper helper = executeWith(BookController.class, variables);
+		ResponseHelper helper = executeWith(BookController.class, bookFederationSchema, bookDocument, variables);
 
 		assertError(helper, 0, "BAD_REQUEST", "Missing \"__typename\" argument");
 		assertError(helper, 1, "INTERNAL_ERROR", "No entity fetcher");
@@ -124,9 +155,34 @@ class EntityMappingInvocationTests {
 	@Test // gh-1057
 	void fetchEntitiesWithEmptyList() {
 		Map<String, Object> vars = Map.of("representations", Collections.emptyList());
-		ResponseHelper helper = executeWith(BookController.class, vars);
+		ResponseHelper helper = executeWith(BookController.class, bookFederationSchema, bookDocument, vars);
 
 		assertThat(helper.toEntity("_entities.length()", Integer.class)).isEqualTo(0);
+	}
+
+	@Test
+	void fetchSingleNestedKeyEntity() {
+		Map<String, Object> variables = Map.of("representations", List.of(
+			Map.of("__typename", "LocationArea", "location", Map.of("id", "1"))
+		));
+
+		ResponseHelper helper = executeWith(LibraryController.class, libraryFederationSchema, locationAreaDocument, variables);
+
+		LocationArea locationArea = helper.toEntity("_entities[0]", LocationArea.class);
+		assertThat(locationArea.location().id()).isEqualTo("1");
+	}
+
+	@Test
+	void fetchMixedNestedKeyEntity() {
+		Map<String, Object> variables = Map.of("representations", List.of(
+				Map.of("__typename", "Library", "id", "1", "location", Map.of("id", "1"))
+		));
+
+		ResponseHelper helper = executeWith(LibraryController.class, libraryFederationSchema, libraryDocument, variables);
+
+		Library library = helper.toEntity("_entities[0]", Library.class);
+		assertThat(library.id()).isEqualTo("1");
+		assertThat(library.location().id()).isEqualTo("1");
 	}
 
 	@ValueSource(classes = {BookListController.class, BookFluxController.class})
@@ -140,7 +196,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "42"),
 						Map.of("__typename", "Book", "id", "53")));
 
-		ResponseHelper helper = executeWith(controllerClass, variables);
+		ResponseHelper helper = executeWith(controllerClass, bookFederationSchema, bookDocument, variables);
 
 		assertAuthor(0, "George", "Orwell", helper);
 		assertAuthor(1, "Virginia", "Woolf", helper);
@@ -158,7 +214,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "4"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ResponseHelper helper = executeWith(controllerClass, variables);
+		ResponseHelper helper = executeWith(controllerClass, bookFederationSchema, bookDocument, variables);
 
 		assertError(helper, 0, "BAD_REQUEST", "handled");
 		assertError(helper, 1, "BAD_REQUEST", "handled");
@@ -174,7 +230,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "4"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ResponseHelper helper = executeWith(controllerClass, variables);
+		ResponseHelper helper = executeWith(controllerClass, bookFederationSchema, bookDocument, variables);
 
 		assertError(helper, 0, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
 		assertError(helper, 1, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
@@ -188,7 +244,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Book", "id", "3"),
 						Map.of("__typename", "Book", "id", "5")));
 
-		ResponseHelper helper = executeWith(DataLoaderBookController.class, variables);
+		ResponseHelper helper = executeWith(DataLoaderBookController.class, bookFederationSchema, bookDocument, variables);
 
 		assertAuthor(0, "Joseph", "Heller", helper);
 		assertAuthor(1, "George", "Orwell", helper);
@@ -196,13 +252,15 @@ class EntityMappingInvocationTests {
 
 	@Test
 	void unmappedEntity() {
-		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, Map.of()))
+		assertThatIllegalStateException().isThrownBy(() -> executeWith(EmptyController.class, bookFederationSchema, bookDocument, Map.of()))
 				.withMessage("Unmapped entity types: 'Media', 'PrintedMedia', 'Book'");
 	}
 
-	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {
+	private static ResponseHelper executeWith(Class<?> controllerClass, Resource federationSchema, String document,
+											  Map<String, Object> variables) {
+
 		ExecutionGraphQlRequest request = TestExecutionRequest.forDocumentAndVars(document, variables);
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService(controllerClass).execute(request);
+		Mono<ExecutionGraphQlResponse> responseMono = graphQlService(controllerClass, federationSchema).execute(request);
 		return ResponseHelper.forResponse(responseMono);
 	}
 
@@ -220,7 +278,7 @@ class EntityMappingInvocationTests {
 		assertThat(helper.<Object>rawValue(path)).isNull();
 	}
 
-	private static TestExecutionGraphQlService graphQlService(Class<?> controllerClass) {
+	private static TestExecutionGraphQlService graphQlService(Class<?> controllerClass, Resource federationSchema) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
@@ -389,6 +447,38 @@ class EntityMappingInvocationTests {
 					.message(ex.getMessage())
 					.build();
 		}
+	}
+
+	@SuppressWarnings("unused")
+	@Controller
+	public static class LibraryController {
+
+		@EntityMapping
+		public @Nullable Library library(@Argument LibraryId id, Map<String, Object> map) {
+
+			assertThat(id.id()).isNotNull();
+			assertThat(id.location().id()).isNotNull();
+
+			assertThat(map).hasSize(3)
+					.containsEntry("__typename", "Library")
+					.containsEntry("id", "1")
+					.containsEntry("location", Map.of("id", "1"));
+
+			return new Library("1", new Location("1"));
+		}
+
+		@EntityMapping
+		public @Nullable LocationArea locationArea(@Argument LocationAreaId id, Map<String, Object> map) {
+
+			assertThat(id.location().id()).isNotNull();
+
+			assertThat(map).hasSize(2)
+					.containsEntry("__typename", "LocationArea")
+					.containsEntry("location", Map.of("id", "1"));
+
+			return new LocationArea(new Location("1"));
+		}
+
 	}
 
 }
