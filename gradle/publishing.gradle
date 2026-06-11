@@ -12,6 +12,7 @@ plugins.withType(JavaPlugin) {
 			use = true
 			links = project.ext.javadocLinks
 			addStringOption("Xdoclint:none", "-quiet")
+			addBooleanOption("-no-fonts", true)
 		}
 
 		// Suppress warnings due to cross-module @see and @link references.
