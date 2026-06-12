@@ -24,6 +24,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DelegatingDataFetchingEnvironment;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.ResolvableType;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -68,9 +69,25 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	}
 
 	private @Nullable Object doBind(String name, ResolvableType targetType, Map<String, Object> entityMap) throws BindException {
-		Object rawValue = entityMap.get(name);
-		boolean isOmitted = !entityMap.containsKey(name);
-		return getArgumentBinder().bind(rawValue, isOmitted, targetType);
+		if (isScalarValue(entityMap)) {
+			Object rawValue = entityMap.get(name);
+			return getArgumentBinder().bind(rawValue, false, targetType);
+		}
+		return getArgumentBinder().bind(entityMap, false, targetType);
+	}
+
+	private boolean isScalarValue(Map<String, Object> entityMap) {
+		if (entityMap.size() != 2) {
+			return false;
+		}
+
+		for (Map.Entry<String, Object> entry : entityMap.entrySet()) {
+			if (!"__typename".equals(entry.getKey())) {
+				Object value = entry.getValue();
+				return BeanUtils.isSimpleValueType(value.getClass());
+			}
+		}
+		return false;
 	}
 
 	private static String dePluralize(String name) {
