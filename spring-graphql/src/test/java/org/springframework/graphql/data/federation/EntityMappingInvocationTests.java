@@ -256,9 +256,7 @@ class EntityMappingInvocationTests {
 				.withMessage("Unmapped entity types: 'Media', 'PrintedMedia', 'Book'");
 	}
 
-	private static ResponseHelper executeWith(Class<?> controllerClass, Resource federationSchema, String document,
-											  Map<String, Object> variables) {
-
+	private static ResponseHelper executeWith(Class<?> controllerClass, Resource federationSchema, String document, Map<String, Object> variables) {
 		ExecutionGraphQlRequest request = TestExecutionRequest.forDocumentAndVars(document, variables);
 		Mono<ExecutionGraphQlResponse> responseMono = graphQlService(controllerClass, federationSchema).execute(request);
 		return ResponseHelper.forResponse(responseMono);
