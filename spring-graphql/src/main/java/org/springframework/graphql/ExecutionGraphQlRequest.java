@@ -50,7 +50,7 @@ public interface ExecutionGraphQlRequest extends GraphQlRequest {
 	 * {@code UUID.randomUUID()}.
 	 * <li>On WebSocket, the id is set to the message id of the {@code "subscribe"}
 	 * message from the GraphQL over WebSocket protocol that is used to correlate
-	 * request and response messages on the the WebSocket.
+	 * request and response messages on the WebSocket.
 	 * </ul>
 	 * <p>To override this id, use {@link #executionId(ExecutionId)} or configure
 	 * {@link graphql.GraphQL} with an {@link graphql.execution.ExecutionIdProvider}.
