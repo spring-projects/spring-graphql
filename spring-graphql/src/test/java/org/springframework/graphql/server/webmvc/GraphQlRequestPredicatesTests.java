@@ -104,6 +104,15 @@ class GraphQlRequestPredicatesTests {
 			assertThatThrownBy(() -> httpPredicate.test(request)).isInstanceOf(UnsupportedMediaTypeStatusException.class);
 		}
 
+		@Test // gh-1485
+		void shouldNotRejectRequestWithInvalidContentTypeOnDifferentPath() {
+			MockHttpServletRequest servletRequest = createMatchingHttpRequest();
+			servletRequest.setRequestURI("/invalid");
+			servletRequest.setContentType("bogus");
+			ServerRequest request = ServerRequest.create(servletRequest, List.of());
+			assertThat(httpPredicate.test(request)).isFalse();
+		}
+
 		@Test
 		void shouldRejectRequestWithIncompatibleAccept() {
 			MockHttpServletRequest request = createMatchingHttpRequest();
