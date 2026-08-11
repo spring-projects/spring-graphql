@@ -105,6 +105,16 @@ class GraphQlRequestPredicatesTests {
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
 		}
 
+		@Test // gh-1485
+		void shouldNotRejectRequestWithInvalidContentTypeOnDifferentPath() {
+			MockServerHttpRequest request = MockServerHttpRequest.post("/invalid")
+					.header(HttpHeaders.CONTENT_TYPE, "bogus")
+					.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
 		@Test
 		void shouldRejectRequestWithInvalidContentType() {
 			ServerWebExchange exchange = createMatchingHttpExchange()
