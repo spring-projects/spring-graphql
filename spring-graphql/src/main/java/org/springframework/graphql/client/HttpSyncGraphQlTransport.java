@@ -77,6 +77,11 @@ final class HttpSyncGraphQlTransport implements SyncGraphQlTransport {
 				.contentType(this.contentType)
 				.accept(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
 				.body(request.toMap())
+				.attributes((attributes) -> {
+					if (request instanceof ClientGraphQlRequest clientRequest) {
+						attributes.putAll(clientRequest.getAttributes());
+					}
+				})
 				.exchange((httpRequest, httpResponse) -> {
 					if (httpResponse.getStatusCode().equals(HttpStatus.OK)) {
 						return httpResponse.bodyTo(MAP_TYPE);

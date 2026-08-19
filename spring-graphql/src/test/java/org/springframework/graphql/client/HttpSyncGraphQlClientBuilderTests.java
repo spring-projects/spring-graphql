@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import graphql.ExecutionResultImpl;
 import org.jspecify.annotations.Nullable;
@@ -192,6 +193,27 @@ class HttpSyncGraphQlClientBuilderTests {
 	}
 
 	@Test
+	void attributes() {
+		HttpSyncGraphQlClient.Builder<?> builder = this.setup.initBuilder();
+
+		ConcurrentHashMap<String, Object> attributesFromRestClientRequest = new ConcurrentHashMap<>();
+
+		this.setup.getRestClientBuilder()
+			.requestInterceptor(((request, body, execution) -> {
+				attributesFromRestClientRequest.putAll(request.getAttributes());
+				return execution.execute(request, body);
+			}));
+
+		builder.url("/graphql-one")
+			.build()
+			.document(DOCUMENT)
+			.attribute("attribute-one", "1")
+			.executeSync();
+
+		assertThat(attributesFromRestClientRequest).containsEntry("attribute-one", "1");
+	}
+
+	@Test
 	void codecConfigurerRegistersJsonPathMappingProvider() {
 
 		TestJacksonJsonConverter testConverter = new TestJacksonJsonConverter();
@@ -221,6 +243,8 @@ class HttpSyncGraphQlClientBuilderTests {
 
 	private static class ClientBuilderSetup {
 
+		private RestClient.Builder restClientBuilder;
+
 		private final MockExecutionGraphQlService graphQlService = new MockExecutionGraphQlService();
 
 		@Nullable
@@ -242,7 +266,8 @@ class HttpSyncGraphQlClientBuilderTests {
 		public HttpSyncGraphQlClient.Builder<?> initBuilder() {
 			HttpHandler httpHandler = initServer();
 			ClientHttpRequestFactory requestFactory = new HttpHandlerClientHttpRequestFactory(httpHandler);
-			return HttpSyncGraphQlClient.builder(RestClient.builder().requestFactory(requestFactory));
+			restClientBuilder = RestClient.builder().requestFactory(requestFactory);
+			return HttpSyncGraphQlClient.builder(restClientBuilder);
 		}
 
 		private HttpHandler initServer() {
@@ -257,6 +282,9 @@ class HttpSyncGraphQlClientBuilderTests {
 			return RouterFunctions.toHttpHandler(routerFunction, HandlerStrategies.withDefaults());
 		}
 
+		RestClient.Builder getRestClientBuilder() {
+			return restClientBuilder;
+		}
 	}
 
 
