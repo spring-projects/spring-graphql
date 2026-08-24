@@ -113,7 +113,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	@Override
-	public ExecutionInput instrumentExecutionInput(ExecutionInput executionInput, InstrumentationExecutionParameters parameters, InstrumentationState state) {
+	public ExecutionInput instrumentExecutionInput(ExecutionInput executionInput, InstrumentationExecutionParameters parameters, @Nullable InstrumentationState state) {
 		return executionInput.transform((builder) -> {
 			DataLoaderRegistry dataLoaderRegistry = DataLoaderRegistry.newRegistry()
 					.registerAll(executionInput.getDataLoaderRegistry())
@@ -131,7 +131,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	@Override
 	public @Nullable InstrumentationContext<ExecutionResult> beginExecution(InstrumentationExecutionParameters parameters,
-			InstrumentationState state) {
+			@Nullable InstrumentationState state) {
 		if (state instanceof RequestObservationInstrumentationState observationState) {
 			ExecutionRequestObservationContext observationContext = observationState.requestObservationContext;
 			Observation requestObservation = GraphQlObservationDocumentation.EXECUTION_REQUEST.observation(this.requestObservationConvention,
@@ -165,7 +165,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 	}
 
 	@Override
-	public @Nullable InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters, InstrumentationState state) {
+	public @Nullable InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters, @Nullable InstrumentationState state) {
 		if (state instanceof RequestObservationInstrumentationState observationState) {
 			observationState.requestObservationContext.setExecutionContext(parameters.getExecutionContext());
 		}
@@ -174,7 +174,7 @@ public class GraphQlObservationInstrumentation extends SimplePerformantInstrumen
 
 	@Override
 	public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher,
-			InstrumentationFieldFetchParameters parameters, InstrumentationState state) {
+			InstrumentationFieldFetchParameters parameters, @Nullable InstrumentationState state) {
 		if (!parameters.isTrivialDataFetcher()
 				&& state instanceof RequestObservationInstrumentationState) {
 			// skip batch loading operations, already instrumented at the dataloader level

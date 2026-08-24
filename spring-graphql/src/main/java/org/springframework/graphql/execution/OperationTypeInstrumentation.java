@@ -40,7 +40,7 @@ class OperationTypeInstrumentation extends SimplePerformantInstrumentation {
 
 	@Override
 	public @Nullable InstrumentationContext<ExecutionResult> beginExecuteOperation(
-			InstrumentationExecuteOperationParameters parameters, InstrumentationState state) {
+			InstrumentationExecuteOperationParameters parameters, @Nullable InstrumentationState state) {
 
 		ExecutionContext context = parameters.getExecutionContext();
 		Set<OperationDefinition.Operation> allowed = context.getGraphQLContext().get(DefaultExecutionGraphQlRequest.ALLOWED_OPERATIONS_KEY);

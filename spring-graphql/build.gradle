@@ -126,7 +126,6 @@ compatibilityTest {
 		graphQLJava.groupId = 'com.graphql-java'
 		graphQLJava.artifactId = 'graphql-java'
 		graphQLJava.versions = [
-				'26.0'
 		]
 	}
 }
