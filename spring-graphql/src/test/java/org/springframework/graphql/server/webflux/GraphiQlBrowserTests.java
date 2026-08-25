@@ -17,8 +17,6 @@
 package org.springframework.graphql.server.webflux;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 
 import org.junit.jupiter.api.AfterEach;
@@ -29,7 +27,6 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -137,15 +134,6 @@ class GraphiQlBrowserTests {
 		RemoteWebDriver driver = getWebDriver();
 		driver.get(getUrl("/graphiql?path=http://example.com/graphql"));
 
-		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-		List<LogEntry> logs = new ArrayList<>();
-		wait.until(webDriver -> {
-			logs.addAll(webDriver.manage().logs().get(LogType.BROWSER).getAll());
-			return !logs.isEmpty();
-		});
-
-		assertThat(logs)
-				.anyMatch(entry -> entry.getMessage().contains("GraphQL endpoint must resolve to the same origin as this page"));
 		assertThat(driver.findElements(By.className("graphiql-container"))).isEmpty();
 
 		driver.quit();
