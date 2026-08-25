@@ -28,6 +28,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.web.util.UriBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Spring MVC handler to serve a GraphiQl UI page.
@@ -76,9 +77,37 @@ public class GraphiQlHandler {
 	 * @param request the HTTP server request
 	 */
 	public ServerResponse handleRequest(ServerRequest request) {
-		return (request.param("path").isPresent() ?
-				ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.htmlResource) :
-				ServerResponse.temporaryRedirect(getRedirectUrl(request)).build());
+		if (request.param("path").isPresent()) {
+			return serveGraphiQlPage(request);
+		}
+		else {
+			return ServerResponse.temporaryRedirect(getRedirectUrl(request)).build();
+		}
+	}
+
+	private ServerResponse serveGraphiQlPage(ServerRequest request) {
+		if (!isExpectedPath(request, "path", this.graphQlPath) ||
+				!isExpectedPath(request, "wsPath", this.graphQlWsPath)) {
+			return ServerResponse.badRequest().build();
+		}
+		return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(this.htmlResource);
+	}
+
+	/**
+	 * Check that the given query parameter, if present, is exactly the
+	 * same-origin relative path that this handler would itself generate for
+	 * a redirect (see {@link #getRedirectUrl}). This avoids having to parse
+	 * and validate an arbitrary, possibly absolute, client-supplied URL.
+	 */
+	private boolean isExpectedPath(ServerRequest request, String paramName, @Nullable String configuredPath) {
+		return request.param(paramName)
+				.map((value) -> StringUtils.hasText(configuredPath) && value.equals(expandPath(request, configuredPath)))
+				.orElse(true);
+	}
+
+	private String expandPath(ServerRequest request, String path) {
+		String pathWithPrefix = applyPathPrefix(request, path);
+		return UriComponentsBuilder.fromPath(pathWithPrefix).build().expand(request.pathVariables()).toUriString();
 	}
 
 	private URI getRedirectUrl(ServerRequest request) {

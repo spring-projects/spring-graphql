@@ -104,6 +104,47 @@ class GraphiQlHandlerTests {
 	}
 
 	@Test
+	void shouldRejectIfNotSameHttpOrigin() {
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", "/graphiql");
+		servletRequest.addParameter("path", "http://example.com/graphql");
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldRejectIfNotSameWsOrigin() {
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", "/graphiql");
+		servletRequest.addParameter("path", "/graphql");
+		servletRequest.addParameter("wsPath", "http://example.com/graphql");
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldRejectWsPathWhenNotConfigured() {
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", "/graphiql");
+		servletRequest.addParameter("path", "/graphql");
+		servletRequest.addParameter("wsPath", "/graphql");
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldAcceptMatchingWsPath() {
+		GraphiQlHandler wsHandler = new GraphiQlHandler("/graphql", "/graphql",
+				new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", "/graphiql");
+		servletRequest.addParameter("path", "/graphql");
+		servletRequest.addParameter("wsPath", "/graphql");
+		ServerRequest request = ServerRequest.create(servletRequest, MESSAGE_READERS);
+		ServerResponse response = wsHandler.handleRequest(request);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.OK);
+	}
+
+	@Test
 	void shouldServeGraphiQlHtmlResource() throws Exception {
 		MockHttpServletRequest servletRequest = new MockHttpServletRequest("GET", "/graphiql");
 		servletRequest.addParameter("path", "/graphql");

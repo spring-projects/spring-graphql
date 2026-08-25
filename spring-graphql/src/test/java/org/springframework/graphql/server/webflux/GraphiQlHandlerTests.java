@@ -99,6 +99,51 @@ class GraphiQlHandlerTests {
 	}
 
 	@Test
+	void shouldRejectIfNotSameHttpOrigin() {
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.get("https://spring.io/graphiql")
+				.queryParam("path", "http://example.com/graphql").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		ServerRequest request = ServerRequest.create(exchange, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request).block();
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldRejectIfNotSameWsOrigin() {
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.get("https://spring.io/graphiql")
+				.queryParam("path", "/graphql")
+				.queryParam("wsPath", "http://example.com/graphql").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		ServerRequest request = ServerRequest.create(exchange, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request).block();
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldRejectWsPathWhenNotConfigured() {
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.get("/graphiql")
+				.queryParam("path", "/graphql")
+				.queryParam("wsPath", "/graphql").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		ServerRequest request = ServerRequest.create(exchange, MESSAGE_READERS);
+		ServerResponse response = this.handler.handleRequest(request).block();
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldAcceptMatchingWsPath() {
+		GraphiQlHandler wsHandler = new GraphiQlHandler("/graphql", "/graphql",
+				new ByteArrayResource("GRAPHIQL".getBytes(StandardCharsets.UTF_8)));
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.get("/graphiql")
+				.queryParam("path", "/graphql")
+				.queryParam("wsPath", "/graphql").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
+		ServerRequest request = ServerRequest.create(exchange, MESSAGE_READERS);
+		ServerResponse response = wsHandler.handleRequest(request).block();
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.OK);
+	}
+
+	@Test
 	void shouldServeGraphiQlHtmlResource() {
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.get("/graphiql").queryParam("path", "/graphql").build();
 		MockServerWebExchange exchange = MockServerWebExchange.from(httpRequest);
