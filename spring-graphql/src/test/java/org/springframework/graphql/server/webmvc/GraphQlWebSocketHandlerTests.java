@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -37,6 +38,7 @@ import jakarta.websocket.server.ServerContainer;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
@@ -156,6 +158,37 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 
 		StepVerifier.create(session.getOutput()).verifyComplete();
 		assertThat(SUBSCRIPTION_CANCELLED).isTrue();
+	}
+
+	@Test
+	void sessionClosedShouldCancelPublisher() throws Exception {
+		this.session = new ClosedSession();
+
+		// An IllegalStateException raised while sending a subscription response (e.g. by
+		// Tomcat when the session was concurrently closed) must be handled within
+		// SendMessageSubscriber like an IOException, rather than escaping hookOnNext to
+		// reactor's operator-error handling.
+		List<Throwable> operatorErrors = new CopyOnWriteArrayList<>();
+		Hooks.onOperatorError("gh-send-on-closed", (error, data) -> {
+			operatorErrors.add(error);
+			return error;
+		});
+		try {
+			handle(this.handler,
+					new TextMessage("{\"type\":\"connection_init\"}"), new TextMessage(BOOK_SUBSCRIPTION));
+
+			// The output Flux completes once the subscriber closes the session in response
+			// to the failed send; waiting on it also synchronizes with the send thread.
+			StepVerifier.create(session.getOutput())
+					.consumeNextWith((message) -> assertMessageType(message, CONNECTION_ACK))
+					.verifyComplete();
+
+			assertThat(operatorErrors).isEmpty();
+			assertThat(SUBSCRIPTION_CANCELLED).isTrue();
+		}
+		finally {
+			Hooks.resetOnOperatorError("gh-send-on-closed");
+		}
 	}
 
 	@Test
