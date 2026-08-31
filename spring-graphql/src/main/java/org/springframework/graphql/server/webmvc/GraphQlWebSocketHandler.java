@@ -739,7 +739,9 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				this.session.sendMessage(nextMessage);
 				request(1);
 			}
-			catch (IOException ex) {
+			catch (IOException | IllegalStateException ex) {
+				// IllegalStateException is raised (e.g. by Tomcat) when the session was
+				// concurrently closed while a response was still in flight.
 				cancel();
 				ExceptionWebSocketHandlerDecorator.tryCloseWithError(this.session, ex, logger);
 			}
