@@ -335,6 +335,36 @@ If necessary, you can take over the mapping for individual subtypes:
 ----
 
 
+[[controllers.schema-mapping.return-projections]]
+=== Return Value Projections
+
+Add `@ProjectAs` to a `@SchemaMapping` method (including `@QueryMapping`, `@MutationMapping`,
+and `@SubscriptionMapping`) to adapt its return value to a Spring Data interface projection.
+This requires Spring Data Commons on the classpath and uses the same projection support as
+xref:data.adoc#data.projections[Spring Data repository data fetchers]. For example:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	@QueryMapping
+	@ProjectAs(BookView.class)
+	public Book bookById(@Argument Long id) {
+		return this.bookRepository.findById(id).orElse(null);
+	}
+
+	interface BookView {
+
+		@Value("#{target.name}")
+		String getTitle();
+	}
+----
+
+The projection applies to each element of a collection or asynchronous return value,
+including subscription events. `null` values remain `null`. For `DataFetcherResult`, only
+the data is projected; errors, extensions, and local context are preserved. Child schema
+mapping methods receive the projection as their source and should declare that interface
+as their source parameter type. `@ProjectAs` does not apply to `@BatchMapping` methods.
+
+
 [[controllers.schema-mapping.argument]]
 === `@Argument`
 

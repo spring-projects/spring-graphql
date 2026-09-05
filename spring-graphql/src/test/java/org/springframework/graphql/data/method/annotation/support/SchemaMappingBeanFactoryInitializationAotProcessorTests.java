@@ -20,6 +20,8 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,6 +68,7 @@ import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
 import org.springframework.graphql.data.method.annotation.LocalContextValue;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.graphql.data.method.annotation.ProjectAs;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
@@ -90,6 +93,61 @@ class SchemaMappingBeanFactoryInitializationAotProcessorTests {
 	void processorIsRegisteredInAotFactories() {
 		assertThat(AotServices.factories(getClass().getClassLoader()).load(BeanFactoryInitializationAotProcessor.class))
 				.anyMatch(SchemaMappingBeanFactoryInitializationAotProcessor.class::isInstance);
+	}
+
+	@Nested
+	class ReturnProjectionTests {
+
+		@Test
+		void registersProjectionAndNestedProjectionHints() {
+			processBeanClasses(ProjectionController.class);
+			assertThatHintsForJavaBeanBindingRegisteredForTypes(Book.class);
+			for (Class<?> projectionType : List.of(BookProjection.class, AuthorProjection.class, EditorProjection.class)) {
+				assertThat(RuntimeHintsPredicates.proxies().forInterfaces(
+						projectionType, TargetAware.class, SpringProxy.class, DecoratingProxy.class))
+						.accepts(generationContext.getRuntimeHints());
+			}
+			assertThatInvocationHintRegisteredForMethods(BookProjection.class, "getAuthors");
+			assertThatInvocationHintRegisteredForMethods(AuthorProjection.class, "getName", "getBook");
+			assertThatInvocationHintRegisteredForMethods(EditorProjection.class, "getName");
+		}
+
+		@Controller
+		static class ProjectionController {
+
+			@QueryMapping
+			@BookView
+			Book book() {
+				return null;
+			}
+		}
+
+		@Retention(RetentionPolicy.RUNTIME)
+		@ProjectAs(BookProjection.class)
+		@interface BookView {
+		}
+
+		interface BookProjection extends HasAuthors<AuthorProjection> {
+
+			com.google.common.base.Optional<EditorProjection> getEditor();
+		}
+
+		interface EditorProjection {
+
+			String getName();
+		}
+
+		interface HasAuthors<T> {
+
+			List<T> getAuthors();
+		}
+
+		interface AuthorProjection {
+
+			String getName();
+
+			BookProjection getBook();
+		}
 	}
 
 	@Nested

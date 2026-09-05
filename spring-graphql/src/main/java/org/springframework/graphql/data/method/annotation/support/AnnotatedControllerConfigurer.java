@@ -69,6 +69,7 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
+import org.springframework.graphql.data.method.annotation.ProjectAs;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.pagination.CursorStrategy;
 import org.springframework.graphql.data.query.SortStrategy;
@@ -331,7 +332,7 @@ public class AnnotatedControllerConfigurer
 		if (!info.isBatchMapping()) {
 			dataFetcher = new SchemaMappingDataFetcher(
 					info, getArgumentResolvers(), this.validationHelper, getExceptionResolver(),
-					getExecutor(), shouldInvokeAsync(info.getHandlerMethod()));
+					getExecutor(), shouldInvokeAsync(info.getHandlerMethod()), obtainApplicationContext());
 		}
 		else {
 			dataFetcher = registerBatchLoader(info);
@@ -444,10 +445,12 @@ public class AnnotatedControllerConfigurer
 
 		private final boolean usesDataLoader;
 
+		private final @Nullable ReturnValueProjector returnValueProjector;
+
 		SchemaMappingDataFetcher(
 				DataFetcherMappingInfo info, HandlerMethodArgumentResolverComposite argumentResolvers,
 				@Nullable ValidationHelper helper, HandlerDataFetcherExceptionResolver exceptionResolver,
-				@Nullable Executor executor, boolean invokeAsync) {
+				@Nullable Executor executor, boolean invokeAsync, ApplicationContext applicationContext) {
 
 			this.mappingInfo = info;
 			this.argumentResolvers = argumentResolvers;
@@ -461,6 +464,10 @@ public class AnnotatedControllerConfigurer
 			this.invokeAsync = invokeAsync;
 			this.subscription = this.mappingInfo.getCoordinates().getTypeName().equalsIgnoreCase("Subscription");
 			this.usesDataLoader = hasDataLoaderParameter(info.getHandlerMethod());
+			ProjectAs annotation = info.getHandlerMethod().getMethodAnnotation(ProjectAs.class);
+			Assert.state(annotation == null || springDataPresent, "@ProjectAs requires Spring Data Commons");
+			this.returnValueProjector = (annotation != null) ?
+					new ReturnValueProjector(annotation.value(), applicationContext) : null;
 		}
 
 		private static boolean hasDataLoaderParameter(HandlerMethod method) {
@@ -479,7 +486,8 @@ public class AnnotatedControllerConfigurer
 
 		@Override
 		public ResolvableType getReturnType() {
-			return ResolvableType.forMethodReturnType(getHandlerMethod().getMethod());
+			ResolvableType type = ResolvableType.forMethodParameter(getHandlerMethod().getReturnType());
+			return (this.returnValueProjector != null) ? this.returnValueProjector.getReturnType(type) : type;
 		}
 
 		HandlerMethod getHandlerMethod() {
@@ -520,6 +528,9 @@ public class AnnotatedControllerConfigurer
 
 			try {
 				Object result = handlerMethod.invoke(environment);
+				if (this.returnValueProjector != null) {
+					result = this.returnValueProjector.project(result);
+				}
 				return applyExceptionHandling(environment, handlerMethod, result);
 			}
 			catch (Throwable ex) {

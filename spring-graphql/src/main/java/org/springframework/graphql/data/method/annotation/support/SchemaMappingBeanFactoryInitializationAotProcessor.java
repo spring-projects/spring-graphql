@@ -22,7 +22,10 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.aop.SpringProxy;
 import org.springframework.aot.generate.GenerationContext;
@@ -40,7 +43,11 @@ import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotations;
+import org.springframework.data.core.NullableWrapperConverters;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.projection.TargetAware;
 import org.springframework.graphql.data.ArgumentValue;
@@ -48,6 +55,7 @@ import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
+import org.springframework.graphql.data.method.annotation.ProjectAs;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
@@ -193,8 +201,46 @@ class SchemaMappingBeanFactoryInitializationAotProcessor implements BeanFactoryI
 
 		private void processReturnType(RuntimeHints hints, MethodParameter parameter) {
 			new ArgumentBindingHints(parameter).apply(hints);
+			Method method = parameter.getMethod();
+			ProjectAs annotation = (method != null) ? AnnotatedElementUtils.findMergedAnnotation(method, ProjectAs.class) : null;
+			if (springDataPresent && annotation != null) {
+				registerProjectionHints(hints, annotation.value(), new HashSet<>());
+			}
 		}
 
+		private void registerProjectionHints(RuntimeHints hints, Class<?> type, Set<Class<?>> visited) {
+			if (!type.isInterface() || type.getName().startsWith("java.") || !visited.add(type)) {
+				return;
+			}
+			MethodParameterRuntimeHintsRegistrar.bindingRegistrar.registerReflectionHints(hints.reflection(), type);
+			hints.proxies().registerJdkProxy(type, TargetAware.class, SpringProxy.class, DecoratingProxy.class);
+			for (Method method : type.getMethods()) {
+				ResolvableType returnType = ResolvableType.forMethodReturnType(method, type);
+				registerProjectionPropertyHints(hints, returnType, visited);
+			}
+		}
+
+		private void registerProjectionPropertyHints(RuntimeHints hints, ResolvableType type, Set<Class<?>> visited) {
+			Class<?> resolved = type.resolve(Object.class);
+			if (type.isArray()) {
+				registerProjectionPropertyHints(hints, type.getComponentType(), visited);
+			}
+			else if (Iterable.class.isAssignableFrom(resolved)) {
+				registerProjectionPropertyHints(hints, type.as(Iterable.class).getGeneric(0), visited);
+			}
+			else if (Map.class.isAssignableFrom(resolved)) {
+				registerProjectionPropertyHints(hints, type.as(Map.class).getGeneric(1), visited);
+			}
+			else if (NullableWrapperConverters.supports(resolved)) {
+				TypeInformation<?> componentType = TypeInformation.of(type).getComponentType();
+				if (componentType != null) {
+					registerProjectionPropertyHints(hints, componentType.toResolvableType(), visited);
+				}
+			}
+			else {
+				registerProjectionHints(hints, resolved, visited);
+			}
+		}
 	}
 
 
