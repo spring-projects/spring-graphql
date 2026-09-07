@@ -31,8 +31,7 @@ plugins.withType(JavaPlugin) {
 		manifest.attributes["Implementation-Title"] = project.name
 		manifest.attributes["Implementation-Version"] = project.version
 		manifest.attributes["Automatic-Module-Name"] = project.name.replace('-', '.')  // for Jigsaw
-		manifest.attributes["Created-By"] =
-				"${System.getProperty("java.version")} (${System.getProperty("java.specification.vendor")})"
+		manifest.attributes["Build-Jdk-Spec"] = "${System.getProperty("java.specification.version")}"
 	}
 
 	tasks.named('sourcesJar', Jar).configure {
