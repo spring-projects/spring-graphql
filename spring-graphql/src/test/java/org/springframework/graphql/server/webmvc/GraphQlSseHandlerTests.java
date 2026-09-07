@@ -88,10 +88,10 @@ class GraphQlSseHandlerTests {
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
 				event:next
-				data:{"errors":[{"message":"Operation type 'QUERY' is not allowed for this request","extensions":{"classification":"OperationNotSupported"}}]}
+				data: {"errors":[{"message":"Operation type 'QUERY' is not allowed for this request","extensions":{"classification":"OperationNotSupported"}}]}
 
 				event:complete
-				data:
+				data:\s
 
 				""");
 	}
@@ -105,13 +105,13 @@ class GraphQlSseHandlerTests {
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
 				event:next
-				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+				data: {"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
 				event:next
-				data:{"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
+				data: {"data":{"bookSearch":{"id":"5","name":"Animal Farm"}}}
 
 				event:complete
-				data:
+				data:\s
 
 				""");
 	}
@@ -127,10 +127,10 @@ class GraphQlSseHandlerTests {
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
 				event:next
-				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+				data: {"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
 				event:complete
-				data:
+				data:\s
 
 				""");
 	}
@@ -155,7 +155,7 @@ class GraphQlSseHandlerTests {
 					:
 
 					event:complete
-					data:
+					data:\s
 
 					""");
 	}
@@ -173,13 +173,13 @@ class GraphQlSseHandlerTests {
 		assertThat(response.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(response.getContentAsString()).isEqualTo("""
 				event:next
-				data:{"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
+				data: {"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}
 
 				event:next
-				data:{"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
+				data: {"errors":[{"message":"Subscription error","locations":[],"extensions":{"classification":"INTERNAL_ERROR"}}]}
 
 				event:complete
-				data:
+				data:\s
 
 				""");
 	}
