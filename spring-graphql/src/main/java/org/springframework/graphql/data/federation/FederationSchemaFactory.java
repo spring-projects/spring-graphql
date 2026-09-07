@@ -188,8 +188,10 @@ public final class FederationSchemaFactory
 		Map<String, String> objectToInterfaceTypeMap = detectInterfaceImplementationTypes(registry);
 		checkEntityMappings(registry, objectToInterfaceTypeMap);
 
-		EntitiesDataFetcher entitiesDataFetcher =
-				new EntitiesDataFetcher(this.handlerMethods, objectToInterfaceTypeMap, getExceptionResolver());
+		EntityKeyResolver entityKeyResolver = new EntityKeyResolver(registry);
+
+		EntitiesDataFetcher entitiesDataFetcher = new EntitiesDataFetcher(this.handlerMethods, objectToInterfaceTypeMap,
+				getExceptionResolver(), entityKeyResolver);
 
 		return Federation.transform(registry, wiring)
 				.fetchEntities(entitiesDataFetcher)
