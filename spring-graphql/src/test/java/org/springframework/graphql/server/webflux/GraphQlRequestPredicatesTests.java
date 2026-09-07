@@ -168,6 +168,9 @@ class GraphQlRequestPredicatesTests {
 		RequestPredicate httpPredicate =
 				GraphQlRequestPredicates.graphQlHttp("/graphql", Set.of(HttpMethod.GET, HttpMethod.POST));
 
+		RequestPredicate httpPredicateWithQuery =
+				GraphQlRequestPredicates.graphQlHttp("/graphql", Set.of(HttpMethod.QUERY, HttpMethod.POST));
+
 		@Test
 		void shouldAcceptGetRequestWithoutContentType() {
 			MockServerHttpRequest request = MockServerHttpRequest.get("/graphql")
@@ -195,6 +198,35 @@ class GraphQlRequestPredicatesTests {
 					.build();
 			ServerRequest serverRequest = ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldAcceptQueryRequestWithContentType() {
+			MockServerHttpRequest request = MockServerHttpRequest.method(HttpMethod.QUERY, "/graphql")
+					.contentType(MediaType.APPLICATION_JSON)
+					.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
+			assertThat(httpPredicateWithQuery.test(serverRequest)).isTrue();
+		}
+
+		@Test
+		void shouldRejectQueryRequestWithoutContentType() {
+			MockServerHttpRequest request = MockServerHttpRequest.method(HttpMethod.QUERY, "/graphql")
+					.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
+			assertThat(httpPredicateWithQuery.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldAcceptCorsPreflightForQueryMethod() {
+			MockServerHttpRequest request = MockServerHttpRequest.options("/graphql")
+					.header("Origin", "https://example.org")
+					.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "QUERY")
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
+			assertThat(httpPredicateWithQuery.test(serverRequest)).isTrue();
 		}
 
 	}

@@ -82,6 +82,37 @@ Mutations remain blocked either way, but read-side side effects, such as rate li
 audit logging, still apply and should be considered as part of enabling this transport.
 
 
+[[server.transports.http.query]]
+=== HTTP QUERY
+
+`GraphQlHttpHandler` can optionally also accept the HTTP `QUERY` method, defined in
+https://www.rfc-editor.org/rfc/rfc10008.html[RFC 10008]. Unlike GET, `QUERY` carries the GraphQL
+request in the request body, using the same JSON encoding as POST, so a `Content-Type` header is
+required. `QUERY` support is disabled by default and must be enabled explicitly, on both the
+handler and the matching `RequestPredicate`:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+GraphQlHttpHandler httpHandler = GraphQlHttpHandler.builder(webGraphQlHandler)
+        .httpMethods(HttpMethod.QUERY, HttpMethod.POST)
+        .build();
+
+RequestPredicate predicate = GraphQlRequestPredicates.graphQlHttp("/graphql",
+        Set.of(HttpMethod.QUERY, HttpMethod.POST));
+----
+
+Like GET, `QUERY` is a "safe" HTTP method and must not be used to execute mutations. However, since
+`QUERY` is a method the resource does support, `405 (Method Not Allowed)` would not be accurate here:
+a `QUERY` request whose operation is a mutation is rejected instead with a
+`422 (Unprocessable Content)` response, without an `Allow` header, regardless of the requested media
+type.
+
+Unlike GET, `QUERY` is not a CORS "simple request": browsers always send a preflight request for it,
+and Spring Security's `CsrfFilter` requires a CSRF token for it, since `QUERY` is not in the safe-method
+allowlist. This may be worth noting when migrating clients from `POST`, where CSRF may have been
+disabled.
+
+
 [[server.transports.sse]]
 == Server-Sent Events
 

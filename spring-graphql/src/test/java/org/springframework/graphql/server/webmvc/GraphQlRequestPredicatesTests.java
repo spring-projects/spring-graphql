@@ -157,6 +157,9 @@ class GraphQlRequestPredicatesTests {
 
 		RequestPredicate httpPredicate = GraphQlRequestPredicates.graphQlHttp("/graphql", Set.of(HttpMethod.GET, HttpMethod.POST));
 
+		RequestPredicate httpPredicateWithQuery =
+				GraphQlRequestPredicates.graphQlHttp("/graphql", Set.of(HttpMethod.QUERY, HttpMethod.POST));
+
 		@Test
 		void shouldAcceptGetRequestWithoutContentType() {
 			MockHttpServletRequest request = new MockHttpServletRequest("GET", "/graphql");
@@ -181,6 +184,32 @@ class GraphQlRequestPredicatesTests {
 			request.addHeader("Accept", "application/graphql-response+json");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
 			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldAcceptQueryRequestWithContentType() {
+			MockHttpServletRequest request = new MockHttpServletRequest("QUERY", "/graphql");
+			request.setContentType("application/json");
+			request.addHeader("Accept", "application/graphql-response+json");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicateWithQuery.test(serverRequest)).isTrue();
+		}
+
+		@Test
+		void shouldRejectQueryRequestWithoutContentType() {
+			MockHttpServletRequest request = new MockHttpServletRequest("QUERY", "/graphql");
+			request.addHeader("Accept", "application/graphql-response+json");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicateWithQuery.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldAcceptCorsPreflightForQueryMethod() {
+			MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/graphql");
+			request.addHeader("Origin", "https://example.com");
+			request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "QUERY");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(httpPredicateWithQuery.test(serverRequest)).isTrue();
 		}
 
 	}

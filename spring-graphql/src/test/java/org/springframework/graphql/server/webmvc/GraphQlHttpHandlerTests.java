@@ -234,6 +234,37 @@ class GraphQlHttpHandlerTests {
 		assertThat(response.getHeader("Allow")).contains("GET").contains("POST");
 	}
 
+	@Test // gh-1505
+	void shouldSupportQueryRequests() throws Exception {
+		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(
+						GraphQlSetup.schemaContent("type Query { greeting: String }")
+								.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler())
+				.httpMethods(HttpMethod.QUERY, HttpMethod.POST)
+				.build();
+
+		MockHttpServletRequest request = createServletRequest("{ greeting }", "application/graphql-response+json");
+		request.setMethod("QUERY");
+
+		MockHttpServletResponse response = handleRequest(request, handler);
+		assertThat(response.getContentAsString()).isEqualTo("{\"data\":{\"greeting\":\"Hello\"}}");
+	}
+
+	@Test // gh-1505
+	void shouldRejectMutationOverQueryWith422() throws Exception {
+		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(
+						GraphQlSetup.schemaContent("type Query { greeting: String } type Mutation { updateGreeting: String }")
+								.mutationFetcher("updateGreeting", (env) -> "Updated").toWebGraphQlHandler())
+				.httpMethods(HttpMethod.QUERY, HttpMethod.POST)
+				.build();
+
+		MockHttpServletRequest request = createServletRequest("mutation { updateGreeting }", "application/graphql-response+json");
+		request.setMethod("QUERY");
+
+		MockHttpServletResponse response = handleRequest(request, handler);
+		assertThat(response.getStatus()).isEqualTo(422);
+		assertThat(response.getHeader("Allow")).isNull();
+	}
+
 	@Test // gh-1450
 	void shouldRejectMalformedVariablesOnGetWith400() {
 		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(

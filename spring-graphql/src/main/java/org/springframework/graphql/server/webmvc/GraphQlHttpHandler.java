@@ -160,10 +160,13 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	 * @param responseMediaType the HTTP response media type
 	 */
 	protected HttpStatus selectResponseStatus(ServerRequest request, WebGraphQlResponse response, MediaType responseMediaType) {
-		if (request.method() == HttpMethod.GET) {
-			OperationNotAllowedException rejection = findRejection(response);
-			if (rejection != null && rejection.getOperation() == OperationDefinition.Operation.MUTATION) {
+		OperationNotAllowedException rejection = findRejection(response);
+		if (rejection != null && rejection.getOperation() == OperationDefinition.Operation.MUTATION) {
+			if (request.method() == HttpMethod.GET) {
 				return HttpStatus.METHOD_NOT_ALLOWED;
+			}
+			if (request.method() == HttpMethod.QUERY) {
+				return HttpStatus.UNPROCESSABLE_CONTENT;
 			}
 		}
 		if (!isHttpOkOnValidationErrors()
@@ -230,6 +233,9 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 		 * {@link HttpMethod#GET} means that queries and their parameters are
 		 * exposed through the request URL; consider the security implications,
 		 * for example URLs being logged or cached, before enabling it.
+		 * {@link HttpMethod#QUERY} carries the same JSON body as {@code POST}
+		 * but, like {@code GET}, must not execute mutations; a mutation sent
+		 * over {@code QUERY} results in a {@code 422 Unprocessable Entity} response.
 		 * @param httpMethods the HTTP methods to support
 		 */
 		public Builder httpMethods(HttpMethod... httpMethods) {

@@ -238,6 +238,43 @@ class GraphQlHttpHandlerTests {
 		assertThat(response.getHeaders().getAllow()).containsExactlyInAnyOrder(HttpMethod.GET, HttpMethod.POST);
 	}
 
+	@Test // gh-1505
+	void shouldSupportQueryRequests() throws Exception {
+		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(
+						GraphQlSetup.schemaContent("type Query { greeting: String }")
+								.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler())
+				.httpMethods(HttpMethod.QUERY, HttpMethod.POST)
+				.build();
+
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.method(HttpMethod.QUERY, "/")
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+				.body(initRequestBody("{greeting}"));
+
+		MockServerHttpResponse response = handleRequest(httpRequest, handler);
+		StepVerifier.create(response.getBodyAsString())
+				.expectNext("{\"data\":{\"greeting\":\"Hello\"}}")
+				.verifyComplete();
+	}
+
+	@Test // gh-1505
+	void shouldRejectMutationOverQueryWith422() throws Exception {
+		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(
+						GraphQlSetup.schemaContent("type Query { greeting: String } type Mutation { updateGreeting: String }")
+								.mutationFetcher("updateGreeting", (env) -> "Updated").toWebGraphQlHandler())
+				.httpMethods(HttpMethod.QUERY, HttpMethod.POST)
+				.build();
+
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.method(HttpMethod.QUERY, "/")
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaTypes.APPLICATION_GRAPHQL_RESPONSE)
+				.body(initRequestBody("mutation { updateGreeting }"));
+
+		MockServerHttpResponse response = handleRequest(httpRequest, handler);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(response.getHeaders().getAllow()).isEmpty();
+	}
+
 	@Test // gh-1506
 	void shouldRejectSubscriptionOperations() throws Exception {
 		GraphQlHttpHandler handler = GraphQlSetup.schemaContent(

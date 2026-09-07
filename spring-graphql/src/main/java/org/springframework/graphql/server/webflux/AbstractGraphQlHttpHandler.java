@@ -61,7 +61,7 @@ public abstract class AbstractGraphQlHttpHandler {
 
 	private static final MediaType APPLICATION_GRAPHQL = MediaType.parseMediaType("application/graphql");
 
-	private static final Set<HttpMethod> SAFE_METHODS = Set.of(HttpMethod.GET);
+	private static final Set<HttpMethod> SAFE_METHODS = Set.of(HttpMethod.GET, HttpMethod.QUERY);
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
