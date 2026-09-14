@@ -64,6 +64,8 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 	private static final Set<OperationDefinition.Operation> SUPPORTED_OPERATIONS =
 			Set.of(OperationDefinition.Operation.SUBSCRIPTION);
 
+	private static final Set<HttpMethod> SUPPORTED_HTTP_METHODS = Set.of(HttpMethod.GET, HttpMethod.POST);
+
 	private final @Nullable Duration timeout;
 
 	private final @Nullable Duration keepAliveDuration;
@@ -117,6 +119,8 @@ public class GraphQlSseHandler extends AbstractGraphQlHttpHandler {
 
 		super(graphQlHandler, null);
 		Assert.notEmpty(httpMethods, "'httpMethods' must not be empty");
+		Assert.isTrue(SUPPORTED_HTTP_METHODS.containsAll(httpMethods), () ->
+				"'httpMethods' must be a subset of " + SUPPORTED_HTTP_METHODS + ", got " + httpMethods);
 		this.timeout = timeout;
 		this.keepAliveDuration = keepAliveDuration;
 		this.httpMethods = httpMethods;

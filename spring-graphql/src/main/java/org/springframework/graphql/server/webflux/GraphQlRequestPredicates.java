@@ -52,6 +52,10 @@ public final class GraphQlRequestPredicates {
 
 	private static final Log logger = LogFactory.getLog(GraphQlRequestPredicates.class);
 
+	private static final Set<HttpMethod> HTTP_METHODS = Set.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.QUERY);
+
+	private static final Set<HttpMethod> SSE_METHODS = Set.of(HttpMethod.GET, HttpMethod.POST);
+
 	private GraphQlRequestPredicates() {
 
 	}
@@ -76,6 +80,7 @@ public final class GraphQlRequestPredicates {
 	 * @see GraphQlHttpHandler
 	 */
 	public static RequestPredicate graphQlHttp(String path, Set<HttpMethod> methods) {
+		assertSupportedMethods(methods, HTTP_METHODS);
 		return new GraphQlHttpRequestPredicate(
 				path, methods, List.of(MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_GRAPHQL_RESPONSE));
 	}
@@ -100,7 +105,13 @@ public final class GraphQlRequestPredicates {
 	 * @see GraphQlSseHandler
 	 */
 	public static RequestPredicate graphQlSse(String path, Set<HttpMethod> methods) {
+		assertSupportedMethods(methods, SSE_METHODS);
 		return new GraphQlHttpRequestPredicate(path, methods, List.of(MediaType.TEXT_EVENT_STREAM));
+	}
+
+	private static void assertSupportedMethods(Set<HttpMethod> methods, Set<HttpMethod> supportedMethods) {
+		Assert.isTrue(supportedMethods.containsAll(methods), () ->
+				"'methods' must be a subset of " + supportedMethods + ", got " + methods);
 	}
 
 	private static class GraphQlHttpRequestPredicate implements RequestPredicate {

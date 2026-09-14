@@ -36,6 +36,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.server.WebGraphQlHandler;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
@@ -47,6 +48,7 @@ import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -220,6 +222,15 @@ class GraphQlSseHandlerTests {
 		assertThat(DATA_FETCHER_CANCELLED.get()).isTrue();
 		assertThat(servletResponse.getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM_VALUE);
 		assertThat(servletResponse.getContentAsString()).isEmpty();
+	}
+
+	@Test
+	void shouldRejectUnsupportedHttpMethod() {
+		WebGraphQlHandler webGraphQlHandler = createWebGraphQlHandler(SEARCH_DATA_FETCHER);
+
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> GraphQlSseHandler.builder(webGraphQlHandler).httpMethods(HttpMethod.DELETE).build())
+				.withMessageContaining("must be a subset of");
 	}
 
 	private GraphQlSseHandler createSseHandler(DataFetcher<?> dataFetcher) {

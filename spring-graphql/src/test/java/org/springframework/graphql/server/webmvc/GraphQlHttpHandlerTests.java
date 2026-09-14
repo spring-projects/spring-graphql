@@ -52,6 +52,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
@@ -164,6 +165,16 @@ class GraphQlHttpHandlerTests {
 
 		assertThat(servletResponse.getContentAsString())
 				.isEqualTo("{\"data\":{\"greeting\":\"Hello\"}}");
+	}
+
+	@Test
+	void shouldRejectUnsupportedHttpMethod() {
+		WebGraphQlHandler webGraphQlHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler();
+
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> GraphQlHttpHandler.builder(webGraphQlHandler).httpMethods(HttpMethod.DELETE).build())
+				.withMessageContaining("must be a subset of");
 	}
 
 	@Test // gh-1450

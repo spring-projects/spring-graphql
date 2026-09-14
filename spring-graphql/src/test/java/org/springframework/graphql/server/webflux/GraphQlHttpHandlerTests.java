@@ -58,6 +58,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
  * Tests for {@link GraphQlHttpHandler}.
@@ -180,6 +181,16 @@ class GraphQlHttpHandlerTests {
 		DocumentContext document = JsonPath.parse(httpResponse.getBodyAsString().block());
 		String id = document.read("data.showId", String.class);
 		assertThat(id).isEqualTo(httpRequest.getId());
+	}
+
+	@Test
+	void shouldRejectUnsupportedHttpMethod() {
+		WebGraphQlHandler webGraphQlHandler = GraphQlSetup.schemaContent("type Query { greeting: String }")
+				.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler();
+
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> GraphQlHttpHandler.builder(webGraphQlHandler).httpMethods(HttpMethod.DELETE).build())
+				.withMessageContaining("must be a subset of");
 	}
 
 	@Test // gh-1450

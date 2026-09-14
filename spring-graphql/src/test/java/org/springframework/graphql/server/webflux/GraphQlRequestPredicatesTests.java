@@ -39,6 +39,7 @@ import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.util.pattern.PathPatternParser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -229,6 +230,13 @@ class GraphQlRequestPredicatesTests {
 			assertThat(httpPredicateWithQuery.test(serverRequest)).isTrue();
 		}
 
+		@Test
+		void shouldRejectUnsupportedHttpMethod() {
+			assertThatIllegalArgumentException()
+					.isThrownBy(() -> GraphQlRequestPredicates.graphQlHttp("/graphql", Set.of(HttpMethod.DELETE)))
+					.withMessageContaining("must be a subset of");
+		}
+
 	}
 
 	@Nested
@@ -311,6 +319,13 @@ class GraphQlRequestPredicatesTests {
 					.accept(MediaType.TEXT_EVENT_STREAM)
 					.build();
 			return MockServerWebExchange.from(request);
+		}
+
+		@Test
+		void shouldRejectUnsupportedHttpMethod() {
+			assertThatIllegalArgumentException()
+					.isThrownBy(() -> GraphQlRequestPredicates.graphQlSse("/graphql", Set.of(HttpMethod.DELETE)))
+					.withMessageContaining("must be a subset of");
 		}
 	}
 

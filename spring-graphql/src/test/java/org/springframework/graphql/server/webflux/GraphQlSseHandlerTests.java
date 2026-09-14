@@ -31,6 +31,7 @@ import org.springframework.graphql.BookSource;
 import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.HttpMessageReader;
@@ -46,6 +47,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.ViewResolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
  * Tests for {@link GraphQlSseHandler}.
@@ -175,6 +177,15 @@ class GraphQlSseHandlerTests {
 					data: {}
 
 					""");
+	}
+
+	@Test
+	void shouldRejectUnsupportedHttpMethod() {
+		WebGraphQlHandler webGraphQlHandler = createWebGraphQlHandler(SEARCH_DATA_FETCHER);
+
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> GraphQlSseHandler.builder(webGraphQlHandler).httpMethods(HttpMethod.DELETE).build())
+				.withMessageContaining("must be a subset of");
 	}
 
 	private GraphQlSseHandler createSseHandler(DataFetcher<?> subscriptionDataFetcher) {

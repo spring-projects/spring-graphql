@@ -56,6 +56,9 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	private static final Set<OperationDefinition.Operation> SUPPORTED_OPERATIONS =
 			Set.of(OperationDefinition.Operation.QUERY, OperationDefinition.Operation.MUTATION);
 
+	private static final Set<HttpMethod> SUPPORTED_HTTP_METHODS =
+			Set.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.QUERY);
+
 	private boolean httpOkOnValidationErrors = false;
 
 	private final Set<HttpMethod> httpMethods;
@@ -87,6 +90,8 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 
 		super(graphQlHandler, codecConfigurer);
 		Assert.notEmpty(httpMethods, "'httpMethods' must not be empty");
+		Assert.isTrue(SUPPORTED_HTTP_METHODS.containsAll(httpMethods), () ->
+				"'httpMethods' must be a subset of " + SUPPORTED_HTTP_METHODS + ", got " + httpMethods);
 		this.httpMethods = httpMethods;
 	}
 
