@@ -411,7 +411,7 @@ execution to complete more quickly.
 
 Spring for GraphQL supports:
 
-- <<execution.reactive-datafetcher, Reactive data fetchers>>, and those are
+- <<execution.reactivedatafetcher, Reactive data fetchers>>, and those are
 adapted to `CompletionStage` as expected by `AsyncExecutionStrategy`.
 - `CompletionStage` as return value.
 - Controller methods that are Kotlin coroutine methods.
@@ -533,7 +533,7 @@ automatically through the `java.util.ServiceLoader` mechanism.
 [[execution.context.webflux]]
 === WebFlux
 
-A xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`] can rely on access to Reactor context that
+A xref:request-execution.adoc#execution.reactivedatafetcher[Reactive `DataFetcher`] can rely on access to Reactor context that
 originates from the WebFlux request handling chain. This includes Reactor context
 added by xref:transports.adoc#server.interception[WebGraphQlInterceptor] components.
 
@@ -717,7 +717,7 @@ GraphQlSource.schemaResourceBuilder()
 <1> Create type visitor with one or more ``ConnectionAdapter``s.
 <2> Resister the type visitor.
 
-There are built-in xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s
+There are xref:data.adoc#data.pagination.scroll[built-in] ``ConnectionAdapter``s
 for Spring Data's `Window` and `Slice`. You can also create your own custom adapter.
 `ConnectionAdapter` implementations rely on a
 xref:request-execution.adoc#execution.pagination.cursor.strategy[`CursorStrategy`] to
