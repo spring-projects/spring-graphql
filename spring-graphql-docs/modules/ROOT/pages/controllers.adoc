@@ -121,7 +121,7 @@ for fields under the Query, Mutation, and Subscription types respectively. For e
 ----
 
 `@SchemaMapping` handler methods have flexible signatures and can choose from a range of
-method arguments and return values..
+method arguments and return values.
 
 
 [[controllers.schema-mapping.signature]]
@@ -224,7 +224,7 @@ Schema mapping handler methods can return:
 | `Mono<T>` and `Flux<T>`
 | For asynchronous value(s).
 
-Supported for controller methods and for any `DataFetcher` as described in xref:request-execution.adoc#execution.reactive-datafetcher[Reactive `DataFetcher`].
+Supported for controller methods and for any `DataFetcher` as described in xref:request-execution.adoc#execution.reactivedatafetcher[Reactive `DataFetcher`].
 
 | Kotlin `suspend fun` and `Flow`
 | They are automatically adapted to `Mono` and `Flux`.
