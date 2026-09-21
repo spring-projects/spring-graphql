@@ -662,7 +662,7 @@ public class GraphQlWebSocketHandler extends TextWebSocketHandler implements Sub
 				request(1);
 			}
 			catch (IOException | IllegalStateException ex) {
-				// IllegalStateException is raised (e.g. by Tomcat) when the session was
+				// IllegalStateException is raised by Tomcat when the session was
 				// concurrently closed while a response was still in flight.
 				cancel();
 				ExceptionWebSocketHandlerDecorator.tryCloseWithError(this.session, ex, logger);

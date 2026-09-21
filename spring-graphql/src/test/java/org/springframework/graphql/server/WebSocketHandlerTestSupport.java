@@ -87,7 +87,7 @@ public abstract class WebSocketHandlerTestSupport {
 				.toWebGraphQlHandler();
 	}
 
-	public class BrokenPipeSession extends TestWebSocketSession {
+	public static class BrokenPipeSession extends TestWebSocketSession {
 
 		@Override
 		public void sendMessage(WebSocketMessage<?> message) throws IOException {
@@ -95,7 +95,7 @@ public abstract class WebSocketHandlerTestSupport {
 		}
 	}
 
-	public class ClosedSession extends TestWebSocketSession {
+	public static class ClosedSession extends TestWebSocketSession {
 
 		private final AtomicBoolean firstSent = new AtomicBoolean();
 
