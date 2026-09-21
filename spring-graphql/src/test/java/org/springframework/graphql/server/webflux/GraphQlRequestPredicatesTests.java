@@ -153,6 +153,16 @@ class GraphQlRequestPredicatesTests {
 					.isEmpty();
 		}
 
+		@Test
+		void shouldNotRejectRequestWithInvalidContentTypeOnDifferentPath() {
+			ServerWebExchange exchange = createMatchingHttpExchange()
+					.mutate()
+					.request(request -> request.header("Accept", "bogus").path("/other"))
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(httpPredicate.test(serverRequest)).isFalse();
+		}
+
 		private MockServerWebExchange createMatchingHttpExchange() {
 			MockServerHttpRequest request = MockServerHttpRequest.post("/graphql")
 					.contentType(MediaType.APPLICATION_JSON)
@@ -311,6 +321,16 @@ class GraphQlRequestPredicatesTests {
 			ssePredicate.test(serverRequest);
 			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
 					.isEmpty();
+		}
+
+		@Test
+		void shouldNotRejectRequestWithInvalidContentTypeOnDifferentPath() {
+			ServerWebExchange exchange = createMatchingSseExchange()
+					.mutate()
+					.request(request -> request.header("Accept", "bogus").path("/other"))
+					.build();
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(ssePredicate.test(serverRequest)).isFalse();
 		}
 
 		private MockServerWebExchange createMatchingSseExchange() {

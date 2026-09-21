@@ -144,6 +144,19 @@ class GraphQlRequestPredicatesTests {
 					.isEmpty();
 		}
 
+		@Test
+		void shouldNotRejectRequestWithInvalidContentTypeOnDifferentPath() {
+			MockHttpServletRequest request = createMatchingHttpRequest();
+			request.setRequestURI("/other");
+			request.removeHeader("Accept");
+			request.addHeader("Accept", "invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			httpPredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.isEmpty();
+		}
+
+
 		private MockHttpServletRequest createMatchingHttpRequest() {
 			MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
 			request.setContentType("application/json");
@@ -290,6 +303,18 @@ class GraphQlRequestPredicatesTests {
 		void shouldNotSetAttributeWhenNoMatch() {
 			MockHttpServletRequest request = createMatchingSseRequest();
 			request.setRequestURI("/invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			ssePredicate.test(serverRequest);
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.isEmpty();
+		}
+
+		@Test
+		void shouldNotRejectRequestWithInvalidContentTypeOnDifferentPath() {
+			MockHttpServletRequest request = createMatchingSseRequest();
+			request.setRequestURI("/other");
+			request.removeHeader("Accept");
+			request.addHeader("Accept", "invalid");
 			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
 			ssePredicate.test(serverRequest);
 			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
