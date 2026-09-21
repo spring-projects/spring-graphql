@@ -98,9 +98,9 @@ public final class GraphQlRequestPredicates {
 		@Override
 		public boolean test(ServerRequest request) {
 			return httpMethodMatch(request, HttpMethod.POST)
+					&& pathMatch(request, this.pattern)
 					&& contentTypeMatch(request, this.contentTypes)
-					&& acceptMatch(request, this.acceptedMediaTypes)
-					&& pathMatch(request, this.pattern);
+					&& acceptMatch(request, this.acceptedMediaTypes);
 		}
 
 		private static boolean httpMethodMatch(ServerRequest request, HttpMethod expected) {
