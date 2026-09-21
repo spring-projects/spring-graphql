@@ -159,6 +159,18 @@ class GraphQlWebSocketHandlerTests extends WebSocketHandlerTestSupport {
 	}
 
 	@Test
+	void sessionClosedShouldCancelPublisher() throws Exception {
+		this.session = new ClosedSession();
+		handle(this.handler,
+				new TextMessage("{\"type\":\"connection_init\"}"), new TextMessage(BOOK_SUBSCRIPTION));
+		StepVerifier.create(session.getOutput())
+				.consumeNextWith((message) -> assertMessageType(message, CONNECTION_ACK))
+				.verifyComplete();
+
+		assertThat(SUBSCRIPTION_CANCELLED).isTrue();
+	}
+
+	@Test
 	void keepAlive() throws Exception {
 		GraphQlWebSocketHandler webSocketHandler = GraphQlWebSocketHandler
 				.builder(initHandler(), converter, Duration.ofSeconds(60))

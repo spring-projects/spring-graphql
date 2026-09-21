@@ -87,11 +87,29 @@ public abstract class WebSocketHandlerTestSupport {
 				.toWebGraphQlHandler();
 	}
 
-	public class BrokenPipeSession extends TestWebSocketSession {
+	public static class BrokenPipeSession extends TestWebSocketSession {
 
 		@Override
 		public void sendMessage(WebSocketMessage<?> message) throws IOException {
 			throw new IOException("broken pipe");
+		}
+	}
+
+	public static class ClosedSession extends TestWebSocketSession {
+
+		private final AtomicBoolean firstSent = new AtomicBoolean();
+
+		@Override
+		public void sendMessage(WebSocketMessage<?> message) throws IOException {
+			// Let the initial connection_ack through, then simulate the session being
+			// concurrently closed: Tomcat raises IllegalStateException (not IOException)
+			// on any subsequent send, e.g. while a subscription response is in flight.
+			if (this.firstSent.compareAndSet(false, true)) {
+				super.sendMessage(message);
+				return;
+			}
+			throw new IllegalStateException(
+					"Message will not be sent because the WebSocket session has been closed");
 		}
 	}
 
