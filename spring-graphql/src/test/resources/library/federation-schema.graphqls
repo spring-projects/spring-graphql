@@ -1,0 +1,14 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.9", import: ["@key", "@extends", "@external"] )
+
+type Location {
+    id: ID!
+}
+
+type Library @key(fields: "id location { id }") {
+    id: ID!
+    location: Location!
+}
+
+type LocationArea @key(fields: "location { id }") {
+    location: Location!
+}
