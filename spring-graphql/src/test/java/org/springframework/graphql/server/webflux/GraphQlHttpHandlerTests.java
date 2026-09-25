@@ -92,6 +92,22 @@ class GraphQlHttpHandlerTests {
 	}
 
 	@Test
+	void shouldSendContentLengthHeader() throws Exception {
+		String document = "{greeting}";
+		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.ALL)
+				.body(initRequestBody(document));
+
+		MockServerHttpResponse response = handleRequest(httpRequest, this.greetingHandler);
+
+		assertThat(response.getHeaders().containsHeader("Content-Length")).isTrue();
+		StepVerifier.create(response.getBodyAsString())
+				.expectNext("{\"data\":{\"greeting\":\"Hello\"}}")
+				.verifyComplete();
+	}
+
+	@Test
 	void shouldSupportApplicationGraphQl() throws Exception {
 		String document = "{greeting}";
 		MockServerHttpRequest httpRequest = MockServerHttpRequest.post("/")

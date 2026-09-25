@@ -26,7 +26,6 @@ import graphql.language.OperationDefinition;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jspecify.annotations.Nullable;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.io.buffer.DataBuffer;
@@ -209,10 +208,8 @@ public abstract class AbstractGraphQlHttpHandler {
 	 * @since 2.1.0
 	 */
 	protected BodyInserter<WebGraphQlResponse, ServerHttpResponse> bodyInserter(WebGraphQlResponse response) {
-		return (outputMessage, context) -> {
-			DataBuffer buffer = AbstractGraphQlHttpHandler.this.codecDelegate.encode(response.toMap(), context);
-			return outputMessage.writeWith(Flux.just(buffer));
-		};
+		return (outputMessage, context) ->
+				AbstractGraphQlHttpHandler.this.codecDelegate.write(response.toMap(), outputMessage, context);
 	}
 
 }

@@ -96,6 +96,7 @@ class GraphQlSseHandlerTests {
 		MockServerHttpResponse response = handleRequest(httpRequest, handler);
 
 		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_EVENT_STREAM)).isTrue();
+		assertThat(response.getHeaders().containsHeader("Content-Length")).isFalse();
 		assertThat(response.getBodyAsString().block()).isEqualTo("""
 				event:next
 				data: {"data":{"bookSearch":{"id":"1","name":"Nineteen Eighty-Four"}}}

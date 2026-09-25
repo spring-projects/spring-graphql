@@ -35,6 +35,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.graphql.server.support.SerializableGraphQlRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.http.codec.CodecConfigurer;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -64,7 +65,7 @@ final class HttpCodecDelegate {
 
 	private final AtomicReference<@Nullable Decoder<?>> decoder = new AtomicReference<>();
 
-	private final AtomicReference<@Nullable Encoder<?>> encoder = new AtomicReference<>();
+	private final AtomicReference<@Nullable EncoderHttpMessageWriter<?>> writer = new AtomicReference<>();
 
 	/*
 	 * Will use the custom codecs provided
@@ -72,7 +73,7 @@ final class HttpCodecDelegate {
 	HttpCodecDelegate(CodecConfigurer codecConfigurer) {
 		Assert.notNull(codecConfigurer, "CodecConfigurer is required");
 		this.decoder.set(findJsonDecoder(codecConfigurer.getReaders()));
-		this.encoder.set(findJsonEncoder(codecConfigurer.getWriters()));
+		this.writer.set(new EncoderHttpMessageWriter<>(findJsonEncoder(codecConfigurer.getWriters())));
 	}
 
 	/*
@@ -90,13 +91,13 @@ final class HttpCodecDelegate {
 		return this.decoder.compareAndSet(null, resolved) ? resolved : Objects.requireNonNull(this.decoder.get());
 	}
 
-	private Encoder<?> getEncoder(BodyInserter.Context context) {
-		Encoder<?> encoder = this.encoder.get();
-		if (encoder != null) {
-			return encoder;
+	private EncoderHttpMessageWriter<?> getWriter(BodyInserter.Context context) {
+		EncoderHttpMessageWriter<?> writer = this.writer.get();
+		if (writer != null) {
+			return writer;
 		}
-		Encoder<?> resolved = findJsonEncoder(context.messageWriters());
-		return this.encoder.compareAndSet(null, resolved) ? resolved : Objects.requireNonNull(this.encoder.get());
+		EncoderHttpMessageWriter<?> resolved = new EncoderHttpMessageWriter<>(findJsonEncoder(context.messageWriters()));
+		return this.writer.compareAndSet(null, resolved) ? resolved : Objects.requireNonNull(this.writer.get());
 	}
 
 	private static Decoder<?> findJsonDecoder(List<HttpMessageReader<?>> readers) {
@@ -116,10 +117,9 @@ final class HttpCodecDelegate {
 	}
 
 	@SuppressWarnings("unchecked")
-	DataBuffer encode(Map<String, Object> resultMap, BodyInserter.Context context) {
-		Encoder<Map<String, Object>> encoder = (Encoder<Map<String, Object>>) getEncoder(context);
-		return encoder.encodeValue(
-				resultMap, DefaultDataBufferFactory.sharedInstance, RESPONSE_TYPE, MimeTypeUtils.APPLICATION_JSON, null);
+	Mono<Void> write(Map<String, Object> resultMap, ReactiveHttpOutputMessage outputMessage, BodyInserter.Context context) {
+		EncoderHttpMessageWriter<Map<String, Object>> writer = (EncoderHttpMessageWriter<Map<String, Object>>) getWriter(context);
+		return writer.write(Mono.just(resultMap), RESPONSE_TYPE, MediaType.APPLICATION_JSON, outputMessage, context.hints());
 	}
 
 	/**
