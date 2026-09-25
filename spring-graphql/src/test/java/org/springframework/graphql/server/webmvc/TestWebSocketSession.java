@@ -121,7 +121,9 @@ public class TestWebSocketSession implements WebSocketSession {
 
 	@Override
 	public void sendMessage(WebSocketMessage<?> message) throws IOException {
-		emitMessagesSignal(this.messagesSink.tryEmitNext(message));
+		synchronized (this.messagesSink) {
+			emitMessagesSignal(this.messagesSink.tryEmitNext(message));
+		}
 	}
 
 	private void emitMessagesSignal(Sinks.EmitResult result) {
@@ -140,14 +142,18 @@ public class TestWebSocketSession implements WebSocketSession {
 	@Override
 	public void close() {
 		this.closed = true;
-		emitMessagesSignal(this.messagesSink.tryEmitComplete());
+		synchronized (this.messagesSink) {
+			emitMessagesSignal(this.messagesSink.tryEmitComplete());
+		}
 		this.statusSink.tryEmitEmpty();
 	}
 
 	@Override
 	public void close(CloseStatus status) {
 		this.closed = true;
-		emitMessagesSignal(this.messagesSink.tryEmitComplete());
+		synchronized (this.messagesSink) {
+			emitMessagesSignal(this.messagesSink.tryEmitComplete());
+		}
 		this.statusSink.tryEmitValue(status);
 	}
 
