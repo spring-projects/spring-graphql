@@ -91,6 +91,10 @@ existing `HttpSocketGraphQlTester` to create a new instance with customized sett
 
 include-code::HttpSetup[tag=executeRequests,indent=0]
 
+If you need to test with OIDC (OpenID Connect) authentication, you can use Spring Security's `mockOidcLogin()` to create a mock OIDC user:
+
+include-code::HttpSetup[tag=oidcAuthentication,indent=0]
+
 
 
 [[testing.websocketgraphqltester]]
