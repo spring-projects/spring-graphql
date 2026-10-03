@@ -107,7 +107,7 @@ class EntityMappingInvocationTests {
 						Map.of("__typename", "Unknown"),  // RepresentationException, no fetcher
 						Map.of("__typename", "Book", "id", "-97"),  // IllegalArgumentException
 						Map.of("__typename", "Book", "id", "-98"),  // IllegalStateException
-						Map.of("__typename", "Book", "id", "-99"),  // null
+						Map.of("__typename", "Book", "id", "-99"),  // null entity
 						Map.of("__typename", "Book", "id", "3"),
 						Map.of("__typename", "Book", "id", "5")));
 
@@ -117,10 +117,31 @@ class EntityMappingInvocationTests {
 		assertError(helper, 1, "INTERNAL_ERROR", "No entity fetcher");
 		assertError(helper, 2, "BAD_REQUEST", "handled");
 		assertError(helper, 3, "INTERNAL_ERROR", "not handled");
-		assertError(helper, 4, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+		assertThat(helper.errorCount()).isEqualTo(4);
+		assertThat(helper.<Object>rawValue("_entities[4]")).isNull();
 
 		assertAuthor(5, "Joseph", "Heller", helper);
 		assertAuthor(6, "George", "Orwell", helper);
+	}
+
+	@Test // gh-1516
+	void emptyMonoResolvesToNullEntity() {
+		Map<String, Object> variables = Map.of("representations", List.of(
+				Map.of("__typename", "Book", "id", "-99"),
+				Map.of("__typename", "Book", "id", "3"),
+				Map.of("__typename", "Book", "id", "-98"),
+				Map.of("__typename", "Book", "id", "5")));
+
+		ResponseHelper helper = executeWith(ReactiveBookController.class, variables);
+
+		assertThat(helper.error(0).message()).isEqualTo("handled");
+		assertThat(helper.error(0).errorType()).isEqualTo("BAD_REQUEST");
+		assertThat(helper.error(0).path()).isEqualTo("/_entities[2]");
+		assertThat(helper.errorCount()).isEqualTo(1);
+		assertThat(helper.<Object>rawValue("_entities[0]")).isNull();
+		assertThat(helper.<Object>rawValue("_entities[2]")).isNull();
+		assertThat(helper.<String>rawValue("_entities[1].id")).isEqualTo("3");
+		assertThat(helper.<String>rawValue("_entities[3].id")).isEqualTo("5");
 	}
 
 	@Test // gh-1057
@@ -271,6 +292,28 @@ class EntityMappingInvocationTests {
 		@BatchMapping
 		public Flux<Author> author(List<Book> books) {
 			return Flux.fromIterable(books).map(book -> BookSource.getBook(book.getId()).getAuthor());
+		}
+
+		@GraphQlExceptionHandler
+		public GraphQLError handle(IllegalArgumentException ex, DataFetchingEnvironment env) {
+			return GraphqlErrorBuilder.newError(env)
+					.errorType(ErrorType.BAD_REQUEST)
+					.message(ex.getMessage())
+					.build();
+		}
+	}
+
+	@SuppressWarnings("unused")
+	@Controller
+	private static class ReactiveBookController {
+
+		@EntityMapping("Media")
+		public Mono<Book> book(@Argument int id) {
+			return switch (id) {
+				case -99 -> Mono.empty();
+				case -98 -> Mono.error(new IllegalArgumentException("handled"));
+				default -> Mono.just(new Book((long) id, null, (Long) null));
+			};
 		}
 
 		@GraphQlExceptionHandler
