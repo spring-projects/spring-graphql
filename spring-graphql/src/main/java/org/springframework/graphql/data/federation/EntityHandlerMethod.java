@@ -52,13 +52,13 @@ final class EntityHandlerMethod extends DataFetcherHandlerMethodSupport {
 	}
 
 
-	Mono<Object> getEntity(DataFetchingEnvironment env, Map<String, Object> representation) {
-		env = EntityArgumentMethodArgumentResolver.wrap(env, representation);
+	Mono<Object> getEntity(DataFetchingEnvironment env, Map<String, Object> representation, EntityKeyResolver resolver) {
+		env = EntityArgumentMethodArgumentResolver.wrap(env, representation, resolver);
 		return doInvoke(env);
 	}
 
-	Mono<Object> getEntities(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
-		env = EntityArgumentMethodArgumentResolver.wrap(env, representations);
+	Mono<Object> getEntities(DataFetchingEnvironment env, List<Map<String, Object>> representations, EntityKeyResolver resolver) {
+		env = EntityArgumentMethodArgumentResolver.wrap(env, representations, resolver);
 		return doInvoke(env);
 	}
 
