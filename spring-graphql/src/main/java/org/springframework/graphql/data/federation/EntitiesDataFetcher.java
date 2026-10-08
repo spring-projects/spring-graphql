@@ -121,7 +121,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 			Map<String, Object> representation, int index) {
 
 		return handlerMethod.getEntity(environment, representation)
-				.switchIfEmpty(Mono.error(new RepresentationNotResolvedException(representation, handlerMethod)))
+				.switchIfEmpty(Mono.just(NullEntity.INSTANCE))
 				.onErrorResume((ex) -> resolveException(ex, environment, handlerMethod, index));
 	}
 
@@ -196,6 +196,9 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 		List<GraphQLError> errors = new ArrayList<>();
 		for (int i = 0; i < entities.size(); i++) {
 			Object entity = entities.get(i);
+			if (entity == NullEntity.INSTANCE) {
+				entities.set(i, null);
+			}
 			if (entity instanceof EntitiesResultContainer resultHandler) {
 				resultHandler.applyResults(entities, errors);
 			}
@@ -205,6 +208,12 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 			}
 		}
 		return DataFetcherResult.<List<Object>>newResult().data(entities).errors(errors).build();
+	}
+
+	private enum NullEntity {
+
+		INSTANCE
+
 	}
 
 
