@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - 2.0.x
-      - 2.0.x-internal
 permissions:
   contents: read
 concurrency:
