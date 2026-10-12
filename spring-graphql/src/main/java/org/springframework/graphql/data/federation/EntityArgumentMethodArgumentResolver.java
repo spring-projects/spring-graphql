@@ -51,14 +51,16 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 			DataFetchingEnvironment environment, String name, ResolvableType targetType) throws BindException {
 
 		if (environment instanceof EntityDataFetchingEnvironment entityEnv) {
-			return doBind(name, targetType, entityEnv.getRepresentation());
+			Object key = entityEnv.getKey();
+			return doBind(name, targetType, key);
 		}
 		else if (environment instanceof EntityBatchDataFetchingEnvironment batchEnv) {
 			name = dePluralize(name);
 			targetType = targetType.getNested(2);
 			List<@Nullable Object> values = new ArrayList<>();
 			for (Map<String, Object> representation : batchEnv.getRepresentations()) {
-				values.add(doBind(name, targetType, representation));
+				Object key = batchEnv.getKey(representation);
+				values.add(doBind(name, targetType, key));
 			}
 			return values;
 		}
@@ -67,10 +69,8 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 		}
 	}
 
-	private @Nullable Object doBind(String name, ResolvableType targetType, Map<String, Object> entityMap) throws BindException {
-		Object rawValue = entityMap.get(name);
-		boolean isOmitted = !entityMap.containsKey(name);
-		return getArgumentBinder().bind(rawValue, isOmitted, targetType);
+	private @Nullable Object doBind(String name, ResolvableType targetType, Object key) throws BindException {
+		return getArgumentBinder().bind(key, false, targetType);
 	}
 
 	private static String dePluralize(String name) {
@@ -82,16 +82,16 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	 * Utility method for use from {@link EntityHandlerMethod} to make the entity
 	 * representation map available.
 	 */
-	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, Map<String, Object> representation) {
-		return new EntityDataFetchingEnvironment(env, representation);
+	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, Map<String, Object> representation, EntityKeyResolver resolver) {
+		return new EntityDataFetchingEnvironment(env, representation, resolver);
 	}
 
 	/**
 	 * Utility method for use from {@link EntityHandlerMethod} to make the list
 	 * of entity representation maps available.
 	 */
-	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
-		return new EntityBatchDataFetchingEnvironment(env, representations);
+	static DataFetchingEnvironment wrap(DataFetchingEnvironment env, List<Map<String, Object>> representations, EntityKeyResolver resolver) {
+		return new EntityBatchDataFetchingEnvironment(env, representations, resolver);
 	}
 
 
@@ -101,14 +101,20 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	static class EntityDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
 
 		private final Map<String, Object> representation;
+		private final EntityKeyResolver resolver;
 
-		EntityDataFetchingEnvironment(DataFetchingEnvironment env, Map<String, Object> representation) {
+		EntityDataFetchingEnvironment(DataFetchingEnvironment env, Map<String, Object> representation, EntityKeyResolver resolver) {
 			super(env);
 			this.representation = representation;
+			this.resolver = resolver;
 		}
 
 		Map<String, Object> getRepresentation() {
 			return this.representation;
+		}
+
+		public Object getKey() {
+			return this.resolver.getKey(representation);
 		}
 	}
 
@@ -120,14 +126,20 @@ final class EntityArgumentMethodArgumentResolver extends ArgumentMethodArgumentR
 	static class EntityBatchDataFetchingEnvironment extends DelegatingDataFetchingEnvironment {
 
 		private final List<Map<String, Object>> representations;
+		private final EntityKeyResolver resolver;
 
-		EntityBatchDataFetchingEnvironment(DataFetchingEnvironment env, List<Map<String, Object>> representations) {
+		EntityBatchDataFetchingEnvironment(DataFetchingEnvironment env, List<Map<String, Object>> representations, EntityKeyResolver resolver) {
 			super(env);
 			this.representations = representations;
+			this.resolver = resolver;
 		}
 
 		List<Map<String, Object>> getRepresentations() {
 			return this.representations;
+		}
+
+		public Object getKey(Map<String, Object> representation) {
+			return this.resolver.getKey(representation);
 		}
 	}
 
