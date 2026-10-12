@@ -82,6 +82,32 @@ public class HttpSetup {
 		// end::executeRequests[]
 	}
 
+	void oidcAuthentication() {
+		// tag::oidcAuthentication[]
+		// Note: This requires spring-security-test dependency
+		WebTestClient client = WebTestClient.bindToServer()
+				.baseUrl("http://localhost:8080/graphql")
+				.build();
+
+		// The following code demonstrates how to use mockOidcLogin() with HttpGraphQlTester
+		// You need to add spring-security-test, spring-security-oauth2-client, and spring-security-oauth2-jose dependencies
+		/*
+		import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
+
+		HttpGraphQlTester tester = HttpGraphQlTester.create(
+			client.mutateWith(
+				SecurityMockServerConfigurers.mockOidcLogin()
+					.oidcUser(yourOidcUser())
+			)
+		);
+		*/
+
+		// For documentation purposes only, this is a simplified version
+		WebTestClient mutatedClient = client; // In real code, this would be client.mutateWith(mockOidcLogin().oidcUser(yourOidcUser()))
+		HttpGraphQlTester tester = HttpGraphQlTester.create(mutatedClient);
+		// end::oidcAuthentication[]
+	}
+
 	static class Configuration {
 
 	}
