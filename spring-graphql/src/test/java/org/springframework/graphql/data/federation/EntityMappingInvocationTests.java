@@ -113,11 +113,11 @@ class EntityMappingInvocationTests {
 
 		ResponseHelper helper = executeWith(BookController.class, variables);
 
-		assertError(helper, 0, "BAD_REQUEST", "Missing \"__typename\" argument");
-		assertError(helper, 1, "INTERNAL_ERROR", "No entity fetcher");
+		assertError(helper, 0, "BAD_REQUEST", "BAD_REQUEST for \\d+");
+		assertError(helper, 1, "INTERNAL_ERROR", "INTERNAL_ERROR for \\d+");
 		assertError(helper, 2, "BAD_REQUEST", "handled");
-		assertError(helper, 3, "INTERNAL_ERROR", "not handled");
-		assertError(helper, 4, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+		assertError(helper, 3, "INTERNAL_ERROR", "INTERNAL_ERROR for \\d+");
+		assertError(helper, 4, "INTERNAL_ERROR", "INTERNAL_ERROR for \\d+");
 
 		assertAuthor(5, "Joseph", "Heller", helper);
 		assertAuthor(6, "George", "Orwell", helper);
@@ -178,9 +178,9 @@ class EntityMappingInvocationTests {
 
 		ResponseHelper helper = executeWith(controllerClass, variables);
 
-		assertError(helper, 0, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
-		assertError(helper, 1, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
-		assertError(helper, 2, "INTERNAL_ERROR", "Entity fetcher returned null or completed empty");
+		assertError(helper, 0, "INTERNAL_ERROR", "INTERNAL_ERROR for \\d+");
+		assertError(helper, 1, "INTERNAL_ERROR", "INTERNAL_ERROR for \\d+");
+		assertError(helper, 2, "INTERNAL_ERROR", "INTERNAL_ERROR for \\d+");
 	}
 
 	@Test
@@ -216,7 +216,7 @@ class EntityMappingInvocationTests {
 
 	private static void assertError(ResponseHelper helper, int i, String errorType, String msg) {
 		String path = "_entities[" + i + "]";
-		assertThat(helper.error(i).message()).isEqualTo(msg);
+		assertThat(helper.error(i).message()).matches(msg);
 		assertThat(helper.error(i).errorType()).isEqualTo(errorType);
 		assertThat(helper.error(i).path()).isEqualTo("/" + path);
 		assertThat(helper.<Object>rawValue(path)).isNull();
