@@ -23,7 +23,7 @@ import org.springframework.graphql.data.method.HandlerMethod;
 
 /**
  * Specialization of {@link RepresentationException} that indicates a resolver
- * returned {@code null} or completed empty.
+ * for a batch of representations returned {@code null} or completed empty.
  *
  * @author Rossen Stoyanchev
  * @since 1.3.0
