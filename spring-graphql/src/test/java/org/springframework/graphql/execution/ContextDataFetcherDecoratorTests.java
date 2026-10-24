@@ -276,6 +276,57 @@ class ContextDataFetcherDecoratorTests {
 		tester.accept(directiveWiring, env -> Mono.just("hello"));
 	}
 
+
+	@Test
+	void completableFutureCompletedOnAnotherThread() {
+		ThreadLocal<String> threadLocal = new ThreadLocal<>();
+		threadLocal.set("007");
+		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
+		try {
+			CompletableFuture<String> future = new CompletableFuture<>();
+			GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+					.queryFetcher("greeting", (env) -> future)
+					.queryFetcher("greetings", (env) -> Collections.singletonList(threadLocal.get()))
+					.toGraphQl();
+
+			ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting greetings }").build();
+			ContextSnapshot snapshot = ContextSnapshotFactory.builder().build().captureAll();
+			snapshot.updateContext(input.getGraphQLContext());
+
+			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
+					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
+
+			// Complete on a thread without the ThreadLocal; downstream field processing
+			// must still observe it through the snapshot installed by the decorator
+			Thread completer = new Thread(() -> future.complete("Hello"));
+			completer.start();
+
+			ResponseHelper response = ResponseHelper.forResult(resultMono);
+			String greeting = response.toEntity("greeting", String.class);
+			assertThat(greeting).isEqualTo("Hello");
+			assertThat(response.toList("greetings", String.class)).containsExactly("007");
+		}
+		finally {
+			threadLocal.remove();
+		}
+	}
+
+	@Test
+	void completableFutureCompletedExceptionally() throws Exception {
+		CompletableFuture<String> future = new CompletableFuture<>();
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.queryFetcher("greeting", (env) -> future)
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		Thread completer = new Thread(() -> future.completeExceptionally(new IllegalStateException("boom")));
+		completer.start();
+
+		ExecutionResult result = graphQl.executeAsync(input).get();
+		assertThat(result.getErrors()).hasSize(1);
+		assertThat(result.getErrors().get(0).getErrorType().toString()).contains("INTERNAL_ERROR");
+	}
+
 	@Test // gh-980
 	void trivialDataFetcherIsNotDecorated() {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
