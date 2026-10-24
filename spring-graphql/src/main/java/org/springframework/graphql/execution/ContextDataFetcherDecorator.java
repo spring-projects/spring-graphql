@@ -19,6 +19,8 @@ package org.springframework.graphql.execution;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
@@ -85,7 +87,8 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		GraphQLContext graphQlContext = env.getGraphQlContext();
 		ContextSnapshotFactory snapshotFactory = ContextPropagationHelper.getInstance(graphQlContext);
-		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext) ?
+		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext &&
+				localContext != graphQlContext) ?
 				snapshotFactory.captureFrom(graphQlContext, localContext) :
 				snapshotFactory.captureFrom(graphQlContext);
 
@@ -122,6 +125,14 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 			return subscriptionResult.contextWrite(snapshot::updateContext);
 		}
 
+		if (value instanceof CompletionStage<?> stage) {
+			// Wrap the CompletionStage directly instead of converting it through
+			// Mono (toMonoIfReactive + contextWrite + toFuture), which allocates
+			// several Reactor objects per field without changing propagation
+			// semantics for a CompletableFuture consumer.
+			return wrapCompletionStage(stage, snapshot);
+		}
+
 		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);
 
 		if (value instanceof Mono<?> mono) {
@@ -129,6 +140,27 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		}
 
 		return value;
+	}
+
+	@SuppressWarnings("try")
+	private static CompletableFuture<@Nullable Object> wrapCompletionStage(
+			CompletionStage<?> stage, ContextSnapshot snapshot) {
+
+		CompletableFuture<@Nullable Object> result = new CompletableFuture<>();
+		stage.whenComplete((value, throwable) -> {
+			try (ContextSnapshot.Scope scope = snapshot.setThreadLocals()) {
+				if (throwable != null) {
+					result.completeExceptionally(throwable);
+				}
+				else {
+					result.complete(value);
+				}
+			}
+			catch (Throwable ex) {
+				result.completeExceptionally(ex);
+			}
+		});
+		return result;
 	}
 
 
