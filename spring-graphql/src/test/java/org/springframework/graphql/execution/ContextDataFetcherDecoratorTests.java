@@ -16,17 +16,24 @@
 
 package org.springframework.graphql.execution;
 
+import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.GraphQLContext;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.TrivialDataFetcher;
@@ -34,6 +41,8 @@ import graphql.execution.AbortExecutionException;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetcherFactories;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLSchema;
@@ -71,6 +80,14 @@ class ContextDataFetcherDecoratorTests {
 			} \
 			type Subscription { \
 				greetings: String \
+			}""";
+
+	private static final String CONTAINER_SCHEMA = """
+			type Query { \
+				container: Container \
+			} \
+			type Container { \
+				value: String \
 			}""";
 
 
@@ -276,6 +293,91 @@ class ContextDataFetcherDecoratorTests {
 		tester.accept(directiveWiring, env -> Mono.just("hello"));
 	}
 
+
+	@Test
+	void completableFutureCompletedOnAnotherThread() throws Exception {
+		ThreadLocal<String> threadLocal = new ThreadLocal<>();
+		threadLocal.set("007");
+		ContextRegistry.getInstance().registerThreadLocalAccessor(new TestThreadLocalAccessor<>(threadLocal));
+		try {
+			CountDownLatch fetcherReturned = new CountDownLatch(1);
+			CompletableFuture<Container> future = new CompletableFuture<>();
+
+			// TrivialDataFetcher is not decorated (see gh-980), so it observes ThreadLocals
+			// only if completion of the parent field's future propagated them.
+			DataFetcher<String> childFetcher = (TrivialDataFetcher<String>) (env) -> threadLocal.get();
+
+			GraphQL graphQl = GraphQlSetup.schemaContent(CONTAINER_SCHEMA)
+					.queryFetcher("container", (env) -> {
+						fetcherReturned.countDown();
+						return future;
+					})
+					.runtimeWiring(builder -> builder.type("Container",
+							type -> type.dataFetcher("value", childFetcher)))
+					.toGraphQl();
+
+			ExecutionInput input = ExecutionInput.newExecutionInput()
+					.query("{ container { value } }").build();
+			ContextSnapshot snapshot = ContextSnapshotFactory.builder().build().captureAll();
+			snapshot.updateContext(input.getGraphQLContext());
+
+			Mono<ExecutionResult> resultMono = Mono.delay(Duration.ofMillis(10))
+					.flatMap((aLong) -> Mono.fromFuture(graphQl.executeAsync(input)));
+
+			// Complete only after the fetcher has returned the future, so the completion
+			// really happens on a different thread while execution is suspended
+			Thread completer = new Thread(() -> {
+				try {
+					// Wait until the fetcher returned the future, then let the execution
+					// strategy register its continuation on the wrapped future, so the
+					// completion (and its dependents) run on this thread
+					fetcherReturned.await();
+					Thread.sleep(200);
+				}
+				catch (InterruptedException ex) {
+					throw new IllegalStateException(ex);
+				}
+				future.complete(new Container("ignored"));
+			});
+			completer.start();
+
+			String value = ResponseHelper.forResult(resultMono).toEntity("container.value", String.class);
+			assertThat(value).isEqualTo("007");
+		}
+		finally {
+			threadLocal.remove();
+		}
+	}
+
+	@Test
+	void completableFutureCompletedExceptionallyReachesResolver() throws Exception {
+		CompletableFuture<String> gate = new CompletableFuture<>();
+		CompletableFuture<String> future = gate.thenApply((value) -> {
+			throw new IllegalStateException("boom");
+		});
+		AtomicReference<Throwable> resolved = new AtomicReference<>();
+		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
+				.queryFetcher("greeting", (env) -> future)
+				.exceptionResolver((exception, environment) -> {
+					resolved.set(exception);
+					return Mono.empty();
+				})
+				.toGraphQl();
+
+		ExecutionInput input = ExecutionInput.newExecutionInput().query("{ greeting }").build();
+		Mono<ExecutionResult> resultMono = Mono.fromFuture(graphQl.executeAsync(input));
+
+		// Failing the dependent stage produces a CompletionException, which must be
+		// unwrapped before it reaches a resolver, as MonoCompletionStage unwrapped it
+		Thread completer = new Thread(() -> gate.complete("go"));
+		completer.start();
+
+		ExecutionResult result = resultMono.toFuture().get(10, TimeUnit.SECONDS);
+		assertThat(result.getErrors()).hasSize(1);
+		await().untilAsserted(() -> assertThat(resolved.get())
+				.isInstanceOf(IllegalStateException.class).hasMessage("boom"));
+	}
+
 	@Test // gh-980
 	void trivialDataFetcherIsNotDecorated() {
 		GraphQL graphQl = GraphQlSetup.schemaContent(SCHEMA_CONTENT)
@@ -341,4 +443,140 @@ class ContextDataFetcherDecoratorTests {
 
 		assertThat(executionResult.getExtensions()).containsEntry("foo", "bar");
 	}
+
+	@Test
+	void completableFutureCancellationPropagatesToSource() throws Exception {
+		CompletableFuture<String> source = new CompletableFuture<>();
+		Object wrapped = newDecorator((env) -> source).get(environment(GraphQLContext.getDefault()));
+
+		assertThat(wrapped).isInstanceOf(CompletableFuture.class);
+		((CompletableFuture<?>) wrapped).cancel(true);
+
+		assertThat(source).isCancelled();
+	}
+
+	@Test
+	void completableFutureUnwrapsCompletionException() throws Exception {
+		CompletableFuture<String> gate = new CompletableFuture<>();
+		CompletableFuture<String> source = gate.thenApply((value) -> {
+			throw new IllegalStateException("boom");
+		});
+		Object wrapped = newDecorator((env) -> source).get(environment(GraphQLContext.getDefault()));
+
+		gate.complete("go");
+
+		Throwable failure = ((CompletableFuture<?>) wrapped).handle((value, throwable) -> throwable).join();
+		assertThat(failure).isInstanceOf(IllegalStateException.class).hasMessage("boom");
+	}
+
+	@Test
+	void alreadyFailedFutureIsUnwrapped() throws Exception {
+		CompletableFuture<String> source = CompletableFuture.supplyAsync(() -> {
+			throw new IllegalStateException("boom");
+		});
+		// Ensure the source has already failed before the decorator sees it; the failed
+		// fast path must still unwrap rather than return the stage as-is
+		try {
+			source.join();
+		}
+		catch (Exception ignored) {
+		}
+		Object wrapped = newDecorator((env) -> source).get(environment(GraphQLContext.getDefault()));
+
+		Throwable failure = ((CompletableFuture<?>) wrapped).handle((value, throwable) -> throwable).join();
+		assertThat(failure).isInstanceOf(IllegalStateException.class).hasMessage("boom");
+	}
+
+	@Test
+	void originalFailureIsPrimaryWhenScopeFails() throws Exception {
+		IllegalStateException original = new IllegalStateException("original");
+		CompletableFuture<String> source = new CompletableFuture<>();
+		GraphQLContext graphQlContext = GraphQLContext.getDefault();
+		ContextPropagationHelper.saveInstance(failingSnapshotFactory(), graphQlContext);
+
+		Object wrapped = newDecorator((env) -> source).get(environment(graphQlContext));
+		source.completeExceptionally(original);
+
+		Throwable failure = ((CompletableFuture<?>) wrapped).handle((value, throwable) -> throwable).join();
+
+		assertThat(failure).isSameAs(original);
+		assertThat(failure.getSuppressed()).hasSize(1);
+	}
+
+	@Test
+	void alreadyCompletedFutureIsReturnedAsIs() throws Exception {
+		CompletableFuture<String> source = CompletableFuture.completedFuture("hello");
+		Object wrapped = newDecorator((env) -> source).get(environment(GraphQLContext.getDefault()));
+
+		assertThat(wrapped).isSameAs(source);
+	}
+
+	private static DataFetchingEnvironment environment(GraphQLContext graphQlContext) {
+		return DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+				.graphQLContext(graphQlContext)
+				.build();
+	}
+
+	private static ContextDataFetcherDecorator newDecorator(DataFetcher<?> delegate) {
+		try {
+			Constructor<ContextDataFetcherDecorator> constructor =
+					ContextDataFetcherDecorator.class.getDeclaredConstructor(
+							DataFetcher.class, boolean.class, SubscriptionExceptionResolver.class);
+			constructor.setAccessible(true);
+			return constructor.newInstance(delegate, false, new CompositeSubscriptionExceptionResolver(List.of()));
+		}
+		catch (Exception ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	/** Factory whose snapshots fail in {@code setThreadLocals}. */
+	private static ContextSnapshotFactory failingSnapshotFactory() {
+		ContextSnapshot snapshot = new ContextSnapshot() {
+			@Override
+			public <C> C updateContext(C context) {
+				return context;
+			}
+
+			@Override
+			public <C> C updateContext(C context, Predicate<Object> predicate) {
+				return context;
+			}
+
+			@Override
+			public Scope setThreadLocals() {
+				throw new IllegalStateException("scope failure");
+			}
+
+			@Override
+			public Scope setThreadLocals(Predicate<Object> predicate) {
+				throw new IllegalStateException("scope failure");
+			}
+
+			@Override
+			public <T> Callable<T> wrap(Callable<T> callable) {
+				return callable;
+			}
+		};
+		return new ContextSnapshotFactory() {
+			@Override
+			public ContextSnapshot captureAll(Object... values) {
+				return snapshot;
+			}
+
+			@Override
+			public ContextSnapshot captureFrom(Object... values) {
+				return snapshot;
+			}
+
+			@Override
+			public ContextSnapshot.Scope setThreadLocalsFrom(Object context, String... keys) {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+
+	private record Container(String value) {
+	}
+
 }

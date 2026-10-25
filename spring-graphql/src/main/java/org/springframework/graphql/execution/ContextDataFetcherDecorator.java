@@ -19,6 +19,10 @@ package org.springframework.graphql.execution;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
 
 import graphql.ExecutionInput;
 import graphql.GraphQLContext;
@@ -37,6 +41,8 @@ import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -59,6 +65,8 @@ import org.springframework.util.Assert;
  * @author Brian Clozel
  */
 class ContextDataFetcherDecorator implements DataFetcher<Object> {
+
+	private static final Log logger = LogFactory.getLog(ContextDataFetcherDecorator.class);
 
 	private final DataFetcher<?> delegate;
 
@@ -85,7 +93,8 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 
 		GraphQLContext graphQlContext = env.getGraphQlContext();
 		ContextSnapshotFactory snapshotFactory = ContextPropagationHelper.getInstance(graphQlContext);
-		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext) ?
+		ContextSnapshot snapshot = (env.getLocalContext() instanceof GraphQLContext localContext &&
+				localContext != graphQlContext) ?
 				snapshotFactory.captureFrom(graphQlContext, localContext) :
 				snapshotFactory.captureFrom(graphQlContext);
 
@@ -122,6 +131,15 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 			return subscriptionResult.contextWrite(snapshot::updateContext);
 		}
 
+		if (value instanceof CompletionStage<?> stage) {
+			// Wrap the CompletionStage directly instead of converting it through
+			// Mono (toMonoIfReactive + contextWrite + toFuture). The Reactor path
+			// allocated several objects per field and restored ThreadLocals only when
+			// Reactor's automatic context propagation was enabled; the direct wrapper
+			// installs the snapshot scope explicitly, independent of the Hooks state.
+			return wrapCompletionStage(stage, snapshot);
+		}
+
 		value = ReactiveAdapterRegistryHelper.toMonoIfReactive(value);
 
 		if (value instanceof Mono<?> mono) {
@@ -129,6 +147,58 @@ class ContextDataFetcherDecorator implements DataFetcher<Object> {
 		}
 
 		return value;
+	}
+
+	@SuppressWarnings({"unchecked", "try"})
+	private static CompletableFuture<@Nullable Object> wrapCompletionStage(
+			CompletionStage<?> stage, ContextSnapshot snapshot) {
+
+		if (stage instanceof CompletableFuture<?> future && future.isDone()
+				&& !future.isCompletedExceptionally()) {
+			// Dependents of an already-completed future run inline on the current thread,
+			// which holds its own context; no propagation wrapper is needed. Only normally
+			// completed futures take this path: a failed one must still be unwrapped below.
+			return (CompletableFuture<@Nullable Object>) future;
+		}
+
+		CompletableFuture<@Nullable Object> result = new CompletableFuture<>();
+
+		// Mono.fromCompletionStage propagated cancellation of the returned future back
+		// to the source; preserve that by cancelling the source when the result is cancelled.
+		result.whenComplete((value, throwable) -> {
+			if (result.isCancelled() && stage instanceof Future<?> future) {
+				future.cancel(true);
+			}
+		});
+
+		stage.whenComplete((value, throwable) -> {
+			if (throwable instanceof CompletionException exception && exception.getCause() != null) {
+				// MonoCompletionStage unwraps CompletionException before onError; match that.
+				throwable = exception.getCause();
+			}
+			try (ContextSnapshot.Scope scope = snapshot.setThreadLocals()) {
+				if (throwable != null) {
+					result.completeExceptionally(throwable);
+				}
+				else {
+					result.complete(value);
+				}
+			}
+			catch (Throwable ex) {
+				if (throwable != null) {
+					// Keep the original failure primary. Note addSuppressed mutates the
+					// stage's throwable: a shared failed future accumulates one suppressed
+					// entry per scope failure. Accepted, since scope failure here requires
+					// a failing ThreadLocalAccessor, which is a bug of its own.
+					throwable.addSuppressed(ex);
+					result.completeExceptionally(throwable);
+				}
+				else if (!result.completeExceptionally(ex)) {
+					logger.warn("ContextSnapshot scope failure after the future completed", ex);
+				}
+			}
+		});
+		return result;
 	}
 
 
