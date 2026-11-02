@@ -23,7 +23,7 @@ import org.springframework.graphql.ResponseField;
 /**
  * An exception raised when an attempt is made to decode data from a response
  * that is not {@link GraphQlResponse#isValid() valid} or where field value
- * is {@code null}, or there field {@link ResponseField#getErrors() errors}.
+ * is {@code null}, or the field has {@link ResponseField#getErrors() errors}.
  *
  * @author Rossen Stoyanchev
  * @since 1.0.0
@@ -57,7 +57,7 @@ public class FieldAccessException extends GraphQlClientException {
 
 
 	/**
-	 * Return the [@code GraphQlResponse} for which the error occurred.
+	 * Return the {@code GraphQlResponse} for which the error occurred.
 	 */
 	public ClientGraphQlResponse getResponse() {
 		return this.response;
