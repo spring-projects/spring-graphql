@@ -250,6 +250,45 @@ class GraphQlRequestPredicatesTests {
 	}
 
 	@Nested
+	class HttpOptionsPredicatesTests {
+
+		RequestPredicate optionsPredicate = GraphQlRequestPredicates.graphQlHttpOptions("/graphql");
+
+		@Test
+		void shouldAcceptOptionsRequest() {
+			ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.options("/graphql"));
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isTrue();
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.hasValue(PathPatternParser.defaultInstance.parse("/graphql"));
+		}
+
+		@Test
+		void shouldRejectCorsPreflightRequest() {
+			ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.options("/graphql")
+					.header("Origin", "https://example.org")
+					.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"));
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldRejectOtherHttpMethods() {
+			ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("/graphql"));
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldRejectRequestWithDifferentPath() {
+			ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.options("/invalid"));
+			ServerRequest serverRequest = ServerRequest.create(exchange, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isFalse();
+		}
+
+	}
+
+	@Nested
 	class SsePredicatesTests {
 
 		RequestPredicate ssePredicate = GraphQlRequestPredicates.graphQlSse("/graphql");

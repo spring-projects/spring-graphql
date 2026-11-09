@@ -16,6 +16,7 @@
 
 package org.springframework.graphql.server.webflux;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -129,6 +130,25 @@ public class GraphQlHttpHandler extends AbstractGraphQlHttpHandler {
 	 */
 	public boolean isHttpOkOnValidationErrors() {
 		return this.httpOkOnValidationErrors;
+	}
+
+	/**
+	 * Handle an HTTP OPTIONS request by responding with the HTTP methods
+	 * supported by this handler in the {@code "Allow"} response header.
+	 * <p>This should be mapped with
+	 * {@link GraphQlRequestPredicates#graphQlHttpOptions(String)}.
+	 * @param request the current request
+	 * @return a "204 No Content" response with the {@code "Allow"} header
+	 * @since 2.1.0
+	 */
+	public Mono<ServerResponse> handleOptionsRequest(ServerRequest request) {
+		return ServerResponse.noContent().allow(getAllowedMethods()).build();
+	}
+
+	private Set<HttpMethod> getAllowedMethods() {
+		Set<HttpMethod> allowed = new LinkedHashSet<>(this.httpMethods);
+		allowed.add(HttpMethod.OPTIONS);
+		return allowed;
 	}
 
 	protected Mono<ServerResponse> prepareResponse(ServerRequest request, WebGraphQlResponse response) {

@@ -86,6 +86,20 @@ public final class GraphQlRequestPredicates {
 	}
 
 	/**
+	 * Create a {@link RequestPredicate predicate} that matches HTTP OPTIONS
+	 * requests for the configured path, so that clients can discover which
+	 * HTTP methods are supported by the GraphQL HTTP endpoint.
+	 * <p>CORS pre-flight requests are not matched, as those are handled by
+	 * {@link #graphQlHttp(String, Set)} and the CORS configuration.
+	 * @param path the path on which the GraphQL HTTP endpoint is mapped
+	 * @since 2.1.0
+	 * @see GraphQlHttpHandler#handleOptionsRequest(ServerRequest)
+	 */
+	public static RequestPredicate graphQlHttpOptions(String path) {
+		return new GraphQlHttpOptionsRequestPredicate(path);
+	}
+
+	/**
 	 * Create a {@link RequestPredicate predicate} that matches GraphQL SSE over HTTP requests for the configured path.
 	 * <p>Matches only HTTP POST requests. To also match other HTTP methods, use
 	 * {@link #graphQlSse(String, Set)}.
@@ -254,6 +268,25 @@ public final class GraphQlRequestPredicates {
 				logger.trace(String.format("%s \"%s\" %s against value \"%s\"",
 						prefix, desired, match ? "matches" : "does not match", actual));
 			}
+		}
+	}
+
+
+	private static class GraphQlHttpOptionsRequestPredicate implements RequestPredicate {
+
+		private final PathPattern pattern;
+
+		GraphQlHttpOptionsRequestPredicate(String path) {
+			Assert.notNull(path, "'path' must not be null");
+			PathPatternParser parser = PathPatternParser.defaultInstance;
+			this.pattern = parser.parse(parser.initFullPathPattern(path));
+		}
+
+		@Override
+		public boolean test(ServerRequest request) {
+			return HttpMethod.OPTIONS.equals(request.method())
+					&& !CorsUtils.isPreFlightRequest(request.exchange().getRequest())
+					&& GraphQlHttpRequestPredicate.pathMatch(request, this.pattern);
 		}
 	}
 

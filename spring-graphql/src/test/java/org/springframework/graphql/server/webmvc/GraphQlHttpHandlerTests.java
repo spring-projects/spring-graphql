@@ -177,6 +177,24 @@ class GraphQlHttpHandlerTests {
 				.withMessageContaining("must be a subset of");
 	}
 
+	@Test
+	void shouldAnswerOptionsRequestsWithAllowedMethods() throws Exception {
+		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(
+						GraphQlSetup.schemaContent("type Query { greeting: String }")
+								.queryFetcher("greeting", (env) -> "Hello").toWebGraphQlHandler())
+				.httpMethods(HttpMethod.GET, HttpMethod.POST)
+				.build();
+
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest("OPTIONS", "/graphql");
+		ServerResponse response = handler.handleOptionsRequest(ServerRequest.create(servletRequest, MESSAGE_READERS));
+		MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+		response.writeTo(servletRequest, servletResponse, new DefaultContext());
+
+		assertThat(servletResponse.getStatus()).isEqualTo(204);
+		assertThat(servletResponse.getHeader("Allow").split(",\\s*"))
+				.containsExactlyInAnyOrder("GET", "POST", "OPTIONS");
+	}
+
 	@Test // gh-1450
 	void shouldSupportGetRequests() throws Exception {
 		GraphQlHttpHandler handler = GraphQlHttpHandler.builder(

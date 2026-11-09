@@ -236,6 +236,45 @@ class GraphQlRequestPredicatesTests {
 	}
 
 	@Nested
+	class HttpOptionsPredicatesTests {
+
+		RequestPredicate optionsPredicate = GraphQlRequestPredicates.graphQlHttpOptions("/graphql");
+
+		@Test
+		void shouldAcceptOptionsRequest() {
+			MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/graphql");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isTrue();
+			assertThat(serverRequest.attribute(RouterFunctions.MATCHING_PATTERN_ATTRIBUTE))
+					.hasValue(PathPatternParser.defaultInstance.parse("/graphql"));
+		}
+
+		@Test
+		void shouldRejectCorsPreflightRequest() {
+			MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/graphql");
+			request.addHeader("Origin", "https://example.com");
+			request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldRejectOtherHttpMethods() {
+			MockHttpServletRequest request = new MockHttpServletRequest("POST", "/graphql");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isFalse();
+		}
+
+		@Test
+		void shouldRejectRequestWithDifferentPath() {
+			MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/invalid");
+			ServerRequest serverRequest = ServerRequest.create(request, Collections.emptyList());
+			assertThat(optionsPredicate.test(serverRequest)).isFalse();
+		}
+
+	}
+
+	@Nested
 	class SsePredicatesTests {
 
 		RequestPredicate ssePredicate = GraphQlRequestPredicates.graphQlSse("/graphql");
