@@ -27,6 +27,7 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -108,7 +109,7 @@ class GraphiQlBrowserTests {
 		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 		wait.until(ExpectedConditions.presenceOfElementLocated(By.className("graphiql-container")));
 
-		sendGraphQlRequest("{bookById(id:\"1\"){name}}", wait);
+		sendGraphQlRequest(driver, "{bookById(id:\"1\"){name}}", wait);
 		wait.until(ExpectedConditions.textToBePresentInElementLocated(By.className("graphiql-container"), "Nineteen Eighty-Four"));
 
 		driver.quit();
@@ -123,7 +124,7 @@ class GraphiQlBrowserTests {
 		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
 		wait.until(ExpectedConditions.textToBePresentInElementLocated(By.className("graphiql-container"), "{ \"X-XSRF-TOKEN\" : \"spring-cookie\" }"));
-		sendGraphQlRequest("{bookById(id:\"1\"){name}}", wait);
+		sendGraphQlRequest(driver, "{bookById(id:\"1\"){name}}", wait);
 		wait.until(ExpectedConditions.textToBePresentInElementLocated(By.className("graphiql-container"), "Nineteen Eighty-Four"));
 
 		driver.quit();
@@ -139,11 +140,15 @@ class GraphiQlBrowserTests {
 		driver.quit();
 	}
 
-	private static void sendGraphQlRequest(String request, WebDriverWait wait) {
-		WebElement queryEditor = wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(".graphiql-query-editor .inputarea")));
-		queryEditor.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
-		queryEditor.sendKeys(request);
-		wait.until(ExpectedConditions.elementToBeClickable(By.className("graphiql-execute-button"))).click();
+	private static void sendGraphQlRequest(RemoteWebDriver driver, String request, WebDriverWait wait) {
+		WebElement queryEditor = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".graphiql-query-editor .monaco-editor")));
+		new Actions(driver)
+				.click(queryEditor)
+				.keyDown(Keys.CONTROL).sendKeys("a").keyUp(Keys.CONTROL)
+				.sendKeys(Keys.BACK_SPACE)
+				.sendKeys(request)
+				.perform();
+		wait.until(ExpectedConditions.elementToBeClickable(By.className("graphiql-execute-button-primary"))).click();
 	}
 
 	private String getUrl(String path) {
