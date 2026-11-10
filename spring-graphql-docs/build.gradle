@@ -99,7 +99,7 @@ antora {
 
 tasks.named("generateAntoraYml") {
 	asciidocAttributes = project.provider( { ['spring-graphql-version': project.version,
-		'spring-framework-version': springFrameworkVersion] } )
+		'spring-framework-version': libs.versions.spring.framework.get()] } )
 }
 
 tasks.named("antora") {
