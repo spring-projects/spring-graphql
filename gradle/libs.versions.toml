@@ -14,7 +14,7 @@ reactor = "2025.0.9-SNAPSHOT"
 rsocket = "1.1.5"
 selenium = "4.20.0"
 spring-data-bom = "2025.1.9-SNAPSHOT"
-spring-framework = "7.0.10"
+spring-framework = "7.0.11-SNAPSHOT"
 spring-security = "7.0.8"
 testcontainers = "2.0.5"
 
