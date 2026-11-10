@@ -29,7 +29,6 @@ import javax.sql.DataSource;
 
 import graphql.schema.DataFetcher;
 import jakarta.persistence.EntityManagerFactory;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -234,7 +233,6 @@ class QueryByExampleDataFetcherJpaTests {
 		assertThat(actualBook.getName()).isEqualTo("Hitchhiker's Guide to the Galaxy by Douglas Adams");
 	}
 
-	@Disabled("Pending https://github.com/spring-projects/spring-data-jpa/issues/2327")
 	@Test
 	void shouldFetchSingleItemsWithDtoProjection() {
 		Book book = new Book(42L, "Hitchhiker's Guide to the Galaxy", new Author(0L, "Douglas", "Adams"));
