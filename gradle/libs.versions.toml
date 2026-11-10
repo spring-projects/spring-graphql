@@ -15,7 +15,7 @@ rsocket = "1.1.5"
 selenium = "4.20.0"
 spring-data-bom = "2026.1.0-SNAPSHOT"
 spring-framework = "7.1.0-SNAPSHOT"
-spring-security = "7.2.0-RC1"
+spring-security = "7.2.0-SNAPSHOT"
 testcontainers = "2.0.5"
 
 [libraries]
