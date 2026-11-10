@@ -1,0 +1,39 @@
+[versions]
+assertj = "3.27.7"
+graphql-java = "25.1"
+jackson2 = "2.21.5"
+jackson3 = "3.1.2"
+junit = "6.0.3"
+kotlinx-coroutines = "1.10.2"
+log4j = "2.25.5"
+micrometer = "1.16.8"
+micrometer-tracing = "1.6.8"
+mockito = "5.23.0"
+querydsl = "5.1.0"
+reactor = "2025.0.8"
+rsocket = "1.1.5"
+selenium = "4.20.0"
+spring-data-bom = "2025.1.8"
+spring-framework = "7.0.10"
+spring-security = "7.0.8"
+testcontainers = "2.0.5"
+
+[libraries]
+assertj-bom = { module = "org.assertj:assertj-bom", version.ref = "assertj" }
+graphql-java = { module = "com.graphql-java:graphql-java", version.ref = "graphql-java" }
+jackson2-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson2" }
+jackson3-bom = { module = "tools.jackson:jackson-bom", version.ref = "jackson3" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+kotlinx-coroutines-bom = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-bom", version.ref = "kotlinx-coroutines" }
+log4j-bom = { module = "org.apache.logging.log4j:log4j-bom", version.ref = "log4j" }
+micrometer-bom = { module = "io.micrometer:micrometer-bom", version.ref = "micrometer" }
+micrometer-tracing-bom = { module = "io.micrometer:micrometer-tracing-bom", version.ref = "micrometer-tracing" }
+mockito-bom = { module = "org.mockito:mockito-bom", version.ref = "mockito" }
+querydsl-bom = { module = "com.querydsl:querydsl-bom", version.ref = "querydsl" }
+reactor-bom = { module = "io.projectreactor:reactor-bom", version.ref = "reactor" }
+rsocket-bom = { module = "io.rsocket:rsocket-bom", version.ref = "rsocket" }
+selenium-bom = { module = "org.seleniumhq.selenium:selenium-dependencies-bom", version.ref = "selenium" }
+spring-data-bom = { module = "org.springframework.data:spring-data-bom", version.ref = "spring-data-bom" }
+spring-framework-bom = { module = "org.springframework:spring-framework-bom", version.ref = "spring-framework" }
+spring-security-bom = { module = "org.springframework.security:spring-security-bom", version.ref = "spring-security" }
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
