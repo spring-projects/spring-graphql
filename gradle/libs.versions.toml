@@ -1,6 +1,6 @@
 [versions]
 assertj = "3.27.7"
-graphql-java = "26.1"
+graphql-java = "26.2"
 jackson2 = "2.21.5"
 jackson3 = "3.1.5"
 junit = "6.1.3"
