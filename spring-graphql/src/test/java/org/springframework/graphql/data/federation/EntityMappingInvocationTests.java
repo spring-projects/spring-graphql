@@ -34,6 +34,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.MethodParameter;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.graphql.Author;
@@ -46,6 +47,7 @@ import org.springframework.graphql.GraphQlSetup;
 import org.springframework.graphql.ResponseHelper;
 import org.springframework.graphql.TestExecutionGraphQlService;
 import org.springframework.graphql.TestExecutionRequest;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
@@ -97,6 +99,17 @@ class EntityMappingInvocationTests {
 		assertAuthor(0, "Joseph", "Heller", helper);
 		assertAuthor(1, "George", "Orwell", helper);
 		assertAuthor(2, "Douglas", "Adams", helper);
+	}
+
+	@Test // gh-1567
+	void customArgumentResolver() {
+		Map<String, Object> variables = Map.of("representations", List.of(
+				Map.of("__typename", "Book", "id", "3")));
+
+		ResponseHelper helper = executeWith(CustomArgumentResolverController.class, variables,
+				new CustomEntityArgumentResolver());
+
+		assertAuthor(0, "Joseph", "Heller", helper);
 	}
 
 	@Test
@@ -202,9 +215,13 @@ class EntityMappingInvocationTests {
 				.withMessage("Unmapped entity types: 'Media', 'PrintedMedia', 'Book'");
 	}
 
-	private static ResponseHelper executeWith(Class<?> controllerClass, Map<String, Object> variables) {
+	private static ResponseHelper executeWith(
+			Class<?> controllerClass, Map<String, Object> variables,
+			HandlerMethodArgumentResolver... customArgumentResolvers) {
+
 		ExecutionGraphQlRequest request = TestExecutionRequest.forDocumentAndVars(document, variables);
-		Mono<ExecutionGraphQlResponse> responseMono = graphQlService(controllerClass).execute(request);
+		Mono<ExecutionGraphQlResponse> responseMono =
+				graphQlService(controllerClass, customArgumentResolvers).execute(request);
 		return ResponseHelper.forResponse(responseMono);
 	}
 
@@ -222,7 +239,8 @@ class EntityMappingInvocationTests {
 		assertThat(helper.<Object>rawValue(path)).isNull();
 	}
 
-	private static TestExecutionGraphQlService graphQlService(Class<?> controllerClass) {
+	private static TestExecutionGraphQlService graphQlService(
+			Class<?> controllerClass, HandlerMethodArgumentResolver... customArgumentResolvers) {
 		BatchLoaderRegistry registry = new DefaultBatchLoaderRegistry();
 
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
@@ -236,6 +254,9 @@ class EntityMappingInvocationTests {
 
 		FederationSchemaFactory schemaFactory = new FederationSchemaFactory();
 		schemaFactory.setApplicationContext(context);
+		for (HandlerMethodArgumentResolver resolver : customArgumentResolvers) {
+			schemaFactory.addCustomArgumentResolver(resolver);
+		}
 		schemaFactory.afterPropertiesSet();
 
 		return GraphQlSetup.schemaResource(federationSchema)
@@ -243,6 +264,36 @@ class EntityMappingInvocationTests {
 				.schemaFactory(schemaFactory::createGraphQLSchema)
 				.dataLoaders(registry)
 				.toGraphQlService();
+	}
+
+
+	private record CustomEntityArgument(String marker) {
+	}
+
+
+	private static class CustomEntityArgumentResolver implements HandlerMethodArgumentResolver {
+
+		@Override
+		public boolean supportsParameter(MethodParameter parameter) {
+			return parameter.getParameterType() == CustomEntityArgument.class;
+		}
+
+		@Override
+		public @Nullable Object resolveArgument(MethodParameter parameter, DataFetchingEnvironment environment) {
+			return new CustomEntityArgument("custom");
+		}
+	}
+
+
+	@SuppressWarnings("unused")
+	@Controller
+	private static class CustomArgumentResolverController {
+
+		@EntityMapping("Media")
+		public Book book(CustomEntityArgument argument) {
+			assertThat(argument.marker()).isEqualTo("custom");
+			return BookSource.getBook(3L);
+		}
 	}
 
 

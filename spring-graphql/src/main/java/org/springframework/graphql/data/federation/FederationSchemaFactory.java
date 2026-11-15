@@ -49,6 +49,7 @@ import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.graphql.data.GraphQlArgumentBinder;
 import org.springframework.graphql.data.method.HandlerMethod;
+import org.springframework.graphql.data.method.HandlerMethodArgumentResolver;
 import org.springframework.graphql.data.method.HandlerMethodArgumentResolverComposite;
 import org.springframework.graphql.data.method.annotation.support.AnnotatedControllerDetectionSupport;
 import org.springframework.graphql.data.method.annotation.support.AuthenticationPrincipalArgumentResolver;
@@ -81,6 +82,8 @@ public final class FederationSchemaFactory
 
 	private @Nullable TypeResolver typeResolver;
 
+	private final List<HandlerMethodArgumentResolver> customArgumentResolvers = new ArrayList<>(8);
+
 	private final Map<String, EntityHandlerMethod> handlerMethods = new LinkedHashMap<>();
 
 
@@ -92,6 +95,18 @@ public final class FederationSchemaFactory
 	 */
 	public void setTypeResolver(@Nullable TypeResolver typeResolver) {
 		this.typeResolver = typeResolver;
+	}
+
+
+	/**
+	 * Add a {@link HandlerMethodArgumentResolver} for custom entity handler
+	 * method arguments. Such custom resolvers are ordered after built-in resolvers.
+	 * Call this before {@link #afterPropertiesSet()}.
+	 * @param resolver the resolver to add
+	 * @since 2.1.1
+	 */
+	public void addCustomArgumentResolver(HandlerMethodArgumentResolver resolver) {
+		this.customArgumentResolvers.add(resolver);
 	}
 
 
@@ -139,6 +154,8 @@ public final class FederationSchemaFactory
 		if (KotlinDetector.isKotlinPresent()) {
 			resolvers.addResolver(new ContinuationHandlerMethodArgumentResolver());
 		}
+
+		this.customArgumentResolvers.forEach(resolvers::addResolver);
 
 		return resolvers;
 	}

@@ -141,6 +141,10 @@ You can load federated entities with a `DataLoader`:
 
 Entity mapping methods support the following arguments:
 
+To resolve additional argument types, register a `HandlerMethodArgumentResolver` with the
+`FederationSchemaFactory` through `addCustomArgumentResolver` before factory initialization.
+Custom resolvers are ordered after built-in resolvers.
+
 [cols="1,2"]
 |===
 | Method Argument | Description
