@@ -32,7 +32,7 @@ import org.springframework.graphql.execution.ErrorType;
  * </ul>
  *
  * <p>The {@link RepresentationNotResolvedException} subtype is raised when a
- * resolver returned {@code null} or completed empty.
+ * batch resolver returned {@code null} or completed empty.
  *
  * @author Rossen Stoyanchev
  * @since 1.3.0
