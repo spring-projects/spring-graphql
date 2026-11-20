@@ -4,9 +4,12 @@
 
 ## Code of Conduct
 
-This project is governed by the [Spring Code of Conduct](CODE_OF_CONDUCT.adoc). By participating, you are expected to uphold this code of conduct. Please report unacceptable behavior to spring-code-of-conduct@pivotal.io.
+This project is governed by the [Spring Code of Conduct](CODE_OF_CONDUCT.adoc). By participating, you are expected to uphold this code of conduct. Please report unacceptable behavior to spring-code-of-conduct@spring.io.
 
 ## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to report issues and submit pull requests.
+Coding agents should follow [AGENTS.md](AGENTS.md).
 
 All commits must include a _Signed-off-by_ trailer at the end of each commit message to indicate that the contributor agrees to the Developer Certificate of Origin.
 For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: Simplifying Contributions to Spring](https://spring.io/blog/2025/01/06/hello-dco-goodbye-cla-simplifying-contributions-to-spring).
@@ -14,11 +17,15 @@ For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: S
 ## Documentation
 
 This project has reference documentation ([published](https://docs.spring.io/spring-graphql/reference/) and [source](spring-graphql-docs/modules/ROOT)), an
-[API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/api/). There are [samples](https://github.com/spring-projects/spring-graphql/tree/1.0.x/samples) in the 1.0.x branch that will be [moved out](https://github.com/spring-projects/spring-graphql/issues/208) into a separate repository.
+[API reference](https://docs.spring.io/spring-graphql/docs/current-SNAPSHOT/api/).
+
+## Build from Source
+
+See the [Build from Source](CONTRIBUTING.md#build-from-source) section of the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+
 
 ## Getting Support
 
-Check out the [Spring GraphQL tags on Stack Overflow](https://stackoverflow.com/questions/tagged/spring-graphql).
 [Commercial support](https://spring.io/support) is available too.
 
 
