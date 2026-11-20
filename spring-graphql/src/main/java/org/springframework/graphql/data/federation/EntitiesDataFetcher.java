@@ -188,7 +188,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 		return new ErrorContainer(GraphqlErrorBuilder.newError(env)
 				.errorType(errorType)
-				.message(ex.getMessage())
+				.message(errorType + " for " + env.getExecutionId())
 				.build());
 	}
 
