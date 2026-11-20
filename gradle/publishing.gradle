@@ -34,6 +34,13 @@ plugins.withType(JavaPlugin) {
 		manifest.attributes["Build-Jdk-Spec"] = "${System.getProperty("java.specification.version")}"
 	}
 
+	tasks.withType(Jar).matching { it.name in ["jar", "sourcesJar", "javadocJar"] }.configureEach {
+		into("META-INF") {
+			from(rootProject.file("LICENSE"))
+			from(rootProject.file("NOTICE"))
+		}
+	}
+
 	tasks.named('sourcesJar', Jar).configure {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	}
