@@ -46,14 +46,17 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 
 	private final HandlerDataFetcherExceptionResolver exceptionResolver;
 
+	private final EntityKeyResolver entityKeyResolver;
+
 
 	EntitiesDataFetcher(
 			Map<String, EntityHandlerMethod> handlerMethods, Map<String, String> objectToInterfaceMap,
-			HandlerDataFetcherExceptionResolver resolver) {
+			HandlerDataFetcherExceptionResolver resolver, EntityKeyResolver entityKeyResolver) {
 
 		this.handlerMethods = new LinkedHashMap<>(handlerMethods);
 		this.objectToInterfaceMap = objectToInterfaceMap;
 		this.exceptionResolver = resolver;
+		this.entityKeyResolver = entityKeyResolver;
 	}
 
 
@@ -109,7 +112,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 			DataFetchingEnvironment environment, EntityHandlerMethod handlerMethod,
 			Map<String, Object> representation, int index) {
 
-		return handlerMethod.getEntity(environment, representation)
+		return handlerMethod.getEntity(environment, representation, this.entityKeyResolver)
 				.switchIfEmpty(Mono.error(new RepresentationNotResolvedException(representation, handlerMethod)))
 				.onErrorResume((ex) -> resolveException(ex, environment, handlerMethod, index));
 	}
@@ -130,7 +133,7 @@ final class EntitiesDataFetcher implements DataFetcher<Mono<DataFetcherResult<Li
 			}
 		}
 
-		return handlerMethod.getEntities(environment, typeRepresentations)
+		return handlerMethod.getEntities(environment, typeRepresentations, this.entityKeyResolver)
 				.mapNotNull((result) -> (((List<?>) result).isEmpty()) ? null : result)
 				.switchIfEmpty(Mono.defer(() -> {
 					List<Mono<?>> exceptions = new ArrayList<>(originalIndexes.size());
