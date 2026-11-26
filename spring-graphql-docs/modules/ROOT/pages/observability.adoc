@@ -31,7 +31,7 @@ By default, the following KeyValues are created:
 |`graphql.outcome` _(required)_|Outcome of the GraphQL request.
 |===
 
-The `graphql.operation.type` KeyValue will use the http://spec.graphql.org/draft/#sec-Language.Operations[the standard name for the operation] (`"query"`, `"mutation"` or `"subscription"`) or `"operation"` if the request document could not be parsed.
+The `graphql.operation.type` KeyValue will use http://spec.graphql.org/draft/#sec-Language.Operations[the standard name for the operation] (`"query"`, `"mutation"` or `"subscription"`) or `"operation"` if the request document could not be parsed.
 
 The `graphql.outcome` KeyValue will be:
 

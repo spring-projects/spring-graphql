@@ -31,7 +31,7 @@ public interface DataLoaderRegistrar {
 	}
 
 	/**
-	 * Callback that provides access to the {@link DataLoaderRegistry} from the
+	 * Callback that provides access to the {@link DataLoaderRegistry} from
 	 * the {@link graphql.ExecutionInput}.
 	 * @param registry the registry to make registrations against
 	 * @param context the GraphQLContext from the ExecutionInput that registrars
